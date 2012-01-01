@@ -282,8 +282,8 @@ all_results="$data_dir/${pid}_${table_name1}_archive_results.$now.timings"
 # These are the individual history tables being archived
 #----------------------------------------------------------------
 
-./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
-        awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' | tee -a >>"${logfile}"
+./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results"
+awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' ${all_results}  >>"${logfile}"
 
 runtime="$(($(date +%s%N)-$start_time))"
 sec="$((runtime/1000000000))"
