@@ -114,6 +114,8 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_E
 THE_END`
 )
 
+sed -i "s:([\b\f\n\r\t\"]):\\\1:g" ${swap_file}
+
 # Enrich the 
 awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file}\
     >> ${json_file}
