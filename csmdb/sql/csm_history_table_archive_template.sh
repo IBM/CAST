@@ -68,7 +68,7 @@ logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db"
 # Along with csm allocation history archive results
 #----------------------------------------------------------------
 
-    time="$(time ( ls ) 2>&1 1>/dev/null )"
+time="$(time ( ls ) 2>&1 1>/dev/null )"
 
 #-------------------------------------------------------------------------------
 # psql history archive query execution
