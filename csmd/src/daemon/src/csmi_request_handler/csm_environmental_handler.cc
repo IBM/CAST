@@ -74,6 +74,10 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
 
             break;
           }
+          case csm::daemon::DEBUG:
+            LOG( csmenv, info ) << "ENVDATA Collection debug.";
+            envData.GenerateTestData();
+            break;
           case csm::daemon::CPU:
           {
             LOG(csmenv, debug) << "Collecting CPU data.";

@@ -404,6 +404,13 @@ bool CSM_Environmental_Data::CollectEnvironmentalData()
       }
    }
 
+   // Reset the OCC CSM sensor min and max values for the next collection period
+   bool reset_successful = csm::daemon::helper::ResetOccCsmSensorMinMax();
+   if ( !reset_successful )
+   {
+      LOG(csmenv, warning) << "ResetOccCsmSensorMinMax() failed.";
+   }
+
    LOG(csmenv, debug) << "Finish CollectEnvironmentalData()";
 
    return success;
@@ -417,6 +424,17 @@ void CSM_Environmental_Data::AddDataItems(const std::list<boost::property_tree::
 void CSM_Environmental_Data::AddDataItem(const boost::property_tree::ptree &data_pt)
 {
    _data_list.push_back(data_pt);
+}
+
+void CSM_Environmental_Data::GenerateTestData()
+{
+  boost::property_tree::ptree dpt;
+  dpt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_TEST_ENV);
+  dpt.put(CSM_BDS_KEY_SOURCE, _source_node);
+  dpt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);
+  dpt.put("data.debug", "Fixed generated debug/test data" );
+  _data_list.push_back( dpt );
+
 }
 
 bool CSM_Environmental_Data::HasData() const

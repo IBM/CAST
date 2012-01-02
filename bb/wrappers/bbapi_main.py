@@ -40,8 +40,7 @@
                         the testcase must provide it.
     -o --owner          Owner value to use.  Default is $USER.
     -p --testpath       Path to testcase to run.  Default is ".", the current working directory.
-    -q --orgsrc         Path to original source files.  Default is "/gpfs/gpfs0dlh10oct
-    /$USER/source".
+    -q --orgsrc         Path to original source files.  Default is "/gpfs/gpfs0/$USER/source".
     -r --contribid      Contribid value to use. Default is 0.
     -s --size           Size of the logical volume to create.  Default is "1G".
                         NOTE:  If specifying a value like one-half gigabyte, the leading

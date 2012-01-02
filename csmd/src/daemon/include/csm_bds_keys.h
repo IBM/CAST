@@ -27,6 +27,7 @@
 #define CSM_BDS_TYPE_PROCESSOR_ENV "csm-processor-env"
 #define CSM_BDS_TYPE_GPU_ENV       "csm-gpu-env"
 #define CSM_BDS_TYPE_DIMM_ENV      "csm-dimm-env"
+#define CSM_BDS_TYPE_TEST_ENV      "csm-test-env"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // CSM_BDS_KEY_SOURCE - the source from which the reported data was collected 
