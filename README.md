@@ -26,9 +26,9 @@ What is the goal of this project?
 If this sounds like a project you would like to help develop please fill out
 either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the
 individual agreement [cast-project-cla-individual.pdf] (https://github.com/IBM/CAST/blob/master/cast-project-cla-individual.pdf) for further
-details please view the CONTRIBUTING.md
+details please view the [CONTRIBUTING.md](https://github.com/IBM/CAST/blob/master/CONTRIBUTING.md)
 
-For instructions for how to get started developing CAST see the MAINTAINERS.md
+For instructions for how to get started developing CAST see the [MAINTAINERS.md](https://github.com/IBM/CAST/blob/master/MAINTAINERS.md)
 
 CAST is licensed under the Eclipse Public License 1.0. For more details please view
 the LICENCE file for details.
