@@ -25,7 +25,7 @@ What is the goal of this project?
 
 If this sounds like a project you would like to help develop please fill out
 either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the
-individual agreement cast-project-cla-individual.pdf for further
+individual agreement [cast-project-cla-individual.pdf] (https://github.com/IBM/CAST/blob/master/cast-project-cla-individual.pdf) for further
 details please view the CONTRIBUTING.md
 
 For instructions for how to get started developing CAST see the MAINTAINERS.md
