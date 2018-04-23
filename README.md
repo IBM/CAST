@@ -1,5 +1,3 @@
-
-
 #CAST
 
 What is this repo or project?
@@ -31,15 +29,9 @@ either the corporate agreement cast-project-cla-corporate.pdf or the
 individual agreement cast-project-cla-individual.pdf for further
 details please view the CONTRIBUTING.md
 
-For
-instructions for how to get started developing CAST see the MAINTAINERS.md
+For instructions for how to get started developing CAST see the MAINTAINERS.md
 
-
-CAST
-is licensed under the Eclipse Public License 1.0. For more details please view
+CAST is licensed under the Eclipse Public License 1.0. For more details please view
 the LICENCE file for details.
 
-
-If
-you have any questions please contact XXX at YYY.
-
+If you have any questions please contact XXX at YYY.
