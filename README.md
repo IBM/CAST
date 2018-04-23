@@ -1,6 +1,6 @@
 #CAST
 
--"What is this repo or project?"
+What is this repo or project?
 
 CAST can
 enhance the system management of cluster-wide resources. It consists of the
@@ -17,14 +17,14 @@ tier between compute nodes and the traditional parallel file system, allowing
 overlapping jobs to stage-in and stage-out data for a variety of
 checkpoint/restart, scratch volume, and extended memory I/O workloads. 
 
--How does it work? 
+How does it work? 
 
--Who will use this repo or project? 
+Who will use this repo or project? 
 
--What is the goal of this project?
+What is the goal of this project?
 
 If this sounds like a project you would like to help develop please fill out
-either the corporate agreement cast-project-cla-corporate.pdf or the
+either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the
 individual agreement cast-project-cla-individual.pdf for further
 details please view the CONTRIBUTING.md
 
