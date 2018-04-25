@@ -1,24 +1,24 @@
 # Build Machine Requirements
-Red Hat Enterprise Linux 7.5 for ppc64 LE
-cmake 3.7.1
-datacenter-gpu-manager 1.4.0-1
-spectrum mpi 10.2.0
-boost 1.60.0
-java 1.8.0
-doxygen 1.8.10
-mosquitto 1.4.8-1
-fuse 2.9.2-10
-gcc 4.8.5-4
-rpm 4.11.3
-rpm-build 4.11.3
-flex 2.5.37-3
-bison 2.7-4
-c-ares 1.10.0-3
-postgresql 9.2.14
-libuuid 2.23.2
-libverbs 1.1.8-8
-librdmacm 1.0.21-1
-openssl 1.0.1e-42
+- Red Hat Enterprise Linux 7.5 for ppc64 LE
+- cmake 3.7.1
+- datacenter-gpu-manager 1.4.0-1
+- spectrum mpi 10.2.0
+- boost 1.60.0
+- java 1.8.0
+- doxygen 1.8.10
+- mosquitto 1.4.8-1
+- fuse 2.9.2-10
+- gcc 4.8.5-4
+- rpm 4.11.3
+- rpm-build 4.11.3
+- flex 2.5.37-3
+- bison 2.7-4
+- c-ares 1.10.0-3
+- postgresql 9.2.14
+- libuuid 2.23.2
+- libverbs 1.1.8-8
+- librdmacm 1.0.21-1
+- openssl 1.0.1e-42
 
 
 # Build Instructions
