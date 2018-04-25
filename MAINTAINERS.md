@@ -37,6 +37,29 @@ toplevel/
 ```
 The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
 
+# Source control
+
+bluecoral is using the GIT source code repository.  Documentation can be found at https://git-scm.com/doc
+
+There are numerous GIT tools online, some with good graphical representations of the tree, automated diff, etc.  
+
+For the basic commandline utilities:
+```
+$ git add <filename>
+  Adds your changes to your LOCAL repository.  
+
+$ git commit -m "message"
+  Commits your changes to your LOCAL repository. 
+
+$ git push
+  Pushes any changes in the LOCAL repository to upstream. 
+
+$ git pull
+  Pulls any changes from the upstream repository into the LOCAL repository.
+
+$ git status
+  Shows which files have either not been commited or pushed upstream.
+```
 
 # Build Instructions
 
