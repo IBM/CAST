@@ -110,7 +110,7 @@ use of issues
 
 link to user guide
 
-link to binaries in public box
+link to binaries in public box     https://ibm.box.com/s/xz86ufe0pwvzwe6wnjfb88g846txe3hb
 
 # Maintainers Guide
 
