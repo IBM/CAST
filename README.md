@@ -7,7 +7,7 @@ Burst Buffer is a cost-effective mechanism that can improve I/O performance for 
 
 Function Shipping is
 
-For more dettails on CAST please view the user guide & xxx
+For more details on CAST please view the user guide & xxx
 
 # How to Contribute
 If this sounds like a project you would like to help develop please fill out either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the individual agreement [cast-project-cla-individual.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-individual.pdf) for further details please view the [CONTRIBUTING.md](https://github.com/IBM/CAST/blob/master/CONTRIBUTING.md)
