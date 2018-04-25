@@ -9,7 +9,7 @@
 - mosquitto 1.4.8-1
 - fuse 2.9.2-10
 - gcc 4.8.5-4
-- rpm 4.11.3
+- rpm 4.11.
 - rpm-build 4.11.3
 - flex 2.5.37-3
 - bison 2.7-4
@@ -18,8 +18,24 @@
 - libuuid 2.23.2
 - libverbs 1.1.8-8
 - librdmacm 1.0.21-1
+
 - openssl 1.0.1e-42
 
+# Code Structure
+```
+Toplevel components should have the following structure:
+
+toplevel/
+    CMakeList.txt
+    src/
+        CMakeList.txt
+        foo.c
+    include/
+        CMakeList.txt
+        foo.h
+  
+The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
+```
 
 # Build Instructions
 scripts/configure.pl --rpmbuild --parallel --mincmake=3.6
