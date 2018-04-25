@@ -1,6 +1,6 @@
 # Build Machine Requirements
 
-how in depth to get with installed rpms?
+how in depth to get with installed rpms and where to find pre-reqs like sprectum mpi?
 
 - Red Hat Enterprise Linux 7.5 for ppc64 LE
 - cmake 3.7.1
