@@ -10,7 +10,7 @@ CAST can enhance the system management of cluster-wide resources. It consists of
 For more dettails on CAST please view the user guide & xxx
 
 # How to Contribute
-If this sounds like a project you would like to help develop please fill out either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the individual agreement [cast-project-cla-individual.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-individual.pdf) for further details please view the [CONTRIBUTING.md](https://github.com/IBM/CAST/blob/master/CONTRIBUTING.md)
+If this sounds like a project you would like to help develop please fill out either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the individual agreement [cast-project-cla-individual.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-individual.pdf) For further details, please view the [CONTRIBUTING.md](https://github.com/IBM/CAST/blob/master/CONTRIBUTING.md)
 
 # How to Start Developing
 For instructions on how to get started developing CAST see the [MAINTAINERS.md](https://github.com/IBM/CAST/blob/master/MAINTAINERS.md)
