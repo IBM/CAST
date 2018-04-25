@@ -61,7 +61,7 @@ toplevel/
         foo.h
   
 ```
-The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
+The include directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
 
 # Build Instructions
 
@@ -94,8 +94,8 @@ If there is a need to rebuild the tree from scratch:
    % rebuild
 
 ```
-By default, the install directory is bluecoral/work
-By default, the build directory is bluecoral/.build
+By default, the install directory is CAST/work
+By default, the build directory is CAST/.build
 
 You should not need to access files in the .build directory unless you are generating files.
 
@@ -103,14 +103,18 @@ cmake and Boost libraries need to be installed on the system you're building on:
       If your system is downlevel, run this script:
            scripts/prereq.pl 
 
+# How to contribute your fix / enhancement
 
-create pull request when ready
+open issue
+create pull request
+request will be evauated (using guidelines below???)
 
-use of issues
 
-link to user guide
+# Service Schedule
 
-link to binaries in public box     https://ibm.box.com/s/xz86ufe0pwvzwe6wnjfb88g846txe3hb
+A formal service release will be available aproximately every 6 weeks depending on severity and quantity of issus found. The binary distribution can be found on the public BOX site  https://ibm.box.com/s/xz86ufe0pwvzwe6wnjfb88g846txe3hb
+
+**verify box site**
 
 # Maintainers Guide
 
