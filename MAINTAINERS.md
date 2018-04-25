@@ -34,8 +34,9 @@ toplevel/
         CMakeList.txt
         foo.h
   
-The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
 ```
+The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
+
 
 # Build Instructions
 scripts/configure.pl --rpmbuild --parallel --mincmake=3.6
