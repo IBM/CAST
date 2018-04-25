@@ -1,11 +1,11 @@
 # CAST
-CAST can enhance the system management of cluster-wide resources. It consists of the open source tools: cluster system management (CSM) and burst buffer. 
+CAST can enhance the system management of cluster-wide resources. It consists of the open source tools: cluster system management (CSM), Burst Buffer and Function Shipping. 
 
 CSM provides an integrated view of your large cluster and includes discovery and management of system resources, database integration, support of job launches, diagnostics, RAS events and actions, and health check. 
 
 Burst Buffer is a cost-effective mechanism that can improve I/O performance for a large class of high-performance computing applications without requirement of intermediary hardware. Burst buffer provides a fast storage tier between compute nodes and the traditional parallel file system, allowing overlapping jobs to stage-in and stage-out data for a variety of checkpoint/restart, scratch volume, and extended memory I/O workloads. 
 
-Function Shipping is
+Function Shipping is a file I/O forwarding layer for Linux that aims to provide low-jitter access to remote parallel file system while retaining common POSIX semantics.
 
 For more dettails on CAST please view the user guide & xxx
 
