@@ -5,6 +5,8 @@ CSM provides an integrated view of your large cluster and includes discovery and
 
 Burst Buffer is a cost-effective mechanism that can improve I/O performance for a large class of high-performance computing applications without requirement of intermediary hardware. Burst buffer provides a fast storage tier between compute nodes and the traditional parallel file system, allowing overlapping jobs to stage-in and stage-out data for a variety of checkpoint/restart, scratch volume, and extended memory I/O workloads. 
 
+Fuction Shipping is
+
 # How to Contribute
 If this sounds like a project you would like to help develop please fill out either the corporate agreement [cast-project-cla-corporate.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-corporate.pdf) or the individual agreement [cast-project-cla-individual.pdf](https://github.com/IBM/CAST/blob/master/cast-project-cla-individual.pdf) for further details please view the [CONTRIBUTING.md](https://github.com/IBM/CAST/blob/master/CONTRIBUTING.md)
 
