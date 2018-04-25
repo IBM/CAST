@@ -1,4 +1,7 @@
 # Build Machine Requirements
+
+how in depth to get with installed rpms?
+
 - Red Hat Enterprise Linux 7.5 for ppc64 LE
 - cmake 3.7.1
 - datacenter-gpu-manager 1.4.0-1
@@ -18,28 +21,11 @@
 - libuuid 2.23.2
 - libverbs 1.1.8-8
 - librdmacm 1.0.21-1
-
 - openssl 1.0.1e-42
 
-# Code Structure
-```
-Toplevel components should have the following structure:
+# Source Control
 
-toplevel/
-    CMakeList.txt
-    src/
-        CMakeList.txt
-        foo.c
-    include/
-        CMakeList.txt
-        foo.h
-  
-```
-The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
-
-# Source control
-
-bluecoral is using the GIT source code repository.  Documentation can be found at https://git-scm.com/doc
+CAST is using the GIT source code repository.  Documentation can be found at https://git-scm.com/doc
 
 There are numerous GIT tools online, some with good graphical representations of the tree, automated diff, etc.  
 
@@ -60,6 +46,22 @@ $ git pull
 $ git status
   Shows which files have either not been commited or pushed upstream.
 ```
+
+# Code Structure
+```
+Toplevel components should have the following structure:
+
+toplevel/
+    CMakeList.txt
+    src/
+        CMakeList.txt
+        foo.c
+    include/
+        CMakeList.txt
+        foo.h
+  
+```
+The include/ directory is intended for public header files.  Private header files can be stored in the src/ directory (developer preference)
 
 # Build Instructions
 
