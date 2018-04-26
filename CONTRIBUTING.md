@@ -54,8 +54,6 @@ The following are the minimum recommended levels of software for a build machine
 
 # How to contribute to the project
 
-We appreciate your interest in this project! 
-
 1. Sign a CLA or CCLA 
 2. Fork the project and create pull requests!
 
