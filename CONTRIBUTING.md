@@ -61,8 +61,6 @@ cmake and Boost libraries need to be installed on the system you're building on:
 open issue
 create pull request
 
-# Service Schedule
+# Location of Binaries
 
-A formal service release will be available aproximately every 6 weeks depending on severity and quantity of issus found. The binary distribution can be found on the public BOX site  https://ibm.box.com/s/xz86ufe0pwvzwe6wnjfb88g846txe3hb
-
-**verify box site**
+The binary distribution can be found on the public BOX site  https://ibm.box.com/s/xz86ufe0pwvzwe6wnjfb88g846txe3hb
