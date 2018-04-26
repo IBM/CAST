@@ -18,7 +18,7 @@ Thank you for your interest in the Cluster Administration and Storage Tools (CAS
 The following are the minimum recommended levels of software for a build machine.
 
 - Red Hat Enterprise Linux 7.5 for IBM Power LE (Power 9)
-- libibverbs-devel-41mlnx1-OFED (provides <infiniband/verbs.h>)
+- libibverbs-devel-41mlnx1-OFED (provides `<infiniband/verbs.h>`)
 - cmake 3.7.1
 - boost 1.55.0
 
