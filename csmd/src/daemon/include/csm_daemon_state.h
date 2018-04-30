@@ -2,7 +2,7 @@
    
     csmd/src/daemon/include/csm_daemon_state.h
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -151,7 +151,7 @@ public:
   inline void SetLocalInventory( const csm::network::Message &msg )
   {
     if( _LocalInventory.GetDataLen() > 0 )
-      LOG( csmd, warning ) << "DaemonState: Warning: overwriting existing inventory! This might cause inconsistencies down the line.";
+      LOG( csmd, warning ) << "Warning: overwriting existing inventory! This might cause inconsistencies down the line.";
     _LocalInventory = msg;
   }
 

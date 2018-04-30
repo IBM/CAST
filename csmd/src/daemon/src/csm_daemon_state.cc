@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_daemon_state.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -14,6 +14,13 @@
 ================================================================================*/
 
 #include "include/csm_daemon_state.h"
+
+#ifdef logprefix
+#undef logprefix
+#endif
+#define logprefix "DAEMONSTATE"
+#include "csm_pretty_log.h"
+
 #include "csm_daemon_config.h"
 
 csm::daemon::DaemonState::~DaemonState()
@@ -57,7 +64,7 @@ csm::daemon::DaemonState::GenerateNodeID( const csm::network::Address_sptr i_Add
       code = i_Addr->MakeKey();
       break;
   }
-  LOG( csmd, trace ) << "GenerateNodeID from " << i_Addr->Dump() << " = " << code;
+  CSMLOG( csmd, trace ) << "GenerateNodeID from " << i_Addr->Dump() << " = " << code;
   return code;
 }
 
@@ -89,11 +96,11 @@ csm::daemon::DaemonState::AddEP(const csm::network::Address_sptr addr,
   std::lock_guard<std::mutex> guard( _map_lock );
   if( _NodeStateMap.find( key ) != _NodeStateMap.end() )
   {
-    LOG( csmd, debug ) << "Already known " << addr->Dump() << " node/daemon " << csm::daemon::RUN_MODE::to_string( _NodeStateMap[ key ]._NodeMode );
+    CSMLOG( csmd, debug ) << "Already known " << addr->Dump() << " node/daemon " << csm::daemon::RUN_MODE::to_string( _NodeStateMap[ key ]._NodeMode );
 
     if( _NodeStateMap[ key ]._NodeMode != RUN_MODE::DISCONNECTED )
     {
-      LOG( csmd, error ) << "ERROR: Duplicate AddEP to node in READY state. Could be Address Key collision or message drop/duplicate.";
+      CSMLOG( csmd, error ) << "ERROR: Duplicate AddEP to node in READY state. Could be Address Key collision or message drop/duplicate.";
     }
   }
   else
@@ -109,10 +116,10 @@ csm::daemon::DaemonState::AddEP(const csm::network::Address_sptr addr,
 
   if( ! UpdateEPStatus( key, addr, runmode) )
   {
-    LOG( csmd, error ) << "Failed to update node status to RUNNING for addr: " << addr->Dump();
+    CSMLOG( csmd, error ) << "Failed to update node status to RUNNING for addr: " << addr->Dump();
   }
 
-  LOG(csmd, debug) << "DaemonState: Adding a node entry " << key
+  CSMLOG(csmd, debug) << "Adding a node entry " << key
       << " address: " << _NodeStateMap[ key ]._NodeAddr->Dump()
       << " bounced: " << _NodeStateMap[ key ]._Bounced
       << " id: "      << _NodeStateMap[ key ]._NodeID
@@ -133,12 +140,12 @@ csm::daemon::DaemonState::SetConnectionTypeEP( const csm::network::Address_sptr 
     auto it = _NodeStateMap.find( nodeID );
     if (it != _NodeStateMap.end())
     {
-      LOG( csmd, info ) << "Compute node " << addr->Dump() << " switched to " << type << " connection.";
+      CSMLOG( csmd, info ) << "Compute node " << addr->Dump() << " switched to " << type << " connection.";
       it->second._ConnectionType = type;
     }
     else
     {
-      LOG(csmd, warning) << "DaemonState::SetConnectionTypeEP(): Cannot find addr:" << addr->Dump();
+      CSMLOG(csmd, warning) << "SetConnectionTypeEP(): Cannot find addr:" << addr->Dump();
     }
   }
 }
@@ -148,19 +155,19 @@ csm::daemon::DaemonState::DisconnectEP(const csm::network::Address_sptr addr)
 {
   if( addr == nullptr )
   {
-    LOG( csmd, warning ) << "Potential bug: DisconnectEP called with nullptr addr.";
+    CSMLOG( csmd, warning ) << "Potential bug: DisconnectEP called with nullptr addr.";
     return;
   }
   //todo: need a strategy here. Now opt not to keep the history of the client connections
   if (addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_LOCAL) return;
-  LOG( csmd, info ) << "DISCONNECTEP: " << addr->Dump();
+  CSMLOG( csmd, info ) << "DISCONNECTEP: " << addr->Dump();
 
   csm::network::AddressCode nodeID = GenerateNodeID( addr );
 
   std::lock_guard<std::mutex> guard( _map_lock );
   if( ! UpdateEPStatus(nodeID, addr, RUN_MODE::DISCONNECTED) )
   {
-    LOG(csmd, warning) << "DaemonState::UpdateEPStatus(): Cannot find addr:" << addr->Dump();
+    CSMLOG(csmd, warning) << "UpdateEPStatus(): Cannot find addr:" << addr->Dump();
   }
 }
 
@@ -169,7 +176,7 @@ csm::daemon::DaemonState::ConnectEP(const csm::network::Address_sptr addr)
 {
   if( addr == nullptr )
   {
-    LOG( csmd, warning ) << "Potential bug: DisconnectEP called with nullptr addr.";
+    CSMLOG( csmd, warning ) << "Potential bug: DisconnectEP called with nullptr addr.";
     return;
   }
   //todo: need a strategy here. Now opt not to keep the history of the client connections
@@ -180,7 +187,7 @@ csm::daemon::DaemonState::ConnectEP(const csm::network::Address_sptr addr)
   std::lock_guard<std::mutex> guard( _map_lock );
   if( ! UpdateEPStatus(nodeID, addr, RUN_MODE::READY_RUNNING ) )
   {
-    LOG( csmd, warning ) << "DaemonState::UpdateEPStatus(): Cannot find addr:" << addr->Dump();
+    CSMLOG( csmd, warning ) << "UpdateEPStatus(): Cannot find addr:" << addr->Dump();
   }
 }
 
@@ -195,7 +202,7 @@ csm::daemon::DaemonState::UpdateEPStatus(const csm::network::AddressCode i_NodeI
   {
     if( i_Addr->MakeKey() != it->second._NodeAddr->MakeKey() )
     {
-      LOG( csmd, warning ) << "DaemonState::UpdateEPStatus(): Remote src address " << i_Addr->Dump()
+      CSMLOG( csmd, warning ) << "UpdateEPStatus(): Remote src address " << i_Addr->Dump()
         << "does not match, ignoring status update. Counts as a bounce.";
       it->second._Bounced++;
       return false;
@@ -207,19 +214,19 @@ csm::daemon::DaemonState::UpdateEPStatus(const csm::network::AddressCode i_NodeI
         if( it->second._NodeMode == RUN_MODE::DISCONNECTED )
         {
           it->second._NodeMode = i_Status;
-          LOG(csmd, debug) << "DaemonState::UpdateEPStatus(): Status of " << i_Addr->Dump()
+          CSMLOG(csmd, debug) << "UpdateEPStatus(): Status of " << i_Addr->Dump()
               << " change to " << RUN_MODE::to_string( i_Status );
           break;
         }
 
         if( it->second._NodeMode == RUN_MODE::READY_RUNNING )
         {
-          LOG( csmd, info ) << "DaemonState::UpdateEPStatus(): Node " << i_Addr->Dump()
+          CSMLOG( csmd, info ) << "UpdateEPStatus(): Node " << i_Addr->Dump()
               << " already in RUNNING mode. Duplicate up-event? Suggesting to check RAS and actual node status.";
           break;
         }
 
-        LOG( csmd, warning ) << "DaemonState::UpdateEPStatus(): Node " << i_Addr->Dump()
+        CSMLOG( csmd, warning ) << "UpdateEPStatus(): Node " << i_Addr->Dump()
           << " unexpected node state: " << RUN_MODE::to_string( it->second._NodeMode )
           << " when trying to change to RUNNING";
         break;
@@ -232,18 +239,18 @@ csm::daemon::DaemonState::UpdateEPStatus(const csm::network::AddressCode i_NodeI
           it->second._NodeMode = i_Status;
           it->second._NeedSendInventory = false;
           // do not count as a bounce if we're just coming out of configured mode
-          LOG(csmd, info) << "DaemonState::UpdateEPStatus(): Status of connection to: " << i_Addr->Dump()
+          CSMLOG(csmd, info) << "UpdateEPStatus(): Status of connection to: " << i_Addr->Dump()
               << " change to " << RUN_MODE::to_string( i_Status );
         }
         else
         {
-          LOG( csmd, debug ) << "DaemonState::UpdateEPStatus(): " << i_Addr->Dump()
+          CSMLOG( csmd, debug ) << "UpdateEPStatus(): " << i_Addr->Dump()
              << " already in DISCONNECTED mode.";
         }
 
         break;
       default:
-        LOG( csmd, warning ) << "DaemonState::UpdateEPStatus(): unhandled runmode change to " << RUN_MODE::to_string( i_Status )
+        CSMLOG( csmd, warning ) << "UpdateEPStatus(): unhandled runmode change to " << RUN_MODE::to_string( i_Status )
           << " requested for addr " << i_Addr->Dump();
     }
     return true;
@@ -261,18 +268,18 @@ csm::daemon::DaemonState::GetNodeInfo( const csm::network::AddressCode i_AddrCod
     csm::daemon::ConnectedNodeStatus *info = & _NodeStateMap.at( i_AddrCode );
     if( info != nullptr )
     {
-      LOG( csmd, debug ) << "DaemonState::GetNodeInfo(): Retrieved node info: addr=" << info->_NodeAddr->Dump()
+      CSMLOG( csmd, debug ) << "GetNodeInfo(): Retrieved node info: addr=" << info->_NodeAddr->Dump()
           << "; type=" << info->_ConnectionType << "; status=" << csm::daemon::RUN_MODE::to_string( info->_NodeMode );
     }
     else
     {
-      LOG( csmd, debug ) << "DaemonState::GetNodeInfo(): Nodeinfo == nullptr";
+      CSMLOG( csmd, debug ) << "GetNodeInfo(): Nodeinfo == nullptr";
     }
     return & _NodeStateMap.at( i_AddrCode );
   }
   catch( std::out_of_range &e )
   {
-    LOG( csmd, debug ) << "DaemonState::GetNodeInfo(): Nodeinfo not found";
+    CSMLOG( csmd, debug ) << "GetNodeInfo(): Nodeinfo not found";
     // do nothing...
   }
   return nullptr;
@@ -289,7 +296,7 @@ csm::daemon::DaemonState::GetNodeInfo( const csm::network::Address_sptr addr )
   csm::daemon::ConnectedNodeStatus *node = GetNodeInfo( key );
 
   if( node == nullptr )
-    LOG( csmd, debug ) << "DaemonState: NodeStateMap does not contain info about " << addr->Dump();
+    CSMLOG( csmd, debug ) << "NodeStateMap does not contain info about " << addr->Dump();
 
   return node;
 }
@@ -310,7 +317,7 @@ void csm::daemon::DaemonState::SetNodeInfo( const csm::network::Address_sptr add
     {
       _NodeStateMap[ key ]._LastInventory = *msg;
     }
-    LOG( csmd, debug ) << "DaemonState::SetNodeInfo(): Updating " << addr->Dump() << ". adding Inventory msg and ID=" << id;
+    CSMLOG( csmd, debug ) << "SetNodeInfo(): Updating " << addr->Dump() << ". adding Inventory msg and ID=" << id;
   }
 }
 
@@ -327,7 +334,7 @@ csm::daemon::DaemonState::GetAllEPs(csm::daemon::AddressListType &list,
     if( i_Connected )
       if( it.second._NodeMode != RUN_MODE::DISCONNECTED  )
       {
-        LOG( csmd, debug ) << "DaemonState::GetAllEPs(): found active: "
+        CSMLOG( csmd, debug ) << "GetAllEPs(): found active: "
             << it.second._ConnectionType << ": " << it.second._NodeAddr->Dump();
         if(( type == it.second._ConnectionType ) || ( type == ConnectionType::ANY ))
           list.push_back( it.second._NodeAddr );
@@ -335,13 +342,13 @@ csm::daemon::DaemonState::GetAllEPs(csm::daemon::AddressListType &list,
     if( ! i_Connected )
       if( it.second._NodeMode == RUN_MODE::DISCONNECTED  )
       {
-        LOG( csmd, debug ) << "DaemonState::GetAllEPs(): found disconnected: "
+        CSMLOG( csmd, debug ) << "GetAllEPs(): found disconnected: "
             << it.second._ConnectionType << ": " << it.second._NodeAddr->Dump();
         if(( type == it.second._ConnectionType ) || ( type == ConnectionType::ANY ))
           list.push_back( it.second._NodeAddr );
       }
   }
-  LOG(csmd, debug) << "DaemonState::GetAllEPs(): # of selected EPs = " << list.size();
+  CSMLOG(csmd, debug) << "GetAllEPs(): # of selected EPs = " << list.size();
   return list.size();
 }
 
@@ -376,7 +383,7 @@ csm::daemon::DaemonState::RegisterContext(const csm::daemon::SystemContent::SIGN
 
   list->push_back(aContext);
 
-  LOG(csmd, debug) << "RegisterContext: Signal=" << aSignal << " contextList=" << _ContextMap[aSignal]->size();
+  CSMLOG(csmd, debug) << "RegisterContext: Signal=" << aSignal << " contextList=" << _ContextMap[aSignal]->size();
 }
 
 csm::daemon::ContextListType*
@@ -398,7 +405,7 @@ csm::daemon::DaemonState::UnregisterContext(const csm::daemon::SystemContent::SI
       if (list->at(i) == aContext)
       {
         list->erase(list->begin()+i);
-        LOG(csmd, debug) << "UnregisterContext: Signal=" << aSignal << " contextList=" << _ContextMap[aSignal]->size();
+        CSMLOG(csmd, debug) << "UnregisterContext: Signal=" << aSignal << " contextList=" << _ContextMap[aSignal]->size();
         return true;
       }
     }
@@ -453,13 +460,13 @@ csm::daemon::DaemonState::UpdateEnvironmentalData( const csm::network::Address_s
 
   if( _NodeStateMap.find( key ) == _NodeStateMap.end() )
   {
-    LOG( csmd, warning ) << "UpdateEnvironmentalData: Cannot insert env data for unknown node: " << addr->Dump();
+    CSMLOG( csmd, warning ) << "UpdateEnvironmentalData: Cannot insert env data for unknown node: " << addr->Dump();
     return false;
   }
 
   _NodeStateMap[ key ]._EnvData |= data;
 
-  LOG( csmd, debug ) << "UpdateEnvironmentalData: completed update " << addr->Dump();
+  CSMLOG( csmd, debug ) << "UpdateEnvironmentalData: completed update " << addr->Dump();
   //_NodeStateMap[ key ]._EnvData.Print();
   return true;
 }
@@ -473,12 +480,12 @@ csm::daemon::DaemonState::GetCNUidFromAddr(const csm::network::Address_sptr addr
   {
     std::lock_guard<std::mutex> guard( _map_lock );
     auto nodeInfo = _NodeStateMap.at( key );
-    LOG( csmd, debug ) << "DaemonState::GetCNUidFromAddr(): addr=" << addr->Dump() << " nodeID=" << nodeInfo._NodeID;
+    CSMLOG( csmd, debug ) << "GetCNUidFromAddr(): addr=" << addr->Dump() << " nodeID=" << nodeInfo._NodeID;
     return nodeInfo._NodeID;
   }
   catch( std::out_of_range &e )
   {
-    LOG( csmd, warning ) << "DaemonState::GetCNUidFromAddr(): addr=" << addr->Dump() << " lookup failed. Unknown node?";
+    CSMLOG( csmd, warning ) << "GetCNUidFromAddr(): addr=" << addr->Dump() << " lookup failed. Unknown node?";
     return std::string("");
   }
 }
@@ -503,17 +510,17 @@ csm::daemon::DaemonStateMaster::GetAggregators( csm::daemon::AddressListType &li
     if( i_Connected )
       if( it.second._NodeMode != RUN_MODE::DISCONNECTED  )
       {
-        LOG( csmd, debug ) << "DaemonState::GetAggregators(): found active: " << it.second._NodeAddr->Dump();
+        CSMLOG( csmd, debug ) << "GetAggregators(): found active: " << it.second._NodeAddr->Dump();
         list.push_back( it.second._NodeAddr );
       }
     if( ! i_Connected )
       if( it.second._NodeMode == RUN_MODE::DISCONNECTED  )
       {
-        LOG( csmd, debug ) << "DaemonState::GetAggregators(): found disconnected: " << it.second._NodeAddr->Dump();
+        CSMLOG( csmd, debug ) << "GetAggregators(): found disconnected: " << it.second._NodeAddr->Dump();
         list.push_back( it.second._NodeAddr );
       }
   }
-  LOG(csmd, debug) << "DaemonState::GetAggregators(): # of active EPs = " << list.size();
+  LOG(csmd, debug) << "GetAggregators(): # of active EPs = " << list.size();
   return list.size();
 }
 
@@ -549,7 +556,7 @@ csm::daemon::DaemonStateMaster::DisconnectEP(const csm::network::Address_sptr ad
   {
     _aggregators.Disconnect( addr );
     ComputeNodeList_t disconnected = _aggregators.GetAggrDisconnectedNodes( addr );
-    LOG( csmd, info ) << "Aggregator: " << addr->Dump() << " down. No path to: " << disconnected.size()
+    CSMLOG( csmd, info ) << "Aggregator: " << addr->Dump() << " down. No path to: " << disconnected.size()
         << " compute node(s)";
     LOG( csmd, trace ) << "Aggregator: " << addr->Dump() << " down. Disconnected Nodelist: " << nodelist_to_string( disconnected );
 
@@ -620,7 +627,7 @@ csm::daemon::DaemonStateAgg::AddInventory(const std::string& aNodeUid,
   RUN_MODE::mode_t oldmode = _NodeStateMap[ key ]._NodeMode;
 //  UpdateEPStatus( key, addr, oldmode );
 
-  LOG( csmd, debug ) << "DaemonState::AddInventory: " << addr->Dump()
+  CSMLOG( csmd, debug ) << "AddInventory: " << addr->Dump()
       << " nodename=" << aNodeUid << " old runmode=" << RUN_MODE::to_string( oldmode )
       << " setting to " << RUN_MODE::to_string( _NodeStateMap[ key ]._NodeMode );
 }
@@ -657,13 +664,13 @@ csm::daemon::DaemonStateAgg::GetAllActiveInventory(std::vector<const csm::networ
         ( it.second._ConnectionType == ConnectionType::PRIMARY))
     {
       const csm::network::Message *msg = &it.second._LastInventory;
-      LOG( csmd, trace ) << "DaemonState::GetAllActiveInventory(): found active primary: " << it.second._NodeAddr->Dump()
+      CSMLOG( csmd, trace ) << "GetAllActiveInventory(): found active primary: " << it.second._NodeAddr->Dump()
           << " InvLen=" << msg->GetDataLen();
       if( msg->GetDataLen() > 0 )
         invList.push_back( msg );
     }
   }
-  LOG(csmd, debug) << "DaemonStateAgg::GetAllActiveInventory(): # of connected primary nodes= " << invList.size();
+  CSMLOG(csmd, debug) << "GetAllActiveInventory(): # of connected primary nodes= " << invList.size();
 }
 
 csm::network::Address_sptr
@@ -697,7 +704,7 @@ csm::daemon::DaemonStateAgg::GetAllDisconnectedEPs(std::vector<csm::daemon::Conn
     }
   }
 
-  LOG(csmd, debug) << "DaemonStateAgg::GetAllDisconnectedEP(): # of " << type << " disconnected EPs = " << list.size();
+  CSMLOG(csmd, debug) << "GetAllDisconnectedEP(): # of " << type << " disconnected EPs = " << list.size();
 }
 
 csm::daemon::DaemonStateAgg::~DaemonStateAgg()
@@ -712,7 +719,7 @@ void csm::daemon::DaemonStateAgg::InitActiveAddresses( )
   {
     if(( it._Addr != nullptr ) && ( it._Addr->GetAddrType() == csm::network::AddressType::CSM_NETWORK_TYPE_PTP ))
     {
-      LOG( csmd, info ) << "DaemonState: Setting up " << it._Addr->Dump() << " as primary listener";
+      CSMLOG( csmd, info ) << "DaemonState: Setting up " << it._Addr->Dump() << " as primary listener";
       _PrimaryListener = it._Addr;
       break;
     }
@@ -747,7 +754,7 @@ void csm::daemon::DaemonStateAgent::InitActiveAddresses( )
   {
     if(( it._Addr != nullptr ) && ( it._Addr->GetAddrType() == csm::network::AddressType::CSM_NETWORK_TYPE_PTP ))
     {
-      LOG( csmd, info ) << "DaemonState: Setting up " << it._Addr->Dump() << " as aggregator[" << aggr << "]";
+      CSMLOG( csmd, info ) << "Setting up " << it._Addr->Dump() << " as aggregator[" << aggr << "]";
       _Aggregators[ aggr++ ] = it._Addr;
     }
   }
@@ -766,12 +773,12 @@ void csm::daemon::DaemonStateAgent::SetPrimaryAggregator( const csm::network::Ad
   if( primary == nullptr )
     throw csm::daemon::Exception("BUG: SetPrimaryAggregator attemped with nullptr.");
 
-  LOG( csmd, debug ) << "DaemonStateAgent::SetPrimaryAggregator(): current status: primary=" << ( _Aggregators[ 0 ] != nullptr ? _Aggregators[ 0 ]->Dump() : "NULL" )
+  CSMLOG( csmd, debug ) << "SetPrimaryAggregator(): current status: primary=" << ( _Aggregators[ 0 ] != nullptr ? _Aggregators[ 0 ]->Dump() : "NULL" )
       << " secondary=" << ( _Aggregators[ 1 ] != nullptr ? _Aggregators[ 1 ]->Dump() : "NULL" );
   if(( _Aggregators[ 1 ] != nullptr )&&( _Aggregators[ 0 ]->MakeKey() != primary->MakeKey() ))
   {
     std::swap( _Aggregators[ 0 ], _Aggregators[ 1 ] );
-    LOG( csmd, info ) << "Updated aggregator priority: primary=" << _Aggregators[ 0 ]->Dump() << " secondary=" << _Aggregators[ 1 ]->Dump();
+    CSMLOG( csmd, info ) << "Updated aggregator priority: primary=" << _Aggregators[ 0 ]->Dump() << " secondary=" << _Aggregators[ 1 ]->Dump();
   }
   if( _Aggregators[ 0 ] != nullptr )
     _NodeStateMap[ _Aggregators[ 0 ]->MakeKey() ]._ConnectionType = csm::daemon::ConnectionType::PRIMARY;
@@ -794,7 +801,7 @@ csm::daemon::DaemonStateAgent::AddEP( const csm::network::Address_sptr addr,
       connType = ConnectionType::PRIMARY;
     else
       connType = ConnectionType::SECONDARY;
-    LOG( csmd, debug ) << "DaemonStateAgent: Initial ADD " << addr->Dump()
+    CSMLOG( csmd, debug ) << "Initial ADD " << addr->Dump()
         << " as " << connType << " + " << csm::daemon::RUN_MODE::to_string( runmode );
     DaemonState::AddEP( addr, connType, runmode, msg, nodeID );
   }
