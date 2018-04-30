@@ -1,0 +1,5 @@
+4
+n01,y,in service
+n02,y,in service
+n03,y,discovered
+n04,y,nick mode

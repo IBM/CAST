@@ -1,0 +1,67 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csm_allocation_update_history_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief Contains arguments for the query executed by @ref csm_allocation_update_history.
+ *
+ * The @ref csm_allocation_update_history api uses optional parameters: strings are not 
+ * used if set to NULL and numeric types are unused if set to -1.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_allocation_update_history_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0 
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int64_t, allocation_id, BASIC ,    , 0, ) /**< Allocation id to update the history of. */
+CSMI_STRUCT_MEMBER(int32_t,  user_id,      BASIC,  ,   -1, ) /**< Optional, user id of allocation owner. Values < 0 will not be used.*/
+CSMI_STRUCT_MEMBER(int32_t,  user_group_id,BASIC,  ,   -1, ) /**< Optional, user group of allocation owner. Values < 0 will not be used.*/
+CSMI_STRUCT_MEMBER(char*,    user_name,    STRING, , NULL, ) /**< Optional, user name of allocation owner. NULL will not be used.*/
+CSMI_STRUCT_MEMBER(char*,    account,      STRING, , NULL, ) /**< Optional, account of the allocation owner. NULL will not be used.*/
+CSMI_STRUCT_MEMBER(char*,    comment,      STRING, , NULL, ) /**< Optional, comments for the allocation, destructive. NULL will not be used.*/
+CSMI_STRUCT_MEMBER(char*,    job_name,     STRING, , NULL, ) /**< Optional, job name for the allocation. NULL will not be used.*/
+CSMI_STRUCT_MEMBER(char*,    reservation,  STRING, , NULL, ) /**< Optional, reservation name for the allocation. NULL will not be used.*/
+
+CSMI_VERSION_END(a4731be313aa56aaa7c40460809015f5)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

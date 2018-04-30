@@ -1,0 +1,71 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation_details.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief Contains the steps and and accounting details for an allocation defined by @ref csmi_allocation_details_t.allocation_id.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_details_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              0
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        1
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( uint64_t,  power_cap_hit,        BASIC,  ,   0, ) /**< Counter indicating the number of times the power cap was hit by nodes in the allocation.*/
+CSMI_STRUCT_MEMBER( uint64_t, ssd_read           ,  BASIC, ,    0, )  /**< SSD reads for this allocation (in Gigabytes). */
+CSMI_STRUCT_MEMBER( uint64_t, ssd_write          ,  BASIC, ,    0, )  /**< SSD writes for this allocation (in Gigabytes) */
+CSMI_STRUCT_MEMBER( uint32_t                      , num_steps      ,        BASIC,            ,    0,                             ) /**< Number of steps in allocation, size of @ref steps. */
+CSMI_STRUCT_MEMBER( uint32_t                      , num_nodes      ,        BASIC,            ,    0,                             ) /**< Number of nodes in allocation, size of @ref node_accounting. */
+CSMI_STRUCT_MEMBER( csmi_allocation_step_list_t** , steps          , ARRAY_STRUCT,   num_steps, NULL, csmi_allocation_step_list_t ) /**< Collection of steps for allocation, size in @ref num_steps  */
+CSMI_STRUCT_MEMBER( csmi_allocation_accounting_t**, node_accounting, ARRAY_STRUCT,   num_nodes, NULL, csmi_allocation_accounting_t) /**< Accounting data, each array index represents a nod in parallel to the @ref csmi_allocation_t::compute_nodes array. Size defined in @ref num_nodes. */
+
+CSMI_VERSION_END(7d1e5b79cbf6bcbb3c09e216ae990c33)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER( uint32_t, num_transitions, BASIC, , 0,) /**< Number of transitions for the allocation. */
+CSMI_STRUCT_MEMBER(csmi_allocation_state_history_t**, state_transitions, ARRAY_STRUCT, num_transitions, NULL, csmi_allocation_state_history_t) /**< State transtion list. Tracks time at which the allocation left that state. Size defined in @ref num_transitions.*/
+
+
+CSMI_VERSION_END(80f1a3e62e9f043c4520a62365aafa35)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

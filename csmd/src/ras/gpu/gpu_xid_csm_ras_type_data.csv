@@ -1,0 +1,83 @@
+#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_not_ready,set_ready,visibile_to_users
+gpu.xid.10,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.11,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.12,WARNING,Driver error handling GPU exception,,NONE,1,0,true,false,false,true
+gpu.xid.13,WARNING,Graphics Engine Exception,Typically indicates general user application faults but in rare cases may be due to a driver error.,NONE,1,0,true,false,false,true
+gpu.xid.14,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.15,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.16,WARNING,Display engine hung,,NONE,1,0,true,false,false,true
+gpu.xid.17,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.18,WARNING,Bus mastering disabled in PCI Config Space,,NONE,1,0,true,false,false,true
+gpu.xid.19,WARNING,Display Engine error,,NONE,1,0,true,false,false,true
+gpu.xid.1,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.20,WARNING,Invalid or corrupted Mpeg push buffer,,NONE,1,0,true,false,false,true
+gpu.xid.21,WARNING,Invalid or corrupted Motion Estimation push buffer,,NONE,1,0,true,false,false,true
+gpu.xid.22,WARNING,Invalid or corrupted Video Processor push buffer,,NONE,1,0,true,false,false,true
+gpu.xid.23,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.24,WARNING,GPU semaphore timeout,,NONE,1,0,true,false,false,true
+gpu.xid.25,WARNING,Invalid or illegal push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.26,WARNING,Framebuffer timeout,,NONE,1,0,true,false,false,true
+gpu.xid.27,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.28,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.29,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.2,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.30,WARNING,GPU semaphore access error,,NONE,1,0,true,false,false,true
+gpu.xid.31,WARNING,GPU memory page fault,Indicates a fault reported by the MMU such as an illegal address access.,NONE,1,0,true,false,false,true
+gpu.xid.32,FATAL,Invalid or corrupted push buffer stream,Typically indicates quality issues on PCI. Not typically caused by user applications.,NONE,1,0,true,true,false,true
+gpu.xid.33,WARNING,Internal micro-controller error,,NONE,1,0,true,false,false,true
+gpu.xid.34,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.35,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.36,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.37,WARNING,Driver firmware error,,NONE,1,0,true,false,false,true
+gpu.xid.38,WARNING,Driver firmware error,,NONE,1,0,true,false,false,true
+gpu.xid.39,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.3,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.40,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.41,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.42,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.43,WARNING,GPU stopped processing,Indicates that a user application has hit a software induced fault and must terminate. The GPU remains in a healthy state.,NONE,1,0,true,false,false,true
+gpu.xid.44,WARNING,Graphics Engine fault during context switch,,NONE,1,0,true,false,false,true
+gpu.xid.45,WARNING,Preemptive cleanup due to previous errors,Logged when the user application aborts and the kernel driver tears down the GPU application running on the GPU.,NONE,1,0,true,false,false,true
+gpu.xid.46,WARNING,GPU stopped processing,,NONE,1,0,true,false,false,true
+gpu.xid.47,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.48,FATAL,Double Bit ECC Error,Indicates that an uncorrectable error occurred on the GPU.,NONE,1,0,true,true,false,true
+gpu.xid.49,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.4,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.50,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.51,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.52,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.53,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.54,WARNING,Auxiliary power is not connected to the GPU board,,NONE,1,0,true,false,false,true
+gpu.xid.55,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.56,WARNING,Display Engine error,,NONE,1,0,true,false,false,true
+gpu.xid.57,WARNING,Error programming video memory interface,,NONE,1,0,true,false,false,true
+gpu.xid.58,WARNING,Unstable video memory interface detected,,NONE,1,0,true,false,false,true
+gpu.xid.59,WARNING,Internal micro-controller error,,NONE,1,0,true,false,false,true
+gpu.xid.5,WARNING,Unused,,NONE,1,0,true,false,false,true
+gpu.xid.60,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.61,WARNING,Internal micro-controller breakpoint/warning,A typical XID 61 warning might occur during a kernel panic.,NONE,1,0,true,false,false,true
+gpu.xid.62,WARNING,Internal micro-controller halt,,NONE,1,0,true,false,false,true
+gpu.xid.63,INFO,ECC page retirement recording event,ECC page retirement after an ECC error was successful.,NONE,1,0,true,false,false,true
+gpu.xid.64,FATAL,ECC page retirement recording failure,ECC page retirement after an ECC error was unsuccessful.,NONE,1,0,true,true,false,true
+gpu.xid.65,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.66,WARNING,Illegal access by driver,,NONE,1,0,true,false,false,true
+gpu.xid.67,WARNING,Illegal access by driver,,NONE,1,0,true,false,false,true
+gpu.xid.68,WARNING,Video processor exception,,NONE,1,0,true,false,false,true
+gpu.xid.69,WARNING,Graphics Engine class error,,NONE,1,0,true,false,false,true
+gpu.xid.6,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,false,false,true
+gpu.xid.70,WARNING,CE3: Unknown Error,,NONE,1,0,true,false,false,true
+gpu.xid.71,WARNING,CE4: Unknown Error,,NONE,1,0,true,false,false,true
+gpu.xid.72,WARNING,CE5: Unknown Error,,NONE,1,0,true,false,false,true
+gpu.xid.73,WARNING,NVENC2 Error,,NONE,1,0,true,false,false,true
+gpu.xid.74,FATAL,NVLINK Error,Indicates an NVLINK error has occurred.,NONE,1,0,true,true,false,true
+gpu.xid.75,WARNING,Reserved,,NONE,1,0,true,false,false,true
+gpu.xid.76,WARNING,Reserved,,NONE,1,0,true,false,false,true
+gpu.xid.77,WARNING,Reserved,,NONE,1,0,true,false,false,true
+gpu.xid.78,WARNING,vGPU Start Error,,NONE,1,0,true,false,false,true
+gpu.xid.79,FATAL,GPU has fallen off the bus,Indicates that the GPU is no longer accessible on the bus.,NONE,1,0,true,true,false,true
+gpu.xid.7,WARNING,Invalid or corrupted push buffer address,,NONE,1,0,true,false,false,true
+gpu.xid.80,WARNING,Corrupted data sent to GPU,,NONE,1,0,true,false,false,true
+gpu.xid.81,WARNING,VGA Subsystem Error,,NONE,1,0,true,false,false,true
+gpu.xid.8,WARNING,GPU stopped processing,,NONE,1,0,true,false,false,true
+gpu.xid.9,WARNING,Driver error programming GPU,,NONE,1,0,true,false,false,true
+gpu.xid.unknown,WARNING,A GPU XID error has been detected but the type could not be determined.,,NONE,1,0,true,false,false,true

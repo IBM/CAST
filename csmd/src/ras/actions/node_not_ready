@@ -1,0 +1,30 @@
+#! /bin/bash
+#================================================================================
+#
+#    csmd/src/ras/actions/node_not_ready
+#
+#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# Example json string passed via $1:
+# { "msg_id": "csm.status.down", "time_stamp": "2017-02-08T15:37:18 -0500", "location_name": "c931f04p08-vm03", "raw_data": "", "ctxid": "4", "min_time_in_pool": "0", "suppress_ids": "", "severity": "INFO", "message": "c931f04p08-vm03 csm agent is down", "decoder": "none", "control_action": "node_not_ready", "description": "csm agent daemon has stopped.", "relevant_diags": "NONE", "threshold_count": "0", "threshold_period": "0" }
+
+# Look for a pattern like this:
+#                  ... "location_name": "c931f04p08-vm03" ...
+#                  ^--------------------^^-------------^^---^
+#                 Match and remove this |   Keep this   | Match and remove this
+# -e 's/^.*"location_name"[ ]*:[ ]*"//'                   -e 's/".*//'
+location=`echo $1 | sed -e 's/^.*"location_name"[ ]*:[ ]*"//' -e 's/".*//'`
+
+echo "Running node_not_ready for location=$location"
+
+# Call csm_node_attributes_update to set the node to ready='n' and state='out of service'
+/opt/ibm/csm/bin/csm_node_attributes_update --node_name $location --ready 'n' --state 'out of service'

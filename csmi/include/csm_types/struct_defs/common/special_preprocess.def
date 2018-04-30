@@ -1,0 +1,14 @@
+
+/** @addtogroup common_apis
+ * @{
+ */
+
+ /** @ingroup common_apis
+  *  @brief CSM boolean variable, a third state is provided for query APIs.
+  *
+  *  --|--------------------------
+  *  0 | FALSE ( @ref CSM_FALSE )
+  *  1 | TRUE  ( @ref CSM_TRUE )
+  *  2 | If set a CSM query will not filter on the field ( @ref CSM_UNDEF_BOOL ).
+  */
+ typedef char csm_bool;

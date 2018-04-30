@@ -1,0 +1,34 @@
+#================================================================================
+#
+#    hcdiag/README
+#
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+Coral Diagnostic PRPQ NOTES:
+
+- dgemm test
+  dgemm Diag test invokes Spectrum mpi script: 
+     /opt/ibm/spectrum_mpi/healthcheck/dgemm/run.dgemm
+  Please read /opt/ibm/spectrum_mpi/healthcheck/dgemm/README.dgemm file and 
+  make the necessary modifications.
+
+- dgemm-gpu test
+  dgemm-gpu Diag test invokes Spectrum mpi script: 
+     /opt/ibm/spectrum_mpi/healthcheck/dgemm/run.dgemm_gpu
+  Please read /opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu/README.dgemm_gpu file  
+  and make the necessary modifications.
+
+
+- fieldiag test
+  fieldiag Diag test invokes NVIDIA fieldiag test. Currently it does not 
+  support Volta. The test will FAIL.
+  

@@ -1,0 +1,92 @@
+#!/bin/bash 
+# encoding: utf-8
+#================================================================================
+#
+#   config_pamd
+#
+#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# Make the cgroup pam dir.
+mkdir -p /etc/pam.d/cgroups/
+
+# "Compile" the cgroup exemption list.
+echo 'cm9vdApkaWFnYWRtaW4KcG1peAo=' | base64 --decode > /etc/pam.d/cgroups/cgroup_exempt_list
+
+# "Compile" the assign cgroup script.
+echo 'IyEvYmluL2Jhc2gKIyBlbmNvZGluZzogdXRmLTgKIz09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiMK
+IyAgIGFzc2lnbl9jZ3JvdXAKIwojICDCqSBDb3B5cmlnaHQgSUJNIENvcnBvcmF0aW9uIDIwMTUt
+MjAxNy4gQWxsIFJpZ2h0cyBSZXNlcnZlZAojCiMgICAgVGhpcyBwcm9ncmFtIGlzIGxpY2Vuc2Vk
+IHVuZGVyIHRoZSB0ZXJtcyBvZiB0aGUgRWNsaXBzZSBQdWJsaWMgTGljZW5zZQojICAgIHYxLjAg
+YXMgcHVibGlzaGVkIGJ5IHRoZSBFY2xpcHNlIEZvdW5kYXRpb24gYW5kIGF2YWlsYWJsZSBhdAoj
+ICAgIGh0dHA6Ly93d3cuZWNsaXBzZS5vcmcvbGVnYWwvZXBsLXYxMC5odG1sCiMKIyAgICBVLlMu
+IEdvdmVybm1lbnQgVXNlcnMgUmVzdHJpY3RlZCBSaWdodHM6ICBVc2UsIGR1cGxpY2F0aW9uIG9y
+IGRpc2Nsb3N1cmUKIyAgICByZXN0cmljdGVkIGJ5IEdTQSBBRFAgU2NoZWR1bGUgQ29udHJhY3Qg
+d2l0aCBJQk0gQ29ycC4KIwojPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KCiMgQSB3aGl0ZWxpc3Qg
+b2YgdXNlcnMuCmNncm91cF93aGl0ZWxpc3Q9Ii9ldGMvcGFtLmQvY2dyb3Vwcy9jZ3JvdXBfZXhl
+bXB0X2xpc3QiCgojIERpcmVjdG9yeSBjb250YWluaW5nIHRoZSBjZ3JvdXAuCmNncm91cF9kaXI9
+Ii9zeXMvZnMvY2dyb3VwLyIKCiMgVGhlIG5hbWUgb2YgdGhlIGNncm91cCBkaXJlY3RvcnkuIFRP
+RE8gbWFrZSB0aGlzIGZpbmQgdGhlIGFsbG9jYXRpb24uCmNncm91cF90YXNrcz0iL2FsbG9jYXRp
+b25fKi90YXNrcyIKCiMgVGhlIHBpZCBvZiB0aGUgc3NoZCBzZXNzaW9uIGZvciB0aGUgdXNlci4g
+VGhpcyB3aWxsIGJlIG1vdmVkIHRvIHRoZSBjZ3JvdXAuCnBpZD0kKHBzIC1vIHBwaWQ9ICQkKQoK
+IyBUaGUgY29udHJvbGxlcnMgc3VwcG9ydGVkIGJ5IGNzbS4Kc3VwcG9ydGVkX2NvbnRyb2xsZXJz
+PShjcHVzZXQgbWVtb3J5IGRldmljZXMpCgojIElmIHRoZSB1c2VyIHdhc24ndCBpbiB0aGUgd2hp
+dGVsaXN0IGxldCBsaW51eCBwbGFjZSB0aGVtLgpncmVwICR7UEFNX1VTRVJ9ICR7Y2dyb3VwX3do
+aXRlbGlzdH0gPi9kZXYvbnVsbAppZiBbWyAkPyAtZXEgMCBdXQp0aGVuCiAgICBleGl0IDAKZmkK
+CiMgRWxzZQojIEl0ZXJhdGUgb3ZlciB0aGUgY29udHJvbGxlcnMgYW5kIHdyaXRlIHRoZSBwaWQg
+dG8gdGhlIHRhc2tzIGxpc3QKZm9yIGNvbnRyb2xsZXIgaW4gJHtzdXBwb3J0ZWRfY29udHJvbGxl
+cnNbQF19CmRvCiAgICAjIEJ1aWxkIGFuIGFycmF5IGZpcnN0IGluIGNhc2Ugb2YgPjEgY2dyb3Vw
+LgogICAgY2dyb3Vwcz0oJChlY2hvICR7Y2dyb3VwX2Rpcn0ke2NvbnRyb2xsZXJ9JHtjZ3JvdXBf
+dGFza3N9KSkKCiAgICAjIFRPRE8gTW9yZSBpbnRlbGxpZ2VudCByZWRpcmVjdGlvbi4KICAgICMg
+SWYgdGhlIHRhc2tzIGZpbGUgZXhpc3RzIHdyaXRlIHRoZSB1c2VyIHBpZC4KICAgIGlmIFtbIC1l
+ICR7Y2dyb3Vwc1swXX0gXV0KICAgIHRoZW4KICAgICAgICAvYmluL2VjaG8gJHtwaWR9ID4gJHtj
+Z3JvdXBzWzBdfQogICAgZmkKZG9uZQo=' | base64 --decode > /etc/pam.d/cgroups/assign_cgroup
+
+# Set the access for the script.
+chmod 700 /etc/pam.d/cgroups/assign_cgroup
+
+# Notify the user.
+echo "=============================================="
+echo "Created: /etc/pam.d/cgroups/assign_cgroup"
+echo "Created: /etc/pam.d/cgroups/cgroup_exempt_list"
+echo "=============================================="
+echo ""
+
+if [[ 1 -eq 1 ]]
+then
+    # Update the sshd pam.d file.
+    echo 'IyVQQU0tMS4wCmF1dGggICAgICAgcmVxdWlyZWQgICAgIHBhbV9zZXBlcm1pdC5zbwphdXRoICAg
+ICAgIHN1YnN0YWNrICAgICBwYXNzd29yZC1hdXRoCmF1dGggICAgICAgaW5jbHVkZSAgICAgIHBv
+c3Rsb2dpbgojIFVzZWQgd2l0aCBwb2xraXQgdG8gcmVhdXRob3JpemUgdXNlcnMgaW4gcmVtb3Rl
+IHNlc3Npb25zCi1hdXRoICAgICAgb3B0aW9uYWwgICAgIHBhbV9yZWF1dGhvcml6ZS5zbyBwcmVw
+YXJlCmFjY291bnQgICAgcmVxdWlyZWQgICAgIHBhbV9ub2xvZ2luLnNvCmFjY291bnQgICAgaW5j
+bHVkZSAgICAgIHBhc3N3b3JkLWF1dGgKcGFzc3dvcmQgICBpbmNsdWRlICAgICAgcGFzc3dvcmQt
+YXV0aAojIHBhbV9zZWxpbnV4LnNvIGNsb3NlIHNob3VsZCBiZSB0aGUgZmlyc3Qgc2Vzc2lvbiBy
+dWxlCnNlc3Npb24gICAgcmVxdWlyZWQgICAgIHBhbV9zZWxpbnV4LnNvIGNsb3NlCnNlc3Npb24g
+ICAgcmVxdWlyZWQgICAgIHBhbV9sb2dpbnVpZC5zbwojIHBhbV9zZWxpbnV4LnNvIG9wZW4gc2hv
+dWxkIG9ubHkgYmUgZm9sbG93ZWQgYnkgc2Vzc2lvbnMgdG8gYmUgZXhlY3V0ZWQgaW4gdGhlIHVz
+ZXIgY29udGV4dApzZXNzaW9uICAgIHJlcXVpcmVkICAgICBwYW1fc2VsaW51eC5zbyBvcGVuIGVu
+dl9wYXJhbXMKc2Vzc2lvbiAgICByZXF1aXJlZCAgICAgcGFtX25hbWVzcGFjZS5zbwpzZXNzaW9u
+ICAgIG9wdGlvbmFsICAgICBwYW1fa2V5aW5pdC5zbyBmb3JjZSByZXZva2UKc2Vzc2lvbiAgICBp
+bmNsdWRlICAgICAgcGFzc3dvcmQtYXV0aApzZXNzaW9uICAgIGluY2x1ZGUgICAgICBwb3N0bG9n
+aW4KIyBSb3V0ZSB0aGUgdXNlciB0byBhIGNncm91cCwgaWYgdGhpcyBmYWlscyB0aGV5IHdpbGwg
+YmUgcHV0IGluIHRoZSBkZWZhdWx0IGNncm91cC4Kc2Vzc2lvbiAgICBvcHRpb25hbCAgICAgcGFt
+X2V4ZWMuc28gc3Rkb3V0IHNldGV1aWQgL2V0Yy9wYW0uZC9jZ3JvdXBzL2Fzc2lnbl9jZ3JvdXAK
+IyBVc2VkIHdpdGggcG9sa2l0IHRvIHJlYXV0aG9yaXplIHVzZXJzIGluIHJlbW90ZSBzZXNzaW9u
+cwotc2Vzc2lvbiAgIG9wdGlvbmFsICAgICBwYW1fcmVhdXRob3JpemUuc28gcHJlcGFyZQo=' | base64 --decode > /etc/pam.d/"sshd"
+    service sshd restart
+    echo "Replaced /etc/pam.d/sshd"
+else
+    echo "Add the following to /etc/pam.d/sshd after 'session    include      postlogin'"
+    echo "session    optional     pam_exec.so stdout seteuid /etc/pam.d/cgroups/assign_cgroup"
+fi

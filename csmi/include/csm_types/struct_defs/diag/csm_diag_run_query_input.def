@@ -1,0 +1,70 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/diag/csm_diag_run_query_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_diag_run_query.
+ *
+ * Specifies parameters used to query the *csm_diag_run* and *csm_diag_run_history* tables of the CSM Database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_diag_run_query_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               1
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(uint8_t , status                 , BASIC ,                     , 0   ,        ) /**< Filter results to only include records that have a matching diagnostic status (NONE=0,CANCELED=1,COMPLETED=2,FAILED=4,RUNNING=8,ALL=15) */
+CSMI_STRUCT_MEMBER(uint32_t, allocation_ids_count   , BASIC ,                     , 0   ,        ) /**< Number of allocations to perform query on, size of @ref allocation_ids.*/
+CSMI_STRUCT_MEMBER(uint32_t, run_ids_count          , BASIC ,                     , 0   ,        ) /**< Number of run ids to perform query on, size of @ref run_ids.*/
+CSMI_STRUCT_MEMBER(int32_t , limit                  , BASIC ,                     , -1  ,        ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(int32_t , offset                 , BASIC ,                     , -1  ,        ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(csm_bool, inserted_ras           , BASIC ,                     , CSM_UNDEF_BOOL, ) /**<Filter results to only include records that inserted RAS events or only include records that did not insert RAS events. API doesn't query on @ref CSM_UNDEF_BOOL. */
+CSMI_STRUCT_MEMBER(char*   , begin_time_search_begin, STRING,                     , NULL,        ) /**< A time used to filter results of the SQL query and only include records with a begin_time at or after (ie: '>=' ) this time. */
+CSMI_STRUCT_MEMBER(char*   , begin_time_search_end  , STRING,                     , NULL,        ) /**< A time used to filter results of the SQL query and only include records with a begin_time at or before (ie: '<=' ) this time. */
+CSMI_STRUCT_MEMBER(char*   , end_time_search_begin  , STRING,                     , NULL,        ) /**< A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time. */
+CSMI_STRUCT_MEMBER(char*   , end_time_search_end    , STRING,                     , NULL,        ) /**< A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time. */
+CSMI_STRUCT_MEMBER(int64_t*, allocation_ids         , ARRAY , allocation_ids_count, NULL, int64_t) /**< Pointer to an array of int64_t allocation_ids. Filter results to only include records that have a matching allocation id. API will ignore values less than 0. Size defined in @ref allocation_ids_count. */
+CSMI_STRUCT_MEMBER(int64_t*, run_ids                , ARRAY , run_ids_count       , NULL, int64_t) /**< Pointer to an array of int64_t run_ids. Filter results to only include records that have a matching diagnostic run id. API will ignore values less than 1. Size defined in @ref run_ids_count. */
+
+CSMI_VERSION_END(0980cb291a94ce5b6543ad8693f14f6a)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

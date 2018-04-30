@@ -1,0 +1,83 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_switch_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A switch history record in the **csm_switch** table of the CSM database.
+ * @todo Post-PRPQ: Only one field different from @ref csmi_switch_history_record_t.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_switch_record_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(char*   ,  switch_name            , STRING, , NULL          , ) /**< switch name: Identification of the system For hosts, it is caguid, For 1U switch, it is switchguid, For modular switches, is it sysimgguid */
+CSMI_STRUCT_MEMBER(char*   ,  serial_number          , STRING, , NULL          , ) /**< Serial number for this switch. identifies the switch this information is for */
+CSMI_STRUCT_MEMBER(char*   ,  discovery_time         , STRING, , NULL          , ) /**< First time the switch was found in the system. */
+CSMI_STRUCT_MEMBER(char*   ,  collection_time        , STRING, , NULL          , ) /**< Last time the switch inventory was collected. */
+CSMI_STRUCT_MEMBER(char*   ,  comment                , STRING, , NULL          , ) /**< System administrator comment about the switch. */
+CSMI_STRUCT_MEMBER(char*   ,  description            , STRING, , NULL          , ) /**< description of system ... system type of this systems (More options: SHArP, MSX1710 , CS7520). */
+CSMI_STRUCT_MEMBER(char*   ,  fw_version             , STRING, , NULL          , ) /**< firmware version of the Switch or HCA */
+CSMI_STRUCT_MEMBER(char*   ,  gu_id                  , STRING, , NULL          , ) /**< Node guid of the system. In case of HCA, it is the caguid. In case of Switch, it is the switchguid  */
+CSMI_STRUCT_MEMBER(csm_bool,  has_ufm_agent          , BASIC , , CSM_UNDEF_BOOL, ) /**< indicate if system (Switch or Host) is running a UFM Agent */
+CSMI_STRUCT_MEMBER(char*   ,  hw_version             , STRING, , NULL          , ) /**< hardware version related to the switch */
+CSMI_STRUCT_MEMBER(char*   ,  ip                     , STRING, , NULL          , ) /**< ip address of the system (Switch or Host)  (0.0.0.0 in case ip address not available) */
+CSMI_STRUCT_MEMBER(char*   ,  model                  , STRING, , NULL          , ) /**< system model ... in case of switch, it is the switch model, For hosts ... Computer */
+CSMI_STRUCT_MEMBER(int32_t ,  num_modules            , BASIC , , 0             , ) /**< number of modules attached to this switch. This is the number of expected records in the csm_switch inventory table associated with this switch name. */
+CSMI_STRUCT_MEMBER(char*   ,  physical_frame_location, STRING, , NULL          , ) /**< The switch frame location. */
+CSMI_STRUCT_MEMBER(char*   ,  physical_u_location    , STRING, , NULL          , ) /**< The switch u location in the frame. */
+CSMI_STRUCT_MEMBER(char*   ,  ps_id                  , STRING, , NULL          , ) /**< PSID (Parameter-Set IDentification) is a 16-ascii character string embedded in the firmware image which provides a unique identification for the configuration of the firmware. */
+CSMI_STRUCT_MEMBER(char*   ,  role                   , STRING, , NULL          , ) /**< Type/Role of system in the current fabric topology: Tor / Core / Endpoint (host). (Optional Values: core, tor, endpoint) */
+CSMI_STRUCT_MEMBER(char*   ,  server_operation_mode  , STRING, , NULL          , ) /**< Operation mode of system. (Optional Values: Stand_Alone, HA_Active, HA_StandBy, Not_UFM_Server, Router, Gateway, Switch) */
+CSMI_STRUCT_MEMBER(char*   ,  sm_mode                , STRING, , NULL          , ) /**< Indicate if SM is running on that system. (Optional Values: noSM, activeSM, hasSM) */
+CSMI_STRUCT_MEMBER(char*   ,  state                  , STRING, , NULL          , ) /**< ??? (active, missing, error, service, softfailure)? */
+CSMI_STRUCT_MEMBER(char*   ,  sw_version             , STRING, , NULL          , ) /**< software version of the system ... full MLNX_OS version. Relevant only for MLNX-OS systems (Not available for Hosts) */
+CSMI_STRUCT_MEMBER(char*   ,  system_guid            , STRING, , NULL          , ) /**< system image guid for that system */
+CSMI_STRUCT_MEMBER(char*   ,  system_name            , STRING, , NULL          , ) /**< system name as it appear on the system node description */
+CSMI_STRUCT_MEMBER(int32_t ,  total_alarms           , BASIC , , 0             , ) /**< total number of alarms which are currently exist on the system */
+CSMI_STRUCT_MEMBER(char*   ,  type                   , STRING, , NULL          , ) /**< ??? switch */
+CSMI_STRUCT_MEMBER(char*   ,  vendor                 , STRING, , NULL          , ) /**< system vendor. */
+
+CSMI_VERSION_END(542f943b2cccb984e9d0719fef3d5580)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

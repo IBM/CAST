@@ -1,0 +1,9 @@
+/var/log/bb_stagein.log
+{
+    missingok
+    daily
+    copytruncate
+    rotate 7
+    notifempty
+    compress
+}

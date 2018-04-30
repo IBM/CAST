@@ -1,0 +1,33 @@
+=head1 NAME
+
+bbServer - burst buffer server process for the I/O nodes
+
+=head1 SYNOPSIS
+
+bbServer [--help] [--whoami=string] [--instance=value] [--config=path]
+
+=head1 DESCRIPTION
+
+The bbServer is a persistent process running on each of the ESS I/O nodes. The role of the
+bbServer is to push or pull traffic from the SSDs, track status of transfers, and to
+handle requests from the bbProxy or other bbServers.
+
+=over 8
+
+=item B<--help>
+
+Display the help text
+
+=item B<--whoami>
+
+Identifies the name of the bbServer configuration.
+
+=item B<--instance>
+
+Unused
+
+=item B<--config>
+
+Path to the JSON configuration file.
+
+=back

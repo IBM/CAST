@@ -1,0 +1,2690 @@
+/*******************************************************************************
+ |    bbserver.cc
+ |
+ |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |
+ |    This program is licensed under the terms of the Eclipse Public License
+ |    v1.0 as published by the Eclipse Foundation and available at
+ |    http://www.eclipse.org/legal/epl-v10.html
+ |
+ |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+ |    restricted by GSA ADP Schedule Contract with IBM Corp.
+ *******************************************************************************/
+
+#include <semaphore.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#include <iostream>
+#include <string>
+
+#include <sys/resource.h>
+#include <sys/socket.h>
+#include "bbapi_version.h"
+
+#include "connections.h"
+extern void setThresholdTimes4Syscall(const uint64_t pWarnSeconds, const uint64_t pStuckSeconds);
+
+using namespace std;
+
+#ifdef PROF_TIMING
+#include <ctime>
+#include <chrono>
+#endif
+
+
+#include "bbinternal.h"
+#include "bbserver_flightlog.h"
+#include "BBTagID.h"
+#include "BBTagInfo2.h"
+#include "BBTagInfoMap2.h"
+#include "BBTransferDef.h"
+#include "bbwrkqmgr.h"
+#include "CnxSock.h"
+#include "ContribIdFile.h"
+#include "identity.h"
+#include "HandleFile.h"
+#include "LVLookup.h"
+#include "Msg.h"
+#include "Uuid.h"
+#include "xfer.h"
+#include "usage.h"
+
+namespace po = boost::program_options;
+
+
+// Metadata that is kept on each bbserver...
+BBTagInfoMap2 metadata;
+WRKQMGR wrkqmgr;
+
+// Timer used to for resize SSD messages sent to bbproxy
+Timer ResizeSSD_Timer;
+double ResizeSSD_TimeInterval;
+
+// Timer used for throttle intervals
+Timer Throttle_Timer;
+double Throttle_TimeInterval;
+
+// High priority work queue variables
+LVKey HPWrkQE_LVKeyStg;
+const LVKey* HPWrkQE_LVKey = &HPWrkQE_LVKeyStg;
+WRKQE* HPWrkQE;
+
+
+//*****************************************************************************
+//  Support routines
+//*****************************************************************************
+
+int hasContribId(const uint32_t pContribId, const uint64_t pNumOfContribsInArray, uint32_t* pContribArray)
+{
+    int rc = 0;
+
+    for (uint64_t i=0; i<pNumOfContribsInArray; ++i) {
+        if (pContribId == pContribArray[i])
+        {
+            rc = 1;
+            break;
+        }
+    }
+
+    return rc;
+}
+
+void processContrib(std::vector<uint32_t>* pContrib, uint32_t* &pContribArray, stringstream &pContribStr)
+{
+    pContribStr.clear();
+    pContribStr.str(string());
+
+    uint64_t l_NumContrib = (uint64_t)pContrib->size();
+    pContribArray = (uint32_t*)(new char[l_NumContrib*sizeof(uint32_t)]);
+    for (uint64_t i=0; i<l_NumContrib; ++i)
+    {
+        pContribArray[i] = (*pContrib)[i];
+    }
+
+    uint32_t* l_ContribPtr = pContribArray;
+    pContribStr << "(";
+    for(uint64_t i=0; i<l_NumContrib; ++i)
+    {
+        if (i!=l_NumContrib-1)
+        {
+            pContribStr << *l_ContribPtr << ",";
+        }
+        else
+        {
+            pContribStr << *l_ContribPtr;
+        }
+        ++l_ContribPtr;
+    }
+    pContribStr << ")";
+
+    return;
+}
+
+void switchIds(txp::Msg* pMsg)
+{
+    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::uid))->getData();
+    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::gid))->getData();
+
+    int rc = becomeUser(l_Owner, l_Group);
+    if (!rc)
+    {
+        bberror << err("in.misc.uid", l_Owner) << err("in.misc.gid", l_Group);
+    }
+    else
+    {
+        stringstream errorText;
+        errorText << "becomeUser failed";
+        bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+
+void switchIdsToMountPoint(txp::Msg* pMsg)
+{
+    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData();
+    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData();
+
+    int rc = becomeUser(l_Owner, l_Group);
+    if (!rc)
+    {
+        bberror << err("in.misc.mntptuid", l_Owner) << err("in.misc.mntptgid", l_Group);
+    }
+    else
+    {
+        stringstream errorText;
+        errorText << "becomeUser failed";
+    	bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+
+
+//*****************************************************************************
+//  Requests from bbproxy
+//*****************************************************************************
+
+void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    stringstream errorText;
+
+    LVKey l_LVKeyStg;
+    LVKey* l_LVKey = &l_LVKeyStg;
+    bool l_LockHeld = false;
+
+    FL_Write(FLServer, Msg_CancelFromProxy, "bbCancelTransfer command received",0,0,0,0);
+    try
+    {
+        // Demarshall data from the message
+        uint64_t l_FromJobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+        uint64_t l_FromJobStepId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobstepid))->getData();
+        uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+        BBCANCELSCOPE l_CancelScope = (BBCANCELSCOPE)((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::flags))->getData();
+        char l_Temp[64] = {'\0'};
+        getStrFromCancelScope(l_CancelScope, l_Temp, sizeof(l_Temp));
+
+        LOG(bb,info) << "msgin_canceltransfer: From JobId = " << l_FromJobId << ", From JobStepId = " \
+                     << l_FromJobStepId << ", From ContribId = " << l_ContribId << ", Handle = " << l_Handle \
+                     << std::hex << std::uppercase << setfill('0') \
+                     << ", cancel scope = " << l_Temp \
+                     << setfill(' ') << std::nouppercase << std::dec;
+
+        switchIds(msg);
+
+        lockTransferQueue((LVKey*)0, "msgin_canceltransfer");
+        l_LockHeld = true;
+
+        {
+            // Process cancel transfer message
+            switch (l_CancelScope)
+            {
+                case BBSCOPETRANSFER:
+                {
+                    //  NOTE:  We set up to wait 30 seconds for the necessary LVKey to appear if we can't find
+                    //         it right away.  This closes the window during activate server between the activation
+                    //         of the connection to the new server and the registering of any LVKeys with the new server.
+                    int l_Continue = 60;
+                    while ((!rc) && (l_Continue--))
+                    {
+                        rc = metadata.getLVKey(pConnectionName, l_LVKey, l_FromJobId, l_ContribId);
+                        switch (rc)
+                        {
+                            case -2:
+                            {
+                                if (l_Continue)
+                                {
+                                    rc = 0;
+                                    l_LockHeld = false;
+                                    unlockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
+                                    {
+                                        usleep((useconds_t)500000);    // Delay 500 miliseconds
+                                    }
+                                    lockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
+                                    l_LockHeld = true;
+                                }
+                                else
+                                {
+                                    // Cannot find an LVKey registered for this jobid
+                                    errorText << "A logical volume (LVKey) is not currently associated with jobid " << l_FromJobId << ", contribid " << l_ContribId \
+                                              << " on this bbServer. A cancel request for an individual transfer definition must be directed to the bbServer servicing that jobid and contribid.";
+                                    rc = -1;
+                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                }
+                            }
+
+                            case 1:
+                            {
+                                rc = 0;
+                                l_Continue = 0;
+                                break;
+                            }
+
+                            default:
+                            {
+                                errorText << "Error when attempting to find a local LVKey for jobid " << l_FromJobId \
+                                          << ", contribid " << l_ContribId;
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                        }
+                    }
+
+                    //  NOTE:  We set up to wait 30 seconds for the necessary BBTagInfo2 object to appear if we can't find
+                    //         it right away.  This closes the window during activate server between the activation
+                    //         of the connection to the new server and the restarting of any transfer definitions to
+                    //         the new server.
+                    l_Continue = 60;
+                    BBTagInfo2* l_TagInfo2 = 0;
+                    while ((!l_TagInfo2) && l_Continue--)
+                    {
+                        l_TagInfo2 = metadata.getTagInfo2(l_LVKey);
+                        if (!l_TagInfo2)
+                        {
+                            unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo2 to be registered");
+                            {
+                                usleep((useconds_t)500000);    // Delay 500 miliseconds
+                            }
+                            lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo2 to be registered");
+
+                            // Check to make sure the job still exists after releasing/re-acquiring the lock
+                            if (!jobStillExists(pConnectionName, l_LVKey, (BBTagInfo2*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
+                            {
+                                rc = -1;
+                                l_Continue = 0;
+                            }
+                        }
+                    }
+                    if (!l_TagInfo2)
+                    {
+                        errorText << "Could not resolve to BBTagInfo2 for " << *l_LVKey << ", jobid " << l_FromJobId << ", contribid " << l_ContribId;
+                        rc = -1;
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+
+                    //  NOTE:  We set up to wait 30 seconds for the necessary BBTagInfo object to appear if we can't find
+                    //         it right away.  This closes the window during activate server between the activation
+                    //         of the connection to the new server and the restarting of any transfer definitions to
+                    //         the new server.
+                    l_Continue = 60;
+                    BBTagInfo* l_TagInfo = 0;
+                    BBTagID l_TagId;
+                    while ((!l_TagInfo) && l_Continue--)
+                    {
+                        if (!l_TagInfo2->getTagInfo(l_Handle, l_ContribId, l_TagId, l_TagInfo))
+                        {
+                            unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
+                            {
+                                usleep((useconds_t)500000);    // Delay 500 miliseconds
+                            }
+                            lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo to be registered");
+
+                            // Check to make sure the job still exists after releasing/re-acquiring the lock
+                            if (!jobStillExists(pConnectionName, l_LVKey, l_TagInfo2, (BBTagInfo*)0, l_FromJobId, l_ContribId))
+                            {
+                                rc = -1;
+                                l_Continue = 0;
+                            }
+                        }
+                    }
+                    if (!l_TagInfo)
+                    {
+                        errorText << "Could not resolve to BBTagInfo for " << *l_LVKey << ", jobid " << l_FromJobId << ", contribid " << l_ContribId;
+                        rc = -1;
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+
+                    if (l_TagInfo2->getExtentInfo()->moreExtentsToTransfer(l_Handle, l_ContribId, 0))
+                    {
+                        if (!l_TagInfo->allExtentsTransferred())
+                        {
+                            // Cancel the transfer for the transfer definition
+                            // NOTE:  The jobid and jobstepid are not needed to be passed as
+                            //        those values are determined from the transfer definition.
+                            l_TagInfo->setCanceled(l_LVKey, l_Handle, l_ContribId);
+
+                            // Sort the extents, moving the canceled extents to the front of
+                            // the work queue so they are immediately removed...
+                            l_TagInfo2->cancelExtents(&l_Handle, &l_ContribId);
+                        }
+                        else
+                        {
+                            LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
+                                         << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo).  Cancel request ignored.";
+                        }
+                    }
+                    else
+                    {
+                        LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
+                                     << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo).  Cancel request ignored.";
+                    }
+                }
+
+                break;
+
+                case BBSCOPETAG:
+                {
+                    // Retrieve the real jobid, jobstepid for the handle
+                    uint64_t l_JobId = 0;
+                    uint64_t l_JobStepId = 0;
+                    rc = HandleFile::get_xbbServerGetJobForHandle(l_JobId, l_JobStepId, l_Handle);
+                    if (!rc)
+                    {
+                        //  Cancel the transfer for the entire handle
+                        string l_HostName;
+                        activecontroller->gethostname(l_HostName);
+                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle);
+                    }
+                    else
+                    {
+                        LOG_RC_AND_BAIL(rc);
+                    }
+                }
+
+                break;
+
+                default:
+                {
+                    rc = -1;
+                    errorText << "Undefined cancel scope value of " << l_CancelScope;
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
+            }
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue(l_LVKey, "msgin_canceltransfer");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
+void msgin_change_server(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    try
+    {
+        // Demarshall data from the message
+        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+        LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+
+        switchIds(msg);
+
+        // Process change server message
+
+        rc = changeServer(pConnectionName, &l_LVKey);
+        if (rc) {
+            LOG_RC_AND_BAIL(rc);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
+void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    try
+    {
+        // Demarshall data from the message
+        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+        LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+        LOG(bb,debug) << "msgin_stageout_started: Local Port = " << getConnex(pConnectionName)->getSockfd() << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr());
+
+        switchIds(msg);
+
+        // Process stageout start message
+        // NOTE: If stageoutStart() fails, it will fill in errstate...
+        rc = stageoutStart(pConnectionName, &l_LVKey);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
+void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    // Demarshall data from the message
+    Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+    LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+    LVKey* l_LVKeyPtr = &l_LVKey;
+    string l_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+    uint64_t l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+    //  NOTE: A non-zero option indicates a registration of an LVKey due to a new bbServer being activated
+    uint32_t l_Option = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::option))->getData();
+
+    // Log the input/results
+    Uuid lv_uuid = l_LVKey.second;
+    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
+    lv_uuid.copyTo(lv_uuid_str);
+    if (!l_Option)
+    {
+        LOG(bb,info) << "msgin_createlogicalvolume: From hostname |" << l_HostName << "|, l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
+    }
+    else
+    {
+        LOG(bb,info) << "msgin_createlogicalvolume: Register LVKey, from hostname |" << l_HostName << "|, l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
+    }
+
+    lockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
+
+    try
+    {
+        // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
+        //        that all prior suspend/resume requests have first been processed by this bbServer.
+        wrkqmgr.processAllOutstandingHP_Requests(l_LVKeyPtr);
+
+        // Insert the LVKey with jobid into the metadata
+        // NOTE: We switch to the uid/gid of the mount point, as those ids should 'own' the xbbbserver metadata entries...
+        switchIdsToMountPoint(msg);
+
+        // NOTE:  If addLogicalVolume() fails, it fills in the error state...
+        rc = addLogicalVolume(pConnectionName, l_HostName, l_LVKeyPtr, l_JobId, (TOLERATE_ALREADY_EXISTS_OPTION)l_Option);
+        if (rc)
+        {
+            if (rc < 0)
+            {
+                LOG_RC(rc);
+            }
+            BAIL;
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    unlockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    if (rc)
+    {
+        bberror << err("error.jobid", l_JobId) << err("error.uuid",lv_uuid_str);
+        if (rc > 0)
+        {
+            // Positive rc...
+            // Send -2 back to bbProxy as a possible tolerated exception...
+            LOG_RC(-2);
+        }
+    }
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    uint64_t l_Rate = 0;
+    try
+    {
+        // Demarshall data from the message
+        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+        LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+        LOG(bb,info) << "msgin_getthrottlerate: Local Connection Name = " << pConnectionName << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr());
+
+        switchIds(msg);
+
+        // Process get throttle rate message
+        rc = getThrottleRate(pConnectionName, &l_LVKey, l_Rate);
+
+        if (rc) {
+            LOG_RC_AND_BAIL(rc);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    if (!rc)
+    {
+        response->addAttribute(txp::rate, l_Rate);
+    }
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear(pConnectionName);
+
+    uint64_t l_Handle = 0;
+    LVKey l_LVKey;
+    LVKey* l_LVKeyPtr = &l_LVKey;
+    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
+
+    try
+    {
+        // Demarshall data from the message
+        string l_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+        BBJob l_Job(((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData(), ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobstepid))->getData());
+        uint64_t l_Tag = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::tag))->getData();
+        // NOTE:  bbproxy ensures that l_NumContrib does not come in as a zero...
+        uint64_t l_NumContrib = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::numcontrib))->getData();
+        uint32_t l_Contrib[l_NumContrib];
+        uint32_t* l_Contribs = (uint32_t*)msg->retrieveAttrs()->at(txp::contrib)->getDataPtr();
+
+        uint32_t* l_ContribValue = l_Contribs;
+        for(uint64_t x=0; x<l_NumContrib; ++x)
+        {
+            l_Contrib[x] = *l_ContribValue;
+            ++l_ContribValue;
+        }
+
+        stringstream l_Temp;
+        uint32_t* l_ContribPtr = l_Contrib;
+        l_Temp << "(";
+        for(uint64_t i=0; i<l_NumContrib; ++i)
+        {
+            if (i!=l_NumContrib-1)
+            {
+                l_Temp << *l_ContribPtr << ",";
+            }
+            else
+            {
+                l_Temp << *l_ContribPtr;
+            }
+            ++l_ContribPtr;
+        }
+        l_Temp << ")";
+
+        stringstream l_JobStr;
+        l_Job.getStr(l_JobStr);
+        LOG(bb,info) << "msgin_gettransferhandle: " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib << ", contrib = " << l_Temp.str();
+
+        switchIds(msg);
+
+        //  NOTE:  We set up to wait 30 seconds for the necessary LVKey to appear if we can't find
+        //         it right away and the handle is not in the cross-bbServer metadata.
+        //         This closes the window during activate server between the activation
+        //         of the connection to the new server and the registering of any LVKeys
+        //         with the new server.
+        //         \todo - Not sure if this is the right duration...  @DLH
+        int l_Continue = 60;
+        while ((!rc) && (l_Continue--))
+        {
+            rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_Contrib, l_Handle);
+            if (rc >= 0)
+            {
+                // rc=0 indicates that an existing LVKey was not found and a new one was added
+                // rc=1 indicates that an existing LVKey was found
+
+                rc = 0;
+                l_Continue = 0;
+                // Log the input/results
+                Uuid lv_uuid = l_LVKey.second;
+                lv_uuid.copyTo(lv_uuid_str);
+                LOG(bb,info) << "getHandle: Local l_LVKey.first= " << l_LVKey.first<< ", LV Uuid = " << lv_uuid_str << ", " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib \
+                             << ", contrib = " << l_Temp.str() << ", handle = " << l_Handle;
+            }
+            else
+            {
+                // Negative return codes indicate an error...
+                if (rc == -2)
+                {
+                    // A LVKey could not be found for the job on this bbServer.
+                    // Search for the handle value in the cross-bbServer metaadata...
+                    int rc2 = 0;
+                    uint32_t* l_ContribValue2 = l_Contribs;
+                    vector<uint32_t> l_ContribVector;
+                    for (uint64_t x=0; x<l_NumContrib; ++x)
+                    {
+                        l_ContribVector.push_back(*l_ContribValue2);
+                        ++l_ContribValue2;
+                    }
+                    rc2 = HandleFile::get_xbbServerGetHandle(l_Job, l_Tag, l_ContribVector, l_Handle);
+                    if (rc2 == 1)
+                    {
+                        // Handle found for job, tag, contrib set in the cluster...
+                        //
+                        // This is a request for an existing handle to a new bbServer
+                        // from a bbProxy that does not have an LVKey associated with
+                        // the job.  This is possible if the logical volume was created
+                        // when the CN was being serviced by a different bbServer and is
+                        // now being serviced by a new bbServer.
+                        //
+                        // We cannot add the LVKey for the logical volume to the local metadata.
+                        // We do not know the UUID of the associated logical volume until a transfer
+                        // is started using this handle.  The necessary LVKey should be registered
+                        // to this new bbServer as part of activating the connection.
+                        //
+                        // Continue to wait...
+                        rc = 0;
+
+                        // Hang out for a bit (60 x 500 mils each, 30 seconds total) and see if the necessary LVKey appears...
+                        usleep((useconds_t)500000);    // Delay .5 second
+                    }
+                }
+                else
+                {
+                    l_Continue = 0;
+                    // NOTE: errstate already filled in by getHandle() for non-tolerated exceptions...
+                }
+            }
+        }
+
+        switch (rc)
+        {
+            case 0:
+            {
+                // Successful processing above...
+            }
+            break;
+
+            case -2:
+            {
+                // LVKey not found on this bbServer
+                // Send the error back as a -2...  Might be tolerated...
+                errorText << "A logical volume (LVKey) is not currently associated with " << l_JobStr.str() \
+                          << " on this bbServer. Before a handle value can be generated," \
+                          << " a logical volume must first be created for this job, associated with this bbServer.";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+            break;
+
+            default:
+            {
+                // LVKey not found on this bbServer, error encountered by getHandle()
+                // NOTE: errstate already filled in by gethandle() for non-tolerated exceptions...
+                rc = -1;
+            }
+            break;
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    if (rc == 0)
+    {
+        // NOTE:  The char array is copied to heap by addAttribute and the storage for
+        //        the logical volume uuid attribute is owned by the message facility.
+        //        Our copy can then go out of scope...
+        response->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
+        txp::Attr_uint64 transferHandle(txp::transferHandle, l_Handle);
+        response->addAttribute(&transferHandle);
+    }
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear(pConnectionName);
+
+    uint64_t l_Handle = 0;
+    uint32_t l_ContribId;
+
+    uint64_t l_JobId = 0;
+    uint64_t l_JobStepId = 0;
+    uint64_t l_Tag = 0;
+    uint64_t l_NumContrib = 0;
+    uint64_t l_NumOfContribsInArray = 0;
+    uint64_t l_NumberOfReportingContribs = 0;
+    HandleFile* l_HandleFile = 0;
+    ContribIdFile* l_ContribIdFile = 0;
+    uint32_t* l_ContribArray = 0;
+
+    LVKey l_LVKeyStg;
+    LVKey* l_LVKey = &l_LVKeyStg;
+//    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
+
+    char l_TransferKeyBuffer[16] = {'\0'};
+    uint64_t l_TransferKeyBufferSize = 15;
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+        l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        LOG(bb,debug) << "msgin_gettransferinfo: handle = " << l_Handle << ", contribid = " << l_ContribId;
+
+        switchIds(msg);
+
+        lockTransferQueue((LVKey*)0, "msgin_gettransferinfo");
+        l_LockHeld = true;
+
+        {
+            // NOTE: get_xbbServerHandleInfo() will only return a non-zero return code if the xbbServer data store cannot be found/loaded.
+            //       Otherwise, the l_HandleFile and l_ContribIdFile pointers can come back null if they could not be found with the given
+            //       input.
+            rc = HandleFile::get_xbbServerHandleInfo(l_JobId, l_JobStepId, l_NumberOfReportingContribs, l_HandleFile, l_ContribIdFile, l_Handle, l_ContribId);
+
+            if (!rc)
+            {
+                if (l_HandleFile)
+                {
+                    l_Tag = l_HandleFile->tag;
+                    l_NumContrib = l_HandleFile->numContrib;
+                    l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+
+                    if (l_NumOfContribsInArray != l_NumContrib) {
+                        rc = -1;
+                        errorText << "Number of expected contributors, " << l_NumContrib << ", does not match the number of elements found in the expectContrib array, " << l_NumOfContribsInArray;
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+
+                    // NOTE: No need to check the return code... The required size (without the training null terminator) is always returned...
+                    HandleFile::getTransferKeys(l_JobId, l_Handle, l_TransferKeyBufferSize, l_TransferKeyBuffer);
+                }
+                else
+                {
+                    rc = -1;
+                    errorText << "Handle " << l_Handle << ", contribid " << l_ContribId << " could not be found";
+                    bberror << err("rc", rc) << err("error.text", errorText.str());
+                    LOG(bb,info) << errorText.str();
+                }
+            }
+        }
+    }
+
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    BBSTATUS l_OverallStatus = BBNONE;
+    BBSTATUS l_LocalStatus = BBNONE;
+
+    // Add response values here...
+    response->addAttribute(txp::handle, l_Handle);
+    response->addAttribute(txp::contribid, l_ContribId);
+    if (!rc)
+    {
+        response->addAttribute(txp::jobid, l_JobId);
+        response->addAttribute(txp::jobstepid, l_JobStepId);
+        response->addAttribute(txp::tag, l_Tag);
+        response->addAttribute(txp::numcontrib, l_NumContrib);
+        // NOTE:  bbproxy ensures that l_NumContrib does not come in as a zero...
+        response->addAttribute(txp::contrib, (const char*)l_ContribArray, sizeof(uint32_t) * l_NumContrib);
+        l_OverallStatus = (BBSTATUS)l_HandleFile->status;
+        response->addAttribute(txp::numreportingcontribs, l_NumberOfReportingContribs);
+        response->addAttribute(txp::totalTransferKeyLength, l_TransferKeyBufferSize);
+        response->addAttribute(txp::totalTransferSize, l_HandleFile->totalTransferSize);
+        if (l_ContribIdFile) {
+            l_LocalStatus = l_HandleFile->getLocalStatus(l_NumberOfReportingContribs, l_ContribIdFile);
+            response->addAttribute(txp::localTransferSize, l_ContribIdFile->totalTransferSize);
+            delete l_ContribIdFile;
+        } else {
+            l_LocalStatus = BBNOTACONTRIB;
+            for (size_t i=0; i<(size_t)l_NumContrib; ++i) {
+                if (l_ContribArray[i] == l_ContribId) {
+                    l_LocalStatus = BBNOTREPORTED;
+                    break;
+                }
+            }
+            response->addAttribute(txp::localTransferSize, (uint64_t)0);
+        }
+        delete l_HandleFile;
+    }
+
+    // NOTE: The status values are returned even for a non-zero return code.
+    //       In that case, both will be BBNONE and are provided so those values
+    //       can be logged.
+    response->addAttribute(txp::status, (uint64_t)l_OverallStatus);
+    response->addAttribute(txp::localstatus, (uint64_t)l_LocalStatus);
+
+    char l_LocalStatusStr[64] = {'\0'};
+    char l_OverallStatusStr[64] = {'\0'};
+    getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
+    getStrFromBBStatus(l_OverallStatus, l_OverallStatusStr, sizeof(l_OverallStatusStr));
+    LOG(bb,info) << "msgin_gettransferinfo: handle = " << l_Handle << ", contribid = " << l_ContribId << ", returned status = " << l_OverallStatusStr << ", localstatus = " << l_LocalStatusStr;
+
+    if (l_NumContrib == 1 && l_LocalStatus == BBFULLSUCCESS && l_OverallStatus == BBINPROGRESS)
+    {
+        LOG(bb,warning) << "msgin_gettransferinfo: jobid = " << l_JobId << ", jobstepid = " << l_JobStepId << ", handle = " << l_Handle << ", contribid = " << l_ContribId \
+                        << " has an inconsistent status.  Local status is BBFULLSUCCESS and overall status is BBINPROGRESS with a single contributor.";
+    }
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName, response);
+    delete response;
+
+    if (l_ContribArray)
+    {
+        delete[] l_ContribArray;
+        l_ContribArray = 0;
+    }
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear(pConnectionName);
+
+    uint64_t l_JobId = 0;
+    uint64_t l_Handle = 0;
+    uint64_t l_TransferKeyBufferSize = (64*1024)-1;
+    uint32_t l_ContribId = 0;
+    char* l_TransferKeyBuffer = 0;
+
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+        l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+        LOG(bb,info) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId;
+
+        switchIds(msg);
+
+        lockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
+        l_LockHeld = true;
+
+        {
+            rc = -2;
+            while (rc == -2)
+            {
+                if (l_TransferKeyBuffer)
+                {
+                    delete[] l_TransferKeyBuffer;
+                    l_TransferKeyBuffer = 0;
+                }
+                // NOTE: l_TransferKeyBufferSize is returned as the length of the transfer keys WITHOUT the trailing null terminator
+                l_TransferKeyBuffer = new char[++l_TransferKeyBufferSize];
+                rc = HandleFile::getTransferKeys(l_JobId, l_Handle, l_TransferKeyBufferSize, l_TransferKeyBuffer);
+            }
+
+            if (!rc) {
+                // Log the results
+                LOG(bb,debug) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId << " required buffersize = " << l_TransferKeyBufferSize;
+            } else {
+                // Negative return codes indicate an error.
+                // NOTE: errstate already filled in by getTransferKeys()...
+            }
+        }
+    }
+
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    response->addAttribute(txp::buffersize, l_TransferKeyBufferSize);
+    response->addAttribute(txp::buffer, l_TransferKeyBuffer, l_TransferKeyBufferSize);
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+    if (l_TransferKeyBuffer)
+    {
+        delete[] l_TransferKeyBuffer;
+        l_TransferKeyBuffer = 0;
+    }
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+	stringstream errorText;
+
+    bberror.clear(pConnectionName);
+
+    BBJob l_Job;
+    BBSTATUS l_MatchStatus;
+    uint64_t l_NumHandles = 0;
+    uint64_t l_NumHandlesReturned = 0;
+    uint64_t l_NumAvailHandles = 0;
+
+    uint64_t* l_HandleArray = 0;
+    uint64_t l_LengthOfHandleArray = 0;
+    std::vector<uint64_t> l_Handles;
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        l_Job = BBJob(((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData(), ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobstepid))->getData());
+        l_MatchStatus = (BBSTATUS)((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::matchstatus))->getData();
+        l_NumHandles = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::numhandles))->getData();
+
+        stringstream l_JobStr;
+        l_Job.getStr(l_JobStr);
+        LOG(bb,info) << "msgin_gettransferlist: " << l_JobStr.str() \
+                     << std::hex << std::uppercase << setfill('0') \
+                     << ", matchstatus = 0x" << (uint64_t)l_MatchStatus \
+                     << setfill(' ') << std::nouppercase << std::dec;
+
+        switchIds(msg);
+
+        lockTransferQueue((LVKey*)0, "msgin_gettransferlist");
+        l_LockHeld = true;
+
+        {
+            rc = HandleFile::get_xbbServerHandleList(l_Handles, l_Job, l_MatchStatus);
+
+            if (!rc) {
+                l_NumAvailHandles = l_Handles.size();
+                if (l_NumAvailHandles < l_NumHandles) {
+                    l_NumHandles = l_NumAvailHandles;
+                }
+                l_LengthOfHandleArray = sizeof(uint64_t)*(l_NumHandles+1);
+                l_HandleArray = (uint64_t*)(new char[l_LengthOfHandleArray]);
+                memset(l_HandleArray, 0, l_LengthOfHandleArray);
+                for(size_t i=0; i<l_NumHandles; ++i) {
+                    l_HandleArray[i] = l_Handles[i];
+                    LOG(bb,debug) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
+                    ++l_NumHandlesReturned;
+                }
+            } else {
+                rc = -1;
+	            errorText << "List of transfer handles could not be determined from the xbbserver metadata";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+        }
+    }
+
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+    if (!rc)
+    {
+        response->addAttribute(txp::numhandles, l_NumHandlesReturned);
+        response->addAttribute(txp::numavailhandles, l_NumAvailHandles);
+        response->addAttribute(txp::handles, (const char*)l_HandleArray, sizeof(uint64_t)*l_NumHandlesReturned);
+    }
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+    if (l_HandleArray)
+    {
+        delete[] l_HandleArray;
+        l_HandleArray = 0;
+    }
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        uint64_t l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+        LOG(bb,info) << "msgin_removejobinfo: JobId = " << l_JobId;
+
+        switchIds(msg);
+
+        // Process removejobinfo message
+        string l_HostName;
+        activecontroller->gethostname(l_HostName);
+
+        lockTransferQueue((LVKey*)0, "msgin_removejobinfo");
+        l_LockHeld = true;
+        rc = removeJobInfo(l_HostName, l_JobId);
+        if (rc) {
+            LOG_RC_AND_BAIL(rc);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_removejobinfo");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
+void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    try
+    {
+        // Demarshall data from the message
+        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+        LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+        uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        LOG(bb,info) << "msgin_removelogicalvolume: Local ConnectionName = " << getConnex(pConnectionName)->getSockfd() \
+                     << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()) \
+                     << ", issued by contribid = " << l_ContribId;
+
+        switchIds(msg);
+
+        // Process remove logical volume message
+
+        rc = removeLogicalVolume(pConnectionName, &l_LVKey);
+
+        if (rc) {
+            LOG_RC_AND_BAIL(rc);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
+void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        string l_CN_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+        string l_CN_HostNamePrt1 = l_CN_HostName;
+        if (l_CN_HostName == UNDEFINED_HOSTNAME)
+        {
+            l_CN_HostNamePrt1 = "''";
+        }
+        LOG(bb,info) << "msgin_resume: Hostname " << l_CN_HostNamePrt1;
+
+        switchIds(msg);
+
+        // Process resume message
+        lockTransferQueue((LVKey*)0, "msgin_resume");
+        l_LockHeld = true;
+
+        // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
+        //        that all prior suspend/resume requests have first been processed by this bbServer.
+        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
+
+        // Now perform this resume operation
+        string l_HostName;
+        activecontroller->gethostname(l_HostName);
+        rc = metadata.setSuspended(l_HostName, l_CN_HostName, RESUME);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_resume");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    string l_MarshalledTransferDefs;
+    int l_DataObtainedLocally = 1;
+    size_t l_NumberOfTransferDefs = 0;
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        uint64_t l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+        uint64_t l_JobStepId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobstepid))->getData();
+        uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+        uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        BB_RTV_TRANSFERDEFS_FLAGS l_Flags = (BB_RTV_TRANSFERDEFS_FLAGS)((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::flags))->getData();
+        string l_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+        string l_HostNamePrt1 = l_HostName;
+        if (l_HostName == UNDEFINED_HOSTNAME)
+        {
+            l_HostNamePrt1 = "''";
+        }
+        LOG(bb,info) << "msgin_retrievetransfers: From hostname " << l_HostNamePrt1 << ", jobId = " << l_JobId << ", jobStepId = " << l_JobStepId \
+                      << ", handle = " << l_Handle << ", contribId = " << l_ContribId << ", flags = " << (uint64_t)l_Flags;
+
+        switchIds(msg);
+
+        // Process retrievetransfers message
+        lockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
+        l_LockHeld = true;
+
+        BBTransferDefs l_TransferDefs = BBTransferDefs(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_Flags);
+
+        // First, attempt to retrieve ALL of the data from the local metadata.
+        //
+        // If ALL of the data can be obtained from the local metadata, the data
+        // is filled into l_TransferDefs and rc is returned as 0.  Otherwise,
+        // no transfer definitions are returned and the rc is returned as 1,
+        // indicating that all of the data could not be obtained from the local
+        // metadata.  Any negative return code is an error.
+        //
+        // NOTE: The above may not be true in the case of failing over to a backup
+        //       server, as the hostname 'could' be known at more than one server.
+        //       In addition, if the retrieve flag is not for ALL_DEFINITIONS,
+        //       we would also have to go to the cross-bbServer metadata.
+        //       We no longer try to satisfy the retrieve via local metadata and
+        //       always use the cross-bbServer metadata.  @DLH
+        //
+        // rc = metadata.retrieveTransfers(l_TransferDefs);
+        // if (rc == 1)
+        {
+            // Could not obtain all of the data from the local metadata.
+            // Now, obtain ALL of the data from the cross-bbserver metadata.
+            // Any negative return code is an error.  Otherwise, any data
+            // that satisfies the search criteria is filled into l_TransferDefs.
+            l_DataObtainedLocally = 0;
+            rc = BBTransferDefs::xbbServerRetrieveTransfers(l_TransferDefs);
+        }
+
+        l_NumberOfTransferDefs = l_TransferDefs.getNumberOfDefinitions();
+
+        if (rc >= 0)
+        {
+            rc = 0;
+            l_MarshalledTransferDefs = l_TransferDefs.marshall();
+            string xDataLocation;
+            if (l_DataObtainedLocally)
+            {
+                xDataLocation = "the local bbserver cache";
+            }
+            else
+            {
+                xDataLocation = "the cross-bbserver metadata";
+            }
+            LOG(bb,info) << l_NumberOfTransferDefs << " transfer definitions retrieved from " << xDataLocation << ".";
+            LOG(bb,info) << "    l_MarshalledTransferDefs = |" << l_MarshalledTransferDefs << "|";
+            l_TransferDefs.dump("debug", "msgin_retrievetransfers ");
+        }
+        else
+        {
+            l_DataObtainedLocally = 0;
+            LOG_RC_AND_BAIL(rc);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+    if (!rc)
+    {
+        response->addAttribute(txp::dataObtainedLocally, (uint32_t)l_DataObtainedLocally);
+        response->addAttribute(txp::numTransferDefs, (uint32_t)l_NumberOfTransferDefs);
+        response->addAttribute(txp::transferdefs, l_MarshalledTransferDefs.c_str(), l_MarshalledTransferDefs.size()+1);
+    }
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    try
+    {
+        // Demarshall data from the message
+        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+        uint64_t l_Rate = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::rate))->getData();
+        LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+        LOG(bb,info) << "msgin_setthrottlerate: Local pConnectionName = " << pConnectionName << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()) << ", rate = " << l_Rate;
+
+        switchIds(msg);
+
+        // Process set throttle rate message
+
+        rc = setThrottleRate(pConnectionName, &l_LVKey, l_Rate);
+
+        if (rc) {
+            LOG_RC_AND_BAIL(rc);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
+void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear(pConnectionName);
+
+    uint64_t l_Handle = 0;
+    uint32_t l_ContribId = UNDEFINED_CONTRIBID;
+    uint32_t l_PerformOperation = 0;
+
+    LVKey l_LVKey;
+    LVKey l_LVKey2;
+    WRKQE* l_WrkQE = 0;
+    BBTagInfo2* l_TagInfo2 = 0;
+    BBTagInfo* l_TagInfo = 0;
+    BBTagID l_TagId;
+    BBJob l_Job;
+    uint64_t l_Tag = 0;
+    uint32_t l_MarkFailedFromProxy = 0;
+    uint32_t* l_ContribArray = 0;
+    std::vector<uint32_t>* l_Contrib = 0;
+    vector<struct stat*> l_Stats;
+    vector<txp::CharArray> l_StatArray;
+    vector<txp::CharArray> l_StatArray2;
+    stringstream l_ContribSS;
+    char l_Empty = '\0';
+
+    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
+    char lv_uuid2_str[LENGTH_UUID_STR] = {'\0'};
+
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    ContribIdFile* l_ContribIdFile = 0;
+
+    BBTransferDef l_Transfer;
+    BBTransferDef* l_TransferPtr = &l_Transfer;
+    BBTransferDef* l_OrgTransferPtr = l_TransferPtr;
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall the message
+        l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+        l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+        string l_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+        l_PerformOperation = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::performoperation))->getData();
+        l_MarkFailedFromProxy = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::markfailed))->getData();
+
+        size_t l_NumStats = (size_t)((txp::AttrPtr_array_of_char_arrays*)msg->retrieveAttrs()->at(txp::statinfo))->getNumberOfElementsArrayOfCharArrays();
+        txp::CharArray* l_StatArray = (txp::CharArray*)msg->retrieveAttrs()->at(txp::statinfo)->getDataPtr();
+        for(size_t i=0; i<l_NumStats; i++)
+        {
+            if (((*l_StatArray)[i].first) != 1)
+            {
+                struct stat* l_Stat = new(struct stat);
+                memcpy((void*)l_Stat, ((*l_StatArray)[i].second), ((*l_StatArray)[i].first));
+                l_Stats.push_back(l_Stat);
+            }
+            else
+            {
+                l_Stats.push_back(0);
+            }
+        }
+
+        l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
+        l_lvuuid.copyTo(lv_uuid_str);
+        BBTransferDef::demarshallTransferDef(msg, l_TransferPtr);
+        for(size_t i=0; i<l_TransferPtr->files.size(); i++)
+        {
+            l_TransferPtr->sizeTransferred.push_back(0);
+        }
+
+        l_Job = l_TransferPtr->getJob();
+
+        // NOTE: For a new transfer definition (not rebuilt from the metadata), the hostname, contribid,
+        //       tag, and handle values were not set in the transfer definition by bbapi/bbproxy.
+        //       We set three of those values here and the tag value later down in the code.
+        //       If this is a rebuilt transfer definition, the hostname must be set again because this could
+        //       be coming from a different CN hostname.
+        l_TransferPtr->setContribId(l_ContribId);
+        l_TransferPtr->setTransferHandle(l_Handle);
+        l_TransferPtr->setHostName(l_HostName);
+
+        LOG(bb,info) << "msgin_starttransfer: Input " << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle \
+                     << ", contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
+                     << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
+                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
+                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
+
+        if (l_PerformOperation && config.get(process_whoami+".bringup.dumpTransferDefinitionAfterDemarshall", 0)) {
+            l_TransferPtr->dump("info", "Transfer Definition (after demarshall)");
+        }
+
+        switchIds(msg);
+
+        lockTransferQueue(&l_LVKey, "msgin_starttransfer");
+        l_LockHeld = true;
+        bool l_AllDone = false;
+
+        {
+            if ((!l_PerformOperation) && l_TransferPtr->builtViaRetrieveTransferDefinition())
+            {
+                // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure that all stop/cancel
+                //        requests for this transfer definition have been processed by this bbServer.
+                wrkqmgr.processAllOutstandingHP_Requests(&l_LVKey);
+            }
+
+            while ((!rc) && (!l_AllDone))
+            {
+                rc = metadata.getInfo(pConnectionName, l_LVKey2, l_TagInfo2, l_TagInfo, l_TagId, l_Job, l_Contrib, l_Handle, l_ContribId);
+                if (rc > 0)
+                {
+                    // Check to see if the hostname is suspended.
+                    // NOTE:  bbServer cannot catch the case of a suspended hostname and this is the first transfer definition to be started.
+                    //        Such a check would have to be in the else leg of getInfo().  We rely on bbProxy to prevent that from happening...
+                    // NOTE:  The check for the suspend state is done on both volleys.  If a suspend operation is successful between
+                    //        the two volleys, the start transfer will fail.
+                    if (!l_TagInfo2->isSuspended())
+                    {
+                        // Not suspended...
+                        // NOTE: We may have to spin for a while waiting for the work queue.
+                        //       This is the case where we are in the process of activating this
+                        //       bbServer, but we have not finished registering all of the LVKeys.
+                        //       If necessary, spin for up to 30 seconds waiting for the work queue.
+                        int l_Attempts = 120;
+                        rc = -1;
+                        while (rc && l_Attempts--)
+                        {
+                            rc = wrkqmgr.getWrkQE(&l_LVKey2, l_WrkQE);
+                            if (rc)
+                            {
+                                unlockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
+                                {
+                                    usleep((useconds_t)250);    // Delay 250 milliseconds
+                                }
+                                lockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
+
+                                // Check to make sure the job still exists after releasing/re-acquiring the lock
+                                if (!jobStillExists(pConnectionName, &l_LVKey2, (BBTagInfo2*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
+                                {
+                                    // Jobid no longer exists...
+                                    // This condition overrides any failure detected on bbProxy
+                                    l_MarkFailedFromProxy = 0;
+                                    rc = -1;
+
+                                    BAIL;
+                                }
+                            }
+                        }
+                        if (!rc)
+                        {
+                            Uuid l_lvuuid2 = l_LVKey2.second;
+                            l_lvuuid2.copyTo(lv_uuid2_str);
+                            // NOTE: bbproxy verified that the jobstep for this transfer matches the jobstep
+                            //       for the transfer handle.  Therefore, we take the jobid and jobstepid from
+                            //       the transfer handle...
+                            // Set the tag information in the transfer definition.  It was not set by bbapi/bbproxy...
+                            l_Tag = l_TagId.getTag();
+                            l_TransferPtr->setTag(l_Tag);
+
+                            // NOTE:  Perform the lvuuid checks only during the second pass of processing...
+                            LOG(bb,debug) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
+                                          << ", mark_failed_from_bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
+                                          << ", no stage in/out in transfer definition " << l_TransferPtr->noStageinOrStageoutTransfersInDefinition() \
+                                          << ", lvuuid |" << lv_uuid_str << "|, lvuuid2 |" << lv_uuid2_str << "|";
+                            if (!l_PerformOperation || l_lvuuid == l_lvuuid2 || l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
+                            {
+                                if (l_TagInfo->inExpectContrib(l_ContribId))
+                                {
+                                    uint64_t l_NumContrib = (uint64_t)l_Contrib->size();
+
+                                    // Process the returned contrib into an array of uint32_t's and a formatted stringstream
+                                    stringstream l_ContribStr;
+                                    processContrib(l_Contrib, l_ContribArray, l_ContribStr);
+
+                                    // Process the job into a formatted stringstream
+                                    stringstream l_JobStr;
+                                    l_Job.getStr(l_JobStr);
+                                    LOG(bb,info) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag = " << l_Tag \
+                                                 << ", handle = " << l_Handle << ", numcontrib = " << l_NumContrib << ", contrib = " << l_ContribStr.str();
+
+                                    // Start transfer
+                                    // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
+                                    //        pass the LVKey we received from getInfo() above and not the null one passed in the message...
+
+                                    rc = queueTransfer(pConnectionName, &l_LVKey2, l_Job, l_Tag, l_TransferPtr, l_ContribId,
+                                                       l_NumContrib, l_ContribArray, l_Handle, l_PerformOperation, l_MarkFailedFromProxy, &l_Stats);
+                                    if (rc)
+                                    {
+                                        if (rc > 0)
+                                        {
+                                            // Normal case where the start transfer request (via restart) is not needed.
+                                            // NOTE:  The appropriate logging has already been performed.
+
+                                            BAIL;
+                                        }
+                                        else
+                                        {
+                                            // Some type of failure
+                                            // This condition overrides any failure detected on bbProxy
+                                            // NOTE:  errstate is filled in by queueTransfer()
+                                            l_MarkFailedFromProxy = 0;
+
+                                            errorText << "queueTransfer() failed";
+                                            LOG_ERROR_AND_BAIL(errorText);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        l_AllDone = true;
+                                    }
+                                } else {
+                                    // This condition overrides any failure detected on bbProxy...
+                                    l_MarkFailedFromProxy = 0;
+
+                                    rc = -1;
+                                    errorText << "Contribid not found in the expected contrib values for the handle";
+                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                }
+                            } else {
+                                // This condition overrides any failure detected on bbProxy...
+                                l_MarkFailedFromProxy = 0;
+
+                                rc = -1;
+                                errorText << "LVKeys do not match for the handle verses the files in the transfer definition";
+                                bberror << err("error.proxy_lvuuid", lv_uuid_str) << err("error.server_lvuuid", lv_uuid2_str);
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                        } else {
+                            // This condition overrides any failure detected on bbProxy...
+                            l_MarkFailedFromProxy = 0;
+
+                            rc = -1;
+                            errorText << "Workqueue could not be found";
+                            bberror << err("error.lvuuid", lv_uuid_str);
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
+                    } else {
+                        // This condition overrides any failure detected on bbProxy...
+                        l_MarkFailedFromProxy = 0;
+
+                        rc = 1;
+                        errorText << "Hostname " << l_TagInfo2->getHostName() << " is suspended. Therefore, no transfer is allowed to start.";
+                        LOG_ERROR_TEXT_AND_BAIL(errorText);
+                    }
+                }
+                else
+                {
+                    if (!l_PerformOperation)
+                    {
+                        // Initial pass...  Attempt to determine special cases...
+                        //
+                        // Information regarding the LVKey and related local metadata objects for this handle
+                        // could not be found on this server.  This means the client is either:
+                        //   A) using an invalid handle -or-
+                        //   B) received the handle to use via some application means -or-
+                        //   C) this transfer definition is being restarted to a different bbServer
+                        //   D) this transfer definition is being started and the logical volume was
+                        //      registered to another bbServer and the contribid is not associated
+                        //      with a different bbServer
+                        // The getHandle() code would have primed that information into this server's local
+                        // metadata if the client had obtained the handle to use via getHandle().
+                        //
+                        // Check the cross bbServer metadata for the handle value.  If found and this contributor is
+                        // valid for that handle, prime the local metadata and retry the getInfo() operation above...
+                        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle);
+                        if (!rc)
+                        {
+                            // The handle exists on one or more other servers...
+                            l_Tag = l_HandleFile->tag;
+
+                            // Get the contrib array from the Handlefile, which is an array of unit32_t's
+                            uint64_t l_NumContrib = 0;
+                            l_HandleFile->getContribArray(l_NumContrib, l_ContribArray);
+                            if (hasContribId(l_ContribId, l_NumContrib, l_ContribArray))
+                            {
+                                rc = 0;
+                                //  Next, determine if this contributor has already been registered
+                                bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
+                                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
+                                l_HandleFilePath /= bfs::path(to_string(l_Handle));
+                                Uuid l_lvuuid3 = Uuid();
+                                Uuid* l_lvuuid3_Ptr = &l_lvuuid3;
+
+                                if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                {
+                                    // Restart case...
+                                    // First ensure that this transfer definition is marked as stopped in the cross bbServer metadata
+                                    int l_Attempts = 1;
+                                    bool l_AllDone = false;
+                                    while (!l_AllDone)
+                                    {
+                                        l_AllDone = true;
+
+                                        rc = 1;
+                                        int l_Continue = wrkqmgr.getDeclareServerDeadCount();
+                                        while ((rc) && (l_Continue--))
+                                        {
+                                            rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
+                                            if (rc == 1)
+                                            {
+                                                if (l_ContribIdFile)
+                                                {
+                                                    if (!l_ContribIdFile->stopped())
+                                                    {
+                                                        //  Continue to spin...
+                                                        if (l_ContribIdFile->notRestartable())
+                                                        {
+                                                            // All extents have been processed, all files closed, with no failed files.
+                                                            // The transfer definition is not marked as stopped, therefore, no need to restart this
+                                                            // transfer definition.
+                                                            LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << l_ContribId \
+                                                                         << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
+                                                                         << " See previous messages.";
+                                                            BAIL;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        // Stopped, will exit both loops...
+                                                        rc = 0;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                                    {
+                                                        rc = 1;
+                                                        LOG(bb,info) << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                                                     << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                        BAIL;
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // The Contrib file could not be loaded -or-
+                                                // the ContribId file could not be found in the Contrib file
+                                                if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                                {
+                                                    rc = 1;
+                                                    // This condition overrides any failure detected on bbProxy...
+                                                    l_MarkFailedFromProxy = 0;
+                                                    LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
+                                                                 << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                    BAIL;
+                                                }
+                                            }
+
+                                            if (rc && l_Continue)
+                                            {
+                                                if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
+                                                {
+                                                    // Display this message every 15 seconds...
+                                                    LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
+                                                                 << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                 << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
+                                                                 << " seconds remain before the original bbServer is declared dead.";
+                                                }
+                                                unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+                                                {
+                                                    usleep((useconds_t)1000000);    // Delay 1 second
+                                                }
+                                                lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+
+                                                // Check to make sure the job still exists after releasing/re-acquiring the lock
+                                                if (!jobStillExists(pConnectionName, &l_LVKey, (BBTagInfo2*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
+                                                {
+                                                    // Job no longer exists... Indicate to not restart this transfer definition.
+                                                    rc = 1;
+                                                    // This condition overrides any failure detected on bbProxy...
+                                                    l_MarkFailedFromProxy = 0;
+                                                    BAIL;
+                                                }
+                                            }
+                                        }
+
+                                        if (rc == 1)
+                                        {
+                                            if (l_Attempts--)
+                                            {
+                                                rc = prepareForRestartOriginalServerDead(pConnectionName, &l_LVKey, l_Handle, l_Job, l_ContribId);
+                                                switch (rc)
+                                                {
+                                                    case 1:
+                                                    {
+                                                        // Reset of cross bbServer metadata was successful...  Continue...
+                                                        rc = 0;
+                                                        LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata and was successfully stopped" \
+                                                                  << " after the original bbServer was unresponsive";
+                                                        l_AllDone = false;
+                                                    }
+                                                    break;
+
+                                                    case 2:
+                                                    {
+                                                        // Indicate to not restart this transfer definition
+                                                        rc = 1;
+                                                        // This condition overrides any failure detected on bbProxy...
+                                                        l_MarkFailedFromProxy = 0;
+                                                        LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but no file associated with the transfer definition needed to be restarted." \
+                                                                     << " Most likely, the transfer completed for the contributor or was canceled. Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                        BAIL;
+                                                    }
+                                                    break;
+
+                                                    default:
+                                                    {
+                                                        // Indicate to not restart this transfer definition
+                                                        rc = 1;
+                                                        // This condition overrides any failure detected on bbProxy...
+                                                        l_MarkFailedFromProxy = 0;
+                                                        errorText << "Attempt to reset the cross bbServer metadata for the transfer definition associated with contribid " << l_ContribId << " to stopped failed." \
+                                                                  << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                                    }
+                                                    break;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // Indicate to not restart this transfer definition (Should not get here...)
+                                                rc = 1;
+                                                // This condition overrides any failure detected on bbProxy...
+                                                l_MarkFailedFromProxy = 0;
+                                                errorText << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but it does not have a status of stopped." \
+                                                          << " The transfer definition was marked as stopped after the original bbServer was unresponsive," \
+                                                          << " but the cross bbServer metadata no longer shows the transfer definition as stopped." \
+                                                          << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (!rc)
+                                {
+                                    //  getHandle() will create the necessary local metadata for this LVKey and handle value.
+                                    //
+                                    //  Objective is to get the local metadata created and then we will iterate through this
+                                    //  loop again.  Next time through, the local metadata will be found and we can then go on
+                                    //  to registering the transfer definition with queueTransfer().
+                                    LVKey* l_LVKeyPtr = &l_LVKey;
+
+                                    // NOTE: We may have to spin for a while waiting for the LVKey to be registered.
+                                    //       This is the case where we are in the process of activating this
+                                    //       bbServer, but we have not finished registering all of the LVKeys.
+                                    //       If necessary, spin for up to 1 minute.
+                                    int l_Attempts = 120;
+                                    rc = -2;
+                                    while (rc && l_Attempts--)
+                                    {
+                                        rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_ContribArray, l_Handle, DO_NOT_LOCK_TRANSFER_QUEUE);
+                                        switch (rc)
+                                        {
+                                            case 0:
+                                            {
+                                                // Local metadata was successfully created.  Iterate and continue processing...
+                                            }
+                                            break;
+
+                                            case -2:
+                                            {
+                                                // LVKey could not be found...  Spin for a while waiting for the
+                                                // registration of the necessary LVKey...
+                                                unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
+                                                {
+                                                    usleep((useconds_t)500000);     // Delay .5 seconds
+                                                }
+                                                lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
+                                            }
+                                            break;
+
+                                            default:
+                                            {
+                                                if (rc > 0)
+                                                {
+                                                    // Local metadata was found.  We hit he window where we were activating this bbServer and the
+                                                    // LVKey was not yet registered when checking above, but it now exists on this bbServer.
+                                                    // Continue...
+                                                    rc = 0;
+                                                }
+                                                else
+                                                {
+                                                    // Negative return codes indicate an error.
+                                                    // NOTE: errstate already filled in by gethandle()...
+                                                    // This condition overrides any failure detected on bbProxy...
+                                                    l_MarkFailedFromProxy = 0;
+                                                    LOG_RC_AND_BAIL(rc);
+                                                }
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    if (rc)
+                                    {
+                                        stringstream l_JobStr;
+                                        l_Job.getStr(l_JobStr);
+                                        if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                        {
+                                            // This is a restart transfer scenrio and the LVKey cannot be found
+                                            rc = -1;
+                                            // This condition overrides any failure detected on bbProxy...
+                                            l_MarkFailedFromProxy = 0;
+                                            errorText << "A logical volume (LVKey) is not currently associated with " << l_JobStr.str() \
+                                                      << " on this bbServer for contribid " << l_ContribId \
+                                                      << ".  This is a restart scenario and the expected LVKey was not found.";
+                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                        }
+                                        else
+                                        {
+                                            // This is a start transfer and the LVKey cannot be found
+                                            rc = -1;
+                                            // This condition overrides any failure detected on bbProxy...
+                                            l_MarkFailedFromProxy = 0;
+                                            errorText << "A logical volume (LVKey) is not currently associated with " << l_JobStr.str() \
+                                                      << " on this bbServer for contribid " << l_ContribId \
+                                                      << ".  This is not a restart scenario and either the contribid is already known" \
+                                                      << " for this job to another bbServer in the cluster or a logical volume has yet" \
+                                                      << " to be created for the job on this bbServer.";
+                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                rc = -1;
+                                // This condition overrides any failure detected on bbProxy...
+                                l_MarkFailedFromProxy = 0;
+                                errorText << "Contribid is not a listed contributor for the specified handle";
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                        }
+                        else
+                        {
+                            // This condition overrides any failure detected on bbProxy...
+                            l_MarkFailedFromProxy = 0;
+                            if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                            {
+                                rc = 1;
+                                LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from getHandle())." \
+                                             << " All transfers for this contributor may have already finished.  See previous messages.";
+                                BAIL;
+                            }
+                            else
+                            {
+                                rc = -1;
+                                errorText << "Transfer handle could not be found on any server";
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                        }
+                        if (l_ContribIdFile)
+                        {
+                            delete l_ContribIdFile;
+                            l_ContribIdFile = 0;
+                        }
+
+                        if (l_HandleFileName)
+                        {
+                            delete[] l_HandleFileName;
+                            l_HandleFileName = 0;
+                        }
+
+                        if (l_HandleFile)
+                        {
+                            delete l_HandleFile;
+                            l_HandleFile = 0;
+                        }
+
+                        if (l_ContribArray)
+                        {
+                            delete l_ContribArray;
+                            l_ContribArray = 0;
+                        }
+                    }
+                    else
+                    {
+                        rc = -1;
+                        // This condition overrides any failure detected on bbProxy...
+                        l_MarkFailedFromProxy = 0;
+                        errorText << "Failure occurred between the first and second calls to the servicing bbServer " \
+                                  << "when attempting to start or restart the transfer definition associated with " \
+                                  << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                  << ".  The necessary local metedata for the transfer definition could not be found.";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                }
+            }
+
+            if ((!rc) && (l_PerformOperation))
+            {
+                // If the transfer definition has keys, insert those into the cross bbserver metadata (handlefile)
+                // NOTE:  This is the last thing we do in the l_PerformOperation pass.  Once these keys are added,
+                //        there is no backout code if the start transfer request were to fail.  However, on failure,
+                //        the transfer definition and the handle would be marked as being failed.
+                if (l_TransferPtr->getNumberOfKeys())
+                {
+                    // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
+                    //        pass the LVKey we received from getInfo() above and not the null one passed in the message...
+                    rc = HandleFile::update_xbbServerHandleTransferKeys(l_TransferPtr, &l_LVKey2, l_Job, l_Handle);
+                }
+            }
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    if (!rc)
+    {
+        if (!l_PerformOperation)
+        {
+            l_StatArray2.resize(1);
+            for(auto e : l_Stats)
+            {
+                if (e != NULL)
+                {
+                    l_StatArray2[0].push_back(make_pair(sizeof(*e), (char*)e));
+                }
+                else
+                {
+                    l_StatArray2[0].push_back(make_pair(1, &l_Empty));
+                }
+            }
+            response->addAttribute(txp::statinfo, &l_StatArray2[0]);
+        }
+
+        if (l_MarkFailedFromProxy)
+        {
+            markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
+            // NOTE: errstate filled in by bbProxy
+            rc = -1;
+            LOG_RC(rc);
+        }
+    }
+    else
+    {
+        // If we got far enough along to insert this transfer definition into the local metadata,
+        // clean up the I/O map
+        if (l_TransferPtr != l_OrgTransferPtr)
+        {
+            l_TransferPtr->cleanUpIOMap();
+        }
+
+        // Mark the transfer definition and the handle failed if this is the second pass -or-
+        // we got far enough along to insert this transfer definition into the local metadata
+        if (rc < 0)
+        {
+            if (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr))
+            {
+                markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
+            }
+        }
+        else
+        {
+            // Positive rc...
+            // Send rc=-2 back to bbProxy as a possible tolerated exception...
+            // NOTE:  Shouldn't be possible to have a positive rc
+            //        and l_MarkFailedFromProxy still be set on at this
+            //        point in the code...  @DLH
+            LOG_RC(-2);
+        }
+    }
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+    response->addAttribute(txp::markfailed, l_MarkFailedFromProxy);
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+    // Clean up...
+    if (l_ContribIdFile)
+    {
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+
+    if (l_HandleFile)
+    {
+        delete l_HandleFile;
+        l_HandleFile = 0;
+    }
+
+    if (l_ContribArray)
+    {
+        delete l_ContribArray;
+        l_ContribArray = 0;
+    }
+
+    for (auto e : l_Stats)
+    {
+        if (e)
+        {
+            delete e;
+        }
+    }
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ <<" msgin_starttransfer() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    string l_Archive;
+    BBTransferDefs* l_TransferDefs = 0;
+    uint32_t l_NumStoppedTransferDefs = 0;
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        uint64_t l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+        uint64_t l_JobStepId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobstepid))->getData();
+        uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+        uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+        string l_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+        string l_HostNamePrt1 = l_HostName;
+        if (l_HostName == UNDEFINED_HOSTNAME)
+        {
+            l_HostNamePrt1 = "''";
+        }
+        // NOTE: archive string is already null terminated and the length accounts for the null terminator
+        l_Archive.assign((const char*)msg->retrieveAttrs()->at(txp::transferdefs)->getDataPtr(), (uint64_t)(msg->retrieveAttrs()->at(txp::transferdefs)->getDataLength()));
+        LOG(bb,info) << "msgin_stoptransfers: From hostname " << l_HostNamePrt1 << ", jobId = " << l_JobId << ", jobStepId = " << l_JobStepId \
+                     << ", handle = " << l_Handle << ", contribId = " << l_ContribId << ", archive for transferdefs = |" << l_Archive << "|";
+
+        switchIds(msg);
+
+        // Process stop transfers message
+        lockTransferQueue((LVKey*)0, "msgin_stoptransfers");
+        l_LockHeld = true;
+
+        l_TransferDefs = new BBTransferDefs();
+
+        // Demarshall the archive into the transfer definitions object
+        l_TransferDefs->demarshall(l_Archive);
+
+        // Process the transfer definitions object for the stop transfers operation
+        l_TransferDefs->stopTransfers(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_NumStoppedTransferDefs);
+
+        // Dump the work queues...
+        wrkqmgr.dump("info", " Work Queue Mgr (After msgin_stoptransfers())", DUMP_ALWAYS);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_stoptransfers");
+
+    if (l_TransferDefs)
+    {
+        delete l_TransferDefs;
+        l_TransferDefs = 0;
+    }
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+    if (!rc)
+    {
+        response->addAttribute(txp::numTransferDefs, l_NumStoppedTransferDefs);
+    }
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+
+    bberror.clear(pConnectionName);
+
+    bool l_LockHeld = false;
+
+    try
+    {
+        // Demarshall data from the message
+        string l_CN_HostName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
+        string l_CN_HostNamePrt1 = l_CN_HostName;
+        if (l_CN_HostName == UNDEFINED_HOSTNAME)
+        {
+            l_CN_HostNamePrt1 = "''";
+        }
+        LOG(bb,info) << "msgin_suspend: Hostname " << l_CN_HostNamePrt1;
+
+        switchIds(msg);
+
+        // Process suspend message
+        lockTransferQueue((LVKey*)0, "msgin_suspend");
+        l_LockHeld = true;
+
+        // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
+        //        that all prior suspend/resume requests have first been processed by this bbServer.
+        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
+
+        // Now perform this suspend operation
+        string l_HostName;
+        activecontroller->gethostname(l_HostName);
+        rc = metadata.setSuspended(l_HostName, l_CN_HostName, SUSPEND);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_LockHeld)
+        unlockTransferQueue((LVKey*)0, "msgin_suspend");
+
+    // Build the response message
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName,response);
+    delete response;
+
+#ifdef PROF_TIMING
+    std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return;
+}
+
+
+//*****************************************************************************
+//  Initial handshake with bbproxy
+//*****************************************************************************
+
+int nvmfConnectPath(const string& serial);
+void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
+{
+    ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
+    int rc = 0;
+    txp::CharArray nackSerials_attr;
+
+    bberror.clear(pConnectionName);
+
+    FL_Write(FLServer, Msg_HelloFromProxy, "bbServerLoginHello command received",0,0,0,0);
+    time_t l_seconds = time(NULL);
+    try
+    {
+        time_t remote_epoch = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::epochtimeinseconds))->getData();
+        LOG(bb,info) << "Local epoch time in seconds: " << l_seconds << " GMT="<<  asctime(gmtime(&l_seconds));
+        LOG(bb,info) << "Remote epoch time in seconds: " << remote_epoch << " GMT="<<  asctime(gmtime((const time_t*)&remote_epoch));
+        const uint64_t l_MAXDIFFSECONDS=1;
+        const uint64_t l_DIFFSECONDS= abs(l_seconds - remote_epoch);
+        if ( l_DIFFSECONDS > l_MAXDIFFSECONDS ){
+            LOG(bb,warning) << "Time difference between bbserver and bbproxy name="<<pConnectionName<<" is "<<l_DIFFSECONDS<<" seconds, more than "<<l_MAXDIFFSECONDS << " seconds";
+        }
+
+        uint64_t numserials          = ((txp::AttrPtr_array_of_char_arrays*)msg->retrieveAttrs()->at(txp::knownSerials))->getNumberOfElementsArrayOfCharArrays();
+        txp::CharArray* knownSerials = (txp::CharArray*)msg->retrieveAttrs()->at(txp::knownSerials)->getDataPtr();
+
+        for(uint64_t x=0; x<numserials; x++)
+        {
+            try
+            {
+                getDeviceBySerial((*knownSerials)[x].second);
+                LOG(bb,info) << "Serial (" << (*knownSerials)[x].second << ") can be used between bbProxy <-> bbServer.";
+            }
+            catch(exception& e)
+            {
+                int nCrc=nvmfConnectPath( (*knownSerials)[x].second);
+                if (nCrc)
+                {
+                    LOG(bb,info) << "Serial (" << (*knownSerials)[x].second << ") not available on bbServer.  Telling bbProxy to remove from its list.";
+                    nackSerials_attr.push_back(make_pair((*knownSerials)[x].first, (*knownSerials)[x].second));
+                }
+
+            }
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    txp::Msg* response = NULL;
+    msg->buildResponseMsg(response);
+    addReply(msg, response);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    // Add response values here...
+    if (!rc)
+    {
+        response->addAttribute(txp::epochtimeinseconds, (uint64_t)l_seconds);
+        response->addAttribute(txp::nackSerials, &nackSerials_attr);
+    }
+
+    addBBErrorToMsg(response);
+    sendMessage(pConnectionName,response);
+    delete response;
+}
+
+
+//*****************************************************************************
+//  Main routines
+//*****************************************************************************
+
+
+int registerHandlers()
+{
+    registerMessageHandler(txp::BB_CANCELTRANSFER, msgin_canceltransfer);
+    registerMessageHandler(txp::BB_CREATELOGICALVOLUME, msgin_createlogicalvolume);
+    registerMessageHandler(txp::BB_GETTHROTTLERATE, msgin_getthrottlerate);
+    registerMessageHandler(txp::BB_GETTRANSFERHANDLE, msgin_gettransferhandle);
+    registerMessageHandler(txp::BB_GETTRANSFERINFO, msgin_gettransferinfo);
+    registerMessageHandler(txp::BB_GETTRANSFERKEYS, msgin_gettransferkeys);
+    registerMessageHandler(txp::BB_GETTRANSFERLIST, msgin_gettransferlist);
+    registerMessageHandler(txp::BB_REMOVEJOBINFO, msgin_removejobinfo);
+    registerMessageHandler(txp::BB_REMOVELOGICALVOLUME, msgin_removelogicalvolume);
+    registerMessageHandler(txp::BB_RESUME, msgin_resume);
+    registerMessageHandler(txp::BB_RETRIEVE_TRANSFERS, msgin_retrievetransfers);
+    registerMessageHandler(txp::BB_SETTHROTTLERATE, msgin_setthrottlerate);
+    registerMessageHandler(txp::BB_STARTTRANSFER, msgin_starttransfer);
+    registerMessageHandler(txp::BB_SUSPEND, msgin_suspend);
+    registerMessageHandler(txp::BB_STOP_TRANSFERS, msgin_stoptransfers);
+    registerMessageHandler(txp::CORAL_CHANGESERVER, msgin_change_server);
+    registerMessageHandler(txp::CORAL_HELLO, msgin_hello);
+    registerMessageHandler(txp::CORAL_STAGEOUT_START, msgin_stageout_start);
+
+    return 0;
+}
+
+int bb_main(std::string who)
+{
+    ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+    LOG(bb,always) << "bbserver bb_main BBAPI_CLIENTVERSIONSTR="<<BBAPI_CLIENTVERSIONSTR;
+    try
+    {
+        // Increase the number of allowed file descriptors...
+        struct rlimit l_Limits;
+        rc = getrlimit(RLIMIT_NOFILE, &l_Limits);
+        if (rc)
+        {
+            rc = errno;
+            errorText << "getrlimit failed";
+            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+        }
+
+        l_Limits.rlim_cur = l_Limits.rlim_max;
+        rc = setrlimit(RLIMIT_NOFILE, &l_Limits);
+        if (rc)
+        {
+            rc = errno;
+            errorText << "setrlimit failed";
+            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+        }
+
+        LOG(bb,always) << "Maximum number of file descriptors set to " << l_Limits.rlim_cur;
+        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
+        Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
+        wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
+        wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
+        wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
+        wrkqmgr.setAllowDumpOfWorkQueueMgr(config.get("bb.bbserverAllowDumpOfWorkQueueMgr", DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR));
+        wrkqmgr.setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItem", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM));
+        wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
+        wrkqmgr.setDumpOnRemoveWorkItemInterval((uint64_t)(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItemInterval", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL)));
+        wrkqmgr.setDumpTimerPoppedCount(Throttle_TimeInterval);
+        if (wrkqmgr.getDumpTimerPoppedCount())
+        {
+            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
+        }
+        wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
+
+        // Check for the existence of the file used to communicate high-priority async requests between instances of bbServers
+        char* l_AsyncRequestFileNamePtr = 0;
+        int l_SeqNbr = 0;
+        rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, FULL_MAINTENANCE);
+        if (l_AsyncRequestFileNamePtr)
+        {
+            delete l_AsyncRequestFileNamePtr;
+            l_AsyncRequestFileNamePtr = 0;
+        }
+        if (rc) LOG_RC_AND_BAIL(rc);
+
+        /* Start memory/io fs/io monitor */
+        uint64_t bbserverFileIOwarnSeconds = config.get("bb.bbserverFileIOwarnSeconds", 300);
+        uint64_t bbserverFileIOStuckSeconds = config.get("bb.bbserverFileIOStuckSeconds", 600);
+        setThresholdTimes4Syscall(bbserverFileIOwarnSeconds,  bbserverFileIOStuckSeconds);
+        LOG(bb,info) << "bbserverFileIOwarnSeconds="<<bbserverFileIOwarnSeconds;
+        LOG(bb,info) << "bbserverFileIOStuckSeconds="<<bbserverFileIOStuckSeconds;
+        pthread_t tid;
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        pthread_create(&tid, &attr, mountMonitorThread, NULL);
+
+        // Initialize SSD WriteDirect
+        bool ssdwritedirect = config.get("bb.ssdwritedirect", true);
+        LOG(bb,info) << "ssdwritedirect="<<ssdwritedirect;
+        setSsdWriteDirect(ssdwritedirect);
+
+        // Add a work queue for high priority cross bbserver 'requests'
+        char FOXFOX = 0xFF;
+        uuid_t l_HPWrkQEUuid_Value;
+        for (unsigned int i=0; i<sizeof(l_HPWrkQEUuid_Value); i++) {
+            l_HPWrkQEUuid_Value[i] = FOXFOX;
+        }
+        Uuid l_HPWrkQE_Uuid = Uuid(l_HPWrkQEUuid_Value);
+        HPWrkQE_LVKeyStg = std::make_pair("None", l_HPWrkQE_Uuid);
+        rc = wrkqmgr.addWrkQ(&HPWrkQE_LVKeyStg, (uint64_t)0);
+        if (!rc)
+        {
+            wrkqmgr.getWrkQE(HPWrkQE_LVKey, HPWrkQE);
+            if (!HPWrkQE)
+            {
+                rc = -1;
+	            errorText << "Error occurred when retrieving the high priority work queue";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+        }
+        else
+        {
+            rc = -1;
+	        errorText << "Error occurred when adding the high priority work queue";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
+        // Log which jobs are currently known by the system in the cross bbServer metadata.
+        // NOTE:  This may not be an issue in the labs where job numbers are not to be resued,
+        //        but for test development, job numbers are reused which can cause issues.
+        // \todo - Long-term?  @DLH
+        uint32_t l_Count = 0;
+        boost::filesystem::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        if (boost::filesystem::is_directory(datastore))
+        {
+            bool l_AllDone = false;
+            while (!l_AllDone)
+            {
+                l_AllDone = true;
+                for (auto& job : boost::make_iterator_range(boost::filesystem::directory_iterator(datastore), {}))
+                {
+                    try
+                    {
+                        if (boost::filesystem::is_directory(job))
+                        {
+                            struct stat l_stat;
+                            int rcVal = stat(job.path().c_str(), &l_stat);
+                            std::string uid = "Unknown";
+                            std::string gid = "Unknown";
+                            if (!rcVal){
+                                uid = to_string(l_stat.st_uid);
+                                gid = to_string(l_stat.st_gid);
+                            }
+                            LOG(bb,warning) << "bb_main(): (" << ++l_Count << ") Job number " << job.path().filename().string() << " is already known to the cross-bbServer metadata"<<" uid="<<uid<<" gid="<<gid;;
+                        }
+                    }
+                    catch(exception& e)
+                    {
+                        // More than likely, the job just got deleted out from under us...  Restart the walk of the job directories...
+                        // NOTE: We could get multiple lines of output for jobs that already exist, but we will live with that...
+                        l_AllDone = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        Throttle_Timer.forcePop();
+
+        // NOTE: Transfer threads are started here so that async requests
+        //       can be immediately honored from other bbServers.
+        startTransferThreads();
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+    return rc;
+}
+
+int bb_exit(std::string who)
+{
+    ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
+
+    EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
+    return 0;
+}

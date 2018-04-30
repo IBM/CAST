@@ -1,0 +1,15 @@
+*.jar
+*.class
+
+# we don't want jars in the repo.
+jars/
+csmbigdata.egg-info/
+build/
+dist/
+
+# eclipse specific git ignore
+*.perfs
+.project
+.metadata
+.recommenders
+*.pyc

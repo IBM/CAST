@@ -1,0 +1,86 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csm_allocation_step_cgroup_delete_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+/**
+ * CSMI_COMMENT
+
+ * @brief Defines a set parameters for the deletion of a cgroup on a node with an active step.
+ *
+ * The structure of the cgroups being deleted are as follows:
+ *
+ * If @ref allocation_id >= 0:
+ *
+ * <pre>
+ * <components[i]->name>
+ *   |
+ *   |- allocation_<allocation_id>
+ *   |  |
+ *   |  |- <cgroup_name>
+ *   |
+ *   ...
+ * </pre>
+ *
+ * If the @ref allocation_id is < 0:
+ * 
+ * <pre>
+ * <components[i]->name>
+ *   |
+ *   |- <cgroup_name>
+ *   |
+ *   ...
+ * </pre>
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_allocation_step_cgroup_delete_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               1
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(                   int64_t,    allocation_id,  BASIC,          ,    0, ) /**< The allocation id, representing parent of the cgroup to delete. */
+CSMI_STRUCT_MEMBER(                  uint32_t,        num_types,  BASIC,          ,    0, ) /**< The number of controller types to run delete on, if 0 all control groups are deleted (make sure @ref controller_types is NULL). */
+CSMI_STRUCT_MEMBER(                     char*,      cgroup_name, STRING,          , NULL, ) /**< The name of the cgroup to be deleted. */
+CSMI_STRUCT_MEMBER( csmi_cgroup_controller_t*, controller_types,  ARRAY, num_types, NULL, csmi_cgroup_controller_t ) /**< The controller types associated with the cgroup.*/
+
+CSMI_VERSION_END(c24be155920bed8d84ec9cf9f9419d66)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+
+

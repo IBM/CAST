@@ -1,0 +1,18 @@
+/** @addtogroup @STRUCT_NAME
+ * @{
+ */
+/**  @brief Serializes the supplied structure into a char buffer.
+ *
+ * @param[in]  target     The structure to pack into the char buffer.
+ * @param[out] buf        Contains the structure as char buffer.
+ * @param[out] buffer_len Contains the length of the buffer.
+ */
+
+/** @brief Deserializes the supplied character buffer.
+ *
+ * @param[out] dest       A pointer to a struct to output the contents of the buffer to.
+ * @param[in]  buffer     The buffer to read into the destination struct.
+ * @param[in]  buffer_len The size of the buffer provided (for overflows).
+ */
+
+/** @} */

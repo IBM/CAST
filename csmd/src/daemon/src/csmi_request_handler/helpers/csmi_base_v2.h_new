@@ -1,0 +1,213 @@
+/*================================================================================
+   
+    csmd/src/daemon/src/csmi_request_handler/csmi_base.h
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+ 
+================================================================================*/
+
+#ifndef _CSMI_BASE_H_
+#define _CSMI_BASE_H_
+
+#include <stdint.h>
+#include <string>
+#include <iostream>
+#include <assert.h>
+#include <cstdio>
+
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+
+#include "logging.h"
+#include "csmi/src/common/include/csmi_serialization.h"
+#include "csmi/src/common/include/csmi_common_utils.h"
+#include "csmi/include/csm_node_attributes.h"
+/*#include "csmi/include/csm_allocation_create.h"*/
+#include "csmi/src/ras/include/csmi_ras_event_create.h"
+#include "csmi/src/ras/include/csmi_ras_event_create_serialization.h"
+
+
+
+#include "csmd/src/db/include/DBConnectionPool.h"
+#include "csmd/src/db/include/csm_db_event_content.h"
+
+#include "include/csm_core_event.h"
+#include "include/csm_timer_event.h"
+#include "include/csm_daemon_state.h"
+#include "include/csm_daemon_network_handling.h"
+#include "include/csm_mqtt_topics.h"
+#include "include/csm_system_event.h"
+#include "include/csm_bitmap.h"
+
+#include "csmnet/src/CPP/csm_network_msg_cpp.h"
+#include "csmnet/src/CPP/address.h"
+#include "csmnet/src/CPP/csm_message_and_address.h"
+#include "csmnet/src/CPP/csm_multicast_message.h"
+
+#include "csm_handler_options.h"
+
+/** @brief Base csmi handler class. 
+ */
+class CSMI_BASE 
+{
+
+public:
+
+    /** 
+     * every derived class has to implment this Process method. 
+     */
+    virtual void Process( const csm::daemon::CoreEvent &aEvent, std::vector<csm::daemon::CoreEvent*>& postEventList ) = 0;
+
+protected:
+  CSMI_BASE(csmi_cmd_t cmd, csm::daemon::HandlerOptions& options)
+  :_cmdType(cmd), _handlerOptions(options), _newRequestCount(0)
+  {    
+    if (cmd >= CSM_CMD_MAX) {
+      // bring down the daemon in this fatal error
+      LOG(csmapi, error) << "CSMI_BASE(): not a valid csmi cmd";
+      exit(-1);
+    }
+    const char *name;
+    if ((name = csmi_cmdname_get(cmd)) != NULL)
+        _cmdName = std::string(name);
+    else
+      _cmdName = std::string("cmd_unspecified");
+    if ((name = csmi_classname_get(cmd)) != NULL)
+      _className = std::string(name);
+    else
+      _className = std::string("class_unspecified");
+    if ((name = csmi_dbtabname_get(cmd)) != NULL)
+      _tabName = std::string(name);
+    else
+      _tabName = std::string("tab_unspecified");
+
+    _packFunc = csmi_pack_get(cmd);
+    _unpackFunc = csmi_unpack_get(cmd);
+    _argPackFunc = csmi_argpack_get(cmd);
+    _argUnpackFunc = csmi_argunpack_get(cmd);
+    _AuxId = 1;
+
+    _SecurityLevel = options.GetSecurityLevel(cmd);
+    LOG( csmapi, debug ) << csmi_cmdname_get(cmd) << ": Security Level is: " << _SecurityLevel;
+
+    _AbstractAggregator = std::make_shared<csm::network::AddressAbstract>(csm::network::ABSTRACT_ADDRESS_AGGREGATOR);
+    _AbstractMaster =  std::make_shared<csm::network::AddressAbstract>(csm::network::ABSTRACT_ADDRESS_MASTER);
+    
+    _errnoTocmderr[ECOMM] = CSMERR_SENDRCV_ERROR;
+    _errnoTocmderr[ETIMEDOUT] = CSMERR_TIMEOUT;
+    _errnoTocmderr[EPERM] = CSMERR_PERM;
+  }
+    /** @brief
+     * @param errorId
+     */
+    inline csmi_cmd_err_t GetCmdErr(int errorId)
+    {
+        std::map<int, csmi_cmd_err_t>::const_iterator it=_errnoTocmderr.find(errorId);
+    
+        if (it == _errnoTocmderr.end()) 
+            return CSMERR_NOTDEF;
+        else 
+            return it->second;
+    }
+
+    /** 
+     * @brief Automatically generate a AuxiliaryId for EventContext
+     * @return
+     */
+    inline uint64_t CreateCtxAuxId() 
+    { 
+#ifdef __UINT64_MAX__
+        return ((++_AuxId) % __UINT64_MAX__); 
+#else
+        return ((++_AuxId) % UINTMAX_MAX);
+#endif
+    }
+
+public:
+
+    template<typename T>
+    static std::string ConvertToBytes(const T i_option)
+    {
+      std::stringstream ss;
+      boost::archive::text_oarchive oa(ss);
+      oa << i_option;
+      return ss.str();
+    }
+
+    template<typename T>
+    static void ConvertToClass(const std::string &i_payload, T &o_option)
+    {
+      std::stringstream ss;
+      ss << i_payload;
+      boost::archive::text_iarchive ia(ss);
+      ia >> o_option;
+    }
+      
+    inline virtual std::string getClassName() {
+      return _className;
+    }
+
+    inline virtual csmi_cmd_t getCmdType() {
+      return _cmdType;
+    }
+    
+    inline virtual std::string getCmdName() const {
+      return _cmdName;
+    }
+
+    inline virtual void setCmdName(std::string aString)
+    { _cmdName = aString; }
+    
+    inline csm::daemon::API_SEC_LEVEL GetSecurityLevel() const { return _SecurityLevel; }
+
+    virtual ~CSMI_BASE() { }
+
+    inline void AddPublicAPIHandlers(std::unordered_set< std::shared_ptr<CSMI_BASE> >& list)
+    { _PublicAPIHandlers = list; }
+    
+    inline void UpdateNewRequestCount() { _newRequestCount++; }
+    inline int GetNewRequestCount() { return _newRequestCount; }
+
+    /** @return The Abstract Aggregator associated with this handler. */
+    inline csm::network::AddressAbstract_sptr GetAbstractAggregator() 
+    { 
+        return _AbstractAggregator; 
+    }
+
+    /** @return The Abstract Master associated with this handler. */
+    inline csm::network::AddressAbstract_sptr GetAbstractMaster()     
+    { 
+        return _AbstractMaster; 
+    }
+  
+protected:
+    csmi_cmd_t _cmdType;
+    csm::daemon::HandlerOptions _handlerOptions;
+    std::string _cmdName;
+    std::string _className;
+    std::string _tabName;
+    packPrototype _packFunc;
+    unpackPrototype _unpackFunc;
+    packPrototype _argPackFunc;
+    unpackPrototype _argUnpackFunc;
+    uint64_t _AuxId;
+    csm::network::AddressAbstract_sptr _AbstractAggregator;
+    csm::network::AddressAbstract_sptr _AbstractMaster;
+    std::map<int, csmi_cmd_err_t> _errnoTocmderr;
+    std::unordered_set< std::shared_ptr<CSMI_BASE> > _PublicAPIHandlers;
+    
+private:
+  csm::daemon::API_SEC_LEVEL _SecurityLevel;
+  int _newRequestCount;
+};
+
+typedef std::shared_ptr<CSMI_BASE> CSMI_BASE_sptr;
+
+#endif

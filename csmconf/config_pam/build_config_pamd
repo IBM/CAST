@@ -1,0 +1,109 @@
+#!/bin/bash
+# encoding: utf-8
+#================================================================================
+#
+#   build_config_pamd
+#
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# Determine if the sshd config should be installed.
+install=0
+while getopts "hi" opt
+do
+    case ${opt} in 
+        h) echo "-i installs the supplied sshd config file and restarts the sshd daemon."; exit 0;;
+        i) install=1;;
+    esac
+done
+
+# Files that will feed the configuration.
+LOCAL_DEFAULT_SSHD="default_sshd"
+LOCAL_ASSIGN_CGROUP="assign_cgroup"
+LOCAL_CGROUP_EXEMPT="cgroup_exempt_users"
+
+# pam.d file location, probably doesn't need to be changed.
+PAMD_DIR="/etc/pam.d/"
+
+# The output file of this script.
+CONFIG_OUTPUT="config_pamd"
+
+#The scratch space for this script.
+TMP_CONFIG_OUTPUT="/tmp/config_pamd"
+
+# Location of the pamd cgroups directory.
+CGROUP_DIR=${PAMD_DIR}"cgroups/"
+
+# List of exempt cgroup users.
+CGROUP_EXEMPT="cgroup_exempt_list"
+
+
+# Initialize the output, start with a /tmp file in case we fail.
+> $TMP_CONFIG_OUTPUT
+
+# Add the user_lists directory for pam.d and initialize the auth list
+cat << EOF >> ${TMP_CONFIG_OUTPUT}
+#!/bin/bash 
+# encoding: utf-8
+#================================================================================
+#
+#   config_pamd
+#
+#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# Make the cgroup pam dir.
+mkdir -p ${CGROUP_DIR}
+
+# "Compile" the cgroup exemption list.
+echo '$(cat ${LOCAL_CGROUP_EXEMPT} | base64)' | base64 --decode > ${CGROUP_DIR}${CGROUP_EXEMPT}
+
+# "Compile" the assign cgroup script.
+echo '$(sed 's:PAM_WHITELIST:'${CGROUP_DIR}${CGROUP_EXEMPT}':g' ${LOCAL_ASSIGN_CGROUP} | base64)' | base64 --decode > ${CGROUP_DIR}${LOCAL_ASSIGN_CGROUP}
+
+# Set the access for the script.
+chmod 700 ${CGROUP_DIR}${LOCAL_ASSIGN_CGROUP}
+
+# Notify the user.
+echo "=============================================="
+echo "Created: ${CGROUP_DIR}${LOCAL_ASSIGN_CGROUP}"
+echo "Created: ${CGROUP_DIR}${CGROUP_EXEMPT}"
+echo "=============================================="
+echo ""
+
+if [[ ${install} -eq 1 ]]
+then
+    # Update the sshd pam.d file.
+    echo '$(sed 's:CGROUP_ACCESS_SCRIPT:'${CGROUP_DIR}${LOCAL_ASSIGN_CGROUP}':g' ${LOCAL_DEFAULT_SSHD}| base64)' | base64 --decode > ${PAMD_DIR}"sshd"
+    service sshd restart
+    echo "Replaced ${PAMD_DIR}sshd"
+else
+    echo "Add the following to ${PAMD_DIR}sshd after 'session    include      postlogin'"
+    echo "session    optional     pam_exec.so stdout seteuid ${CGROUP_DIR}${LOCAL_ASSIGN_CGROUP}"
+fi
+EOF
+
+
+# Replace the config output file and set it to execute.
+mv -f ${TMP_CONFIG_OUTPUT} ${CONFIG_OUTPUT}
+chmod 761 ${CONFIG_OUTPUT}
+
+
+
+

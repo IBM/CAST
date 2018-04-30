@@ -1,0 +1,5 @@
+csmi_state.def 13 eecbb492179bffc9e1d85c9fa0d8702b
+csmi_cgroup_controller.def 4 174139eec8e8bd29650f6419a60cdf5e
+csmi_allocation_type.def 4 84ac9abfdbe4006d73bf522b49219335
+csmi_job_type.def 2 d524a351f24483e8ed8f23a626ff91ef
+csmi_step_status.def 3 37b48e5927968c6576a1300ec08c3369

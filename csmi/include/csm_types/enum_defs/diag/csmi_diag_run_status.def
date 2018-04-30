@@ -1,0 +1,42 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/diag/csmi_diag_run_status.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief A listing of legal flags for the diagnostic run status.
+ * This enumeration supports bitwise operations.
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME  csmi_diag_run_status_t
+   
+    // Specifies that the enum should be usable in bit shifts.
+    // DIAG_ is the prefix for the generated fields (ALL and NONE)
+    #define CSMI_BIT_ENUM DIAG_
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_ENUM_MEMBER(DIAG_CANCELED , "CANCELED" , , )  ///< The diagnostic status is 'CANCELED'.
+CSMI_ENUM_MEMBER(DIAG_COMPLETED, "COMPLETED", , )  ///< The diagnostic status is 'COMPLETED'.
+CSMI_ENUM_MEMBER(DIAG_RUNNING  , "RUNNING"  , , )  ///< The diagnostic status is 'RUNNING'.
+CSMI_ENUM_MEMBER(DIAG_FAILED   , "FAILED"   , , )  ///< The diagnostic status is 'FAILED'.
+CSMI_ENUM_MEMBER(DIAG_COMPLETED_FAIL   , "COMPLETED_FAIL"   , , )  ///< The diagnostic status is 'COMPLETED_FAIL'.
+
+CSMI_VERSION_END(5fa2baa02f67d7a8a689c14946ed4d98)
+#undef CSMI_CSMI_BIT_ENUM
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

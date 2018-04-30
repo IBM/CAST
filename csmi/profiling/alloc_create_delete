@@ -1,0 +1,51 @@
+#!/bin/bash
+# ================================================================================
+# 
+#     csmi/profiling/alloc_create_delete
+# 
+#   © Copyright IBM Corporation 2015-2017. All Rights Reserved
+# 
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+# 
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+# ================================================================================
+
+# List of nodes
+nodes=$(csm_node_resources_query_all | awk '/node_name/{printf "%s ",$2 }')
+
+# make the nodes ready
+for node in $nodes
+do 
+    csm_node_attributes_update $node -r y
+done
+
+runs_left=$1
+
+while [ $runs_left -gt 0 ]
+do
+   
+    alloc_nodes=""
+    # Realy naive.
+    for node in $nodes
+    do
+    	if [ $(( RANDOM % 2 )) == 0 ]
+        then
+            alloc_nodes="${node},${alloc_nodes}" 
+        fi
+    done  
+    # Save the results to an array, outputting the timing information.
+    a_id=($(csm_allocation_create -j ${runs_left} -n "${alloc_nodes}" -v trace | awk '/allocation_id/{print $2} /TIMING:/{print $0}' ))
+    echo ${a_id[0]}
+
+    csm_allocation_delete -a ${a_id[1]} -v trace | awk '/TIMING:/{print $3}' 
+
+    echo $runs_left
+    (( runs_left -- ))
+done
+
+
+

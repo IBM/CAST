@@ -1,0 +1,73 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation_accounting.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** 
+ * CSMI_COMMENT
+ * @brief Defines the accounting values for a compute node.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_accounting_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              0
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(int64_t,  ib_rx     , BASIC, , 0, ) /**< Total count of Data Octets received on all Infiniband ports, 0 if the job is active ( multiply by 4 for bytes ).*/  
+CSMI_STRUCT_MEMBER(int64_t,  ib_tx     , BASIC, , 0, ) /**< Total count of Data Octets transmitted on all Infiniband ports, 0 if the job is active ( multiply by 4 for bytes ).*/  
+CSMI_STRUCT_MEMBER(int64_t,  gpfs_read , BASIC, , 0, ) /**< Total counter for number of bytes read over network via gpfs, 0 if the job is active. Join on details. */  
+CSMI_STRUCT_MEMBER(int64_t,  gpfs_write, BASIC, , 0, ) /**< Total counter for number of bytes written over network via gpfs, 0 if the job is active. Join on details. */  
+CSMI_STRUCT_MEMBER(int64_t,  ssd_read , BASIC, , 0, ) /**< Total counter for number of bytes read from the ssds, 0 if the job is active. */  
+CSMI_STRUCT_MEMBER(int64_t,  ssd_write, BASIC, , 0, ) /**< Total counter for number of bytes written to the ssds, 0 if the job is active. */  
+CSMI_STRUCT_MEMBER(int64_t,  gpu_usage, BASIC, , 0, ) /**< Total usage of the GPU (TODO Change), 0 if the job is active. */  
+CSMI_STRUCT_MEMBER(int64_t,  energy_consumed,      BASIC,  ,   -1, ) /**< Energy consumed by the node. */
+CSMI_STRUCT_MEMBER(int64_t,  cpu_usage, BASIC, , 0, ) /**< The cpu usage in nanoseconds.*/
+CSMI_STRUCT_MEMBER(int64_t,  memory_usage_max, BASIC, , 0, ) /**< The maximum memory usage in bytes. */
+
+CSMI_STRUCT_MEMBER(int64_t,  power_cap_hit,        BASIC,  ,   -1, ) /**< Counter indicating the number of times the power cap has been hit on the node.*/
+CSMI_STRUCT_MEMBER(int32_t,  power_cap,            BASIC,  ,   -1, ) /**< Power Cap - measured in watts. */
+CSMI_STRUCT_MEMBER(int32_t,  power_shifting_ratio, BASIC,  ,   -1, ) /**< Power Shifting Ratio - a ratio [0-100] used by OCC for power capping. 0 is all CPU, 100 is all GPU. */
+CSMI_STRUCT_MEMBER(int64_t,  gpu_energy, BASIC, , 0, ) /**< GPU usage in watts. */
+CSMI_VERSION_END(86185bcb3ebdea54d6b21825250812ae)
+
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

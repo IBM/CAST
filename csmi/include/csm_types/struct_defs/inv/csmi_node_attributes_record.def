@@ -1,0 +1,93 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_node_attributes_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A node record in the **csm_node** table of the CSM database.
+ * @todo Post-PRPQ: Only one field different from @ref csmi_node_attributes_history_record_t.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_node_attributes_record_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+CSMI_STRUCT_MEMBER(int32_t          , available_cores        , BASIC , , -1              , ) /**< Deprecated after CSM_VERSION_0_4_1. Number of physical cores on this node from all processors. */
+CSMI_STRUCT_MEMBER(int32_t          , available_gpus         , BASIC , , -1              , ) /**< Deprecated after CSM_VERSION_0_4_1. Number of gpus available. */
+CSMI_STRUCT_MEMBER(int32_t          , available_processors   , BASIC , , -1              , ) /**< Deprecated after CSM_VERSION_0_4_1. Number of processors available on the node.*/
+CSMI_STRUCT_MEMBER(int32_t          , discovered_hcas        , BASIC , , -1              , ) /**< Number of IB HCAs discovered on this node during the most recent inventory collection. */
+CSMI_STRUCT_MEMBER(int32_t          , hard_power_cap         , BASIC , , -1              , ) /**< The hard power capacity for the node, the node may not exceed this power capacity. */
+CSMI_STRUCT_MEMBER(int64_t          , installed_memory       , BASIC , , -1              , ) /**< Amount of installed memory on this node in kB. */  
+CSMI_STRUCT_MEMBER(int64_t          , installed_swap         , BASIC , , -1              , ) /**< Amount of available swap space on this node in kB. */
+CSMI_STRUCT_MEMBER(csmi_node_state_t, state                  , BASIC , , CSM_NODE_NO_DEF , ) /**< Deprecated after CSM_VERSION_0_4_1. State of the node, see @ref csmi_node_state_t for details. */
+CSMI_STRUCT_MEMBER(csmi_node_type_t , type                   , BASIC , , CSM_NODE_NO_TYPE, ) /**< The type of the node, see @ref csmi_node_state_t for details.*/
+CSMI_STRUCT_MEMBER(csm_bool         , ready                  , BASIC , , CSM_FALSE       , ) /**< Deprecated after CSM_VERSION_0_4_1. The ready state of the node, used for workload management. */
+CSMI_STRUCT_MEMBER(char*            , node_name              , STRING, , NULL            , ) /**< The node hostname the record represents. */
+CSMI_STRUCT_MEMBER(char*            , comment                , STRING, , NULL            , ) /**< Comment field for system administrators. */
+CSMI_STRUCT_MEMBER(char*            , feature_1              , STRING, , NULL            , ) /**< Reserved field for future use.*/
+CSMI_STRUCT_MEMBER(char*            , feature_2              , STRING, , NULL            , ) /**< Reserved field for future use.*/
+CSMI_STRUCT_MEMBER(char*            , feature_3              , STRING, , NULL            , ) /**< Reserved field for future use.*/
+CSMI_STRUCT_MEMBER(char*            , feature_4              , STRING, , NULL            , ) /**< Reserved field for future use.*/
+CSMI_STRUCT_MEMBER(char*            , kernel_release         , STRING, , NULL            , ) /**< Kernel release being run on the node. */
+CSMI_STRUCT_MEMBER(char*            , kernel_version         , STRING, , NULL            , ) /**< Kernel version being run on the node. */
+CSMI_STRUCT_MEMBER(char*            , machine_model          , STRING, , NULL            , ) /**< Machine type model information for the node. */
+CSMI_STRUCT_MEMBER(char*            , os_image_name          , STRING, , NULL            , ) /**< xCAT os image name being run on this node, diskless images only. */
+CSMI_STRUCT_MEMBER(char*            , os_image_uuid          , STRING, , NULL            , ) /**< xCAT os image uuid being run on this node, diskless images only. */
+CSMI_STRUCT_MEMBER(char*            , physical_frame_location, STRING, , NULL            , ) /**< Physical frame number where the node is located. */
+CSMI_STRUCT_MEMBER(char*            , physical_u_location    , STRING, , NULL            , ) /**< Physical u location where the node is located. */
+CSMI_STRUCT_MEMBER(char*            , primary_agg            , STRING, , NULL            , ) /**< Primary aggregator of the node. */
+CSMI_STRUCT_MEMBER(char*            , secondary_agg          , STRING, , NULL            , ) /**< Secondary aggregator of the node. */
+CSMI_STRUCT_MEMBER(char*            , serial_number          , STRING, , NULL            , ) /**< The serial number of the node. */
+CSMI_STRUCT_MEMBER(char*            , discovery_time         , STRING, , NULL            , ) /**< The time the node was discovered. */
+CSMI_STRUCT_MEMBER(char*            , update_time            , STRING, , NULL            , ) /**< The time the node record was last updated. */
+CSMI_VERSION_END(d8c5e76af46cfee2d1b6bfbd5571f3a5)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER(int32_t, discovered_cores  , BASIC , , -1  , ) /**< replacement for 'available_cores' after CSM_VERSION_0_4_1. Number of physical cores on this node from all processors. */
+CSMI_STRUCT_MEMBER(int32_t, discovered_gpus   , BASIC , , -1  , ) /**< replacement for 'available_gpus' after CSM_VERSION_0_4_1. Number of gpus on node. */
+CSMI_STRUCT_MEMBER(int32_t, discovered_sockets, BASIC , , -1  , ) /**< replacement for 'available_processors' after CSM_VERSION_0_4_1. Number of processors on the node.*/
+CSMI_STRUCT_MEMBER(char*  , collection_time   , STRING, , NULL, ) /**< replacement for 'discovery_time' after CSM_VERSION_0_4_1. the inventory information for this node was last collected at this time. */
+CSMI_STRUCT_MEMBER(int32_t, discovered_dimms, BASIC, , -1, ) /**< Number of dimms discovered via inventory on this node. */
+CSMI_STRUCT_MEMBER(int32_t, discovered_ssds , BASIC, , -1, ) /**< Number of ssds discovered via inventory on this node. */
+CSMI_VERSION_END(5c5a208632150ceb7fe933d168c82011)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

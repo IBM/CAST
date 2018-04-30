@@ -1,0 +1,68 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_node_inventory.def
+
+  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A structure for capturing node inventory data.
+ * @todo Post-PRPQ: Replace fixed width strings.
+ */
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_node_inventory_t
+
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              0
+    #define CSMI_STRING_FIXED        1
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( int64_t , installed_memory    ,        BASIC,                   ,    0, ) /**< Amount of installed memory on this node in kB. */
+CSMI_STRUCT_MEMBER( int64_t , installed_swap      ,        BASIC,                   ,    0, ) /**< Amount of available swap space on this node in kB. */
+CSMI_STRUCT_MEMBER( int32_t , available_processors,        BASIC,                   ,    0, ) /**< Number of processors available on the node.*/
+CSMI_STRUCT_MEMBER( int32_t , available_cores     ,        BASIC,                   ,    0, ) /**< Number of physical cores on this node from all processors. */
+CSMI_STRUCT_MEMBER( int32_t , available_gpus      ,        BASIC,                   ,    0, ) /**< Number of gpus available. */
+CSMI_STRUCT_MEMBER(csmi_node_type_t, type, BASIC, , CSM_NODE_NO_TYPE, ) /**<The type of the node, see @ref csmi_node_state_t for details.*/
+CSMI_STRUCT_MEMBER( char    , node_name           , STRING_FIXED, CSM_NODE_NAME_MAX     , NULL, ) /**< The node hostname the record represents. */
+CSMI_STRUCT_MEMBER( char    , machine_model       , STRING_FIXED, CSM_MACHINE_MODEL_MAX , NULL, ) /**< Machine type model information for the node. */
+CSMI_STRUCT_MEMBER( char    , serial_number       , STRING_FIXED, CSM_SERIAL_NUMBER_MAX , NULL, ) /**< The serial number of the node. */
+CSMI_STRUCT_MEMBER( char    , discovery_time      , STRING_FIXED, CSM_DISCOVERY_TIME_MAX, NULL, ) /**< The time the node was discovered. */
+CSMI_STRUCT_MEMBER( char    , kernel_release      , STRING_FIXED, CSM_KERNEL_RELEASE_MAX, NULL, ) /**< Kernel release being run on the node. */
+CSMI_STRUCT_MEMBER( char    , kernel_version      , STRING_FIXED, CSM_KERNEL_VERSION_MAX, NULL, ) /**< Kernel version being run on the node. */
+
+CSMI_VERSION_END(0)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

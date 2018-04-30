@@ -1,0 +1,239 @@
+#!/bin/python3.4
+import getopt, sys
+import csv
+import statistics
+
+
+PROFILE_HEADING = [
+    '''API         ''', 
+    '''State       ''', 
+    '''Num Compute ''', 
+    '''Node Type   ''']
+
+NODE_TYPE_MAPING = [ "API", "MASTER", "COMPUTE", "UTILITY", "AGGREGATOR" ]
+
+
+API_SPLIT="="*30
+ENTRY_SPLIT="-"*30
+
+class ProfileProcessor(object):
+
+    def __init__( self, main_csv, compute_csv, dupe_csv, output, split_node_type, as_csv):
+        self.main_csv = main_csv
+        self.compute_csv = compute_csv
+        self.dupe_csv = dupe_csv
+        self.output = output
+        self.split_node_type =  split_node_type
+        self.split_compute_count = self.compute_csv != ""
+        self.metric_headers=[PROFILE_HEADING[0], PROFILE_HEADING[1]]
+        self.as_csv = as_csv
+
+        if self.split_compute_count:
+            self.metric_headers.append(PROFILE_HEADING[2])
+
+        if self.split_node_type:
+            self.metric_headers.append(PROFILE_HEADING[3])
+
+        self.metric_depth = len(self.metric_headers) -1
+
+        self.metrics=dict()
+        self.bad_ids=dict()
+        self.comp_mappings = dict()
+        self.id_mappings = dict()
+
+    
+        if self.split_compute_count:
+            self.parse_compute_csv()
+        self.parse_main_csv()
+        #if self.dupe_csv !="":
+        #    self.cache_bad_ids()
+
+
+        if(self.as_csv):
+            header = ""
+            for col in self.metric_headers:
+                header += col + ","
+            header += "Num Records, mean, median, stdev"
+            print(header)
+        self.compute_metrics(self.id_mappings)
+
+
+
+    def parse_compute_csv(self):
+        with open(self.compute_csv, 'rt') as csvfile:
+            compute_reader = csv.DictReader(csvfile)
+
+            for row in compute_reader:
+                self.comp_mappings[int(row['id'])] = int(row['node_count'])
+
+    def parse_main_csv(self):
+        with open(self.main_csv, 'rt') as csvfile:
+            main_reader = csv.DictReader(csvfile)
+
+            # TODO rethink the data structure.
+            for row in main_reader:
+                prof_id    = int(row['id'])
+                api_id     = row['handler_id']
+                state_id   = row['state']
+                num_nodes  = self.comp_mappings.get(prof_id, 0)
+
+                api_mapping    = self.id_mappings.get(api_id, None)
+
+                if api_mapping == None:
+                    self.id_mappings[api_id] = dict()
+
+                # If the data was not specified yet add either a dict or array.
+                data = self.id_mappings[api_id].get(state_id, None )
+
+                if data == None:
+                    if self.split_compute_count or self.split_node_type :
+                        self.id_mappings[api_id][state_id] = dict()
+                    else:
+                        self.id_mappings[api_id][state_id] = []
+                
+                # If compute was present process
+                if self.split_compute_count:
+                    data = self.id_mappings[api_id][state_id].get(num_nodes, None)
+
+                    if data == None:
+                        if self.split_node_type:
+                            self.id_mappings[api_id][state_id][num_nodes] = dict()
+                        else:
+                            self.id_mappings[api_id][state_id][num_nodes] = []
+
+                # If spliting on node type is present split on it.
+                if self.split_node_type:
+                    node_type = row['node_type']
+                    if self.split_compute_count:
+                        data = self.id_mappings[api_id][state_id][num_nodes].get(node_type, None)
+                        if data == None:
+                            self.id_mappings[api_id][state_id][num_nodes][node_type] = []
+                    else:
+                        data = self.id_mappings[api_id][state_id].get(node_type, None)
+                        if data == None:
+                            self.id_mappings[api_id][state_id][node_type] = []
+
+                # This is a hack.
+                if self.split_compute_count:
+                    if self.split_node_type:
+                        self.id_mappings[api_id][state_id][num_nodes][node_type].append(int(row['time_diff']))
+                    else:
+                        self.id_mappings[api_id][state_id][num_nodes].append(int(row['time_diff']))
+                elif self.split_node_type:
+                    self.id_mappings[api_id][state_id][node_type].append(int(row['time_diff']))
+                else:
+                    self.id_mappings[api_id][state_id].append(int(row['time_diff']))
+                
+                # @todo append node type?
+
+    def compute_metrics(self, mapping, index = 0, header=""):
+        if not self.as_csv:
+            base_header = header + self.metric_headers[index]
+
+        for data in mapping:
+            if self.as_csv:
+                local_header = header + str(data) + ","
+            else:
+                if index == 0:
+                    print(API_SPLIT)
+                local_header = base_header + str(data) + '\n'
+
+            temp = mapping[data]
+            
+            if index < self.metric_depth :
+                self.compute_metrics(temp, index+1, local_header)
+            else:
+
+                try:
+                    mean = statistics.mean(temp)
+                except:
+                    mean = -1
+
+                try:
+                    median = statistics.median(temp)
+                except:
+                    median = -1
+
+                try:
+                    stdev = statistics.pstdev(temp)
+                except:
+                    stdev = -1
+                numRecords = len(temp)
+
+                if self.as_csv:
+                    print( "{0!s}{1},{2:.0f},{3:.0f},{4:.0f}".format(local_header,numRecords,mean,median,stdev))
+                
+                else:
+                    print(local_header)
+                    print("Num Records: {0}".format(len(temp)))
+                    print("Mean:   {0:.0f} ns".format(mean))
+                    print("Median: {0:.0f} ns".format(median))
+                    print("StdDev: {0:.0f} ns".format(stdev))
+                        
+
+
+                    print(ENTRY_SPLIT)
+
+                    if index == 0 :
+                        print(API_SPLIT)
+
+
+def usage():
+    print('''
+    Usage process_csv
+    =========
+    -h               Displays this message.
+    -m <csv_file>    The primary comma separated value file, containing all the metric data.
+    -c <csv_file>    A file noting the number of compute nodes the profile jobs ran on.
+    -d <csv_file>    Any duplicate profile ids (since the profiler id is random currently). 
+                        (THIS IS NOT FUNCTIONAL)
+    -o <output_base> The base file name for outputing any processed data.
+    -s               Flag, split on node type.
+    -v               Flag, print as csv.
+    
+    Error Codes
+    =========== 
+    0 - Script executed with no problems.
+    ''')
+
+# For now very basic
+def main(args):
+    
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 
+            "hsvm:c:d:o:", [])
+    except getopt.GetoptError as err:
+        print (str(err))
+        return 2
+
+    main_csv=""
+    compute_csv=""
+    dupe_csv=""
+    output=""
+    split=False
+    as_csv=False
+
+    for o,a in opts:
+        if o == "-m":
+            main_csv = a
+        elif o == "-c":
+            compute_csv = a
+        elif o == "-d":
+            dupe_csv = a
+        elif o == "-o":
+            output = a
+        elif o == "-s":
+            split=True
+        elif o == "-v":
+            as_csv=True
+        elif o == "-h":
+            usage()
+            return 0;
+        else:
+            assert False, "unhandled option"
+    
+    processor = ProfileProcessor(main_csv, compute_csv, dupe_csv, output, split,as_csv)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

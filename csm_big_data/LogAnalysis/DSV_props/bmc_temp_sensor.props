@@ -1,0 +1,147 @@
+[SCALA_server]
+scalaHome: /opt/IBM/ioala/LogAnalysis
+
+[DSV_file]
+delimiter: ,
+quoteChar: "
+moduleName: bmc_temp_sensor_DSV
+version: 1.0.0.0 
+
+[field0_indexConfig]
+name: logRecord
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: false
+searchable: true
+path_1: content.text
+combine: FIRST
+
+[field1_indexConfig]
+name: bmc_hostname
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field2_indexConfig]
+name: bmc_ip
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field3_indexConfig]
+name: timestamp
+dataType: DATE
+dateFormat: yyyy-MM-dd'T'HH:mm:ss.SSSX
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field4_indexConfig]
+name:bmc_temp_ambient
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field5_indexConfig]
+name: bmc_temp_CPU_min
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field6_indexConfig]
+name: bmc_temp_CPU_max
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field7_indexConfig]
+name: bmc_temp_CPU_Core_min
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field8_indexConfig]
+name: bmc_temp_CPU_Core_max
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field9_indexConfig]
+name: bmc_temp_DIMM_min
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field10_indexConfig]
+name: bmc_temp_DIMM_max
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field11_indexConfig]
+name: bmc_temp_GPU_min
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field12_indexConfig]
+name: bmc_temp_GPU_max
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field13_indexConfig]
+name: bmc_temp_Mem_Buff_min
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field14_indexConfig]
+name: bmc_temp_Mem_Buff_max
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+

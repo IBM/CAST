@@ -1,0 +1,67 @@
+=head1 NAME
+
+decoder - Translate and merge binary flightlogs into human-readable output
+
+=head1 SYNOPSIS
+
+decoder [--help] [--raw] [--decoder=path] files
+
+=head1 DESCRIPTION
+
+Takes a list of binary flightlogs and produces a merged output.  Each flightlog entry is timestampped 
+via the processor high-precision clock.  Each flightlog is an in-memory circular buffer.  Internally, each entry comprises
+a timestamp, CPUID, Type, and six 64-bit data words.  
+
+=over 4
+
+=item Output Format
+
+    DATE  TIME                                    TYPE:CPUID    TEXT
+
+  DATE     Date of the event
+  TIME     Time of the event
+  TYPE     Unique type of the event
+  CPUID    Linux CPU number that generated the event
+  TEXT     Formatted text containing details on the event
+
+Note:  it may be possible to have multiple events at the same time on different CPUs.
+
+
+=item Example
+
+    $ /opt/ibm/flightlog/bin/decoder /var/log/bbserver/FL
+    Reading flightlog /var/log/bbserver.tgooding/FLXfer
+
+    2017-04-20 23:09:07.549808844 EDT       FL_BEGIN_LOG:-- Starting log "FLXfer"
+    2017-04-20 23:09:07.549808844 EDT      PWRITE_PFSCMP:35 Write to PFS complete.  Target index=1, offset=821, length=821, bytes_written=821
+    2017-04-20 23:09:07.549808926 EDT          FSYNC_PFS:35 Performing PFS fsync.  Target index=1>
+
+=item Raw example
+
+    $ /opt/ibm/flightlog/bin/decoder --raw /var/log/bbserver.tgooding/FL*
+    Reading flightlog /var/log/bbserver.tgooding/FLXfer
+    Scale=5.12e+08  InitialTimebase=21257010513218  InitialEpoch=1.49274e+09
+    TB=000014b16c1198c7       FL_BEGIN_LOG:-- Starting log "FLXfer"
+    TB=000014b16c1198c7      PWRITE_PFSCMP:35 Write to PFS complete.  Target index=1, offset=821, length=821, bytes_written=821
+    TB=000014b16c1198f1          FSYNC_PFS:35 Performing PFS fsync.  Target index=1
+
+
+=back
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+Display the help text
+
+=item B<--raw>
+
+Display the processor ticks since boot
+
+=item B<--decoder>
+
+Specify a custom decoder library
+
+=back

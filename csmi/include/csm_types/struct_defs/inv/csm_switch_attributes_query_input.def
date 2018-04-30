@@ -1,0 +1,66 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csm_switch_attributes_query_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_switch_attributes_query.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_switch_attributes_query_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int32_t , limit             , BASIC    ,                   , -1  , ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(int32_t , offset            , BASIC    ,                   , -1  , ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(uint32_t, switch_names_count, BASIC    ,                   , 0   , ) /**< Number of switches being queried, size of @ref switch_names. */
+CSMI_STRUCT_MEMBER(char*   , state             , STRING   ,                   , NULL, ) /**< Optionally filter results to only a specific state - active, rebooting, down, error (failed to reboot)-- according to Mellanox */
+CSMI_STRUCT_MEMBER(char**  , switch_names      , ARRAY_STR, switch_names_count, NULL, ) /**< List of switches to perform query on, must specify at least one switch. Size defined by @ref switch_names_count. */
+
+CSMI_VERSION_END(5cea7e82366c0a8f464ec6e76c0e7f0c)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER(char*, serial_number, STRING, , NULL, ) /**< Optionally filter results to only a specific serial_number - unique identifier for a switch */
+CSMI_VERSION_END(9a26d6863bb01b596b21b9d651383fba)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

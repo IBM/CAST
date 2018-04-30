@@ -1,0 +1,65 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/ras/csmi_ras_event_action.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** CSMI_COMMENT
+ * @brief Represents a row in the csm_ras_event_action table.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_ras_event_action_record_t
+    
+    // Clear the old values.
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int64_t, rec_id              , BASIC , , -1  , ) /**< The record id of the RAS evnet. */
+CSMI_STRUCT_MEMBER(int32_t, count               , BASIC , , -1  , ) /**< The number of times the event occured. */
+CSMI_STRUCT_MEMBER(int32_t, msg_id_seq          , BASIC , , -1  , ) /**< The sequence number indexing the csm_ras_type_audit table.*/
+CSMI_STRUCT_MEMBER(char*  , archive_history_time, STRING, , NULL, ) /**< Time when the RAS event was archived to the big data store. */
+CSMI_STRUCT_MEMBER(char*  , location_name       , STRING, , NULL, ) /**< The origin point of the RAS event.*/
+CSMI_STRUCT_MEMBER(char*  , message             , STRING, , NULL, ) /**< RAS message text. */
+CSMI_STRUCT_MEMBER(char*  , msg_id              , STRING, , NULL, ) /**< The type of the RAS event, for example "csm.status.up" */
+CSMI_STRUCT_MEMBER(char*  , raw_data            , STRING, , NULL, ) /**< Event raw data. */
+CSMI_STRUCT_MEMBER(char*  , time_stamp          , STRING, , NULL, ) /**< The time that the event was generated. */
+
+CSMI_VERSION_END(e7c8ecad36d360eb3b50b8ee128f39fc)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

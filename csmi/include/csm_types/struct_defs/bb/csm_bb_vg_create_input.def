@@ -1,0 +1,63 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/bb/csm_bb_vg_create_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_bb_vg_create.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_bb_vg_create_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        1
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int64_t                , available_size, BASIC       ,               , -1       ,                      ) /**< Available size remaining in this volume group. Can not be greater than 'total_size'. Values less than zero are not valid. */
+CSMI_STRUCT_MEMBER(int64_t                , total_size    , BASIC       ,               , -1       ,                      ) /**< Total size of this volume group. Values less than zero are not valid. */
+CSMI_STRUCT_MEMBER(uint32_t               , ssd_info_count, BASIC       ,               , 0        ,                      ) /**< Number of entries in the ssd_info list, size of @ref ssd_info. */
+CSMI_STRUCT_MEMBER(csm_bool               , scheduler     , BASIC       ,               , CSM_FALSE,                      ) /**< Tells CSM whether or not this is the volume group for the scheduler. Defaults to false. ( @ref csm_bool). */
+CSMI_STRUCT_MEMBER(char*                  , node_name     , STRING      ,               , NULL     ,                      ) /**< This volume group is attached to this node. Can not be NULL. 'node_name' must exist in 'csm_node' table. */
+CSMI_STRUCT_MEMBER(char*                  , vg_name       , STRING      ,               , NULL     ,                      ) /**< Unique identifier for this volume group. Can not be NULL. */
+CSMI_STRUCT_MEMBER(csmi_bb_vg_ssd_info_t**, ssd_info      , ARRAY_STRUCT, ssd_info_count, NULL     , csmi_bb_vg_ssd_info_t) /**< List of ssd information belonging to this volume group. Can not be NULL. Must contain at least one entry. Size defined in @ref ssd_info_count. */
+
+CSMI_VERSION_END(3897d2c3a76b204173ff1cdd7718d9d4)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

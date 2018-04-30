@@ -1,0 +1,39 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/inv/csmi_node_alteration.def
+
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief The various causes of a node to change its state.
+ *
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME csmi_node_alteration_t
+    
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_ENUM_MEMBER(CSM_NODE_ALTERATION_NO_DEF       , "undefined"           , , ) ///< csmi_node_alteration_t has not been set yet or value is unknown. Node has no specified alteration.
+CSMI_ENUM_MEMBER(CSM_NODE_ALTERATION_DATABASE_NULL, "CSM_DATABASE_NULL"   , , ) ///< Used to represent a NULL value for CSM Database.
+CSMI_ENUM_MEMBER(CSM_NODE_ALTERATION_CSM_API      , "CSM API"             , , ) ///< Node state was altered by a CSM API.
+CSMI_ENUM_MEMBER(CSM_NODE_ALTERATION_RAS_EVENT    , "RAS EVENT"           , , ) ///< Node state was altered by a ras event. Usually set to SOFT_FAILURE.
+CSMI_ENUM_MEMBER(CSM_NODE_ALTERATION_SYS_ADMIN    , "SYSTEM ADMINISTRATOR", , ) ///< Node state was altered by a system administrator.
+CSMI_ENUM_MEMBER(CSM_NODE_ALTERATION_CSM_INVENTORY, "CSM INVENTORY"       , , ) ///< Node state was altered by CSM's inventory.
+CSMI_VERSION_END(a56b6bf9f3ac7f0e165b8b04ab1f024d)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

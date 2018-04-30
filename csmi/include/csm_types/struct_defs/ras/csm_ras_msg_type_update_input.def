@@ -1,0 +1,68 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/ras/csm_ras_msg_type_update_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_ras_msg_type_update.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_ras_msg_type_update_input_t
+
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER(int32_t            , threshold_count , BASIC , , -1             , ) /**< Number of times this event has to occur during the 'threshold_period' before taking action on the RAS event. API will ignore NULL values.*/
+CSMI_STRUCT_MEMBER(int32_t            , threshold_period, BASIC , , -1             , ) /**< Period in seconds over which to count the 'threshold_count'. API will ignore NULL values.*/
+CSMI_STRUCT_MEMBER(csm_bool           , visible_to_users, BASIC , , CSM_UNDEF_BOOL , ) /**< (bool) When visible_to_users=true, RAS events of this type will be returned in the response to csm_ras_event_query_allocation. API will ignore @ref CSM_UNDEF_BOOL.*/
+CSMI_STRUCT_MEMBER(csm_bool           , set_not_ready   , BASIC , , CSM_UNDEF_BOOL , ) /**< Deprecated after CSM_VERSION_0_4_1. (bool) When set_not_ready=true, resources associated with the event will be set to ready=n when the event hits threshold. API will ignore @ref CSM_UNDEF_BOOL.*/
+CSMI_STRUCT_MEMBER(csm_bool           , set_ready       , BASIC , , CSM_UNDEF_BOOL , ) /**< Deprecated after CSM_VERSION_0_4_1. (bool)  When set_ready=true, resources associated with the event will be set to ready=y when the event hits threshold. API will ignore @ref CSM_UNDEF_BOOL.*/
+CSMI_STRUCT_MEMBER(csm_bool           , enabled         , BASIC , , CSM_UNDEF_BOOL , ) /**< (bool)  Events will be processed if enabled=true and suppressed if enabled=false. API will ignore @ref CSM_UNDEF_BOOL.*/
+CSMI_STRUCT_MEMBER(char*              , control_action  , STRING, , NULL           , ) /**< Name of control action script to invoke for this event. API will ignore NULL values.*/
+CSMI_STRUCT_MEMBER(char*              , description     , STRING, , NULL           , ) /**< Description of the RAS event. API will ignore NULL values.*/
+CSMI_STRUCT_MEMBER(char*              , msg_id          , STRING, , NULL           , ) /**< The identifier string for this RAS event. It must be unique.  Typically it consists of three parts separated by periods "system.component.id". Can not be NULL. API will fail if NULL.*/
+CSMI_STRUCT_MEMBER(char*              , message         , STRING, , NULL           , ) /**< RAS message to display to the user (pre-variable substitution). API will ignore NULL values.*/
+CSMI_STRUCT_MEMBER(csmi_ras_severity_t, severity        , BASIC , , CSM_RAS_NO_SEV , ) /**< Severity of the RAS event. INFO/WARNING/FATAL. */
+CSMI_STRUCT_MEMBER(csmi_node_state_t  , set_state       , BASIC , , CSM_NODE_NO_DEF, ) /**< replacement for 'set_ready' and 'set_not_ready' after CSM_VERSION_0_4_1. resources associated with the event will be set to this node state when the event hits threshold. */
+CSMI_VERSION_END(bfbbb73af1858120e21a7ec4e87ba1be)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

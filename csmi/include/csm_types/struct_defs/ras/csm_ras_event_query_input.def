@@ -1,0 +1,70 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/ras/csm_ras_event_query_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_ras_event_query.
+ * At least one of the fields must be specified to use the @ref csm_ras_event_query API.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_ras_event_query_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(int32_t            , limit                         , BASIC , , -1            , ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(int32_t            , offset                        , BASIC , , -1            , ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1. */
+CSMI_STRUCT_MEMBER(csmi_ras_severity_t, severity                      , BASIC , , CSM_RAS_NO_SEV, ) /**< Severity of the RAS event. INFO/WARNING/FATAL, optional. */
+CSMI_STRUCT_MEMBER(char               , order_by                      , BASIC , , '\0'          , ) /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY rec_id ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY rec_id ASC NULLS LAST', [b] =  'ORDER BY rec_id DESC NULLS LAST', [c] = 'ORDER BY time_stamp ASC NULLS LAST', [d] =  'ORDER BY time_stamp DESC NULLS LAST', [e] = 'ORDER BY master_time_stamp ASC NULLS LAST', [f] =  'ORDER BY master_time_stamp DESC NULLS LAST', [g] = 'ORDER BY location_name ASC NULLS LAST', [h] =  'ORDER BY location_name DESC NULLS LAST', [i] = 'ORDER BY msg_id ASC NULLS LAST', [j] =  'ORDER BY msg_id DESC NULLS LAST', [k] = 'ORDER BY severity ASC NULLS LAST', [l] =  'ORDER BY severity DESC NULLS LAST'. */
+CSMI_STRUCT_MEMBER(char*              , msg_id                        , STRING, , NULL          , ) /**< The identifier string for the RAS event (e.g. **system.component.id**), optional. */
+CSMI_STRUCT_MEMBER(char*              , start_time_stamp              , STRING, , NULL          , ) /**< Start of the time range to query for RAS Events, optional. */
+CSMI_STRUCT_MEMBER(char*              , end_time_stamp                , STRING, , NULL          , ) /**< End of the time range to query for RAS Events, optional. */
+CSMI_STRUCT_MEMBER(char*              , location_name                 , STRING, , NULL          , ) /**< A location to search for RAS events, optional. */
+CSMI_STRUCT_MEMBER(char*              , control_action                , STRING, , NULL          , ) /**< Name of control action script to query for, optional. */
+CSMI_STRUCT_MEMBER(char*              , message                       , STRING, , NULL          , ) /**< The message of the RAS event to query for, optional. */
+CSMI_STRUCT_MEMBER(char*              , master_time_stamp_search_begin, STRING, , NULL          , ) /**< A time used to filter results of the SQL query and only include records with a 'master_time_stamp' at or after (ie: '>=' ) this time. optional. */
+CSMI_STRUCT_MEMBER(char*              , master_time_stamp_search_end  , STRING, , NULL          , ) /**< A time used to filter results of the SQL query and only include records with a 'master_time_stamp' at or before (ie: '<=' ) this time. optional. */
+CSMI_STRUCT_MEMBER(int64_t            , rec_id                        , BASIC , , -1            , ) /**< Query by rec_id. This is a unique identifier for this specific ras event. API will ignore values less than 1. optional. */
+
+CSMI_VERSION_END(c7b14583db80e0959fafa9afa6ffc896)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

@@ -1,0 +1,67 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csm_allocation_delete_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_allocation_delete.
+ *
+ * @todo Post-PRPQ: Should this take the end time?
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_allocation_delete_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              0
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( int64_t, allocation_id   , BASIC, , 0, ) /**< The allocation id to delete, set to zero if @ref primary_job_id is supplied.  */
+CSMI_STRUCT_MEMBER( int32_t, exit_status     , BASIC, , 0, ) /**< Allocation exit status, initializes to 0 */
+
+CSMI_VERSION_END(ccb092ca142ab94ffa6316d293391906)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER(int64_t,  primary_job_id,       BASIC,  ,    0, ) /**< Primary Job ID, set to zero if @ref allocation_id is supplied. */
+CSMI_STRUCT_MEMBER(int32_t,  secondary_job_id,     BASIC,  ,    0, ) /**< Secondary Job ID, ignored if @ref primary_job_id is not supplied.*/
+CSMI_VERSION_END(ad8de3a53fc38d58d278d32ae85051b8)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

@@ -1,0 +1,47 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/wm/csmi_state.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief The running state of a csm allocation.
+ * @todo Post-PRPQ: prepend CSM to enum names.
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME csmi_state_t
+    
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+CSMI_ENUM_MEMBER(CSM_STAGING_IN,     "staging-in"     ,, ) ///< The allocation is staging in.
+CSMI_ENUM_MEMBER(CSM_TO_RUNNING,     "to-running"     ,, ) ///< The allocation is transitioning to running.
+CSMI_ENUM_MEMBER(CSM_RUNNING,        "running"        ,, ) ///< The allocation is running.
+CSMI_ENUM_MEMBER(CSM_TO_STAGING_OUT, "to-staging-out" ,, ) ///< The allocation is transitioning to staging out.
+CSMI_ENUM_MEMBER(CSM_STAGING_OUT,    "staging-out"    ,, ) ///< The allocation is staging in.
+CSMI_ENUM_MEMBER(CSM_TO_COMPLETE,    "to-complete"    ,, ) ///< The allocation is transitioning to complete.
+CSMI_ENUM_MEMBER(CSM_COMPLETE,       "complete"       ,, ) ///< The allocation is complete.
+CSMI_ENUM_MEMBER(CSM_TO_FAILED,      "to-failed"      ,, ) ///< The allocation is transitioning to failed.
+CSMI_ENUM_MEMBER(CSM_FAILED,         "failed"         ,, ) ///< The allocation is failed.
+CSMI_VERSION_END(db4afff2f732d3ba856a007911604763)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_ENUM_MEMBER(CSM_DELETING,       "deleting"       ,, ) ///< The allocation is being deleted, no mcast required.
+CSMI_ENUM_MEMBER(CSM_DELETING_MCAST, "deleting-mcast" ,, ) ///< The allocation is being deleted, multicast required. 
+CSMI_ENUM_MEMBER(CSM_RUNNING_FAILED,     "running-failed"     ,, ) ///< The allocation failed a running transition.
+CSMI_ENUM_MEMBER(CSM_STAGING_OUT_FAILED, "staging-out-failed" ,, ) ///< The allocation failed a staging out transition.
+CSMI_VERSION_END(eecbb492179bffc9e1d85c9fa0d8702b)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

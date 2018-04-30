@@ -1,0 +1,135 @@
+# Author: John Dunham
+# Last Modified: 4/20/16
+
+
+snmp_traps configed in /etc/snmp/snmptrapd.conf
+
+
+BDS Configuration:
+Logstash:
+
+# In /opt/Logstash/logstash-1.5.3/logstash-scala/logstash/patterns/logstash-scala
+BMC_SEL %{TIMESTAMP_ISO8601:bmc_sel_time}:%{HOSTNAME:bmc_sel_hostname}:%{HOSTNAME:bmc_sel_ip}:%{DATA:bmc_sel_event_id}:%{GREEDYDATA:bmc_sel_event_description}
+
+# In /opt/Logstash/logstash-1.5.3/logstash-scala/logstash/config/logstash-scala.conf
+
+##################################
+#    Start bmc_sel
+##################################
+
+if [type] == "bmc_sel"
+{
+        grok {
+                match => ["message","%{BMC_SEL}"]
+                patterns_dir => ["/opt/Logstash/logstash-1.5.3/logstash-scala/logstash/patterns"]
+                add_tag => ["bmc_sel_grokked"]
+        } #end grok
+
+        date {
+                match => ["bmc_sel_unix_time","UNIX"]
+                target => "@timestamp"
+                add_tag => ["bmc_sel-timestamp-fixed"]
+        } #end date
+
+        if "_grokparsefailure" not in [tags] {
+                mutate {
+                        replace => [ "host", "bmc_sel", "path", "bmc_sel"]
+                        add_tag => ["bmc_sel-final"]
+                } #end mutate
+        } #end host/path
+
+} #end bmc_sel
+
+##################################
+#     End bmc_sel
+##################################
+
+# On if statement
+or "bmc_sel-final"
+
+"bmc_sel@bmc_sel" => "bmc_sel_hostname,bmc_sel_ip,@timestamp,bmc_sel_time,bmc_sel_event_id,bmc_sel_event_description"
+
+
+
+LogAnalysis:
+/opt/IBM/ioala/LogAnalysis/unity_content/DSVToolkit_v1.1.0.4/bmc_sel.props
+
+[SCALA_server]
+scalaHome: /opt/IBM/ioala/LogAnalysis
+
+[DSV_file]
+delimiter: ,
+quoteChar: "
+moduleName: bmc_sel_event_log_DSV
+version: 1.0.0.0
+
+[field0_indexConfig]
+name: logRecord
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: false
+searchable: true
+path_1: content.text
+combine: FIRST
+
+[field1_indexConfig]
+name: bmc_sel_hostname
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field2_indexConfig]
+name: bmc_sel_ip
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field3_indexConfig]
+name: timestamp
+dataType: DATE
+dateFormat: yyyy-MM-dd'T'HH:mm:ss.SSSX
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field4_indexConfig]
+name: bmc_sel_time
+dataType: DATE
+dateFormat: yyyy-MM-dd'T'HH:mm:ss.SSSX
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+
+[field5_indexConfig]
+name: bmc_sel_event_id
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field6_indexConfig]
+name: bmc_sel_event_description
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+
+

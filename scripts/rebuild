@@ -1,0 +1,144 @@
+#!/usr/bin/perl
+
+use XML::Simple;
+use Cwd 'abs_path';
+
+$args = join(" ", @ARGV);
+%argsHash = map { $_ => 1 } @ARGV;
+
+$root = getBaseDir();
+$config = "$root/.config";
+$CFG = XMLin($config);
+
+if($CFG->{"REMOTEIP"} ne "")
+{
+    $remotecmd = "ssh " . $CFG->{"REMOTEIP"} . " \" cd " . $CFG->{"BUILDDIR"} . "; ";
+    $remotepost= "\"";
+}
+
+if($CFG->{"USE_CLANG"})
+{
+    $ENV{"CC"} = "clang";
+    $ENV{"CXX"}= "clang++";
+}
+
+if($0 =~ /rebuild/)
+{
+    exit(-1) if($CFG->{"WORKDIR"} !~ /[A-z]/);
+    cmd("rm -rf $CFG->{BUILDDIR}");
+    cmd("rm -rf $CFG->{WORKDIR}");
+    cmd("mkdir $CFG->{BUILDDIR}");
+    safe_chdir($CFG->{"BUILDDIR"});
+    
+    $cmakebin = findCmake();
+    
+    cmd(join(" ", $remotecmd, $cmakebin, $CFG->{"CMAKEFLAGS"}, $CFG->{"BASEDIR"}));
+}
+safe_chdir($CFG->{"BUILDDIR"});
+
+if($#ARGV == -1)
+{
+    $args .= " install";
+}
+else
+{
+    if(($argsHash{"help"} || $argsHash{"install"} || $argsHash{"noinstall"} || $argsHash{"package_source"}) == 0)
+    {
+	$args .= " partial_install";
+    }
+}
+
+if($CFG->{"BUILD_PARALLEL"})
+{
+    $cpus = `$remotecmd cat /proc/cpuinfo $remotepost | grep processor | wc -l`;
+    chomp($cpus);
+    
+    $rc = cmd("$remotecmd make -j$cpus $args $remotepost", 1);
+    
+    if($rc)
+    {
+	print "***************************************************************************\n";
+	print "* FAILURE occurred during parallel build phase, performing build serially *\n";
+        print "* to provide a clearer error message                                      *\n";
+	print "***************************************************************************\n";
+    }
+}
+else
+{
+    $rc = -1;
+}
+if($rc)
+{
+    cmd("$remotecmd make $args $remotepost");
+}
+
+sub findCmake
+{
+    $minversion = $CFG->{"MINCMAKE"};
+    @searchpaths = (`which cmake`, "/opt/ibm/cmake/bin/cmake", $ENV{HOME} . "/coraltools/cmake/bin/cmake");
+    foreach $path (@searchpaths)
+    {
+	chomp($path);
+	if(-f $path)
+	{
+	    $ver_str = `$path --version`;
+	    ($ver) = $ver_str =~ /cmake version (\S+)/;
+	    print "cmake at $path is version = $ver\n";
+	    if(($ver cmp $minversion) > 0)
+	    {
+		return $path;
+	    }
+	}
+    }
+    print "cmake version $minversion or higher is not installed on this system. \n";
+    print "Recommend running the scripts/prereq.pl script to install into your user environment.\n";
+    print "Request that the system administrator run scripts/prereq.pl as root to make available to all users.\n";
+    exit(-1);
+}
+
+sub getBaseDir
+{
+    my $path;
+    $path = `git rev-parse --show-toplevel`;
+    chomp($path);
+    if($? != 0)
+    {
+        $path = "";
+        do
+        {
+            ($path) = $path =~ /(\S+)\/\S+/;
+            $path = abs_path($path);
+            if(($path =~ tr/\///) < 2)
+            {
+                die "Could not find basedir or .git origin";
+            }
+        }
+        while(!-e "$path/mainpage.md");
+    }
+    return $path;
+}
+
+sub safe_chdir
+{
+    chdir($_[0]) || die "FAIL: Unable to change to directory $_[0]";
+}
+
+sub cmd
+{
+    my($cmd, $noexitonfailure) = @_;
+    print STDERR "cmd: $cmd\n";
+    system($cmd);
+    if($? != 0)
+    {
+        if($errtext)
+        {
+            print "*** CONFIGURE FAILED  ($errtext)\n";
+        }
+        else
+        {
+            print "*** CONFIGURE FAILED  (cmd=$cmd  rc=$?)\n";
+        }
+        exit(-1) if(!$noexitonfailure);
+	return -1;
+    }
+}

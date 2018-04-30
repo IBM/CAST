@@ -1,0 +1,16 @@
+# ============================================================
+# PAM - Add the session, create the whitelist and activelist
+# ------------------------------------------------------------
+p_wl="whitelist"
+p_al="activelist"
+
+if [ -f /etc/pam.d/sshd ]
+then
+    echo "#session    required     libcsmpam.so" >> /etc/pam.d/sshd
+
+    # Initialize the csm directory.
+    mkdir -p /etc/pam.d/csm
+    touch /etc/pam.d/csm/${p_wl}
+    touch /etc/pam.d/csm/${p_al}
+fi
+# ------------------------------------------------------------

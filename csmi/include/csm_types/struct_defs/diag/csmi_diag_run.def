@@ -1,0 +1,65 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/diag/csmi_diag_run.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief Defines a diagnostic run to query in the *csm_diag_run* and *csm_diag_run_history* tables of the CSM Database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_diag_run_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        1
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( int64_t, run_id       , BASIC       ,   ,    0, ) /**< Diagnostic run id. */                      
+CSMI_STRUCT_MEMBER( int64_t, allocation_id, BASIC       ,   ,    0, ) /**< Unique identifier of the  allocation that this diagnostic is being run under. */
+CSMI_STRUCT_MEMBER( char*  , cmd_line     , STRING      ,   , NULL, ) /**< Diagnostic command line invocation: program and arguments. */
+CSMI_STRUCT_MEMBER(csm_bool, inserted_ras,  BASIC       ,   , CSM_FALSE, ) /**< Inserted diagnostic ras events.  */
+CSMI_STRUCT_MEMBER( char   , diag_status  , STRING_FIXED, 16, NULL, ) /**< Diagnostic status - RUNNING, COMPLETED, CANCELED, FAILED.  @todo Post-PRPQ: enum?*/ 
+CSMI_STRUCT_MEMBER( char*  , begin_time   , STRING      ,   , NULL, ) /**< The start time of the diagnostic run.*/
+CSMI_STRUCT_MEMBER( char*  , end_time     , STRING      ,   , NULL, ) /**< The end time of the diagnostic run.  @todo Post-PRPQ: overlap with @ref history_time?*/
+CSMI_STRUCT_MEMBER( char*  , history_time , STRING      ,   , NULL, ) /**< Time this entry was inserted into the history table. @todo Post-PRPQ: overlap with @ref end_time?*/      
+CSMI_STRUCT_MEMBER( char*  , log_dir      , STRING      ,   , NULL, ) /**< Location of diagnostic log directory. */                            
+
+CSMI_VERSION_END(4419524ceff7c6dd329610895b8ec645)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

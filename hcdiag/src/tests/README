@@ -1,0 +1,43 @@
+#================================================================================
+#   
+#    hcdiag/src/tests/test_2/test_2.sh
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#=============================================================================
+
+daxpy
+   Please refer to README.daxpy in the healthcheck install dir.
+
+dgemm
+   Please refer to README.dggemm in the healthcheck install dir.
+
+jlink
+   Please refer to README.jlink in the healthcheck install dir.
+
+dcgm-diag: nvidia dcgm based diag test
+   It requires an argument, that is the level of the diagnostic. Valid values are:
+   1 - Quick System Validation (~ seconds)  
+   2 - Extended System Validation (~ 2 minutes)  
+   3 - System HW Diagnostics ( ~ 15 minutes)       
+
+test_simple
+   A very simple hello test, one file.
+   If the test is not in a shared filesystem, the Framework should execute 
+   without copying the file to remote node(s)
+             xdsh -e
+
+test_2
+   A very simple test, but requires 2 files and an argument.
+   If the test is not in a shared filesystem, the Framework will copy both 
+   files to the remote node(s) and execute.
+   The argument N is the input to the test_2.sh, a test that counts from 1 
+   to N. If N is set to a higher number, the timeout should be adjusted.
+

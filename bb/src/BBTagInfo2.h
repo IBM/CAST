@@ -1,0 +1,281 @@
+/*******************************************************************************
+ |    BBTagInfo2.h
+ |
+ |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |
+ |    This program is licensed under the terms of the Eclipse Public License
+ |    v1.0 as published by the Eclipse Foundation and available at
+ |    http://www.eclipse.org/legal/epl-v10.html
+ |
+ |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+ |    restricted by GSA ADP Schedule Contract with IBM Corp.
+ *******************************************************************************/
+
+#ifndef BB_BBTAGINFO2_H_
+#define BB_BBTAGINFO2_H_
+
+#include "bbinternal.h"
+#include "BBJob.h"
+#include "BBLVKey_ExtentInfo.h"
+#include "BBStatus.h"
+#include "BBTagID.h"
+#include "BBTagInfoMap.h"
+#include "BBTagInfoMap2.h"
+#include "ExtentInfo.h"
+#include "LVKey.h"
+
+/*******************************************************************************
+ | Forward declarations
+ *******************************************************************************/
+class BBTagInfo;
+class BBTransferDef;
+class Extent;
+
+/*******************************************************************************
+ | Enumerators
+ *******************************************************************************/
+
+/*******************************************************************************
+ | Constants
+ *******************************************************************************/
+
+/*******************************************************************************
+ | Classes
+ *******************************************************************************/
+/**
+ * \class BBTagInfo2
+ * Contains the extent information and map of BBTagID->BBTagInfo and used when transfer by_extent
+ */
+class BBTagInfo2
+{
+  public:
+    BBTagInfo2() :
+        flags(0),
+        jobid(0),
+        connectionName(UNDEFINED_CONNECTION_NAME),
+        hostname(UNDEFINED_HOSTNAME) {
+    };
+
+    BBTagInfo2(const string& pConnectionName, const string& pHostName, const uint64_t pJobId) :
+        flags(0),
+        jobid(pJobId),
+        connectionName(pConnectionName),
+        hostname(pHostName) {
+    };
+
+    BBTagInfo2(const string& pConnectionName, const string& pHostName, const BBTagInfoMap& pTagInfoMap) :
+        flags(0),
+        jobid(0),
+        connectionName(pConnectionName),
+        hostname(pHostName),
+        tagInfoMap(pTagInfoMap) {
+    };
+
+    void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
+    int allContribsReported(const uint64_t pHandle, const BBTagID& pTagId);
+    int allExtentsTransferred(const BBTagID& pTagId);
+    void cancelExtents(uint64_t* pHandle, uint32_t* pContribId);
+    void changeServer();
+    void cleanUpAll(const LVKey* pLVKey);
+    void dump(char* pSev, const char* pPrefix=0);
+    void ensureStageOutEnded(const LVKey* pLVKey);
+    BBSTATUS getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo);
+    BBSTATUS getStatus(const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo);
+    int getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
+    int prepareForRestart(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass);
+    int recalculateFlags(const string& pConnectionName, const LVKey* pLVKey, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo, const int64_t pHandle, const int32_t pContribId);
+    void removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo);
+    int retrieveTransfers(BBTransferDefs& pTransferDefs);
+    void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef);
+    void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
+    void sendTransferCompleteForHandleMsg(const string& pHostName, const LVKey* pLVKey, const uint64_t pHandle, const BBSTATUS pStatus);
+    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle);
+    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
+    void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle);
+    int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
+    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId);
+    void updateAllContribsReported(const LVKey* pLVKey);
+    int updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight);
+    void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, const BBTagID& pTagId, const int32_t pContribId, int& pNewStatus, uint32_t pNumberOfExpectedInFlight);
+
+    inline int addExtents(const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransfer, vector<struct stat*>* pStats) {
+        return extentInfo.addExtents(pHandle, pContribId, pTransfer, pStats);
+    }
+
+    inline void addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
+        return extentInfo.addToInFlight(pConnectionName, pLVKey, pExtentInfo);
+    }
+
+    inline int allContribsReported() {
+        return extentInfo.allContribsReported();
+    }
+
+    inline int allExtentsTransferred() {
+        return extentInfo.allExtentsTransferred();
+    }
+
+    inline int allExtentsTransferred(BBTransferDef* pTransferDef) {
+        return pTransferDef->allExtentsTransferred();
+    }
+
+    inline int BSCFS_InRequest() {
+        return extentInfo.BSCFS_InRequest();
+    }
+
+    inline int canceled(BBTransferDef* pTransferDef) {
+        return pTransferDef->canceled();
+    }
+
+    inline void dumpInFlight(const char* pSev) const {
+        return extentInfo.dumpInFlight(pSev);
+    }
+
+    inline int failed(BBTransferDef* pTransferDef) {
+        return pTransferDef->failed();
+    }
+
+    inline string getConnectionName() {
+        return connectionName;
+    }
+
+    inline BBLVKey_ExtentInfo* getExtentInfo() {
+        return &extentInfo;
+    }
+
+    inline string getHostName() {
+        return hostname;
+    }
+
+    inline uint64_t getJobId() {
+        return jobid;
+    }
+
+    inline Extent* getMinTrimAnchorExtent() {
+        return extentInfo.getMinTrimAnchorExtent();
+    }
+
+    inline ExtentInfo getNextExtentInfo() {
+        return extentInfo.getNextExtentInfo();
+    }
+
+    inline size_t getNumberOfExtents() const {
+        return extentInfo.getNumberOfExtents();
+    }
+
+    inline size_t getNumberOfInFlightExtents() {
+        return extentInfo.getNumberOfInFlightExtents();
+    }
+
+    inline BBTagInfoMap* getTagInfoMap() {
+        return &tagInfoMap;
+    }
+
+    inline int getTagInfo(const uint64_t pHandle, const uint32_t pContribId, BBTagID& pTagId, BBTagInfo* &pTagInfo) {
+        return tagInfoMap.getTagInfo(pHandle, pContribId, pTagId, pTagInfo);
+    }
+
+    inline BBTagInfo* getTagInfo(const BBTagID& pTagId) {
+        return tagInfoMap.getTagInfo(pTagId);
+    }
+
+    inline int getTagInfo(BBTagInfo* pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
+        return tagInfoMap.getTagInfo(pTagInfo, pJob, pTag, pNumContrib, pContrib);
+    }
+
+    inline size_t getTotalTransferSize() {
+        return tagInfoMap.getTotalTransferSize();
+    }
+
+    inline void getTransferHandles(vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus, const int pStageOutStarted) {
+        return tagInfoMap.getTransferHandles(pHandles, pJob, pMatchStatus, pStageOutStarted);
+    }
+
+    inline int hasContribId(const uint32_t pContribId) {
+        return tagInfoMap.hasContribId(pContribId);
+    };
+
+    inline int isSuspended() {
+        RETURN_FLAG(BBTI2_Suspended);
+    }
+
+    inline void mergeFlags(const uint64_t pFlags) {
+        return extentInfo.mergeFlags(pFlags);
+    }
+
+    inline void removeExtent(const Extent* pExtent) {
+        return extentInfo.removeExtent(pExtent);
+    }
+
+    inline void resetMinTrimAnchorExtent() {
+        return extentInfo.resetMinTrimAnchorExtent();
+    }
+
+    inline int resizeLogicalVolumeDuringStageOut() {
+        return extentInfo.resizeLogicalVolumeDuringStageOut();
+    }
+
+    inline void setAllContribsReported(const LVKey* pLVKey, const int pValue=1) {
+        return extentInfo.setAllContribsReported(pLVKey, pValue);
+    }
+
+    inline void setAllExtentsTransferred(const string& pConnectionName, const LVKey* pLVKey, const int pValue=1) {
+        return extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, pValue);
+    }
+
+    inline void setJobId(const uint64_t pJobId) {
+        jobid = pJobId;
+
+        return;
+    }
+
+    inline void setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1) {
+        return extentInfo.setStageOutEnded(pLVKey, pJobId, pValue);
+    }
+
+    inline void setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1) {
+        return extentInfo.setStageOutEndedComplete(pLVKey, pJobId, pValue);
+    }
+
+    inline void setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1) {
+        return extentInfo.setStageOutStarted(pLVKey, pJobId, pValue);
+    }
+
+    inline int sortExtents() {
+        return extentInfo.sortExtents();
+    }
+
+    inline int stageOutEnded() {
+        return extentInfo.stageOutEnded();
+    }
+
+    inline int stageOutEndedComplete() {
+        return extentInfo.stageOutEndedComplete();
+    }
+
+    inline int stageOutStarted() {
+        return extentInfo.stageOutStarted();
+    }
+
+    inline int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLVKey_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight) {
+        return tagInfoMap.updateAllTransferHandleStatus(pConnectionName, pLVKey, pJobId, pLVKey_ExtentInfo, pNumberOfExpectedInFlight);
+    }
+
+    inline void updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight) {
+        return extentInfo.updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);
+    }
+
+    inline void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight) {
+        return extentInfo.updateTransferStatus(pLVKey, pExtentInfo, pTransferDef, pNewStatus, pExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
+    }
+
+    uint64_t            flags;
+    uint64_t            jobid;
+    string              connectionName; //  NOTE: Currently only used to send handle completions messages back to
+                                        //        bbProxy via the async message file
+    string              hostname;
+    BBLVKey_ExtentInfo  extentInfo;
+    BBTagInfoMap        tagInfoMap;
+};
+
+#endif /* BB_BBTAGINFO2_H_ */
+

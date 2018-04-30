@@ -1,0 +1,68 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csm_node_attributes_update_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref  csm_node_attributes_update.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_node_attributes_update_input_t
+    
+    // Clear the old values.
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        1
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(uint32_t         , node_names_count       , BASIC    ,                 , 0              , ) /**< The number of nodes to update, size of @ref node_names. */
+CSMI_STRUCT_MEMBER(csmi_node_state_t, state                  , BASIC    ,                 , CSM_NODE_NO_DEF, ) /**< State of the node, see @ref csmi_node_state_t for details. */
+CSMI_STRUCT_MEMBER(csm_bool         , ready                  , BASIC    ,                 , CSM_UNDEF_BOOL , ) /**< Deprecated after CSM_VERSION_0_4_1. Query the 'ready' field in the database. API will ignore @ref CSM_UNDEF_BOOL for this field.  Valid values: 0,1,2. API checks for invalid values and fails if invalid values are passed. Database description: Is the node ready for workload manager? ('y' or 'n') */
+CSMI_STRUCT_MEMBER(char*            , comment                , STRING   ,                 , NULL           , ) /**< Update the 'comment' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Comment field for system administrators.*/
+CSMI_STRUCT_MEMBER(char*            , feature_1              , STRING   ,                 , NULL           , ) /**< Update the 'feature_1' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
+CSMI_STRUCT_MEMBER(char*            , feature_2              , STRING   ,                 , NULL           , ) /**< Update the 'feature_2' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
+CSMI_STRUCT_MEMBER(char*            , feature_3              , STRING   ,                 , NULL           , ) /**< Update the 'feature_3' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
+CSMI_STRUCT_MEMBER(char*            , feature_4              , STRING   ,                 , NULL           , ) /**< Update the 'feature_4' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
+CSMI_STRUCT_MEMBER(char*            , physical_frame_location, STRING   ,                 , NULL           , ) /**< Update the 'physical_frame_location' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Physical frame number where the node is located */
+CSMI_STRUCT_MEMBER(char*            , physical_u_location    , STRING   ,                 , NULL           , ) /**< Update the 'physical_u_location' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Physical u location (position in the frame) where the node is located */
+CSMI_STRUCT_MEMBER(char**           , node_names             , ARRAY_STR, node_names_count, NULL           , ) /**< Identifies which nodes will be updated. Must contain at least one node_name. If left NULL, then API will exit early. Size defined by @ref node_names_count. */
+
+CSMI_VERSION_END(1fabf46e8e830027d18b0d0f9d63f0da)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

@@ -1,0 +1,62 @@
+#!/bin/bash
+###########################################################
+#     run_chkpnt_read
+#
+#     Copyright IBM Corporation 2017. All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+
+if [ "$#" != "9" ]; then
+    echo "Usage:"
+    echo "    $0 \\"
+    echo "        <hostlist> <nprocs> <ssd_size> <compute_time> \\"
+    echo "        <chkpnt_count> <header_size> <chkpnt_size> <stripe_size> \\"
+    echo "        <chunk_size>"
+    exit -1
+fi
+
+HOSTS=$1
+NPROCS=$2
+SSD=$3
+COMPUTE=$4
+COUNT=$5
+HEADER=$6
+SIZE=$7
+STRIPE=$8
+CHUNK=$9
+
+FLOOR=$(dirname $(dirname $(dirname $(realpath $0))))
+
+BSCFS_PFS_PATH=$(dirname $(pwd))
+CHKPNT_DIR=$(basename $(pwd))
+
+chkpnt=$(realpath chkpnt_001)
+mapfile=$chkpnt.mapfile
+echo $chkpnt $mapfile > read_prestage_list
+
+$FLOOR/bb/scripts/fakelsf.sh \
+    --hostlist "$HOSTNAME ${HOSTS//,/ }" \
+    --ssd_min $SSD \
+    --bscfs \
+    --bscfs_pfs_path $BSCFS_PFS_PATH \
+    --bscfs_stgin_listfile read_prestage_list \
+    -- \
+    /opt/ibm/spectrum_mpi/bin/mpirun \
+	--host $HOSTS --np $NPROCS \
+	--x BSCFS_PFS_PATH --x BSCFS_MNT_PATH \
+	$FLOOR/bscfs/tests/chkpnt_read \
+	    --compute_time $COMPUTE \
+	    --chkpnt_count $COUNT \
+	    --header_size $HEADER \
+	    --chkpnt_size $SIZE \
+	    --stripe_size $STRIPE \
+	    --chunk_size $CHUNK \
+	    --chkpnt_dir $CHKPNT_DIR
+
+rm -f read_prestage_list

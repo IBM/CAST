@@ -1,0 +1,37 @@
+#================================================================================
+#
+#    csmd/src/daemon/etc/csmd-aggregator.service
+#
+#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# systemd service description for csmd on aggregator/service node
+
+[Unit]
+Description=csmd-aggregator - CSM Infrastructure Aggregator Daemon
+After=network-online.target dcgm.service csmd-master.service
+Before=csmd-utility.service csmd-compute.service csmrestd.service
+
+[Service]
+Type=simple
+LimitCORE=infinity
+LimitNOFILE=20480
+ExecStartPre=-/opt/ibm/csm/sbin/rotate-log-file.sh /etc/ibm/csm/csm_aggregator.cfg
+ExecStart=/opt/ibm/csm/sbin/csmd -f /etc/ibm/csm/csm_aggregator.cfg
+PIDFile=/var/run/csmd-aggregator.pid
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=3
+SendSIGKILL=yes
+
+
+[Install]
+WantedBy=default.target

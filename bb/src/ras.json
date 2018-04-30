@@ -1,0 +1,338 @@
+{ 
+  "bb" : 
+  {
+      "net" :
+      {
+	  "nvmfConnectFail" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Failed to establish an NVMe over Fabrics (NVMf) connection with the compute node.",
+	      "description" : "The NVMe-over-Fabrics (NVMf) connection script had a bad exit status."
+	  },
+	  "noNVMfDevices" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "No NVMe-over-Fabrics (NVMf) devices were discovered that connect to the compute node.",
+	      "description" : "The compute node NVMf configuration may not be complete or available."
+	  },
+	  "noViableDevices" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "There are zero remaining viable devices between bbProxy and bbServer.",
+	      "description" : "No bulk data path exists between bbProxy and bbServer.  Possibly NVMe over Fabrics was not able to be established between the nodes.  The bbProxy on this compute node is unable to initiate burst buffer transfers."
+	  },
+	  "authrange" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An out-of-range exception occurred during authentication.",
+	      "description" : "The message exchange for authentication failed."
+	  },
+	  "authfailed" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Failed to authenticate with bbServer",
+	      "description" : "The authenticaton process for SSL failed."
+	  },
+	  "SockConnErr" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The connection ended.",
+	      "description" : "The connection to the remote ended."
+	  },
+          "nonSSLconnectAttemptFailed" :
+          {
+              "severity" : "WARNING",
+              "message" : "The bbproxy connection attempt to bbserver failed.",
+              "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
+          },
+          "SSLconnectAttemptFailed" :
+          {
+              "severity" : "WARNING",
+              "message" : "The bbproxy connection attempt to bbserver failed.",
+              "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
+          },
+	  "revent" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The poll of a descriptor in the read or listening list had an event indicating the connection is no longer working.",
+	      "description" : "The poll for listening or reading on the file descriptor of a connection had an event which closed or ended the connection."
+	  },
+	  "certLoadFailed" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "The X509 load to trust store failed.",
+	      "description" : "The certificate file failed to open or had processing errors."
+	  },
+	  "certVerifyFailed" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "The X509 certificate verification failed.",
+	      "description" : "The certificate failed verification."
+	  }	  
+      },
+      "cfgerr" :
+      {
+	  "noconnectscript" : 
+	  {
+	      "severity" : "FATAL",
+	      "message" : "Access failed to NVMf connection script.",
+	      "description" : "The NVMf script must be present and have R-X authority for root."
+	  },
+	  "noNVMeCLI" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "Access failed to the NVMe command line tool.",
+	      "description" : "The NVMe commandline tool must be present at the specified path and have R-X authority for root."
+	  },
+	  "versionmismatch" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "The attempted connection to another burst buffer process encountered a version mismatch.",
+	      "description" : "The installed executables were built for different versions and are not compatible."
+	  },
+	  "timeskew" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The system time is not tightly synchronized between nodes.",
+	      "description" : "Burst Buffer operation should not be impacted.  However comparing timestamps in log files may be difficult."
+	  },
+	  "cantloadCert" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "Unable to load an SSL certificate.",
+	      "description" : "The public and/or private X509 certificate configuration is not correct."
+	  }
+      },
+      "internal" :
+      {
+	  "bscfs" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The BSCFS IO code had an internal error.",
+	      "description" : "The BSCFS IO code logged an internal error."
+	  },
+	  "rcDoXfer" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "A transfer had a bad return code (RC) during the transfer.",
+	      "description" : "The transfer had a return code indicating the transfer failed."
+	  },
+	  "expDoXfer" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "A transfer encountered an exception during transfer.",
+	      "description" : "An exception was caught in the code performing an IO transfer."
+	  },
+	  "unkBndl" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The transfer handling could not find the IO bundle.",
+	      "description" : "The transfer definition IO map was NULL."
+	  },
+	  "dupkey" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Processing of transfer files encountered an error of a duplicate offset.",
+	      "description" : "Duplicate offsets should not occur for a give file involved in a file transfer."
+	  },
+	  "unkFlags" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The flag setting was not valid for an extent transfer.",
+	      "description" : "The IO transfer code encountered an error with the flags on transferring an extent."
+	  },
+	  "te_1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was caught in attempting to transfer an extent.",
+	      "description" : "The code caught an exception in transferring an extent."
+	  },
+	  "te_2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was thrown in transferExtent() when attempting to remove an extent from the vector of extents to transfer for an LVKey.",
+	      "description" : "An exception was caught when attempting to remove an extent from the vector of extents to transfer for an LVKey."
+	  },
+	  "te_3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was thrown in transferExtent() when attempting to mark a transfer definition as failed or cancelled.",
+	      "description" : "An exception was caught when attempting to mark a transfer definition as failed or cancelled."
+	  },
+	  "te_4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was thrown in transferExtent() when attempting to remove an extent from the inflight queue.",
+	      "description" : "An exception was caught when attempting to remove an extent from the inflight queue."
+	  },
+	  "te_5" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was thrown in transferExtent() when attempting to send a transfer progress message to bbProxy.",
+	      "description" : "An exception was caught when attempting to send a transfer progress message to bbProxy."
+	  },
+	  "te_6" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was thrown in transferExtent() when attempting to access the local metadata (taginfo).",
+	      "description" : "An exception was caught when attempting to access the local metadata (taginfo)."
+	  },
+	  "te_7" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception was thrown in transferExtent() when attempting to access the local metadata (taginfo2).",
+	      "description" : "An exception was caught when attempting to access the local metadata (taginfo2)."
+	  },
+	  "tw_1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An error occurred in transferExtent() when attempting to access the local metadata (taginfo2).",
+	      "description" : "The taginfo2 was NULL."
+	  },
+	  "tw_2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An error occurred in transferExtent() when processing a work queue with no entries.",
+	      "description" : "The work queue size was 0 for getWrkQ_Size()."
+	  },
+	  "tw_3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "A null work queue was returned when attempting to find additional work.",
+	      "description" : "The transfer worker left wait state but an exception thrown in transferExtent() did not find any work queue to process."
+	  },
+	  "tw_4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception bailout wasthrown in transferExtent().",
+	      "description" : "The transfer extent method could not process the transfer extent."
+	  },
+	  "tw_5" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An exception occurred in transferExtent().",
+	      "description" : "The transferExtent() method caught an exception."
+	  },
+	  "gethandle" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Method get_xbbServerHandleInfo() had an exception in looking for the handle.",
+	      "description" : "The mehtod get_xbbServerHandleInfo() caught an exception and determined that a handle could not be found."
+	  },
+	  "getjobforhandle" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Method get_xbbServerGetJobForHandle() had an exception in looking for the handle.",
+	      "description" : "Method get_xbbServerGetJobForHandle() had caught an exception and determined that a handle could not be found."
+	  },
+	  "handleinfo" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Method get_xbbServerHandleInfo() had an exception in looking for handle.",
+	      "description" : "Method get_xbbServerHandleInfo() had caught an exception and determined that a handle could not be found."
+	  },
+	  "xferkeys" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Method get_xbbServerHandleTransferKeys() had an exception looking for transfer keys for jobid.",
+	      "description" : "Method get_xbbServerHandleTransferKeys() had caught an exception and determined that keys could not be found for the jobid."
+	  },
+	  "updatexferkeys" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The method update_xbbServerHandleTransferKeys() had an exception updating transfer keys for jobid.",
+	      "description" : "The method update_xbbServerHandleTransferKeys() had caught an exception and determined that the exception was for updating transfer keys for jobid."
+	  }
+      },
+      "sc" :
+      {
+	  "bscfs" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "A system call returned an error during bscfs processing.",
+	      "description" : "The bscfs had an error on a system call."
+	  },
+	  "pthread_create" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The daemon was unable to create transferWorker threads.",
+	      "description" : "The pthread_create call failed."
+	  },
+	  "stuckIO" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "A system call appears to be stuck in the kernel.",
+	      "description" : "The time waiting for an IO operation exceeds the set threshold for an IO operation taking overly long to complete."
+	  },
+	  "longIO" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "A system call appears to be taking an abnormally long time to complete.",
+	      "description" : "The time waiting for an IO operation exceeds the set threshold for an IO operation taking abnormally long to complete."
+	  },
+	  "pread" :
+	  {
+	      "pfs" :
+	      {
+		  "severity" : "WARNING",
+		  "message" : "An error occurred on the pread system call from parallel storage.",
+		  "description" : "An error occurred in reading from the parallel file system."
+	      },
+	      "bbio" :
+	      {
+		  "severity" : "WARNING",
+		  "message" : "The file descriptor for the read operation was not found.",
+		  "description" : "No handle or file descriptor for the read operation was found."
+	      },
+	      "ssd" :
+	      {
+		  "severity" : "WARNING",
+		  "message" : "An error occurred on pread system call from SSD storage.",
+		  "description" : "An error occurred in reading from SSD storage."
+	      }
+	  },
+	  "pwrite" :
+	  {
+	      "pfs" :
+	      {
+		  "severity" : "WARNING",
+		  "message" : "An error occurred on the pwrite system call to parallel storage.",
+		  "description" : "An error occurred in writing to the parallel file system."
+	      },
+	      "bbio" :
+	      {
+		  "severity" : "WARNING",
+		  "message" : "The file descriptor for the write operation was not found.",
+		  "description" : "No handle or file descriptor for the write operation was found."
+	      },
+	      "ssd" :
+	      {
+		  "severity" : "WARNING",
+		  "message" : "An error occurred on the pwrite system call to SSD storage.",
+		  "description" : "An error occurred in writing to SSD storage."
+	      }
+	  }
+      },
+      "usage" : 
+      {
+	  "writeThreshExceeded" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The daemon exceeded the set threahold for file system bytes written.",
+	      "description" : "The total bytes written to the mountpoint exceeds the threshold set."
+	  },
+	  "readThreshExceeded" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The daemon exceeded the set threshold for file system bytes read.",
+	      "description" : "The total bytes read from the mountpoint exceeds the threshold set."
+	  },
+	  "maxRssThreshExceeded" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The maximum RSS threshold has been reached.",
+	      "description" : "The maximum resident set size (RSS) in memory has exceeded the threshold."
+	  }
+      }
+  }
+}

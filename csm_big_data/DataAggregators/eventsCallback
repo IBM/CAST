@@ -1,0 +1,40 @@
+#/bin/bash
+#================================================================================
+#
+#   eventsCallback   
+#
+#  © Copyright IBM Corporation 2015-2018, All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+# Script callout for mmhealth events
+# Do not add any long running/blocking calls, it must return within a few seconds 
+#
+# Example invocation
+# /var/mmfs/etc/eventsCallback 1 2018-02-23 00:01:07.499834 EST pmsensors_up perfmon '' I H 'pmsensors service as expected, state is started' 'started'
+
+
+#for debugging
+#echo "Send new event to CSM $5" >> /var/log/myevents
+#echo $* >> /var/log/myevents
+
+# Convert mmhealth date format in standard syslog format
+dateline=$(date --iso-8601=s -d "$2 $3 $4")
+hostname=$(hostname)
+
+# Write the data separated values to the logstash server.
+# echo $dateline $hostname mmhealth $5 $6 \'$7\' $8 $9 \'${10}\' \'${11}\'  >> /var/log/myevents
+logger -t mmhealth $5 $6 \'$7\' $8 $9 \'${10}\' \'${11}\'
+
+#
+#Add code to push to BDS here 
+#
+
+echo done
+exit

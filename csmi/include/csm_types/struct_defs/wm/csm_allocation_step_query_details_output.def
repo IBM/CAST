@@ -1,0 +1,33 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csm_allocation_step_query_details_output.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A wrapper for the output of @ref csm_allocation_step_query_details.
+ *
+ * An alias to @ref csm_allocation_step_query_output_t.
+ * 
+ * @ref csmi_allocation_step_t.node_names Is expected to be populated 
+ * by @ref csm_allocation_step_query_details.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_allocation_step_query_details_output_t
+    #define CSMI_STRUCT_ALIAS csm_allocation_step_query_output_t
+#endif 
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
