@@ -1,0 +1,57 @@
+#!/bin/bash
+###########################################################
+#     lsfrun_chkpnt_write
+#
+#     Copyright IBM Corporation 2017. All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+
+if [ "$#" != "8" ]; then
+    echo "Usage:"
+    echo "    $0 \\"
+    echo "        <nprocs> <ssd_size> <compute_time> <chkpnt_count> \\"
+    echo "        <header_size> <chkpnt_size> <stripe_size> <chunk_size>"
+    exit -1
+fi
+
+NPROCS=$1
+SSD=$2
+COMPUTE=$3
+COUNT=$4
+HEADER=$5
+SIZE=$6
+STRIPE=$7
+CHUNK=$8
+
+export FLOOR=$(dirname $(dirname $(dirname $(realpath $0))))
+
+rm -f chkpnt_[0-9][0-9][0-9]{,.mapfile}
+
+export BSCFS_PFS_PATH=$(dirname $(pwd))
+export BSCFS_WORK_PATH=$BSCFS_PFS_PATH/.bscfs
+export CHKPNT_DIR=$(basename $(pwd))
+export BB_SSD_MIN=$SSD
+
+bsub \
+    -o job_%J.out \
+    -e job_%J.err \
+    -nnodes $NPROCS \
+    -q csm_bb \
+    -a bscfs \
+    -env all \
+    jsrun --tasks_per_rs 1 --nrs $NPROCS --rs_per_host 1 \
+	$FLOOR/bscfs/tests/chkpnt_write \
+	    --compute_time $COMPUTE \
+	    --chkpnt_count $COUNT \
+	    --header_size $HEADER \
+	    --chkpnt_size $SIZE \
+	    --stripe_size $STRIPE \
+	    --chunk_size $CHUNK \
+	    --keep_all \
+	    --chkpnt_dir $CHKPNT_DIR

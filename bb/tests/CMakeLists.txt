@@ -1,0 +1,25 @@
+add_subdirectory(src)
+
+if(${RPMBUILD})
+  set(DEFAULTROBOTCFG "/etc/ibm/bb.cfg")
+else(!${RPMBUILD})
+  set(DEFAULTROBOTCFG "${WORKDIR}/bb/scripts/bb.cfg")
+endif(${RPMBUILD})
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/parms.robot.in ${CMAKE_CURRENT_BINARY_DIR}/parms.robot @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parms.robot COMPONENT burstbuffer DESTINATION bb/tests)
+
+install(FILES api/bbApiTools.py      COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES bbRobotLibrary.py      COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES common.robot           COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES keywords_bbapi.robot   COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES keywords_bbcmd.robot   COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES keywords_toolbox.robot COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES keywords_pytest.robot  COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(FILES keywords_lsf.robot     COMPONENT burstbuffer-tests DESTINATION bb/tests)
+
+install(DIRECTORY lv         COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(DIRECTORY transfers  COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(DIRECTORY api        COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(DIRECTORY lsf        COMPONENT burstbuffer-tests DESTINATION bb/tests)
+install(DIRECTORY resiliency COMPONENT burstbuffer-tests DESTINATION bb/tests)

@@ -1,0 +1,73 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation_mcast_payload_request.def
+
+    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** 
+ * CSMI_INTERNAL
+
+ * CSMI_COMMENT
+ * @brief A payload for an allocation create/delete multicast.
+ * 
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_mcast_payload_request_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(int64_t, allocation_id   , BASIC, ,  0, ) /**< Uniquely identify this allocation. */
+CSMI_STRUCT_MEMBER(int64_t, primary_job_id  , BASIC, ,  0, ) /**< Primary job id (for LSF this will be the LSF job ID. */
+CSMI_STRUCT_MEMBER(int32_t, secondary_job_id, BASIC, ,  0, ) /**< Secondary job id (for LSF this will be the LSF job index for job arrays. */
+CSMI_STRUCT_MEMBER(int32_t, isolated_cores  , BASIC, ,  0, ) /**< Specifies the number of cores to isolate in the system cgroup, 0 indicates no core isolation. */
+CSMI_STRUCT_MEMBER(int32_t, num_processors  , BASIC, , -1, ) /**< Number of processors for use in the allocation (required). */
+CSMI_STRUCT_MEMBER(int32_t, num_gpus        , BASIC, , -1, ) /**< Number of gpus to be used for the node (optional). */
+CSMI_STRUCT_MEMBER(int32_t, projected_memory, BASIC, , -1, ) /**< Projected memory usage on the node for the allocation. */
+CSMI_STRUCT_MEMBER(char   , create          , BASIC, ,  0, ) /**< A flag indicating whether this is a create or delete payload. */
+CSMI_STRUCT_MEMBER(csm_bool, shared         , BASIC, , CSM_FALSE,       ) /**< Flag for creating a shared allocation.*/
+CSMI_STRUCT_MEMBER(char*  , user_name       , STRING, , NULL, ) /**< The user name of the invoking user. */
+CSMI_STRUCT_MEMBER(char*  , user_flags      , STRING, , NULL, ) /**< User flags for the epilog/prolog. */
+CSMI_STRUCT_MEMBER(char*  , system_flags    , STRING, , NULL, ) /**< System flags for the epilog/prolog. */
+
+CSMI_VERSION_END(5db406e1f96595a4dabc8fece25d0381)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

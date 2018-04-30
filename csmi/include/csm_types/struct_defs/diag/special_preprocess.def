@@ -1,0 +1,8 @@
+// Used for diag_run_query
+// Include the database constants for the CSM_STATUS_MAX.
+#include "csm_api_common.h"
+
+/** @addtogroup diag_apis
+ * @{
+ */
+

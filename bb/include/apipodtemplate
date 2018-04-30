@@ -1,0 +1,13 @@
+=head1 NAME
+
+INSERTFUNCTION - INSERTBRIEF
+
+=head1 SYNOPSIS
+
+#include <bb/include/bbapi.h>
+
+INSERTPROTOTYPE
+
+=head1 DESCRIPTION
+
+INSERTDETAILED

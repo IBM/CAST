@@ -1,0 +1,239 @@
+#================================================================================
+#   
+#    hcdiag/src/tests/common/gpu_functions
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rightgpu_functionss Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#=============================================================================
+
+export SMI_TOOL=/usr/bin/nvidia-smi
+export DCGM=dcgm
+export NVIDIA_PERSISTENCED=nvidia-persistenced
+
+
+
+#====================================================================================
+function read_gpu_basics()
+{
+   list_gpu=1
+   if [ $# -gt 0 ]; then list_gpu=$1; fi 
+
+   echo -e "\nReading gpu information.\n"
+   if [ ! -x "$SMI_TOOL" ]; then echo -e "$SMI_TOOL not found.\ne$me test FAIL, RC=1."; exit 1; fi
+   if [ "$list_gpu" -ne "0" ]; then $SMI_TOOL --list-gpus; fi
+   $SMI_TOOL 
+}
+
+# ====================================================================================
+function has_gpu_controller() 
+{
+   ret=0
+   if [ -x "$LSPCI" ]; then 
+      ngpu_c=`$LSPCI | grep NVIDIA | wc -l` 
+      echo "Found $ngpu_c NVIDIA PCI controller(s)"
+   else
+      echo "$LSPCI command not found."
+      ret=1
+   fi
+   return 
+}
+
+# ====================================================================================
+function has_gpus() 
+{
+   ngpus=0
+   has_gpu_controller
+   
+   if [ "$ret" -ne "0" ]; then return; fi     # no lspci command, error
+   if [ "$ngpu_c" -eq "0" ]; then return; fi  # no pci controller (Boston?), ok
+
+   # has  controller, populated ?
+   if [ -x "$NVIDIA_SMI" ]; then 
+      ngpus=`$NVIDIA_SMI -L | wc -l` 
+      echo "Found $ngpus GPUs."
+   else
+      echo "$NVIDIA_SMI command not found. Assuming it is not installed"
+   fi
+   return 
+}
+
+#====================================================================================
+stop_dcgm () {
+   #echo -e "\nStopping dcgm, $DCGM_DAEMON -t" 
+   #sudo $DCGM_DAEMON -t
+   echo -e "\nStopping dcgm: systemctl stop $DCGM" 
+   sudo systemctl stop $DCGM || true
+   return
+}
+
+#====================================================================================
+stop_nvidia_persistenced () {
+   echo -e "\nStopping nvdia-persistenced"
+   echo -e "\nsystemctl disable $NVIDIA_PERSISTENCED" 
+   echo -e "\nsystemctl stop $NVIDIA_PERSISTENCED" 
+   sudo systemctl disable $NVIDIA_PERSISTENCED || true
+   sudo systemctl stop $NVIDIA_PERSISTENCED 
+
+   return
+}
+
+
+#====================================================================================
+# start the daemons
+# =================
+# check first if it is running
+function start_nvidia_persistenced () {
+   is_nvidia_persistenced_running=1
+   pid=`/usr/sbin/pidof $NVIDIA_PERSISTENCED`
+   if [ -z "$pid" ]; then
+     sudo systemctl enable $NVIDIA_PERSISTENCED 
+     sudo systemctl start $NVIDIA_PERSISTENCED
+     sleep 2
+     pid=`/usr/sbin/pidof $NVIDIA_PERSISTENCED`
+     if [ -z "$pid" ]; then
+        echo -e "Error starting the $NVIDIA_PERSISTENCED on $thishost."
+        exit 1
+     fi
+     echo -e "\n$NVIDIA_PERSISTENCED started on $thishost, pid $pid" 
+     is_nvidia_persistenced_running=0
+   else
+     echo -e "\n$NVIDIA_PERSISTENCED is already running on $thishost, pid $pid" 
+   fi                      
+   return
+}
+
+#====================================================================================
+function start_dcgm () {
+   is_dcgm_running=1
+   pid=`/usr/sbin/pidof nv-hostengine`
+   if [ -z "$pid" ]; then
+     #sudo $DCGM_DAEMON 
+     sudo systemctl start $DCGM
+     pid=`/usr/sbin/pidof nv-hostengine`
+     if [ -z "$pid" ]; then
+        echo -e "Error starting the $DCGM on $thishost."
+        exit 1
+     fi
+     echo -e "\n$DCGM started on $thishost, pid $pid" 
+     sleep 2
+     is_dcgm_running=0
+   else
+     echo -e "\n$DCGM is already running on $thishost, pid $pid" 
+   fi                      
+   return   
+}
+
+#====================================================================================
+#
+# OBSOLETE!!
+# This method enable the persistence mode of the GPUs. Argument:
+# restore: if set to True, it leaves the system the way it found. It is the default.
+#          if set to False, it blindly enable it
+# param:   is set with the index that were affected, if restore is True
+# ret:     is set with the return code
+#
+#====================================================================================
+
+#function set_gpu_pm()
+#{
+#   ret=1
+#   if [ $# -lt 1 ]; then echo "ERROR: function set_gpu_pm requires at least one argument."; return; fi
+#   if [ "$1" -ne "0" -a "$1" -ne "1" ]; then echo "Invalid persistence mode $pm. Valid values: 0 (disable), 1 (enable)."; return; fi
+#   pm=$1
+#   idx=""
+#   if [ $# -gt 1 ]; then idx="$2"; fi
+#
+#   ret=0
+#   ## if index is passed we just do it
+#   if [ -n "$idx" ]; then 
+#      echo "Setting GPU persistence mode: $SMI_TOOL -pm $pm ${idx}" 
+#      sudo $SMI_TOOL -pm $pm ${idx}
+#      ret=$?
+#      if [ "$ret" -eq "0" ]; then
+#         echo "Persistence mode set succesfully."
+#         sleep 1
+#      else
+#        echo "Error setting persistence mode, rc= $ret."
+#      fi
+#      return
+#   fi
+#
+#   # search for the opposite string
+#   search_str="Disabled"; print_str="Enabled"
+#   if [ "$pm" -eq "0" ]; then search_str="Enabled"; print_str="Disabled";  fi
+#
+#   tmpf=/tmp/$$gpu
+#
+#   echo -e "\nQuerying the GPU Persistence Mode: $SMI_TOOL --query-gpu=index,persistence_mode --format=csv,noheader" 
+#   $SMI_TOOL --query-gpu=index,persistence_mode --format=csv,noheader 1>$tmpf
+#   ret=$?
+#   if [ "$ret" -ne "0" ]; then 
+#     echo "Error quering the GPU Persistence Mode, rc = $ret."; return
+#   fi
+#
+#   param=""
+#   while read line; do
+#      index=`echo $line | awk -F',' '{print $1}'`
+#      pms=`echo $line | awk -F' ' '{print $2}'`
+#      if [ "$pms" == "$search_str" ]; then
+#         if [ -z "$param" ]; then
+#            param="-i $index"
+#         else
+#            param="${param},$index" 
+#         fi
+#      fi
+#   done < $tmpf
+#   
+#   # Check if we need to enable  pm
+#   if [ -n "$param" ]; then 
+#      echo "Setting GPU Persistence Mode: $SMI_TOOL -pm $pm ${param}" 
+#      sudo $SMI_TOOL -pm ${pm} ${param}
+#      ret=$?
+#      if [ "$ret" -eq "0" ]; then
+#         echo "GPU persistence mode set succesfully."
+#         sleep 1
+#      else
+#        echo "Error setting the GPU persistence mode, rc= $ret."; return
+#      fi
+#   else
+#      echo "Persistence mode is already $print_str for all gpus."
+#   fi
+#}
+#
+#====================================================================================
+# OBSOLETE
+#
+#function restore_gpu_pm()
+#{
+#   ret=1
+#   if [ $# -lt 1 ]; then echo "ERROR: function set_gpu_pm requires at least one argument."; return; fi
+#   if [ "$1" -ne "0" -a "$1" -ne "1" ]; then echo "Invalid persistence mode $pm. Valid values: 0 (disable), 1 (enable)."; return; fi
+#   pm=$1
+#   idx=""
+#   if [ $# -gt 1 ]; then idx="$2"; fi
+# 
+#    ret=0
+#    ## if index is passed we just do it
+#    if [ -n "$idx" ]; then 
+#       echo "Setting GPU persistence mode: $SMI_TOOL -pm $pm ${idx}" 
+#       sudo $SMI_TOOL -pm $pm ${idx}
+#       ret=$?
+#       if [ "$ret" -eq "0" ]; then
+#          echo "GPU persistence mode set succesfully."
+#          sleep 1
+#       else
+#         echo "Error setting GPU persistence mode, rc= $ret."
+#       fi
+#    else
+#       echo "Restoring the gpu persistence mode. Nothing to be done."
+#    fi
+#       
+#    return
+# }

@@ -1,0 +1,38 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/wm/csmi_allocation_type.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief The different types of allocations supported by CSM, for use in allocation creation.
+ *
+ * The enumerated string for an enum is stored in the database.
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME csmi_allocation_type_t
+    
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_ENUM_MEMBER(CSM_USER_MANAGED,   "user-managed"   ,, ) ///< Denotes a user managed allocation. 
+CSMI_ENUM_MEMBER(CSM_JSM,            "jsm"            ,, ) ///< Denotes an allocation managed by JSM.
+CSMI_ENUM_MEMBER(CSM_JSM_CGROUP_STEP,"jsm-cgroup-step",, ) ///< Denotes an allocation managed by JSM with step cgroups. 
+CSMI_ENUM_MEMBER(CSM_DIAGNOSTICS,    "diagnostics"    ,, ) ///< Denotes a diagnostic allocation run.
+
+CSMI_VERSION_END(84ac9abfdbe4006d73bf522b49219335)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

@@ -1,0 +1,79 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/ras/csmi_ras_event.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** CSMI_COMMENT
+ * @brief Represents a CSM RAS event.
+ *  @todo Post-PRPQ: What differentiates from @ref csmi_ras_event_action_t.
+ *  reply: I think this struct represents a record from the 'csm_ras_event_action_view'.
+ * which is a special thing that Nate Besaw put together in the database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_ras_event_t
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int32_t, min_time_in_pool, BASIC , , 0   , ) /**< The minimum time the event is available in the RAS event pool. */
+CSMI_STRUCT_MEMBER(int32_t, processor       , BASIC , , 0   , ) /**< @todo Post-PRPQ: What is the processor? */
+CSMI_STRUCT_MEMBER(int32_t, count           , BASIC , , 0   , ) /**< @todo Post-PRPQ: What is the count of?*/
+CSMI_STRUCT_MEMBER(char*  , msg_id          , STRING, , NULL, ) /**< The type of the RAS event( e.g. **csm.status.up**). */
+CSMI_STRUCT_MEMBER(char*  , suppress_ids    , STRING, , NULL, ) /**< @todo Post-PRPQ: What is suppress_ids?*/
+CSMI_STRUCT_MEMBER(char*  , severity        , STRING, , NULL, ) /**< The severity of the RAS event. */
+CSMI_STRUCT_MEMBER(char*  , time_stamp      , STRING, , NULL, ) /**< The time that the event was generated.*/
+CSMI_STRUCT_MEMBER(char*  , location_name   , STRING, , NULL, ) /**< The origin point of the RAS event.*/
+CSMI_STRUCT_MEMBER(char*  , control_action  , STRING, , NULL, ) /**< @todo Post-PRPQ: What is a control action. */
+CSMI_STRUCT_MEMBER(char*  , message         , STRING, , NULL, ) /**< RAS message text. */
+CSMI_STRUCT_MEMBER(char*  , raw_data        , STRING, , NULL, ) /**< Event raw data. */
+
+CSMI_VERSION_END(f7ad9d0d838f3a0a985d71db7096c22a)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER(char*, kvcsv, STRING, , NULL, ) /**< kvcsv. event specific keys and values in a comma separated list*/
+CSMI_VERSION_END(e91f31ea2c8376fb62133165abc02038)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(char*  , master_time_stamp, STRING, , NULL, ) /**< The time when the event is process by the CSM master daemon. Used for correlating node state changes with CSM master processing of RAS events.*/
+CSMI_STRUCT_MEMBER(int64_t, rec_id           , BASIC , , -1  , ) /**< unique identifier for this specific ras event. */
+CSMI_VERSION_END(0)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

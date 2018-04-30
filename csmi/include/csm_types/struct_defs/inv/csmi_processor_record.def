@@ -1,0 +1,76 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_processor_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+/*
+* Author: Nick Buonarota
+* Email: nbuonar@us.ibm.com
+*
+* Used by:
+*   - csm_node_attributes_query_details() api. 
+*/
+    
+
+// Struct metadata for the preprocessor.
+/**
+ * CSMI_COMMENT
+ * @brief A processor_socket record in the **csm_processor_socket** table of the CSM database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_processor_record_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int32_t, available_cores, BASIC , , -1  , ) /**< Deprecated after CSM_VERSION_0_4_1. The number of physical cores available on this processor.*/
+CSMI_STRUCT_MEMBER(int32_t, socket         , BASIC , , -1  , ) /**< Deprecated after CSM_VERSION_0_4_1. The socket number of the processor. */
+CSMI_STRUCT_MEMBER(char   , status         , BASIC , , '\0', ) /**< Deprecated after CSM_VERSION_0_4_1. Status of the processor - [a]ctive, [d]econfigured, [f]ailure */
+CSMI_STRUCT_MEMBER(char*  , serial_number  , STRING, , NULL, ) /**< Serial number of the processor. */
+CSMI_STRUCT_MEMBER(char*  , node_name      , STRING, , NULL, ) /**< The node name of the processor. */
+
+CSMI_VERSION_END(73fb66e38e3033e2299d92bd4c12cdac)
+
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_STRUCT_MEMBER(int32_t, discovered_cores , BASIC , , -1  , ) /**< replacement for 'available_cores' after CSM_VERSION_0_4_1. Number of physical cores on this node from all processors. */
+CSMI_STRUCT_MEMBER(char*  , physical_location, STRING, , NULL, ) /**< replacement for 'socket' after CSM_VERSION_0_4_1. Physical location of the processor. */
+CSMI_VERSION_END(eca5f808752b9a7e10b21270ca55c281)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

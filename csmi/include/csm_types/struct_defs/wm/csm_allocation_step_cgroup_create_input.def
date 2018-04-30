@@ -1,0 +1,87 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csm_allocation_step_cgroup_create_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** 
+ * CSMI_COMMENT
+ * @brief Defines a new control group which is a child of an allocation control group.
+ *
+ * This struct will define cgroups in the following manner.
+ * 
+ * If @ref allocation_id >= 0:
+ *
+ * <pre>
+ * <components[i]->name>
+ *   |
+ *   |- allocation_<allocation_id>
+ *   |  |
+ *   |  |- <cgroup_name>
+ *   |
+ *   ...
+ * </pre>
+ *
+ * If the @ref allocation_id is < 0:
+ * 
+ * <pre>
+ * <components[i]->name>
+ *   |
+ *   |- <cgroup_name>
+ *   |
+ *   ...
+ * </pre>
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_allocation_step_cgroup_create_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        1
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(        int64_t,  allocation_id,          BASIC,               ,    0,              ) /**< The allocation id of the allocation requesting a cgroup, if a cgroup for this allocation id doesn't exist this container will not be able to create the requested cgroup. If -1 is supplied operations will be performed on the base cgroup.*/ 
+CSMI_STRUCT_MEMBER(       uint32_t, num_components,          BASIC,               ,    0,              ) /**< The number of components [e.g. cpuset, devices, etc.] defined for this control group.*/
+CSMI_STRUCT_MEMBER(          pid_t,            pid,          BASIC,               ,    0,              ) /**< The process id to associate components with [this pid is placed in each cgroup's tasks file]*/
+CSMI_STRUCT_MEMBER(          char*,    cgroup_name,         STRING,               , NULL,              ) /**< The name of the cgroup to be produced in the components specified, this will be a child of the allocation cgroup matching the supplied @ref allocation_id. If this is null operations will be performed on the allocation cgroup.*/
+CSMI_STRUCT_MEMBER( csmi_cgroup_t**,     components,   ARRAY_STRUCT, num_components, NULL, csmi_cgroup_t ) /**< The components to create the requested cgroups in, each component will be given the pid and any values specified in the component structure. */
+
+
+CSMI_VERSION_END(b52c4eaf2c2d7305a9c6440da0791551)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

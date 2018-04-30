@@ -1,0 +1,228 @@
+#!/bin/bash
+# ================================================================================
+#
+#     csmi/profiling/gather_profile
+#
+#   © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+# ================================================================================
+#: Program executed in the expected manner.
+RET_SUCCESS=0
+
+#: Error occured while parsing the arguments.
+RET_INPUT_EXIT=1
+
+#: A set of default logging locations for the logs to pull profiles from.
+#: TODO Allow these to be overriden.
+COMP_LOG="/var/log/ibm/csm/csm_compute.log"
+MAST_LOG="/var/log/ibm/csm/csm_master.log"
+UTIL_LOG="/var/log/ibm/csm/csm_utility.log"
+AGGR_LOG="/var/log/ibm/csm/csm_aggregator.log"
+
+#: Keys representing each API in the csv
+API_KEY=0
+MAS_KEY=1
+COM_KEY=2
+UTL_KEY=3
+AGG_KEY=4
+
+#: Format of the header:
+HEADER="id,handler_id,state,start_time,end_time,time_diff,hostname,node_type"
+
+#: Format of compute node file:
+COMPUTE_HEADER="id,node_count"
+
+#: Format of compute node file:
+DUPE_HEADER="id"
+
+#: The key in the log to search for, indicates timing data.
+SEARCH_KEY="TIMING"
+
+#: The key of noisy profile data.
+NO_TRACE_KEY=" 4294967295,"
+
+#: The getopts command listing.
+COMMANDS="hPc:m:u:a:p:o:"
+
+#: The run id for the script execution.
+RUNID=$$
+
+OUTPUT_FILE="/tmp/PROFILE_${RUNID}"
+
+# Displays the usage for this script.
+usage()
+{
+    cat << EOF >&2
+    Usage $0
+    =========
+    -h               Displays this message.
+    -P               Process: performs additional processing for the results (uses python).
+
+    -c <nodes>       Specifies the list of compute nodes participating in the job.
+                         This follows the xcat notation (pass through).
+    -m <master>      Specifies the node containing the master daemon.
+                         This follows the xcat notation (pass through).
+                         If not specified this is assumed to be localhost.
+    -u <utility>     Specifies any nodes with a utility daemon that are being processed.
+                         This follows the xcat notation (pass through).
+                         If not specified this is assumed to be localhost.
+    -a <aggregator>  Specifies nodes containing the aggregator daemon.
+                         This follows the xcat notation (pass through).
+                         If not specified this is assumed to be localhost.
+    -p <local file>  [mandatory] A local profiler file, assumed to just contain the timing data.
+    -o <output file> [mandatory] An output file for the csv, appends .csv. 
+    
+
+
+    Error Codes
+    =========== 
+    0 - Script executed with no problems.
+EOF
+}
+
+# Outputs a message to the 
+echoe()
+{
+    >&2 echo $@
+}
+
+#===========================
+# Daemon processing.
+#===========================
+
+process_daemon()
+{
+    log_file=$1
+    daemon=$2
+    nodes=$3
+
+    if [[ ${nodes} == "" ]]
+    then
+        echoe "Processing ${log_file}"      
+
+        if [[ -f ${log_file} ]] 
+        then
+            awk -v host=$(hostname) -v daem=${daemon}\
+                "/${SEARCH_KEY}/ && !/${NO_TRACE_KEY}/"'{printf "%s,%s,%s\n", $6, host, daem}' \
+                ${log_file} >> ${OUTPUT_FILE}
+        fi
+    else
+        echoe "Processing ${log_file} on ${nodes}"
+
+        remote_file="/tmp/${daemon}_parsed_${RUNID}.csv"
+        xdsh ${nodes} "awk -v host="'$(hostname)'" -v daem=${daemon} \
+            '/${SEARCH_KEY}/ && !/${NO_TRACE_KEY}/ \
+            {printf "'"%s,%s,%s\n", $6 , host, daem'"}' ${log_file} > ${remote_file}"
+        
+        mkdir -p /tmp/${daemon}_csv${RUNID}/
+        xdcp ${nodes} -P ${remote_file}  /tmp/${daemon}_csv${RUNID}/
+        xdsh ${nodes} "rm ${remote_file}"
+        cat /tmp/${daemon}_csv${RUNID}/* >> ${OUTPUT_FILE}
+        rm -rf /tmp/${daemon}_csv${RUNID}/
+    fi
+}
+#===========================
+
+#===========================
+# Get Options
+#===========================
+comp_nodes=""
+mast_nodes=""
+util_nodes=""
+aggr_nodes=""
+prof_file=""
+process=0
+
+while getopts ${COMMANDS} opt
+do
+    case ${opt} in
+        h)
+            usage
+            exit ${RET_SUCCESS}
+            ;;
+        P)
+            process=1
+            ;;
+        c)
+            comp_nodes=${OPTARG}
+            ;;
+        m)
+            mast_nodes=${OPTARG}
+            ;;
+        u)
+            util_nodes=${OPTARG}
+            ;;
+        a)
+            aggr_nodes=${OPTARG}
+            ;;
+        p)
+            prof_file=${OPTARG}
+            ;;
+        o)
+            OUTPUT_FILE=${OPTARG}
+            ;;
+        *)
+            echoe "Invalid option: ${opt}"
+            usage 
+            exit ${RET_INPUT_EXIT}
+            ;;
+
+    esac
+done
+#===========================
+
+#===========================
+# Analytics
+#===========================
+
+# Push the base output.
+# [csmapi][trace] TIMING: 
+awk -v host=$(hostname) -v daem=${API_KEY} \
+    '/TIMING:/{printf "%s,%s,%s\n", $0, host, daem }' ${prof_file} >> ${OUTPUT_FILE}
+#cat ${prof_file} > ${OUTPUT_FILE}
+
+# Process all of the daemon files.
+process_daemon ${MAST_LOG} ${MAS_KEY} ${mast_nodes}  
+process_daemon ${COMP_LOG} ${COM_KEY} ${comp_nodes} 
+process_daemon ${UTIL_LOG} ${UTL_KEY} ${util_nodes} 
+process_daemon ${AGGR_LOG} ${AGG_KEY} ${aggr_nodes} 
+
+echoe ""
+echoe "Output:"
+# Sort the output file.
+echo ${HEADER} > ${OUTPUT_FILE}.csv
+sort ${OUTPUT_FILE} >> ${OUTPUT_FILE}.csv
+rm -f ${OUTPUT_FILE}
+echoe "Timing written to: ${OUTPUT_FILE}.csv"
+
+# Determine if any ids were duplicated and flag them.
+echo ${DUPE_HEADER} >  ${OUTPUT_FILE}_dupes.csv
+awk -F"," "/${API_KEY}"'$/{print $1}' ${OUTPUT_FILE}.csv | uniq -d >> ${OUTPUT_FILE}_dupes.csv
+echoe "Invalid ids: ${OUTPUT_FILE}_dupes.csv"
+
+# Compute how many times a traceid appeared in nodes:
+echo ${COMPUTE_HEADER} > ${OUTPUT_FILE}_compute.csv
+awk -F"," "/${COM_KEY}"'$/{print $1}' ${OUTPUT_FILE}.csv | uniq -c | \
+    awk '{printf "%s,%s\n", $2, $1}' >> ${OUTPUT_FILE}_compute.csv
+echoe "Compute counts: ${OUTPUT_FILE}_compute.csv"
+
+# Do some basic sanitization.
+echo ${HEADER} > ${OUTPUT_FILE}_dupe_free.csv
+grep -vwF -f ${OUTPUT_FILE}_dupes.csv ${OUTPUT_FILE}.csv >>${OUTPUT_FILE}_dupe_free.csv
+
+echo ${COMPUTE_HEADER} > ${OUTPUT_FILE}_compute_dupe_free.csv
+grep -vwF -f ${OUTPUT_FILE}_dupes.csv ${OUTPUT_FILE}_compute.csv >>${OUTPUT_FILE}_compute_dupe_free.csv
+
+echoe "Sanitized files: ${OUTPUT_FILE}_dupe_free.csv ${OUTPUT_FILE}_compute_dupe_free.csv"
+
+if [ ${process} == 1 ]
+then
+    echoe "Sending results to be processed."
+fi

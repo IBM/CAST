@@ -1,0 +1,51 @@
+#!/bin/bash
+###########################################################
+#     chkpnt_cleanup
+#
+#     Copyright IBM Corporation 2017. All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+
+STATUS=$1
+SHARED_FILE=$2
+MAP_FILE=$3
+
+echo "$0 invoked"
+echo "        for file \"$SHARED_FILE\""
+echo "        with mapfile \"$MAP_FILE\""
+
+if [ "$STATUS" == "BBFULLSUCCESS" ]; then
+    MAPFILE_DISPLAY=$(/usr/bin/which MapfileDisplay 2> /dev/null)
+    if [ "$MAPFILE_DISPLAY" == "" ]; then
+	MAPFILE_DISPLAY=/opt/ibm/bscfs/tools/MapfileDisplay
+    fi
+    if [ -x $MAPFILE_DISPLAY ]; then
+	EXPECTED=$($MAPFILE_DISPLAY --by_node --summary "$MAP_FILE" | \
+				awk -e '/node count:/ {print $3}')
+	if [ "$EXPECTED" == "" ]; then EXPECTED="<unknown>"; fi
+	ACTUAL=$($MAPFILE_DISPLAY --by_node --summary "$MAP_FILE" | \
+				egrep -c 'total size 0x[^0].* bytes')
+
+	if [ $ACTUAL == $EXPECTED ]; then
+	    echo "    Transfer succeeded; finalizing checkpoint"
+	    chmod a=r "$SHARED_FILE"
+	else
+	    echo "    Transfer succeeded, but not all nodes contributed"
+	    echo "    Expected $EXPECTED nodes but found only $ACTUAL"
+	    echo "    Checkpoint preserved but not finalized"
+	fi
+    else
+	echo "    MapfileDisplay command not found"
+	echo "    Finalizing checkpoint without checking contributors"
+	chmod a=r "$SHARED_FILE"
+    fi
+else
+    echo "    Transfer failed with status $STATUS; deleting checkpoint"
+    rm -rf "$SHARED_FILE" "$MAP_FILE"
+fi

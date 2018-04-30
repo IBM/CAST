@@ -1,0 +1,35 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/wm/csmi_step_status.def
+
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief 
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME csmi_step_status_t
+    
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_ENUM_MEMBER(CSM_STEP_RUNNING  ,  "running" ,, ) ///< The step is currently running.
+CSMI_ENUM_MEMBER(CSM_STEP_COMPLETED, "completed",, ) ///< The step has been completed.
+CSMI_ENUM_MEMBER(CSM_STEP_KILLED   ,   "killed" ,, ) ///< The step has been killed.
+
+CSMI_VERSION_END(37b48e5927968c6576a1300ec08c3369)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

@@ -1,0 +1,69 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/diag/csm_diag_result_create_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/*
+ * Fields in this struct should match the "csm_diag_result" table exactly
+ */
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_diag_result_create.
+ *
+ * Defines a structure to match an entry in the *csm_diag_result* table of the CSM Database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_diag_result_create_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        1
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( int64_t, run_id       ,        BASIC,   ,    0, ) /**< Diagnostic run id. */
+CSMI_STRUCT_MEMBER( char   , status       , STRING_FIXED, 16, NULL, ) /**< Hardware status after the diagnostic finishes (PASS, FAIL). @todo Post-PRPQ: Remove fixed width. */
+CSMI_STRUCT_MEMBER( char*  , test_name    ,       STRING,   , NULL, ) /**< The name of the diagnostic test case run. */
+CSMI_STRUCT_MEMBER( char*  , node_name    ,       STRING,   , NULL, ) /**< The node the test case was run on. */
+CSMI_STRUCT_MEMBER( char*  , serial_number,       STRING,   , NULL, ) /**< Serial number of the field replaceable unit (fru) that this diagnostic was run against. */
+CSMI_STRUCT_MEMBER( char*  , begin_time   ,       STRING,   , NULL, ) /**< The time when the task began (YYYY-MM-DD HH-MM-SS.MMMMM).*/
+CSMI_STRUCT_MEMBER( char*  , log_file     ,       STRING,   , NULL, ) /**< Location of diagnostic log file. */
+
+CSMI_VERSION_END(4de78032e041f299d50ace6775b5385d)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

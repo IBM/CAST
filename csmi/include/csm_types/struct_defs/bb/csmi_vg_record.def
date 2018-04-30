@@ -1,0 +1,61 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/bb/csmi_vg_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief Represents an entry in the *csm_vg* table in the CSM Database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_vg_record_t
+
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+
+CSMI_STRUCT_MEMBER(int64_t , total_size    , BASIC , , -1       , ) /**< Volume group size, in bytes.*/
+CSMI_STRUCT_MEMBER(int64_t , available_size, BASIC , , -1       , ) /**< Bytes available in volume group, subset of @ref total_size. */
+CSMI_STRUCT_MEMBER(csm_bool, scheduler     , BASIC , , CSM_FALSE, ) /**< Tells CSM whether or not this is the volume group for the scheduler. Defaults to false. ( @ref csm_bool). */
+CSMI_STRUCT_MEMBER(char*   , vg_name       , STRING, , NULL     , ) /**< Name of the volume group. */
+CSMI_STRUCT_MEMBER(char*   , node_name     , STRING, , NULL     , ) /**< Identifies which node has this volume group. */
+
+CSMI_VERSION_END(0)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

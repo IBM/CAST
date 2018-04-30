@@ -1,0 +1,57 @@
+#================================================================================
+#   
+#    hcdiag/src/tests/common/jsm_functions
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#=============================================================================
+export MPI_ROOT=/opt/ibm/spectrum_mpi/
+export OPAL_PREFIX=${MPI_ROOT}
+export OPAL_LIBDIR=${MPI_ROOT}/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${MPI_ROOT}/lib/:${MPI_ROOT}/jsm_pmix/lib:${MPI_ROOT}/lib/pami_port
+export IBM_INTERNAL_DISABLE_CSM=92E1FD45-1251-40EE-9B04-93628E03EB46
+export OMPI_MCA_pml=pami
+export OMPI_MCA_osc=pami
+export OMPI_LD_LIBRARY_PATH_PREPEND_DISTRO=${MPI_ROOT}/lib:${MPI_ROOT}/lib/pami_port
+export PATH=$PATH:${MPI_ROOT}/jsm_pmix/bin
+export CSM_ALLOCATION_ID=1 
+
+# ====================================================================================
+# This function starts the jsm daemon. It sets the following variables:       
+#   ret; 0 (success), 1 (fail)
+#    
+# ====================================================================================
+function start_jsmd()
+{
+  ret=0
+  if [ -x ${MPI_ROOT}/jsm_pmix/bin/jsm ]; then
+    ${MPI_ROOT}/jsm_pmix/bin/jsm -f $1&
+    sleep 1
+    pid=`pgrep jsmd`
+    if [ -n "$pid" ]; then echo "jsm daemon started, pid: $pid" ; return; fi
+  fi
+  ret=1
+  return
+}
+# ====================================================================================
+# This function stops the jsm daemon. 
+#     
+# ====================================================================================
+function stop_jsmd() 
+{
+  pid=`pgrep jsmd`
+  if [ -n "$pid" ]; then 
+    echo "Stopping jsm daemon, pid=$pid"
+    kill $pid
+  fi
+  # jskill fails with" [csmapi][error]csmlib: Failed to connect to CSM_SSOCKET=/run/csmd.sock;.." 
+  #jskill shutdown
+}
+

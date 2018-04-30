@@ -1,0 +1,89 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_ssd_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A ssd record in the **csm_ssd** table of the CSM database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_ssd_record_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// Alphabetical order comment to easily check for version updates.
+/*
+serial_number -- P.Key in database
+discovery_time -- times
+update_time    -- times
+device_name
+fw_ver
+node_name
+pci_bus_id
+status
+size
+total_size
+wear_lifespan_used
+wear_percent_spares_remaining
+wear_total_bytes_read
+wear_total_bytes_written
+
+*/
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(int64_t, total_size                   , BASIC , , -1  , ) /**< Deprecated after CSM_VERSION_0_4_1. Physical total capacity (volume group total capacity). */
+CSMI_STRUCT_MEMBER(int64_t, size                         , BASIC , , -1  , ) /**< Total capacity (in bytes) of this ssd. */
+CSMI_STRUCT_MEMBER(int64_t, wear_total_bytes_read        , BASIC , , -1  , ) /**< Number of bytes read from the SSD over the life of the device. */
+CSMI_STRUCT_MEMBER(int64_t, wear_total_bytes_written     , BASIC , , -1  , ) /**< Number of bytes written to the SSD over the life of the device. */
+CSMI_STRUCT_MEMBER(double , wear_lifespan_used           , BASIC , , -1.0, ) /**< Estimate of the amount of SSD life consumed (w.l.m. will use. valid range 0-255 percent) 0 = new, 100 = completely used, 100+ = over est life time. */
+CSMI_STRUCT_MEMBER(double , wear_percent_spares_remaining, BASIC , , -1.0, ) /**< Amount of SSD capacity over-provisioning that remains.*/
+CSMI_STRUCT_MEMBER(char   , status                       , BASIC , , '\0', ) /**< Deprecated after CSM_VERSION_0_4_1. The state of the ssd - [a]ctive, [d]econfigured, [f]ailure */
+CSMI_STRUCT_MEMBER(char*  , serial_number                , STRING, , NULL, ) /**< Serial number of the ssd. */
+CSMI_STRUCT_MEMBER(char*  , node_name                    , STRING, , NULL, ) /**< The node of the ssd. */
+CSMI_STRUCT_MEMBER(char*  , discovery_time               , STRING, , NULL, ) /**< Deprecated after CSM_VERSION_0_4_1. Timestamp when this ssd was discovered. */
+CSMI_STRUCT_MEMBER(char*  , update_time                  , STRING, , NULL, ) /**< Timestamp when this ssd was last updated. */
+CSMI_STRUCT_MEMBER(char*  , device_name                  , STRING, , NULL, ) /**< product device name. */
+CSMI_STRUCT_MEMBER(char*  , pci_bus_id                   , STRING, , NULL, ) /**< PCI bus id. */
+CSMI_STRUCT_MEMBER(char*  , fw_ver                       , STRING, , NULL, ) /**< firmware version. */
+
+CSMI_VERSION_END(1799b3ed6862096f3a91577e8f076cc9)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

@@ -1,0 +1,164 @@
+#================================================================================
+#   
+#    hcdiag/src/tests/common/functions
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#=============================================================================
+FDISK=/usr/sbin/fdisk
+LSPCI=/usr/sbin/lspci
+NVIDIA_SMI=/usr/bin/nvidia-smi
+
+
+P8_PVR=( 004b 004c 004d ) 
+P9_PVR=( 004e 004f )
+
+# Firestone, Garrison, Witherspoon (GTC - air cooled and GTW) and Bostons 
+# 9006-22C: Management, Gateway, Big Data nodes
+# 5104-22C: ESS IO node
+SUPPORTED_MODELS=( 8335-GTA 8335-GTB 8335-GTC 8335-GTW 9006-22C 5104-22C )
+FIRESTONE=( 8335-GTA )
+GARRISON=( 8335-GTB )
+WITHERSPOON=( 8335-GTC 8335-GTW )
+BOSTON=( 9006-22C 5104-22C )
+AIR_COOLED=( 8335-GTC ) 
+WATER_COOLED=( 8335-GTW )
+
+# ====================================================================================
+# This function check what type of the processor the machine has, using /proc/cpuinfo file
+# It sets the following variable:
+#    processor: p8 or p9
+#    ret : return code
+#        
+# ====================================================================================
+function get_processor() 
+{
+   ret=0
+   # we assume all processors are the same
+   pvr=$(cat /proc/cpuinfo | grep pvr | awk '{ print $5 }' | head -1)
+   chip=$(echo "${P9_PVR[@]}" | grep -o $pvr |wc -w)  
+   if [ $chip -eq 1 ]; then    
+      processor="p9"
+   else
+     #   check if P8
+     chip=$(echo "${P8_PVR[@]}" | grep -o $pvr |wc -w)  
+     if [ $chip -eq 1 ]; then
+        processor="p8"
+     else
+        ret=1
+     fi
+   fi
+   return
+}
+# ====================================================================================
+# This function returns the processor revision using /proc/cpuinfo file
+# It sets the following variable:
+#    revision: 2.0 2.1
+#    ret : return code
+#     
+# ====================================================================================
+function get_processor_revision() 
+{
+   ret=0
+   # we assume all processors have the same revision
+   revision=$(cat /proc/cpuinfo | grep revision | awk '{ print $3 }' | head -1)
+   return
+}
+
+# ====================================================================================
+# This function check if there are disks attached to the machine using fdisk command. 
+# It sets the following variables:
+#    sd_list: all scsi disk. Example: sda sdb
+#    nvme_list: all nvme disk. example: nvme0n1
+#    n_sd: number of elements in sd_list
+#    n_nvme: number of elements in nvme_list
+#    ret : return code
+# ====================================================================================
+function has_disk() 
+{
+   ret=0
+   if [ -x $FDISK ]; then 
+      sd_list=( `sudo $FDISK -l | grep ^'Disk /dev/sd' | awk '{print $2}' |  sed "s%:\|/dev/%%g"` )
+      nvme_list=( `sudo $FDISK -l | grep ^'Disk /dev/nvme' | awk '{print $2}' |  sed "s%:\|/dev/%%g"` )
+      n_sd=${#sd_list[@]}
+      n_nvme=${#nvme_list[@]}
+   else
+      echo "$FDISK command found"
+      ret=1
+   fi
+   return 
+}
+
+# ====================================================================================
+# This function check if there are machine is a supported machine
+# 
+# ====================================================================================
+function supported_machine() 
+{
+   model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+   c=$(echo "${SUPPORTED_MODELS[@]}" | grep -o $model |wc -w)  
+   ret=0
+   if [ "$c" -ne "1" ]; then
+      echo "Machine type $model not supported." 
+      ret=1
+   fi
+   ### 
+   is_witherspoon=False
+   is_garrison=False
+   is_firestone=False
+   is_boston=False
+   c=$(echo "${WITHERSPOON[@]}" | grep -o $model |wc -w)  
+   if [ "$c" -eq "1" ]; then is_witherspoon=True; return; fi
+
+   c=$(echo "${BOSTON[@]}" | grep -o $model |wc -w)  
+   if [ "$c" -eq "1" ]; then is_boston=True; return; fi
+
+   c=$(echo "${GARRISON[@]}" | grep -o $model |wc -w)  
+   if [ "$c" -eq "1" ]; then is_garrison=True; return; fi
+
+   c=$(echo "${FIRESTONE[@]}" | grep -o $model |wc -w)  
+   if [ "$c" -eq "1" ]; then is_firestone=True; return; fi
+
+   return
+}
+
+# ====================================================================================
+function read_basics()
+{
+
+   echo -e "\nReading cpu configuration that might affect the result of the test."
+
+   # check if all cores are online
+   # ===============================
+   str1=`/usr/sbin/ppc64_cpu --cores-present` 
+   str2=`/usr/sbin/ppc64_cpu --cores-on`
+   core_present=`echo $str1 | cut -d "=" -f 2 | xargs` 
+   cores=`echo $str2 | cut -d "=" -f 2 | xargs` 
+   echo -e "\n$str1\n$str2"
+   if [ $core_present -ne $cores ]; then
+      echo "Warning: not all available cores are online. Online cpus: `cat /sys/devices/system/cpu/online`"
+      # we exit at this point
+      echo -e "Exiting..."
+      exit 1
+   fi
+
+   # read scaling_governor
+   # =====================
+   echo -e "\ncpufreq governor set to:"
+   find /sys/devices/system/cpu -name scaling_governor  | xargs -e cat |sort -u
+
+   # read clock frequency
+   #echo -e "\nReading cpu clock frequency."
+   #sudo /usr/sbin/ppc64_cpu --frequency -t 5
+
+
+   echo -e "\n================================================================"
+}
+

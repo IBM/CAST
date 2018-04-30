@@ -1,0 +1,83 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_switch_ports_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A switch ports record in the **csm_switch_ports** table of the CSM database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_switch_ports_record_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               0
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(char*, name               , STRING, , NULL, )  /**< UFM name for this module. format: host_number */
+CSMI_STRUCT_MEMBER(char*, parent             , STRING, , NULL, )  /**< Switch that this port is on. */
+CSMI_STRUCT_MEMBER(char*, discovery_time     , STRING, , NULL, )  /**< First time the port was found in the system. */
+CSMI_STRUCT_MEMBER(char*, collection_time    , STRING, , NULL, )  /**< Last time the port inventory was collected. */
+CSMI_STRUCT_MEMBER(char*, active_speed       , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, comment            , STRING, , NULL, )  /**< System administrator comment about this port. */
+CSMI_STRUCT_MEMBER(char*, description        , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, enabled_speed      , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, external_number    , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, guid               , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, lid                , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, max_supported_speed, STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, logical_state      , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, mirror             , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, mirror_traffic     , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, module             , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, mtu                , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, number             , STRING, , NULL, )  /**< port number */
+CSMI_STRUCT_MEMBER(char*, physical_state     , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, peer               , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, severity           , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, supported_speed    , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, system_guid        , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, tier               , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, width_active       , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, width_enabled      , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+CSMI_STRUCT_MEMBER(char*, width_supported    , STRING, , NULL, )  /**< ALAN ADD COMMENT */
+
+CSMI_VERSION_END(7d4cc08558a30e88f6766f3887d25948)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

@@ -1,0 +1,307 @@
+#================================================================================
+#   
+#    hcdiag/src/framework/clustconf.yaml
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#===============================================================================*/
+---
+# configuration information for witherspoon
+# by model number.
+
+# node specific information, make it work like a 
+# bash case statement.
+# note very little of this information is actually used yet.
+# so this is a placeholder for when we get all the tests to pick it up
+
+# Water cluster definitions
+# =========================
+node_info:
+  - case: c650f99p(04|06|08|10|12)
+    # water cooled dd2.01 cluster with 4 GPUS
+    # ========================================
+    rvitals: wspoon_dd2
+    ncpus: 176
+    memory: 512
+    clock: 
+      max: 3.8
+      min: 2.0
+    firmware: 
+      name: 1742Ef
+      versions:
+        - 'BMC Firmware Product:   ibm-v2.0-0-r26-0-g7285b52 (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.111 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
+        - 'HOST Firmware Product: -- additional info: hostboot-7050d0a'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-159f2e8'
+        - 'HOST Firmware Product: -- additional info: linux-4.13.16-openpower1-p98dd271'
+        - 'HOST Firmware Product: -- additional info: machine-xml-592a6dd'
+        - 'HOST Firmware Product: -- additional info: occ-39d5490'
+        - 'HOST Firmware Product: -- additional info: op-build-v1.19-320-gf959966-dirty'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.3-p9911320'
+        - 'HOST Firmware Product: -- additional info: sbe-b6b7bb7'
+        - 'HOST Firmware Product: -- additional info: skiboot-v5.9.8'
+    gpu: 
+      pciids: 
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1530
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+    ib: 
+      slot_rx: "0003:01:00.[01]|0033:01:00.[01]"
+      pciids: 
+        - '0003:01:00.0'
+        - '0003:01:00.1'
+        - '0033:01:00.0'
+        - '0033:01:00.1'
+      board_id: "IBM0000000002"
+      firmware: "16.21.0106"
+    os:
+      name: "Red Hat Enterprise Linux Server"
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
+    kernel:
+      release: "4.14.0-38.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+  - case: c650f99p(14|16|18|20)
+    # water cooled dd2.01 nodes with 6 gpus
+    # =====================================
+    rvitals: wspoon_dd2
+    ncpus: 176
+    clock: 
+      max: 3.8
+      min: 2.0
+    firmware: 
+      name: 1742Ef
+      versions:
+        - 'BMC Firmware Product:   ibm-v2.0-0-r26-0-g7285b52 (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.111 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
+        - 'HOST Firmware Product: -- additional info: hostboot-7050d0a'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-159f2e8'
+        - 'HOST Firmware Product: -- additional info: linux-4.13.16-openpower1-p98dd271'
+        - 'HOST Firmware Product: -- additional info: machine-xml-592a6dd'
+        - 'HOST Firmware Product: -- additional info: occ-39d5490'
+        - 'HOST Firmware Product: -- additional info: op-build-v1.19-320-gf959966-dirty'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.3-p9911320'
+        - 'HOST Firmware Product: -- additional info: sbe-b6b7bb7'
+        - 'HOST Firmware Product: -- additional info: skiboot-v5.9.8'
+    gpu: 
+      pciids: 
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0004:06:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+        - '0035:05:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1530
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+    ib: 
+      slot_rx: "0003:01:00.[01]|0033:01:00.[01]"
+      pciids: 
+        - '0003:01:00.0'
+        - '0003:01:00.1'
+        - '0033:01:00.0'
+        - '0033:01:00.1'
+      board_id: "IBM0000000002"
+      firmware: "16.21.0106"
+    os:
+      name: "Red Hat Enterprise Linux Server"
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
+    kernel:
+      release: "4.14.0-38.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+# Air cluster definitions
+# =========================
+  - case: c650f07p(09|11|13|15|17|19|21)
+    rvitals: garison
+    rvitals: wspoon_dd2
+    ncpus: 160
+    firmware: 
+      name: 1642II
+      versions:
+        - 'HOST Firmware Product: IBM-witherspoon-ibm-OP9_v1.19_1.52'
+        - 'HOST Firmware Product: -- additional info: op-build-v1.7-1421-g2f4cbfe'
+        - 'HOST Firmware Product: -- additional info: buildroot-2017.8-6-g319c6e1'
+        - 'HOST Firmware Product: -- additional info: skiboot-v5.8-130-g712837cedca0'
+        - 'HOST Firmware Product: -- additional info: tch: hostboot-binaries-b7d8417'
+        - 'HOST Firmware Product: -- additional info: hostboot-8e7e2ad'
+        - 'HOST Firmware Product: -- additional info: linux-4.13.4-openpower1-p1c668f'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.0-p85a1eab'
+        - 'HOST Firmware Product: -- additional info: occ-60c9cd'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v1'
+        - 'HOST Firmware Product: -- additional info: machine-xml-1bd247d-p7c6c471'
+        - 'HOST Firmware Product: -- additional info: sbe-ff713df'
+        - 'BMC Firmware Product: ibm-v1.99.10-0-r11-0-g9c65260'
+    gpu: 
+      pciids: 
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1530
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+    ib: 
+      slot_rx: "0003:01:00.[01]|0033:01:00.[01]"
+      pciids: 
+        - '0003:01:00.0'
+        - '0003:01:00.1'
+        - '0033:01:00.0'
+        - '0033:01:00.1'
+      board_id: "IBM0000000002"
+      firmware: "16.21.0106"
+    os:
+      name: "Red Hat Enterprise Linux Server"
+      pretty_name: "Red Hat Enterprise Linux Server 7.4 (Maipo)"
+    kernel:
+      release: "4.11.0-44.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"    
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+#
+# gpfs mounts expected on all nodes.
+gpfs_mounts: 
+  - {mount: '/gpfs/r92gpfs01',  match: 'r92gpfs01' }
+  - {mount: '/gpfs/r92gpfs02',  match: 'r92gpfs02' }
+#
+# rvital parsing table
+rvitals:
+  habenaro:
+    - {id: 'nada', match: 0 }
+  garison:
+    - {id: 'Power Status',   match: on }
+    - {id: 'Power Overload', match: false }
+    - {id: 'Power Fault', match: false }
+    - {id: 'Power Control Fault', match: false }
+    - {id: 'Power Restore Policy', match: 'Always off' }
+    - {id: 'Drive Fault', match: false }
+    - {id: 'Cooling Fault', match: false }
+    - {id: 'APSS Fault', match: 0 }
+    - {id: 'Ambient Temp', regex: (\S+), range: [10,40] }
+    - {id: 'BIOS Golden Side', regex: (\S+), match: 0 }
+    - {id: 'BMC Golden Side',  regex: (\S+), match: 0 }
+    - {id: 'CPU (1|2) VDD Temp',  regex: (\S+), range: [15,80,N/A]}
+    - {id: 'CPU Core Temp .*',    regex: (\S+), range: [15,90,N/A]}
+    - {id: 'CPU Diode .*',        regex: (\S+), range: [15,75,N/A]}
+    - {id: 'CPU Func .*',  match: '.*Present.*' }
+    - {id: 'CPU VDD Curr', regex: (\S+), range: [1,250] }
+    - {id: 'CPU. Temp',    regex: (\S+), range: [18,90,N/A] }
+    - {id: 'Checkstop', match: '(0|.*\(Present\).*)' }
+    - {id: 'CurPwr Redundant', match: 0 }
+    - {id: 'DIMM Func \d+',  match: '.*Present.*' }
+    - {id: 'DIMM\d+ Temp', regex: (\S+), range: [15,75,N/A]}
+    # NOTE: this seems a bit high
+    - {id: 'Fan \d',  regex: (\S+), range: [3000,12000,N/A] }
+    - {id: 'Fan Power',  regex: (\S+), range: [10,300,N/A] }
+    - {id: 'GPU Func \d',   match: '(.*Present.*|0)' }
+    - {id: 'GPU Power',  regex: (\S+), range: [10,1800,N/A] }
+    - {id: 'GPU Temp \d', regex: (\S+), range: [15,85,N/A]}
+    - {id: 'Host Status',  match: '(.*working.*|0)' }
+    - {id: 'Mem Buf Func \d+',  match: '.*Present.*' }
+    - {id: 'Mem Buf Temp \d+', regex: (\S+), range: [15,75,N/A] }
+    - {id: 'Mem Cache Power',  regex: (\S+), range: [10,200,N/A] }
+    - {id: 'Mem Proc\d Pwr',  regex: (\S+), range: [10,100,N/A] }
+    - {id: 'OCC \d Active',  match: 0 }
+    - {id: 'PCI',  match: 0 }
+    - {id: 'PCI Clock Fault',  match: 0 }
+    - {id: 'PCIE Proc\d Pwr',  regex: (\S+), range: [10,120,N/A] }
+    - {id: 'PSU Fault \d',  regex: 0.*\((.*)\), match: Present }
+    - {id: 'Proc\d Power',  regex: (\S+), range: [10,300,N/A] }
+    - {id: 'Quick Pwr Drop \d',  match: 0 }
+    - {id: 'Ref Clock Fault',  match: 0 }
+    - {id: 'System Event',   match: 0 }
+    - {id: 'System Power',  regex: (\S+), range: [10,3000,N/A] }
+    - {id: 'TOD Clock Fault',  match: 0 }
+    - {id: 'Watchdog', match: 0 }
+  wspoon_dd1: 
+    - {id: 'Ambient', regex: (\S+), range: [10,40] }
+    # note this is an error, remove when correct in https://github.ibm.com/DCS-research/R92-cluster/issues/1710
+    - {id: 'Fan1 \d',  regex: (\S+), range: [0,24000] }
+    - {id: 'Fan[0-3] \d',  regex: (\S+), range: [3000,14000] }
+    - {id: 'P[0-1] Vcs Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P[0-1] Vdd Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P[0-1] Vddr Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P[0-1] Vvdn Temp',  regex: (\S+), range: [15,80]}
+  wspoon_dd2: 
+    - {id: 'Ambient', regex: (\S+), range: [10,40] }
+    # note this is an error, remove when correct in https://github.ibm.com/DCS-research/R92-cluster/issues/1710
+    - {id: 'Fan1 \d',  regex: (\S+), range: [0,24000] }
+    - {id: 'Fan[0-3] \d',  regex: (\S+), range: [2500,14000] }
+    - {id: 'P\d Vcs Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P\d Vdd Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P\d Vddr Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P\d Vdn Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'Ambient', regex: (\S+), range: [10,40] }
+    - {id: 'Dimm\d+ Temp', regex: (\S+), range: [15,75,N/A]}
+    # core 6 frequetly reports https://github.ibm.com/DCS-research/WSC-coral/issues/335
+    - {id: 'P\d Core6 Temp',    regex: (\S+), range: [0,90,N/A]}
+    # core 7 frequetly reports https://github.ibm.com/DCS-research/WSC-coral/issues/639
+    - {id: 'P\d Core7 Temp',    regex: (\S+), range: [0,90,N/A]}
+
+    - {id: 'P\d Core\d Temp',    regex: (\S+), range: [10,90,N/A]}
+    - {id: 'P\d GPU Power',  regex: (\S+), range: [10,1800,N/A] }
+    - {id: 'P\d Io Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'P\d Mem Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'P\d Power',  regex: (\S+), range: [1,1800,N/A] }
+    - {id: 'Ps\d Input Power',  regex: (\S+), range: [10,1800,N/A] }
+    - {id: 'Ps\d Input Voltage',  regex: (\S+), range: [200,285,N/A] }
+    #   and we have an outlier of 0.125 current  and zero volts
+    #   https://github.ibm.com/DCS-research/WSC-coral/issues/433
+    - {id: 'Ps1 Output Current',  regex: (\S+), range: [0,100,N/A] }
+    - {id: 'Ps\d Output Voltage',  regex: (\S+), range: [10,400,0] }
+
+    - {id: 'Ps\d Output Current',  regex: (\S+), range: [10,100,N/A] }
+    - {id: 'Ps\d Output Voltage',  regex: (\S+), range: [300,400,N/A] }
+    - {id: 'Storage A Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'Storage B Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'Total Power',  regex: (\S+), range: [10,2000,N/A] }
+
+
+

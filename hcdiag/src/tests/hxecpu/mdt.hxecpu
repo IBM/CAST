@@ -1,0 +1,162 @@
+default:
+	HE_name = ""                                * Hardware Exerciser name, 14 char
+	adapt_desc = ""                             * adapter description, 11 char max.
+	device_desc = ""                            * device description, 15 char max.
+	reg_rules = ""                              * reg rules
+	emc_rules = ""                              * emc rules
+	dma_chan = 0                                * DMA channel number
+	idle_time = 0                               * idle time (secs)
+	intrpt_lev = 0                              * interrupt level
+	load_seq = 32768                            * load sequence (1 - 65535)
+	max_run_tm = 7200                           * max run time (secs)
+	port = "0"                                  * port number
+	priority = 19                               * priority (1=highest to 19=lowest)
+	slot = "0"                                  * slot number
+	max_cycles = "0"                            * max cycles
+	hft = 0                                     * hft number
+	cont_on_err = "NO"                          * continue on error (YES/NO)
+	halt_level = "1"                            * level <= which HE halts
+	start_halted = "n"                          * exerciser halted at startup
+	dup_device = "n"                            * duplicate the device 
+	log_vpd = "y"                               * Show detailed error log
+
+cpu0:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu1:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu2:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu3:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu4:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu5:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu6:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu7:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu8:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu9:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu10:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu11:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu12:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu13:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu14:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu15:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu16:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu17:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu18:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+
+cpu19:
+	HE_name = "hxecpu"                          * Hardware Exerciser name, 14 char
+	adapt_desc = "processor"                    * adapter description, 11 char max.
+	device_desc = "processor"                   * device description, 15 char max.
+	reg_rules = "hxecpu/default.p8"             * reg
+	emc_rules = "hxecpu/default.p8"             * emc
+

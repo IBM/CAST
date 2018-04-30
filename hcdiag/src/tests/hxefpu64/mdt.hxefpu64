@@ -1,0 +1,162 @@
+default:
+	HE_name = ""                                * Hardware Exerciser name, 14 char
+	adapt_desc = ""                             * adapter description, 11 char max.
+	device_desc = ""                            * device description, 15 char max.
+	reg_rules = ""                              * reg rules
+	emc_rules = ""                              * emc rules
+	dma_chan = 0                                * DMA channel number
+	idle_time = 0                               * idle time (secs)
+	intrpt_lev = 0                              * interrupt level
+	load_seq = 32768                            * load sequence (1 - 65535)
+	max_run_tm = 7200                           * max run time (secs)
+	port = "0"                                  * port number
+	priority = 19                               * priority (1=highest to 19=lowest)
+	slot = "0"                                  * slot number
+	max_cycles = "0"                            * max cycles
+	hft = 0                                     * hft number
+	cont_on_err = "NO"                          * continue on error (YES/NO)
+	halt_level = "1"                            * level <= which HE halts
+	start_halted = "n"                          * exerciser halted at startup
+	dup_device = "n"                            * duplicate the device 
+	log_vpd = "y"                               * Show detailed error log
+
+fpu0:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu1:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu2:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu3:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu4:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu5:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu6:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu7:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu8:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu9:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu10:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu11:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu12:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu13:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu14:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu15:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu16:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu17:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu18:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+
+fpu19:
+	HE_name = "hxefpu64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "core"                         * adapter description, 11 char max.
+	device_desc = "floating_point"              * device description, 15 char max.
+	reg_rules = "hxefpu64/default.p8"           * reg
+	emc_rules = "hxefpu64/default.p8"           * emc
+

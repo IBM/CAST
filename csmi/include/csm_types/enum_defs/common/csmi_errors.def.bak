@@ -1,0 +1,70 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/common/csmi_errors.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief A list of the error codes supported by csm.
+ * @todo Post-PRPQ: Remove CSMERR_MSG_RETURNBUFFER_EMPTY, CSMERR_MSG_RETURNBUFFER_UNKNOWN_CORRUPTED
+ */
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME csmi_cmd_err_t
+#endif 
+CSMI_ENUM_MEMBER(                             CSMI_SUCCESS, "NO ERROR"                                                                 ,,) ///< Indicates a success.
+CSMI_ENUM_MEMBER(                           CSMERR_GENERIC, "An undefined error was detected."                                         ,,) ///< Indicates that the error was not defined.
+CSMI_ENUM_MEMBER(                                CSMI_HELP, "A help functionality caused an early exit."                               ,,) ///< Indicates that a command line executable exited through the help functionality.
+CSMI_ENUM_MEMBER(                     CSMI_NOT_INITIALIZED, "CSM Library not initialized"                                              ,,) ///< Indicates user did not run @ref csm_init_lib successfully.
+CSMI_ENUM_MEMBER(                          CSMI_NO_RESULTS, "No results received"                                                      ,,) ///< Indicates that a query API received no errors, but no results.
+CSMI_ENUM_MEMBER(                           CSMERR_TIMEOUT, "Timeout"                                                                  ,,) ///< Indicates that a timeout occurred in execution of API. 
+CSMI_ENUM_MEMBER(                    CSMERR_MSGID_MISMATCH, "Message Id mismatched"                                                    ,,) ///< Indicates that the message id received did not match the sent id.
+CSMI_ENUM_MEMBER(                      CSMERR_CMD_MISMATCH, "CSMI CMD mismatched"                                                      ,,) ///< Indicates that a @ref csm_api_object was reused. @todo reusable api objs.
+CSMI_ENUM_MEMBER(                     CSMERR_MISSING_PARAM, "Missing required parameter"                                               ,,) ///< Indicates a required parameter was not supplied.
+CSMI_ENUM_MEMBER(                     CSMERR_INVALID_PARAM, "Invalid parameter or value"                                               ,,) ///< Indicates a supplied parameter was illegal for the API invocation.
+CSMI_ENUM_MEMBER(                 CSMERR_RAS_HANDLER_ERROR, "Ras handler exception"                                                    ,,) ///< Indicates an error occurred in a RAS Handler.
+CSMI_ENUM_MEMBER(                       CSMERR_CMD_UNKNOWN, "CSMI CMD Unknown To Daemon"                                               ,,) ///< Indicates that the API was given an invalid command id.
+CSMI_ENUM_MEMBER(                     CSMERR_SENDRCV_ERROR, "Send or Recv Error"                                                       ,,) ///< Indicates an error occurred in the network transmission section of the API.
+CSMI_ENUM_MEMBER(                         CSMERR_MEM_ERROR, "Memory error"                                                             ,,) ///< Indicates that a memory allocation failed.
+CSMI_ENUM_MEMBER(                            CSMERR_NOTDEF, "Not defined error"                                                        ,,) ///< Indicates that a RAS command could not be found in response to an event. @todo might need to be removed.
+CSMI_ENUM_MEMBER(                            CSMERR_PUBSUB, "PubSub error"                                                             ,,) ///< Indicates that a RAS topic could not be found.
+CSMI_ENUM_MEMBER(                              CSMERR_PERM, "CSMI permission denied"                                                   ,,) ///< Indicates that the invoking user did not have permission for the resources requested.
+CSMI_ENUM_MEMBER(                    CSMERR_SCRIPT_FAILURE, "Script failure error"                                                     ,,) ///< Indicates that an Allocation Create or Delete could not execute the prolog or epilog.
+CSMI_ENUM_MEMBER(                   CSMERR_INIT_LIB_FAILED, "Can not connect to daemon"                                                ,,) ///< Indicates that the API was unable to connect to a local daemon.
+CSMI_ENUM_MEMBER(                   CSMERR_TERM_LIB_FAILED, "Can not disconnect from daemon"                                           ,,) ///< Indicates that the API failed to close the connection to the local daemon.
+CSMI_ENUM_MEMBER(                     CSMERR_PAYLOAD_EMPTY, "The Payload of a message was unexpectedly empty"                          ,,) ///< Indicates that the Payload of a network message was empty unexpectedly.
+CSMI_ENUM_MEMBER(                    CSMERR_BAD_EVENT_TYPE, "Handler received incorrect event type"                                    ,,) ///< Indicates that the event processed by a handler was invalid.
+CSMI_ENUM_MEMBER(                     CSMERR_BAD_ADDR_TYPE, "The Address type of a network message was unexpected"                     ,,) ///< Indicates that the address of a message received by handler was of an unexpected type.
+CSMI_ENUM_MEMBER(                  CSMERR_CGROUP_DEL_ERROR, "Indicates that a CGroup couldn't be deleted"                              ,,) ///< Indicates an error occured while deleting a CGroup.
+//Database Related Errors
+CSMI_ENUM_MEMBER(                     CSMERR_DAEMON_DB_ERR, "Database error; can't connect"                                            ,,) ///< Indicates that the Daemon had trouble with a database connection.
+CSMI_ENUM_MEMBER(                          CSMERR_DB_ERROR, "Database error; table in bad state"                                       ,,) ///< Indicates that the state of a table was invalid.
+CSMI_ENUM_MEMBER(                      CSMERR_DEL_MISMATCH, "Number of deleted records is less than expected"                          ,,) ///< Indicates that the API failed to delete all the requested records.
+CSMI_ENUM_MEMBER(                   CSMERR_UPDATE_MISMATCH, "Number of updated records is less than expected"                          ,,) ///< Indicates that the API failed to update all the requested records.
+//Infrastructure and Message Transport Related Errors
+CSMI_ENUM_MEMBER(                    CSMERR_MSG_PACK_ERROR, "Message packing error"                                                    ,,) ///< Indicates something went wrong serializing a message payload.
+CSMI_ENUM_MEMBER(                  CSMERR_MSG_UNPACK_ERROR, "Message unpack error"                                                     ,,) ///< Indicates something went wrong deserializing a message payload.
+CSMI_ENUM_MEMBER(                  CSMERR_MSG_BUFFER_EMPTY, "The String Buffer of a csmi_sendrecv_cmd message was unexpectedly empty"  ,,) ///< Indicates the string buffer of a network message was empty unexpectedly.
+CSMI_ENUM_MEMBER(            CSMERR_MSG_RETURNBUFFER_EMPTY, "The Return Buffer of a csmi_sendrecv_cmd message was unexpectedly empty"  ,,) ///< Indicates the return buffer of a network message was empty unexpectedly.
+CSMI_ENUM_MEMBER(CSMERR_MSG_RETURNBUFFER_UNKNOWN_CORRUPTED, "The Return Buffer of a csmi_sendrecv_cmd message was unknown or corrupted",,) ///< Indicates the return buffer of a network message was unknown or corrupted.
+//Multicast Related Errors
+CSMI_ENUM_MEMBER(                   CSMERR_MULTI_GEN_ERROR, "It was not possible to create the multicast message"                      ,,) ///< Indicates that generating the multicast message failed.
+CSMI_ENUM_MEMBER(                  CSMERR_MULTI_RESP_ERROR, "An error was found in the multicast responses"                            ,,) ///< Indicates that an error occurred when processing the multicast response.
+//Specific CSM API Errors
+CSMI_ENUM_MEMBER(                      CSMERR_EXEC_ILLEGAL, "Executable was not found in program whitelist"                            ,,) ///< Indicates that the Burst Buffer command was not in the whitelist.
+CSMI_ENUM_MEMBER(                       CSMERR_CGROUP_FAIL, "A generic error occured modifying cgroups."                               ,,) ///< Indicates that cgroup failed to be modified, generic error.
+CSMI_ENUM_MEMBER(                      CSMERR_CONTEXT_LOST, "The handler context was lost in some way."                                ,,) ///< Indicates that the backend handler context, or its user data, was unexpectedly null.
+CSMI_ENUM_MEMBER(                     CSMERR_CGROUP_EINVAL, "An invalid value was written to a cgroup parameter."                      ,,) ///< Indicates an attempt to write an invalid value to a cgroup parameter.
+CSMI_ENUM_MEMBER(                     CSMERR_CGROUP_EACCES, "An illegal resource request occurred for the cgroup parameter.  "          ,,) ///< Indicates an attempt to write an invalid resource to a cgroup parameter. 
+
+
+#undef CSMI_ENUM_MEMBER

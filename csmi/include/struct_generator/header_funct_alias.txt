@@ -1,0 +1,13 @@
+/** @see serialize_ALIAS_NAME */
+#define serialize_REPLACE_STRUCT_NAME( target, buf, buffer_len )\
+    serialize_ALIAS_NAME( target, buf, buffer_len )
+
+/** @see deserialize_ALIAS_NAME */
+#define deserialize_REPLACE_STRUCT_NAME( dest, buffer, buffer_len )\
+    deserialize_ALIAS_NAME( dest, buffer, buffer_len )
+
+/** @see free_ALIAS_NAME */
+#define free_REPLACE_STRUCT_NAME( target ) free_ALIAS_NAME(target)
+
+/** @see init_ALIAS_NAME */
+#define init_REPLACE_STRUCT_NAME( target ) init_ALIAS_NAME(target)

@@ -1,0 +1,69 @@
+#!/bin/bash
+###########################################################
+#     BSCFS_start
+#
+#     Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+
+FLOOR=$(realpath $(dirname $0)/../..)
+export BSCFS_BB_PATH=$BBPATH/bscfs_bb
+
+CLEANUP_LIST="$BSCFS_WORK_PATH/$LSB_JOBID/cleanup_list"
+PRE_INSTALL_LIST="$BSCFS_WORK_PATH/$LSB_JOBID/pre_install_list"
+PRE_INSTALL_OPTION=""
+if [ -r $PRE_INSTALL_LIST ]; then
+    PRE_INSTALL_OPTION="--pre_install_list $PRE_INSTALL_LIST"
+fi
+
+if [ "$BSCFS_WRITE_BUFFER_SIZE" == "" ]; then
+    BSCFS_WRITE_BUFFER_SIZE=4194304
+fi
+if [ "$BSCFS_READ_BUFFER_SIZE" == "" ]; then
+    BSCFS_READ_BUFFER_SIZE=16777216
+fi
+if [ "$BSCFS_DATA_FALLOC_SIZE" == "" ]; then
+    BSCFS_DATA_FALLOC_SIZE=0
+fi
+if [ "$BSCFS_MAX_INDEX_SIZE" == "" ]; then
+    BSCFS_MAX_INDEX_SIZE=4294967296
+fi
+
+if [ "$BSCFS_PFS_PATH" == "" ]; then
+    BSCFS_PFS_PATH="$LS_EXECCWD"
+fi
+
+LIBFUSE_ENV=""
+if [ "$USER_LIBFUSE_PATH" != "" ]; then
+    LIBFUSE_ENV="LD_LIBRARY_PATH=$USER_LIBFUSE_PATH"
+fi
+
+unique_hosts=$(echo "$LSB_HOSTS" | tr ' ' '\n' | sort -u | grep -v $HOSTNAME | tr '\n' ' ')
+NODE_COUNT=$(echo ${unique_hosts} | wc -w)
+NODE=0
+for HOST in ${unique_hosts}; do
+    echo "Starting BSCFS on $HOST"
+    ssh $HOST " \
+	mkdir $BSCFS_MNT_PATH; \
+	$LIBFUSE_ENV \
+	LSB_JOBID=$LSB_JOBID \
+	    $FLOOR/bscfs/agent/bscfsAgent $BSCFS_MNT_PATH \
+		--node_count $NODE_COUNT --node_number $NODE \
+		--config /etc/ibm/bb.cfg \
+		--pfs_path $BSCFS_PFS_PATH \
+		--bb_path $BSCFS_BB_PATH \
+		--write_buffer_size $BSCFS_WRITE_BUFFER_SIZE \
+		--read_buffer_size $BSCFS_READ_BUFFER_SIZE \
+		--data_falloc_size $BSCFS_DATA_FALLOC_SIZE \
+		--max_index_size $BSCFS_MAX_INDEX_SIZE \
+		--cleanup_list $CLEANUP_LIST.$NODE \
+		$PRE_INSTALL_OPTION \
+    "
+    ((NODE = NODE + 1))
+done

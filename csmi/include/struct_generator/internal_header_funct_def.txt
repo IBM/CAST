@@ -1,0 +1,5 @@
+#include "csmi/src/common/include/csm_serialization_x_macros.h"
+#define CSMI_STRUCT_NAME @STRUCT_NAME
+SERIALIZE_FUNCT(CSMI_STRUCT_NAME);
+DESERIALIZE_FUNCT(CSMI_STRUCT_NAME);
+

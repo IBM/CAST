@@ -1,0 +1,46 @@
+# ============================================================
+# PAM - Removes the sshd line with the csm pam module
+# ------------------------------------------------------------
+p_wl="whitelist"
+p_al="activelist"
+
+# If pam.d ssh is found remove all of the csm related things.
+if [ -f /etc/pam.d/sshd ]
+then
+    restart_sshd=0
+
+    # If the white list is empty remove the csm directory.
+    # Else remove just the active list.
+    if ! [[ -s /etc/pam.d/csm/${p_wl} ]]
+    then
+        rm -rf /etc/pam.d/csm     
+    else
+        rm /etc/pam.d/csm/${p_al}
+    fi
+
+    # Remove the libcsmpam.so config line.
+    mv /etc/pam.d/sshd /etc/pam.d/.sshd.swp
+    while read line
+    do
+        if ! [[ ${line} =~ libcsmpam.so ]]
+        then
+            echo "${line}" >> /etc/pam.d/sshd
+        else
+            restart_sshd=1
+        fi
+    done < /etc/pam.d/.sshd.swp
+    rm /etc/pam.d/.sshd.swp
+    
+    # Only restart sshd if csm was removed.
+    if [[ ${restart_sshd} -eq 1 ]]
+    then
+        systemctl &> /dev/null
+        if [[ $? -ne 127 ]]
+        then 
+            systemctl restart sshd.service &> /dev/null
+        else
+            service sshd restart &> /dev/null
+        fi
+    fi
+fi
+# ------------------------------------------------------------

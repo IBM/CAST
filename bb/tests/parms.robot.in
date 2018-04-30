@@ -1,0 +1,24 @@
+*** Variables ***
+${WORKDIR}          @CMAKE_INSTALL_PREFIX@
+${CONFIG}           @DEFAULTROBOTCFG@
+${TESTUSER}         %{USER}
+${MOUNTPT}          /tmp/bbrobot.%{USER}
+${PFSDIR}           /gpfs/gpfs0/%{USER}/robotdata
+${RANKLIST}         0
+${HOSTLIST}         
+
+${MAXJOBID}         1
+${minfiles}         1
+${maxfiles}         1
+${minsize}          1
+${maxsize}          134217728
+${LARGEFILESIZE}    4294967296
+${polltimeout}      10 mins
+${SKIPBROKEN}       1
+${SKIPCOMPARE}      0
+
+${JOBID}            0
+${JOBSTEPID}        0
+${IAMROOT}          0
+@{MOUNTDIRS}
+@{MOUNTLVS}

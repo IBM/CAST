@@ -1,0 +1,36 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/ras/csmi_ras_severity.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief Severity levels for RAS events.
+ * @todo Post-PRPQ: Rename to fit the new CSM standards.
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME RasSeverity
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_ENUM_MEMBER( CSM_RAS_SEV_INFO,  "INFO",, ) ///< Denotes an info level RAS event.
+CSMI_ENUM_MEMBER( CSM_RAS_SEV_WARN,  "WARN",, ) ///< Denotes a warning level RAS event.
+CSMI_ENUM_MEMBER(CSM_RAS_SEV_ERROR, "ERROR",, ) ///< Denotes an error level RAS event.
+CSMI_ENUM_MEMBER(CSM_RAS_SEV_FATAL, "FATAL",, ) ///< Denotes a fatal level RAS event.
+
+CSMI_VERSION_END(5586c5b4f5d8fd1c243f3d7bc5ce7751)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

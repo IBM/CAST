@@ -1,0 +1,76 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation_step.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A struct representing a step in the csm database.
+ * 
+ * This struct represents a row in both in the active and history tables.
+ * If the step is active the history pointer will be set to null in query APIs.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_step_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0 
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( int64_t, step_id,               BASIC, ,    0, ) /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
+CSMI_STRUCT_MEMBER( int64_t, allocation_id,         BASIC, ,    0, ) /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
+CSMI_STRUCT_MEMBER( int32_t, num_nodes,             BASIC, ,    0, ) /**< Number of nodes, size of @ref compute_nodes.*/
+CSMI_STRUCT_MEMBER( int32_t, num_processors,        BASIC, ,    0, ) /**< Number of CPUs assigned to a job. */
+CSMI_STRUCT_MEMBER( int32_t, num_gpus,              BASIC, ,    0, ) /**< Number of gpus. */
+CSMI_STRUCT_MEMBER( int32_t, projected_memory,      BASIC, ,    0, ) /**< Projected memory availablity for the step.*/
+CSMI_STRUCT_MEMBER( int32_t, num_tasks,             BASIC, ,    0, ) /**< Number of tasks in the step*/
+CSMI_STRUCT_MEMBER( csmi_step_status_t, status,     BASIC, ,    0, ) /**< The status of the step, @ref csmi_step_status.def */
+CSMI_STRUCT_MEMBER( char*,   executable,           STRING, , NULL, ) /**< Executable/command/application name of the step. */
+CSMI_STRUCT_MEMBER( char*,   working_directory,    STRING, , NULL, ) /**< Working directory of the step. */
+CSMI_STRUCT_MEMBER( char*,   user_flags,           STRING, , NULL, ) /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
+CSMI_STRUCT_MEMBER( char*,   argument,             STRING, , NULL, ) /**< Arguments/parameters to the step. */
+CSMI_STRUCT_MEMBER( char*,   environment_variable, STRING, , NULL, ) /**< Environment variables for the step. */
+CSMI_STRUCT_MEMBER( char*  , begin_time          , STRING, , NULL, ) /**< Timestamp when this job step started. Unused in @ref csm_allocation_step_begin. */
+CSMI_STRUCT_MEMBER( char**,  compute_nodes       ,ARRAY_STR, num_nodes, NULL, ) /**< The list of nodes participating in the allocation, size stored in @ref num_nodes. */
+CSMI_STRUCT_MEMBER(csmi_allocation_step_history_t*, history, STRUCT, , NULL, csmi_allocation_step_history_t ) /**< Represents the rows from the step's history table, NULL if the step is active. Unused in @ref csm_allocation_step_begin .*/
+
+CSMI_VERSION_END(63a81486fea9ddb899d9c242991d549e)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

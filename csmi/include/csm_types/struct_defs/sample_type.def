@@ -1,0 +1,83 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/sample_type.def
+
+  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief Brief goes here.
+ * Additional details.
+ */
+#ifndef CSMI_STRUCT_NAME
+    // Define the name of the struct.
+    #define CSMI_STRUCT_NAME STRUCT_NAME
+    
+    // Clear the old values.
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    /* REMOVE COMMENT FROM DEF!
+    Define the types of arguments that can be present.
+    SERIAL_TYPES:
+    -----------------------------------------------------------------------------
+    BASIC              - Anything that can use a memcopy ( uint32_t, char, etc. ).
+    STRING             - A C string ( char* ), null terminated.
+    STRING_FIXED       - A fixed length C string ( char var[fixed_length] ).
+    ARRAY              - An array of a primitive types.
+                            -The `length member` of the CSMI_STRUCT_MEMBER (argument #4) macro must be set to a member above it.
+    ARRAY_FIXED        - A fixed length array of primitive type.
+                            - The `length member` of the CSMI_STRUCT_MEMBER (argument #4) macro must be set to the `fixed_length`.
+    ARRAY_STR          - An array of strings ( char** ), 
+                            - The `length member` of the CSMI_STRUCT_MEMBER (argument #4) macro must be set to a member above it.
+    ARRAY_STR_FIXED    - A fixed length array of strings ( char* var[fixed_length] ). 
+                            - The `length member` of the CSMI_STRUCT_MEMBER (argument #4) macro must be set to the `fixed_length`.
+    STRUCT             - A C struct pointer.
+                            - The `extra` member of the CSMI_STRUCT_MEMBER (argument #6) macro must be the name of the struct (no pointer).
+    ARRAY_STRUCT       - An array of structs.
+                            - The `length member` of the CSMI_STRUCT_MEMBER (argument #4) macro must be set to a member above it.
+                            - The `extra` member of the CSMI_STRUCT_MEMBER (argument #6) macro must be the name of the struct (no pointer).
+    ARRAY_STRUCT_FIXED - An array of structs, fixed length.
+                            - The `length member` of the CSMI_STRUCT_MEMBER (argument #4) macro must be set to the `fixed_length`.
+                            - The `extra` member of the CSMI_STRUCT_MEMBER (argument #6) macro must be the name of the struct (no pointer).
+    NONE               - This field requires a custom solution
+    */
+    #define CSMI_BASIC               0
+    #define CSMI_STRING              0
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_STRUCT_MEMBER(uint64_t                 , allocation_id     , BASIC    ,          , UINT64_MAX,) /**< Uniquely identify this allocation*/
+CSMI_STRUCT_MEMBER(char*                    , file_system_name  , STRING   ,          , NULL      ,)/**< SSD File System name that user wants */
+CSMI_STRUCT_MEMBER(uint32_t                 , num_nodes         , BASIC    ,          , 0         ,) /**< Number of nodes */
+CSMI_STRUCT_MEMBER(char**                   , compute_nodes     , ARRAY_STR, num_nodes, NULL      ,) /**< list of nodes in the allocation */
+CSMI_STRUCT_MEMBER(csmi_allocation_history_t*, history           , STRUCT   ,          , NULL      ,csmi_allocation_history_t) /**< NULL if current (populated for history,) */
+#undef CSMI_STRUCT_MEMBER
+

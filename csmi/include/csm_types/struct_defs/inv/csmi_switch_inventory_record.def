@@ -1,0 +1,72 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csmi_switch_inventory_record.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief A switch inventory record in the **csm_switch_inventory** table of the CSM database.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_switch_inventory_record_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+
+CSMI_STRUCT_MEMBER(char*  , name            , STRING, , NULL, )  /**< name (identifier) of this module in UFM. */
+CSMI_STRUCT_MEMBER(char*  , host_system_guid, STRING, , NULL, )  /**< the system image guid of the hosting system. */
+CSMI_STRUCT_MEMBER(char*  , discovery_time  , STRING, , NULL, )  /**< First time the module was found in the system. */
+CSMI_STRUCT_MEMBER(char*  , collection_time , STRING, , NULL, )  /**< Last time the module inventory was collected. */
+CSMI_STRUCT_MEMBER(char*  , comment         , STRING, , NULL, )  /**< System administrator comment about this module. */
+CSMI_STRUCT_MEMBER(char*  , description     , STRING, , NULL, )  /**< description type of module - can be the module type: system, FAN, MGMT,PS or the type of module in case of line / spine modules: SIB7510(Barracud line), SIB7520(Barracuda spine) */
+CSMI_STRUCT_MEMBER(char*  , device_name     , STRING, , NULL, )  /**< name of device containing this module. */
+CSMI_STRUCT_MEMBER(char*  , device_type     , STRING, , NULL, )  /**< type of device module belongs to. */
+CSMI_STRUCT_MEMBER(char*  , hw_version      , STRING, , NULL, )  /**< hardware version related to the switch. */
+CSMI_STRUCT_MEMBER(int32_t, max_ib_ports    , BASIC , , -1  , )  /**< maximum number of external ports of this module. */
+CSMI_STRUCT_MEMBER(int32_t, module_index    , BASIC , , -1  , )  /**< index of module. Each module type has separate index: FAN1,FAN2,FAN3...S1,PS2 */
+CSMI_STRUCT_MEMBER(int32_t, number_of_chips , BASIC , , -1  , )  /**< number of chips which are contained in this module. (relevant only for line / spine modules, for all other modules number_of_chips=0) */
+CSMI_STRUCT_MEMBER(char*  , path            , STRING, , NULL, )  /**< full path of module object. Path format: site-name (number of devices) / device type: device-name / module description module index. */
+CSMI_STRUCT_MEMBER(char*  , serial_number   , STRING, , NULL, )  /**< serial_number of the module. unique identifier. */
+CSMI_STRUCT_MEMBER(char*  , severity        , STRING, , NULL, )  /**< severity of the module according to the highest severity of related events. values: Info, Warning, Minor, Critical */
+CSMI_STRUCT_MEMBER(char*  , status          , STRING, , NULL, )  /**< current module status. valid values: ok, fault */
+
+CSMI_VERSION_END(0)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

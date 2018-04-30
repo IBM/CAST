@@ -1,0 +1,9 @@
+// Used for node_resources
+// Include the database constants for the CSM_STATE_MAX.
+#include <sys/types.h>
+#include "csm_api_common.h"
+
+/** @addtogroup  wm_apis 
+ * @{
+ */
+

@@ -1,0 +1,29 @@
+Compiled objects
+*.o
+
+#editors
+*.*~
+._*.*
+cmake*
+boost*
+
+#eclipse
+.project
+.cproject
+
+#CORAL artifacts
+.build
+.config
+SETUP.sh
+work
+
+#robot files
+log.html
+output.xml
+report.html
+
+#fuse metadata
+*.p
+
+#Python byte code
+*.pyc

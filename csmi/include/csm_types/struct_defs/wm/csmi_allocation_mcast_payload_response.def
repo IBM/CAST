@@ -1,0 +1,78 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation_mcast_payload.def
+
+    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** 
+ * CSMI_INTERNAL
+
+ * CSMI_COMMENT
+ * @brief A payload for an allocation create/delete multicast.
+ * 
+ * @todo Need to add more metrics data.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_mcast_payload_response_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(int64_t, energy    ,  BASIC, ,   -1, ) /**< The energy usage of the node. */ 
+CSMI_STRUCT_MEMBER(int64_t, pc_hit    ,  BASIC, ,   -1, ) /**< The power cap hit total. */
+CSMI_STRUCT_MEMBER(int64_t, gpu_usage ,  BASIC, ,   -1, ) /**< The gpu usage.*/
+CSMI_STRUCT_MEMBER(int64_t, ib_rx     ,  BASIC, ,   -1, ) /**< Count of Data Octets received on all Infiniband ports. ( multiply by 4 for bytes ).*/  
+CSMI_STRUCT_MEMBER(int64_t, ib_tx     ,  BASIC, ,   -1, ) /**< Count of Data Octets transmitted on all Infiniband ports. ( multiply by 4 for bytes ).*/  
+CSMI_STRUCT_MEMBER(int64_t, gpfs_read ,  BASIC, ,   -1, ) /**< Counter for number of bytes read over network via gpfs. */  
+CSMI_STRUCT_MEMBER(int64_t, gpfs_write,  BASIC, ,   -1, ) /**< Counter for number of bytes written over network via gpfs. */  
+CSMI_STRUCT_MEMBER(int64_t, cpu_usage ,  BASIC, ,   -1, ) /**< The cpu usage of the allocation on the node. */
+CSMI_STRUCT_MEMBER(int64_t, memory_max,  BASIC, ,   -1, ) /**< The maximum memory used by the allocaftion. */
+CSMI_STRUCT_MEMBER(int32_t, power_cap ,  BASIC, ,   -1, ) /**< The maximum power draw for the node - measured in watts. */
+CSMI_STRUCT_MEMBER(int32_t, ps_ratio  ,  BASIC, ,   -1, ) /**< The power shift ratio of the node. */
+CSMI_STRUCT_MEMBER(char   , create    ,  BASIC, ,    0, ) /**< A flag indicating whether this is a create or delete payload. */
+CSMI_STRUCT_MEMBER(char*  , hostname  , STRING, , NULL, ) /**< The hostname of the node this Payload was sent to. */  
+CSMI_VERSION_END(69bd2f081bfb0474561a2a49aaf7134f)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int64_t, gpu_energy ,  BASIC, ,   -1, ) /**< The gpu energy (watts).*/
+CSMI_VERSION_END(0)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

@@ -1,0 +1,43 @@
+/*================================================================================
+
+    csmi/include/csm_types/enum_defs/wm/csmi_node_type.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_ENUM_BRIEF
+ * @brief The different types of nodes supported by CSM.
+ *
+ * The enumerated string for an enum is stored in the database.
+ */
+
+#ifndef CSMI_ENUM_NAME
+    #define CSMI_ENUM_NAME csmi_node_type_t
+    
+#endif 
+//CSMI_ENUM_MEMBER( enum_member, member_string, enum_num, relationship)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_ENUM_MEMBER(CSM_NODE_NO_TYPE         , "no type"         , , ) ///< Denotes a node with no type.
+CSMI_ENUM_MEMBER(CSM_NODE_MANAGEMENT      , "management"      , , ) ///< Denotes a management node.
+CSMI_ENUM_MEMBER(CSM_NODE_SERVICE         , "service"         , , ) ///< Denotes a service node.
+CSMI_ENUM_MEMBER(CSM_NODE_LOGIN           , "login"           , , ) ///< Denotes a login node.
+CSMI_ENUM_MEMBER(CSM_NODE_WORKLOAD_MANAGER, "workload-manager", , ) ///< Denotes a workload manager node.
+CSMI_ENUM_MEMBER(CSM_NODE_LAUNCH          , "launch"          , , ) ///< Denotes a launch node.
+CSMI_ENUM_MEMBER(CSM_NODE_COMPUTE         , "compute"         , , ) ///< Denotes a compute node.
+CSMI_ENUM_MEMBER(CSM_NODE_UTILITY         , "utility"         , , ) ///< Denotes a utility node.
+CSMI_ENUM_MEMBER(CSM_NODE_AGGREGATOR      , "aggregator"      , , ) ///< Denotes an aggregator node.
+
+CSMI_VERSION_END(7dc82a335a5118e9b74f2d17943e006a)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_ENUM_MEMBER

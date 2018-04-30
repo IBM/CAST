@@ -1,0 +1,63 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/bb/csm_bb_cmd_input.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_bb_cmd.
+ *
+ * Encapsulates a burst buffer command to be sent to a compute node.
+ *
+ * Executes: < @ref command_arguments > < @ref command >; 
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_bb_cmd_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_1_0_0)
+
+CSMI_STRUCT_MEMBER(uint32_t, node_names_count, BASIC    ,                 , 0   , ) /**< Number of  nodes to issue the burst buffer command on, size of @ref node_names. */
+CSMI_STRUCT_MEMBER(char*   , command_arguments, STRING   ,                 , NULL, ) /**< The arguments for the command executable( [a-zA-Z -_]* ) */
+CSMI_STRUCT_MEMBER(char**  , node_names       , ARRAY_STR, node_names_count, NULL, ) /**< Compute nodes to receive this command, size defined in @ref node_names_count.*/
+
+CSMI_VERSION_END(95abcf946e52d7205b95166cd678c6aa)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

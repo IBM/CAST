@@ -1,0 +1,72 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation_step_history.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief Configuration struct for deleting a CSM Step.
+ * 
+ * This represents the fields in a *csm_step_history* entry distinct from a *csm_step*.
+ */
+
+// Struct metadata for the preprocessor.
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_step_history_t
+   
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0 
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER( int32_t, exit_status         ,  BASIC, ,    0, ) /**< step/s exit status. will be tracked and given to csm by job leader */
+CSMI_STRUCT_MEMBER( double , total_u_time        ,  BASIC, ,    0, ) /**< Relates to the 'us' (user mode) value of %Cpu(s) of the 'top' Linux cmd. */
+CSMI_STRUCT_MEMBER( double , total_s_time        ,  BASIC, ,    0, ) /**< Relates to the 'sy' (system mode) value of %Cpu(s) of the 'top' Linux cmd. */
+CSMI_STRUCT_MEMBER( int64_t  , max_memory        ,  BASIC, , 0, ) /**< The maximum memory usage of the step. */
+CSMI_STRUCT_MEMBER( char*  , error_message       , STRING, , NULL, ) /**< Error text from a step. */
+CSMI_STRUCT_MEMBER( char*  , omp_thread_limit    , STRING, , NULL, ) /**< Max number of omp threads used by the step. */
+CSMI_STRUCT_MEMBER( char*  , cpu_stats           , STRING, , NULL, ) /**< Statistics gathered from the CPU for the step. */
+CSMI_STRUCT_MEMBER( char*  , gpu_stats           , STRING, , NULL, ) /**< Statistics gathered from the GPU for the step. */
+CSMI_STRUCT_MEMBER( char*  , memory_stats        , STRING, , NULL, ) /**< Memory statistics for the the step. */
+CSMI_STRUCT_MEMBER( char*  , io_stats            , STRING, , NULL, ) /**< General input output statistics for the step.? */
+CSMI_STRUCT_MEMBER( char*  , end_time            , STRING, , NULL,) /**< **History Only**\n Timestamp when this step ended. Unused by @ref csm_allocation_step_end. */
+CSMI_STRUCT_MEMBER( char*  , archive_history_time, STRING, , NULL,) /**< **History Only**\n Timestamp when the history data has been archived and sent to: BDS, archive file, and or other. Unused by @ref csm_allocation_step_end. */
+
+CSMI_VERSION_END(4678b546452b4170455abfa216cf379f)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

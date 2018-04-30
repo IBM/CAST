@@ -1,0 +1,63 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csm_switch_attributes_query_details_output.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+/*
+* Author: Nick Buonarota
+* Email: nbuonar@us.ibm.com
+*
+* Used by the csm_switch_attributes_query_details() api. 
+*/  
+
+// Struct metadata for the preprocessor.
+#ifndef CSMI_STRUCT_NAME
+    // Define the name of the struct.
+    #define CSMI_STRUCT_NAME csm_switch_attributes_query_details_output_t
+    // CSMI_STRUCT_BRIEF Used to hold the output of the csm_node_attributes_query_details API.
+    
+    // Clear the old values.
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              0
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        1
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int                    , result_count, BASIC       ,             , -1  ,                      ) /**< Number of records returned from the SQL query, and length of the result array. only values this should return are 1 and 0. 1 = success, 0 = no records match. */
+CSMI_STRUCT_MEMBER(csmi_switch_details_t**, result      , ARRAY_STRUCT, result_count, NULL, csmi_switch_details_t) /**< A pointer to the record returned from the SQL query. NULL if no record found.*/
+
+CSMI_VERSION_END(71c941419c53a421b7ad6b0dfff66cf7)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

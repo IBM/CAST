@@ -1,0 +1,71 @@
+#!/bin/bash
+# ================================================================================
+# 
+#     csmi/profiling/alloc_create_delete
+# 
+#   © Copyright IBM Corporation 2015-2017. All Rights Reserved
+# 
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+# 
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+# ================================================================================
+
+run_allocation()
+{
+    runs=$1
+    nodes=$2
+
+    # Save the results to an array, outputting the timing information.
+    a_id=($(csm_allocation_create -j ${runs} -n "${nodes}" --cgroup_type 2 -v trace \
+        | awk '/allocation_id/{print $2} /TIMING:/{print $3}' ))
+    echo ${a_id[0]}
+
+    csm_allocation_delete -a ${a_id[1]} -v trace | awk '/TIMING:/{print $3}' 
+}
+
+# List of nodes
+nodes=$(csm_node_resources_query_all | awk '/node_name/{printf "%s,",$2 }')
+
+csm_node_attributes_update -n $nodes -r y
+nodes=${nodes//,/ }
+
+bash_pid=$$
+runs_left=$1
+max_runs=10
+if [ $2 -gt 1 ]
+then
+    max_runs=$2
+fi
+while [ $runs_left -gt 0 ]
+do
+   
+    alloc_nodes=""
+    # Realy naive.
+    for node in $nodes
+    do
+    	if [ $(( RANDOM % 2 )) == 0 ]
+        then
+            alloc_nodes="${node},${alloc_nodes}" 
+        fi
+    done  
+    
+    if ! [[ alloc_nodes = '' ]]
+    then
+       run_allocation ${runs_left} ${alloc_nodes} &
+    fi
+
+    (( runs_left -- ))
+    
+    if [ $( ps --ppid ${bash_pid} --no-headers | wc -l ) -gt ${max_runs} ]
+    then
+        wait -n
+    fi
+done
+wait
+
+
+

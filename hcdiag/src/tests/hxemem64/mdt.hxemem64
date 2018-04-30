@@ -1,0 +1,30 @@
+default:
+	HE_name = ""                                * Hardware Exerciser name, 14 char
+	adapt_desc = ""                             * adapter description, 11 char max.
+	device_desc = ""                            * device description, 15 char max.
+	reg_rules = ""                              * reg rules
+	emc_rules = ""                              * emc rules
+	dma_chan = 0                                * DMA channel number
+	idle_time = 0                               * idle time (secs)
+	intrpt_lev = 0                              * interrupt level
+	load_seq = 32768                            * load sequence (1 - 65535)
+	max_run_tm = 7200                           * max run time (secs)
+	port = "0"                                  * port number
+	priority = 19                               * priority (1=highest to 19=lowest)
+	slot = "0"                                  * slot number
+	max_cycles = "0"                            * max cycles
+	hft = 0                                     * hft number
+	cont_on_err = "NO"                          * continue on error (YES/NO)
+	halt_level = "1"                            * level <= which HE halts
+	start_halted = "n"                          * exerciser halted at startup
+	dup_device = "n"                            * duplicate the device 
+	log_vpd = "y"                               * Show detailed error log
+
+mem:
+	HE_name = "hxemem64"                        * Hardware Exerciser name, 14 char
+	adapt_desc = "64bit"                        * adapter description, 11 char max.
+	device_desc = "memory"                      * device description, 15 char max.
+	reg_rules = "hxemem64/maxmem"               * reg
+	emc_rules = "hxemem64/maxmem"               * emc
+	load_seq = 65535                            * load sequence (1 - 65535)
+

@@ -1,0 +1,97 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/wm/csmi_allocation.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/** 
+ * CSMI_COMMENT
+ * @brief Defines a CSM Allocation in the CSM Database.
+ * 
+ * The fields defined in this struct represent an entry in the *csm_allocation* table. If this
+ * allocation represents a historic allocation (e.g. not active) the @ref csmi_allocation_t.history
+ * field will be populated. The resultant combination will represent an entry in the 
+ * *csm_allocation_history* table.
+ *
+ * The @ref csmi_allocation_t.compute_nodes field represents any nodes that have participated in 
+ * the allocation, with the size of this array being represented by @ref csmi_allocation_t.num_nodes.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csmi_allocation_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              1
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
+
+CSMI_STRUCT_MEMBER(int64_t,  allocation_id,        BASIC,  ,    0, ) /**< The unique identifier for the allocation. */
+CSMI_STRUCT_MEMBER(int64_t,  primary_job_id,       BASIC,  ,    0, ) /**< Primary job id (for LSF this will be the LSF job ID). */
+CSMI_STRUCT_MEMBER(int64_t,  ssd_min,              BASIC,  ,    0, ) /**< Minimum ssd size for the allocation (bytes). */
+CSMI_STRUCT_MEMBER(int64_t,  ssd_max,              BASIC,  ,    0, ) /**< Maximum ssd size for the allocation (bytes).*/
+CSMI_STRUCT_MEMBER(int64_t,  time_limit,           BASIC,  ,    0, ) /**< The time limit requested or imposed on the job */
+CSMI_STRUCT_MEMBER(int32_t,  secondary_job_id,     BASIC,  ,    0, ) /**< Secondary job id (for LSF this will be the LSF job index for job arrays). */
+CSMI_STRUCT_MEMBER(int32_t,  num_processors,       BASIC,  ,    0, ) /**< Number of processors for use in the allocation (required). */
+CSMI_STRUCT_MEMBER(int32_t,  num_gpus,             BASIC,  ,    0, ) /**< Number of gpus to be used for the node (optional). */
+CSMI_STRUCT_MEMBER(int32_t,  projected_memory,     BASIC,  ,    0, ) /**< Projected memory usage on the node for the allocation. */
+CSMI_STRUCT_MEMBER(int32_t,  user_id,              BASIC,  ,    0, ) /**< User id of allocation owner. */
+CSMI_STRUCT_MEMBER(int32_t,  user_group_id,        BASIC,  ,    0, ) /**< User group of allocation owner. */
+CSMI_STRUCT_MEMBER(int32_t,  isolated_cores,       BASIC,  ,    0, ) /**< Specifies the number of cores to isolate in the system cgroup per socket: 0 indicates no core isolation, 1 indicates 1 per socket, etc. Current maximum of 4 per socket. */
+CSMI_STRUCT_MEMBER(uint32_t, num_nodes,            BASIC,  ,    0, ) /**< Number of nodes, size of @ref compute_nodes. */
+CSMI_STRUCT_MEMBER(csmi_allocation_type_t,    type,BASIC,  , CSM_USER_MANAGED,) /**< Type of allocation, refer to @ref csmi_allocation_type_t for details. */
+CSMI_STRUCT_MEMBER(csmi_job_type_t,       job_type,BASIC,  , CSM_BATCH,       ) /**< Type of job, refer to @ref csmi_job_type_t for details. */
+CSMI_STRUCT_MEMBER(csmi_state_t,             state,BASIC,  , CSM_FAILED,      ) /**< State of allocation, refer to @ref csmi_state_t for details.*/
+CSMI_STRUCT_MEMBER(csm_bool,                shared,BASIC,  , CSM_FALSE,       ) /**< Flag for creating a shared allocation.*/
+CSMI_STRUCT_MEMBER(char*,    ssd_file_system_name, STRING, , NULL, ) /**< SSD file system name that user wants. */
+CSMI_STRUCT_MEMBER(char*,    launch_node_name,     STRING, , NULL, ) /**< The launch node name. */
+CSMI_STRUCT_MEMBER(char*,    user_flags,           STRING, , NULL, ) /**< User flags for the epilog/prolog. */
+CSMI_STRUCT_MEMBER(char*,    system_flags,         STRING, , NULL, ) /**< System flags for the epilog/prolog. */
+CSMI_STRUCT_MEMBER(char*,    user_name,            STRING, , NULL, ) /**< User name of allocation owner. */
+CSMI_STRUCT_MEMBER(char*,    user_script,          STRING, , NULL, ) /**< The user script invoked fot the allocation. */
+CSMI_STRUCT_MEMBER(char*,    begin_time,           STRING, , NULL, ) /**< Timestamp for when the allocation was reserved in the database.*/
+CSMI_STRUCT_MEMBER(char*,    account,              STRING, , NULL, ) /**< Account of the allocation owner. */
+CSMI_STRUCT_MEMBER(char*,    comment,              STRING, , NULL, ) /**< Comments for the allocation. */
+CSMI_STRUCT_MEMBER(char*,    job_name,             STRING, , NULL, ) /**< Job name associated with allocation. */
+CSMI_STRUCT_MEMBER(char*,    job_submit_time,      STRING, , NULL, ) /**< The timestamp when job was submitted. */
+CSMI_STRUCT_MEMBER(char*,    queue,                STRING, , NULL, ) /**< Identifies the partition (queue) on which the job ran. */
+CSMI_STRUCT_MEMBER(char*,    requeue,              STRING, , NULL, ) /**< Identifies whether or not the job was requeued. */
+CSMI_STRUCT_MEMBER(char*,    wc_key,               STRING, , NULL, ) /**< Arbitrary string for grouping orthogonal accounts. */
+CSMI_STRUCT_MEMBER(char**                   , compute_nodes, ARRAY_STR, num_nodes, NULL,                          ) /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
+CSMI_STRUCT_MEMBER(csmi_allocation_history_t*, history      , STRUCT   ,          , NULL, csmi_allocation_history_t ) /**< The history component of the allocation, if the allocation is active this will be **NULL**. */
+CSMI_VERSION_END(ff627f40b48e636bc51d42a9ddcd9be7)
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER
+

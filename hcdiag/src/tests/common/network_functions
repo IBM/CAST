@@ -1,0 +1,62 @@
+#================================================================================
+#   
+#    hcdiag/src/tests/common/network_functions
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#=============================================================================
+IBSTAT=/usr/sbin/ibstat
+IP=/usr/sbin/ip
+IFCONFIG=/usr/sbin/ifconfig
+
+function active_ib_ca() 
+{
+#   set -x
+   ret=0
+   ibargs=""
+   if [ -x $IBSTAT ]; then 
+      p=( `$IBSTAT | grep '^CA' | awk '{print $2}' | sed "s/'//g"` )
+      s=( `$IBSTAT | grep 'State:' | awk '{print $2}'` )
+      N=${#p[@]}
+      i=-1
+      while (( i++ < $N-1 )); do
+        # port state: Down, Initialized, Active 
+        if [ ${s[$i]} != "Down" ] ; then
+           if [ -z "$ibargs" ]; then
+              ibargs="${p[$i]}" 
+           else
+              ibargs+=" ${p[$i]}" 
+           fi
+        fi
+      done
+   else
+      echo "Could not determine active IB adapters, $IBSTAT command found"
+      ret=1
+   fi
+   return 
+}
+
+function active_ethernet() 
+{
+   nenp=0; neth=0; ret=0
+   if [ -x $IFCONFIG ]; then 
+      enp=( `$IFCONFIG 2>/dev/null | grep -i '^enp' | awk '{print $1}' | sed "s/://g"` )
+      eth=( `$IFCONFIG 2>/dev/null | grep '^eth' | awk '{print $1}' | sed "s/://g"` )
+      nenp=${#enp[@]}
+      neth=${#eth[@]}
+      #echo "==> $nenp enp ${enp[@]}"
+      #echo "==> $neth eth ${eth[@]}"
+   else
+      echo "Could not determine active ethernet adapters, $IFCONFIG command not found"
+      ret=1
+   fi
+   return 
+}
+

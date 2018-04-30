@@ -1,0 +1,431 @@
+=head1 NAME
+
+bbcmd - perform burst buffer user commands
+
+=head1 SYNOPSIS
+
+bbcmd [COMMAND] ...
+
+=head1 DESCRIPTION
+
+The Burst Buffer services can be accessed from the Launch and Login nodes via the bbCmd tool.
+It allows checkpoint libraries, such as SCR, to dynamically determine which file(s) to
+transfer between GPFS and the compute node's local SSD and to start/stop/query transfers.
+It also allows for privileged users to manage SSD logical volumes and query hardware state.
+
+=head2 OUTPUT
+
+The bbCmd tool will wait until a response is received from the service. For each command,
+multiple types of data may be returned from the call. Since higher levels of software,
+such as SCR, plan to provide additional tooling that may depend on responses from bbCmd, it is important to ensure that the output from bbCmd is easily machine parseable.
+By default, the output from bbCmd will be returned in JSON format. The toplevel hierarchy of the JSON
+output will be a target identifier sufficiently precise to identify individual job or job step
+components. This allows for multiple job components (e.g. MPI ranks) to be targeted by a
+single command, and yet keep the returned data separate for subsequent parsing.
+If desired, bbCmd can alternatively output in XML format (--xml) or a more human-readable
+pretty printed format (--pretty).
+All commands will return an attribute called 'rc'. This contains the result code of the operation.
+Zero indicates success and a non zero value indicates command failure.
+
+=over 8
+
+=item B<--help>
+
+Helptext display for commands and options
+
+=item B<--config>
+
+Path to the JSON configuration file
+
+=item B<--jobid>
+
+Job ID with respect to the workload manager
+
+=item B<--jobstepid>
+
+Job step ID with respect to the workload manager
+
+=item B<--contribid>
+
+(internal)  The contributor ID of the local bbcmd.
+
+=item B<--target>
+
+List of ranks that the command will target.  The rank number determines the target compute node.  The --target
+field can take a comma-separated list of indices.  Start/Stop ranges can also be specified.
+
+B<Examples:>
+
+--target=0,1
+--target=0,1,2,3
+--target=0-3
+--target=0,1,4-7
+--target=0-
+
+=item B<--hostlist>
+
+Comma-seperated list of hostnames.
+
+=item B<--pretty>
+
+Output in human-readable format
+
+=item B<--xml>
+
+Output in XML format
+
+=back
+
+
+=head1 Commands
+
+
+=head2 cancel
+
+The cancel command takes a transfer handle and cancels the transfer.
+
+=over 8
+
+=item B<--scope>
+
+Scope of the cancel:
+
+BBSCOPETAG = Cancel impacts all transfers associated by the tag,
+
+BBSCOPETRANSFER = Cancel only impacts the local contribution
+
+=item B<--handle>
+
+Transfer handle to be cancelled
+
+=back
+
+
+=head2 chmod
+
+The chmod command takes a path to a file and changes the file permissions.
+
+=over 8
+
+=item B<--path>
+
+Path of the file to chmod
+
+=item B<--mode>
+
+New chmod mode
+
+=back
+
+
+=head2 chown
+
+The chown command takes a path to a file and changes the file's owner and group.
+
+=over 8
+
+=item B<--path>
+
+Path of the file to chown
+
+=item B<--user>
+
+Specifies the file's new owner
+
+=item B<--group>
+
+Specifies the file's new group
+
+=back
+
+
+=head2 copy
+
+The copy command takes a filelist and starts a copy on the target nodes specified by --target.
+The filelist points to a tab delimited file with the following format:
+
+=over 8
+
+=item B<--filelist>
+
+Path to a file descripting the source and target paths for the transfer.  The file
+contains 1 line per source/target path pair in the following format:
+
+<source> <destination> <flags>
+
+=item B<--handle>
+
+Transfer handle to associate with the transfer
+
+=back
+
+
+=head2 create
+
+The create command takes a mount point, size, and options to create a logical volume. A file system is created on the logical volume and mounted. Requires super user credentials.
+
+=over 8
+
+=item B<--mount>
+
+Path to the mountpoint
+
+=item B<--size>
+
+Size is in units of megabytes unless specified in the suffix. A size suffix of B for bytes, S for sectors, M for megabytes, G for gigabytes, T for terabytes, P for petabytes or E for exabytes is optional.
+
+=item B<--coptions>
+
+LV creation options:  BBEXT4, BBXFS, BBFSCUSTOM1, BBFSCUSTOM2, BBFSCUSTOM3, BBFSCUSTOM4
+
+=back
+
+
+=head2 getdeviceusage
+
+The getdeviceusage command takes the device index and returns NVMe specific data on the state of the SSD.
+
+=over 8
+
+=item B<--device>
+
+The NVMe device index to be queried on the compute node.
+
+=back
+
+
+=head2 gethandle
+
+=over 8
+
+=item B<--contrib>
+
+Comma-separated contributor list
+
+=item B<--tag>
+
+Tag to be used to associate the transfers
+
+=back
+
+
+=head2 getstatus
+
+The getstatus command takes a transfer handle and returns details about the current status of the specified transfer.
+
+=over 8
+
+=item B<--handle>
+
+Transfer handle to be queried
+
+=back
+
+
+=head2 getthrottle
+
+The getthrottle command takes a mount point and returns the goal transfer rate. The goal transfer rate refers to the bbServer rate that demand fetches or writes will be issued to the parallel file system.
+
+=over 8
+
+=item B<--mount>
+
+Mount point to be queried for the throttle rate (in bytes per second)
+
+=back
+
+
+=head2 gettransferkeys
+
+The gettransferkeys command takes a transfer handle and returns all of the associated transfer keys.
+
+=over 8
+
+=item B<--handle>
+
+Transfer handle to be queried
+
+=item B<--buffersize>
+
+Maximum buffer size to retrieve
+
+=back
+
+
+=head2 gettransfers
+
+The gettransfers command takes a comma separated list of transfer statuses and returns all the transfer handles that currently have a status in the list. Only transfer handles associated with the job will be returned.
+
+=over 8
+
+=item B<--matchstatus>
+
+Match status values:
+BBNOTSTARTED = Transfer not started,
+BBINPROGRESS = Transfer in-progress,
+BBPARTIALSUCCESS = Partially successful transfer,
+BBFULLSUCCESS = Successful transfer,
+BBCANCELED = Canceled transfer,
+BBFAILED = Failed transfer,
+BBSTOPPED = Stopped transfer,
+BBALL = All transfers
+
+=item B<--numhandles>
+
+Number of handles to retrieve
+
+=back
+
+
+=head2 getusage
+
+The getusage command takes a mount point and returns the current statistics of I/O activity performed to that mount point.
+
+=over 8
+
+=item B<--mount>
+
+Mount point to query for usage statistics
+
+=back
+
+
+=head2 mkdir
+
+The mkdir command takes a pathname and creates it.
+
+=over 8
+
+=item B<--path>
+
+Path to create on the compute node
+
+=back
+
+
+=head2 remove
+
+The remove command takes a mount point and removes the logical volume. This returns the associated storage for the logical volume back to the burst buffer volume group.
+Requires super user credentials.
+
+=over 8
+
+=item B<--mount>
+
+Mount point to remove
+
+=back
+
+
+=head2 removejobinfo
+
+The removejobinfo command removes the metadata associated with a job from the bbServers.
+Requires super user credentials.
+
+
+=head2 resize
+
+The resize command takes a mount point, new size, and options to resize a logical volume and its file system.
+Requires super user credentials.
+
+=over 8
+
+=item B<--mount>
+
+Mount point to resize
+
+=item B<--size>
+
+Size is in units of megabytes unless specified in the suffix. A size suffix of B for bytes, S for sectors, K for kilobytes, M for megabytes, G for gigabytes, T for terabytes, P for petabytes or E for exabytes is optional. A leading '-' or '+' sign makes the resize operation relative to the current size and not absolute.
+
+=item B<--roptions>
+
+The parameter is optional.  If not specified, roptions will default to BB_NONE.
+
+BB_NONE
+BB_DO_NOT_PRESERVE_FS
+
+=back
+
+
+=head2 resizelglvol
+
+The resizelglvol command takes a logical volume name and new size to resize a logical volume. It can be used to further shrink a logical volume whose file system was unmounted and not preserved by a previous resize command.
+
+Requires super user credentials.
+
+=over 8
+
+=item B<--lglvol>
+
+LV logical volume name.
+
+=item B<--size>
+
+Size is in units of megabytes unless specified in the suffix. A size suffix of B for bytes, S for sectors, K for kilobytes, M for megabytes, G for gigabytes, T for terabytes, P for petabytes or E for exabytes is optional. A leading '-' or '+' sign makes the resize operation relative to the current size and not absolute.
+
+=back
+
+
+=head2 rmdir
+
+The rmdir command takes a pathname and removes it.
+
+=over 8
+
+=item B<--path>
+
+Path to remove directory
+
+=back
+
+
+=head2 setthrottle
+
+The setthrottle command takes a transfer handle and sets the goal transfer rate. The goal transfer rate refers to the bbServer rate that demand fetches or writes will be issued to the parallel file system.
+
+=over 8
+
+=item B<--mount>
+
+Mount point to be modified
+
+=item B<--rate>
+
+Maximum transfer rate (in bytes per second) for the mount point
+
+=back
+
+
+=head2 setusagelimit
+
+The setusagelimit command takes a mount point and read and/or write limits and monitors the SSD. If the activity exceeds the set limit, a RAS event will be generated. Requires super user credentials.
+
+=over 8
+
+=item B<--mount>
+
+Mount point to monitor
+
+=item B<--rl>
+
+The read limit
+
+=item B<--wl>
+
+The write limit
+
+=back
+
+
+=head2 sleep
+
+Performs a sleep operation on the compute node
+
+=over 8
+
+=item B<--delay>
+
+Delay in seconds
+
+=back

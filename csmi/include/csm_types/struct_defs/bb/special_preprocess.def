@@ -1,0 +1,6 @@
+#include "csm_api_common.h"
+
+/** @addtogroup bb_apis
+ * @{
+ */
+

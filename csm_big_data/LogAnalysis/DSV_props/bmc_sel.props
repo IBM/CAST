@@ -1,0 +1,76 @@
+[SCALA_server]
+scalaHome: /opt/IBM/ioala/LogAnalysis
+
+[DSV_file]
+delimiter: ,
+quoteChar: "
+moduleName: bmc_sel_event_log_DSV
+version: 1.0.0.0 
+
+[field0_indexConfig]
+name: logRecord
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: false
+searchable: true
+path_1: content.text
+combine: FIRST
+
+[field1_indexConfig]
+name: bmc_sel_hostname
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field2_indexConfig]
+name: bmc_sel_ip
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field3_indexConfig]
+name: timestamp
+dataType: DATE
+dateFormat: yyyy-MM-dd'T'HH:mm:ss.SSSX
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true 
+
+[field4_indexConfig]
+name: bmc_sel_time
+dataType: DATE
+dateFormat: yyyy-MM-dd'T'HH:mm:ss
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+
+[field5_indexConfig]
+name: bmc_sel_event_id
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field6_indexConfig]
+name: bmc_sel_event_description
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true

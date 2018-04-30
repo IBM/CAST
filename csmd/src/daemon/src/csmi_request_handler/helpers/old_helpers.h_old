@@ -1,0 +1,161 @@
+/// @attention These might be useful, but I haven't figured out how/why they're needed,
+/// for now they'll be saved here for easy access.
+/**
+ * @brief Create a new context containing the CoreEvent and the event handler object
+ * 
+ * @param[in] aEvent The CoreEvent stored in the EventContext
+ * @param[in] aClass The Event Handler Object.
+ * @param[in] aAuxiliaryId The AuxiliaryId set in the context
+ * 
+ * @return Return the created new context
+ */
+inline csm::daemon::EventContext_sptr CreateContext(const csm::daemon::CoreEvent &aEvent, void *aClass, uint64_t aAuxiliaryId)
+{
+    csm::daemon::EventContext_sptr context( new csm::daemon::EventContext( aClass, aAuxiliaryId, CopyEvent(aEvent) ) );
+    return context;
+}
+
+
+/**
+  @brief Create a new context containing the event handler object
+ 
+  @param[in] aClass the Event Handler Object
+  @param[in] aAuxiliaryId The AuxiliaryId set in the context
+  
+  @return Return the created new context
+*/
+inline csm::daemon::EventContext_sptr CreateContext(void *aClass, uint64_t aAuxiliaryId)
+{
+  csm::daemon::EventContext_sptr context( new csm::daemon::EventContext( aClass, aAuxiliaryId ) );
+  return context;
+}
+
+  /**
+    \brief Create a new contex with the event handler object and register it for monitoring new connection activity
+    
+    \param[in] aClass A Event Handler Object
+    
+    \return The new created context
+  */
+  inline csm::daemon::EventContext_sptr RegisterSystemConnectedEvent(void *aClass)
+  {
+    csm::daemon::EventContext_sptr context = CreateContext(aClass, CreateCtxAuxId());
+    _handlerOptions.GetDaemonState()->RegisterContext(csm::daemon::SystemContent::CONNECTED, context);
+    return context;
+  }
+  /**
+    \brief Register the context to monitor new connection activity
+    
+    \param[in] aContext A EventContextType
+  */
+  inline void RegisterSystemConnectedEvent( const csm::daemon::EventContext_sptr aContext )
+  {
+    _handlerOptions.GetDaemonState()->RegisterContext(csm::daemon::SystemContent::CONNECTED, aContext);
+  }
+  /**
+    \brief Create a new contex with the event handler object and register it for monitoring disconnection activity
+    
+    \param[in] aClass A Event Handler Object
+    
+    \return The new created context
+  */
+  inline csm::daemon::EventContext_sptr RegisterSystemDisconnectedEvent(void *aClass)
+  {
+    csm::daemon::EventContext_sptr context = CreateContext(aClass, CreateCtxAuxId());
+    _handlerOptions.GetDaemonState()->RegisterContext(csm::daemon::SystemContent::DISCONNECTED, context);
+    return context;
+  }
+  /**
+    \brief Register the context to monitor disconnection activity
+    
+    \param[in] aContext A EventContextType
+  */
+  inline void RegisterSystemDisconnectedEvent( const csm::daemon::EventContext_sptr aContext )
+  {
+    _handlerOptions.GetDaemonState()->RegisterContext(csm::daemon::SystemContent::DISCONNECTED, aContext);
+  }
+   
+  /**
+    \brief Remove the context from monitoring connection activity
+    
+    \param[in] aContext A EventContextType
+    
+    \return True if the context can be found in the registration list, false if not found
+  */
+  inline bool UnregisterSystemConnectedEvent( const csm::daemon::EventContext_sptr aContext )
+  {
+    return _handlerOptions.GetDaemonState()->UnregisterContext(csm::daemon::SystemContent::CONNECTED, aContext);
+  }
+  
+  /**
+    \brief Remove the context from monitoring disconnection activity
+    
+    \param[in] aContext A EventContextType
+    
+    \return True if the context can be found in the registration list, false if not found
+  */
+  inline bool UnregisterSystemDisconnectedEvent( const csm::daemon::EventContext_sptr aContext )
+  {
+    return _handlerOptions.GetDaemonState()->UnregisterContext(csm::daemon::SystemContent::DISCONNECTED, aContext);
+  }
+
+  inline csm::daemon::NetworkEvent* CreateRasEventMessage(const std::string &msg_id, 
+                                                          const std::string &location_name,
+                                                          const std::string &raw_data,
+                                                          const std::string &kvcsv)
+  {
+    packPrototype argPackFunc = csmi_argpack_get(CSM_CMD_ras_event_create);
+    csmi_buf_t *csmi_buf;
+    csmi_cdata_t csmi_cdata;
+    char ftime[80];
+    time_t rawtime;
+    struct tm *info;
+    time( &rawtime );
+    info = localtime( &rawtime );
+    strftime(ftime,80,"%Y-%m-%dT%H:%M:%S %z", info);
+
+LOG(csmapi, info) << __FILE__ << ":" << __LINE__ << " " << "CreateRasEventMessage";
+
+
+    csm_ras_event_create_input_t rargs;
+
+    rargs.msg_id = msg_id.c_str();
+    rargs.time_stamp = ftime;
+    rargs.location_name = location_name.c_str();
+    rargs.raw_data = raw_data.c_str();
+    rargs.kvcsv = kvcsv.c_str();
+    csmi_cdata.cdataLen = sizeof(rargs);
+    csmi_cdata.cdata = &rargs;
+    csmi_buf = argPackFunc(CSM_CMD_ras_event_create, &csmi_cdata);
+    if (csmi_buf) {
+  
+      std::string payload(csmi_buf->buf, csmi_buf->bufLen);
+
+LOG(csmapi, info) << __FILE__ << ":" << __LINE__ << " " << "CreateRasEventMessage bufLen = " << csmi_buf->bufLen << " payloadlen = " << payload.size();
+
+      free(csmi_buf->buf);
+      free(csmi_buf);
+  
+      uint8_t flags = CSM_HEADER_INT_BIT;
+      csm::network::Message rspMsg;
+      bool hdrvalid = rspMsg.Init(CSM_CMD_ras_event_create,
+                          flags,
+                          CSM_PRIORITY_DEFAULT, // aPriority
+                          0,                  // aMessageID
+                          1,                  // aSrcAddr
+                          1,                  // aDstAddr
+                          geteuid(), getegid(),               // user, group ID
+                          payload);
+  
+      if (!hdrvalid) {
+        LOG(csmapi, error) << __FILE__ << ":" << __LINE__ << " " << "Message.Init returned FALSE!";
+        return(NULL);
+      } else {
+          csm::network::MessageAndAddress netcontent( rspMsg, _AbstractMaster );
+          csm::daemon::NetworkEvent *netEvent = new csm::daemon::NetworkEvent(netcontent,csm::daemon::EVENT_TYPE_NETWORK, NULL);
+          return(netEvent);
+      }
+    }
+    return(NULL);
+  }
+}}}

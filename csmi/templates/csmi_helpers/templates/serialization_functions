@@ -1,0 +1,35 @@
+serial_callback="csmi_callback_set(${cmd_name}, ${struct_name}_pack, ${struct_name}_unpack);"
+serial_functions="/** @brief Free a ${struct_name} struct and its components.\n\
+ * \n\
+ * @param resultData The struct to free the memory allocation for.\n\
+ */\n\
+void ${struct_name}_release(${struct_name}* resultData)\n\
+{\n\
+\n\
+}\n\
+\n\
+/** @brief Pack a ${struct_name} struct and its components into a csmi_buf_t.\n\
+ *\n\
+ * @param cmd TODO Is this an artifact of a different time (John Dunham jdunham@us.ibm.com)?\n\
+ * @param inCStructData The data to pack away.\n\
+ *\n\
+ * @return The buffer containing the ${struct_name} data.\n\
+ */\n\
+csmi_buf_t* ${struct_name}_pack(const csmi_cmd_t cmd, const csmi_cdata_t *inCstructData)\n\
+{\n\
+    return NULL;\n\
+}\n\
+\n\
+/** @brief Unpack a string buffer and convert the results to ${struct_name}.\n\
+ *\n\
+ * @param cmd TODO Is this an artifact of a different time (John Dunham jdunham@us.ibm.com)? \n\
+ * @param inPayload The buffer to unpack.\n\
+ * @param inPayloadLen The buffer length.\n\
+ * \n\
+ * @return A pointer to the unpacked C structure.\n\
+ */\n\
+csmi_cdata_t* ${struct_name}_unpack(const csmi_cmd_t cmd, const char *inPayload, const uint32_t inPayloadLen)\n\
+{\n\
+    return 0;\n\
+}\n"
+

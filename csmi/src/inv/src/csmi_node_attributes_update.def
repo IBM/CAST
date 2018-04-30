@@ -1,0 +1,29 @@
+/*================================================================================
+
+    csmi/src/inv/src/csmi_node_attributes_update.def
+
+  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+// CSMI_INPUT_TEST( condition, error message )
+
+
+CSMI_INPUT_TEST( input->node_names_count <= 0 || input->node_names == NULL,
+            "Invalid parameter: 'node_names_count' and 'node_names' must specify one or more node." )
+CSMI_INPUT_TEST( !(input->ready == CSM_NODE_READY_YES  || 
+                   input->ready == CSM_NODE_READY_NO ||
+                   input->ready == 0 ),
+            "Invalid parameter: 'ready' state is invalid.")
+CSMI_INPUT_TEST(  !(strcmp(input->state,CSM_NODE_STATE_DISCOVERED)     == 0 ||
+                    strcmp(input->state,CSM_NODE_STATE_IN_SERVICE)     == 0 ||
+                    strcmp(input->state,CSM_NODE_STATE_OUT_OF_SERVICE) == 0 ||
+                    input->state[0] == 0 ),
+            "Invalid parameter: 'state' is invalid.")
+#undef CSMI_INPUT_TEST

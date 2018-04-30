@@ -1,0 +1,9 @@
+/var/log/bb_stageout.log
+{
+    missingok
+    daily
+    copytruncate
+    rotate 7
+    notifempty
+    compress
+}

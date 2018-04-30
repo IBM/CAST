@@ -1,0 +1,20 @@
+// Used for node_attributes
+// Include the database constants for the CSM_STATE_MAX.
+#include <time.h>
+#include "csm_api_common.h"
+
+/** @addtogroup inv_apis
+ * @{
+ */
+
+// For csmi_node_env_data_t
+/// Number of GPUs expected on a node.
+#define CSM_NUM_GPUS_PER_NODE    6
+/// Number of CPU sockets on a node.
+#define CSM_NUM_SOCKETS_PER_NODE 2
+/// Number of Cores per node.
+#define CSM_NUM_CORES_PER_NODE   48
+/// Number of memory DIMMs per node.
+#define CSM_NUM_DIMMS_PER_NODE   16
+
+

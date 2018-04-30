@@ -1,0 +1,102 @@
+[SCALA_server]
+scalaHome: /opt/IBM/ioala/LogAnalysis
+
+[DSV_file]
+delimiter: ,
+quoteChar: "
+moduleName: zimon_DSV
+version: 1.0.0.0
+
+[field0_indexConfig]
+name: logRecord
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: false
+searchable: true
+path_1: content.text
+combine: FIRST
+
+[field1_indexConfig]
+name: zimonHostname
+dataType: TEXT
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field2_indexConfig]
+name: timestamp
+dataType: DATE
+dateFormat: yyyy-MM-dd'T'HH:mm:ss.SSSX
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field3_indexConfig]
+name: zimon_cpu_system
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field4_indexConfig]
+name: zimon_cpu_user
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field5_indexConfig]
+name: zimon_mem_active
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field6_indexConfig]
+name: zimon_gpfs_ns_bytes_read
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field7_indexConfig]
+name: zimon_gpfs_ns_bytes_written
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field8_indexConfig]
+name: zimon_gpfs_ns_tot_queue_wait_rd
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+
+[field9_indexConfig]
+name: zimon_gpfs_ns_tot_queue_wait_wr
+dataType: DOUBLE
+retrievable: true
+retrieveByDefault: true
+sortable: true
+filterable: true
+searchable: true
+

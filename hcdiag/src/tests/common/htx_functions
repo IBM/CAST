@@ -1,0 +1,202 @@
+#================================================================================
+#   
+#    hcdiag/src/tests/common/htx_functions
+# 
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+# 
+#=============================================================================
+
+# fist check if htx is installed 
+export hostname=`hostname -s`
+
+if [ ! -f /var/log/htx_install_path ]; then echo "ERROR: htx package not installed on $hostname"; exit 1; fi
+export htxd_root=`cat /var/log/htx_install_path`
+# need to check again, because "rpm -e" does not delete the htx_install_path
+if [ ! -d $htxd_root ]; then echo "ERROR: htx package not installed on $hostname"; exit 1; fi
+
+export htxd_path="$htxd_root/bin/htxd"
+export HTX_CMD="$htxd_root/bin/htxcmdline"
+export htx_scripts_dir="$htxd_root/etc/scripts"
+export htx_mdt_dir="$htxd_root/mdt"
+
+
+function htxdiag_setup()
+{
+   debug=0
+   if [ $# -gt 0 ]; then debug=$1; fi
+   ret=0
+   outf=""
+   if [ "$debug" -eq "0" ]; then 
+      outf="> /dev/null"
+   fi
+
+   # timeout from previous run can leave the daemon in a bad state
+   htxdiag_cleanup
+   if [ $ret -ne 0 ]; then echo "ERROR: error starting htxd daemon on node $hostname"; return; fi 
+
+   echo "Starting HTX Daemon..."
+   sudo bash -c "$htx_scripts_dir/htxd_run $outf"
+   ret=$?          # it is always zero
+   if [ "$ret" -ne "0" ]; then echo "ERROR: error starting htxd daemon on node $hostname"; return $ret; fi 
+   return
+}
+
+function htxdiag_get_mdt()
+{
+   ret=0
+   if [ $# -lt 2 ]; then ret=1 ;echo "ERROR: function htxdiag_get_mdt requires two argument."; return; fi
+   rule=$1
+   mdtfile=$2
+   echo "mdt file: $mdtfile requested."
+   # creates the mdt file to run 
+   if [ ! -f $mdtfile ]; then
+     echo "$mdtfile file not found, trying to generate it."
+     if [ ! -f $htxd_root/mdt/mdt.all ]; then
+        echo "Creating mdt files with -createmdt. This might take some time."
+        $HTX_CMD -createmdt
+        if [ ! -f $htxd_root/mdt/mdt.all ]; then ret=1; echo "ERROR: createmdt failed."; return; fi
+     fi
+     if [ "$rule" != "None" ]; then 
+        echo "$htx_scripts_dir/create_my_mdt $rule > $mdtfile"
+        sudo bash -c "$htx_scripts_dir/create_my_mdt $rule > $mdtfile"
+        ret=$?
+        if [ $ret -ne 0 ]; then echo "ERROR: create_my_mdt failed, rc= $ret."; return; fi
+        if [ ! -f $mdtfile ]; then ret=1; echo "Error: still having problems with mdt $mdtfile."; return; fi
+     fi
+   else
+     echo "Using existing $mdtfile file."
+   fi
+
+   if [ -f $mdtfile ]; then
+      nline=`wc -l $mdtfile| awk '{print $1}'`
+      if [ "$nline" -lt 24 ]; then ret=1; echo "ERROR: mdt file has a problem, file is too small"; fi
+   else
+      ret=1; echo "Error: still having problems with mdt $mdtfile."
+   fi
+   return
+}
+
+# This method checks if a particular device is present in the mdt.all file
+# device  : devices are located at the beggining of the line
+# replace : if 0, do not replace the mdt.all file. If replace is requested, all coral related
+#           mdt file will be deleted
+function htxdiag_check_device()
+{
+   ret=0
+   if [ $# -lt 1 ]; then ret=1 ;echo "ERROR: function htxdiag_get_mdt requires two argument."; return; fi
+   device=$1
+   replace=0
+   if [ $# -gt 1 ]; then replace=$2; fi
+
+   if [ ! -f $htx_mdt_dir/mdt.all ] || [ "$replace" -ne "0" ]; then
+      # remove all coral related files
+      sudo bash -c "rm -f $htx_mdt_dir/*coral*"
+      # create default mdt files again
+      echo "Creating mdt files with -createmdt. This might take some time."
+      $HTX_CMD -createmdt
+   fi
+   if [ ! -f $htx_mdt_dir/mdt.all ]; then ret=1; echo "ERROR: createmdt failed."; return; fi
+   dev_list=( `grep ^"$device" $htx_mdt_dir/mdt.all | awk '{print $1}' |  sed "s/://g"` )
+   n_dev=${#dev_list[@]}
+   echo "Found $n_dev $device that can be tested: ${dev_list[@]}"
+   return
+}
+
+
+function htxdiag_run()
+{
+   ret=0
+   if [ $# -lt 2 ]; then ret=1; echo "ERROR: function htxdiag_run requires at least two arguments."; return; fi
+   debug=0
+   mdtfile=$1
+   limit=$2   
+   if [ $# -gt 2 ]; then debug=$3; fi
+
+   limit=$((limit+0))
+    
+   echo "Running '$HTX_CMD -run -mdt $mdtfile' for at least $limit cycles."
+   $HTX_CMD -run -mdt $mdtfile
+   ret=$?
+   if [ $ret -ne 0 ]; then echo "ERROR: run mdt $mdtfile failed, rc= $ret."; return; fi 
+
+
+   # sleep $run_duration       # this is for time as limit
+   # limit by cycle
+   cur_cycle=0
+   prev_cycle=0
+   count=0
+   # we have to control the flooding of the same cycle
+   while [ $cur_cycle -lt $limit ]; do
+      if [ $debug -ne 0 ]; then echo "(debug): going to sleep"; fi
+      sleep 10
+      $HTX_CMD -status -mdt $mdtfile > /tmp/$$
+      rn=`grep ^RN /tmp/$$ | wc -l`
+      # check if there is at least one device running
+      if [ $rn -eq 0 ]; then echo "ERROR: no device running."; cat /tmp/$$; ret=2; break; fi
+
+      # check only the RNs
+      cur_cycle=`grep ^RN /tmp/$$ | awk '{ print $5}' | sort -n | head -1`
+      if [ $debug -ne 0 ]; then cat /tmp/$$; echo "(debug): current cycle: $cur_cycle"; fi
+
+      if [ $cur_cycle -eq $prev_cycle ]; then
+         if [ $count -eq 0 ] || [ $count -eq 5 ]; then
+            echo "current cycle: $cur_cycle"
+            if [ $count -eq 5 ]; then
+               count=0;
+            fi
+         fi
+         count=$((count+1));
+      else      
+         count=0
+         prev_cycle=$cur_cycle
+         echo "current cycle: $cur_cycle"
+      fi        
+   done   
+
+   $HTX_CMD -getstats -mdt $mdtfile
+   $HTX_CMD -geterrlog -mdt $mdtfile | tee /tmp/$$
+   $HTX_CMD -shutdown -mdt $mdtfile
+                             
+   #both files should be created
+   ok=`grep "file </tmp/htxerr> is empty" /tmp/$$`
+   if [ -z "$ok" ]; then ret=1; fi 
+   return
+}
+
+
+
+function htxdiag_cleanup()
+{    
+sudo -E bash <<"EOF"
+   # stopping HTXD daemon
+   htxd_pid=$(ps -aef | grep "$htxd_path" | grep -v grep | awk '$3 == 1 {print $2}')
+   if [ -n "$htxd_pid" ] ; then
+      echo "stopping htxd with pid:$htxd_pid..."
+      kill -15 $htxd_pid
+      
+      # waiting for all process to exit
+      process_count=20;
+      while [ "$process_count"  -ne 0 ]
+      do
+              sleep 1
+              #ps -aef | egrep 'hxe|hxstats|hxsmsg|$htxd_path|hxssup|eservd' | grep -Ev '$$|grep|output' 
+              process_count=$(ps -aef | egrep 'hxe|hxstats|hxsmsg|$htxd_path|hxssup|eservd' | grep -Ev '$$|grep|output' | wc -l)
+              echo "remaining process count : $process_count"
+      done
+      
+      echo "all htx processes are exited..."
+      echo "htxd is stopped"
+      rm -f /tmp/htxerr /tmp/htxstats* 
+   else
+      echo "HTXD is not running"
+   fi
+EOF
+ret=$?
+}

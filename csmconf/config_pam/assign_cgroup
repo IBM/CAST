@@ -1,0 +1,53 @@
+#!/bin/bash
+# encoding: utf-8
+#================================================================================
+#
+#   assign_cgroup
+#
+#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# A whitelist of users.
+cgroup_whitelist="PAM_WHITELIST"
+
+# Directory containing the cgroup.
+cgroup_dir="/sys/fs/cgroup/"
+
+# The name of the cgroup directory. TODO make this find the allocation.
+cgroup_tasks="/allocation_*/tasks"
+
+# The pid of the sshd session for the user. This will be moved to the cgroup.
+pid=$(ps -o ppid= $$)
+
+# The controllers supported by csm.
+supported_controllers=(cpuset memory devices)
+
+# If the user wasn't in the whitelist let linux place them.
+grep ${PAM_USER} ${cgroup_whitelist} >/dev/null
+if [[ $? -eq 0 ]]
+then
+    exit 0
+fi
+
+# Else
+# Iterate over the controllers and write the pid to the tasks list
+for controller in ${supported_controllers[@]}
+do
+    # Build an array first in case of >1 cgroup.
+    cgroups=($(echo ${cgroup_dir}${controller}${cgroup_tasks}))
+
+    # TODO More intelligent redirection.
+    # If the tasks file exists write the user pid.
+    if [[ -e ${cgroups[0]} ]]
+    then
+        /bin/echo ${pid} > ${cgroups[0]}
+    fi
+done
