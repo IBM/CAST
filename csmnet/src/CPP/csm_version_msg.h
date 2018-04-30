@@ -92,7 +92,9 @@ public:
   inline std::string GetVersion() const { return _Version; }
   inline std::string GetHostName() const { return _Hostname; }
   inline uint64_t GetSequence() const { return _Sequence; }
-
+  uint8_t GetVersionMajor() const;
+  uint8_t GetVersionCumulFix() const;
+  uint8_t GetVersionEfix() const;
 
   inline void Next() { ++_Sequence; }
 
@@ -100,6 +102,10 @@ public:
   {
     return ( 0 == _Version.compare( msg._Version ) );
   }
+
+#ifdef CSM_NETWORK_VERSION_MSG_TEST
+  inline void SetVersion( const std::string newVersion ) { _Version = newVersion; }
+#endif
 
 private:
   friend class boost::serialization::access;
