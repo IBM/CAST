@@ -14,8 +14,6 @@ is reduced as the need for a dedicated node for data processing is removed.
 CAST provides an event correlator for Logstash to assist in the generation of RAS events for
 specific messages.
 
-
-
 Configuration
 -------------
 
@@ -59,9 +57,14 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
 .. note:: The `conf.d/logstash.conf` file requires the ELASTIC-INSTANCE field be replaced with
    your cluster's elastic search nodes.
 
-3. Install the `Simple Event Correlator` 
+3. Install the `CAST Event Correlator`_
+    
+.. code:: bash
 
-.. TODO document process
+   $ bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
+
+.. note:: The bin directory is relative to your logstash install location.
+
 
 4. Start Logstash:
 .. code-block:: bash
@@ -71,28 +74,151 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
 
 Logstash should now be operational. At this point data aggregators should be configured to point
 to your Logstash node as appropriate.
-.. TODO write data aggregators file.
-
 
 Tuning Logstash
 ---------------
 
+Tuning logstash is highly dependant on your use case and environment. What follows is a set of
+recommendations based on the research and experimentation of the CAST Big Data team.
+
+Here are some useful resources for learning more about profiling and tuning logstash:
+
+* `Do you grok Grok?`_
+* `Tuning Logstash`_
+
 logstash.yml
 ^^^^^^^^^^^^
+
+This configuration file specifies details about the Logstash service:
+
+1. Path locations (as a rule of thumb these files should be owned by the `logstash` user).
+2. Pipeline details (e.g. workers, threads, etc.)
+3. Logging levels.
+
+For more details please refer to the `Logstash settings file`_ documentation.
+
+.. TODO Add more to this as CAST learns more
 
 jvm.options
 ^^^^^^^^^^^
 
+The configuration file for the Logstash JVM. The supplied settings are CAST's recommendation,
+however, the efficacy of these settings entirely depends on your Logstash node.
+
 logstash.conf
 ^^^^^^^^^^^^^
+
+The `logstash.conf` is the core configuration file for determining the behavior of the Logstash
+pipeline in the default CAST configuration. This configuration file is split into three components:
+`input`_, `filter`_ and `output`_.
+
+input
+*****
+
+The input section defines how the pipeline may ingest data. In the CAST sample only the `tcp` input
+plugin is used. CAST currently uses different ports to assign tagging to facilitate simpler `filter`_
+configuration. For a more in depth description of this section please refer to the 
+`configuration file structure`_ in the official Logstash documentation.
+
+The default ports and data tagging are as follows:
+
++--------------------------------------+
+|       Default Port Values            |
++-----------------+--------------------+
+|        Tag      |     Port Number    |
++-----------------+--------------------+
+|      syslog     |       10515        |
++-----------------+--------------------+
+| bmc_temp_sensor |       10516        |
++-----------------+--------------------+
+| ib_temp_sensor  |       10517        |
++-----------------+--------------------+
+|     bmc_sel     |       10518        |
++-----------------+--------------------+
+|      zimon      |       10519        |
++-----------------+--------------------+
+|      gocons     |       10520        |
++-----------------+--------------------+
+
+filter
+******
+
+The filter section defines the data enrichment step of the pipeline. In the CAST sample the
+following operations are performed:
+
+#. Unstructured events are parsed with the `grok`_ utility.
+#. Timestamps are reformatted (as needed).
+#. Events with JSON formatting are parsed.
+#. `CAST Event Correlator`_ is invoked on properly ingested logs.
+
+Generally speaking care must be taken in this section to leverage branch prediction. Additionally,
+it is easy to malform the `grok`_ plugin to result in slow downs in the pipeline performance.
+Please consult `configuration file structure`_ in the official Logstash documentation for more
+details.
+
+output
+******
+
+The output section defines the target for the data processed through the pipeline. In the CAST
+sample the `elasticsearch plugin`_ is used, for more details please refer to the linked documentation.
 
 grok
 ^^^^
 
-Simple Event Correlator
-^^^^^^^^^^^^^^^^^^^^^^^
+Logstash provides a `grok` utility to perform regular expression pattern recognition and extraction.
+When writing grok patterns several rules of thumb are recommended by the CAST team:
+
+1. Profile your patterns, `Do you grok Grok?`_ discusses a mechanism for profiling.
+2. Grok failure can be expensive, use anchors (^ and $) to make string matches precise to reduce failure costs.
+3. _groktimeout tagging can set an upper bound time limit for grok operations.
+4. Avoid `DATA` and `GREEDYDATA` if possible.
+
+CAST Event Correlator
+---------------------
+
+CAST Event Correlator (CEC) is the CAST solution for event correlation in the logstash pipeline.
+CEC is written in ruby to leverage the existing Logstash plugin system. At its core CEC is a pattern
+matching engine using `grok`_ to handle pattern matching. 
+
+A sample configuration of CEC is provided as the `events.yml` file described in the `Configuration`_
+section of the document. 
+
+There's an extensive asciidoc for usage of the `CAST Event Correlator plugin`_. The following 
+documentation is an abridged version.
+
+
+Building CEC
+^^^^^^^^^^^^^
+
+CEC currently needs to be built before installation. This build process requires that ruby be installed
+on the node. The following instructions assume that the build is being run on a node with the 
+git repository.
+
+.. code:: bash
+
+   $ yum install -y ruby  
+   $ cd csm_big_data/Logstash/plugins/csm_event_correlator
+   $ gem build logstash-filter-csm_event_correlator.gemspec
+
+.. TODO: Rename csm_event_correlator to cast_event_correlator.
+
+After the plugin has been built it may then be installed with the steps described in `Configuration`_
+
+
+Configuring CEC
+^^^^^^^^^^^^^^^^
+
+For configuration of CEC it is recommended that the user consult the bundled documentation.
+
+.. TODO: Add documentation.
 
 
 
 .. Links
 .. _Logstash: https://www.elastic.co/products/logstash
+.. _Do you grok Grok?: https://www.elastic.co/blog/do-you-grok-grok
+.. _Tuning Logstash: https://www.elastic.co/guide/en/logstash/current/tuning-logstash.html
+.. _configuration file structure: https://www.elastic.co/guide/en/logstash/current/configuration-file-structure.html
+.. _elasticsearch plugin: https://www.elastic.co/guide/en/logstash/current/plugins-outputs-elasticsearch.html
+.. _CAST Event Correlator plugin: https://github.com/IBM/CAST/blob/master/csm_big_data/Logstash/plugins/csm_event_correlator/doc/index.asciidoc
+.. _Logstash settings file: https://www.elastic.co/guide/en/logstash/current/logstash-settings-file.html
