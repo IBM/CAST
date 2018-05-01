@@ -522,7 +522,8 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
     uint32_t l_AlreadyStopped = 0;
     uint32_t l_AlreadyCanceled = 0;
     uint32_t l_Failed = 0;
-    uint32_t l_NotProcessed = transferdefs.size();
+    uint32_t l_DidNotMatchSelectionCriteria = 0;
+    uint32_t l_NotProcessed = (uint32_t)transferdefs.size();
 
     pNumStoppedTransferDefs = 0;
 
@@ -609,8 +610,12 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                     break;
                 }
             }
-            --l_NotProcessed;
         }
+        else
+        {
+            l_DidNotMatchSelectionCriteria++;
+        }
+        --l_NotProcessed;
     }
 
     string l_HostNamePrt1 = "For host name " + pHostName + ", ";
@@ -640,14 +645,15 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
         l_ContribIdPrt2 = "all contribids";
     }
 
-    bberror.errdirect("out.numTransferDefs", transferdefs.size());
+    bberror.errdirect("out.#TransferDefs", transferdefs.size());
     bberror.errdirect("out.numberNotFoundOnThisServer", l_NotFound);
     bberror.errdirect("out.numberStopped", l_Stopped);
     bberror.errdirect("out.numberAlreadyFinished", l_Finished);
     bberror.errdirect("out.numberAlreadyStopped", l_AlreadyStopped);
     bberror.errdirect("out.numberAlreadyCanceled", l_AlreadyCanceled);
     bberror.errdirect("out.numberFailed", l_Failed);
-    bberror.errdirect("out.notProcessed", l_NotProcessed);
+    bberror.errdirect("out.numberNotMatchingSelectionCriteria", l_DidNotMatchSelectionCriteria);
+    bberror.errdirect("out.numberNotProcessed", l_NotProcessed);
 
     string l_ServerHostName;
     activecontroller->gethostname(l_ServerHostName);
@@ -656,12 +662,12 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                  << ", handle " << pHandle << ", and " << l_ContribIdPrt1 \
                  << " using an archive of " << transferdefs.size() << " transfer definition(s) generated using the criteria of " \
                  << l_HostNamePrt2 << ", jobid " << jobid << ", jobstepid " << jobstepid << ", handle " << handle << ", and " << l_ContribIdPrt2 \
-                 << ", a stop transfer operation was completed for " \
-                 << l_Stopped << " transfer definition(s), " \
+                 << ", a stop transfer operation was completed for " << l_Stopped << " transfer definition(s), " \
                  << l_NotFound << " transfer definition(s) were not found on the bbServer at " << l_ServerHostName << ", " << l_Finished \
                  << " transfer definition(s) were already finished, " << l_AlreadyStopped << " transfer definition(s) were already stopped, " \
-                 << l_AlreadyCanceled << " transfer definition(s) were already canceled, and " \
-                 << l_Failed << " failure(s) occurred during this processing, and " << l_NotProcessed << " transfer definitions were not processed." \
+                 << l_AlreadyCanceled << " transfer definition(s) were already canceled, " \
+                 << l_DidNotMatchSelectionCriteria << " transfer definition(s) did not match the selection criteria, " \
+                 << l_NotProcessed << " transfer definition(s) were not processed, and " << l_Failed << " failure(s) occurred during this processing." \
                  << " See previous messages for additional details.";
 
     pNumStoppedTransferDefs = l_AlreadyStopped + l_Stopped;
