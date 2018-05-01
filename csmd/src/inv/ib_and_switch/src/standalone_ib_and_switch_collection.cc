@@ -73,6 +73,9 @@ void help(){
     puts("[-h, --help]                  | Help.");
     puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
     puts("");
+	puts("EXAMPLE OF USING THIS COMMAND:");
+	puts("  standalone_ib_and_switch_collection -c \"/etc/ibm/csm/csm_master.cfg\" -t 3");
+	puts("");
     puts("____________________");
 }
 
