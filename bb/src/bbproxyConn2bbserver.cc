@@ -42,6 +42,7 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
         if (rc) {
             LOG_RC_AND_BAIL(rc);
         }
+        if (l_ipaddr=="0.0.0.0")l_ipaddr="127.0.0.1";
         rc = inet_pton(AF_INET, l_ipaddr.c_str(), &l_ipremote);
         if (rc!=1) {
             if (rc<0)LOG_RC_AND_BAIL(errno);
@@ -86,6 +87,7 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
         if (rc) {
             if (rc) LOG_RC_AND_BAIL(rc);
         }
+        if (l_ipaddr=="0.0.0.0")l_ipaddr="127.0.0.1";
         rc = inet_pton(AF_INET, l_ipaddr.c_str(), &l_ipremote);
         if (rc!=1) {
             if (rc<0)LOG_RC_AND_BAIL(errno);
