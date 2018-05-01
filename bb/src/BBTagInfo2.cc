@@ -785,13 +785,13 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
 int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue)
 {
     int rc = 0;
-    int l_Continue = 60;
+    int l_Continue = 120;
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
         // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this
         //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
-        //       Thus, we wait for a total of 30 seconds if neither an LVKey (nor a work queue) is present
+        //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
         //       for an LVKey.
         // \todo - Not sure if this is the right duration...  @DLH
         while ((!rc) && l_Continue--)
@@ -815,7 +815,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                 {
                     // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this
                     //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
-                    //       Thus, we wait for a total of 30 seconds if neither an LVKey (nor a work queue) is present
+                    //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
                     //       for an LVKey.
                     // \todo - Not sure if this is the right duration...  @DLH
                     if (l_Continue)
@@ -823,7 +823,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                         rc = 0;
                         unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
                         {
-                            usleep((useconds_t)500000);    // Delay 500 miliseconds
+                            usleep((useconds_t)1000000);    // Delay 1 second
                         }
                         lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
                     }
