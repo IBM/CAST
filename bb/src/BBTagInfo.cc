@@ -588,39 +588,31 @@ void BBTagInfo::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
 {
     if (pHandle == transferHandle)
     {
-        if ((!pValue) || (!allExtentsTransferred()))
+        if (pValue && (!stopped()) && (!canceled()))
         {
-            if (pValue && (!stopped()) && (!canceled()))
-            {
-                LOG(bb,info) << "All extents canceled for " << *pLVKey << ", transfer handle 0x" << hex << uppercase << setfill('0') \
-                             << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
-            }
-
-            if ((((flags & BBTD_Canceled) == 0) && pValue) || ((flags & BBTD_Canceled) && (!pValue)))
-            {
-                LOG(bb,info) << "BBTagInfo::setCanceled(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                             << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-            }
-
-            if (pValue && stopped() && canceled())
-            {
-                SET_FLAG(BBTD_Stopped, 0);
-                LOG(bb,info) << "BBTagInfo::setCanceled(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                             << " was previously stopped. It will now be canceled and all underlying transfer definitions will no longer be restartable.";
-            }
-            SET_FLAG(BBTD_Canceled, pValue);
-
-            // Now update the status for the Handle file in the xbbServer data...
-            if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Canceled, pValue))
-            {
-                LOG(bb,error) << "BBTagInfo::setCanceled():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
-                              << ", jobstepid " << pJobStepId << ", handle " << pHandle;
-            }
+            LOG(bb,info) << "All extents canceled for " << *pLVKey << ", transfer handle 0x" << hex << uppercase << setfill('0') \
+                         << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
         }
-        else
+
+        if ((((flags & BBTD_Canceled) == 0) && pValue) || ((flags & BBTD_Canceled) && (!pValue)))
         {
-            LOG(bb,info) << "A set canceled operation was made for the handle associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << ", however no extents are left to be transferred (via BBTagInfo).  Set canceled request ignored.";
+            LOG(bb,info) << "BBTagInfo::setCanceled(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                         << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        }
+
+        if (pValue && stopped() && canceled())
+        {
+            SET_FLAG(BBTD_Stopped, 0);
+            LOG(bb,info) << "BBTagInfo::setCanceled(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                         << " was previously stopped. It will now be canceled and all underlying transfer definitions will no longer be restartable.";
+        }
+        SET_FLAG(BBTD_Canceled, pValue);
+
+        // Now update the status for the Handle file in the xbbServer data...
+        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Canceled, pValue))
+        {
+            LOG(bb,error) << "BBTagInfo::setCanceled():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+                          << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
 
@@ -632,26 +624,18 @@ void BBTagInfo::setFailed(const LVKey* pLVKey, const uint64_t pJobId, const uint
 {
     if (pHandle == transferHandle)
     {
-        if ((!pValue) || (!allExtentsTransferred()))
+        if ((((flags & BBTD_Failed) == 0) && pValue) || ((flags & BBTD_Failed) && (!pValue)))
         {
-            if ((((flags & BBTD_Failed) == 0) && pValue) || ((flags & BBTD_Failed) && (!pValue)))
-            {
-                LOG(bb,info) << "BBTagInfo::setFailed(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                             << " -> Changing from: " << ((flags & BBTD_Failed) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-            }
-            SET_FLAG(BBTD_Failed, pValue);
-
-            // Now update the status for the Handle file in the xbbServer data...
-            if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Failed, pValue))
-            {
-                LOG(bb,error) << "BBTagInfo::setFailed():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
-                              << ", jobstepid " << pJobStepId << ", handle " << pHandle;
-            }
+            LOG(bb,info) << "BBTagInfo::setFailed(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                         << " -> Changing from: " << ((flags & BBTD_Failed) ? "true" : "false") << " to " << (pValue ? "true" : "false");
         }
-        else
+        SET_FLAG(BBTD_Failed, pValue);
+
+        // Now update the status for the Handle file in the xbbServer data...
+        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Failed, pValue))
         {
-            LOG(bb,info) << "A set failed operation was made for the handle associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << ", however no extents are left to be transferred (via BBTagInfo).  Set failed request ignored.";
+            LOG(bb,error) << "BBTagInfo::setFailed():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+                          << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
 
@@ -662,32 +646,24 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
 {
     if (pHandle == transferHandle)
     {
-        if ((!pValue) || (!allExtentsTransferred()))
+        if (pValue)
         {
-            if (pValue)
-            {
-                LOG(bb,debug) << "All extents stopped for " << *pLVKey << ", transfer handle 0x" << hex << uppercase << setfill('0') \
-                              << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
-            }
-
-            if ((((flags & BBTD_Stopped) == 0) && pValue) || ((flags & BBTD_Stopped) && (!pValue)))
-            {
-                LOG(bb,info) << "BBTagInfo::setStopped(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                             << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-            }
-            SET_FLAG(BBTD_Stopped, pValue);
-
-            // Now update the status for the Handle file in the xbbServer data...
-            if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, pValue))
-            {
-                LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
-                              << ", jobstepid " << pJobStepId << ", handle " << pHandle;
-            }
+            LOG(bb,debug) << "All extents stopped for " << *pLVKey << ", transfer handle 0x" << hex << uppercase << setfill('0') \
+                          << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
         }
-        else
+
+        if ((((flags & BBTD_Stopped) == 0) && pValue) || ((flags & BBTD_Stopped) && (!pValue)))
         {
-            LOG(bb,info) << "A set stopped operation was made for the handle associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << ", however no extents are left to be transferred (via BBTagInfo).  Set stopped request ignored.";
+            LOG(bb,info) << "BBTagInfo::setStopped(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                         << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        }
+        SET_FLAG(BBTD_Stopped, pValue);
+
+        // Now update the status for the Handle file in the xbbServer data...
+        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, pValue))
+        {
+            LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+                          << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
 

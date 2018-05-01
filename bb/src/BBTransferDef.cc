@@ -1223,37 +1223,29 @@ void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t
 
 void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue)
 {
-    if ((!pValue) || (!allExtentsTransferred()))
+    if (pValue && (!canceled()))
     {
-        if (pValue && (!canceled()))
-        {
-            LOG(bb,info) << "For " << *pLVKey << ", the transfer of all remaining extents canceled for the transfer definition associated with jobid " \
-                         << getJobId() << ", jobstepid " << getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
-        }
-
-        if ((((flags & BBTD_Canceled) == 0) && pValue) || ((flags & BBTD_Canceled) && (!pValue)))
-        {
-            LOG(bb,info) << "BBTransferDef::setCanceled(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                         << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-        }
-
-        if (pValue && stopped() && canceled())
-        {
-            SET_FLAG(BBTD_Stopped, 0);
-            LOG(bb,info) << "BBTransferDef::setCanceled(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                         << " was previously stopped. It will now be canceled and no longer be restartable.";
-        }
-        SET_FLAG(BBTD_Canceled, pValue);
-
-        // Now update the status for the ContribId and Handle files in the xbbServer data...
-        // \todo - We do not handle the return code... @DLH
-        ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Canceled, pValue);
+        LOG(bb,info) << "For " << *pLVKey << ", the transfer of all remaining extents canceled for the transfer definition associated with jobid " \
+                     << getJobId() << ", jobstepid " << getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
     }
-    else
+
+    if ((((flags & BBTD_Canceled) == 0) && pValue) || ((flags & BBTD_Canceled) && (!pValue)))
     {
-        LOG(bb,debug) << "A cancel request was made for the transfer definition associated with " << *pLVKey << ", handle " << pHandle
-                      << ", contribid " << pContribId << ", however no extents are left to be transferred (via BBTransferDef).  Cancel request ignored.";
+        LOG(bb,info) << "BBTransferDef::setCanceled(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                     << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
+
+    if (pValue && stopped() && canceled())
+    {
+        SET_FLAG(BBTD_Stopped, 0);
+        LOG(bb,info) << "BBTransferDef::setCanceled(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                     << " was previously stopped. It will now be canceled and no longer be restartable.";
+    }
+    SET_FLAG(BBTD_Canceled, pValue);
+
+    // Now update the status for the ContribId and Handle files in the xbbServer data...
+    // \todo - We do not handle the return code... @DLH
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Canceled, pValue);
 
     return;
 }
@@ -1301,29 +1293,21 @@ void BBTransferDef::setJob()
 #ifdef BBSERVER
 void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue)
 {
-    if ((!pValue) || (!allExtentsTransferred()))
+    if (pValue)
     {
-        if (pValue)
-        {
-            LOG(bb,info) << "For " << *pLVKey << ", the transfer of all remaining extents stopped for the transfer definition associated with contribid " << pContribId;
-        }
-
-        if ((((flags & BBTD_Stopped) == 0) && pValue) || ((flags & BBTD_Stopped) && (!pValue)))
-        {
-            LOG(bb,info) << "BBTransferDef::setStopped(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                         << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-        }
-        SET_FLAG(BBTD_Stopped, pValue);
-
-        // Now update the status for the ContribId and Handle files in the xbbServer data...
-        // \todo - We do not handle the return code... @DLH
-        ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, pValue);
+        LOG(bb,info) << "For " << *pLVKey << ", the transfer of all remaining extents stopped for the transfer definition associated with contribid " << pContribId;
     }
-    else
+
+    if ((((flags & BBTD_Stopped) == 0) && pValue) || ((flags & BBTD_Stopped) && (!pValue)))
     {
-        LOG(bb,debug) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", handle " << pHandle
-                      << ", contribid " << pContribId << ", however no extents are left to be transferred (via BBTransferDef).  Stop transfer request ignored.";
+        LOG(bb,info) << "BBTransferDef::setStopped(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                     << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
+    SET_FLAG(BBTD_Stopped, pValue);
+
+    // Now update the status for the ContribId and Handle files in the xbbServer data...
+    // \todo - We do not handle the return code... @DLH
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, pValue);
 
     return;
 }
