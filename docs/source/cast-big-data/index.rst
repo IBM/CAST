@@ -15,3 +15,7 @@ assumes the components of the stack are installed in the following order:
     :maxdepth: 2
     
     logstash.rst 
+    elasticsearch.rst
+    kibana.rst
+    data-aggregators.rst
+    python-guide.rst

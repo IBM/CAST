@@ -1,7 +1,7 @@
 Logstash
 ========
 
-`Logstash`_ is an open-source data processing pipeline used in the E**L**K stack. The core function
+`Logstash`_ is an open-source data processing pipeline used in the E\ **L**\ K stack. The core function
 of this service is to process unstructured data, typically syslogs, and then pass the newly structured
 text to the elasticsearch service.
 
@@ -21,7 +21,7 @@ Configuration
    `the Elastic Site <https://www.elastic.co/downloads/logstash>`_.
 
 The following is a brief introduction to the installation and configuration of the logstash service.
-CSM provides a set of sample configuration files in `csm_big_data/Logstash/` in the repository.
+CAST provides a set of sample configuration files in the repository at `csm_big_data/Logstash/`.
 If the `ibm-csm-bds-*.noarch.rpm` has been installed the sample configurations may be found 
 in `/opt/ibm/csm/bigdata/Logstash/`.
 
@@ -67,6 +67,7 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
 
 
 4. Start Logstash:
+
 .. code-block:: bash
 
     $ systemctl enable logstash
