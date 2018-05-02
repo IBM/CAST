@@ -278,7 +278,10 @@
          target->name = (char*) malloc(size_dump);           \
          memcpy( target->name, buffer + *offset, size_dump); \
          *offset += size_dump;}                              \
-        else *offset = len + 2;
+        else {                                               \
+            target->name = NULL;                             \
+            *offset = len + 2;                               \
+        }
 
     // FIXME Should this just assume based on the length member?
     // This should be identical to unpack string.
