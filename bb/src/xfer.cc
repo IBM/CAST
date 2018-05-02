@@ -360,7 +360,6 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                             if (l_ContribIdFile->allFilesClosed())
                             {
                                 // All files are marked as closed (but, some could have failed...)
-                                // NOTE:  This also means that all extents have been processed...
                                 if (l_ContribIdFile->notRestartable())
                                 {
                                     // All extents have been processed, all files closed, with no failed files.
