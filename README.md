@@ -21,4 +21,4 @@ If this sounds like a project you would like to help develop, please print, fill
 For further details, please view the [CONTRIBUTING.md](https://github.com/IBM/CAST/blob/cast_1.0.0/CONTRIBUTING.md)
 
 # How CAST is Licensed
-CAST is licensed under the Eclipse Public License 1.0. For more details please view the [LICENCE](https://github.com/IBM/CAST/blob/cast_1.0.0/LICENSE) file for details.
+CAST is licensed under the Eclipse Public License 1.0. For more details please view the [LICENSE](https://github.com/IBM/CAST/blob/cast_1.0.0/LICENSE) file for details.
