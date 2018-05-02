@@ -417,7 +417,8 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
         case 1:
         {
             rc = 0;
-            if (!(pExtent->sourceindex%2)) {
+            if ((pExtent->sourceindex%2) == 0)
+            {
                 uint32_t l_FileIndex = (pExtent->sourceindex)/2;
                 ContribIdFile::FileData* l_FileData = &(l_ContribIdFile->files[l_FileIndex]);
 

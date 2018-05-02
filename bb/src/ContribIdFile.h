@@ -180,16 +180,11 @@ public:
     inline int allFilesClosed() {
         int rc = 1;
 
-        int i = 0;
         for (auto& fdata : files) {
-            if (!(i % 2)) {
-                // Source file...
-                if (!(fdata.flags & BBTD_All_Files_Closed)) {
-                    rc = 0;
-                    break;
-                }
+            if (!(fdata.flags & BBTD_All_Files_Closed)) {
+                rc = 0;
+                break;
             }
-            ++i;
         }
 
         return rc;
