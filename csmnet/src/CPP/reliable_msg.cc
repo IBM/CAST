@@ -126,7 +126,7 @@ retry:
           if( aMsgAddr.GetAddr()->GetAddrType() == CSM_NETWORK_TYPE_LOCAL )
           {
             versionMsg._Version = aMsgAddr._Msg.GetData();
-            versionMsg._Hostname = "localhost";
+            versionMsg._Hostname = aMsgAddr.GetAddr()->Dump();
             versionMsg._Sequence = 0;
           }
           else
@@ -137,7 +137,7 @@ retry:
             catch( ... )
             {
               versionMsg._Version = aMsgAddr._Msg.GetData();
-              versionMsg._Hostname = "notavail";
+              versionMsg._Hostname = aMsgAddr.GetAddr()->Dump();
               versionMsg._Sequence = 0;
             }
         }
@@ -150,7 +150,7 @@ retry:
         // if not ACK, this is the initial version message
         if( !( aMsgAddr._Msg.GetAck() ) && ( csm::network::VersionMsg::Get()->Acceptable( versionMsg ) ))
         {
-          LOG(csmnet,warning) << "Version mismatch. LOCAL: " << CSM_VERSION << "; REMOTE: " << aMsgAddr._Msg.GetData();
+          LOG(csmnet,warning) << "Version mismatch from peer" << versionMsg._Hostname << ". LOCAL: " << CSM_VERSION << "; REMOTE: " << versionMsg._Version;
           aMsgAddr._Msg.SetErr();
           aMsgAddr._Msg.SetCommandType( aMsgAddr._Msg.GetReservedID() ); // restore the command type to match what the sender version had
           aMsgAddr._Msg.SetReservedID( 0 );
