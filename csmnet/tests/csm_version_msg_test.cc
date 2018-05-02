@@ -35,26 +35,28 @@ int main( int argc, char **argv )
     return ret;
   }
 
+  vmsg->SetVersion( "1.0.0" );
+
   ret += TEST( vmsg->GetHostName().compare( "localhost" ), 0 );
-  ret += TEST( vmsg->GetVersion().compare( CSM_VERSION ), 0 );
+  ret += TEST( vmsg->GetVersion().compare( "1.0.0" ), 0 );
   ret += TEST( vmsg->GetSequence(), 0 );
 
   vmsg->Get(); // this should not touch any parts
   ret += TEST( vmsg->GetHostName().compare( "localhost" ), 0 );
-  ret += TEST( vmsg->GetVersion().compare( CSM_VERSION ), 0 );
+  ret += TEST( vmsg->GetVersion().compare( "1.0.0" ), 0 );
   ret += TEST( vmsg->GetSequence(), 0 );
 
-  LOG( csmd, always ) << "Version: M=" << (int)vmsg->GetVersionMajor()
-      << " C=" << (int)vmsg->GetVersionCumulFix()
-      << " E=" << (int)vmsg->GetVersionEfix();
-  ret += TEST( vmsg->GetVersionMajor(), 1 );
-  ret += TEST( vmsg->GetVersionCumulFix(), 0 );
-  ret += TEST( vmsg->GetVersionEfix(), 1 );
+  LOG( csmd, always ) << "Version: M=" << csm::network::ExtractVersionMajor( vmsg->GetVersion() )
+      << " C=" << csm::network::ExtractVersionCumulFix( vmsg->GetVersion() )
+      << " E=" << csm::network::ExtractVersionEfix( vmsg->GetVersion() );
+  ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 1 );
+  ret += TEST( csm::network::ExtractVersionCumulFix( vmsg->GetVersion() ), 0 );
+  ret += TEST( csm::network::ExtractVersionEfix( vmsg->GetVersion() ), 0 );
 
   // serialization would bump up the sequence #
   std::string archive = csm::network::VersionMsg::ConvertToBytes( vmsg );
   ret += TEST( vmsg->GetHostName().compare( "localhost" ), 0 );
-  ret += TEST( vmsg->GetVersion().compare( CSM_VERSION ), 0 );
+  ret += TEST( vmsg->GetVersion().compare( "1.0.0" ), 0 );
   ret += TEST( vmsg->GetSequence(), 1 );
 
   LOG( csmd, always ) << "Serialized: " << archive;
@@ -68,13 +70,39 @@ int main( int argc, char **argv )
   ret += TEST( vmsg->GetVersion().compare( vstruct._Version ), 0 );
   LOG( csmd, always ) << "vmsg.ver: " << vmsg->GetVersion() << " vstruct.ver: " << vstruct._Version;
 
-  vmsg->SetVersion( "UNKNOWN" );
-  archive = csm::network::VersionMsg::ConvertToBytes( vmsg );
-  LOG( csmd, always ) << "Serialized New: " << archive;
+  // set a supported cumulative fix id
+  vmsg->SetVersion( "1.1.0" );
+  ret += TEST( csm::network::ExtractVersionCumulFix( vmsg->GetVersion() ), 1 );
+  ret += TEST( vmsg->Acceptable( vstruct ), true );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
 
-  ret += TEST( vmsg->GetVersionMajor(), 0 );
-  ret += TEST( vmsg->GetVersionCumulFix(), 0 );
-  ret += TEST( vmsg->GetVersionEfix(), 0 );
+  // set a different efix id
+  vmsg->SetVersion( "1.0.53" );
+  ret += TEST( csm::network::ExtractVersionEfix( vmsg->GetVersion() ), 53 );
+  ret += TEST( vmsg->Acceptable( vstruct ), true );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
+
+  // set an unsupported cumulative fix id
+  vmsg->SetVersion( "1.5.0" );
+  ret += TEST( csm::network::ExtractVersionCumulFix( vmsg->GetVersion() ), 5 );
+  ret += TEST( vmsg->Acceptable( vstruct ), false );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
+
+  // set a different major version
+  vmsg->SetVersion( "2.0.0" );
+  ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 2 );
+  ret += TEST( vmsg->Acceptable( vstruct ), false );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
+
+
+  // set an old version string to test rebustness
+  vmsg->SetVersion( "abcdefghikjlmnop" );
+  archive = csm::network::VersionMsg::ConvertToBytes( vmsg );
+  LOG( csmd, always ) << "Serialized with old string: " << archive;
+
+  ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 0 );
+  ret += TEST( csm::network::ExtractVersionCumulFix( vmsg->GetVersion() ), 0 );
+  ret += TEST( csm::network::ExtractVersionEfix( vmsg->GetVersion() ), 0 );
 
   LOG(csmd, info) << "Exit test: " << ret;
 
