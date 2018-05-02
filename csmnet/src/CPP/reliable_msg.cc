@@ -148,7 +148,7 @@ retry:
             << "; seq#: " << versionMsg._Sequence;
 
         // if not ACK, this is the initial version message
-        if( !( aMsgAddr._Msg.GetAck() ) && ( csm::network::VersionMsg::Get()->Acceptable( versionMsg ) ))
+        if( !( aMsgAddr._Msg.GetAck() ) && ( ! csm::network::VersionMsg::Get()->Acceptable( versionMsg ) ))
         {
           LOG(csmnet,warning) << "Version mismatch from peer" << versionMsg._Hostname << ". LOCAL: " << CSM_VERSION << "; REMOTE: " << versionMsg._Version;
           aMsgAddr._Msg.SetErr();
