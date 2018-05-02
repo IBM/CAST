@@ -3640,12 +3640,18 @@ void msgin_all_file_transfers_complete_for_handle(txp::Id id, const string& pCon
     switch (l_Status) {
         case BBSTOPPED:
         {
-            strCpy(l_TransferStatusStr, "stopped", sizeof(l_TransferStatusStr));
+            strCpy(l_TransferStatusStr, "stopped, but may be restarted", sizeof(l_TransferStatusStr));
             break;
         }
         case BBFAILED:
         {
+            // NOTE: BBFAILED is never set as a handle status today...
             strCpy(l_TransferStatusStr, "failed", sizeof(l_TransferStatusStr));
+            break;
+        }
+        case BBPARTIALSUCCESS:
+        {
+            strCpy(l_TransferStatusStr, "ended, but may be restarted", sizeof(l_TransferStatusStr));
             break;
         }
         case BBCANCELED:
