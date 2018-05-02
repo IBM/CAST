@@ -100,9 +100,30 @@ int main( int argc, char **argv )
   archive = csm::network::VersionMsg::ConvertToBytes( vmsg );
   LOG( csmd, always ) << "Serialized with old string: " << archive;
 
+  // The old-format version string should return all zero
   ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 0 );
   ret += TEST( csm::network::ExtractVersionCumulFix( vmsg->GetVersion() ), 0 );
   ret += TEST( csm::network::ExtractVersionEfix( vmsg->GetVersion() ), 0 );
+
+  // test support for the earliest CAST GA 1.0.0 versions with git commit
+  vmsg->SetVersion( "1.0.0" );
+  ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 1 );
+  vstruct._Version = "675a5de990b20fcdE24EAD152A";
+  ret += TEST( vmsg->Acceptable( vstruct ), true );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
+
+  // only support the git commits as long as major version is 1
+  vmsg->SetVersion( "2.0.0" );
+  ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 2 );
+  ret += TEST( vmsg->Acceptable( vstruct ), false );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
+
+  // check for unsupported version
+  vmsg->SetVersion( "1.0.0" );
+  ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 1 );
+  vstruct._Version = "abcdefghikjlmnopqrstuvw";
+  ret += TEST( vmsg->Acceptable( vstruct ), false );
+  LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
 
   LOG(csmd, info) << "Exit test: " << ret;
 
