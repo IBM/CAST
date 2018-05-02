@@ -105,7 +105,7 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
     // shall not continue. The code for now will come here only when csm.role is not valid
   }
 
-  CSMLOGp( csmd, info, "CSMD" ) << _Role << "; Build: " << std::string( CSM_VERSION, 10 )
+  CSMLOGp( csmd, info, "CSMD" ) << _Role << "; Build: " << std::string( CSM_VERSION, strnlen( CSM_VERSION, 10 ) )
     << "; Config file: " << _CfgFile;
 
   #define RETRIES 5
