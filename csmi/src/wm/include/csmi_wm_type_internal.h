@@ -282,6 +282,7 @@ typedef struct {
     uint32_t user_id; /**< The user id for the spawn. */
     char* kv_pairs; /**< The arguments for JSRUN execution. */
     char* hostname; /**< The hostname of the node. */
+    char* jsm_path; /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
 } csmi_jsrun_cmd_payload_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

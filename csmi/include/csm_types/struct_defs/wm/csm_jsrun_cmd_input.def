@@ -48,12 +48,13 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_VERSION_1_0_0)
+CSMI_VERSION_START(CSM_VERSION_1_1_0)
 
 CSMI_STRUCT_MEMBER(int64_t,  allocation_id, BASIC , ,    0, ) /**< The Allocation id for the JSM run. Exported to **CSM_ALLOCATION_ID**. */
 CSMI_STRUCT_MEMBER( char*  ,  kv_pairs     , STRING, , NULL, ) /**< Arguments to the JSM run: Supports alphanumeric, ',' , and  '='. Exported to **CSM_JSM_ARGS**. */
+CSMI_STRUCT_MEMBER(char*  ,  jsm_path     , STRING, , NULL, ) /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
 
-CSMI_VERSION_END(fa4c90b0376401302778efab128ea926)
+CSMI_VERSION_END(757d79d8d3d06d33ca5da9c9ca79808d)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

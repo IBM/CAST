@@ -264,6 +264,7 @@ while ( <$file> ) {
         $output_h_type  = $o_int_h_types;
         $output_h_funct = $o_int_h_types;
         $o_python_classes = "/dev/null";
+        chomp;
     #    $output_c_funct = $o_int_c_map;
     }
     else
