@@ -34,7 +34,7 @@ static cmd_serialization_t CSMI_MAPPING[] = {
 
 void csmi_callback_set(csmi_cmd_t cmd, packPrototype packFunc, unpackPrototype unpackFunc)
 {
-  if (cmd < CSM_CMD_MAX) {
+  if (csmi_cmd_is_valid( cmd )) {
     CSMI_MAPPING[cmd].packFunc = packFunc;
     CSMI_MAPPING[cmd].unpackFunc = unpackFunc;
   }
@@ -42,7 +42,7 @@ void csmi_callback_set(csmi_cmd_t cmd, packPrototype packFunc, unpackPrototype u
 
 void csmi_arg_callback_set(csmi_cmd_t cmd, packPrototype packFunc, unpackPrototype unpackFunc)
 {
-  if (cmd < CSM_CMD_MAX) {
+  if (csmi_cmd_is_valid( cmd )) {
     CSMI_MAPPING[cmd].argPackFunc = packFunc;
     CSMI_MAPPING[cmd].argUnpackFunc = unpackFunc;
   }
@@ -50,31 +50,31 @@ void csmi_arg_callback_set(csmi_cmd_t cmd, packPrototype packFunc, unpackPrototy
 
 packPrototype csmi_pack_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].packFunc;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].packFunc;
   else return NULL;
 }
 
 unpackPrototype csmi_unpack_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].unpackFunc;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].unpackFunc;
   else return NULL;
 }
 
 packPrototype csmi_argpack_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].argPackFunc;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].argPackFunc;
   else return NULL;
 }
 
 unpackPrototype csmi_argunpack_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].argUnpackFunc;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].argUnpackFunc;
   else return NULL;
 }
 
 const char *csmi_cmdname_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].cmdName;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].cmdName;
   else return NULL;
 }
 
@@ -82,31 +82,34 @@ csmi_cmd_t csmi_cmd_get(const char *name)
 {
   int ret;
   for (ret = 0; ret < CSM_CMD_MAX; ret++)
+  {
+    if( ! csmi_cmd_is_valid( ret ) ) continue;
     if ( strcasecmp(CSMI_MAPPING[(csmi_cmd_t) ret].cmdName, name) == 0 ) return (csmi_cmd_t) ret;
+  }
     
   return CSM_CMD_MAX;
 }
 
 const char *csmi_classname_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].className;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].className;
   else return NULL;
 }
 
 void csmi_classname_set(csmi_cmd_t cmd, const char *name) {
-  if (cmd < CSM_CMD_MAX) {
+  if (csmi_cmd_is_valid( cmd )) {
     CSMI_MAPPING[cmd].className = name;
   }
 }
 
 const char *csmi_dbtabname_get(csmi_cmd_t cmd)
 {
-  if (cmd < CSM_CMD_MAX) return CSMI_MAPPING[cmd].dbTabName;
+  if (csmi_cmd_is_valid( cmd )) return CSMI_MAPPING[cmd].dbTabName;
   else return NULL;
 }
 
 void csmi_dbtabname_set(csmi_cmd_t cmd, const char *name) {
-  if (cmd < CSM_CMD_MAX) {
+  if (csmi_cmd_is_valid( cmd )) {
     CSMI_MAPPING[cmd].dbTabName = name;
   }
 }
