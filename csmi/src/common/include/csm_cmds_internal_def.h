@@ -14,25 +14,16 @@
 ================================================================================*/
 //Internal CMDs
 #define CSM_FIRST_INTERNAL CSM_CTRL_reconfig
-cmd(CSM_CMD_API_DIVIDE) // Divider for filtration
 
-cmd(CSM_CTRL_reconfig)  // 38
+cmd(CSM_CTRL_reconfig) // (201)
 cmd(CSM_CTRL_cmd)
-//below is for internal testing purpose
-cmd(CSM_TEST_node_attributes_query)
-// MTC for multi-cast testing
-cmd(CSM_TEST_MTC)
-cmd(CSM_infrastructure_test)  // 42
-cmd(CSM_environmental_data)
-cmd(CSM_error_inject)
-cmd(CSM_DB_UNKNOWN)
-cmd(CSM_DAEMON_UNKNOWN)
-// for CSMI testing
-cmd(CSM_CMD_ECHO)
-// for heart beat msgs
-cmd(CSM_CMD_HEARTBEAT)    // 47
-cmd(CSM_CMD_STATUS)
-cmd(CSM_CMD_CONNECTION_CTRL)
-cmd(CSM_CMD_NODESET_UPDATE)
-// use CSM_CMD_ERROR when the CommandType is unknown
-cmd(CSM_CMD_ERROR)
+cmd(CSM_infrastructure_test)
+cmd(CSM_TEST_MTC) // MTC for multi-cast testing
+cmd(CSM_error_inject) // (205) injecting errors into the infrastructure for testing
+cmd(CSM_environmental_data) // env data from compute to agg
+cmd(CSM_CMD_ECHO)  // for testing of comm and handling
+cmd(CSM_CMD_HEARTBEAT) // keep-alive messages between peers
+cmd(CSM_CMD_STATUS) // connection creation/teardown signalling
+cmd(CSM_CMD_CONNECTION_CTRL) // (210) connection status changes between compute and agg
+cmd(CSM_CMD_NODESET_UPDATE) // compute node set update messages between agg and master
+cmd(CSM_CMD_ERROR) // use CSM_CMD_ERROR when the CommandType is unknown
