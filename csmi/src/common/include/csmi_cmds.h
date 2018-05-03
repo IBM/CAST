@@ -44,6 +44,8 @@ extern "C" {
  */
 extern const char* csmi_cmds_t_strs [];
 #define csmi_cmds_to_str( cmd ) ( (cmd) < CSM_CMD_MAX ? csmi_cmds_t_strs[ (cmd) ] : csmi_cmds_t_strs[ CSM_CMD_INVALID ] )
+#define csmi_cmd_is_valid( cmd ) ( ( (cmd) < CSM_CMD_MAX_REGULAR ) || ( ( (cmd) >= CSM_FIRST_INTERNAL) && ( (cmd) < CSM_CMD_MAX )) )
+
 
 #ifdef __cplusplus
 }

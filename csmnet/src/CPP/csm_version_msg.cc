@@ -123,16 +123,8 @@ csm::network::VersionMsg::Acceptable( const csm::network::VersionStruct &vStruct
   supported &= (( cumul >= (unsigned)std::max( (int)_VersionNumbers[ 1 ] - CSM_CUMULATIVE_FIX_MAX_BACK_LEVEL_SUPPORT, 0) ) && ( cumul <= _VersionNumbers[ 1 ] ));
 
   /*
-   * This code is to temporarily support the last CAST versions that used the git commit for the version between daemons
+   * No needed support for the last CAST versions that used the git commit
+   * We broke and fixed the API enum for future versions.
    */
-  if(( supported == false ) && ( major == 0 ) && ( _VersionNumbers[0] == 1 ))
-  {
-    std::string shortVersion = std::string( vStruct._Version, 0, strlen( SUPPORTED_CAST_100_COMMIT_PUB ) );
-    LOG( csmnet, trace ) << "ShortIn: " << shortVersion << " pub: " << SUPPORTED_CAST_100_COMMIT_PUB;
-    int pubv = shortVersion.compare( SUPPORTED_CAST_100_COMMIT_PUB );
-    int ibmv = shortVersion.compare( SUPPORTED_CAST_100_COMMIT_IBM );
-    supported = (( 0 == pubv ) || ( 0 == ibmv ));
-  }
-
   return supported;
 }

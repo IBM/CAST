@@ -106,13 +106,14 @@ int main( int argc, char **argv )
   ret += TEST( csm::network::ExtractVersionEfix( vmsg->GetVersion() ), 0 );
 
   // test support for the earliest CAST GA 1.0.0 versions with git commit
+  // should fail because of API shift/incompatability
   vmsg->SetVersion( "1.0.0" );
   ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 1 );
-  vstruct._Version = "675a5de990b20fcdE24EAD152A";
-  ret += TEST( vmsg->Acceptable( vstruct ), true );
+  vstruct._Version = "675a5de990b20fcd7adac14ded0410b0c9047d0c";
+  ret += TEST( vmsg->Acceptable( vstruct ), false );
   LOG( csmd, always ) << "Version supported: " << vmsg->Acceptable( vstruct ) << " current: " << vmsg->GetVersion();
 
-  // only support the git commits as long as major version is 1
+  // only support the git commits as long as major version is 1 (if at all)
   vmsg->SetVersion( "2.0.0" );
   ret += TEST( csm::network::ExtractVersionMajor( vmsg->GetVersion() ), 2 );
   ret += TEST( vmsg->Acceptable( vstruct ), false );
