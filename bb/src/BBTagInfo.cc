@@ -784,11 +784,11 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
 
             LVUuidFile l_LVUuidFile((*pLVKey).first, pTagInfo2->getHostName());
             rc = l_LVUuidFile.save(l_LVUuidFilePath.string());
-            if (rc) bberror << bailout;
+            if (rc) BAIL;
 
             ContribFile l_ContribFile;
             rc = l_ContribFile.save(l_ContribFilePath.string());
-            if (rc) bberror << bailout;
+            if (rc) BAIL;
         }
 
         // Create a new ContribIdFile for this contributor
@@ -808,15 +808,15 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
 
                 case 1:
                 {
-                    LOG(bb,error) << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
                     rc = -1;
-                    break;
+                    errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
 
                 default:
                 {
-                    LOG(bb,error) << "Failure when attempting to load the contrib file for " << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
-                    break;
+                    errorText << "Failure when attempting to load the contrib file for " << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             }
         }
@@ -831,8 +831,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
             else
             {
                 rc = -1;
-                LOG(bb,error) << "BBTagInfo::update_xbbServerAddData(): For a restart transfer definition operation, could not find the ContribIdFile for " \
-                              << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
+                errorText << "BBTagInfo::update_xbbServerAddData(): For a restart transfer definition operation, could not find the ContribIdFile for " \
+                          << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
         }

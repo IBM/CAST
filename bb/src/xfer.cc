@@ -1822,8 +1822,8 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                             // This condition overrides any failure detected on bbProxy...
                             pMarkFailedFromProxy = 0;
 
-                            errorText << "taginfo: contribid " << pContribId << " already exists for TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "). A different tag value must be used for this transfer definition.";
-                            LOG_ERROR(errorText);
+                            errorText << "taginfo: Contribid " << pContribId << " already exists for TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "). A different tag value must be used for this transfer definition.";
+                            LOG_ERROR_TEXT_RC(errorText, rc);
                         }
                     }
                     else
