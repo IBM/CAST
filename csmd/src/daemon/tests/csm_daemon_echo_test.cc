@@ -125,7 +125,7 @@ int client( void )
     {
       csm::network::Message msg;
       // will return all the nodes in the "nodes" db table without supplying arugments
-      bool hdrvalid = msg.Init(CSM_TEST_node_attributes_query,
+      bool hdrvalid = msg.Init(CSM_CMD_node_attributes_query,
                                0,
                                CSM_PRIORITY_DEFAULT,
                                9876543,

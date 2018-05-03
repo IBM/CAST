@@ -653,7 +653,7 @@ csm::network::EndpointUnix::RecvFrom( csm::network::MessageAndAddress &aMsgAddr 
     throw csm::network::ExceptionRecv( "Data Length Error", EBADMSG );
 
   // FIXME Should this always print? 
-  if ( aMsgAddr._Msg.GetCommandType() < CSM_CMD_API_DIVIDE  )
+  if ( aMsgAddr._Msg.GetCommandType() < CSM_CMD_MAX_REGULAR  )
   {
       LOG (csmapi,info)              << cmd_to_string( aMsgAddr._Msg.GetCommandType())
           << "["                     << aMsgAddr._Msg.GetReservedID() 
