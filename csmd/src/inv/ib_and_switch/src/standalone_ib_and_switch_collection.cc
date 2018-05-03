@@ -562,8 +562,8 @@ int main(int argc, char *argv[])
         }
 		
 		//prevent a reading from output if API fails
-		// if(return_value == CSMI_SUCCESS)
-		// {
+		if(return_value == CSMI_SUCCESS)
+		{
 			std::cout << "# total ib inventory collected: " << IBinput->inventory_count << std::endl;
 			std::cout << "# new ib records inserted into database: " << IBoutput->insert_count << std::endl;
 			std::cout << "# old ib records updated in database: " << IBoutput->update_count << std::endl;
@@ -572,7 +572,7 @@ int main(int argc, char *argv[])
 				std::cout <<  "# WARNING: inserted records and updated records do not match total inventory collected."  << std::endl;
 				std::cout <<  "# records dropped: " << IBinput->inventory_count - IBoutput->insert_count - IBoutput->update_count << std::endl;
 			}
-		// }
+		}
 		
 		
 		
