@@ -1434,11 +1434,10 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 {
                     if (!rc)
                     {
-                        rc = -2;
-                        errorText << "Extents were never enqueued for the transfer definition associated with host " << pHostName \
-                                  << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                                  << ".  Stop transfer request ignored.";
-                        LOG_ERROR_TEXT_RC(errorText, rc);
+                        LOG(bb,info) << "Extents were never enqueued for the transfer definition associated with host " << pHostName \
+                                     << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
+                                     << ".  Stop transfer request ignored.";
+                        rc = 2;
                     }
                     else
                     {
