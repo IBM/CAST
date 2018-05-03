@@ -45,13 +45,16 @@ typedef struct {
   }
 } VersionStruct;
 
-
+unsigned ExtractVersionMajor( const std::string &vStr );
+unsigned ExtractVersionCumulFix( const std::string &vStr );
+unsigned ExtractVersionEfix( const std::string &vStr );
 
 class VersionMsg {
   static VersionMsg *_version;
   std::string _Version;
   std::string _Hostname;
   uint64_t _Sequence;
+  unsigned _VersionNumbers[ 3 ];
 
   VersionMsg( const std::string v,
               const std::string h );
@@ -93,13 +96,20 @@ public:
   inline std::string GetHostName() const { return _Hostname; }
   inline uint64_t GetSequence() const { return _Sequence; }
 
-
   inline void Next() { ++_Sequence; }
 
   bool operator==( const VersionMsg &msg )
   {
     return ( 0 == _Version.compare( msg._Version ) );
   }
+
+  bool Acceptable( const csm::network::VersionStruct &vStruct );
+
+  // only enable version change/set for unit test
+#ifndef CSM_NETWORK_VERSION_MSG_TEST
+private:
+#endif
+  void SetVersion( const std::string newVersion );
 
 private:
   friend class boost::serialization::access;
