@@ -42,5 +42,5 @@ csmi_allocation_mcast_payload_request.def 12 5db406e1f96595a4dabc8fece25d0381
 csmi_allocation_mcast_payload_response.def 14 a3e0c5482ee192cf0c868e323031ad4f
 csmi_allocation_step_mcast_context.def 6 38b2fb2e0eef7c4d9bd61e47bfa5d54b
 csmi_allocation_step_mcast_payload.def 5 e16f9784d4fcd125ee911554ff9b3a2a
-csmi_jsrun_cmd_payload.def 4 
-csm_jsrun_cmd_input.def 2 
+csmi_jsrun_cmd_payload.def 5 d2e78619fffe49da8b81bba29ef28715
+csm_jsrun_cmd_input.def 3 757d79d8d3d06d33ca5da9c9ca79808d
