@@ -635,7 +635,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
 void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
-    int rc = 0;
+    int rc = -2;
     stringstream errorText;
 
     bberror.clear(pConnectionName);
@@ -693,7 +693,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
         //         with the new server.
         //         \todo - Not sure if this is the right duration...  @DLH
         int l_Continue = 60;
-        while ((!rc) && (l_Continue--))
+        while ((rc) && (l_Continue--))
         {
             rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_Contrib, l_Handle);
             if (rc >= 0)
@@ -714,38 +714,20 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                 // Negative return codes indicate an error...
                 if (rc == -2)
                 {
-                    // A LVKey could not be found for the job on this bbServer.
-                    // Search for the handle value in the cross-bbServer metaadata...
-                    int rc2 = 0;
-                    uint32_t* l_ContribValue2 = l_Contribs;
-                    vector<uint32_t> l_ContribVector;
-                    for (uint64_t x=0; x<l_NumContrib; ++x)
-                    {
-                        l_ContribVector.push_back(*l_ContribValue2);
-                        ++l_ContribValue2;
-                    }
-                    rc2 = HandleFile::get_xbbServerGetHandle(l_Job, l_Tag, l_ContribVector, l_Handle);
-                    if (rc2 == 1)
-                    {
-                        // Handle found for job, tag, contrib set in the cluster...
-                        //
-                        // This is a request for an existing handle to a new bbServer
-                        // from a bbProxy that does not have an LVKey associated with
-                        // the job.  This is possible if the logical volume was created
-                        // when the CN was being serviced by a different bbServer and is
-                        // now being serviced by a new bbServer.
-                        //
-                        // We cannot add the LVKey for the logical volume to the local metadata.
-                        // We do not know the UUID of the associated logical volume until a transfer
-                        // is started using this handle.  The necessary LVKey should be registered
-                        // to this new bbServer as part of activating the connection.
-                        //
-                        // Continue to wait...
-                        rc = 0;
+                    // This is a request for an existing handle to a new bbServer
+                    // from a bbProxy that does not have an LVKey associated with
+                    // the job.  This is possible if the logical volume was created
+                    // when the CN was being serviced by a different bbServer and is
+                    // now being serviced by a new bbServer.
+                    //
+                    // We cannot add the LVKey for the logical volume to the local metadata.
+                    // The necessary LVKey should be registered to this new bbServer as part
+                    // of activating the connection.
+                    //
+                    // Continue to wait...
 
-                        // Hang out for a bit (60 x 500 mils each, 30 seconds total) and see if the necessary LVKey appears...
-                        usleep((useconds_t)500000);    // Delay .5 second
-                    }
+                    // Hang out for a bit (60 x 500 mils each, 30 seconds total) and see if the necessary LVKey appears...
+                    usleep((useconds_t)500000);    // Delay .5 second
                 }
                 else
                 {
