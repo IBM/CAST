@@ -2590,7 +2590,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
-    int l_Continue = 60;
+    int l_Continue = 120;
 
     lockTransferQueue(pLVKey, "getThrottleRate");
     bool l_LockHeld = true;
@@ -2599,7 +2599,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     {
         // NOTE: For failover cases, it is possible for a getThrottleRate() request to be issued to this
         //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
-        //       Thus, we wait for a total of 30 seconds if neither an LVKey (nor a work queue) is present
+        //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
         //       for an LVKey.
         // \todo - Not sure if this is the right duration...  @DLH
         while ((!rc) && --l_Continue)
@@ -2611,7 +2611,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
                 l_LockHeld = false;
                 unlockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
                 {
-                    usleep((useconds_t)500000);    // Delay 500 miliseconds
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 lockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
                 l_LockHeld = true;
@@ -2719,7 +2719,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
-    int l_Continue = 60;
+    int l_Continue = 120;
 
     lockTransferQueue(pLVKey, "setThrottleRate");
     bool l_LockHeld = true;
@@ -2728,7 +2728,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     {
         // NOTE: For failover cases, it is possible for a setThrottleRate() request to be issued to this
         //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
-        //       Thus, we wait for a total of 30 seconds if neither an LVKey (nor a work queue) is present
+        //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
         //       for an LVKey.
         // \todo - Not sure if this is the right duration...  @DLH
         while ((!rc) && --l_Continue)
@@ -2740,7 +2740,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
                 l_LockHeld = false;
                 unlockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
                 {
-                    usleep((useconds_t)500000);    // Delay 500 miliseconds
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 lockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
                 l_LockHeld = true;

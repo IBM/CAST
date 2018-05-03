@@ -210,10 +210,10 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
             {
                 case BBSCOPETRANSFER:
                 {
-                    //  NOTE:  We set up to wait 30 seconds for the necessary LVKey to appear if we can't find
+                    //  NOTE:  We wait up to 2 minutes for the necessary LVKey to appear if we can't find
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the registering of any LVKeys with the new server.
-                    int l_Continue = 60;
+                    int l_Continue = 120;
                     while ((!rc) && (l_Continue--))
                     {
                         rc = metadata.getLVKey(pConnectionName, l_LVKey, l_FromJobId, l_ContribId);
@@ -227,7 +227,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                     l_LockHeld = false;
                                     unlockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
-                                        usleep((useconds_t)500000);    // Delay 500 miliseconds
+                                        usleep((useconds_t)1000000);    // Delay 1 second
                                     }
                                     lockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     l_LockHeld = true;
@@ -258,11 +258,11 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         }
                     }
 
-                    //  NOTE:  We set up to wait 30 seconds for the necessary BBTagInfo2 object to appear if we can't find
+                    //  NOTE:  We wait up to 2 minutes for the necessary BBTagInfo2 object to appear if we can't find
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the restarting of any transfer definitions to
                     //         the new server.
-                    l_Continue = 60;
+                    l_Continue = 120;
                     BBTagInfo2* l_TagInfo2 = 0;
                     while ((!l_TagInfo2) && l_Continue--)
                     {
@@ -271,7 +271,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         {
                             unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo2 to be registered");
                             {
-                                usleep((useconds_t)500000);    // Delay 500 miliseconds
+                                usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo2 to be registered");
 
@@ -290,11 +290,11 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
 
-                    //  NOTE:  We set up to wait 30 seconds for the necessary BBTagInfo object to appear if we can't find
+                    //  NOTE:  We wait up to 2 minutes for the necessary BBTagInfo object to appear if we can't find
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the restarting of any transfer definitions to
                     //         the new server.
-                    l_Continue = 60;
+                    l_Continue = 120;
                     BBTagInfo* l_TagInfo = 0;
                     BBTagID l_TagId;
                     while ((!l_TagInfo) && l_Continue--)
@@ -303,7 +303,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         {
                             unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
                             {
-                                usleep((useconds_t)500000);    // Delay 500 miliseconds
+                                usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo to be registered");
 
@@ -692,7 +692,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
         //         of the connection to the new server and the registering of any LVKeys
         //         with the new server.
         //         \todo - Not sure if this is the right duration...  @DLH
-        int l_Continue = 60;
+        int l_Continue = 120;
         while ((rc) && (l_Continue--))
         {
             rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_Contrib, l_Handle);
@@ -726,8 +726,8 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                     //
                     // Continue to wait...
 
-                    // Hang out for a bit (60 x 500 mils each, 30 seconds total) and see if the necessary LVKey appears...
-                    usleep((useconds_t)500000);    // Delay .5 second
+                    // Hang out for a bit (120 x 1 second each, 2 minutes total) and see if the necessary LVKey appears...
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 else
                 {
@@ -1634,7 +1634,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         // NOTE: We may have to spin for a while waiting for the work queue.
                         //       This is the case where we are in the process of activating this
                         //       bbServer, but we have not finished registering all of the LVKeys.
-                        //       If necessary, spin for up to 30 seconds waiting for the work queue.
+                        //       If necessary, spin for up to 2 minutes waiting for the work queue.
                         int l_Attempts = 120;
                         rc = -1;
                         while (rc && l_Attempts--)
@@ -1644,7 +1644,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             {
                                 unlockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
                                 {
-                                    usleep((useconds_t)250);    // Delay 250 milliseconds
+                                    usleep((useconds_t)1000000);    // Delay 1 second
                                 }
                                 lockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
 
@@ -1959,7 +1959,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     // NOTE: We may have to spin for a while waiting for the LVKey to be registered.
                                     //       This is the case where we are in the process of activating this
                                     //       bbServer, but we have not finished registering all of the LVKeys.
-                                    //       If necessary, spin for up to 1 minute.
+                                    //       If necessary, spin for up to 2 minutes.
                                     int l_Attempts = 120;
                                     rc = -2;
                                     while (rc && l_Attempts--)
@@ -1979,7 +1979,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 // registration of the necessary LVKey...
                                                 unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
                                                 {
-                                                    usleep((useconds_t)500000);     // Delay .5 seconds
+                                                    usleep((useconds_t)1000000);     // Delay 1 second
                                                 }
                                                 lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
                                             }
