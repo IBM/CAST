@@ -17,6 +17,7 @@
 #define _AGENT_H_
 #include <string>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include "cgroup.h"
 //#include "logging.h"   ///< CSM logging.
 
@@ -56,6 +57,17 @@ namespace helper {
  * @param[in] nohup   Don't wait on the PID.
  */
 int ForkAndExecCapture(  char * const argv[], char** output, uid_t user_id, bool nohup=false);
+
+/**
+ * @brief Forks the supplied argv then moves the forked pid into the supplied allocation id.
+ *
+ * @param[in] argv    The arguments to the script, array is null terminated. 
+ *                      The first index is the script with its full path.
+ * @param[in] allocation_id The allocation id of the targeted cgroup.
+ * @param[in] user_id The user to execut the forked process as.
+ * @param[in] nohup   Don't wait on the PID.
+ */
+int ForkAndExecAllocationCGroup(  char * const argv[], uint64_t allocation_id, uid_t user_id, bool nohup=false);
 
 /**
  * @brief Forks, clears the file descriptors, then executes a script.
@@ -124,18 +136,27 @@ inline int ExecuteBB( char* command_args, char ** output, uid_t user_id )
     return errCode;
 }
 
-inline int ExecuteJSRUN( int64_t allocation_id, uid_t user_id, char* kv_pairs )
+inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, char* kv_pairs )
 {
-    char* scriptArgs[] = { (char*)CSM_JSRUN_CMD, NULL };
+    // Build the script args.
+    char* scriptArgs[] = { jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD, NULL };
 
+    // Setup the environment.
     setenv(CSM_TYPE_ALLOCATION_ID   , std::to_string(allocation_id).c_str(), 1);
     setenv(CSM_TYPE_JSM_ARGS        , kv_pairs                             , 1);
-    
-    // XXX UNUSED
-    char* output = nullptr;
 
-    // Fork and don't wait.
-    int errCode = ForkAndExecCapture( scriptArgs, &output, user_id, true );
+    // set the error code.
+    int errCode  = INT_MAX;
+    
+    // Verify the file exists then execute.
+    struct stat fileDetails;
+    if ((stat(scriptArgs[0] , &fileDetails ) == 0) && 
+         (!( ( (fileDetails.st_mode & S_IFDIR) > 0 ) ^ false) ) )
+    {
+        // Fork and don't wait.
+        errCode = ForkAndExecAllocationCGroup( scriptArgs, allocation_id, user_id, true );
+    }
+
     return errCode;
 }
 

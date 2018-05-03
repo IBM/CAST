@@ -376,8 +376,65 @@ void CGroup::MigratePid( pid_t pid ) const
 
         // 1. Pid
         WriteToParameter( "tasks", controllerPath, pidStr.c_str(), pidStr.size() );
+
+    }
+}
+
+bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepTime) const
+{
+    bool success        = false; 
+    std::string pidStr  = std::to_string(pid); // The stringified pid.
+    uint32_t controller = CG_CPUSET; // Controller being checked.
+    uint32_t sleepCount = 0;         // Number of times the sleep has happened.
+    bool isFound        = false;     // The pid is found in a task list.
+    std::string line;                // Line for the getline operation.
+
+    for (; controller < csm_enum_max(csmi_cgroup_controller_t) && sleepCount < sleepAttempts;)
+    {
+        // Path is rebuilt each time to add an additional wait.
+        std::string controllerPath(CONTROLLER_DIR);
+        controllerPath.append(csmi_cgroup_controller_t_strs[controller]);
+        controllerPath.append(_CGroupName).append("/tasks");
+        
+        try
+        { 
+            std::ifstream sourceStream(controllerPath);
+
+            while( getline(sourceStream, line) )
+            {
+                if ( line.compare(0, std::string::npos, pidStr) == 0 )
+                {
+                    isFound = true;
+                    break;
+                }
+            }
+
+            // If the pid was found move to the next pid 
+            if (isFound)
+            {
+                controller++;
+            }
+            else
+            {
+                sleepCount++;
+                sleep(sleepTime);
+            }
+            isFound=false;
+        }
+        catch (const std::system_error& e)     
+        {
+            LOG( csmapi, warning) << "Read error for " << controllerPath;
+        }
     }
     
+    // If we didn't find everything  return false.
+    success= sleepAttempts != sleepCount;
+    if (!success)
+    {
+        LOG(csmapi, error) << "Pid was not migrated successfully: " << pidStr << " ; Failed on " << 
+            csmi_cgroup_controller_t_strs[controller];
+    }
+    return success;
 }
 
 void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32_t numProcessors ) 

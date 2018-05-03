@@ -73,8 +73,35 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
     jsrun_cmd->hostname = 
         strdup( csm::daemon::Configuration::Instance()->GetHostname().c_str() );
     
-    int error_code = csm::daemon::helper::ExecuteJSRUN(jsrun_cmd->allocation_id, 
-        jsrun_cmd->user_id, jsrun_cmd->kv_pairs);
+    // If the string was empty free it and set it to NULL.
+    if ( strcmp ( jsrun_cmd->jsm_path, "" ) == 0  )  
+    {
+        free(jsrun_cmd->jsm_path);
+        jsrun_cmd->jsm_path = nullptr;
+    }
+
+    int error_code = CSMERR_JSRUN_CMD_ERROR;
+    try{
+        // Execute the JSRUN Command.
+        error_code = csm::daemon::helper::ExecuteJSRUN(jsrun_cmd->jsm_path, jsrun_cmd->allocation_id, 
+            jsrun_cmd->user_id, jsrun_cmd->kv_pairs);
+    }
+    catch(const csm::daemon::helper::CSMHandlerException& e)
+    {
+        std::string error = "Message: ";
+        error.append(e.what());
+        ctx->SetErrorMessage(error);
+        ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
+        error_code = CSMERR_CGROUP_FAIL;
+    }
+    catch(const std::exception& e)
+    {
+        std::string error = "Message: ";
+        error.append(e.what());
+        ctx->SetErrorMessage(error);
+        ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
+        error_code = CSMERR_CGROUP_FAIL;
+    }
     
 
     // If the initialization or reversion was successful reply to the master daemon.
@@ -112,7 +139,16 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
     else
     {
         ctx->SetErrorCode(CSMERR_JSRUN_CMD_ERROR);
-        ctx->SetErrorMessage("Message: " + std::to_string(error_code));
+        if ( error_code != INT_MAX ) 
+        {
+            ctx->SetErrorMessage("Message: " + std::to_string(error_code));
+        }
+        else
+        {
+            std::string error = "Message: jsm_path not legal/found ";
+            error.append(jsrun_cmd->jsm_path);
+            ctx->SetErrorMessage(error);
+        }
     }
 
     // Clean up the struct.

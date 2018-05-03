@@ -841,10 +841,10 @@ const csmi_struct_mapping_t map_csmi_allocation_step_mcast_payload_t= {
 
 const csmi_struct_node_t csmi_jsrun_cmd_payload_tree[7] = {{"allocation_id",offsetof(csmi_jsrun_cmd_payload_t,allocation_id),0,NULL,0x99d3da77,40},
 {"user_id",offsetof(csmi_jsrun_cmd_payload_t,user_id),0,NULL,0x45c27210,24},
+{"jsm_path",offsetof(csmi_jsrun_cmd_payload_t,jsm_path),0,NULL,0xe89734bb,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"kv_pairs",offsetof(csmi_jsrun_cmd_payload_t,kv_pairs),0,NULL,0x9c4b0fc4,4},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
 {"hostname",offsetof(csmi_jsrun_cmd_payload_t,hostname),0,NULL,0xeba474a4,4}}
 ;
 
@@ -858,9 +858,9 @@ const csmi_struct_mapping_t map_csmi_jsrun_cmd_payload_t= {
     cast_csmi_jsrun_cmd_payload_t
 };
 
-const csmi_struct_node_t csm_jsrun_cmd_input_tree[3] = {{"allocation_id",offsetof(csm_jsrun_cmd_input_t,allocation_id),0,NULL,0x99d3da77,40},
-{NULL,0,0,NULL,0,0},
-{"kv_pairs",offsetof(csm_jsrun_cmd_input_t,kv_pairs),0,NULL,0x9c4b0fc4,4}}
+const csmi_struct_node_t csm_jsrun_cmd_input_tree[3] = {{"kv_pairs",offsetof(csm_jsrun_cmd_input_t,kv_pairs),0,NULL,0x9c4b0fc4,4},
+{"allocation_id",offsetof(csm_jsrun_cmd_input_t,allocation_id),0,NULL,0x99d3da77,40},
+{"jsm_path",offsetof(csm_jsrun_cmd_input_t,jsm_path),0,NULL,0xe89734bb,4}}
 ;
 
 void* cast_csm_jsrun_cmd_input_t(void* ptr,size_t index) { 

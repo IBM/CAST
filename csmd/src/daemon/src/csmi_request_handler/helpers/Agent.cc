@@ -22,6 +22,7 @@
 #include <grp.h> 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "cgroup.h"
 
 namespace csm {
 namespace daemon {
@@ -108,26 +109,26 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
                 if(rc)
                 {
                     // \todo bail out due to failure
-                    return -1;
+                    _Exit(-1);
                 }
                 rc = setgroups(ngroups, groups);
                 if(rc)
                 {
                     // \todo bail out due to failure
-                    return -1;
+                    _Exit(-1);
                 }
             }
             rc = setreuid(user_id, user_id);  // must set UID last
             if(rc)
             {
                 // \todo bail out due to failure
-                return -1;
+                _Exit(-1);
             }
         }
         else
         {
             // \todo pw lookup failure, exit
-            return -1;
+            _Exit(-1);
         }
     }
     
@@ -146,7 +147,6 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
         close(uni_pipe[TO_PARENT]);
 
         _Exit(execv(*argv, argv));
-        
     }
     else // Save the output.
     {
@@ -183,6 +183,91 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
 
     return WEXITSTATUS(status);
 }
+
+int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid_t user_id, bool nohup )
+{
+    #define FROM_CHILD 0
+    #define TO_PARENT 1
+    #define BUFFER_SIZE 1024
+    int status = 0;
+    int rc;
+    pid_t execPid = fork();
+    
+    if ( execPid == 0  )
+    {
+        // Set the userid.
+        passwd *pw = getpwuid(user_id);
+        if (pw)
+        {
+            #define MaxGroups 1024  // LDAP limit is slightly less than 1024
+            int ngroups = MaxGroups;
+            gid_t groups[MaxGroups];
+            
+            // TODO make this into a function.
+            if( getgrouplist(pw->pw_name, pw->pw_gid, groups, &ngroups) != -1)
+            {
+                rc = setregid(pw->pw_gid, pw->pw_gid);
+                if(rc)
+                {
+                    // \todo bail out due to failure
+                    _Exit(-1);
+                }
+                rc = setgroups(ngroups, groups);
+                if(rc)
+                {
+                    // \todo bail out due to failure
+                    _Exit(-1);
+                }
+            }
+            rc = setreuid(user_id, user_id);  // must set UID last
+            if(rc)
+            {
+                // \todo bail out due to failure
+                _Exit(-1);
+            }
+
+
+            // Wait on the PID migration then execute.
+            try
+            {
+                csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
+
+                if(cgroup.WaitPidMigration(getpid()))
+                    _Exit(execv(*argv, argv));
+            }
+            catch ( const std::exception& e )
+            {
+                _Exit(-1);
+            }
+        } 
+
+        _Exit(-1);
+    }
+    else 
+    {
+       sleep(1);
+       // Setup the cgroup.
+       csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
+       cgroup.MigratePid(execPid);
+    }
+
+    // If nohup was not specified wait for the response.
+    // Else return zero
+    if ( !nohup )
+    {
+        if (waitpid(execPid, &status, 0) == -1) 
+        {
+            ; // TODO error.
+        }
+        return WEXITSTATUS(status);
+        
+    } 
+    else 
+    {
+        return 0;
+    }
+}
+
 int ForkAndExec( char * const argv[] )
 {
     int status = 0;
