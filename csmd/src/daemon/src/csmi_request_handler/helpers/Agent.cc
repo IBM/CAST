@@ -78,7 +78,7 @@ void ProcessExit(int sig)
     while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 }
 
-int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool nohup ) 
+int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id)
 {
     #define FROM_CHILD 0
     #define TO_PARENT 1
@@ -136,14 +136,8 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
     if ( execPid == 0  )
     {
         close(uni_pipe[FROM_CHILD]);
-
-        // If not nohup duplicate the streams.
-        if ( !nohup )
-        {
-            dup2(uni_pipe[TO_PARENT], STDOUT_FILENO);
-            dup2(uni_pipe[TO_PARENT], STDERR_FILENO);
-        }
-         
+        dup2(uni_pipe[TO_PARENT], STDOUT_FILENO);
+        dup2(uni_pipe[TO_PARENT], STDERR_FILENO);
         close(uni_pipe[TO_PARENT]);
 
         _Exit(execv(*argv, argv));
@@ -152,12 +146,6 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
     {
         *output = nullptr;
         close(uni_pipe[TO_PARENT]);
-
-        if (nohup)
-        {
-            close(uni_pipe[FROM_CHILD]);
-            return 0;
-        }
 
         size_t buffer_read= 0,buffer_total= 1;
         char buffer[BUFFER_SIZE];
@@ -184,7 +172,7 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
     return WEXITSTATUS(status);
 }
 
-int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid_t user_id, bool nohup )
+int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid_t user_id)
 {
     #define FROM_CHILD 0
     #define TO_PARENT 1
@@ -195,6 +183,15 @@ int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid
     
     if ( execPid == 0  )
     {
+        execPid = fork();
+        if(execPid != 0)
+        {
+            // Setup the cgroup.
+            csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
+            cgroup.MigratePid(execPid);
+            _Exit(0);
+        }
+
         // Set the userid.
         passwd *pw = getpwuid(user_id);
         if (pw)
@@ -241,31 +238,13 @@ int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid
             }
         } 
 
-        _Exit(-1);
-    }
-    else 
-    {
-       sleep(1);
-       // Setup the cgroup.
-       csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
-       cgroup.MigratePid(execPid);
+        _Exit(0);
     }
 
-    // If nohup was not specified wait for the response.
-    // Else return zero
-    if ( !nohup )
-    {
-        if (waitpid(execPid, &status, 0) == -1) 
-        {
-            ; // TODO error.
-        }
-        return WEXITSTATUS(status);
+    waitpid(execPid, &status, 0);
+
+    return WEXITSTATUS(status);
         
-    } 
-    else 
-    {
-        return 0;
-    }
 }
 
 int ForkAndExec( char * const argv[] )

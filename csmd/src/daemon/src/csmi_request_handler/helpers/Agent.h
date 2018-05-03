@@ -54,9 +54,8 @@ namespace helper {
  *                      The first index is the script with its full path.
  * @param[in] output  The output of the of the forked process.
  * @param[in] user_id The user to execut the forked process as.
- * @param[in] nohup   Don't wait on the PID.
  */
-int ForkAndExecCapture(  char * const argv[], char** output, uid_t user_id, bool nohup=false);
+int ForkAndExecCapture(  char * const argv[], char** output, uid_t user_id);
 
 /**
  * @brief Forks the supplied argv then moves the forked pid into the supplied allocation id.
@@ -65,9 +64,8 @@ int ForkAndExecCapture(  char * const argv[], char** output, uid_t user_id, bool
  *                      The first index is the script with its full path.
  * @param[in] allocation_id The allocation id of the targeted cgroup.
  * @param[in] user_id The user to execut the forked process as.
- * @param[in] nohup   Don't wait on the PID.
  */
-int ForkAndExecAllocationCGroup(  char * const argv[], uint64_t allocation_id, uid_t user_id, bool nohup=false);
+int ForkAndExecAllocationCGroup(  char * const argv[], uint64_t allocation_id, uid_t user_id);
 
 /**
  * @brief Forks, clears the file descriptors, then executes a script.
@@ -154,7 +152,7 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
          (!( ( (fileDetails.st_mode & S_IFDIR) > 0 ) ^ false) ) )
     {
         // Fork and don't wait.
-        errCode = ForkAndExecAllocationCGroup( scriptArgs, allocation_id, user_id, true );
+        errCode = ForkAndExecAllocationCGroup( scriptArgs, allocation_id, user_id);
     }
 
     return errCode;
