@@ -86,7 +86,7 @@ cmd(cgroup_login)
 cmd(jsrun_cmd)
 
 // new APIS should go here by adding the new API immediately above this line
-// and removing the first reserved_NN that appears after MAX_REGULAR?
+// and removing the first reserved_NN that appears after MAX_REGULAR
 cmd(MAX_REGULAR)
 
 // reserved cmd IDS
