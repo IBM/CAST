@@ -521,6 +521,7 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
     uint32_t l_Finished = 0;
     uint32_t l_AlreadyStopped = 0;
     uint32_t l_AlreadyCanceled = 0;
+    uint32_t l_ExtentsNotEnqueued = 0;
     uint32_t l_Failed = 0;
     uint32_t l_DidNotMatchSelectionCriteria = 0;
     uint32_t l_NotProcessed = (uint32_t)transferdefs.size();
@@ -591,6 +592,16 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                     break;
                 }
 
+                case 5:
+                {
+                    // Found the transfer definition on this bbServer.
+                    // However, the extents were not yet enqueued.
+                    // Situation was logged, and nothing more to do...
+                    ++l_ExtentsNotEnqueued;
+
+                    break;
+                }
+
                 case -2:
                 {
                     // Recoverable error occurred....  Log it and continue...
@@ -651,6 +662,7 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
     bberror.errdirect("out.numberAlreadyFinished", l_Finished);
     bberror.errdirect("out.numberAlreadyStopped", l_AlreadyStopped);
     bberror.errdirect("out.numberAlreadyCanceled", l_AlreadyCanceled);
+    bberror.errdirect("out.numberExtentsNotEnqueued", l_ExtentsNotEnqueued);
     bberror.errdirect("out.numberFailed", l_Failed);
     bberror.errdirect("out.numberNotMatchingSelectionCriteria", l_DidNotMatchSelectionCriteria);
     bberror.errdirect("out.numberNotProcessed", l_NotProcessed);
@@ -666,6 +678,7 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                  << l_NotFound << " transfer definition(s) were not found on the bbServer at " << l_ServerHostName << ", " << l_Finished \
                  << " transfer definition(s) were already finished, " << l_AlreadyStopped << " transfer definition(s) were already stopped, " \
                  << l_AlreadyCanceled << " transfer definition(s) were already canceled, " \
+                 << l_ExtentsNotEnqueued << " transfer definition(s) were found that did not have any extents scheduled yet, " \
                  << l_DidNotMatchSelectionCriteria << " transfer definition(s) did not match the selection criteria, " \
                  << l_NotProcessed << " transfer definition(s) were not processed, and " << l_Failed << " failure(s) occurred during this processing." \
                  << " See previous messages for additional details.";
@@ -1434,10 +1447,11 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 {
                     if (!rc)
                     {
-                        LOG(bb,info) << "Extents were never enqueued for the transfer definition associated with host " << pHostName \
+                        LOG(bb,info) << "Extents have not yet been scheduled for the transfer definition associated with host " << pHostName \
                                      << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                                     << ".  Stop transfer request ignored.";
-                        rc = 2;
+                                     << ".  A start transfer request was caught in mid-flight.  If a restart operation follows this stop transfer" \
+                                     << " request, that operation will properly restart this transfer definition.  Stop transfer request ignored.";
+                        rc = 5;
                     }
                     else
                     {
