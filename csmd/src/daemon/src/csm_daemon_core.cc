@@ -175,8 +175,7 @@ csm::daemon::CoreGeneric::GetEventHandler(const csm::daemon::CoreEvent &aEvent)
     csm::network::MessageAndAddress content = ev->GetContent();
     cmd = content._Msg.GetCommandType();
 
-    LOG(csmd, debug) << "CSM Command Type: " <<
-        ( cmd < CSM_CMD_MAX ? csmi_cmds_t_strs[cmd] : "NOT SET" ) ;
+    LOG(csmd, debug) << "CSM Command Type: " << csmi_cmds_to_str( cmd );
   }
   // if cmd is not CSM_CMD_MAX at this point, it means aEvent is a NetworkEvent.
 

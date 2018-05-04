@@ -85,7 +85,7 @@ protected:
   CSMI_BASE(csmi_cmd_t cmd, csm::daemon::HandlerOptions& options)
   :_cmdType(cmd), _handlerOptions(options), _newRequestCount(0)
   {    
-    if (cmd >= CSM_CMD_MAX) {
+    if ( ! csmi_cmd_is_valid( cmd ) ) {
       // bring down the daemon in this fatal error
       LOG(csmapi, error) << "CSMI_BASE(): not a valid csmi cmd";
       exit(-1);

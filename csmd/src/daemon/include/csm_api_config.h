@@ -73,7 +73,7 @@ private:
         boost::algorithm::to_lower(key);
 
         csmi_cmd_t cmd = csmi_cmd_get( key.c_str() );
-        if (cmd < CSM_CMD_MAX)
+        if( csmi_cmd_is_valid( cmd ) )
         {
           int timeout = std::stoi( list.second.data() );
           if( timeout >= CSM_RECV_TIMEOUT_MIN )
@@ -190,6 +190,7 @@ public:
     _timeouts_serialized.clear();
     for( int n=0; n<CSM_CMD_INVALID; ++n )
     {
+      if( ! csmi_cmd_is_valid( n ) ) continue;
       int timeout = csm_get_timeout(n) / 1000;
       if(( timeout >= CSM_RECV_TIMEOUT_MIN ) && ( timeout != CSM_RECV_TIMEOUT_SECONDS ))
       {
