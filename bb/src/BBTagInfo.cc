@@ -808,9 +808,28 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
 
                 case 1:
                 {
-                    rc = -1;
-                    errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    if (pTransferDef->extentsAreEnqueued())
+                    {
+                        // Extents have already been enqueued for this transfer definition...
+                        rc = -1;
+                        errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                    else
+                    {
+                        // Extents have not beeen enqueued yet...
+                        // NOTE:  Allow this to continue...  This is probably the case where a start transfer got far enough along
+                        //        on bbServer to create all of the metadata (first volley message), but the second volley either failed
+                        //        or bbProxy failed before/during the send of the second volley message.
+                        // NOTE:  Start transfer processing DOES NOT backout any metadata changes made for a partially completed
+                        //        operation.
+                        LOG(bb,info) << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string() \
+                                     << ", but extents have never been enqueued for the transfer definition. ContribIdFile for " << pContribId << " will be reused.";
+                        l_NewContribIdFile = l_ExistingContribFile;
+                        rc = 0;
+                    }
+
+                    break;
                 }
 
                 default:

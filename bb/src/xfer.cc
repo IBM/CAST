@@ -1831,12 +1831,35 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                     {
                         if (!l_TransferDefinitionBuiltViaRetrieve)
                         {
-                            // This condition overrides any failure detected on bbProxy...
-                            pMarkFailedFromProxy = 0;
+                            if (!l_OrigTransferDef->extentsAreEnqueued())
+                            {
+                                // Extents have not beeen enqueued yet...
+                                // NOTE:  Allow this to continue...  This is probably the case where a start transfer got far enough along
+                                //        on bbServer to create all of the metadata (first volley message), but the second volley either failed
+                                //        or bbProxy failed before/during the send of the second volley message.
+                                // NOTE:  Start transfer processing DOES NOT backout any metadata changes made for a partially completed
+                                //        operation.
+                                LOG(bb,info) << "Transfer definition for contribid " << pContribId << " already exists for " << *pLVKey \
+                                             << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "), handle " << l_TagInfo->transferHandle \
+                                             << ", but extents have never been enqueued for the transfer definition. Transfer definition will be reused.";
 
-                            rc = -1;
-                            errorText << "queueTagInfo: Failure from getTransferDef() for contribid=" << pContribId << ", rc=" << rc;
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                                // Now, swap in the extent vector from the new transfer definition
+                                l_OrigTransferDef->replaceExtentVector(pTransferDef);
+
+                                // Set pTransferDef to the version of the transfer definition in BBTagInfo/BBTagParts...
+                                // NOTE: This is just like the call to addTransferDef() in the then leg.
+                                pTransferDef = l_OrigTransferDef;
+                            }
+                            else
+                            {
+                                // Extents have already been enqueued for this transfer definition...
+                                // This condition overrides any failure detected on bbProxy...
+                                pMarkFailedFromProxy = 0;
+
+                                rc = -1;
+                                errorText << "queueTagInfo: Failure from getTransferDef() for contribid=" << pContribId << ", rc=" << rc;
+                                LOG_ERROR_TEXT_RC(errorText, rc);
+                            }
                         }
                         else
                         {
@@ -2067,7 +2090,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                             char l_TransferType[64] = {'\0'};
                                             getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
                                             LOG(bb,info) << "Indicating to bbproxy to restart the transfer for the source file associated with jobid " \
-                                                         << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
+                                                         << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
                                                          << (uint32_t)pContribId << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
                                         }
                                     }
@@ -2094,7 +2117,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                     char l_TransferType[64] = {'\0'};
                                     getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
                                     LOG(bb,info) << "Indicating to bbproxy to not restart the transfer for the source file associated with jobid " \
-                                                 << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
+                                                 << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
                                                  << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type " << l_TransferType;
                                 }
                                 l_NextSourceIndexToProcess = e.sourceindex + 2;
