@@ -681,6 +681,7 @@ typedef struct {
     int64_t allocation_id; /**< Allocation ID to prefer (rejected if >0 and not found in daemon). */
     pid_t pid; /**< The process id to push to the allocation cgroup. */
     char* user_name; /**< User name for logging in. */
+    char migrate_pid; /**< Flag to migrate pid in to cgroup if true. */
 } csm_cgroup_login_input_t;
 /**
  * @brief An input wrapper for @ref csm_jsrun_cmd.

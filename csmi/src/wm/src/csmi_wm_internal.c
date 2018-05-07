@@ -669,9 +669,12 @@ const csmi_struct_mapping_t map_csm_allocation_delete_input_t= {
     cast_csm_allocation_delete_input_t
 };
 
-const csmi_struct_node_t csm_cgroup_login_input_tree[3] = {{"allocation_id",offsetof(csm_cgroup_login_input_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csm_cgroup_login_input_tree[6] = {{"allocation_id",offsetof(csm_cgroup_login_input_t,allocation_id),0,NULL,0x99d3da77,40},
 {"pid",offsetof(csm_cgroup_login_input_t,pid),0,NULL,0xb889d42,64},
-{"user_name",offsetof(csm_cgroup_login_input_t,user_name),0,NULL,0xc029f5a4,4}}
+{"user_name",offsetof(csm_cgroup_login_input_t,user_name),0,NULL,0xc029f5a4,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"migrate_pid",offsetof(csm_cgroup_login_input_t,migrate_pid),0,NULL,0xb05bda0a,68}}
 ;
 
 void* cast_csm_cgroup_login_input_t(void* ptr,size_t index) { 
@@ -679,7 +682,7 @@ void* cast_csm_cgroup_login_input_t(void* ptr,size_t index) {
     return ptr_cast ? ptr_cast[index] : NULL;
 };
 const csmi_struct_mapping_t map_csm_cgroup_login_input_t= {
-    3,
+    6,
     csm_cgroup_login_input_tree,
     cast_csm_cgroup_login_input_t
 };

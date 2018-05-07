@@ -31,7 +31,7 @@
 #define DELIM ";"
 
 // FORMAT
-int check_users(const char* userName)
+int check_users(const char* userName, char migrate_pid)
 {
     // 0. Check if root (early return).
     if ( strcmp(SUPER_USER,userName) == 0 )
@@ -46,6 +46,7 @@ int check_users(const char* userName)
     input.user_name     = strdup(userName);
     input.pid           = getpid();
     input.allocation_id = -1;
+    input.migrate_pid = migrate_pid;
 
     // Execute login attempt.
     int errCode = csm_cgroup_login(&csm_obj, &input);
@@ -73,7 +74,6 @@ int check_users(const char* userName)
         }
     }
 
-    printf("User Rejected: %s; Not Authorized\n", userName);
     return PAM_PERM_DENIED;
 }
 
@@ -81,7 +81,8 @@ PAM_EXTERN int pam_sm_open_session( pam_handle_t *pamh, int flags, int argc, con
 {
     const char* user_name;
     pam_get_user(pamh, &user_name, "Username: ");
-    return check_users(user_name);
+    check_users(user_name, 1);
+    return PAM_SUCCESS;
 }
 
 PAM_EXTERN int pam_sm_close_session( pam_handle_t *pamh, int flags, int argc, const char **argv)
@@ -89,3 +90,9 @@ PAM_EXTERN int pam_sm_close_session( pam_handle_t *pamh, int flags, int argc, co
     return PAM_SUCCESS;
 }
 
+PAM_EXTERN int pam_sm_acct_mgmt( pam_handle_t *pamh, int flags, int argc, const char **argv)
+{
+    const char* user_name;
+    pam_get_user(pamh, &user_name, "Username: ");
+    return check_users(user_name, 0);
+}
