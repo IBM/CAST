@@ -393,7 +393,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                         {
                                             // Indicate to restart this transfer defintion as it is now marked as stopped
                                             rc = 1;
-                                            LOG(bb,info) << "contribIdStopped():  Transfer definition marked as stopped for jobid " << pJobId \
+                                            LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
+                                                         << "Transfer definition marked as stopped for jobid " << pJobId \
                                                          << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
                                         }
                                         else
