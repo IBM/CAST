@@ -13,6 +13,8 @@ Elasticsearch.
 Quick Configuration
 -------------------
 
+.. _SyslogDataAgg:
+
 Syslog
 ------
 
@@ -26,7 +28,7 @@ to Logstash via a redirection hierarchy outlined in the table below:
 +----------------+--------------------+
 |  Type of Node  | Syslog Destination |
 +----------------+--------------------+
-|  Service Node  |    Elasticsearch   |
+|  Service Node  |    Logstash        |
 +----------------+--------------------+
 |  Compute Node  |    Service Node    |
 +----------------+--------------------+
@@ -44,50 +46,39 @@ be logged via syslog. See `UFM Logs`_ for one such example.
 
 Syslog Redirection
 ^^^^^^^^^^^^^^^^^^
+
+.. warning:: This step should not be performed on compute nodes in xCAT clusters!
+
 To redirect a syslog so it is accepted by Logstash the following must be added to the 
 `/etc/rsyslog.conf` file:
 
 .. code-block:: bash
 
-    $template scalaLogFormatDSV,"%TIMESTAMP:::date-rfc3339%,%HOSTNAME%,%FROMHOST%,\
-    %syslogtag%,%programname%,%PROCID%,%syslogfacility-text%,%syslogseverity-text%,\
-    %APP-NAME%,%msg%\n"
-
-    *.*;cron.none @@${logstash_node}:${syslog_port};scalaLogFormatDSV
-
-:logstash_node: Replace with the hostname or IP address of the Logstash Server.
-
-:syslog_port: Replace with the port set in the Logstash `logstash-configuration-file` [ default: 10515 ]. 
-
-.. note:: These fields are configured in the :ref: `logstash` section.
-
-After adding these directives to `/etc/rsyslog.conf` restart rsyslog:
-
-.. code-block:: bash
+    $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %syslogseverity-text% %msg%\n"
+    
+    *.*;cron.none @@${logstash_node}:${syslog_port};logFormat
 
     /bin/systemctl restart  rsyslog.service
 
-.. note:: The default behavior for compute nodes provisioned with `xCAT` is to redirect 
-    syslogs to the management or service node that provisioned it. 
-    **Only** configure the Service or Management Node in this case.
-    
-.. warning:: If a Device is redirecting Syslogs to two locations, duplicate entries may appear in the Big Data Store!
+**Field Description**
 
+:logstash_node: Replace with the hostname or IP address of the Logstash Server, on service nodes 
+    this is typically *localhost*.
+:syslog_port: Replace with the port set in the Logstash Configuration File [ default: 10515 ]. 
 
-When routing the syslog to either a service node or management node duplicate entries may be added to /var/log/messages.
-It is recommended that rsyslog routing for the service and/or management nodes to the /var/log/messages file be disabled, or at filtered as shown below:
+**Format**
+
+The format of the syslog is parsed in the CAST model by Logstash. CAST provides a grok for this 
+syslog format in the pattern list provided by the CAST repository and rpm. The grok pattern is
+reproduced below with the types matching directly to the types in 
+:ref:`the syslog elastic documentation <SyslogElastic>`.
 
 .. code-block:: bash
 
-    # In /etc/rsyslog.conf
-    :HOSTNAME, isequal, "${node_hostname}"
-    *.info;net.none;mail.none;authpriv.none;cron.none      /var/log/messages;
+    RSYSLOGDSV ^(?m)%{TIMESTAMP_ISO8601:timestamp} %{HOSTNAME:syslogHostname} %{DATA:programName} %{INT:processID} %{DATA:syslogSeverity} %{GREEDYDATA:message}$
 
-:node_hostname: The hostname of the node hosting this rsyslog.conf file.
-
-**TODO** Try using the default syslog processor?
-
-.. note:: The default port for syslog is 10515 in the sample logstash configuration.
+.. note:: This pattern has a 1:1 relationship with the template given above and a 1:many relationship with
+        the index data mapping. Logstash appends some additional fields for metadata analysis.
 
 GPFS Logging
 ^^^^^^^^^^^^
