@@ -10,9 +10,6 @@ Elasticsearch.
 .. contents::
    :local:
 
-Quick Configuration
--------------------
-
 .. _SyslogDataAgg:
 
 Syslog
@@ -182,11 +179,13 @@ the message fields.
 
     MELLANOXMSG %{MELLANOXTIME:timestamp} \[%{NUMBER:log_counter}\] \[%{NUMBER:event_id}\] %{WORD:severity} \[%{WORD:event_type}\] %{WORD:category} %{GREEDYDATA:message}
 
+.. _ConsoleDataAggregator:
+
 Console Logs
 ------------
 
-.. note:: This document is designed to configure the xCAT service nodes to ship goconserver output to logstash.
-.. note:: This document was written using xCAT 2.13.11
+.. note:: This document is designed to configure the xCAT service nodes to ship goconserver output to logstash 
+    (written using xCAT 2.13.11).
 
 :Logstash Port: 10520
 
@@ -225,20 +224,32 @@ the xCAT read the docs.
     
     service goconserver restart
 
-.. note:: The goconserver pushes structured JSON data to its target, therefore syslog redirection
-    is not recommeneded by CSM at this time.
+The goconserver will now start sending data to the Logstash server in the form of JSON messages:
 
-.. note:: CSM recommends pushing to logstash for data enrichment, however the ELK stack supports
-    pushing structured data directly to the Elastic index, if data enrichment is not being performed
-    CSM recommends pushing directly to the Elastic index.
+.. code-block:: javascript
+    
+    {
+        "type"    : "console"
+        "message" : "c650f04p23 login: jdunham"
+        "node"    : "c650f04p23"
+        "date"    : "2018-05-08T09:49:36.530886-04"
+    }
 
-.. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
+The CAST logstash filter then mutates this data to properly store it in the elasticsearch backing 
+store:
+
++--------+------------+
+| Field  | New Field  | 
++========+============+
+| node   | hostname   |
++--------+------------+
+| date   | @timestamp |
++--------+------------+
 
 Sensor Monitors
 ---------------
 
-:Relevant Directories:
-    | `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring`
+.. warning:: This documentation is now deprecated. 
 
 In the data aggregation samples an out of band technique is employed to polls the 
 management device for sensor data. This data varies device to device and requires separate techniques depending on how densor data is aggregated on the device.
@@ -617,4 +628,8 @@ To set up the automation add the following to the `crontab` on the zimon collect
 
 
 .. note:: This cron entry will poll the listed nodes once every 30 minutes, but the granularity depends on the zimon configuration.
+
+
+.. Links
+.. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
 
