@@ -73,7 +73,6 @@ int check_users(const char* userName)
         }
     }
 
-    printf("User Rejected: %s; Not Authorized\n", userName);
     return PAM_PERM_DENIED;
 }
 
