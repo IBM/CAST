@@ -132,7 +132,6 @@ documented below, with a *JSON* mapping file provided in the repository and *rpm
 
 .. TODO: Elaborate
 
-
 .. _SyslogElastic:
 
 syslog
@@ -168,8 +167,6 @@ The mapping for the index contains the following fields:
 .. TODO: Should mmfs log inhabit the same index? The data has a 1:1 parity.
 .. TODO: Review Cumulus Swtich, not sure what the logs look like by default.
 
-.. _melElastic:
-    
 mellanox-event-log
 ^^^^^^^^^^^^^^^^^^
 
@@ -203,8 +200,8 @@ the Logstash service then transmitted to the Elasticsearch index.
 | tags          | *text* | Tags containing additional metadata about the message.         |
 +---------------+--------+----------------------------------------------------------------+
 
-console
-^^^^^^^
+console-log
+^^^^^^^^^^^
 
 CAST recommends the usage of the goconserver bundled in the xCAT dependicies, documented in xCat-GoConserver_.
 Configuration of the goconserver should be performed on the xCAT service nodes in the cluster.
@@ -227,6 +224,38 @@ The mapping for the *console* index is provided below:
 | tags          | *text* | Tags containing additional metadata about the console log.     |
 +---------------+--------+----------------------------------------------------------------+
 
+gpfs-counters
+^^^^^^^^^^^^^
+
+.. attention:: This section is currently a work in progress.
+
+.. note:: The CAST team is currently in the process of reviewing the GPFS counter polling process
+    it is likely that this index will be modified in the forseeable future.
+
+ufm-counters
+^^^^^^^^^^^^
+
+.. attention:: This section is currently a work in progress.
+
+.. note:: The CAST team is currently in the process of reviewing the ufm counters being aggregated
+    it is likely that this index will be modified in the forseeable future.
+
+
+gpu-counters
+^^^^^^^^^^^^
+
+.. attention:: This section is currently a work in progress.
+
+.. note:: The CAST team is currently in the process of reviewing the GPU counters and the process
+    of using DCGM to perform the aggregation operation.
+
+node-environmental
+^^^^^^^^^^^^^^^^^^
+
+.. attention:: This section is currently a work in progress.
+
+.. note:: The CAST team is currently in the process of reviewing the inband aggregation of the node
+    environmental data.
 
 .. Links
 .. _Elasticsearch: https://www.elastic.co/products/elasticsearch

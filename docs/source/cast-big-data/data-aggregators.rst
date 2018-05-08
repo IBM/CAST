@@ -8,12 +8,22 @@ Elasticsearch.
     `${variable_name}` and followed by an explanation of the variable.
 
 .. contents::
-   :local:
+    :local:
+
+
+Logs
+----
+
+The default configuration of the CAST Big Data Store has support for a number of logging types,
+most of which are processed through the syslog utilty and then enriched by Logstash and 
+the CAST Event Correlator.
+
+.. TODO: Add more context?
 
 .. _SyslogDataAgg:
 
 Syslog
-------
+******
 
 :Logstash Port: 10515
 
@@ -37,9 +47,6 @@ to Logstash via a redirection hierarchy outlined in the table below:
 +----------------+--------------------+
 |      PDUs      |    Logstash Node   | 
 +----------------+--------------------+
-
-Please note that this table only deals with Syslog redirection, not logs in the cluster will 
-be logged via syslog. See `UFM Logs`_ for one such example.
 
 Syslog Redirection
 ^^^^^^^^^^^^^^^^^^
@@ -77,8 +84,8 @@ reproduced below with the types matching directly to the types in
 .. note:: This pattern has a 1:1 relationship with the template given above and a 1:many relationship with
         the index data mapping. Logstash appends some additional fields for metadata analysis.
 
-GPFS Logging
-^^^^^^^^^^^^
+GPFS 
+****
 
 To redirect the GPFS logging data to the syslog please do the following on the Management node for GPFS:
 
@@ -95,14 +102,13 @@ After completing this process the gpfs log should now be forwarded to the `syslo
 .. note:: This data type will inhabit the same index as the *syslog* documents due to data similarity.
 
 
-UFM Logs
---------
+.. _UFMLogsDataAgg:
+
+UFM
+***
 
 .. note:: This document assumes that the UFM daemon is up and running on the UFM Server.
 
-:Relevant Directories:
-    | `/opt/ibm/csm/bigdata/DataAggregators/config_scripts`
-    
 The `Unified Fabric Manager` (UFM) has several distinct data logs to aggregate for the big data store.
 
 System Event Log
@@ -110,7 +116,7 @@ System Event Log
 
 :Logstash Port: 10515
 
-:Configuration Script: `/opt/ibm/csm/bigdata/DataAggregators/config_scripts/ufm_config.sh`
+.. :Configuration Script: `/opt/ibm/csm/bigdata/DataAggregators/config_scripts/ufm_config.sh`
 
 The System Event Log will report various fabric events that occur in the UFM's network: 
 
@@ -181,8 +187,8 @@ the message fields.
 
 .. _ConsoleDataAggregator:
 
-Console Logs
-------------
+Console
+*******
 
 .. note:: This document is designed to configure the xCAT service nodes to ship goconserver output to logstash 
     (written using xCAT 2.13.11).
@@ -224,6 +230,8 @@ the xCAT read the docs.
     
     service goconserver restart
 
+**Format**
+
 The goconserver will now start sending data to the Logstash server in the form of JSON messages:
 
 .. code-block:: javascript
@@ -246,389 +254,45 @@ store:
 | date   | @timestamp |
 +--------+------------+
 
-Sensor Monitors
----------------
+Counters
+--------
 
-.. warning:: This documentation is now deprecated. 
+The default configuration of the CAST Big Data Store has support for a number of counter types,
+most of which are processed through Logstash and the CAST Event Correlator.
 
-In the data aggregation samples an out of band technique is employed to polls the 
-management device for sensor data. This data varies device to device and requires separate techniques depending on how densor data is aggregated on the device.
+GFPS
+****
 
-This document details the following sample aggregation techniques:
+.. attention:: This section is currently a work in progress.
 
-.. contents::
-   :local:
+.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
+UFM
+***
 
-BMC Sensor Data
-^^^^^^^^^^^^^^^
+.. attention:: This section is currently a work in progress.
 
-:Logstash Port: 10516
+.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
-:Configuration File: 
-    | `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_temperature_poll.cfg`
+GPU
+***
 
-:Auxillary Files: 
-    | `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_hosts`
-    | `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_temperature_parse.awk`
+.. attention:: This section is currently a work in progress.
 
-:Script File: `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_temperature_poll.sh`
+.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
-.. note:: This document assumes that the BMC has been configured with the latest firmware revision
-    and is the BMC of a Power 8 node.
+Environmental
+-------------
 
-.. warning:: The supplied scripts require that `/opt/xcat/bin/ipmitool-xcat` is present on the 
-    node (Service or Management Node).
+The default configuration of the CAST Big Data Store has support for a number of environmental types,
+most of which are processed through Logstash and the CAST Event Correlator.
 
-.. warning:: This section is subject to change pending an update that allows in 
-    band sensor aggregation.
+Node
+****
 
-The BMC Sensor Data Record is accessible through the `ipmitool sdr` command. This record can
-contain anything from power usage and temperature to button events. The Data Aggregated in
-the sample is from the node's temperature sensor array.
+.. attention:: This section is currently a work in progress.
 
-The following temperature sensors are tracked in the data aggregation sample:
-
-* Ambient Temperature
-* CPU Temperatures
-* CPU Core Temperatures
-* DIMM Temperatures
-* GPU Temperatures
-* Memory Buffer Temperatures
-
-For the full list of sensors tracked run :
-
-.. code-block:: none
-
-     `/opt/xcat/bin/ipmitool-xcat -H {BMC ADDRESS} -U {BMC USER} -P {BMC PASSWORD sdr`
-
-BMC Configuration File
-######################
-
-.. code-block:: none
-
-    `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_temperature_poll.cfg`
-
-The configuration file will set the the following attributes when executing the sensor poll.
-
-:max_parallel_threads: The number of parallel subprocesses the script will spawn.
-
-:csv_headers: Sets the order of the of the temperatures aggregated; comma separated 
-    and may have any number of the following values (no duplicates):
-
-    * Ambient
-    * CPU 
-    * CPU_Core
-    * DIMM
-    * GPU
-    * Mem_Buff
-
-    .. warning:: If this field is changed, the Logstash :ref: `logstash-patterns` file will need to be changed.
-
-:hosts_file: The file containing the list of hosts to poll for sensor data, 
-    hostnames are separated by new lines. This is the hostname tracked by xCAT,
-    as the `BMC Polling Script`_ queries xCAT for BMC information.
-
-:logstash_server: The hostname or IP address of the Logstash Server.
-
-    .. warning:: This field MUST be changed.
-
-:logstash_port: Replace with the port set in the Logstash :ref: `logstash-configuration-file` for BMC Temperature Sensor.
-
-:default_passwd: The default IPMI password for the node, this will be used if no bmc password is found in xCAT.
-
-:default_user: The defualt IPMI user for the node, this will be used is if no bmc user is found in xCAT.
-
-.. warning:: Make sure the hosts file is changed when setting up this data aggregator.
-
-BMC Polling Script
-##################
-
-.. code-block:: none
-
-    `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_temperature_poll.sh`
-
-The `bmc_temperature_poll.sh` script performs a query to the ipmitool sdr command aggregating 
-temperature data. Due to potential mismatches between the different BMC devices this aggregator
-computes the minimum and maximum values of each temperature module and presents them as a 
-csv to the the Logstash Server.
-
-The full list of values gathered by this script to send follows:
-
-* bmc_hostname
-* bmc_ip 
-* bmc_temp_ambient
-* bmc_temp_CPU_min
-* bmc_temp_CPU_max
-* bmc_temp_CPU_Core_min
-* bmc_temp_CPU_Core_max
-* bmc_temp_DIMM_min
-* bmc_temp_DIMM_max
-* bmc_temp_GPU_min
-* bmc_temp_GPU_max
-* bmc_temp_Mem_Buff_min
-* bmc_temp_Mem_Buff_max
-
-All of the above temperature values are recorded in Celsius. If a module has lost its reading the 
-value sent/stored in the Big Data Store will be an empty string. By design bad module reads are
-not filtered out during the parse of the results to allow the end user a chance to detect issues
-with the sdr.
-
-This script must be executed from the service node that manages the Nodes specified in the 
-`hosts_file`. The script will query xcat to get the BMC IP, Username and Password.
-
-
-.. warning:: This script will not work if it attempts to query hostnames without the following 
-    details in the xCAT database:
-
-    * bmc
-    * bmcpassword
-    * bmcusername
-
-
-To set up the automation add the following to the `crontab` on either the Sevice or Management
-Node that manages the BMCs to be polled by this script.
-
-.. code-block:: none
-
-    */30 * * * * cd /opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring; \
-      /bin/bash /opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/bmc_temperature_poll.sh >/dev/null 2>&1
-
-.. note:: This cron entry will poll the listed nodes once every 30 minutes.
-
-
-
-IB Switch Sensor Data
-^^^^^^^^^^^^^^^^^^^^^
-
-:Logstash Port: 10517
-
-:Auxillary Files:
-    | `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/ib_temperature_parse.awk`
-
-:Script File: `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/ib_temperature_poll.sh`
-
-
-Infiniband Switch temperature data is accessible through the commandline function `show temperature`. A finite number of readings are returned by this query as follows:
-
-* CPU_Core_Sensor_T1
-* CPU_Core_Sensor_T2
-* CPU_package_Sensor
-* power-mon_PS1 
-* power-mon_PS2
-* Board_AMB_temp
-* Ports_AMB_temp
-* SIB
-
-As with the BMC temperature this temperature data is recorded in Celsius.
-
-.. warning:: This Data Aggregation sample only supports Mellanox Switches!
-
-Configuring ssh for an IB Switch
-################################
-
-By default ssh is **not** enabled on Mellanox branded Infiniband switches. Please do the 
-following if your switch hasn't been configured before attempting to poll IB Switch Sensor Data.
-
-xCAT is used to drive this data aggregation, as it has a procedure for interacting with infiniband
-switches as detailed in xCAT-Infiniband_.
-
-
-.. code-block:: Bash
-
-    # Make an entry for the switches.
-    chdef -t node <switch-name> groups=all,mswitch nodetype=switch mgt=switch
-
-    # Note the mswitch group as switches and add the default admin password for mellanox.
-    tabch switch=mswitch switches.sshusername=admin switches.sshpassword=admin switches.switchtype=MellanoxIB
-    tabch key=mswitch  passwd.username=admin passwd.password=admin
-
-    # Configure and enable ssh on the switches.
-    rspconfig <IB Switches/Groups> sshcfg=enable
-
-At this point the IB Switch should be set up for use with ssh.
-
-.. warning:: Try to ssh to the switch before moving on to the next step.
-.. warning:: Make sure the password and username attributes are set for the switch in xCAT.
-
-.. _xCat-Infiniband: http://xcat-docs.readthedocs.io/en/stable/advanced/networks/infiniband/index.html
-
-IB Polling Script
-##################
-
-.. code-block:: none
-
-    `/opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/ib_temperature_poll.sh`
-
-
-:max_parallel_threads: The number of parallel subprocesses the script will spawn.
-
-:csv_headers: Sets the order of the of the temperatures aggregated; comma separated 
-    and may have any number of the following values (no duplicates):
-    
-    * CPU_Core_Sensor_T1
-    * CPU_Core_Sensor_T2
-    * CPU_package_Sensor
-    * power-mon_PS1
-    * power-mon_PS2
-    * Board_AMB_temp
-    * Ports_AMB_temp
-    * SIB
-    
-    .. warning:: If this field is changed, the Logstash :ref: `logstash-patterns` file will need to be changed.
-
-:logstash_server: The hostname or IP address of the Logstash Server.
-
-    .. warning:: This field MUST be changed.
-
-:logstash_port: Replace with the port set in the Logstash :ref: `logstash-configuration-file` for BMC Temperature Sensor.
-
-:xcat_switch_user: The user name to access the switch with, this should be in xCAT.
-
-:xcat_groups: The group of switches to query, may be an xCAT group or a csv list of hostnames.
-
-
-.. warning:: Make sure the IB Switches being targeted are managed by the Service or Management Node this polling utility is run on.
-
-
-The `ib_temperature_poll.sh` script executes `show temperature` on each IB Switch specified 
-over ssh. The actual values are captured, due to the small number of available sensors.
-As mentioned above, all temperature data is in Celsius.
-
-The full list of values gathered by this script to send follows:
-
-* sensor_unix_time 
-* ib_hostname
-* ib_temp_cpu_core_t1
-* ib_temp_cpu_core_t2
-* ib_temp_cpu_package
-* ib_temp_power_mon_ps1
-* ib_temp_power_mon_ps2
-* ib_temp_board_ambient
-* ib_temp_ports_ambient
-* ib_temp_SIB
-
-This script must be executed from the Service or Management node that manages the 
-IB Switches specified in `xcat_groups`.
-
-To set up the automation add the following to the `crontab` on either the Sevice or Management
-Node that manages the IB Switches to be polled by this script.
-
-.. code-block:: none
-
-    */30 * * * * cd /opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/; \
-      /bin/bash /opt/ibm/csm/bigdata/DataAggregators/sensor_monitoring/ib_temperature_poll.sh >/dev/null 2>&1
-
-.. note:: This cron entry will poll the listed nodes once every 30 minutes.
-
-Zimon
------
-
-:Logstash Port: 10519
-
-:Configuration File: 
-    | `/opt/ibm/csm/bigdata/DataAggregators/zimon/zimon_hosts`
-
-:Script File: `/opt/ibm/csm/bigdata/DataAggregators/zimon/data_collection.sh`
-
-.. note:: This Documentation assumes that a gpfs server capable of performing 
-   zimon queries is provisioned in the cluster.
-
-.. warning:: This Data Aggregation must be run from a gpfs node with the perfmon 
-   designation. If the gpfs cluster is an ESS, use the management node.
-
-.. note:: If the perfmon designation is not set for your management node it may be set with:
-    `mmchnode --quorum --perfmon  -N <Daemon node name>`
-
-Zimon is the performance monitoring tool used by GPFS to aggregate sensor data.
-To configure your GPFS cluster to use zimon for the Data Aggregation Sample, please complete the following steps:
-
-1. Install GPFS in your cluster ( this document was written with an ESS Configuration ).
-2. Configure `/opt/IBM/zimon/ZIMonSensors.cfg` to monitor the appropriate `Sensors`_. 
-3. Run the following to start the performance monitor sensors:
-
-.. code-block:: none
-
-    /bin/systemctl enable pmsensors.service
-    /bin/systemctl start  pmsensors.service
-    /bin/systemctl enable pmcollector.service
-    /bin/systemctl start pmcollector.service
-
-.. note:: `GPFSNSDDisk` is the only change recommended at this time: `period` 1=>0
-
-.. note:: The `host` attribute in `collectors` should be the node that `data_collection.sh`_ is run from.
-
-At this point the performance data should be being aggregated by Zimon, to send this 
-data to the Big Data Store, please consult `data_collection.sh`_.
-
-.. note::
-    The breadth of sensors tracked by this tool exceeds the scope of this documentation,
-    for more details please visit the IBM Knowledge Center and review `Performance Monitoring`_.
-
-.. _Performance Monitoring:
-   http://www.ibm.com/support/knowledgecenter/STXKQY_4.1.1/com.ibm.spectrum.scale.v4r11.adv.doc/bl1adv_perfandhealthmonitoring.htm
-
-.. _Sensors:
-   http://www.ibm.com/support/knowledgecenter/STXKQY_4.2.1/com.ibm.spectrum.scale.v4r21.doc/bl1hlp_monnodesoverviewcharts.htm
-
-zimon_hosts
-^^^^^^^^^^^
-
-.. code-block:: none
-
-   `/opt/ibm/csm/bigdata/DataAggregators/zimon/zimon_hosts`
-
-A flat file which stores the list of hostnames to execute the zimon metrics query on.
-
-.. warning:: This must be set for the cluster environment 
-
-data_collection.sh
-^^^^^^^^^^^^^^^^^^
-
-.. code-block:: none
-
-    `/opt/ibm/csm/bigdata/DataAggregators/zimon/data_collection.sh`
-
-The data collection script is run at an interval, polling sensor data with a zimon 
-query. The metics polled, and the order in which they are presented to the 
-Big Data Store are outlined in this script.
-
-The following attributes must be set before execution:
-
-:BIG_DATA_STORE_IP:
-    The IP address or hostname of the Big Data Store. Used to determine the 
-    address to write the zimon output to. Should be a logstash server.
-
-:BIG_DATA_STORE_PORT:
-    The port monitoring zimon data logs on the big data store. 
-    See :ref: `logstash-configuration-file` for details.
-    `10519` is the recommended port number.
-
-:HOSTS_FILE:
-    The file that tracks the nodes to gather zimon data from. 
-    See `zimon_hosts`_ for details.
-
-When executed the script will aggregate the following metrics for each node in `zimon_hosts_`:
-
-* hostname
-* cpu_system
-* cpu_user
-* mem_active
-* gpfs_ns_bytes_read
-* gpfs_ns_bytes_written
-* gpfs_ns_tot_queue_wait_rd
-* gpfs_ns_tot_queue_wait_wr
-
-To set up the automation add the following to the `crontab` on the zimon collector node.
-
-.. code-block:: none
-
-    */30 * * * * cd /opt/ibm/csm/bigdata/DataAggregators/zimon/; \
-        /bin/bash /opt/ibm/csm/bigdata/DataAggregators/zimon/data_collection.sh >/dev/null 2>&1
-
-
-.. note:: This cron entry will poll the listed nodes once every 30 minutes, but the granularity depends on the zimon configuration.
-
+.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
 .. Links
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
