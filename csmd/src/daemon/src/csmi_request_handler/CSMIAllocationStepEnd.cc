@@ -189,11 +189,12 @@ bool CSMIAllocationStepEnd::ParseInfoQuery(
         {
             /// The step is assumed to have not been populated before this.
             step->user_flags = strdup(fields->data[0]);
-            step->num_nodes  = strtol(fields->data[1], nullptr, 10);
+            int32_t node_count = strtol(fields->data[1], nullptr, 10);
             
             // TODO should this be a function?
-            if ( step->num_nodes > 0 )
+            if ( node_count > 0 )
             {
+                step->num_nodes = node_count;
                 step->compute_nodes = (char**)malloc( sizeof(char*) * step->num_nodes);
 
                 uint32_t i = 0;

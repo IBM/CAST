@@ -201,7 +201,7 @@ const csmi_struct_mapping_t map_csmi_allocation_step_history_t= {
     cast_csmi_allocation_step_history_t
 };
 
-const csmi_struct_node_t csmi_allocation_step_tree[26] = {{"num_nodes",offsetof(csmi_allocation_step_t,num_nodes),0,NULL,0xa5d6722d,24},
+const csmi_struct_node_t csmi_allocation_step_tree[26] = {{"num_nodes",offsetof(csmi_allocation_step_t,num_nodes),0,NULL,0xa5d6722d,36},
 {"begin_time",offsetof(csmi_allocation_step_t,begin_time),0,NULL,0x5f818b18,4},
 {"projected_memory",offsetof(csmi_allocation_step_t,projected_memory),0,NULL,0xe6057cfd,36},
 {"num_gpus",offsetof(csmi_allocation_step_t,num_gpus),0,NULL,0x338e5253,36},
