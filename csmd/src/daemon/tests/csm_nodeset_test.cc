@@ -285,8 +285,8 @@ int computeset_test( int argc, char **argv )
     switch( action )
     {
       case 0:
-        LOG( csmd, always ) << index << ":" << "Commit; " << starter.GetUncommittedInsert()
-          << ":" << starter.GetUncommittedDelete() << " c=" << c;
+        LOG( csmd, always ) << index << ":" << "Commit; " << starter.GetUncommittedUpdates()
+          << " c=" << c;
         starter.Commit( csm::daemon::ComputeSet::SET_COMMIT_BOTH );
         rc += TEST( starter.GetSize(), c );
         if( rc )
@@ -384,8 +384,7 @@ int computeset_test( int argc, char **argv )
   rc += TEST( deser.HasNode("bla2"), false );
   rc += TEST( deser.HasNode("bla3"), true );
 
-  rc += TEST( deser.GetDeleteList().size(), 1 );
-  rc += TEST( deser.GetInsertList().size(), 1 );
+  rc += TEST( deser.GetUpdateList().size(), 1 );
 
 
 

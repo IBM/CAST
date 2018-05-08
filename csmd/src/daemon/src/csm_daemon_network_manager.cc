@@ -921,9 +921,9 @@ bool csm::daemon::EventManagerNetwork::CreateComputeSetUpdateMsg()
   if( cs == nullptr )
     return false;
 
-  CSMLOG( csmd, trace ) << "NodeSetStatus: " << cs->GetUncommittedDelete() << ":" << cs->GetUncommittedInsert();
+  CSMLOG( csmd, trace ) << "NodeSetStatus: " << cs->GetUncommittedUpdates();
 
-  if( cs->GetUncommittedDelete() + cs->GetUncommittedInsert() == 0 )
+  if( cs->GetUncommittedUpdates() == 0 )
   {
     return false;
   }

@@ -592,10 +592,9 @@ csm::daemon::DaemonStateMaster::UpdateAggregator( const csm::network::Address_sp
   ComputeSet cs;
   csm::daemon::ComputeSet::ConvertDiffToClass( data, cs );
 
-  csm::daemon::ComputeNodeList_t newnodes = cs.GetInsertList();
-  csm::daemon::ComputeNodeList_t deadnodes = cs.GetDeleteList();
+  csm::daemon::ComputeSetUpdates_t newnodes = cs.GetUpdateList();
 
-  _aggregators.Update( aggr, newnodes, deadnodes );
+  _aggregators.Update( aggr, newnodes );
 }
 
 csm::daemon::ComputeActionEntry_t

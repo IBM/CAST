@@ -43,6 +43,42 @@ namespace daemon {
 
 typedef std::vector<std::string> ComputeNodeList_t;
 
+enum ComputeNodeAction {
+  NODE_ACTION_DOWN = 0,
+  NODE_ACTION_UP = 1,
+  NODE_ACTION_UNDEFINED = 2
+};
+
+typedef struct ComputeSetData
+{
+  std::string _name;
+  uint64_t _connseq;
+  ComputeNodeAction _action;
+
+  ComputeSetData( const std::string name = "",
+                  const uint64_t seq = 0,
+                  const ComputeNodeAction a = NODE_ACTION_UNDEFINED )
+  : _name( name ), _connseq( seq ), _action( a )
+  {}
+
+
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version)
+  {
+    ar & _name;
+    ar & _connseq;
+    ar & _action;
+  }
+
+} ComputeSetData_t;
+
+static bool CompareComputeSetData( const ComputeSetData_t &a, const ComputeSetData_t &b )
+{
+  return ( a._name < b._name ) || (( a._name == b._name) && (a._connseq < b._connseq ));
+}
+
+typedef std::vector<ComputeSetData_t> ComputeSetUpdates_t;
+
 class ComputeSet
 {
 public:
@@ -54,36 +90,32 @@ public:
   };
 private:
   ComputeNodeList_t _addrs;   // committed list of addresses
-  ComputeNodeList_t _inserted;  // any uncommitted/newly added addresses
-  ComputeNodeList_t _deleted;  // any uncommitted/removed addresses
+  ComputeSetUpdates_t _updates; // changes to the existing set
   bool _active;  // determines whether this set of nodes is active or not
   mutable std::mutex _lock;
 
 public:
   ComputeSet()
-  : _addrs(), _inserted(), _deleted(), _active( false )
+  : _addrs(), _updates(),_active( false )
   {}
 
   ComputeSet( const ComputeNodeList_t &nodes )
-  : _inserted(), _deleted(), _active( false ), _lock()
+  : _updates(), _active( false ), _lock()
   {
     SetAddrList( nodes );
   }
 
   ComputeSet( const ComputeSet &in )
   : _addrs( in._addrs ),
-    _inserted( in._inserted ), _deleted( in._deleted ),
+    _updates( in._updates ),
     _active( in._active ),
     _lock()
   {
     if( ! std::is_sorted( _addrs.begin(), _addrs.end() ) )
       std::sort( _addrs.begin(), _addrs.end() );
 
-    if(( ! _inserted.empty() ) && ( ! std::is_sorted( _inserted.begin(), _inserted.end() )) )
-      std::sort( _inserted.begin(), _inserted.end() );
-
-    if(( ! _deleted.empty() ) && ( ! std::is_sorted( _deleted.begin(), _deleted.end() )) )
-      std::sort( _deleted.begin(), _deleted.end() );
+    if(( ! _updates.empty() ) && ( ! std::is_sorted( _updates.begin(), _updates.end(), CompareComputeSetData )) )
+      std::sort( _updates.begin(), _updates.end(), CompareComputeSetData );
   }
 
   ComputeSet& operator=( const ComputeSet &in )
@@ -91,18 +123,14 @@ public:
     std::lock_guard<std::mutex> guard( _lock );
 
     _addrs = in._addrs;
-    _inserted = in._inserted;
-    _deleted = in._deleted;
+    _updates = in._updates;
     _active = in._active;
 
     if( ! std::is_sorted( _addrs.begin(), _addrs.end() ) )
       std::sort( _addrs.begin(), _addrs.end() );
 
-    if(( ! _inserted.empty() ) && ( ! std::is_sorted( _inserted.begin(), _inserted.end() )) )
-      std::sort( _inserted.begin(), _inserted.end() );
-
-    if(( ! _deleted.empty() ) && ( ! std::is_sorted( _deleted.begin(), _deleted.end() )) )
-      std::sort( _deleted.begin(), _deleted.end() );
+    if(( ! _updates.empty() ) && ( ! std::is_sorted( _updates.begin(), _updates.end(), CompareComputeSetData )) )
+      std::sort( _updates.begin(), _updates.end(), CompareComputeSetData );
 
     return *this;
   }
@@ -116,21 +144,20 @@ public:
   bool HasNode( const std::string lookup ) const
   {
     std::lock_guard<std::mutex> guard( _lock );
-    bool ret = std::binary_search( _addrs.begin(), _addrs.end(), lookup );
 
-    if( ret )
+    // check if the node appears in the update queue as an insert or delete
+    // start search from the back, we're only interested in the last action
+    for( auto it = _updates.crbegin(); it != _updates.crend(); ++it )
     {
-      // if it was in the addr list, check if it might be an uncommitted delete
-      bool deleted = ( ! _deleted.empty() ) && (std::binary_search( _deleted.begin(), _deleted.end(), lookup ));
-      ret &= ( ! deleted );
+      // stop the lookup if we're past the point (not part of the updates)
+      if( it->_name < lookup )
+        break;
+      // found the entry, return what the last action was
+      if( it->_name == lookup )
+        return ( it->_action == NODE_ACTION_UP );
     }
-    else
-    {
-      // if it was not in the addr list, check if it might be an uncommitted insert
-      ret |= ( ( ! _inserted.empty() ) && std::binary_search( _inserted.begin(), _inserted.end(), lookup ) );
-    }
-
-    return ret;
+    // if node is not in updates, do search and return what's in the addr list
+    return std::binary_search( _addrs.begin(), _addrs.end(), lookup );
   }
 
   void SetAddrList( const ComputeNodeList_t &addrs )
@@ -141,8 +168,7 @@ public:
     _addrs = addrs;
     std::sort( _addrs.begin(), _addrs.end() );
 
-    _inserted.clear();
-    _deleted.clear();
+    _updates.clear();
   }
 
   ComputeNodeList_t GetAddrList() const
@@ -150,14 +176,9 @@ public:
     return _addrs;
   }
 
-  ComputeNodeList_t GetInsertList() const
+  ComputeSetUpdates_t GetUpdateList() const
   {
-    return _inserted;
-  }
-
-  ComputeNodeList_t GetDeleteList() const
-  {
-    return _deleted;
+    return _updates;
   }
 
   ComputeNodeList_t GenerateAddrList()
@@ -166,42 +187,32 @@ public:
     return _addrs;
   }
 
-  ComputeNodeList_t GenerateInsertList() const
-  {
-    return _inserted;
-  }
-
-  ComputeNodeList_t GenerateDeleteList() const
-  {
-    return _deleted;
-  }
-
   size_t GetSize() const
   {
-    return _addrs.size() + _inserted.size() - _deleted.size();
+    size_t n = _addrs.size();
+    for( auto it : _updates )
+      if( it._action == NODE_ACTION_UP ) ++n;
+      else --n;
+
+    return n;
   }
 
-  size_t GetUncommittedInsert() const { return _inserted.size(); }
-  size_t GetUncommittedDelete() const { return _deleted.size(); }
+  size_t GetUncommittedUpdates() const { return _updates.size(); }
 
   void SetActive( const bool active ) { _active = active; }
   bool GetActive( ) const { return _active; }
 
   bool empty() const
-  { return ( GetSize() == 0 ); }
+  { return ( _addrs.empty() & _updates.empty() ); }
 
   void Clear()
   {
     std::lock_guard<std::mutex> guard( _lock );
     _addrs.clear();
-    _inserted.clear();
-    _deleted.clear();
+    _updates.clear();
   }
 
-  // adding a node checks if the node might be in the uncommitted deleted list
-  // if it's there, then remove it
-  // finally append it to the uncommitted inserted list
-  bool AddNode( const std::string node )
+  bool AddNode( const std::string node, const uint64_t sequence = 0 )
   {
     std::lock_guard<std::mutex> guard( _lock );
 
@@ -209,95 +220,122 @@ public:
     bool had_uncommitted_delete = false;
 
     // prevent double insertion
-    if( std::binary_search( _inserted.begin(), _inserted.end(), node ))
-      return false;
-
-    // if it's listed in _delete set, then remove it from there
-    for( ComputeNodeList_t::iterator del = _deleted.begin();
-        del != _deleted.end();
-        ++del )
+    for( auto it = _updates.crbegin(); it != _updates.crend(); ++it )
     {
-      if( *del == node )
+      if( it->_name < node ) break;
+      if(( it->_name == node ) && ( it->_connseq <= sequence ))
       {
-        _deleted.erase( del );
-        had_uncommitted_delete = true;
-        break;
+        CSMLOG( csmd, debug ) << "AddNode: Found node " << node << " last activity: "
+            << ( it->_action == NODE_ACTION_UP ? "ADD" : "DEL");
+        if( it->_action == NODE_ACTION_UP )
+          return false;
+        else
+        {
+          had_uncommitted_delete = true;
+          break; // if last action was not UP, then we can break here and update the status
+        }
       }
     }
 
     // don't attempt to insert if it's already there
-    // search based on the address key because the pointer might be different
-    if( ! std::binary_search( _addrs.begin(), _addrs.end(), node ) )
+    if(( had_uncommitted_delete ) || ( ! std::binary_search( _addrs.begin(), _addrs.end(), node ) ))
     {
-      _inserted.push_back( node );
-      std::sort( _inserted.begin(), _inserted.end() );
+      _updates.push_back( ComputeSetData_t(node, sequence, NODE_ACTION_UP ) );
       CSMLOG( csmd, debug ) << "Inserting node " << node << " to compute set";
       return true;
     }
     return had_uncommitted_delete;
   }
 
-  // deleting a node checks if the node might be in the uncommitted insertion list
-  // if it's in there, then remove it
-  // finally append it to the uncommitted deletion list
-  bool DelNode( const std::string node )
+  bool DelNode( const std::string node, const uint64_t sequence = 0 )
   {
     std::lock_guard<std::mutex> guard( _lock );
 
     if( node.empty() ) return false;
-    if( _addrs.empty() && _inserted.empty() ) return false;
+    if( _addrs.empty() && _updates.empty() ) return false;
 
     bool had_uncommitted_insert = false;
 
-    // prevent double deletion
-    if( std::binary_search( _deleted.begin(), _deleted.end(), node ) )
-      return false;
-
-    // check if it's in the inserted list
-    for( ComputeNodeList_t::iterator ins = _inserted.begin();
-        ins != _inserted.end();
-        ++ins )
+    // prevent double insertion
+    for( auto it = _updates.crbegin(); it != _updates.crend(); ++it )
     {
-      if( *ins == node )
+      if( it->_name < node ) break;
+      if(( it->_name == node ) && ( it->_connseq <= sequence ))
       {
-        _inserted.erase( ins );
-        had_uncommitted_insert = true;
-        CSMLOG( csmd, debug ) << "Deleting node " << node << " from compute set";
-        break;
+        CSMLOG( csmd, debug ) << "DelNode: Found node " << node << " last activity: "
+            << ( it->_action == NODE_ACTION_UP ? "ADD" : "DEL");
+        if( it->_action == NODE_ACTION_DOWN )
+          return false;
+        else
+        {
+          had_uncommitted_insert = true;
+          break; // if last action was not DOWN, then we can break here and update the status
+        }
       }
+
     }
 
-    // before adding it to the delete set, make sure the item actually exists
-    if( std::binary_search( _addrs.begin(), _addrs.end(), node ) )
+    // only record the deletion if it either has been inserted or is available in the committed list
+    if(( had_uncommitted_insert) || ( std::binary_search( _addrs.begin(), _addrs.end(), node ) ))
     {
-      _deleted.push_back( node );
-      std::sort( _deleted.begin(), _deleted.end() );
+      _updates.push_back( ComputeSetData_t(node, sequence, NODE_ACTION_DOWN ) );
+      CSMLOG( csmd, debug ) << "Deleting node " << node << " from compute set";
       return true;
     }
-
     return had_uncommitted_insert;
   }
 
   void Commit( const SetCommitType commitMask = SET_COMMIT_BOTH )
   {
     std::lock_guard<std::mutex> guard( _lock );
-    size_t delsize = _deleted.size();
-    size_t inssize = _inserted.size();
+    if( _updates.empty() ) return;
+    size_t updsize = _updates.size();
+    std::map<std::string, int> node_map;
+    ComputeNodeList_t to_delete;
 
-    if(( inssize > 0 ) && ( commitMask & SET_COMMIT_INSERTED ))
+    for( auto it : _updates )
     {
-      _addrs = UnionNodes( _inserted );
-      _inserted.clear();
+      if( it._action == NODE_ACTION_UP ) node_map[ it._name ] = 1;
+      if( it._action == NODE_ACTION_DOWN ) node_map[ it._name ] = -1;
     }
 
-    if(( delsize > 0 ) && ( commitMask & SET_COMMIT_DELETED ))
+    for( auto it : node_map )
     {
-      _addrs = DifferenceNodes( _deleted );
-      _deleted.clear();
+      if( it.second == 0 ) continue;
+      if(( it.second > 0 ) && ( commitMask & SET_COMMIT_INSERTED ))
+        _addrs.push_back( it.first );
+      if(( it.second < 0 ) && ( commitMask & SET_COMMIT_DELETED ))
+        to_delete.push_back( it.first ); // assemble deletion list to perform set-differenc
     }
 
-    CSMLOG( csmd, debug ) << " Committed changes(mask:" << commitMask << "): insertions=" << inssize
-        << " deletions=" << delsize << " totalsize=" << GetSize() << " (" << _inserted.size() << ":" << _deleted.size() << ")";
+    // sort the updated node list
+    if( ! std::is_sorted( _addrs.begin(), _addrs.end() ) )
+      std::sort( _addrs.begin(), _addrs.end() );
+
+    // perform the difference op to remove deletede nodes
+    if(( ! to_delete.empty() ) && ( commitMask & SET_COMMIT_DELETED ))
+    {
+      if( ! std::is_sorted( to_delete.begin(), to_delete.end() ) )
+        std::sort( to_delete.begin(), to_delete.end() );
+      _addrs = DifferenceNodes( to_delete );
+    }
+
+    CSMLOG( csmd, debug ) << " Committed changes(mask:" << commitMask << "): updates=" << updsize
+        << " totalsize=" << GetSize();
+
+    _updates.clear();
+
+  }
+
+  void Update( const ComputeSetUpdates_t &upd )
+  {
+    if( _updates.empty() ) _updates = upd;
+    else
+    {
+      for( auto it : upd )
+        _updates.push_back( it );
+    }
+    Commit();
   }
 
   void InterSect( const ComputeSet &in )
@@ -376,10 +414,13 @@ public:
     std::lock_guard<std::mutex> guard( _lock );
     std::string ret = "N:";
     for( auto it : _addrs ) { ret.append( it ); ret.append(";"); }
-    ret.append("I:");
-    for( auto it : _inserted ) { ret.append( it ); ret.append(";"); }
-    ret.append("D:");
-    for( auto it : _deleted ) { ret.append( it ); ret.append(";"); }
+    ret.append("U:");
+    for( auto it : _updates )
+    {
+      ret.append( it._name );
+      ret.append(".");
+      ret.append( it._action == NODE_ACTION_UP ? "i;" : "d;" );
+    }
     return ret;
   }
 
@@ -390,8 +431,7 @@ private:
   void serialize(Archive &ar, const unsigned int version)
   {
     std::lock_guard<std::mutex> guard( _lock );
-    ar & _inserted;
-    ar & _deleted;
+    ar & _updates;
   }
 
 };
@@ -455,6 +495,26 @@ public:
     }
     return _events.size();
   }
+
+  size_t Updates( const ComputeSetUpdates_t &upd, const bool down )
+  {
+    for( auto it : upd )
+    {
+      if( _refs[ it._name ] > 0 )
+        _refs.at( it._name )--;
+
+      if( _refs[ it._name ] == 0 )
+        _events.push_back( ComputeActionEntry_t( it._name,
+                                                 (down ? COMPUTE_DOWN : COMPUTE_LOST_CONNECTION ) ) );
+      if( _refs[ it._name ] == 1 )
+        _events.push_back( ComputeActionEntry_t( it._name, COMPUTE_LOST_REDUNDANCY ) );
+
+      CSMLOG( csmd, debug ) << (it._action == NODE_ACTION_UP ? "UP" : "DOWN" ) << "counting " << it._name
+          << " refs=" << std::to_string( _refs[ it._name ] );
+    }
+    return _events.size();
+  }
+
   uint8_t operator[]( const std::string &node ) const
   {
     try
@@ -533,19 +593,16 @@ public:
   }
 
   int Update( const csm::network::Address_sptr addr,
-              const ComputeNodeList_t &ins, const ComputeNodeList_t &del )
+              const ComputeSetUpdates_t &upd )
   {
     if( addr == nullptr ) return -EINVAL;
 
     std::lock_guard<std::mutex> guard( _lock );
-    CSMLOG( csmd, debug ) << "Updating AGG: " << addr->Dump()  << " i:" << ins.size() << " d:" << del.size();
-    if( ! ins.empty() )
-      _refcount.Up( ins );
-    if( ! del.empty() )
-      _refcount.Down( del, true );
+    CSMLOG( csmd, debug ) << "Updating AGG: " << addr->Dump()  << " updates:" << upd.size();
 
-    _aggrs[ addr->MakeKey() ].Union( ins );
-    _aggrs[ addr->MakeKey() ].Difference( del );
+    if( ! upd.empty() )
+      _refcount.Updates( upd, true );
+
     CSMLOG( csmd, info ) << "Nodes of "  << addr->Dump()  << ": " << _aggrs[ addr->MakeKey() ].GetSize();
     CSMLOG( csmd, trace ) << "Nodes of "  << addr->Dump()  << ": " << _aggrs[ addr->MakeKey() ].Dump();
     return 0;
