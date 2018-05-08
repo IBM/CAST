@@ -194,7 +194,7 @@ bool CSMIAllocationStepEnd::ParseInfoQuery(
             // TODO should this be a function?
             if ( node_count > 0 )
             {
-                step->num_nodes = node_count;
+                step->num_nodes = (uint32_t) node_count;
                 step->compute_nodes = (char**)malloc( sizeof(char*) * step->num_nodes);
 
                 uint32_t i = 0;

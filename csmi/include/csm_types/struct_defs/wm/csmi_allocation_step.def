@@ -50,11 +50,11 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_VERSION_1_1_0)
+CSMI_VERSION_START(CSM_VERSION_0_4_1)
 
 CSMI_STRUCT_MEMBER( int64_t, step_id,               BASIC, ,    0, ) /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
 CSMI_STRUCT_MEMBER( int64_t, allocation_id,         BASIC, ,    0, ) /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
-CSMI_STRUCT_MEMBER( int32_t, num_nodes,            BASIC, ,    0, ) /**< Number of nodes, size of @ref compute_nodes.*/
+CSMI_STRUCT_MEMBER( int32_t, num_nodes,             BASIC, ,    0, ) /**< Number of nodes, size of @ref compute_nodes.*/
 CSMI_STRUCT_MEMBER( int32_t, num_processors,        BASIC, ,    0, ) /**< Number of CPUs assigned to a job. */
 CSMI_STRUCT_MEMBER( int32_t, num_gpus,              BASIC, ,    0, ) /**< Number of gpus. */
 CSMI_STRUCT_MEMBER( int32_t, projected_memory,      BASIC, ,    0, ) /**< Projected memory availablity for the step.*/
