@@ -303,7 +303,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t step_id; /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
     int64_t allocation_id; /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
-    int32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes.*/
+    uint32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes.*/
     int32_t num_processors; /**< Number of CPUs assigned to a job. */
     int32_t num_gpus; /**< Number of gpus. */
     int32_t projected_memory; /**< Projected memory availablity for the step.*/

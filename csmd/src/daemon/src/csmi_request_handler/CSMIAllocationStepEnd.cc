@@ -196,7 +196,7 @@ bool CSMIAllocationStepEnd::ParseInfoQuery(
             {
                 step->compute_nodes = (char**)malloc( sizeof(char*) * step->num_nodes);
 
-                int32_t i = 0;
+                uint32_t i = 0;
                 char *saveptr;
                 char *nodeStr = strtok_r(fields->data[2], ",", &saveptr);
 
