@@ -80,7 +80,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       data = CreateHCDAndSetLDaemon(msg);
       data._master = HealthNodeInfo( CSMDaemonRole_to_string( CSM_DAEMON_ROLE_MASTER ),
                                      csm::daemon::Configuration::Instance()->GetHostname(),
-                                     std::string(CSM_VERSION, 7),
+                                     std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )),
                                      0, true );
       data._master.SetDaemonID( csm::daemon::Configuration::Instance()->GetDaemonState()->GetDaemonID() );
       

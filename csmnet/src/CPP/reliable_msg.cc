@@ -155,7 +155,7 @@ retry:
           aMsgAddr._Msg.SetCommandType( aMsgAddr._Msg.GetReservedID() ); // restore the command type to match what the sender version had
           aMsgAddr._Msg.SetReservedID( 0 );
           KeepErrorFlag = true;
-          aMsgAddr._Msg.SetData( std::string("VERSION MISMATCH. Required: ") + std::string(CSM_VERSION, 0, 7));
+          aMsgAddr._Msg.SetData( std::string("VERSION MISMATCH. Required: ") + std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )));
           event_type = csm::network::NET_CTL_DISCONNECT;
           disconnect = true;
         }
