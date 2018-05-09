@@ -52,32 +52,36 @@ bool CSMIClusterQueryState::CreatePayload(
 	}
 	
 	// =====================================================================
-	//std::string stmtParams = "";
+	std::string stmtParams = "";
 	int SQLparameterCount = 0;
 	
-	// add_param_sql( stmtParams, input->type && input->type < csm_enum_max(csmi_node_type_t), 
-        // ++SQLparameterCount, "type = $", "::text AND ")
+	add_param_sql( stmtParams, input->type && input->type < csm_enum_max(csmi_node_type_t), 
+        ++SQLparameterCount, "type = $", "::text AND ")
 		
 	// TODO should this fail if the parameter count is zero?
     // Replace the last 4 characters if any parameters were found.
-   /*  if ( SQLparameterCount > 0)
+    if ( SQLparameterCount > 0)
     {
         int len = stmtParams.length() - 1;
         for( int i = len - 3; i < len; ++i)
             stmtParams[i] = ' ';
-    } */
+    }
 	
+	//ToDo: turn this into a DB function.
 	/*Open "std::string stmt"*/
 	std::string stmt = 
 		"SELECT "
 			"n.node_name, n.collection_time, n.update_time, n.state, n.type, COUNT(an.allocation_id) AS num_allocs, array_agg(an.allocation_id) AS allocs, array_agg(an.state) AS states, array_agg(an.shared) AS shared "
 		"FROM csm_node AS n "
-		// "WHERE (";
-			// stmt.append( stmtParams );
-		// stmt.append(") "
-		"LEFT JOIN csm_allocation_node AS an ON an.node_name = n.node_name "
-		"GROUP BY n.node_name "
-		"ORDER BY node_name ";
+		"LEFT JOIN csm_allocation_node AS an ON an.node_name = n.node_name ";
+		if(SQLparameterCount > 0)
+		{
+		stmt.append("WHERE (");
+			stmt.append( stmtParams );
+		stmt.append(") ");
+		}
+		stmt.append("GROUP BY n.node_name "
+		"ORDER BY node_name ");
 		add_param_sql( stmt, input->limit > 0, ++SQLparameterCount,
             "LIMIT $", "::int ")
 		add_param_sql( stmt, input->offset > 0, ++SQLparameterCount,
@@ -87,7 +91,7 @@ bool CSMIClusterQueryState::CreatePayload(
 	// Build the parameterized list.
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount); 
 	
-	//if(input->type && input->type < csm_enum_max(csmi_node_type_t)) dbReq->AddTextParam  (csm_get_string_from_enum(csmi_node_type_t, input->type));
+	if(input->type && input->type < csm_enum_max(csmi_node_type_t)) dbReq->AddTextParam  (csm_get_string_from_enum(csmi_node_type_t, input->type));
 	if(input->limit                > 0    ) dbReq->AddNumericParam<int>(input->limit);
 	if(input->offset               > 0    ) dbReq->AddNumericParam<int>(input->offset);
 	
