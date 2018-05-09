@@ -31,7 +31,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ras_msg_type_create_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_ras_msg_type_create_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_create;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_create;
 
 void csm_ras_msg_type_create_destroy(csm_api_object *csm_obj);
 

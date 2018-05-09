@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_allocation_step_begin_input_t
 #define API_PARAMETER_OUTPUT_TYPE 
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_step_begin;
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_step_begin;
 
 int csm_allocation_step_begin(
     csm_api_object **handle, 

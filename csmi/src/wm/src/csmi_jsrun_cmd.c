@@ -49,7 +49,7 @@
         }                                                               \
     }           
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_jsrun_cmd;
+static const csmi_cmd_t expected_cmd = CSM_CMD_jsrun_cmd;
 
 int csm_jsrun_cmd(
     csm_api_object **handle, 

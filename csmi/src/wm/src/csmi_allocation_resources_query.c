@@ -36,7 +36,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_allocation_resources_query_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_allocation_resources_query_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_resources_query;
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_resources_query;
 
 void csmi_allocation_resources_query_destroy(csm_api_object *handle);
 

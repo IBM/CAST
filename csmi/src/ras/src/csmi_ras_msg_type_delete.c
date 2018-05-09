@@ -31,7 +31,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ras_msg_type_delete_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_ras_msg_type_delete_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_delete;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_delete;
 
 void csm_ras_msg_type_delete_destroy(csm_api_object *csm_obj);
 

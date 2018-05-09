@@ -23,7 +23,7 @@
 
 #define API_PARAMETER_INPUT_TYPE csm_ras_subscribe_input_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_subscribe;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_subscribe;
 
 void csm_ras_subscribe_destroy(csm_api_object *csm_obj);
 

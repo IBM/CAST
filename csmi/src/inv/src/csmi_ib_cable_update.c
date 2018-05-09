@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ib_cable_update_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_ib_cable_update_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ib_cable_update;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ib_cable_update;
 
 void csmi_ib_cable_update_destroy(csm_api_object *csm_obj);
 

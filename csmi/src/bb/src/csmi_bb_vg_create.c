@@ -36,7 +36,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_bb_vg_create_input_t
 #define API_PARAMETER_OUTPUT_TYPE 
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_bb_vg_create;
+static const csmi_cmd_t expected_cmd = CSM_CMD_bb_vg_create;
 
 int csm_bb_vg_create(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE *input)
 {
