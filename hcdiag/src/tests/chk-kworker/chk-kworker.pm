@@ -43,16 +43,18 @@ GetOptions(
 
 if ($help) { usage() }
 
+my $threshold = shift @ARGV || "20.0";
+print "Checking if there is a kworker process consuming more than $threshold of the cpu.\n";
+
 my $node = `hostname -s`;
 $node =~ s/\R//g;
 
 my $tempdir = tempdir( CLEANUP => 1 );
-my $cmd = "ps r --no-header  -o %cpu,stat,cmd \$(pgrep kworker) 2>$tempdir/stderr";
+my $cmd = "ps -ero %cpu,stat,cmd --no-headers | egrep kworker 2>$tempdir/stderr";
+
 print $cmd . "\n";
 my $rval = `$cmd`;
 my $rc=$?;
-
-print"==> $rval\n";
 
 my $rec={};
 my $errs = [];
@@ -63,31 +65,30 @@ foreach my $l (split(/\n/,`cat $tempdir/stderr`)) {
 }
 foreach my $l (split(/\n/,$rval)) {
    # parse off:
-   # c460c004: 40.3 R    [kworker/u320:3]
+   # 40.3 R    [kworker/u320:3]
    chomp $l;
    if ($verbose) {print $l . "\n";}
 
    my ($cpu,$state,$cmd) = $l =~ /^\s*([\d\.]+)\s*(\S)\s*(.+?)$/;
-   print "==> $cpu, $state, $cmd" ;
    if ((defined $node) && (defined $cpu) && (defined $state) && (defined $cmd)) {
-      if ($cpu >= 20.0) {
+      if ($cpu >= $threshold) {
          push (@$errs, $l . ": unexpectly busy kworker: " );
-         #print "node=$node,cpu=$cpu,state=$state,cmd=$cmd\n";
+         print "node=$node,cpu=$cpu,state=$state,cmd=$cmd\n";
       }
    }
 }
 
-# print out the errors with an approrpiate error header...
+# print out the errors with an appropriate error header...
 if (scalar @$errs) {
    for my $e (@$errs) {
       print "(ERROR) $e\n";
    }
-   print "FAILED\n";
+   print "FAIL\n";
    exit 1;
 } 
 
 
-print "SUCCESS\n";
+print "PASS\n";
 exit 0;
 
 
