@@ -229,6 +229,21 @@ int BBTagInfo2::prepareForRestart(const string& pConnectionName, const LVKey* pL
 
     if (pPass == THIRD_PASS)
     {
+        // NOTE:  Today, the stageout started flag is NOT turned on for an LVKey/jobid/handle.
+        //        Therefore we do not attempt to replicate that flag, and related ones,
+        //        in the BBLVKey_ExtentInfo flags data contained within BBTagInfo2.
+        //        Upon restart to a new bbServer, we *should* copy those flag values
+        //        from the cross bbServer metadata to the newly constructed local
+        //        metadata.
+        // NOTE:  For restart, we should not be concerned with the stageout end
+        //        and stage out end completed flags as they should always be off
+        //        for a restart scenario.  Those flags are only used as part of
+        //        remove logical volume processing.
+        // \todo - If we ever become dependent upon these flags, need to copy those
+        //         values (not exactly sure where in the restart path...) -or-
+        //         never rely on the local cached flag values and always go out
+        //         to the cross bbServer metadata for those flag vlaues.
+
         // If last pass, set the appropriate flags in the LVKey related local metadata
         extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
     }

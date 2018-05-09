@@ -373,7 +373,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                 }
                                 else
                                 {
-                                    // At least one of the the files failed.  (It may have been marked failed after processing the
+                                    // At least one of the files failed.  (It may have been marked failed after processing the
                                     // last extent for the transfer definition...)
                                     //
                                     // Mark the transfer definition as stopped...
@@ -708,7 +708,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         string cmd;
         cmd = "cp " + pTransferDef->files[pExtent->sourceindex] + " " + pTransferDef->files[pExtent->targetindex];
 
-        // \todo NOTE: Currently, no way to get the the stopped or canceled legs...  @DLH
+        // \todo NOTE: Currently, no way to get to the stopped or canceled legs...  @DLH
         BBSTATUS l_Status = BBFULLSUCCESS;
         for (auto&l_Line : runCommand(cmd)) {
             // No expected output...
@@ -2815,10 +2815,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
         // Check to see if stgout_start has been called...  If not, send warning and continue...
         if (!l_TagInfo2->stageOutStarted()) {
             // Stageout start was never received...
-            LOG(bb,warning) << "Stageout end received for " << *pLVKey << " without preceding stageout start.  Continuing...";
+            LOG(bb,debug) << "Stageout end received for " << *pLVKey << " without preceding stageout start.  Continuing...";
         }
 
         if (!(l_TagInfo2->stageOutEnded())) {
+
             // ** NOT USED **
             // In an attempt to make this stageoutEnd() processing look 'atomic' to other threads on THIS bbServer,
             // we pin the transfer queue lock.  This means that the lock will be held throughout the following
