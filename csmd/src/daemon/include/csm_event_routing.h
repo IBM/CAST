@@ -51,6 +51,7 @@
 #include "src/csmi_request_handler/CSMIBBVGCreate.h"
 #include "src/csmi_request_handler/CSMIBBVGDelete.h"
 #include "src/csmi_request_handler/CSMIBBVGQuery.h"
+#include "src/csmi_request_handler/CSMIClusterQueryState.h"
 #include "src/csmi_request_handler/CSMICGROUPLogin.h"
 #include "src/csmi_request_handler/CSMIDiagResultCreate.h"
 #include "src/csmi_request_handler/CSMIDiagRunBegin.h"
