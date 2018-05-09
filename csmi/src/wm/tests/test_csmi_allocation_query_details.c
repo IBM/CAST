@@ -36,7 +36,8 @@ static void usage(const char *argv0)
 
 int csmi_client(int argc, char *argv[])
 {
-  int                i;
+  uint32_t           i;
+  int32_t            j;
   int                ch;
   int                indexptr = 0;
   int                retval;
@@ -61,8 +62,8 @@ int csmi_client(int argc, char *argv[])
   if (argc != 2)
     usage(argv[0]);
 
-  for (i = optind; i < argc; i++) {
-    input.allocation_id = (uint64_t)atol(argv[i]);
+  for (j = optind; j < argc; j++) {
+    input.allocation_id = (uint64_t)atol(argv[j]);
   }
 
   retval = csm_allocation_query_details(&csm_obj, &input, &output);

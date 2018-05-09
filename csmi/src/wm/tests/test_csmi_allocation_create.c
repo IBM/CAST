@@ -24,7 +24,7 @@
 
 int csmi_client(int argc, char *argv[])
 {
-  int                i;
+  uint32_t               i;
   int                retval;
   csmi_allocation_t   allocation;
   char             **compute_nodes;

@@ -121,7 +121,7 @@ void csmi_node_resources_query_destroy(csm_api_object *handle)
 	csmi_api_internal *csmi_hdl;
     API_PARAMETER_OUTPUT_TYPE *output = NULL;
 	/* Helper variables. */
-    //int i = 0;
+    //uint32_t i = 0;
     
 	/* Verify it exists */
     if (handle == NULL || handle->hdl == NULL)

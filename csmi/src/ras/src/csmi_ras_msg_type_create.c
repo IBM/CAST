@@ -172,7 +172,7 @@ void csm_ras_msg_type_create_destroy(csm_api_object *csm_obj)
 	csmi_api_internal *csmi_hdl;
     API_PARAMETER_OUTPUT_TYPE *output = NULL;
 	/* Helper variables. */
-    //int i = 0;
+    //uint32_t i = 0;
     
 	/* Verify it exists */
     if (csm_obj == NULL || csm_obj->hdl == NULL)
