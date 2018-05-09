@@ -70,6 +70,12 @@ CSMI_STRUCT_MEMBER(char*  , hostname  , STRING, , NULL, ) /**< The hostname of t
 CSMI_STRUCT_MEMBER(int64_t, gpu_energy ,  BASIC, ,   -1, ) /**< The gpu energy (watts).*/
 CSMI_VERSION_END(a3e0c5482ee192cf0c868e323031ad4f)
 
+
+CSMI_VERSION_START(CSM_VERSION_1_1_0)
+CSMI_STRUCT_MEMBER(csmi_cmd_err_t  , error_code  , BASIC, , CSMI_SUCCESS, ) /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
+CSMI_STRUCT_MEMBER(char*  , error_message  , STRING, , NULL, ) /**< The error message in failure cases which don'tbreak data aggregation.*/
+
+CSMI_VERSION_END(c0bc341048158414c26f23e675b10a4b)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

@@ -156,6 +156,8 @@ typedef struct {
     char create; /**< A flag indicating whether this is a create or delete payload. */
     char* hostname; /**< The hostname of the node this Payload was sent to. */  
     int64_t gpu_energy; /**< The gpu energy (watts).*/
+    csmi_cmd_err_t error_code; /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
+    char* error_message; /**< The error message in failure cases which don'tbreak data aggregation.*/
 } csmi_allocation_mcast_payload_response_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *
