@@ -384,7 +384,7 @@ int computeset_test( int argc, char **argv )
   rc += TEST( deser.HasNode("bla2"), false );
   rc += TEST( deser.HasNode("bla3"), true );
 
-  rc += TEST( deser.GetUpdateList().size(), 1 );
+  rc += TEST( deser.GetUpdateList().size(), 2 );
 
 
 
@@ -428,6 +428,12 @@ int aggregatorset_test( int argc, char **argv )
     rc += TEST( master.GetAggrDisconnectedNodes( agg[ i ] ).size(), 0 );
   rc += TEST( master.GetAggrDisconnectedNodes( agg[ AGG_COUNT-1 ] ).size(), (size_t)listSize/2 );
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Aggtest node coverage rc=" << rc;
+    return rc;
+  }
+
   // check node connectivity
   for( size_t i=0; i<nodes.size(); ++i )
   {
@@ -437,18 +443,42 @@ int aggregatorset_test( int argc, char **argv )
       rc += TEST( master.IsNodeConnected( nodes[ i ] ), false );
   }
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Node Connectivity check failed: rc=" << rc;
+    return rc;
+  }
+
   // disconnect agg 3 and check for full connectivity
   master.Disconnect( agg[ 3 ] );
   for( size_t i=(size_t)listSize; i<(size_t)listSize * 3; ++i )
     rc += TEST( master.IsNodeConnected( nodes[ i ] ), true );
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Disconnect Agg3: rc=" << rc;
+    return rc;
+  }
+
   master.Disconnect( agg[ 4 ] );
   for( size_t i=(size_t)listSize * 2; i<(size_t)(listSize * 5) / 2; ++i )
     rc += TEST( master.IsNodeConnected( nodes[ i ] ), false );
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Disconnect Agg4: rc=" << rc;
+    return rc;
+  }
+
   master.Connect( agg[ 3 ] );
   for( size_t i=(size_t)listSize * 2; i<(size_t)(listSize * 5) / 2; ++i )
     rc += TEST( master.IsNodeConnected( nodes[ i ] ), true );
+
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Connect Agg3: rc=" << rc;
+    return rc;
+  }
 
   return rc;
 }
