@@ -215,13 +215,13 @@ int main(int argc, char *argv[])
 				printf("Total_Records: %i\n", output->results_count);
 				for(i = 0; i < output->results_count; i++){
 					printf("Record_%i:\n", i+1);
-					printf("  node_name:               %s\n", output->results[i]->node_name);
-					printf("  collection_time:         %s\n", output->results[i]->collection_time);
-					printf("  update_time:             %s\n", output->results[i]->update_time);
-					printf("  state:                   %s\n", csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state));
-					printf("  type:                    %s\n", csm_get_string_from_enum(csmi_node_type_t, output->results[i]->type));
-					printf("  num_allocs:              %" PRIu32 "\n", output->results[i]->num_allocs);
-					if(output->results[0]->num_allocs > 0)
+					printf("  node_name:       %s\n", output->results[i]->node_name);
+					printf("  collection_time: %s\n", output->results[i]->collection_time);
+					printf("  update_time:     %s\n", output->results[i]->update_time);
+					printf("  state:           %s\n", csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state));
+					printf("  type:            %s\n", csm_get_string_from_enum(csmi_node_type_t, output->results[i]->type));
+					printf("  num_allocs:      %" PRIu32 "\n", output->results[i]->num_allocs);
+					if(output->results[i]->num_allocs > 0)
 					{
 						printf("  allocs:\n");
 						uint32_t j = 0;
@@ -254,24 +254,76 @@ int main(int argc, char *argv[])
 				// temp_allocs = strdup("temp");
 				// temp_states = strdup("temp");
 				// temp_shared = strdup("temp");
+				int largest_nodename_length = 0;
+				int largest_state_length = 0;
+				int largest_type_length = 0;
 				
 				// 10 = largest 
-				int largest_nodename_length = -16;
+				for(i = 0; i < output->results_count; i++)
+				{
+					int temp_nodeNameSize = strlen(output->results[i]->node_name);
+					int temp_stateSize = strlen(csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state));
+					int temp_typeSize = strlen(csm_get_string_from_enum(csmi_node_type_t, output->results[i]->type));
+					
+					if(temp_nodeNameSize > largest_nodename_length){
+						largest_nodename_length = temp_nodeNameSize;
+					}
+					if(temp_stateSize > largest_state_length){
+						largest_state_length = temp_stateSize;
+					}
+					if(temp_typeSize > largest_type_length){
+						largest_type_length = temp_typeSize;
+					}
+				}
+				
 				
 				puts("---");
 				//printf("node_name: %s\n", output->results[i]->node_name);
-				printf("#    node_name    |      collection_time       |        update_time         |   state    |    type    | num_allocs | allocs |        states        | shared \n");
-				printf("#-----------------+----------------------------+----------------------------+------------+------------+------------+--------+----------------------+--------\n");
+				printf("# %-*s | %-26s | %-26s | %-*s | %-*s | %s\n", largest_nodename_length , "node_name", "collection_time", "update_time", largest_state_length, "state", largest_type_length, "type", "num_allocs - allocs - states - shared");
+				printf("# %-*s + %-26s + %-26s + %-*s + %-*s + %s\n", largest_nodename_length , " ", " ", " ", largest_state_length, " ", largest_type_length, " ", " ");
+				
+				//printf("#    node_name    |      collection_time       |        update_time         |   state    |    type    | num_allocs | allocs |        states        | shared \n");
+				//printf("#-----------------+----------------------------+----------------------------+------------+------------+------------+--------+----------------------+--------\n");
 				for(i = 0; i < output->results_count; i++){
-					if(output->results[0]->num_allocs > 0)
+					//format the string for nice padding
+					printf("# %-*s | %-26s | %-26s | %-*s | %-*s | ", largest_nodename_length , output->results[i]->node_name, output->results[i]->collection_time, output->results[i]->update_time, largest_state_length, csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state), largest_type_length, csm_get_string_from_enum(csmi_node_type_t, output->results[i]->type));
+					printf(" %" PRIu32, output->results[i]->num_allocs);
+					if(output->results[i]->num_allocs > 0)
 					{
+						printf(" - ");
+						uint32_t j = 0;
+						for(j = 0; j < output->results[i]->num_allocs; j++)
+						{
+							if(j > 0)
+							{
+								printf(",");
+							}
+							printf("%" PRId64, output->results[i]->allocs[j]);
+						}
+						printf(" - ");
+						j = 0;
+						for(j = 0; j < output->results[i]->num_allocs; j++)
+						{
+							if(j > 0)
+							{
+								printf(",");
+							}
+							printf("%s", output->results[i]->states[j]);
+						}
+						printf(" - ");
+						j = 0;
+						for(j = 0; j < output->results[i]->num_allocs; j++)
+						{
+							if(j > 0)
+							{
+								printf(",");
+							}
+							printf("%s", output->results[i]->shared[j]);
+						}
 						
 					}
+					printf("\n");
 					
-					
-					
-					printf("# %*s| %-27s| %-27s| %-10s | %-10s | %-11" PRIu32 "\n", largest_nodename_length , output->results[i]->node_name, output->results[i]->collection_time, output->results[i]->update_time, csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state), csm_get_string_from_enum(csmi_node_type_t, output->results[i]->type), output->results[i]->num_allocs);
-				
 					
 				}
 				puts("...");

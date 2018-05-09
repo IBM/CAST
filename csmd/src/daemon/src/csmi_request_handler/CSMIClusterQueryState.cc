@@ -161,6 +161,8 @@ void CSMIClusterQueryState::CreateOutputStruct(
 		/*Helper Variables*/
 		//char* pEnd; // comparison pointer for data conversion check.
 		int d = 0; //keep place in data counter
+		
+		csm_prep_csv_to_struct();
         
 		/*Set up data to call API*/
         DB_RECORD_STRUCT *o = nullptr;
@@ -173,19 +175,22 @@ void CSMIClusterQueryState::CreateOutputStruct(
 		o->state                   = (csmi_node_state_t)csm_get_enum_from_string(csmi_node_state_t,fields->data[d]); d++;
         o->type                    = (csmi_node_type_t)csm_get_enum_from_string(csmi_node_type_t,fields->data[d]);   d++;
 		o->num_allocs              = strtoul(fields->data[d], NULL, 10); d++;
-		o->num_allocs = 0;
 		if(o->num_allocs > 0)
 		{
 			o->allocs = (int64_t*)malloc(o->num_allocs * sizeof(int64_t));
+			o->states = (char**)malloc(o->num_allocs * sizeof(char*));
+			o->shared = (char**)malloc(o->num_allocs * sizeof(char*));
 
 		    for(uint32_t j = 0; j < o->num_allocs; j++)
 		    {
 				o->allocs[j] = 0;
+				o->states[j] = NULL;
+				o->shared[j] = NULL;
 		    }
 		    
-            // csm_parse_psql_array_to_struct( fields->data[d], o->allocs, o->num_allocs, ->serial_number, strdup("N/A"), strdup);     d++;
-            // csm_parse_psql_array_to_struct( fields->data[d], o->allocs, o->num_allocs, ->physical_location, strdup("N/A"), strdup); d++;
-            // csm_parse_psql_array_to_struct( fields->data[d], o->allocs, o->num_allocs, ->size, -1, csm_to_int64);                   d++;
+            csm_parse_psql_array_to_struct( fields->data[d], o->allocs, o->num_allocs, CSM_NO_MEMBER, -1, csm_to_int64);      d++;
+            csm_parse_psql_array_to_struct( fields->data[d], o->states, o->num_allocs, CSM_NO_MEMBER, strdup("N/A"), strdup); d++;
+            csm_parse_psql_array_to_struct( fields->data[d], o->shared, o->num_allocs, CSM_NO_MEMBER, strdup("N/A"), strdup); d++;
 		}
 		
 		
