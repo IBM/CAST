@@ -186,6 +186,7 @@ void CSMIAllocationStepQuery::CreateStepStruct(
 	s->num_gpus             = strtol (fields->data[15], nullptr, 10);
 	s->projected_memory     = strtol (fields->data[16], nullptr, 10);
 	s->num_nodes            = strtol (fields->data[17], nullptr, 10);
+    if( s->num_nodes < 0 ) s->num_nodes = 0; // Zero for serialization.
 	s->num_processors       = strtol (fields->data[18], nullptr, 10);
 	s->num_tasks            = strtol (fields->data[19], nullptr, 10);
 	s->status               = (csmi_step_status_t)csm_get_enum_from_string(csmi_step_status_t, fields->data[20]);

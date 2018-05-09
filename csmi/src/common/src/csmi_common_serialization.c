@@ -120,7 +120,7 @@ int csm_serialize_str_array( char** array, uint32_t array_len, char** return_buf
 {
     if ( !array && array_len != 0) return 1;
 
-    int i;
+    uint32_t i;
     int offset = 0;
     int size_dump=0;
     *return_buffer_len = UINT32_T_SIZE;

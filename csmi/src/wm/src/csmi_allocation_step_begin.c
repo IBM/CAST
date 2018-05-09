@@ -53,7 +53,7 @@ int csm_allocation_step_begin(
     create_csm_api_object(handle, expected_cmd, NULL);
 
     // If the step was not supplied or the number of nodes was zero, return an error.	
-    if ( !input || input->num_nodes == 0 )
+    if ( !input || input->num_nodes <= 0 )
     {
         csmutil_logging(error, "An invalid step was provided (steps need nodes)");
 
