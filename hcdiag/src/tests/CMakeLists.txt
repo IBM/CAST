@@ -13,6 +13,7 @@
 #
 #================================================================================
 
+add_subdirectory(chk-boot-time)
 add_subdirectory(chk-cpu)
 add_subdirectory(chk-cpu-count)
 add_subdirectory(chk-csm-health)
