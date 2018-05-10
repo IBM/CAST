@@ -690,6 +690,8 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     }
     else
     {
+        delete[] l_ArchivePathWithName;
+        l_ArchivePathWithName = 0;
         rc = -1;
     }
 
