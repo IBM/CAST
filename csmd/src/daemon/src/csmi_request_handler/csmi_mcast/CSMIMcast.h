@@ -54,6 +54,7 @@ protected:
     DataStruct* _Data;          /**< The data struct containing details about the multicast. */
 
     std::string _RASMsgId;      /**< The RAS message id for failed multicasts.  */
+    std::string _ErrorMsg;      /**< An aggration of error messages.*/
 
 public:
     /**@brief Initializes a Multicast property object.
@@ -71,7 +72,8 @@ public:
                 _CommandType(cmdType), _Create(create),
                 _Recovery(false),      _IsAlternate(false),
                 _EEReply(eeReply),     _RASPushed(false),
-                _Data(data),           _RASMsgId(rasMsgId){ }
+                _Data(data),           _RASMsgId(rasMsgId),
+                _ErrorMsg(""){ }
 
     /**
      * @brief Invokes the free for allocation.
@@ -149,9 +151,10 @@ public:
      * @param[in] hostName The host name of the node to update the error code for.
      * @param[in] errorCode The new Error Code, this error code does not replace
      *                          the value if the current value is <= 0
+     * @param[in] errorString An error message associated with the supplied error code.
      * @return The index of the hostname in the array that generated the mapping.
      */
-    uint32_t SetHostError( std::string hostName, int errorCode = 0 )
+    uint32_t SetHostError( std::string hostName, int errorCode = 0, const char * errorString = "" )
     {
         int32_t hostIndex = UINT32_MAX;
         // If the hostname is present and doesn't have an error code, update the map.
@@ -161,8 +164,15 @@ public:
             if (_NodeStates[hostName].first <= 0 ) 
             {
                 // If no error code was supplied simply add 1
-                _NodeStates[hostName].first = errorCode == 0 ? 
-                    _NodeStates[hostName].first + 1 : errorCode;
+                if ( errorCode == 0 ) 
+                {
+                    _NodeStates[hostName].first = _NodeStates[hostName].first + 1;
+                }
+                else
+                {
+                    _NodeStates[hostName].first = errorCode;
+                    _ErrorMsg.append(errorString).append(" ");
+                }
             }
 
             hostIndex = _NodeStates[hostName].second;
@@ -308,6 +318,18 @@ public:
      *  @return A pointer to the data associated with the properties object.
      */
     inline DataStruct* GetData() const { return _Data; }
+
+    /** @brief Getter for the Error Message of the multicast object.
+     *  @return A string containing a list of error messages.
+     */
+    inline const std::string GetErrorMessage() const { return _ErrorMsg; } 
+
+    /** @brief Health check for the status of the multicast.
+     * If the error message was not empty an error occured on the remote compute node.
+     *
+     * @return True if an error has been detected.
+     */
+    inline bool DidErrorOccur() const { return _ErrorMsg.size() > 0; }
 };
 
 

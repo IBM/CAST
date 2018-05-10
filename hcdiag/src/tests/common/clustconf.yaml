@@ -29,7 +29,10 @@ node_info:
     # ========================================
     rvitals: wspoon_dd2
     ncpus: 176
-    memory: 512
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
     clock: 
       max: 3.8
       min: 2.0
@@ -90,6 +93,10 @@ node_info:
     # =====================================
     rvitals: wspoon_dd2
     ncpus: 176
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
     clock: 
       max: 3.8
       min: 2.0
@@ -153,6 +160,13 @@ node_info:
     rvitals: garison
     rvitals: wspoon_dd2
     ncpus: 160
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
+    clock: 
+      max: 3.8
+      min: 2.0
     firmware: 
       name: 1642II
       versions:

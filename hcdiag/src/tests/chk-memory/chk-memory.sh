@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/test_memsize/test_memsize.sh
+#    hcdiag/src/tests/chk-memory/chk-memory.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -23,22 +23,14 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    echo $THIS_LOG
    exec 2>$THIS_LOG 1>&2
 fi
-# check MemTotal in GB
-readonly TESTNAME=$0
 
-[ $# -ne 1 ] && echo "Usage: $TESTNAME <total memsize in GB>" && exit
-readonly EXPECTED_MEMSIZE=$1
 
-memsize_gb=$(awk '/^MemTotal:/{printf "%d",$2/1048576}' /proc/meminfo)
 
-if [ $memsize_gb -ge $EXPECTED_MEMSIZE ]; then
-	rc=0
-	echo "MemTotal of ${memsize_gb}GB is greater or equal to ${EXPECTED_MEMSIZE}GB"
-	echo "$TESTNAME test PASS, rc=$rc"
-else
-	rc=1
-	echo "MemTotal of ${memsize_gb}GB is less than expected ${EXPECTED_MEMSIZE}GB"
-	echo "$TESTNAME test FAIL, rc=$rc"
-fi
+set -e
+model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+echo -e "Running $(basename $0) on $(hostname -s), machine type $model.\n"          
 
-exit $rc
+thisdir=`dirname $0`
+$thisdir/chk-memory.pm $@
+
+

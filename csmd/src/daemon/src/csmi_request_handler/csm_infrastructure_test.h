@@ -271,7 +271,10 @@ public:
     CSMI_BASE::ConvertToClass<HealthCheckData>( in_out_msg.GetData(), data );
 
     std::string hostname = csm::daemon::Configuration::Instance()->GetHostname();    
-    data._local = HealthNodeInfo( CSMDaemonRole_to_string( _handlerOptions.GetRole()), hostname, std::string(CSM_VERSION, 7), 0, true );
+    data._local = HealthNodeInfo( CSMDaemonRole_to_string( _handlerOptions.GetRole()),
+                                  hostname,
+                                  std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )),
+                                  0, true );
     data._local.SetDaemonID( csm::daemon::Configuration::Instance()->GetDaemonState()->GetDaemonID() );
     
     in_out_msg.SetData( CSMI_BASE::ConvertToBytes<HealthCheckData>(data) );

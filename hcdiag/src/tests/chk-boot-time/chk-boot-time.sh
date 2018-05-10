@@ -1,7 +1,8 @@
+#!/bin/bash
 #================================================================================
-#
-#    hcdiag/src/tests/test_memsize/CMakeLists.txt
-#
+#   
+#    hcdiag/src/tests/chk-boot-time/chk-boot-time.pm
+# 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
@@ -10,14 +11,14 @@
 #
 #    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
-#
-#================================================================================
+# 
+#=============================================================================
 
-set(HCDIAG_TEST test_memsize)
+set -e
+model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+echo "Running $(basename $0) on $(hostname -s), machine type $model."          
+echo -e "Checking $@ nodes.\n"
 
-file(GLOB HCDIAG_TEST_FILE
-  "test_memsize.sh"
-)
-
-install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
+thisdir=`dirname $0`
+$thisdir/chk-boot-time.pm $@
 

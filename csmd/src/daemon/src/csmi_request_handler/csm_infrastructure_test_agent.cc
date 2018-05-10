@@ -77,7 +77,7 @@ void CSM_INFRASTRUCTURE_TEST_AGENT::Process( const csm::daemon::CoreEvent &aEven
     }
 
     ComputeInfo data = ComputeInfo( config->GetHostname(),
-                                    std::string(CSM_VERSION, 7) );
+                                    std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )) );
     data.SetConnectionType( conn_type );
     data.SetDaemonID( GetDaemonState()->GetDaemonID() );
     csm::network::Message msg = GetNetworkMessage(aEvent);
