@@ -1,0 +1,25 @@
+{
+    "mappings": {
+        "docs" : {
+            "properties" :
+            {
+                "hostname"     : { "type" : "text" },
+                "program_name" : { "type" : "text" },
+                "process_id"   : { "type" : "long" },
+                "facility"     : { "type" : "text" },
+                "severity"     : { "type" : "text" },
+                "message"      : { "type" : "text" },
+                "log_counter"  : { "type" : "long" },
+                "event_id"     : { "type" : "long" },
+                "event_type"   : { "type" : "text" },
+                "category"     : { "type" : "text" }
+            }
+        }
+    },
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    }
+}
