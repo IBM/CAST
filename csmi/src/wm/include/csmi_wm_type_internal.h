@@ -197,7 +197,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t step_id; /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
     int64_t allocation_id; /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
-    int32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes.*/
+    uint32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes.*/
     char begin; /**< A flag indicating whether this is a begin or end payload. */
     char* user_flags; /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
     char** compute_nodes; /**< The list of nodes associated with this step. Used to populate the *csm_step_node* table of the CSM DB. Size stored in @ref num_nodes.*/
