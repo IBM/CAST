@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_nodeset_test.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -12,9 +12,6 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-/* csm_nodeset_test.cc
- *
- ******************************************/
 
 #include "logging.h"
 #include <string>
@@ -27,9 +24,9 @@
 
 #include "csmutil/include/csm_test_utils.h"
 
-#define NODE_COUNT_MAX (4608)
-//#define NODE_COUNT_MAX (100)
 #define AGG_COUNT (16)
+#define NODE_COUNT_MAX (288 * AGG_COUNT + 288)  // +288 because for testing, the first and last aggregator  have half of their nodes covered only once
+//#define NODE_COUNT_MAX (100)
 #define TEST_COUNT (10000)
 
 #define RANDOM_MAGIC (0xFFFFFFFF)
@@ -222,6 +219,7 @@ int bitset_test( int argc, char **argv )
 
   int listSize = atoi( argv[1] );
   int mtcSize = atoi( argv[2] );
+
   csm::daemon::NodeNameList_t nodes = GenerateNodeList( NODE_COUNT_MAX );
 
   BitFilter_t check( nodes );
@@ -488,7 +486,31 @@ int main( int argc, char **argv )
 {
   int rc = 0;
 
-//  rc += bitset_test( argc, argv );
+  if( argc < 3 )
+  {
+    std::cerr << "Usage: " << argv[0] << " <nodes_per_aggr> <mtc_size>" << std::endl;
+    exit(1);
+  }
+
+  int listSize = atoi( argv[1] );
+  int mtcSize = atoi( argv[2] );
+
+  int maxNodes = NODE_COUNT_MAX / AGG_COUNT * 2;
+  if(( listSize > maxNodes) || ( listSize % AGG_COUNT != 0 ))
+  {
+    std::cerr << " <nodes_per_agg> needs to be number divisible by " << AGG_COUNT
+        << " and less than " << maxNodes << std::endl;
+    exit(1);
+  }
+
+  if( mtcSize > NODE_COUNT_MAX )
+  {
+    std::cerr << " <mtc_size> needs to be smaller than " << NODE_COUNT_MAX << std::endl;
+    exit(1);
+  }
+
+
+  //  rc += bitset_test( argc, argv );
   rc += computeset_test( argc, argv );
   rc += aggregatorset_test( argc, argv );
 
