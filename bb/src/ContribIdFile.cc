@@ -502,12 +502,14 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                     l_ContribIdFile->totalTransferSize += BBTransferDef::getTotalTransferSize(pTransferDef, pExtent->sourceindex);
                 }
 
-                // Adjust the transfer size if we are now failing a transfer after BBTD_All_Extents_Transferred is set...
-                if (l_ContribIdFlags & BBTD_All_Extents_Transferred)
+                // Adjust the transfer size if we are now failing an individual file transfer after BBTD_All_Extents_Transferred is set...
+                // NOTE: Today, only BBTD_Failed after BBTD_All_Extents_Transferred has been set for a file would cause the transfer
+                //       size to be decremented.  BBTD_Stopped and BBTD_Canceled are included below for completeness.
+                if (l_IncomingFlags & BBTD_All_Extents_Transferred)
                 {
                     if ((!(l_IncomingFlags & BBTD_Stopped)) && (!(l_IncomingFlags & BBTD_Failed)) && (!(l_IncomingFlags & BBTD_Canceled)))
                     {
-                        if (l_Flags & BBTD_Failed)
+                        if ((l_NewFlags & BBTD_Stopped) || (l_NewFlags & BBTD_Failed) || (l_NewFlags & BBTD_Canceled))
                         {
                             l_ContribIdFile->totalTransferSize -= BBTransferDef::getTotalTransferSize(pTransferDef, pExtent->sourceindex);
                         }
@@ -526,16 +528,16 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                 // Set the new ContribId flag values...
                 l_ContribIdFile->flags = l_NewContribIdFlags;
 
-                if ((l_ContribIdFlags != l_NewContribIdFlags) || (l_Flags != l_NewFlags) || (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize))
+                if ((l_ContribIdFlags != l_NewContribIdFlags) || (l_IncomingFlags != l_NewFlags) || (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize))
                 {
                     LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":";
                     if (l_ContribIdFlags != l_NewContribIdFlags)
                     {
                         LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_ContribIdFlags << " to 0x" << l_NewContribIdFlags << nouppercase << dec << ".";
                     }
-                    if (l_Flags != l_NewFlags)
+                    if (l_IncomingFlags != l_NewFlags)
                     {
-                        LOG(bb,info) << "           File flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+                        LOG(bb,info) << "           File flags changing from 0x" << hex << uppercase << l_IncomingFlags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
                     }
                     if (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize)
                     {

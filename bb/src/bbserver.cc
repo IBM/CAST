@@ -870,10 +870,10 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
                 }
                 else
                 {
-                    rc = -1;
+                    rc = -2;
                     errorText << "Handle " << l_Handle << ", contribid " << l_ContribId << " could not be found";
                     bberror << err("rc", rc) << err("error.text", errorText.str());
-                    LOG(bb,info) << errorText.str();
+                    LOG(bb,warning) << errorText.str();
                 }
             }
         }

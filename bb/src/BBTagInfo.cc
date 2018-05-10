@@ -547,9 +547,11 @@ void BBTagInfo::setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobI
         }
         SET_FLAG(BBTI_All_Contribs_Reported, pValue);
 
-        if (!pValue) {
-            // NOTE: We don't catch the return code here...
-            HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTI_All_Contribs_Reported, pValue);
+        // Now update the status for the Handle file in the xbbServer data...
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+        {
+            LOG(bb,error) << "BBTagInfo::setAllContribsReported():  Failure when attempting to update the cross bbServer handle file statusfor jobid " << pJobId \
+                          << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
 
@@ -574,9 +576,9 @@ void BBTagInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJo
         SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_All_Extents_Transferred, pValue))
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
         {
-            LOG(bb,error) << "BBTagInfo::setAllExtentsTransferred():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+            LOG(bb,error) << "BBTagInfo::setAllExtentsTransferred():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
@@ -660,9 +662,9 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
         SET_FLAG(BBTD_Stopped, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, pValue))
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
         {
-            LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+            LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
@@ -681,13 +683,7 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const st
         {
             int l_Value = 1;
             // Set the stopped indicator in the local metadata...
-            setStopped(pLVKey, pJobId, pJobStepId, pHandle , l_Value);
-            // Now update the status for the Handle file in the xbbServer data...
-            if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, l_Value))
-            {
-                LOG(bb,error) << "BBTagInfo::stopTransfer():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
-                              << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
-            }
+            setStopped(pLVKey, pJobId, pJobStepId, pHandle, l_Value);
         }
     }
 
@@ -808,9 +804,28 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
 
                 case 1:
                 {
-                    rc = -1;
-                    errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    if (pTransferDef->extentsAreEnqueued())
+                    {
+                        // Extents have already been enqueued for this transfer definition...
+                        rc = -1;
+                        errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                    else
+                    {
+                        // Extents have not beeen enqueued yet...
+                        // NOTE:  Allow this to continue...  This is probably the case where a start transfer got far enough along
+                        //        on bbServer to create all of the metadata (first volley message), but the second volley either failed
+                        //        or bbProxy failed before/during the send of the second volley message.
+                        // NOTE:  Start transfer processing DOES NOT backout any metadata changes made for a partially completed
+                        //        operation.
+                        LOG(bb,info) << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string() \
+                                     << ", but extents have never been enqueued for the transfer definition. ContribIdFile for " << pContribId << " will be reused.";
+                        l_NewContribIdFile = l_ExistingContribFile;
+                        rc = 0;
+                    }
+
+                    break;
                 }
 
                 default:
