@@ -1202,8 +1202,12 @@ const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_output_
     cast_csm_switch_children_inventory_collection_output_t
 };
 
-const csmi_struct_node_t csm_cluster_query_state_input_tree[3] = {{"offset",offsetof(csm_cluster_query_state_input_t,offset),0,NULL,0x123b4b4c,36},
+const csmi_struct_node_t csm_cluster_query_state_input_tree[7] = {{"offset",offsetof(csm_cluster_query_state_input_t,offset),0,NULL,0x123b4b4c,36},
 {"limit",offsetof(csm_cluster_query_state_input_t,limit),0,NULL,0xfdcc804,36},
+{"num_allocs",offsetof(csm_cluster_query_state_input_t,num_allocs),0,NULL,0x421fea12,36},
+{NULL,0,0,NULL,0,0},
+{"state",offsetof(csm_cluster_query_state_input_t,state),csmi_node_state_t_MAX,&csmi_node_state_t_strs,0x10614a06,8},
+{"order_by",offsetof(csm_cluster_query_state_input_t,order_by),0,NULL,0x245553bb,68},
 {"type",offsetof(csm_cluster_query_state_input_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8}}
 ;
 
@@ -1212,7 +1216,7 @@ void* cast_csm_cluster_query_state_input_t(void* ptr,size_t index) {
     return ptr_cast ? ptr_cast[index] : NULL;
 };
 const csmi_struct_mapping_t map_csm_cluster_query_state_input_t= {
-    3,
+    7,
     csm_cluster_query_state_input_tree,
     cast_csm_cluster_query_state_input_t
 };

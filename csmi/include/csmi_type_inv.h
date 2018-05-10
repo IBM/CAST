@@ -789,8 +789,11 @@ typedef struct {
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+    int32_t num_allocs; /**< Filter query by the 'num_allocs' field in the database.. API will ignore values less than 0.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
-    csmi_node_type_t type; /**< Query the 'type' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_state_t for details.*/
+    char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY node_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY node_name ASC NULLS LAST', [b] =  'ORDER BY node_name DESC NULLS LAST', [c] = 'ORDER BY state ASC NULLS LAST', [d] =  'ORDER BY state DESC NULLS LAST', [e] = 'ORDER BY type ASC NULLS LAST', [f] =  'ORDER BY type DESC NULLS LAST', [g] = 'ORDER BY num_allocs ASC NULLS LAST', [h] =  'ORDER BY num_allocs DESC NULLS LAST'. */
+    csmi_node_state_t state; /**< Query the 'state' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_DEF values for this fields, see @ref csmi_node_state_t for details.*/
+    csmi_node_type_t type; /**< Query the 'type' field in the database. API will ignore @ref csmi_node_type_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_type_t for details.*/
 } csm_cluster_query_state_input_t;
 /**
  * @brief A wrapper for the output of @ref csm_cluster_query_state.

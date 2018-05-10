@@ -45,7 +45,7 @@ void help(){
 	puts("_____CSM_CLUSTER_QUERY_STATE_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_cluster_query_state ARGUMENTS [OPTIONS]");
-	puts("  csm_cluster_query_state [-l limit] [-o offset] [-t type] [-h] [-v verbose_level] [-Y]");
+	puts("  csm_cluster_query_state [-l limit] [-n num_allocs] [-o offset] [-O order_by] [-s state] [-t type] [-h] [-v verbose_level] [-Y]");
 	puts("");
 	puts("SUMMARY: Used to query the 'csm_node' table of the CSM database.");
 	puts("");
@@ -55,17 +55,29 @@ void help(){
 	puts("");
 	puts("ARGUMENTS:");
 	puts("  OPTIONAL:");
-	puts("    csm_cluster_query_state can have 1 optional argument");
-	puts("    Argument         | Example value    | Description  ");                                                 
-	puts("    -----------------|------------------|--------------");
-	puts("    -t, --type       | \"compute\"      | (STRING) Filter results by the type field in the CSM database. API will ignore NULL values.");
+	puts("    csm_cluster_query_state can have 3 optional argument");
+	puts("    Argument         | Example value | Description  ");                                                 
+	puts("    -----------------|---------------|--------------");
+	puts("    -n, --num_allocs | 0             | (INT) Filter results by the number of allocations a node is apart of. API will ignore values less than 0.");
+	puts("    -s, --state      | \"IN_SERVICE\"  | (CSM_NODE_STATE) Filter results by the state of a node. API will ignore NULL values.");
+	puts("                     |               | Valid values: \"undefined\", \"DISCOVERED\", \"IN_SERVICE\", \"OUT_OF_SERVICE\", \"ADMIN_RESERVED\", or \"SOFT_FAILURE\" ");
+	puts("    -t, --type       | \"compute\"     | (STRING) Filter results by the type field in the CSM database. API will ignore NULL values.");
 	puts("");
 	puts("  FILTERS:");
 	puts("    csm_cluster_query_state can have 2 optional filters.");
-	puts("    Argument     | Example value | Description  ");                                                 
-	puts("    -------------|---------------|--------------");
-	puts("    -l, --limit  | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
-    puts("    -o, --offset | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    Argument       | Example value | Description  ");                                                 
+	puts("    ---------------|---------------|--------------");
+	puts("    -l, --limit    | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
+    puts("    -o, --offset   | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    -O, --order_by | a             | (CHAR) SQL 'ORDER BY' numeric value. Default Value: 'a'");
+	puts("                                   | Valid Values: [a] = 'ORDER BY node_name ASC NULLS LAST'"); 
+	puts("                                   |               [b] = 'ORDER BY node_name DESC NULLS LAST'");
+	puts("                                   |               [c] = 'ORDER BY state ASC NULLS LAST'"); 
+	puts("                                   |               [d] = 'ORDER BY state DESC NULLS LAST'");
+	puts("                                   |               [e] = 'ORDER BY type ASC NULLS LAST'");
+	puts("                                   |               [f] = 'ORDER BY type DESC NULLS LAST'");
+	puts("                                   |               [g] = 'ORDER BY num_allocs ASC NULLS LAST'");
+	puts("                                   |               [h] = 'ORDER BY num_allocs DESC NULLS LAST'");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -85,10 +97,13 @@ struct option longopts[] = {
 	{"verbose",    required_argument, 0, 'v'},
 	{"YAML",       no_argument,       0, 'Y'},
 	//api arguments
+	{"num_allocs", required_argument, 0, 'n'},
+	{"state",      required_argument, 0, 's'},
 	{"type",       required_argument, 0, 't'},
 	//filters
 	{"limit",      required_argument, 0, 'l'},
 	{"offset",     required_argument, 0, 'o'},
+	{"order_by",   required_argument, 0, 'O'},
 	{0,0,0,0}
 };
 
@@ -125,7 +140,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:c:l:n:o:s:t:Y", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:l:n:o:O:s:t:Y", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -137,10 +152,65 @@ int main(int argc, char *argv[])
 				csm_optarg_test( "-l, --limit", optarg, USAGE );
                 csm_str_to_int32( input->limit, optarg, arg_check, "-l, --limit", USAGE );
                 break;
+			case 'n':
+            {
+				int32_t check_int = -1;
+				csm_str_to_int32( check_int, optarg, arg_check, "-n, --num_allocs", USAGE );
+                if(check_int >= 0)
+				{
+					input->num_allocs = check_int;
+				}
+				else
+				{
+					csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+					csmutil_logging(error, "  %s is not a valid value for num_allocs.", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
 				break;
+			case 'O':
+				if(strlen(optarg) == 1 && 
+                    (  optarg[0] == 'a' 
+					|| optarg[0] == 'b' 
+					|| optarg[0] == 'c' 
+					|| optarg[0] == 'd' 
+					|| optarg[0] == 'e' 
+					|| optarg[0] == 'f' 
+					|| optarg[0] == 'g' 
+					|| optarg[0] == 'h' 
+					)
+				)
+                {
+					input->order_by = optarg[0];
+				}else{
+					csmutil_logging(error, "Invalid parameter for -O: optarg , encountered: %s", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				break;
+			case 's':
+			{
+                csm_optarg_test( "-s, --state", optarg, USAGE )
+				int temp_state = csm_enum_from_string(optarg, csmi_node_state_t_strs);
+                input->state = temp_state != -1 ? (csmi_node_state_t) temp_state : csm_enum_max(csmi_node_state_t);
+				if(input->state == csm_enum_max(csmi_node_state_t))
+				{
+					csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+					csmutil_logging(error, "  %s is not a valid value for state.", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				optionalParameterCounter++;	
+				break;
+			}
 			case 't':
             {
 				csm_optarg_test( "-t, --type", optarg, USAGE );
@@ -197,8 +267,11 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "  value of input:    %p", input);
 	csmutil_logging(debug, "  address of input:  %p", &input);
 	csmutil_logging(debug, "  input contains the following:");
-	csmutil_logging(debug, "    limit:            %i", input->limit);
-	csmutil_logging(debug, "    offset:           %i", input->offset);
+	csmutil_logging(debug, "    limit:            %"PRId32"\n", input->limit);
+	csmutil_logging(debug, "    num_allocs:       %"PRId32"\n", input->num_allocs);
+	csmutil_logging(debug, "    offset:           %"PRId32"\n", input->offset);
+	csmutil_logging(debug, "    order_by:         %c", input->order_by);
+	csmutil_logging(debug, "    state:            %s", csm_get_string_from_enum(csmi_node_state_t, input->state) );
 	csmutil_logging(debug, "    type:             %s", csm_get_string_from_enum(csmi_node_type_t, input->type) );
 	
     /* Call the C API. */

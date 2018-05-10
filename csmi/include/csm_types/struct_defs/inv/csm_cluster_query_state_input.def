@@ -49,9 +49,12 @@
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
 CSMI_VERSION_START(CSM_DEVELOPMENT)
 
-CSMI_STRUCT_MEMBER(int32_t         , limit           , BASIC    ,                 , -1              , ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
-CSMI_STRUCT_MEMBER(int32_t         , offset          , BASIC    ,                 , -1              , ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
-CSMI_STRUCT_MEMBER(csmi_node_type_t, type            , BASIC    ,                 , CSM_NODE_NO_TYPE, ) /**< Query the 'type' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_state_t for details.*/
+CSMI_STRUCT_MEMBER(int32_t          , limit     , BASIC , , -1              , ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(int32_t          , num_allocs, BASIC , , -1              , ) /**< Filter query by the 'num_allocs' field in the database.. API will ignore values less than 0.*/
+CSMI_STRUCT_MEMBER(int32_t          , offset    , BASIC , , -1              , ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(char             , order_by  , BASIC , , '\0'            , ) /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY node_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY node_name ASC NULLS LAST', [b] =  'ORDER BY node_name DESC NULLS LAST', [c] = 'ORDER BY state ASC NULLS LAST', [d] =  'ORDER BY state DESC NULLS LAST', [e] = 'ORDER BY type ASC NULLS LAST', [f] =  'ORDER BY type DESC NULLS LAST', [g] = 'ORDER BY num_allocs ASC NULLS LAST', [h] =  'ORDER BY num_allocs DESC NULLS LAST'. */
+CSMI_STRUCT_MEMBER(csmi_node_state_t, state     , BASIC , , CSM_NODE_NO_DEF , ) /**< Query the 'state' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_DEF values for this fields, see @ref csmi_node_state_t for details.*/
+CSMI_STRUCT_MEMBER(csmi_node_type_t , type      , BASIC , , CSM_NODE_NO_TYPE, ) /**< Query the 'type' field in the database. API will ignore @ref csmi_node_type_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_type_t for details.*/
 
 CSMI_VERSION_END(0)
 

@@ -55,8 +55,11 @@ bool CSMIClusterQueryState::CreatePayload(
 	std::string stmtParams = "";
 	int SQLparameterCount = 0;
 	
-	add_param_sql( stmtParams, input->type && input->type < csm_enum_max(csmi_node_type_t), 
-        ++SQLparameterCount, "type = $", "::text AND ")
+	//num allocs is special. don't add it here. need to use the "HAVING" SQL key word
+	//add_param_sql(stmtParams, input->num_allocs >= 0, ++SQLparameterCount, "num_allocs = $","::int AND ")
+	add_param_sql(stmtParams, input->state && input->state < csm_enum_max(csmi_node_state_t), ++SQLparameterCount, "n.state = $", "::compute_node_states  AND ")
+	add_param_sql(stmtParams, input->type && input->type < csm_enum_max(csmi_node_type_t), ++SQLparameterCount, "n.type = $", "::text AND ")
+		
 		
 	// TODO should this fail if the parameter count is zero?
     // Replace the last 4 characters if any parameters were found.
@@ -80,8 +83,42 @@ bool CSMIClusterQueryState::CreatePayload(
 			stmt.append( stmtParams );
 		stmt.append(") ");
 		}
-		stmt.append("GROUP BY n.node_name "
-		"ORDER BY node_name ");
+		stmt.append("GROUP BY n.node_name ");
+		if(input->num_allocs >= 0)
+		{
+			stmt.append("HAVING ( COUNT(an.allocation_id) = $");
+			stmt.append(std::to_string(++SQLparameterCount));
+			stmt.append("::int ) ");
+		}
+		stmt.append("ORDER BY ");
+		switch (input->order_by)
+		{
+			case 'a':
+				stmt.append("node_name ASC NULLS LAST ");
+				break;
+			case 'b':
+				stmt.append("node_name DESC NULLS LAST ");
+				break;
+			case 'c':
+				stmt.append("state ASC NULLS LAST ");
+				break;
+			case 'd':
+				stmt.append("state DESC NULLS LAST ");
+				break;
+			case 'e':
+				stmt.append("type ASC NULLS LAST ");
+				break;
+			case 'f':
+				stmt.append("type DESC NULLS LAST ");
+				break;
+			case 'g':
+				stmt.append("num_allocs ASC NULLS LAST ");
+				break;
+			case 'h':
+				stmt.append("num_allocs DESC NULLS LAST ");
+			default:
+				stmt.append("node_name ASC NULLS LAST ");
+		}
 		add_param_sql( stmt, input->limit > 0, ++SQLparameterCount,
             "LIMIT $", "::int ")
 		add_param_sql( stmt, input->offset > 0, ++SQLparameterCount,
@@ -90,10 +127,11 @@ bool CSMIClusterQueryState::CreatePayload(
 	
 	// Build the parameterized list.
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount); 
-	
+	if(input->state && input->state < csm_enum_max(csmi_node_state_t)) dbReq->AddTextParam  (csm_get_string_from_enum(csmi_node_state_t, input->state));
 	if(input->type && input->type < csm_enum_max(csmi_node_type_t)) dbReq->AddTextParam  (csm_get_string_from_enum(csmi_node_type_t, input->type));
-	if(input->limit                > 0    ) dbReq->AddNumericParam<int>(input->limit);
-	if(input->offset               > 0    ) dbReq->AddNumericParam<int>(input->offset);
+	if(input->num_allocs >= 0 ) dbReq->AddNumericParam<int>(input->num_allocs);
+	if(input->limit      > 0  ) dbReq->AddNumericParam<int>(input->limit);
+	if(input->offset     > 0  ) dbReq->AddNumericParam<int>(input->offset);
 	
 	*dbPayload = dbReq;
 

@@ -864,8 +864,11 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 
     class_<csm_cluster_query_state_input_t,csm_cluster_query_state_input_t*>("cluster_query_state_input_t")
 		.add_property("limit", &csm_cluster_query_state_input_t::limit,&csm_cluster_query_state_input_t::limit," SQL 'LIMIT' numeric value. API will ignore values less than 1.")
+		.add_property("num_allocs", &csm_cluster_query_state_input_t::num_allocs,&csm_cluster_query_state_input_t::num_allocs," Filter query by the 'num_allocs' field in the database.. API will ignore values less than 0.")
 		.add_property("offset", &csm_cluster_query_state_input_t::offset,&csm_cluster_query_state_input_t::offset," SQL 'OFFSET' numeric value. API will ignore values less than 1.")
-		.add_property("type", &csm_cluster_query_state_input_t::type,&csm_cluster_query_state_input_t::type," Query the 'type' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_state_t for details.");
+		.add_property("order_by", &csm_cluster_query_state_input_t::order_by,&csm_cluster_query_state_input_t::order_by," Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY node_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY node_name ASC NULLS LAST', [b] =  'ORDER BY node_name DESC NULLS LAST', [c] = 'ORDER BY state ASC NULLS LAST', [d] =  'ORDER BY state DESC NULLS LAST', [e] = 'ORDER BY type ASC NULLS LAST', [f] =  'ORDER BY type DESC NULLS LAST', [g] = 'ORDER BY num_allocs ASC NULLS LAST', [h] =  'ORDER BY num_allocs DESC NULLS LAST'. ")
+		.add_property("state", &csm_cluster_query_state_input_t::state,&csm_cluster_query_state_input_t::state," Query the 'state' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_DEF values for this fields, see @ref csmi_node_state_t for details.")
+		.add_property("type", &csm_cluster_query_state_input_t::type,&csm_cluster_query_state_input_t::type," Query the 'type' field in the database. API will ignore @ref csmi_node_type_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_type_t for details.");
 
     class_<csm_cluster_query_state_output_t,csm_cluster_query_state_output_t*>("cluster_query_state_output_t")
 		.add_property("results_count", &csm_cluster_query_state_output_t::results_count,&csm_cluster_query_state_output_t::results_count," Number of records retrieved, size of @ref results. ")
