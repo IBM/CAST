@@ -13,6 +13,7 @@
 #
 #================================================================================
 
+add_subdirectory(chk-boot-time)
 add_subdirectory(chk-cpu)
 add_subdirectory(chk-cpu-count)
 add_subdirectory(chk-csm-health)
@@ -24,6 +25,7 @@ add_subdirectory(chk-led)
 add_subdirectory(chk-load)
 add_subdirectory(chk-memory)
 add_subdirectory(chk-mlnx-pci)
+add_subdirectory(chk-noping)
 add_subdirectory(chk-nvidia-clocks)
 add_subdirectory(chk-nvidia-smi)
 add_subdirectory(chk-nvidia-vbios)

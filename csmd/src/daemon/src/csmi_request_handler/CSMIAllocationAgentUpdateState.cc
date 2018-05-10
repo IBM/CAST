@@ -117,14 +117,13 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
     }
     
     // If the initialization or reversion was successful reply to the master daemon.
-    if ( success )
+    if ( success || response->error_code != CSMI_SUCCESS )
     {
         // Return the results to the Master via the Aggregator.
         char *buffer          = nullptr;
         uint32_t bufferLength = 0;
         csm_serialize_struct( csmi_allocation_mcast_payload_response_t, response, 
             &buffer, &bufferLength );
-
 
         if( buffer )
         {
@@ -142,7 +141,8 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
                 "Allocation ID: "      << allocation->allocation_id << 
                 "; Primary Job Id: "   << allocation->primary_job_id << 
                 "; Secondary Job Id: " << allocation->secondary_job_id <<
-                "; Message: Agent completed successfully;";
+                "; Error Code: "       << response->error_code << 
+                "; Message: Agent completed;";
                 
         }
         else
@@ -347,6 +347,9 @@ bool AllocationAgentUpdateState::RevertNode(
             "; user_flags: " << payload->user_flags <<
             "; system_flags: " << payload->system_flags << 
             "; Message: Epilog failure;";
+
+        respPayload->error_code = (csmi_cmd_err_t)ctx->GetErrorCode();
+        respPayload->error_message = strdup(ctx->GetErrorMessage().c_str());
     }
 
     // 2. Remove the allocation from the active list.
@@ -374,31 +377,32 @@ bool AllocationAgentUpdateState::RevertNode(
     {
         std::string error = "Message: ";
         error.append(e.what());
-        ctx->SetErrorMessage(error);
-        ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
+        respPayload->error_code = CSMERR_CGROUP_FAIL;
+        respPayload->error_message = strdup(error.c_str());
         
         // Push a RAS Event to flag the node.
         this->PushRASEvent(ctx, postEventList, CSM_RAS_MSG_ID_CGROUP_DELETE_FAILURE,
             respPayload->hostname, ctx->GetErrorMessage(), 
             "rc=" + std::to_string(ctx->GetErrorCode()));
 
-        return false; // TODO Is this the correct behavior?
+        success = false; // TODO Is this the correct behavior?
     }
     catch(const std::exception& e)
     {
         std::string error = "Message: ";
         error.append(e.what());
-        ctx->SetErrorMessage(error);
-        ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
+        respPayload->error_code = CSMERR_CGROUP_FAIL;
+        respPayload->error_message = strdup(error.c_str());
         
         // Push a RAS Event to flag the node.
         this->PushRASEvent(ctx, postEventList, CSM_RAS_MSG_ID_CGROUP_DELETE_FAILURE,
             respPayload->hostname, ctx->GetErrorMessage(), 
             "rc=" + std::to_string(ctx->GetErrorCode()));
 
-        return false; // TODO Is this the correct behavior?
+        success = false; // TODO Is this the correct behavior?
     }
     #endif
+    
     // 4. In a delete get a snapshot after everything.
     DataAggregators(respPayload);
 

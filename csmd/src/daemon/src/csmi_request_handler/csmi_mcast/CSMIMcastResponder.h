@@ -113,7 +113,7 @@ protected:
         if( ctx->ResponseCheck() )
         {
             // If this was a success we need to update the database tables.
-            if ( ctx->GetErrorCode() == CSMI_SUCCESS )
+            if ( ctx->GetErrorCode() == CSMI_SUCCESS  && !mcastProps->DidErrorOccur())
             {
                 // Build the query the template function.
                 dataLock.unlock();
@@ -313,8 +313,9 @@ protected:
         // If all the nodes have responded attempt to recover (dependant on implementation).
         if( ctx->ResponseCheck() )
         {
-            ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
-            // ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR); //TODO UNCOMMENT
+            // If the error code was a success set to the generic multicast response error code.
+            if ( ctx->GetErrorCode() == CSMI_SUCCESS ) 
+                ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR);
             
             // Get the multicast properties first.
             PayloadType* mcastProps = nullptr;
@@ -334,7 +335,13 @@ protected:
 
                 // Attempt to build the payload.
                 mcastProps->BuildMcastPayload(&buffer, &bufferLength);
+                
+                // Append additional errors.
+                ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
+                ctx->AppendErrorMessage(mcastProps->GetErrorMessage());
             }
+
+            ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
 
             // If the buffer was defined attmept to multicast.
             if ( buffer )
@@ -437,8 +444,9 @@ protected:
         // If all the nodes have responded attempt to recover (dependant on implementation).
         if( ctx->ResponseCheck())
         {
-            ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
-            // ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR); //TODO UNCOMMENT
+            // If the error code was a success set to the generic multicast response error code.
+            if ( ctx->GetErrorCode() == CSMI_SUCCESS ) 
+                ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR);
             
             PayloadType* mcastProps = nullptr;
             std::unique_lock<std::mutex>dataLock = 
@@ -448,6 +456,11 @@ protected:
             {
                 // Generate the RAS event for the failure cases.
                 mcastProps->GenerateRASEvents( postEventList ,ctx);
+                
+                // Append additional errors.
+                ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
+                ctx->AppendErrorMessage(mcastProps->GetErrorMessage());
+                ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                
                 // Attempt the database recovery function.
                 csm::db::DBReqContent *dbReq = DBRecover(ctx, mcastProps);
@@ -469,6 +482,7 @@ protected:
             {
                 LOG(csmapi, error) << ctx << STATE_NAME " Unable to build the response query.";
                 dataLock.unlock();
+                ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                 CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);
             }
         }
