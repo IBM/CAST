@@ -46,7 +46,7 @@ sub createFpingFile {
    open (TFILE, ">$tfile") || die "Cannot open temporary file: $tfile";
    print TFILE <<"EOF";
 #!/bin/bash
-/u/diagadmin/bin/fping  <<ENDFILE 2>&1 | grep -v alive
+fping  <<ENDFILE 2>&1 | grep -v alive
 EOF
 
 #print "niclist=".Dumper($niclist);
