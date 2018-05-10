@@ -1224,8 +1224,8 @@ void findBB_DevNames(vector<string>& pDevNames, const FIND_BB_DEVNAMES_OPTION pO
             break;
         }
     }
-
-    return;
+    
+    delete[] l_VolumeGroupName;
 }
 
 
@@ -2465,7 +2465,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             if(!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
                             {
                                 LOG(bb,info) << "Releasing filehandle '" << fh->getfn() << "'";
-                                int rc = fh->release(BBFILE_NOT_TRANSFERRED);
+                                rc = fh->release(BBFILE_NOT_TRANSFERRED);
                                 if (!rc)
                                 {
                                     delete fh;
@@ -2482,7 +2482,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             if(!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
                             {
                                 LOG(bb,info) << "Releasing filehandle '" << fh->getfn() << "'";
-                                int rc = fh->release(BBFILE_NOT_TRANSFERRED);
+                                rc = fh->release(BBFILE_NOT_TRANSFERRED);
                                 if (!rc)
                                 {
                                     delete fh;
