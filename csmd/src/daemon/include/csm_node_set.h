@@ -72,11 +72,6 @@ typedef struct ComputeSetData
 
 } ComputeSetData_t;
 
-//static bool CompareComputeSetData( const ComputeSetData_t &a, const ComputeSetData_t &b )
-//{
-//  return ( a._name < b._name ) || (( a._name == b._name) && (a._connseq < b._connseq ));
-//}
-
 typedef std::vector<ComputeSetData_t> ComputeSetUpdates_t;
 
 class ComputeSet
@@ -113,9 +108,6 @@ public:
   {
     if( ! std::is_sorted( _addrs.begin(), _addrs.end() ) )
       std::sort( _addrs.begin(), _addrs.end() );
-
-//    if(( ! _updates.empty() ) && ( ! std::is_sorted( _updates.begin(), _updates.end(), CompareComputeSetData )) )
-//      std::sort( _updates.begin(), _updates.end(), CompareComputeSetData );
   }
 
   ComputeSet& operator=( const ComputeSet &in )
@@ -128,9 +120,6 @@ public:
 
     if( ! std::is_sorted( _addrs.begin(), _addrs.end() ) )
       std::sort( _addrs.begin(), _addrs.end() );
-
-//    if(( ! _updates.empty() ) && ( ! std::is_sorted( _updates.begin(), _updates.end(), CompareComputeSetData )) )
-//      std::sort( _updates.begin(), _updates.end(), CompareComputeSetData );
 
     return *this;
   }
@@ -149,9 +138,6 @@ public:
     // start search from the back, we're only interested in the last action
     for( auto it = _updates.crbegin(); it != _updates.crend(); ++it )
     {
-      // stop the lookup if we're past the point (not part of the updates)
-//      if( it->_name < lookup )
-//        break;
       // found the entry, return what the last action was
       if( it->_name == lookup )
         return ( it->_action == NODE_ACTION_UP );
@@ -222,10 +208,9 @@ public:
     // prevent double insertion
     for( auto it = _updates.crbegin(); it != _updates.crend(); ++it )
     {
-  //    if( it->_name < node ) break;
       if(( it->_name == node ) && ( it->_connseq <= sequence ))
       {
-        CSMLOG( csmd, debug ) << "AddNode: Found node " << node << " last activity: "
+        CSMLOG( csmd, trace ) << "AddNode: Found node " << node << " last activity: "
             << ( it->_action == NODE_ACTION_UP ? "ADD" : "DEL");
         if( it->_action == NODE_ACTION_UP )
           return false;
@@ -241,9 +226,6 @@ public:
     if(( had_uncommitted_delete ) || ( ! std::binary_search( _addrs.begin(), _addrs.end(), node ) ))
     {
       _updates.push_back( ComputeSetData_t(node, sequence, NODE_ACTION_UP ) );
-
-      // make sure the update list is sorted
-//      std::sort( _updates.begin(), _updates.end(), CompareComputeSetData );
 
       CSMLOG( csmd, debug ) << "Inserting node " << node << " to compute set";
       return true;
@@ -263,10 +245,9 @@ public:
     // prevent double insertion
     for( auto it = _updates.crbegin(); it != _updates.crend(); ++it )
     {
-//      if( it->_name < node ) break;
       if(( it->_name == node ) && ( it->_connseq <= sequence ))
       {
-        CSMLOG( csmd, debug ) << "DelNode: Found node " << node << " last activity: "
+        CSMLOG( csmd, trace ) << "DelNode: Found node " << node << " last activity: "
             << ( it->_action == NODE_ACTION_UP ? "ADD" : "DEL");
         if( it->_action == NODE_ACTION_DOWN )
           return false;
@@ -283,9 +264,6 @@ public:
     if(( had_uncommitted_insert) || ( std::binary_search( _addrs.begin(), _addrs.end(), node ) ))
     {
       _updates.push_back( ComputeSetData_t(node, sequence, NODE_ACTION_DOWN ) );
-
-      // make sure the update list is sorted
-//      std::sort( _updates.begin(), _updates.end(), CompareComputeSetData );
 
       CSMLOG( csmd, debug ) << "Deleting node " << node << " from compute set";
       return true;
@@ -485,7 +463,7 @@ public:
     }
     return _events.size();
   }
-  size_t Down( const ComputeNodeList_t &in, const bool agg_down )
+  size_t Down( const ComputeNodeList_t &in )
   {
     for( auto it : in )
     {
@@ -493,8 +471,7 @@ public:
         _refs.at( it )--;
 
       if( _refs[ it ] == 0 )
-        _events.push_back( ComputeActionEntry_t( it,
-                                                 (agg_down ? COMPUTE_DOWN : COMPUTE_LOST_CONNECTION ) ) );
+        _events.push_back( ComputeActionEntry_t( it, COMPUTE_LOST_CONNECTION ) );
       if( _refs[ it ] == 1 )
         _events.push_back( ComputeActionEntry_t( it, COMPUTE_LOST_REDUNDANCY ) );
 
@@ -503,7 +480,7 @@ public:
     return _events.size();
   }
 
-  size_t Updates( const ComputeSetUpdates_t &upd, const bool down )
+  size_t Updates( const ComputeSetUpdates_t &upd, const bool agg_down )
   {
     for( auto it : upd )
     {
@@ -512,7 +489,7 @@ public:
 
       if( _refs[ it._name ] == 0 )
         _events.push_back( ComputeActionEntry_t( it._name,
-                                                 (down ? COMPUTE_DOWN : COMPUTE_LOST_CONNECTION ) ) );
+                                                 (agg_down ? COMPUTE_DOWN : COMPUTE_LOST_CONNECTION ) ) );
       if( _refs[ it._name ] == 1 )
         _events.push_back( ComputeActionEntry_t( it._name, COMPUTE_LOST_REDUNDANCY ) );
 
@@ -608,7 +585,7 @@ public:
     CSMLOG( csmd, debug ) << "Updating AGG: " << addr->Dump()  << " updates:" << upd.size();
 
     if( ! upd.empty() )
-      _refcount.Updates( upd, true );
+      _refcount.Updates( upd, false );
 
     CSMLOG( csmd, info ) << "Nodes of "  << addr->Dump()  << ": " << _aggrs[ addr->MakeKey() ].GetSize();
     CSMLOG( csmd, trace ) << "Nodes of "  << addr->Dump()  << ": " << _aggrs[ addr->MakeKey() ].Dump();
@@ -620,7 +597,7 @@ public:
     if( addr == nullptr ) return;
     std::lock_guard<std::mutex> guard( _lock );
     _aggrs[ addr->MakeKey() ].SetActive( false );
-    _refcount.Down( _aggrs[ addr->MakeKey() ].GetAddrList(), false );
+    _refcount.Down( _aggrs[ addr->MakeKey() ].GetAddrList() );
   }
   void Connect( const csm::network::Address_sptr addr )
   {
