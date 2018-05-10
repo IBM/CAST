@@ -1,0 +1,17 @@
+{
+    "log-syslog": {
+        "mappings": {
+            "log-syslog" : {
+                "properties" :
+                {
+                    "hostname"     : { "type" : "text" },
+                    "program_name" : { "type" : "text" },
+                    "process_id"   : { "type" : "long" },
+                    "facility"     : { "type" : "text" },
+                    "severity"     : { "type" : "text" },
+                    "message"      : { "type" : "text" }
+                }
+            }
+        }
+    }
+}

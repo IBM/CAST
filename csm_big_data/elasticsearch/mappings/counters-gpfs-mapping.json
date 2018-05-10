@@ -1,0 +1,11 @@
+{
+    "counters-gpfs": {
+        "mappings": {
+            "counters-gpfs" : {
+                "properties" :
+                {
+                }
+            }
+        }
+    }
+}

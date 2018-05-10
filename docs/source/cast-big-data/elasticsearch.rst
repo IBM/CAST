@@ -130,12 +130,22 @@ Indicies
 CAST has specified a suite of data mappings for use in separate indicies. Each of these indicies is
 documented below, with a *JSON* mapping file provided in the repository and *rpm*.
 
-.. TODO: Elaborate
+CAST uses *<class>-<description>* naming schema for indicies to leverage templates when creating
+the indicies in Elasticsearch. The *class* is one of the three primary classifications determined
+by CAST: *log*, *counters*, *environmental*. The *description* is typically a one to two word description
+of the type of data: *syslog*, *node*, *mellanox-event*, etc.
+
+.. note:: Cast has elected to use lowercase and '-' characters to separate words. This is not mandatory
+    for your index naming and creation.
+
+
+Templates
+^^^^^^^^^
 
 .. _SyslogElastic:
 
-syslog
-^^^^^^
+log-syslog
+^^^^^^^^^^
 
 The syslog index is designed to capture generic syslog messages. The contents of the syslog index is
 considered by CAST to be the most useful data points for syslog analysis. CAST supplies both an 
@@ -167,7 +177,7 @@ The mapping for the index contains the following fields:
 .. TODO: Should mmfs log inhabit the same index? The data has a 1:1 parity.
 .. TODO: Review Cumulus Swtich, not sure what the logs look like by default.
 
-mellanox-event-log
+log-mellanox-event
 ^^^^^^^^^^^^^^^^^^
 
 The mellanox event log is a superset of the `syslog`_ index, an artifact of the event log being 
@@ -200,7 +210,7 @@ the Logstash service then transmitted to the Elasticsearch index.
 | tags          | *text* | Tags containing additional metadata about the message.         |
 +---------------+--------+----------------------------------------------------------------+
 
-console-log
+log-console
 ^^^^^^^^^^^
 
 CAST recommends the usage of the goconserver bundled in the xCAT dependicies, documented in xCat-GoConserver_.
@@ -224,7 +234,7 @@ The mapping for the *console* index is provided below:
 | tags          | *text* | Tags containing additional metadata about the console log.     |
 +---------------+--------+----------------------------------------------------------------+
 
-gpfs-counters
+counters-gpfs
 ^^^^^^^^^^^^^
 
 .. attention:: This section is currently a work in progress.
@@ -232,7 +242,7 @@ gpfs-counters
 .. note:: The CAST team is currently in the process of reviewing the GPFS counter polling process
     it is likely that this index will be modified in the forseeable future.
 
-ufm-counters
+counters-ufm
 ^^^^^^^^^^^^
 
 .. attention:: This section is currently a work in progress.
@@ -241,7 +251,7 @@ ufm-counters
     it is likely that this index will be modified in the forseeable future.
 
 
-gpu-counters
+counters-gpu
 ^^^^^^^^^^^^
 
 .. attention:: This section is currently a work in progress.
@@ -249,7 +259,7 @@ gpu-counters
 .. note:: The CAST team is currently in the process of reviewing the GPU counters and the process
     of using DCGM to perform the aggregation operation.
 
-node-environmental
+environmental-node
 ^^^^^^^^^^^^^^^^^^
 
 .. attention:: This section is currently a work in progress.

@@ -1,0 +1,11 @@
+{
+    "counters-gpu": {
+        "mappings": {
+            "counters-gpu" : {
+                "properties" :
+                {
+                }
+            }
+        }
+    }
+}

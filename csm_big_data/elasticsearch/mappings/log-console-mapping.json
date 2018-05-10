@@ -1,0 +1,13 @@
+{
+    "log-console": {
+        "mappings": {
+            "log-console" : {
+                "properties" :
+                {
+                    "hostname"     : { "type" : "text" },
+                    "message"      : { "type" : "text" }
+                }
+            }
+        }
+    }
+}
