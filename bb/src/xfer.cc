@@ -1237,7 +1237,9 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
             {
                 if (!l_ExtentRemovedFromVectorOfExtents)
                 {
+#ifndef __clang_analyzer__
                     l_ExtentRemovedFromVectorOfExtents = true;
+#endif
                     l_TagInfo2->extentInfo.removeExtent(l_Extent);
                 }
             }
@@ -1261,7 +1263,9 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
                 if (l_MarkTransferDefinitionCanceled)
                 {
                     // Cancel has been issued for the handle...
+#ifndef __clang_analyzer__
                     l_MarkTransferDefinitionCanceled = false;
+#endif
                     // Mark the transfer definition
                     l_TransferDef->setCanceled(&l_Key, pExtentInfo.handle, pExtentInfo.contrib);
                     // NOTE: If the handle is marked as stopped, mark the transfer definition as stopped also...
@@ -2607,7 +2611,9 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
 
     if (l_LockAcquired)
     {
+#ifndef __clang_analyzer__
         l_LockAcquired = false;
+#endif
         unlockTransferQueue(pLVKey, "getHandle");
     }
 
@@ -2638,7 +2644,9 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
             if (rc == -2)
             {
                 rc = 0;
+#ifndef __clang_analyzer__
                 l_LockHeld = false;
+#endif
                 unlockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
                 {
                     usleep((useconds_t)1000000);    // Delay 1 second
@@ -2657,7 +2665,9 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
 
     if (l_LockHeld)
     {
+#ifndef __clang_analyzer__
         l_LockHeld = false;
+#endif
         unlockTransferQueue(pLVKey, "getThrottleRate");
     }
 
@@ -2767,7 +2777,9 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
             if (rc == -2)
             {
                 rc = 0;
+#ifndef __clang_analyzer__
                 l_LockHeld = false;
+#endif
                 unlockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
                 {
                     usleep((useconds_t)1000000);    // Delay 1 second
@@ -2786,7 +2798,9 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
 
     if (l_LockHeld)
     {
+#ifndef __clang_analyzer__
         l_LockHeld = false;
+#endif
         unlockTransferQueue(pLVKey, "setThrottleRate");
     }
 

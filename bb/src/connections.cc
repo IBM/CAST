@@ -308,12 +308,12 @@ int versionCheck(const std::string& pReceivedVersion){
 
 void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 {
-    const char* receivedVersionStr;
+    const char* receivedVersionStr = NULL;
     stringstream errorText;
     int rc = -1;
     uint32_t contribid;
-    const char* receivedFromWhoami;
-    const char* instance;
+    const char* receivedFromWhoami = NULL;
+    const char* instance = NULL;
 
     try
     {

@@ -338,7 +338,9 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     {
         case 1:
         {
+#ifndef __clang_analyzer__  // zeroing rc is not necessary, but safer to have this here
             rc = 0;
+#endif
             uint64_t l_Flags = l_ContribIdFile->flags;
 
             uint64_t l_NewFlags = 0;
@@ -601,7 +603,9 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
     {
         case 1:
         {
+#ifndef __clang_analyzer__  // zeroing rc is not necessary, but defensive coding
             rc = 0;
+#endif
             vector<BUNDLE_ID_ENTRY> l_NonZeroBundlesWithStoppedFile;
             for (size_t i=0; i<l_ContribIdFile->files.size(); ++i)
             {

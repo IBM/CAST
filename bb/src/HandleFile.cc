@@ -544,6 +544,7 @@ int HandleFile::loadHandleFile(HandleFile* &ptr, const char* filename)
     struct timeval start, stop;
     int l_LastConsoleOutput = -1;
 
+    start.tv_sec = 0; // resolve gcc optimizer complaint
     LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
 
     do
@@ -690,6 +691,8 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     }
     else
     {
+        delete[] l_ArchivePathWithName;
+        l_ArchivePathWithName = 0;
         rc = -1;
     }
 
@@ -701,7 +704,6 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
         }
         LOG(bb,debug) << "loadHandleFile(): Issue close for handle file fd " << fd;
         ::close(fd);
-        fd= -1;
     }
 
     return rc;
@@ -951,7 +953,6 @@ void HandleFile::testForLock(const char* pFilePath)
         LOG(bb,debug) << "testForLock(): Issue close for handle file fd " << fd;
         ::close(fd);
     }
-    fd = -1;
 
     return;
 }
@@ -1114,8 +1115,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         //  NOTE: For restart scenarios, a partially successful status can transition to stopped and then to in-progress.
         if ( (!(l_StartingStatus == BBFULLSUCCESS)) && (!(l_StartingStatus == BBCANCELED)) )
         {
-            uint64_t l_AllFilesClosed = l_HandleFile->flags & BBTD_All_Files_Closed;
-            uint64_t l_AllExtentsTransferred = l_HandleFile->flags & BBTD_All_Extents_Transferred;
+            uint64_t l_AllFilesClosed;
+            uint64_t l_AllExtentsTransferred;
+#ifndef __clang_analyzer__
+            l_AllFilesClosed = l_HandleFile->flags & BBTD_All_Files_Closed;
+            l_AllExtentsTransferred = l_HandleFile->flags & BBTD_All_Extents_Transferred;
+#endif
 
             bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
             handle /= bfs::path(to_string(pJobId));
