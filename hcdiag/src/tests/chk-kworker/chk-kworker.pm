@@ -35,6 +35,9 @@ sub usage {
 
 my $help=0;
 my $verbose=0;
+my $test=$0;
+$test =~ s{.*/}{};      # removes path  
+$test =~ s{\.[^.]+$}{}; # removes extension
 
 GetOptions(
     'h|help'      => \$help,
@@ -83,12 +86,12 @@ if (scalar @$errs) {
    for my $e (@$errs) {
       print "(ERROR) $e\n";
    }
-   print "FAIL\n";
+   print "$test test FAIL, rc=1\n";
    exit 1;
 } 
 
 
-print "PASS\n";
+print "$test test PASS, rc=0\n";
 exit 0;
 
 
