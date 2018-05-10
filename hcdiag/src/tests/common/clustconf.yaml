@@ -77,6 +77,12 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
     kernel:
       release: "4.14.0-38.el7a.ppc64le"
+    software:
+        - ibm-csm: 1.1.0-68
+        - gpfs.base: 5.0.0-2
+        - smpi: 10.02.00.00dev0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.1-1
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"
@@ -143,6 +149,12 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
     kernel:
       release: "4.14.0-38.el7a.ppc64le"
+    software:
+        - ibm-csm: 1.1.0-68
+        - gpfs.base: 5.0.0-2
+        - smpi: 10.02.00.00dev0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.1-1
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"
@@ -208,6 +220,12 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.4 (Maipo)"
     kernel:
       release: "4.11.0-44.el7a.ppc64le"
+    software:
+        - ibm-csm: 1.1.0-68
+        - gpfs.base: 5.0.0-2
+        - smpi: 10.02.00.00dev0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.1-1
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"
