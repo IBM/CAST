@@ -143,19 +143,12 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
         // NOTE:  rc=0 means that the contribid was added to the ContribFile.
         //        rc=1 means that the contribid already existed in the ContribFile.
         //             This is normal for the restart of a transfer definition.
-        if (rc == 1)
+        if((rc == 1) && (!pTransferDef->builtViaRetrieveTransferDefinition()))
         {
-            if (pTransferDef->builtViaRetrieveTransferDefinition())
-            {
-                rc = 0;
-            }
-            else
-            {
-                rc = -1;
-                errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
-                          << " was already known to the cross-bbServer metadata.";
-                LOG_ERROR(errorText);
-            }
+//          rc = -1;
+            errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
+                      << " was already known to the cross-bbServer metadata.";
+            LOG_ERROR(errorText);
         }
         rc = parts.addTransferDef(pLVKey, pHandle, pContribId, pTransferDef);
         if (!rc) {
