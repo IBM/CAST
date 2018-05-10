@@ -90,7 +90,7 @@ foreach my $l (split(/\n/,$rval)) {
 
 if ( scalar(@$nodes) > 0) { 
    my $newnoderange=join( ',', @$nodes );
-   $cmd = "lsdef $newnoderange -c -i status,statustime";
+   $cmd = "lsdef $newnoderange -c -i status,statustime 2>$tempdir/stderr";
    print $cmd . "\n";
    $rval = `$cmd`;
    my $rc=$?;
