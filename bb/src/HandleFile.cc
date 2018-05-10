@@ -544,6 +544,7 @@ int HandleFile::loadHandleFile(HandleFile* &ptr, const char* filename)
     struct timeval start, stop;
     int l_LastConsoleOutput = -1;
 
+    start.tv_sec = 0; // resolve gcc optimizer complaint
     LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
 
     do

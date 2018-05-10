@@ -28,7 +28,9 @@ int ContribFile::loadContribFile(ContribFile* &ptr, const bfs::path& filename)
     bool didretry = false;
     struct timeval start, stop;
     int l_LastConsoleOutput = -1;
-
+    
+    start.tv_sec = 0;  // address gcc optimizer confusion
+    
     LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
 
     do
