@@ -13,10 +13,10 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST test_simple)
+set(HCDIAG_TEST test-simple)
 
 file(GLOB HCDIAG_TEST_FILE
-  "test_simple.sh"
+  "test-simple.sh"
 )
 
 install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})

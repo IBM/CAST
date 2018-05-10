@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    hcdiag/src/tests/test_simple/test_simple.sh
+#    hcdiag/src/tests/test-simple/test-simple.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
