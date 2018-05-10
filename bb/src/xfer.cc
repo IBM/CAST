@@ -1833,7 +1833,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                         {
                             if (!l_OrigTransferDef->extentsAreEnqueued())
                             {
-                                // Extents have not beeen enqueued yet...
+                                // Extents have not been enqueued yet...
                                 // NOTE:  Allow this to continue...  This is probably the case where a start transfer got far enough along
                                 //        on bbServer to create all of the metadata (first volley message), but the second volley either failed
                                 //        or bbProxy failed before/during the send of the second volley message.
@@ -1842,6 +1842,9 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                 LOG(bb,info) << "Transfer definition for contribid " << pContribId << " already exists for " << *pLVKey \
                                              << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "), handle " << l_TagInfo->transferHandle \
                                              << ", but extents have never been enqueued for the transfer definition. Transfer definition will be reused.";
+
+                                // Cleanup the I/O map
+                                l_OrigTransferDef->cleanUpIOMap();
 
                                 // Now, swap in the extent vector from the new transfer definition
                                 l_OrigTransferDef->replaceExtentVector(pTransferDef);
@@ -1865,6 +1868,9 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                         {
                             // Set addressability to the transfer definition in BBTagInfo/BBTagParts
                             l_RestartToSameServer = true;
+
+                            // Cleanup the I/O map
+                            l_OrigTransferDef->cleanUpIOMap();
 
                             // Now, swap in the extent vector from the new transfer definition
                             l_OrigTransferDef->replaceExtentVector(pTransferDef);
