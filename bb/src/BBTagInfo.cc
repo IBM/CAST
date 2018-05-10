@@ -143,41 +143,52 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
         // NOTE:  rc=0 means that the contribid was added to the ContribFile.
         //        rc=1 means that the contribid already existed in the ContribFile.
         //             This is normal for the restart of a transfer definition.
-        if((rc == 1) && (!pTransferDef->builtViaRetrieveTransferDefinition()))
+        if (rc == 1)
         {
-//          rc = -1;
-            errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
-                      << " was already known to the cross-bbServer metadata.";
-            LOG_ERROR(errorText);
+            if (pTransferDef->builtViaRetrieveTransferDefinition())
+            {
+                rc = 0;
+            }
+            else
+            {
+                rc = -1;
+                errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
+                          << " was already known to the cross-bbServer metadata.";
+                LOG_ERROR(errorText);
+            }
         }
-        rc = parts.addTransferDef(pLVKey, pHandle, pContribId, pTransferDef);
-        if (!rc) {
-            // NOTE:  The following checks are required here in case the transfer definition just added
-            //        had no files but completed the criteria being checked...
-            if ((expectContrib.size() == getNumberOfTransferDefs()) && (!parts.anyStoppedTransferDefinitions())) {
-                setAllContribsReported(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-            }
 
-            if (pTransferDef->allExtentsTransferred()) {
-                pTagInfo2->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
-
-                int l_NewStatus = 0;
-                Extent l_Extent = Extent();
-                ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
-                pTagInfo2->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
-                if (l_NewStatus) {
-                    string l_HostName;
-                    activecontroller->gethostname(l_HostName);
-                    pTagInfo2->sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, pTagId, pHandle);
-                    // Status changed for transfer handle...
-                    // Check/update the status for the LVKey
-                    // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
-                    pTagInfo2->updateTransferStatus(pConnectionName, pLVKey, 0);
+        if (!rc)
+        {
+            rc = parts.addTransferDef(pLVKey, pHandle, pContribId, pTransferDef);
+            if (!rc) {
+                // NOTE:  The following checks are required here in case the transfer definition just added
+                //        had no files but completed the criteria being checked...
+                if ((expectContrib.size() == getNumberOfTransferDefs()) && (!parts.anyStoppedTransferDefinitions())) {
+                    setAllContribsReported(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
                 }
+
+                if (pTransferDef->allExtentsTransferred()) {
+                    pTagInfo2->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
+
+                    int l_NewStatus = 0;
+                    Extent l_Extent = Extent();
+                    ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
+                    pTagInfo2->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
+                    if (l_NewStatus) {
+                        string l_HostName;
+                        activecontroller->gethostname(l_HostName);
+                        pTagInfo2->sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, pTagId, pHandle);
+                        // Status changed for transfer handle...
+                        // Check/update the status for the LVKey
+                        // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
+                        pTagInfo2->updateTransferStatus(pConnectionName, pLVKey, 0);
+                    }
+                }
+            } else {
+                errorText << "BBTagInfo::addTransferDef: Failure from addTransferDef(), rc = " << rc;
+                LOG_ERROR(errorText);
             }
-        } else {
-            errorText << "BBTagInfo::addTransferDef: Failure from addTransferDef(), rc = " << rc;
-            LOG_ERROR(errorText);
         }
     } else{
         errorText << "BBTagInfo::addTransferDef: Failure from update_xbbServerAddData(), rc = " << rc;
