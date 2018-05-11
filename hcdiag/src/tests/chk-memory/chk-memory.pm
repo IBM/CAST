@@ -117,7 +117,7 @@ foreach my $line (split(/\n/,$rval)) {
 if ( $count != $banks ) {
    push(@$errs,"Number of banks expected: $banks, got: $count."); 
 }
-else { print "Total number of bancks expected: $banks\n";}
+else { print "Total number of banks expected: $banks\n";}
 
 # ================================
 # Summary

@@ -2042,8 +2042,10 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::numhandles, l_NumHandles);
         msgserver->addAttribute(txp::matchstatus, (uint64_t)l_MatchStatus);
 
+#ifndef __clang_analyzer__  // keep for debug
         l_NumHandles=0;
         l_NumAvailHandles=0;
+#endif
 
         // Send the message to bbserver
         rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
@@ -2059,8 +2061,6 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         rc = waitReply(reply, msgserver);
         if (rc)
         {
-            l_NumHandles=0;
-            l_NumAvailHandles=0;
             errorText << "waitReply failure";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
@@ -4333,7 +4333,11 @@ int bb_main(std::string who)
 
     /* Open connection to bbServer */
     rc = openConnectionToBBserver();
-
+    if(rc)
+    {
+        LOG(bb,warning) << "Connection to bbServer failed to open.  rc=" << rc;
+    }
+    
     /* Set the master logical volume number from the configuration */
     MasterLogicalVolumeNumber.set(config.get(process_whoami+".startingvolgrpnbr", DEFAULT_MASTER_LOGICAL_VOLUME_NUMBER));
 

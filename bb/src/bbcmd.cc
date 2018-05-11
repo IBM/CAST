@@ -325,13 +325,17 @@ int bbcmd_copy(po::variables_map& vm)
         }
         
         rc = BB_GetTransferHandle((BBTAG)(vm["tag"].as<int>()), l_NumContribs, l_Contrib, &l_Handle);
-        bberror.errdirect("out.transferHandle", l_Handle);
-
+        
         if (l_Contrib)
         {
             delete[] l_Contrib;
             l_Contrib = 0;
         }
+        
+        if(rc)
+            return rc;
+        
+        bberror.errdirect("out.transferHandle", l_Handle);
     }
     
     BBTransferDef_t* l_Transfer;
@@ -1073,7 +1077,7 @@ int bbcmd_adminfailover(po::variables_map& vm)
     l_Buffer = new char[l_BufferSize];
     l_Buffer[0] = '\0';
 
-#define FAIL(text) { bberror << err("error.bbcmdstate", text) << err("rc", rc); return rc;}
+#define FAIL(text) { bberror << err("error.bbcmdstate", text) << err("rc", rc); delete [] l_Buffer; return rc;}
 
 
     char contribid[64];

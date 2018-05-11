@@ -224,7 +224,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 if (l_Continue)
                                 {
                                     rc = 0;
+#ifndef __clang_analyzer__  // l_LockHeld is never read, but keep it for debug
                                     l_LockHeld = false;
+#endif
                                     unlockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
                                         usleep((useconds_t)1000000);    // Delay 1 second
