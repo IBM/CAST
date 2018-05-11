@@ -7,6 +7,9 @@
             "number_of_replicas" : 1
         }
     }, 
+    "aliases" : {
+        "counters-ufm" : {}
+    },
     "mappings": {
         "doc" : {
             "properties" :

@@ -130,7 +130,7 @@ Indices
 CAST has specified a suite of data mappings for use in separate indices. Each of these indices is
 documented below, with a *JSON* mapping file provided in the repository and *rpm*.
 
-CAST uses *<class>-<description>* naming schema for indices to leverage templates when creating
+CAST uses *<class>-<description>-<date>* naming schema for indices to leverage templates when creating
 the indices in Elasticsearch. The *class* is one of the three primary classifications determined
 by CAST: *log*, *counters*, *environmental*. The *description* is typically a one to two word description
 of the type of data: *syslog*, *node*, *mellanox-event*, etc.
@@ -142,10 +142,20 @@ of the type of data: *syslog*, *node*, *mellanox-event*, etc.
 Templates
 ^^^^^^^^^
 
+CAST leverages the elasticsearch index templating system to assist in the defintion of "proper" indices.
+Today each of the cast specified indices is given the *cast* template, followed by the exact specialization.
+
+.. TODO: Flesh this section out. 
+
+
 .. _SyslogElastic:
 
 log-syslog
 ^^^^^^^^^^
+
+:alias: log-syslog
+:shards: 5
+:replication: 1
 
 The syslog index is designed to capture generic syslog messages. The contents of the syslog index is
 considered by CAST to be the most useful data points for syslog analysis. CAST supplies both an 
@@ -180,7 +190,11 @@ The mapping for the index contains the following fields:
 log-mellanox-event
 ^^^^^^^^^^^^^^^^^^
 
-The mellanox event log is a superset of the `syslog`_ index, an artifact of the event log being 
+:alias: log-mellanox-event
+:shards: 5
+:replication: 1
+
+The mellanox event log is a superset of the `log-syslog`_ index, an artifact of the event log being 
 transmitted through syslog. In the CAST Big Data Pipeline this log will be ingested and parsed by
 the Logstash service then transmitted to the Elasticsearch index.
 
@@ -213,6 +227,10 @@ the Logstash service then transmitted to the Elasticsearch index.
 log-console
 ^^^^^^^^^^^
 
+:alias: log-console
+:shards: 5
+:replication: 1
+
 CAST recommends the usage of the goconserver bundled in the xCAT dependicies, documented in xCat-GoConserver_.
 Configuration of the goconserver should be performed on the xCAT service nodes in the cluster.
 CAST has created a `limited configuration guide <ConsoleDataAggregator>`, please consult for 
@@ -237,6 +255,10 @@ The mapping for the *console* index is provided below:
 counters-gpfs
 ^^^^^^^^^^^^^
 
+:alias: counters-gpfs
+:shards: 5
+:replication: 1
+
 .. attention:: This section is currently a work in progress.
 
 .. note:: The CAST team is currently in the process of reviewing the GPFS counter polling process
@@ -244,6 +266,10 @@ counters-gpfs
 
 counters-ufm
 ^^^^^^^^^^^^
+
+:alias: counters-ufm
+:shards: 5
+:replication: 1
 
 .. attention:: This section is currently a work in progress.
 
@@ -254,6 +280,10 @@ counters-ufm
 counters-gpu
 ^^^^^^^^^^^^
 
+:alias: counters-gpu
+:shards: 5
+:replication: 1
+
 .. attention:: This section is currently a work in progress.
 
 .. note:: The CAST team is currently in the process of reviewing the GPU counters and the process
@@ -261,6 +291,10 @@ counters-gpu
 
 environmental-node
 ^^^^^^^^^^^^^^^^^^
+
+:alias: environmental-node
+:shards: 5
+:replication: 1
 
 .. attention:: This section is currently a work in progress.
 

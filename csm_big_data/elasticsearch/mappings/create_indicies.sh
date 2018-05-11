@@ -14,22 +14,24 @@
 #================================================================================
 #!/bin/sh
 
-#INDICES="indices"
-TEMPLATES="templates"
-target="localhost:9200"
+script_dir=$(dirname $0)
+[[ $1 = "" ]] && host=$HOSTNAME || host=$1
+
+TEMPLATES="${script_dir}/templates"
+target="${host}:9200"
 
 for template in ${TEMPLATES}/*json
 do
     name=$(basename $template)
     name=${name/.json}
     
-    template_found=$(curl -s -o /dev/null -I -w "%{http_code}" "${target}/_template/${name}?pretty")
-
-#    curl -X DELETE "${target}/_template/${name}?pretty"
+    #template_found=$(curl -s -o /dev/null -I -w "%{http_code}" "${target}/_template/${name}?pretty")
+    #curl -X DELETE "${target}/_template/${name}?pretty"
     template_put=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "${target}/_template/${name}?pretty"\
         -H 'Content-Type: application/json' -d @${template})
 
-    echo "${template_found} ${template_put}"
+    echo "${name} ${template_found} ${template_put}"
+    echo "${name} ${template_put}"
 done
 
 
