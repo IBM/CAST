@@ -434,6 +434,7 @@ typedef enum
 
 typedef std::pair<const csm::network::AddressCode, const ComputeSet> ComputeSetEntry;
 typedef std::map<const csm::network::AddressCode, ComputeSet> AggregatorNodeSet_t;
+typedef std::map<const csm::network::AddressCode, csm::network::Address_sptr> AddrKeyToAggrMap_t;
 typedef std::pair<std::string, ComputeAction_t> ComputeActionEntry_t;
 typedef std::deque<ComputeActionEntry_t> ComputeActionList_t;
 
@@ -529,20 +530,22 @@ class AggregatorSet
 {
   ComputeReferenceCounter_t _refcount;
   AggregatorNodeSet_t _aggrs;
+  AddrKeyToAggrMap_t _addresses;
   mutable std::mutex _lock;
 
 public:
   AggregatorSet()
-  : _aggrs()
+  : _aggrs(), _addresses()
   {}
 
   AggregatorSet( const AggregatorSet &in )
-  : _aggrs( in._aggrs )
+  : _aggrs( in._aggrs ), _addresses( in._addresses )
   {}
 
   ~AggregatorSet()
   {
     _aggrs.clear();
+    _addresses.clear();
   }
 
 public:
@@ -554,6 +557,7 @@ public:
 
     std::lock_guard<std::mutex> guard( _lock );
     _aggrs[ addr->MakeKey() ] = in;
+    _addresses[ addr->MakeKey() ] = addr;
     _aggrs[ addr->MakeKey() ].Commit();
     return 0;
   }
@@ -562,13 +566,22 @@ public:
     if( addr == nullptr )
       return 0;
 
+    int rc = 0;
+
     std::lock_guard<std::mutex> guard( _lock );
     AggregatorNodeSet_t::iterator loc = _aggrs.find( addr->MakeKey() );
     if( loc != _aggrs.end() )
       _aggrs.erase( loc );
     else
-      return -ENOENT;
-    return 0;
+      rc = -ENOENT;
+
+    // even if the aggrs entry wasn't found, still try to find the addresses entry - just in case things went out of sync
+    AddrKeyToAggrMap_t::iterator aloc = _addresses.find( addr->MakeKey() );
+    if( aloc != _addresses.end() )
+      _addresses.erase( aloc );
+    else
+      rc = -ENOENT;
+    return rc;
   }
   int Replace( const csm::network::Address_sptr addr,
                const ComputeSet &in )
@@ -596,6 +609,11 @@ public:
   {
     if( addr == nullptr ) return;
     std::lock_guard<std::mutex> guard( _lock );
+    if( _aggrs.find( addr->MakeKey() ) == _aggrs.end() )
+    {
+      CSMLOG( csmd, warning ) << "Disconnect: Unable to find compute set for aggregator address: " << addr->Dump();
+      return;
+    }
     _aggrs[ addr->MakeKey() ].SetActive( false );
     _refcount.Down( _aggrs[ addr->MakeKey() ].GetAddrList() );
   }
@@ -603,6 +621,11 @@ public:
   {
     if( addr == nullptr ) return;
     std::lock_guard<std::mutex> guard( _lock );
+    if( _aggrs.find( addr->MakeKey() ) == _aggrs.end() )
+    {
+      CSMLOG( csmd, warning ) << "Connect: Unable to find compute set for aggregator address: " << addr->Dump();
+      return;
+    }
     _aggrs[ addr->MakeKey() ].SetActive( true );
     _refcount.Up( _aggrs[ addr->MakeKey() ].GetAddrList() );
   }
@@ -658,6 +681,21 @@ public:
     return _refcount.GetNextEvent();
   }
 
+  // IMPORTANT: input-list needs to be sorted!!!
+  std::vector<csm::network::Address_sptr> MtcMatch( const ComputeNodeList_t mtcNodes )
+  {
+    std::vector<csm::network::Address_sptr> aggList;
+
+    for( auto it : _aggrs )
+    {
+      if( ! it.second.GetActive() )
+        continue;
+      if( ! it.second.InterSectNodes( mtcNodes ).empty() )
+        aggList.push_back( _addresses[ it.first ] );
+    }
+
+    return aggList;
+  }
 };
 
 }   // daemon

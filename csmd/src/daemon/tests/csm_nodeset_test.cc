@@ -17,6 +17,7 @@
 #include <string>
 #include <set>
 #include <chrono>
+#include <algorithm>
 
 #include "csmnet/src/CPP/address.h"
 #include "include/csm_node_bitset.h"
@@ -56,11 +57,20 @@ typedef struct
   void update( const unsigned c, const uint64_t mic )
   {
     _avg += c;
-    _msgs[ _idx ] = c;
+    _msgs[ _idx % TEST_COUNT ] = c;
     _mic += mic;
     if( _min > c ) _min = c;
     if( _max < c ) _max = c;
-    _idx = ( _idx + 1 ) % TEST_COUNT;
+    if( _idx < TEST_COUNT )
+      ++_idx;
+  }
+  double GetAvgAggs()
+  {
+    return _avg/(double)_idx;
+  }
+  double GetAvgMics()
+  {
+    return (double)_mic/(double)_idx;
   }
 } Stats_t;
 
@@ -82,12 +92,12 @@ std::string RandomString( const uint64_t number = RANDOM_MAGIC )
   else
   {
 #define RACKSIZE (18)
-#define COLUMS (12)
+#define COLUMS (16)
     uint64_t r = number / (RACKSIZE*COLUMS);
     uint64_t c = ( number / RACKSIZE ) % COLUMS;
-    uint64_t n = number % RACKSIZE + 1;
+    uint64_t n = number % RACKSIZE;
 
-    len = 2;
+    len = 4;
 
     out.append("-r");
     out.append( std::to_string(r) );
@@ -112,10 +122,10 @@ csm::daemon::NodeNameList_t GenerateNodeList( const int i_Size )
     std::string name;
     do
     {
-      name = RandomString( n+1 );
+      name = RandomString( n );
     } while ( nodeSet.find( name ) != nodeSet.end() );
     nodeSet.insert( name );
-//    std::cout << "  " << name;
+    std::cout << "  " << name << std::endl;
     ret.push_back( name );
   }
   return ret;
@@ -253,7 +263,7 @@ csm::daemon::ComputeNodeList_t GenerateAddrList( const int i_Size )
     std::string name;
     do
     {
-      name = RandomString( n+1 );
+      name = RandomString( n );
     } while ( nodeSet.find( name ) != nodeSet.end() );
     nodeSet.insert( name );
 //    std::cout << "  " << name;
@@ -482,6 +492,81 @@ int aggregatorset_test( int argc, char **argv )
 }
 
 
+int MTCPerformanceTest( const int listSize, const unsigned mtcSize )
+{
+  Stats_t SetMsg;
+  SetMsg.reset();
+  int rc = 0;
+
+  // create aggregator addresses
+  csm::network::Address_sptr agg[ AGG_COUNT ];
+  for( int i=0; i<AGG_COUNT; ++i )
+    agg[ i ] = std::make_shared<csm::network::AddressAggregator>( 0x33557722 + i, 10000 + i  );
+
+  // generate the nodelist
+  csm::daemon::NodeNameList_t nodes = GenerateNodeList( NODE_COUNT_MAX );
+
+  // create the master set of aggregators
+  csm::daemon::AggregatorSet master;
+  for( int i=0; i<AGG_COUNT+1; ++i )
+  {
+    master.Add( agg[i], csm::daemon::ComputeSet( PickNodeList( nodes, listSize, (i * listSize/2) ) ) );
+    master.Connect( agg[ i ] );
+  }
+
+  size_t overlappedOffset = listSize/2;
+  size_t overlappedNodes = overlappedOffset * (AGG_COUNT-2);
+  double minimal = ceil( (double)mtcSize / ((double)listSize/2) ) + 1;
+  double maximal = ceil( (double)mtcSize / ((double)listSize/2) ) + 2;
+
+//  for( int i=0; i<TEST_COUNT; ++i )
+  int i;
+  int test_count = 0;
+  for( i=0; i<TEST_COUNT; ++i, ++test_count )
+  {
+    size_t testOffset = overlappedOffset + (i % (overlappedNodes-mtcSize));
+    if( i >(int)(overlappedNodes-mtcSize) )
+      testOffset = (overlappedOffset + (random() % (overlappedNodes-mtcSize) ));
+
+    std::cout << "Testing MTC Coverage at offset: " << testOffset << std::endl;
+    csm::daemon::NodeNameList_t mtcNodes = PickNodeList( nodes, mtcSize, testOffset );
+    if( ! std::is_sorted( mtcNodes.begin(), mtcNodes.end() ) )
+      std::sort( mtcNodes.begin(), mtcNodes.end() );
+
+//    csm::daemon::NodeNameList_t mtcNodes = PickNodeList( nodes, mtcSize, RANDOM_MAGIC );
+
+    std::chrono::high_resolution_clock::time_point start_set = std::chrono::high_resolution_clock::now();
+
+    std::vector<csm::network::Address_sptr> destList;
+
+    destList = master.MtcMatch( mtcNodes );
+
+    std::chrono::high_resolution_clock::time_point end_set = std::chrono::high_resolution_clock::now();
+    uint64_t micros = std::chrono::duration_cast<std::chrono::microseconds>(end_set-start_set).count();
+    SetMsg.update( destList.size(), micros );
+
+    rc += TESTFAIL( destList.empty(), true );
+    rc += TEST( destList.size() < minimal, false );
+    if( destList.empty() )
+      std::cerr << "Coverage error: No destination for MTC " << std::endl;
+
+    if( destList.size() < minimal )
+      std::cerr << "Coverage error: Need at least " << minimal
+        << " aggr for MTC of size " << mtcSize << " at offs " << testOffset
+        << ". Found only: " << destList.size() << std::endl;
+
+  }
+
+  std::cout << "Agg-Msgs for nodes= " << mtcSize
+      << ":   Res_set=(avg: " << SetMsg.GetAvgAggs() << " aggs/mtc, min-max: "<< SetMsg._min << "-" << SetMsg._max
+      << "; " << SetMsg.GetAvgMics() <<" micros/mtc;" << SetMsg.GetAvgAggs() / maximal * 100. << "%)"
+
+      << " entries = " << listSize/2 << " min = " << minimal << " max = " << maximal
+      << std::endl;
+
+  return rc;
+}
+
 int main( int argc, char **argv )
 {
   int rc = 0;
@@ -513,6 +598,7 @@ int main( int argc, char **argv )
   //  rc += bitset_test( argc, argv );
   rc += computeset_test( argc, argv );
   rc += aggregatorset_test( argc, argv );
+  rc += MTCPerformanceTest( listSize, mtcSize );
 
   LOG( csmd, always ) << "Test exiting with rc=" << rc;
   return rc;
