@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #==============================================================================
 #   
-#    hcdiag/src/tests/chk-nvidia-vbios/chk-nvidia-vbios.pm
+#    hcdiag/src/tests/ipoib/ipoib.pm
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
