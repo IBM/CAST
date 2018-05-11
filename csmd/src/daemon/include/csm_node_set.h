@@ -496,14 +496,37 @@ public:
   {
     for( auto it : upd )
     {
-      if( _refs[ it._name ] > 0 )
-        _refs.at( it._name )--;
+      switch( it._action )
+      {
+        case NODE_ACTION_UP:
+        {
+          if( _refs[ it._name ] < 2 )
+            _refs.at( it._name )++;
 
-      if( _refs[ it._name ] == 0 )
-        _events.push_back( ComputeActionEntry_t( it._name,
-                                                 (agg_down ? COMPUTE_DOWN : COMPUTE_LOST_CONNECTION ) ) );
-      if( _refs[ it._name ] == 1 )
-        _events.push_back( ComputeActionEntry_t( it._name, COMPUTE_LOST_REDUNDANCY ) );
+          // now, if the refcount bumped up from 0 to 1, we add it to the "RAS-up" candidate list
+          if( _refs[ it._name ] == 1 )
+            _events.push_back( ComputeActionEntry_t( it._name, COMPUTE_UP ) );
+          if( _refs[ it._name ] == 2 )
+            _events.push_back( ComputeActionEntry_t( it._name, COMPUTE_FULL_REDUNDANCY ) );
+          break;
+        }
+        case NODE_ACTION_DOWN:
+        {
+          if( _refs[ it._name ] > 0 )
+            _refs.at( it._name )--;
+
+          if( _refs[ it._name ] == 0 )
+            _events.push_back( ComputeActionEntry_t( it._name,
+                                                     (agg_down ? COMPUTE_DOWN : COMPUTE_LOST_CONNECTION ) ) );
+          if( _refs[ it._name ] == 1 )
+            _events.push_back( ComputeActionEntry_t( it._name, COMPUTE_LOST_REDUNDANCY ) );
+          break;
+        }
+        default:
+          CSMLOG( csmd, warning ) << "Unrecognized node action " << it._action
+            << " expected: " << NODE_ACTION_UP << " or " << NODE_ACTION_DOWN;
+          break;
+      }
 
       CSMLOG( csmd, debug ) << (it._action == NODE_ACTION_UP ? "UP" : "DOWN" ) << "counting " << it._name
           << " refs=" << std::to_string( _refs[ it._name ] );
