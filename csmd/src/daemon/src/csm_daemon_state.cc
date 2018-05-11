@@ -606,7 +606,14 @@ csm::daemon::DaemonStateMaster::GetNextComputeAction()
 std::vector<csm::network::Address_sptr>
 csm::daemon::DaemonStateMaster::GetMulticastAggregators( const std::vector<std::string> computes )
 {
-  return _aggregators.MtcMatch( computes );
+  if(( computes.size() > MTC_BROADCAST_THRESHOLD ) || ( std::is_sorted( computes.begin(), computes.end() ) ))
+    return _aggregators.MtcMatch( computes );
+  else
+  {
+    std::vector<std::string> sorted_computes = computes;
+    std::sort( sorted_computes.begin(), sorted_computes.end() );
+    return _aggregators.MtcMatch( sorted_computes );
+  }
 }
 
 
