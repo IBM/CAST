@@ -574,7 +574,7 @@ csm::daemon::DaemonStateMaster::ConnectEP(const csm::network::Address_sptr addr)
 bool
 csm::daemon::DaemonStateMaster::IsNodeConnected( const std::string node )
 {
-  return true;
+  return _aggregators.IsNodeConnected(node);
 }
 
 std::vector<std::string>
@@ -603,6 +603,11 @@ csm::daemon::DaemonStateMaster::GetNextComputeAction()
   return _aggregators.GetNextEvent();
 }
 
+std::vector<csm::network::Address_sptr>
+csm::daemon::DaemonStateMaster::GetMulticastAggregators( const std::vector<std::string> computes )
+{
+  return _aggregators.MtcMatch( computes );
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

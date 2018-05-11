@@ -273,6 +273,7 @@ public:
                          csm::network::Message msg );
 
   csm::daemon::ComputeActionEntry_t GetNextComputeAction();
+  std::vector<csm::network::Address_sptr> GetMulticastAggregators( const std::vector<std::string> computes );
 };
 
 class DaemonStateAgg : public DaemonState

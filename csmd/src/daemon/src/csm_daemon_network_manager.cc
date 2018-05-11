@@ -862,7 +862,15 @@ int csm::daemon::EventManagerNetwork::ExtractDestinationAddresses( csm::network:
 
     case csm::network::ABSTRACT_ADDRESS_AGGREGATOR:
     {
-      o_DestAddrList = GetAggregatorAddress();
+      if(( i_MsgAddr->_Msg.GetMulticast() ) && (_Config->GetRole() == CSM_DAEMON_ROLE_MASTER))
+      {
+        std::vector<std::string> nodeList;
+        uint32_t nodeStrLen;
+        csm::network::ExtractMulticastNodelist( i_MsgAddr->_Msg, nodeList, &nodeStrLen );
+        o_DestAddrList = dynamic_cast<csm::daemon::DaemonStateMaster*>( _DaemonState )->GetMulticastAggregators( nodeList );
+      }
+      else
+        o_DestAddrList = GetAggregatorAddress();
       if( _Config->GetRole() == CSM_DAEMON_ROLE_MASTER )
         expectedResponses = 5000;  // todo: temporary setting until we have more detailed info about aggregators
       break;
