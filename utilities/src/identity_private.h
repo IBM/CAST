@@ -23,7 +23,13 @@
 class UserIdentity
 {
   public:
-    UserIdentity() {buf=NULL;};
+    UserIdentity() 
+    {
+        buf        = NULL;
+        expireTime = 0;
+        numGroups  = 0;
+        memset(&pwd, 0, sizeof(pwd));
+    };
     
     time_t          expireTime;
     struct passwd   pwd;
