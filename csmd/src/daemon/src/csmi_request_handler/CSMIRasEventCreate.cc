@@ -461,9 +461,7 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
         dbstr += ",";
         if (fields[n] == CSM_RAS_FKEY_TIME_STAMP)
         {
-            dbstr += "to_timestamp(";
-            dbstr += "$" + to_string(param) + "::text";
-            dbstr += ", 'YYYY-MM-DD hh24:mi:ss')";
+            dbstr += "$" + to_string(param) + "::timestamp";
         }
         else
         {
