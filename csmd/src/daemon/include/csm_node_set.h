@@ -634,6 +634,8 @@ public:
     if( ! upd.empty() )
       _refcount.Updates( upd, false );
 
+    _aggrs[ addr->MakeKey() ].Update( upd );
+
     CSMLOG( csmd, info ) << "Nodes of "  << addr->Dump()  << ": " << _aggrs[ addr->MakeKey() ].GetSize();
     CSMLOG( csmd, trace ) << "Nodes of "  << addr->Dump()  << ": " << _aggrs[ addr->MakeKey() ].Dump();
     return 0;
@@ -730,6 +732,7 @@ public:
         aggList.push_back( _addresses[ it.first ] );
     }
 
+    CSMLOG( csmd, debug ) << "MtcMatch(): resolved " << aggList.size() << " destinations";
     return aggList;
   }
 };
