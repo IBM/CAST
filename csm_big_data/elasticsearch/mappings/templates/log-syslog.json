@@ -1,6 +1,14 @@
 {
+    "index_patterns": ["log-syslog"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    },
     "mappings": {
-        "docs" : {
+        "doc" : {
             "properties" : {
                 "hostname"     : { "type" : "text" },
                 "program_name" : { "type" : "text" },
@@ -9,12 +17,6 @@
                 "severity"     : { "type" : "text" },
                 "message"      : { "type" : "text" }
             }
-        }
-    },
-    "settings" :{
-        "index" : { 
-            "number_of_shards"   : 5,
-            "number_of_replicas" : 1
         }
     }
 }

@@ -14,17 +14,23 @@
 #================================================================================
 #!/bin/sh
 
-DATA_STATE="data_types"
-INDEX_STATE="index_types"
+#INDICES="indices"
 TEMPLATES="templates"
+target="localhost:9200"
 
+for template in ${TEMPLATES}/*json
+do
+    name=$(basename $template)
+    name=${name/.json}
+    
+    template_found=$(curl -s -o /dev/null -I -w "%{http_code}" "${target}/_template/${name}?pretty")
 
-#curl -X DELETE "localhost:9200/_template/template_cast"
-#curl -X PUT "localhost:9200/_template/template_cast?pretty" -H 'Content-Type: application/json' -d @${TEMPLATES}/cast-template.json
+#    curl -X DELETE "${target}/_template/${name}?pretty"
+    template_put=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "${target}/_template/${name}?pretty"\
+        -H 'Content-Type: application/json' -d @${template})
 
-curl -X DELETE "localhost:9200/log-syslog"
-curl -X PUT "localhost:9200/log-syslog?pretty" -H 'Content-Type: application/json' -d @${DATA_STATE}/log-syslog-mapping.json
-
+    echo "${template_found} ${template_put}"
+done
 
 
 

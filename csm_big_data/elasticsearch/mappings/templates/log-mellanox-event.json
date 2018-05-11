@@ -1,6 +1,14 @@
 {
+    "index_patterns": ["log-mellanox-event"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    },
     "mappings": {
-        "docs" : {
+        "doc" : {
             "properties" :
             {
                 "hostname"     : { "type" : "text" },
@@ -14,12 +22,6 @@
                 "event_type"   : { "type" : "text" },
                 "category"     : { "type" : "text" }
             }
-        }
-    },
-    "settings" :{
-        "index" : { 
-            "number_of_shards"   : 5,
-            "number_of_replicas" : 1
         }
     }
 }

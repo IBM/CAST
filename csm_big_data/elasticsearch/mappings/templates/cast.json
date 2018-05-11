@@ -6,7 +6,7 @@
         "number_of_replicas" : 1
     },
     "mappings" : {
-        "docs": {
+        "doc": {
             "properties" : {
                 "@version"   : { "type" : "text" },
                 "@timestamp" : { "type" : "date" },

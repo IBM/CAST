@@ -1,6 +1,8 @@
 {
+    "index_patterns" : ["counters-gpu*"],
+    "order" : 1,
     "mappings": {
-        "docs" : {
+        "doc" : {
             "properties" :
             {
             }

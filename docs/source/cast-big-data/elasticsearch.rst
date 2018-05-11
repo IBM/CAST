@@ -124,14 +124,14 @@ System Settings
 
 
 
-Indicies
+Indices
 --------
 
-CAST has specified a suite of data mappings for use in separate indicies. Each of these indicies is
+CAST has specified a suite of data mappings for use in separate indices. Each of these indices is
 documented below, with a *JSON* mapping file provided in the repository and *rpm*.
 
-CAST uses *<class>-<description>* naming schema for indicies to leverage templates when creating
-the indicies in Elasticsearch. The *class* is one of the three primary classifications determined
+CAST uses *<class>-<description>* naming schema for indices to leverage templates when creating
+the indices in Elasticsearch. The *class* is one of the three primary classifications determined
 by CAST: *log*, *counters*, *environmental*. The *description* is typically a one to two word description
 of the type of data: *syslog*, *node*, *mellanox-event*, etc.
 
