@@ -21,6 +21,17 @@
 #define cleanlogprefix
 #endif
 
+/*
+ * Any multi-cast nodelist longer than this threshold will cause the master to perform a broadcast
+ * instead of trying to find the list of responsible aggregators.
+ * The limit should be a tradeoff between the number of messages to send and the number of
+ * intersection operations that need to be done between the node list and the compute-set of each aggregator
+ * With better optimized intersection operations, this threshold might be increased further
+ *
+ * todo: this might be considered as a tuning parameter later
+ */
+#define MTC_BROADCAST_THRESHOLD ( 4 * 288 ) // aggregators * nodes per agg on some target system
+
 #include <mutex>
 #include <string>
 #include <unordered_set>
@@ -690,7 +701,9 @@ public:
     {
       if( ! it.second.GetActive() )
         continue;
-      if( ! it.second.InterSectNodes( mtcNodes ).empty() )
+
+      // if the number of compute nodes is large enough, don't bother matching, just fire to all aggregators
+      if(( mtcNodes.size() > MTC_BROADCAST_THRESHOLD ) || ( ! it.second.InterSectNodes( mtcNodes ).empty() ))
         aggList.push_back( _addresses[ it.first ] );
     }
 
