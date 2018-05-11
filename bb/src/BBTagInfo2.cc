@@ -200,9 +200,9 @@ int BBTagInfo2::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const 
         rc = tagInfoMap.addTagInfo(pLVKey, pJob, l_TagId, l_NewTagInfo, l_GeneratedHandle);
         if (!rc) {
             l_TagInfo = tagInfoMap.getTagInfo(l_TagId);
-            LOG(bb,info) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << l_TagId.getTag() << ") with handle 0x" \
-                         << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
-                         << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
+            LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << l_TagId.getTag() << ") with handle 0x" \
+                          << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
+                          << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
         } else {
             // NOTE: errstate already filled in...
             errorText << "getTransferHandle: Failure from addTagInfo(), rc = " << rc;
@@ -331,7 +331,7 @@ void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* 
                                     FL_Write(FLTInf2, FSYNC_SSD, "Performing SSD fsync.  fd=%ld", ssd_fd,0,0,0);
                                     ::fsync(ssd_fd);
                                     FL_Write(FLTInf2, FSYNC_SSDCMP, "Performed SSD fsync.  fd=%ld", ssd_fd,0,0,0);
-                                    LOG(bb,info) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
+                                    LOG(bb,debug) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
                                 }
                                 else
                                 {
@@ -343,11 +343,11 @@ void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* 
                         else if (pExtentInfo.getExtent()->flags & BBI_TargetPFS)
                         {
                             // Target is PFS...
-                            LOG(bb,info) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
+                            LOG(bb,debug) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
                             FL_Write(FLTInf2, FSYNC_PFS, "Performing PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
                             l_IO->fsync(pExtentInfo.getExtent()->targetindex);
                             FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
-                            LOG(bb,info) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
+                            LOG(bb,debug) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
                         }
                     }
                     catch (ExceptionBailout& e) { }
@@ -757,12 +757,12 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
             }
             else
             {
-                LOG(bb,info) << "sendTransferCompleteForHandleMsg(): No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
+                LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
             }
         }
         else
         {
-            LOG(bb,info) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
+            LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
         }
     }
 
@@ -818,7 +818,8 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                 {
                     if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
                     {
-                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", " << *pLVKey \
+                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                     << connectionName << ", " << *pLVKey << ", jobid " << jobid \
                                      << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
                     }
                     SET_FLAG(BBTI2_Suspended, pValue);

@@ -114,7 +114,7 @@ int BBIO_Regular::close(uint32_t pFileIndex)
     if (fh)
     {
         FL_Write(FLXfer, BBIORegClose, "pFileIndex=%ld fh=%p fd=%ld",pFileIndex,(uint64_t)fh,fh->getfd(),0);
-        LOG(bb,info) << "Close for " << fh->getfn() << ", file index " << pFileIndex << ", fd " << fh->getfd();
+        LOG(bb,debug) << "Close for " << fh->getfn() << ", file index " << pFileIndex << ", fd " << fh->getfd();
         delete fhmap[pFileIndex];
         fhmap.erase(pFileIndex);
     }
@@ -154,7 +154,7 @@ int BBIO_Regular::fstat(uint32_t pFileIndex, struct stat* pStats)
     filehandle* fh = getFileHandle(pFileIndex);
     if (fh)
     {
-        LOG(bb,info) << "BBIO_Regular fstat for " << fh->getfn() << ", file index " << pFileIndex;
+        LOG(bb,debug) << "BBIO_Regular(): fstat for " << fh->getfn() << ", file index " << pFileIndex;
         rc = fh->getstats(*pStats);
         FL_Write(FLXfer, BBIORegFstat, "pFileIndex=%ld fd=%ld rc=%ld errno=%ld",pFileIndex,fh->getfd(),rc,errno);
         if(rc == 0)

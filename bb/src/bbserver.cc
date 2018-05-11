@@ -684,7 +684,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
         stringstream l_JobStr;
         l_Job.getStr(l_JobStr);
-        LOG(bb,info) << "msgin_gettransferhandle: " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib << ", contrib = " << l_Temp.str();
+        LOG(bb,info) << "msgin_gettransferhandle: job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib << ", contrib " << l_Temp.str();
 
         switchIds(msg);
 
@@ -693,7 +693,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
         //         This closes the window during activate server between the activation
         //         of the connection to the new server and the registering of any LVKeys
         //         with the new server.
-        //         \todo - Not sure if this is the right duration...  @DLH
         int l_Continue = 120;
         while ((rc) && (l_Continue--))
         {
@@ -708,8 +707,8 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                 // Log the input/results
                 Uuid lv_uuid = l_LVKey.second;
                 lv_uuid.copyTo(lv_uuid_str);
-                LOG(bb,info) << "getHandle: Local l_LVKey.first= " << l_LVKey.first<< ", LV Uuid = " << lv_uuid_str << ", " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib \
-                             << ", contrib = " << l_Temp.str() << ", handle = " << l_Handle;
+                LOG(bb,info) << "getHandle: " << l_LVKey << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib \
+                             << ", contrib " << l_Temp.str() << " -> handle " << l_Handle;
             }
             else
             {
@@ -1599,9 +1598,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         LOG(bb,info) << "msgin_starttransfer: Input " << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle \
                      << ", contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
-                     << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
-                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
-                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
+                     << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false");
+//                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false")
+//                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
 
         if (l_PerformOperation && config.get(process_whoami+".bringup.dumpTransferDefinitionAfterDemarshall", 0)) {
             l_TransferPtr->dump("info", "Transfer Definition (after demarshall)");
@@ -1692,8 +1691,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     // Process the job into a formatted stringstream
                                     stringstream l_JobStr;
                                     l_Job.getStr(l_JobStr);
-                                    LOG(bb,info) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag = " << l_Tag \
-                                                 << ", handle = " << l_Handle << ", numcontrib = " << l_NumContrib << ", contrib = " << l_ContribStr.str();
+                                    LOG(bb,debug) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag=" << l_Tag \
+                                                  << ", handle=" << l_Handle << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str();
 
                                     // Start transfer
                                     // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
