@@ -70,7 +70,7 @@ bool CSMIHandlerState::PushDBReq(
     
 bool CSMIHandlerState::PushMCAST( 
     csm::network::Message message,
-    const std::vector<std::string>& targets,
+    std::vector<std::string>& targets,
     csm::daemon::EventContextHandlerState_sptr ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     uint64_t targetState,
@@ -82,6 +82,10 @@ bool CSMIHandlerState::PushMCAST(
         ctx->SetErrorMessage("Multicast had no targets!");
         return false;
     }
+
+    // Sort the targets.
+    std::sort(targets.begin(), targets.end());
+
     // Set up the message count trackers.
     ctx->SetExpectedNumResponses(targets.size());
     ctx->SetReceivedNumResponses(0);
