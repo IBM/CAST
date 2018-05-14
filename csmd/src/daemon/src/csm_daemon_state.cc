@@ -771,7 +771,7 @@ void csm::daemon::DaemonStateAgent::SetPrimaryAggregator( const csm::network::Ad
   std::lock_guard<std::mutex> guard( _map_lock );
 
   if( primary == nullptr )
-    throw csm::daemon::Exception("BUG: SetPrimaryAggregator attemped with nullptr.");
+    throw csm::daemon::Exception("BUG: SetPrimaryAggregator attempted with nullptr.");
 
   CSMLOG( csmd, debug ) << "SetPrimaryAggregator(): current status: primary=" << ( _Aggregators[ 0 ] != nullptr ? _Aggregators[ 0 ]->Dump() : "NULL" )
       << " secondary=" << ( _Aggregators[ 1 ] != nullptr ? _Aggregators[ 1 ]->Dump() : "NULL" );
