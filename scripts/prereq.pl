@@ -42,17 +42,16 @@ sub build_cmake
 
     ($ver) = $ver_str =~ /cmake version (\S+)/;
     print "cmake ver: $ver\n";
-    return if(($ver cmp "3.5") >= 0);
+    return if(($ver cmp "3.7") >= 0);
     
-    $bname="cmake-3.5.2";
+    $bname="cmake-3.7.1";
     $fname="$bname.tar.gz";
 
     if (-e $fname) { unlink ($fname); }
     if (-e $bname) { system("rm -rf $bname"); }
 
-    system("wget http://cmake.org/files/v3.5/$fname");
+    system("wget http://cmake.org/files/v3.7/$fname");
     system("tar -xvzf $fname");
-    system("patch cmake-3.5.2/Source/CPack/cmCPackGenerator.cxx cmake_template.patch");
     
     chdir("$bname");
     if($useprefix)

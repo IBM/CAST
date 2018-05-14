@@ -169,8 +169,10 @@ bool ParseResponseDelete(
             {
                 success = true;
                 std::string hostname(allocPayload->hostname);
-                uint32_t hostIdx = mcastProps->SetHostError(hostname);
-                
+                uint32_t hostIdx = mcastProps->SetHostError(hostname, 
+                    allocPayload->error_code, 
+                    allocPayload->error_message);
+
                 if ( hostIdx < allocation->num_nodes )
                 {
                     allocation->ib_rx[hostIdx]      = allocPayload->ib_rx;

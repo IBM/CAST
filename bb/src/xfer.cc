@@ -373,7 +373,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                 }
                                 else
                                 {
-                                    // At least one of the the files failed.  (It may have been marked failed after processing the
+                                    // At least one of the files failed.  (It may have been marked failed after processing the
                                     // last extent for the transfer definition...)
                                     //
                                     // Mark the transfer definition as stopped...
@@ -393,7 +393,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                         {
                                             // Indicate to restart this transfer defintion as it is now marked as stopped
                                             rc = 1;
-                                            LOG(bb,info) << "contribIdStopped():  Transfer definition marked as stopped for jobid " << pJobId \
+                                            LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
+                                                         << "Transfer definition marked as stopped for jobid " << pJobId \
                                                          << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
                                         }
                                         else
@@ -707,7 +708,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         string cmd;
         cmd = "cp " + pTransferDef->files[pExtent->sourceindex] + " " + pTransferDef->files[pExtent->targetindex];
 
-        // \todo NOTE: Currently, no way to get the the stopped or canceled legs...  @DLH
+        // \todo NOTE: Currently, no way to get to the stopped or canceled legs...  @DLH
         BBSTATUS l_Status = BBFULLSUCCESS;
         for (auto&l_Line : runCommand(cmd)) {
             // No expected output...
@@ -1236,7 +1237,9 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
             {
                 if (!l_ExtentRemovedFromVectorOfExtents)
                 {
+#ifndef __clang_analyzer__
                     l_ExtentRemovedFromVectorOfExtents = true;
+#endif
                     l_TagInfo2->extentInfo.removeExtent(l_Extent);
                 }
             }
@@ -1260,7 +1263,9 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
                 if (l_MarkTransferDefinitionCanceled)
                 {
                     // Cancel has been issued for the handle...
+#ifndef __clang_analyzer__
                     l_MarkTransferDefinitionCanceled = false;
+#endif
                     // Mark the transfer definition
                     l_TransferDef->setCanceled(&l_Key, pExtentInfo.handle, pExtentInfo.contrib);
                     // NOTE: If the handle is marked as stopped, mark the transfer definition as stopped also...
@@ -1830,17 +1835,46 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                     {
                         if (!l_TransferDefinitionBuiltViaRetrieve)
                         {
-                            // This condition overrides any failure detected on bbProxy...
-                            pMarkFailedFromProxy = 0;
+                            if (!l_OrigTransferDef->extentsAreEnqueued())
+                            {
+                                // Extents have not been enqueued yet...
+                                // NOTE:  Allow this to continue...  This is probably the case where a start transfer got far enough along
+                                //        on bbServer to create all of the metadata (first volley message), but the second volley either failed
+                                //        or bbProxy failed before/during the send of the second volley message.
+                                // NOTE:  Start transfer processing DOES NOT backout any metadata changes made for a partially completed
+                                //        operation.
+                                LOG(bb,info) << "Transfer definition for contribid " << pContribId << " already exists for " << *pLVKey \
+                                             << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "), handle " << l_TagInfo->transferHandle \
+                                             << ", but extents have never been enqueued for the transfer definition. Transfer definition will be reused.";
 
-                            rc = -1;
-                            errorText << "queueTagInfo: Failure from getTransferDef() for contribid=" << pContribId << ", rc=" << rc;
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                                // Cleanup the I/O map
+                                l_OrigTransferDef->cleanUpIOMap();
+
+                                // Now, swap in the extent vector from the new transfer definition
+                                l_OrigTransferDef->replaceExtentVector(pTransferDef);
+
+                                // Set pTransferDef to the version of the transfer definition in BBTagInfo/BBTagParts...
+                                // NOTE: This is just like the call to addTransferDef() in the then leg.
+                                pTransferDef = l_OrigTransferDef;
+                            }
+                            else
+                            {
+                                // Extents have already been enqueued for this transfer definition...
+                                // This condition overrides any failure detected on bbProxy...
+                                pMarkFailedFromProxy = 0;
+
+                                rc = -1;
+                                errorText << "queueTagInfo: Failure from getTransferDef() for contribid=" << pContribId << ", rc=" << rc;
+                                LOG_ERROR_TEXT_RC(errorText, rc);
+                            }
                         }
                         else
                         {
                             // Set addressability to the transfer definition in BBTagInfo/BBTagParts
                             l_RestartToSameServer = true;
+
+                            // Cleanup the I/O map
+                            l_OrigTransferDef->cleanUpIOMap();
 
                             // Now, swap in the extent vector from the new transfer definition
                             l_OrigTransferDef->replaceExtentVector(pTransferDef);
@@ -2066,7 +2100,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                             char l_TransferType[64] = {'\0'};
                                             getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
                                             LOG(bb,info) << "Indicating to bbproxy to restart the transfer for the source file associated with jobid " \
-                                                         << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
+                                                         << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
                                                          << (uint32_t)pContribId << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
                                         }
                                     }
@@ -2093,7 +2127,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                     char l_TransferType[64] = {'\0'};
                                     getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
                                     LOG(bb,info) << "Indicating to bbproxy to not restart the transfer for the source file associated with jobid " \
-                                                 << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
+                                                 << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
                                                  << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type " << l_TransferType;
                                 }
                                 l_NextSourceIndexToProcess = e.sourceindex + 2;
@@ -2577,7 +2611,9 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
 
     if (l_LockAcquired)
     {
+#ifndef __clang_analyzer__
         l_LockAcquired = false;
+#endif
         unlockTransferQueue(pLVKey, "getHandle");
     }
 
@@ -2608,7 +2644,9 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
             if (rc == -2)
             {
                 rc = 0;
+#ifndef __clang_analyzer__
                 l_LockHeld = false;
+#endif
                 unlockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
                 {
                     usleep((useconds_t)1000000);    // Delay 1 second
@@ -2627,7 +2665,9 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
 
     if (l_LockHeld)
     {
+#ifndef __clang_analyzer__
         l_LockHeld = false;
+#endif
         unlockTransferQueue(pLVKey, "getThrottleRate");
     }
 
@@ -2737,7 +2777,9 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
             if (rc == -2)
             {
                 rc = 0;
+#ifndef __clang_analyzer__
                 l_LockHeld = false;
+#endif
                 unlockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
                 {
                     usleep((useconds_t)1000000);    // Delay 1 second
@@ -2756,7 +2798,9 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
 
     if (l_LockHeld)
     {
+#ifndef __clang_analyzer__
         l_LockHeld = false;
+#endif
         unlockTransferQueue(pLVKey, "setThrottleRate");
     }
 
@@ -2791,10 +2835,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
         // Check to see if stgout_start has been called...  If not, send warning and continue...
         if (!l_TagInfo2->stageOutStarted()) {
             // Stageout start was never received...
-            LOG(bb,warning) << "Stageout end received for " << *pLVKey << " without preceding stageout start.  Continuing...";
+            LOG(bb,debug) << "Stageout end received for " << *pLVKey << " without preceding stageout start.  Continuing...";
         }
 
         if (!(l_TagInfo2->stageOutEnded())) {
+
             // ** NOT USED **
             // In an attempt to make this stageoutEnd() processing look 'atomic' to other threads on THIS bbServer,
             // we pin the transfer queue lock.  This means that the lock will be held throughout the following

@@ -29,7 +29,10 @@ node_info:
     # ========================================
     rvitals: wspoon_dd2
     ncpus: 176
-    memory: 512
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
     clock: 
       max: 3.8
       min: 2.0
@@ -74,6 +77,12 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
     kernel:
       release: "4.14.0-38.el7a.ppc64le"
+    software:
+        - ibm-csm: 1.1.0-67
+        - gpfs.base: 5.0.0-2
+        - smpi: 10.02.00.00dev0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.2-1
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"
@@ -90,6 +99,10 @@ node_info:
     # =====================================
     rvitals: wspoon_dd2
     ncpus: 176
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
     clock: 
       max: 3.8
       min: 2.0
@@ -136,6 +149,12 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
     kernel:
       release: "4.14.0-38.el7a.ppc64le"
+    software:
+        - ibm-csm: 1.1.0-68
+        - gpfs.base: 5.0.0-2
+        - smpi: 10.02.00.00dev0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.1-1
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"
@@ -153,22 +172,27 @@ node_info:
     rvitals: garison
     rvitals: wspoon_dd2
     ncpus: 160
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
+    clock: 
+      max: 3.8
+      min: 2.0
     firmware: 
-      name: 1642II
-      versions:
-        - 'HOST Firmware Product: IBM-witherspoon-ibm-OP9_v1.19_1.52'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.7-1421-g2f4cbfe'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.8-6-g319c6e1'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.8-130-g712837cedca0'
-        - 'HOST Firmware Product: -- additional info: tch: hostboot-binaries-b7d8417'
-        - 'HOST Firmware Product: -- additional info: hostboot-8e7e2ad'
-        - 'HOST Firmware Product: -- additional info: linux-4.13.4-openpower1-p1c668f'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.0-p85a1eab'
-        - 'HOST Firmware Product: -- additional info: occ-60c9cd'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v1'
-        - 'HOST Firmware Product: -- additional info: machine-xml-1bd247d-p7c6c471'
-        - 'HOST Firmware Product: -- additional info: sbe-ff713df'
-        - 'BMC Firmware Product: ibm-v1.99.10-0-r11-0-g9c65260'
+        - 'BMC Firmware Product:   ibm-v2.0-0-r26-0-g7285b52 (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.111 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
+        - 'HOST Firmware Product: -- additional info: hostboot-7050d0a'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-159f2e8'
+        - 'HOST Firmware Product: -- additional info: linux-4.13.16-openpower1-p98dd271'
+        - 'HOST Firmware Product: -- additional info: machine-xml-592a6dd'
+        - 'HOST Firmware Product: -- additional info: occ-39d5490'
+        - 'HOST Firmware Product: -- additional info: op-build-v1.19-320-gf959966-dirty'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.3-p9911320'
+        - 'HOST Firmware Product: -- additional info: sbe-b6b7bb7'
+        - 'HOST Firmware Product: -- additional info: skiboot-v5.9.8'
     gpu: 
       pciids: 
         - '0004:04:00.0'
@@ -194,6 +218,12 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.4 (Maipo)"
     kernel:
       release: "4.11.0-44.el7a.ppc64le"
+    software:
+        - ibm-csm: 1.1.0-68
+        - gpfs.base: 5.0.0-2
+        - smpi: 10.02.00.00dev0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.1-1
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"

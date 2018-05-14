@@ -34,14 +34,13 @@ TEST_BIN=${GPFS_DIR}/samples/perf/gpfsperf
 # Adjust the name of the GPFS filesystem name, block size and test dir
 # if they are not suplied as paramenter
 # make sure the user running the test have permission in $TEST_DIR
-GPFS_FS=/gpfs/gpfs0
 BLOCK_SIZE=1M
-TEST_DIR=${GPFS_FS}/diagadmin
 
 readonly me=${0##*/}
 [ $# -lt 1 ] && echo "Usage: $me gpfs_fs [block_size] [test_dir]" && exit 1
 GPFS_FS=$1
 if [ $# -gt 1 ]; then BLOCK_SIZE=$2; fi 
+TEST_DIR=${GPFS_FS}/diagadmin
 if [ $# -gt 2 ]; then TEST_DIR=$3; fi 
 
 TEST_FILE=${TEST_DIR}/hdiag-gpfs.test$$
@@ -51,7 +50,7 @@ TEST_FILE=${TEST_DIR}/hdiag-gpfs.test$$
 # Example: "read randhint"   "read randhint ${TEST_FILE} -r 10000 -n 100m"              569130.66  542.77   1.842     -
 TESTS=(
 # id              args                                                       data_rate op_rate  avg_latency thread_utilization
-"create"          "create seq ${TEST_FILE} -n 10g -r ${BLOCK_SIZE} -fsync"   727923.00  694.20   2.000       -
+"create"          "create seq ${TEST_FILE} -n 10g -r ${BLOCK_SIZE} -fsync"   720000.00  690.20   2.000       -
 "read sequencial" "read seq ${TEST_FILE} -r 1M"                              549130.66  540.77   2.000       -  
 "read rand"       "read rand ${TEST_FILE} -r 10000 -n 100m"                    4500.00  440.77   2.000       -
 "read randhint"   "read randhint ${TEST_FILE} -r 10000 -n 100m"               19000.00 2500.00   1.000       -

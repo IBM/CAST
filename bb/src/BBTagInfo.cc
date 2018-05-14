@@ -157,34 +157,38 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                 LOG_ERROR(errorText);
             }
         }
-        rc = parts.addTransferDef(pLVKey, pHandle, pContribId, pTransferDef);
-        if (!rc) {
-            // NOTE:  The following checks are required here in case the transfer definition just added
-            //        had no files but completed the criteria being checked...
-            if ((expectContrib.size() == getNumberOfTransferDefs()) && (!parts.anyStoppedTransferDefinitions())) {
-                setAllContribsReported(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-            }
 
-            if (pTransferDef->allExtentsTransferred()) {
-                pTagInfo2->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
-
-                int l_NewStatus = 0;
-                Extent l_Extent = Extent();
-                ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
-                pTagInfo2->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
-                if (l_NewStatus) {
-                    string l_HostName;
-                    activecontroller->gethostname(l_HostName);
-                    pTagInfo2->sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, pTagId, pHandle);
-                    // Status changed for transfer handle...
-                    // Check/update the status for the LVKey
-                    // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
-                    pTagInfo2->updateTransferStatus(pConnectionName, pLVKey, 0);
+        if (!rc)
+        {
+            rc = parts.addTransferDef(pLVKey, pHandle, pContribId, pTransferDef);
+            if (!rc) {
+                // NOTE:  The following checks are required here in case the transfer definition just added
+                //        had no files but completed the criteria being checked...
+                if ((expectContrib.size() == getNumberOfTransferDefs()) && (!parts.anyStoppedTransferDefinitions())) {
+                    setAllContribsReported(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
                 }
+
+                if (pTransferDef->allExtentsTransferred()) {
+                    pTagInfo2->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
+
+                    int l_NewStatus = 0;
+                    Extent l_Extent = Extent();
+                    ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
+                    pTagInfo2->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
+                    if (l_NewStatus) {
+                        string l_HostName;
+                        activecontroller->gethostname(l_HostName);
+                        pTagInfo2->sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, pTagId, pHandle);
+                        // Status changed for transfer handle...
+                        // Check/update the status for the LVKey
+                        // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
+                        pTagInfo2->updateTransferStatus(pConnectionName, pLVKey, 0);
+                    }
+                }
+            } else {
+                errorText << "BBTagInfo::addTransferDef: Failure from addTransferDef(), rc = " << rc;
+                LOG_ERROR(errorText);
             }
-        } else {
-            errorText << "BBTagInfo::addTransferDef: Failure from addTransferDef(), rc = " << rc;
-            LOG_ERROR(errorText);
         }
     } else{
         errorText << "BBTagInfo::addTransferDef: Failure from update_xbbServerAddData(), rc = " << rc;
@@ -547,9 +551,11 @@ void BBTagInfo::setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobI
         }
         SET_FLAG(BBTI_All_Contribs_Reported, pValue);
 
-        if (!pValue) {
-            // NOTE: We don't catch the return code here...
-            HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTI_All_Contribs_Reported, pValue);
+        // Now update the status for the Handle file in the xbbServer data...
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+        {
+            LOG(bb,error) << "BBTagInfo::setAllContribsReported():  Failure when attempting to update the cross bbServer handle file statusfor jobid " << pJobId \
+                          << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
 
@@ -574,9 +580,9 @@ void BBTagInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJo
         SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_All_Extents_Transferred, pValue))
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
         {
-            LOG(bb,error) << "BBTagInfo::setAllExtentsTransferred():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+            LOG(bb,error) << "BBTagInfo::setAllExtentsTransferred():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
@@ -660,9 +666,9 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
         SET_FLAG(BBTD_Stopped, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, pValue))
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
         {
-            LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
+            LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
         }
     }
@@ -674,21 +680,39 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const st
 {
     int rc = 0;
 
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+
     if (pHandle == transferHandle)
     {
-        rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
-        if (rc == 1)
+        // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer and another
+        //       bbServer that is waiting for the handle/contribid file to be marked as 'stopped'
+        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+        if (!rc)
         {
-            int l_Value = 1;
-            // Set the stopped indicator in the local metadata...
-            setStopped(pLVKey, pJobId, pJobStepId, pHandle , l_Value);
-            // Now update the status for the Handle file in the xbbServer data...
-            if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, l_Value))
+            rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+            if (rc == 1)
             {
-                LOG(bb,error) << "BBTagInfo::stopTransfer():  Failure when attempting to update the cross bbServer handle file for jobid " << pJobId \
-                              << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                int l_Value = 1;
+                // Set the stopped indicator in the local metadata...
+                setStopped(pLVKey, pJobId, pJobStepId, pHandle, l_Value);
             }
+            // Release the handle file
+            l_HandleFile->close();
         }
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+
+    if (l_HandleFile)
+    {
+        // The lock on the handle file was already released by the close above
+        delete l_HandleFile;
+        l_HandleFile = 0;
     }
 
     return rc;
@@ -808,9 +832,28 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
 
                 case 1:
                 {
-                    rc = -1;
-                    errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    if (pTransferDef->extentsAreEnqueued())
+                    {
+                        // Extents have already been enqueued for this transfer definition...
+                        rc = -1;
+                        errorText << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string();
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                    else
+                    {
+                        // Extents have not beeen enqueued yet...
+                        // NOTE:  Allow this to continue...  This is probably the case where a start transfer got far enough along
+                        //        on bbServer to create all of the metadata (first volley message), but the second volley either failed
+                        //        or bbProxy failed before/during the send of the second volley message.
+                        // NOTE:  Start transfer processing DOES NOT backout any metadata changes made for a partially completed
+                        //        operation.
+                        LOG(bb,info) << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string() \
+                                     << ", but extents have never been enqueued for the transfer definition. ContribIdFile for " << pContribId << " will be reused.";
+                        l_NewContribIdFile = l_ExistingContribFile;
+                        rc = 0;
+                    }
+
+                    break;
                 }
 
                 default:

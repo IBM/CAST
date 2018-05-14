@@ -61,7 +61,7 @@ bool GetGPFSUsage(int64_t &gpfs_read, int64_t &gpfs_write);
  * @return True  - The data was read successfully.
  * @return False - The data could not be read.
  */
-bool GetOCCAccounting(int64_t &energy, int64_t &power_cap_hit, int64_t gpu_energy );
+bool GetOCCAccounting(int64_t &energy, int64_t &power_cap_hit, int64_t &gpu_energy );
 
 /** @brief Retrieves the power capacity of the node using the OCC /sys/fs utility.
  * This function queries the OCC file to determine the power cap.
