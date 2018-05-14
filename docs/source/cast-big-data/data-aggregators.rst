@@ -62,7 +62,12 @@ To redirect a syslog so it is accepted by Logstash the following must be added t
     
     *.*;cron.none @@${logstash_node}:${syslog_port};logFormat
 
-    /bin/systemctl restart  rsyslog.service
+
+The rsyslog utility must then be restarted for the changes to take effect:
+
+.. code-block:: bash
+   
+   /bin/systemctl restart  rsyslog.service
 
 **Field Description**
 

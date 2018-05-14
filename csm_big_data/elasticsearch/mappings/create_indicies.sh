@@ -30,7 +30,7 @@ do
     template_put=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "${target}/_template/${name}?pretty"\
         -H 'Content-Type: application/json' -d @${template})
 
-    echo "${name} ${template_found} ${template_put}"
+    #echo "${name} ${template_found} ${template_put}"
     echo "${name} ${template_put}"
 done
 
