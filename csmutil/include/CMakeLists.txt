@@ -16,7 +16,7 @@ add_executable(csm_buildversion csm_buildversion.cc)
 
 add_custom_command(TARGET csm_buildversion
 	POST_BUILD
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/csm_buildversion ${CMAKE_CURRENT_SOURCE_DIR}/csm_version.h ${VERSION}
+    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/csm_buildversion ${CMAKE_CURRENT_SOURCE_DIR}/csm_version.h ${VERSION} ${GITCOMMITID} ${GITCOMMITDATE}
     COMMENT "Generating csm_version"
 )
 
