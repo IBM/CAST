@@ -1,12 +1,12 @@
 {
-    "index_patterns": ["log-*","counters-*","environmental-*"],
+    "index_patterns": ["cast-*"],
     "order" : 0,
     "settings" : {
         "number_of_shards"   : 1,
         "number_of_replicas" : 1
     },
     "mappings" : {
-        "doc": {
+        "_doc": {
             "properties" : {
                 "@version"   : { "type" : "text" },
                 "@timestamp" : { "type" : "date" },

@@ -1,5 +1,5 @@
 {
-    "index_patterns": ["log-mellanox-event*"],
+    "index_patterns": ["cast-log-mellanox-event*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -8,15 +8,15 @@
         }
     },
     "aliases" : {
-        "log-mellanox-event" : {}
+        "cast-log-mellanox-event" : {}
     },
     "mappings": {
-        "doc" : {
+        "_doc" : {
             "properties" :
             {
                 "hostname"     : { "type" : "text" },
                 "program_name" : { "type" : "text" },
-                "process_id"   : { "type" : "long" },
+                "process_id"   : { "type" : "text" },
                 "facility"     : { "type" : "text" },
                 "severity"     : { "type" : "text" },
                 "message"      : { "type" : "text" },

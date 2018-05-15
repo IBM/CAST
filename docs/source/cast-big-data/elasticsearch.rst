@@ -130,7 +130,7 @@ Indices
 CAST has specified a suite of data mappings for use in separate indices. Each of these indices is
 documented below, with a *JSON* mapping file provided in the repository and *rpm*.
 
-CAST uses *<class>-<description>-<date>* naming schema for indices to leverage templates when creating
+CAST uses *cast-<class>-<description>-<date>* naming schema for indices to leverage templates when creating
 the indices in Elasticsearch. The *class* is one of the three primary classifications determined
 by CAST: *log*, *counters*, *environmental*. The *description* is typically a one to two word description
 of the type of data: *syslog*, *node*, *mellanox-event*, etc.
@@ -150,10 +150,10 @@ Today each of the cast specified indices is given the *cast* template, followed 
 
 .. _SyslogElastic:
 
-log-syslog
-^^^^^^^^^^
+cast-log-syslog
+^^^^^^^^^^^^^^^
 
-:alias: log-syslog
+:alias: cast-log-syslog
 :shards: 5
 :replication: 1
 
@@ -189,14 +189,14 @@ The mapping for the index contains the following fields:
 .. TODO: Should mmfs log inhabit the same index? The data has a 1:1 parity.
 .. TODO: Review Cumulus Swtich, not sure what the logs look like by default.
 
-log-mellanox-event
-^^^^^^^^^^^^^^^^^^
+cast-log-mellanox-event
+^^^^^^^^^^^^^^^^^^^^^^^
 
-:alias: log-mellanox-event
+:alias: cast-log-mellanox-event
 :shards: 5
 :replication: 1
 
-The mellanox event log is a superset of the `log-syslog`_ index, an artifact of the event log being 
+The mellanox event log is a superset of the `cast-log-syslog`_ index, an artifact of the event log being 
 transmitted through syslog. In the CAST Big Data Pipeline this log will be ingested and parsed by
 the Logstash service then transmitted to the Elasticsearch index.
 
@@ -226,10 +226,10 @@ the Logstash service then transmitted to the Elasticsearch index.
 | tags          | *text* | Tags containing additional metadata about the message.         |
 +---------------+--------+----------------------------------------------------------------+
 
-log-console
-^^^^^^^^^^^
+cast-log-console
+^^^^^^^^^^^^^^^^
 
-:alias: log-console
+:alias: cast-log-console
 :shards: 5
 :replication: 1
 
@@ -254,10 +254,10 @@ The mapping for the *console* index is provided below:
 | tags          | *text* | Tags containing additional metadata about the console log.     |
 +---------------+--------+----------------------------------------------------------------+
 
-counters-gpfs
-^^^^^^^^^^^^^
+cast-counters-gpfs
+^^^^^^^^^^^^^^^^^^
 
-:alias: counters-gpfs
+:alias: cast-counters-gpfs
 :shards: 5
 :replication: 1
 
@@ -266,10 +266,10 @@ counters-gpfs
 .. note:: The CAST team is currently in the process of reviewing the GPFS counter polling process
     it is likely that this index will be modified in the forseeable future.
 
-counters-ufm
-^^^^^^^^^^^^
+cast-counters-ufm
+^^^^^^^^^^^^^^^^^
 
-:alias: counters-ufm
+:alias: cast-counters-ufm
 :shards: 5
 :replication: 1
 
@@ -279,10 +279,10 @@ counters-ufm
     it is likely that this index will be modified in the forseeable future.
 
 
-counters-gpu
-^^^^^^^^^^^^
+cast-counters-gpu
+^^^^^^^^^^^^^^^^^
 
-:alias: counters-gpu
+:alias: cast-counters-gpu
 :shards: 5
 :replication: 1
 
@@ -291,10 +291,10 @@ counters-gpu
 .. note:: The CAST team is currently in the process of reviewing the GPU counters and the process
     of using DCGM to perform the aggregation operation.
 
-environmental-node
-^^^^^^^^^^^^^^^^^^
+cast-environmental-node
+^^^^^^^^^^^^^^^^^^^^^^^
 
-:alias: environmental-node
+:alias: cast-environmental-node
 :shards: 5
 :replication: 1
 

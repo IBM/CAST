@@ -259,6 +259,39 @@ store:
 | date   | @timestamp |
 +--------+------------+
 
+
+Cumulus Switch
+**************
+
+.. attention:: The CAST documentation was written using Cumulus Linux 3.5.2, please ensure the switch
+    is at this level or higher.
+
+Cumulus switch logging is performed through the usage of the rsyslog service. CAST recommends placing
+Cumulus logging in the *syslog-log* indices at this time. 
+
+Configuration of the logging on the switch can be achieved through the *net* command:
+
+.. code-block:: bash
+
+   $ net add syslog host ipv4 ${logstash_node} port tcp ${syslog_port}
+   $ net commit 
+
+This command will populate the  */etc/rsyslog.d/11-remotesyslog.conf* file with a rule to
+export the syslog to the supplied hostname and port. If using the default CAST syslog configuration
+this file will need to be modified to have the CAST syslog template:
+
+.. code-block:: bash
+
+    $ vi /etc/rsyslog.d/11-remotesyslog.conf
+        
+        $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %syslogseverity-text% %msg%\n"
+        *.*;cron.none @@${logstash_node}:${syslog_port};logFormat
+    $ sudo service rsyslog restart
+
+
+.. note:: For more configuration details please refer to the official `Cumulus Linux User Guide`_.
+
+
 Counters
 --------
 
@@ -301,4 +334,4 @@ Node
 
 .. Links
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
-
+.. _Cumulus Linux User Guide:  https://docs.cumulusnetworks.com/display/DOCS/Cumulus+Linux+User+Guide

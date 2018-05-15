@@ -1,5 +1,5 @@
 {
-    "index_patterns": ["environmental-node*"],
+    "index_patterns": ["cast-environmental-node*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -8,10 +8,10 @@
         }
     },
     "aliases" : {
-        "environmental-node" : {}
+        "cast-environmental-node" : {}
     },
     "mappings": {
-        "doc" : {
+        "_doc" : {
             "properties" :
             {
             }

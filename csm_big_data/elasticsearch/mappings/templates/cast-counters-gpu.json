@@ -1,21 +1,19 @@
 {
-    "index_patterns": ["log-console*"],
+    "index_patterns" : ["cast-counters-gpu*"],
     "order" : 1,
+    "aliases" : {
+        "cast-counters-gpu" : {}
+    },
     "settings" :{
         "index" : { 
             "number_of_shards"   : 5,
             "number_of_replicas" : 1
         }
     },
-    "aliases" : {
-        "log-console" : {}
-    },
     "mappings": {
-        "doc" : {
+        "_doc" : {
             "properties" :
             {
-                "hostname"     : { "type" : "text" },
-                "message"      : { "type" : "text" }
             }
         }
     }
