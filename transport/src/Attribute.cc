@@ -509,6 +509,7 @@ txp::AttrPtr_array_of_char_arrays::AttrPtr_array_of_char_arrays(const AttrPtr_ar
 // Constructed from a heap buffer (deserialize)...
 txp::Attr_char::Attr_char(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::CHAR, pBuffer, pOffset) {
+    data = '\0';
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -555,6 +556,7 @@ txp::Attr_char::Attr_char(HeapBuffer* pBuffer, const size_t pOffset, const txp::
 
 txp::Attr_uint8::Attr_uint8(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::UINT8, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -601,6 +603,7 @@ txp::Attr_uint8::Attr_uint8(HeapBuffer* pBuffer, const size_t pOffset, const txp
 
 txp::Attr_uint16::Attr_uint16(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::UINT16, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -647,6 +650,7 @@ txp::Attr_uint16::Attr_uint16(HeapBuffer* pBuffer, const size_t pOffset, const t
 
 txp::Attr_uint32::Attr_uint32(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::UINT32, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -693,6 +697,7 @@ txp::Attr_uint32::Attr_uint32(HeapBuffer* pBuffer, const size_t pOffset, const t
 
 txp::Attr_uint64::Attr_uint64(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::UINT64, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -739,6 +744,7 @@ txp::Attr_uint64::Attr_uint64(HeapBuffer* pBuffer, const size_t pOffset, const t
 
 txp::Attr_int8::Attr_int8(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::INT8, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -785,6 +791,7 @@ txp::Attr_int8::Attr_int8(HeapBuffer* pBuffer, const size_t pOffset, const txp::
 
 txp::Attr_int16::Attr_int16(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::INT16, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -831,6 +838,7 @@ txp::Attr_int16::Attr_int16(HeapBuffer* pBuffer, const size_t pOffset, const txp
 
 txp::Attr_int32::Attr_int32(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::INT32, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -877,6 +885,7 @@ txp::Attr_int32::Attr_int32(HeapBuffer* pBuffer, const size_t pOffset, const txp
 
 txp::Attr_int64::Attr_int64(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::INT64, pBuffer, pOffset) {
+    data = 0;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             //  CANNOT OBEY DO_NOT_COPY_DATA - COPY DATA TO OBJECT
@@ -923,6 +932,7 @@ txp::Attr_int64::Attr_int64(HeapBuffer* pBuffer, const size_t pOffset, const txp
 
 txp::AttrPtr_char::AttrPtr_char(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_CHAR, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1027,6 +1037,7 @@ txp::AttrPtr_char::AttrPtr_char(HeapBuffer* pBuffer, const size_t pOffset, const
 
 txp::AttrPtr_uint8::AttrPtr_uint8(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_UINT8, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1131,6 +1142,7 @@ txp::AttrPtr_uint8::AttrPtr_uint8(HeapBuffer* pBuffer, const size_t pOffset, con
 
 txp::AttrPtr_uint16::AttrPtr_uint16(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_UINT16, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1235,6 +1247,7 @@ txp::AttrPtr_uint16::AttrPtr_uint16(HeapBuffer* pBuffer, const size_t pOffset, c
 
 txp::AttrPtr_uint32::AttrPtr_uint32(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_UINT32, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1339,6 +1352,7 @@ txp::AttrPtr_uint32::AttrPtr_uint32(HeapBuffer* pBuffer, const size_t pOffset, c
 
 txp::AttrPtr_uint64::AttrPtr_uint64(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_UINT64, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1443,6 +1457,7 @@ txp::AttrPtr_uint64::AttrPtr_uint64(HeapBuffer* pBuffer, const size_t pOffset, c
 
 txp::AttrPtr_int8::AttrPtr_int8(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_INT8, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1547,6 +1562,7 @@ txp::AttrPtr_int8::AttrPtr_int8(HeapBuffer* pBuffer, const size_t pOffset, const
 
 txp::AttrPtr_int16::AttrPtr_int16(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_INT16, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1649,6 +1665,7 @@ txp::AttrPtr_int16::AttrPtr_int16(HeapBuffer* pBuffer, const size_t pOffset, con
 
 txp::AttrPtr_int32::AttrPtr_int32(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_INT32, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1751,6 +1768,7 @@ txp::AttrPtr_int32::AttrPtr_int32(HeapBuffer* pBuffer, const size_t pOffset, con
 
 txp::AttrPtr_int64::AttrPtr_int64(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_INT64, pBuffer, pOffset) {
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
@@ -1814,6 +1832,8 @@ txp::AttrPtr_int64::AttrPtr_int64(HeapBuffer* pBuffer, const size_t pOffset, con
                     break;
             }
 
+            break;
+
         case txp::COPY_DATA_TO_OBJECT_BUT_DO_NOT_COPY_ARRAYS:
             switch(pDataLocation) {
                 case txp::BUFFER_HAS_DATA:
@@ -1854,6 +1874,7 @@ txp::AttrPtr_int64::AttrPtr_int64(HeapBuffer* pBuffer, const size_t pOffset, con
 txp::AttrPtr_char_array::AttrPtr_char_array(HeapBuffer* pBuffer, const size_t pOffset, const txp::DeserializeOption &pOption, const txp::DataLocation &pDataLocation) :
     Attribute(txp::PTR_CHAR_ARRAY, pBuffer, pOffset) {
     length = pBuffer->getAttr_char_array_length(pOffset);
+    data = NULL;
     switch(pOption) {
         case txp::DO_NOT_COPY_DATA:
             switch(pDataLocation) {
