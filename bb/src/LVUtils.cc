@@ -815,9 +815,7 @@ int isMounted(const char* pMountPoint, char* pDevName, const size_t pDevNameLeng
                                 pFileSysType[strlen(l_Entry->mnt_type)] = 0;
                             }
 
-                            if (l_VolumeGroupName) {
-                                delete[] l_VolumeGroupName;
-                            }
+                            delete[] l_VolumeGroupName;
                         }
                     }
                 }
@@ -1091,9 +1089,7 @@ int createLogicalVolume(const uid_t pOwner, const gid_t pGroup, const char* pMou
         }
 
         free(l_MountPoint);
-        if (l_VolumeGroupName) {
-            delete[] l_VolumeGroupName;
-        }
+        delete[] l_VolumeGroupName;
 
     } else {
         rc = -1;
@@ -1224,7 +1220,6 @@ void findBB_DevNames(vector<string>& pDevNames, const FIND_BB_DEVNAMES_OPTION pO
             break;
         }
     }
-    
     delete[] l_VolumeGroupName;
 }
 
@@ -1534,7 +1529,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
             } else {
                 // Must either specify pMountPoint or pLogicalVolume, but not both...
                 rc = -1;
-                errorText << "Either mount point or logical volume must be specified, but not both. Specified mount point is " << l_MountPoint << " and specified logicial volume is " << pLogicalVolume << ".";
+                errorText << "Either mount point or logical volume must be specified, but not both. Specified mount point is " << (const void *)pMountPoint << " and specified logicial volume is " << (const void *)pLogicalVolume << ".";
                 LOG_ERROR_TEXT_RC(errorText, rc);
             }
         }
@@ -1693,9 +1688,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
         l_MountPoint = NULL;
     }
 
-    if (l_VolumeGroupName) {
-        delete[] l_VolumeGroupName;
-    }
+    delete[] l_VolumeGroupName;
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;

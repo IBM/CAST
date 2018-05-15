@@ -862,6 +862,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             }
+
+            if (l_ContribIdFilePtr)
+            {
+                delete l_ContribIdFilePtr;
+                l_ContribIdFilePtr = 0;
+            }
         }
         else
         {

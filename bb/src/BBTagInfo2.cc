@@ -643,7 +643,6 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
             assert(strlen(e.what())==0);
         }
 
-        delete l_Complete;
 
         if (l_LockTransferQueue)
         {
@@ -668,6 +667,8 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
         LOG(bb,info) << "                      transfer type " << l_TransferType << ", size transferred is " << l_SizeTransferred << ".";
         LOG(bb,info) << "                      Message NOT SENT to bbproxy due to the transfer definition being stopped.";
     }
+
+    delete l_Complete;
 
     return;
 }
