@@ -105,6 +105,7 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid)
 {
     int rc = 0;
+    ContribFile* l_ContribFile = 0;
     bool l_ContribIdFound = false;
 
     pContribIdFile = 0;
@@ -114,7 +115,6 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
         {
             if (!bfs::is_directory(lvuuid)) continue;
             bfs::path contribs_file = lvuuid.path() / "contribs";
-            ContribFile* l_ContribFile = 0;
             rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.string().c_str());
             if (!rc)
             {
