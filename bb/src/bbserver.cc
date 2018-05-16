@@ -393,7 +393,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
         unlockTransferQueue(l_LVKey, "msgin_canceltransfer");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -433,7 +433,7 @@ void msgin_change_server(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -471,7 +471,7 @@ void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -543,7 +543,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     unlockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (rc)
@@ -608,7 +608,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -775,7 +775,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -892,7 +892,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1037,7 +1037,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1140,7 +1140,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1214,7 +1214,7 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         unlockTransferQueue((LVKey*)0, "msgin_removejobinfo");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1259,7 +1259,7 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1315,7 +1315,7 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
         unlockTransferQueue((LVKey*)0, "msgin_resume");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1438,7 +1438,7 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
         unlockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1500,7 +1500,7 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2179,7 +2179,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (!rc)
@@ -2362,7 +2362,7 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2436,7 +2436,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
         unlockTransferQueue((LVKey*)0, "msgin_suspend");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2515,7 +2515,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
 
@@ -2614,7 +2614,7 @@ int bb_main(std::string who)
         rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, FULL_MAINTENANCE);
         if (l_AsyncRequestFileNamePtr)
         {
-            delete l_AsyncRequestFileNamePtr;
+            delete [] l_AsyncRequestFileNamePtr;
             l_AsyncRequestFileNamePtr = 0;
         }
         if (rc) LOG_RC_AND_BAIL(rc);
