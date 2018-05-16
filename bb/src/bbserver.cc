@@ -242,8 +242,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                     rc = -1;
                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                 }
+                                break;
                             }
-
+                          
                             case 1:
                             {
                                 rc = 0;
