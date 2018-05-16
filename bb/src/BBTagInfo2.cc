@@ -770,7 +770,7 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
     return;
 }
 
-void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
+void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
 {
     BBTagInfo* l_TagInfo = tagInfoMap.getTagInfo(pTagId);
     if (l_TagInfo)

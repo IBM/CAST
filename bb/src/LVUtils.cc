@@ -1788,9 +1788,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
         l_MountPoint = NULL;
     }
 
-    if (l_VolumeGroupName) {
-        delete[] l_VolumeGroupName;
-    }
+    delete[] l_VolumeGroupName;
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
@@ -1968,6 +1966,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         {
                             rc = -1;
                             LOG(bb,error) << "Creating the filehandle for srcfile: " << transfer->files[e.sourceindex] << " failed.";
+
+                            delete srcfile_ptr;
                             break;
                         }
                     }
@@ -2000,6 +2000,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             {
                                 rc = -1;
                                 LOG(bb,error) << "Releasing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+
+                                delete srcfile_ptr;
                                 break;
                             }
                         }
@@ -2022,6 +2024,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                 // Should never be the case...
                                 rc = -1;
                                 LOG(bb,error) << "Removing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+
+                                delete srcfile_ptr;
                                 break;
                             }
                         }

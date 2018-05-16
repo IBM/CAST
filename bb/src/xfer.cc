@@ -2404,6 +2404,12 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     errorText << "addExtents() failed, rc = " << rc;
                                     LOG_ERROR_TEXT(errorText);
                                 }
+
+                                if (!rc)
+                                {
+                                    // Indicate in the transfer definition that the extents are enqueued
+                                    l_TransferDef->setExtentsEnqueued();
+                                }
                             }
                             else
                             {
@@ -2450,9 +2456,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                     size_t l_NewPosts = l_TagInfo2->getNumberOfExtents() - l_CurrentNumberOfExtents;
                     wrkqmgr.post_multiple(l_NewPosts);
                 }
-
-                // Indicate in the transfer definition that the extents are enqueued
-                l_TransferDef->setExtentsEnqueued();
             }
         }
     }

@@ -1626,6 +1626,8 @@ txp::AttrPtr_int16::AttrPtr_int16(HeapBuffer* pBuffer, const size_t pOffset, con
                     break;
             }
 
+            break;
+
         case txp::COPY_DATA_TO_OBJECT_BUT_DO_NOT_COPY_ARRAYS:
             switch(pDataLocation) {
                 case txp::BUFFER_HAS_DATA:
@@ -1728,6 +1730,8 @@ txp::AttrPtr_int32::AttrPtr_int32(HeapBuffer* pBuffer, const size_t pOffset, con
 #endif
                     break;
             }
+
+            break;
 
         case txp::COPY_DATA_TO_OBJECT_BUT_DO_NOT_COPY_ARRAYS:
             switch(pDataLocation) {

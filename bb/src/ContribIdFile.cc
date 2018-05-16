@@ -140,16 +140,19 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
                 break;
             }
 
-            if (l_ContribFile)
-            {
-                delete l_ContribFile;
-                l_ContribFile=NULL;
-            }
+            delete l_ContribFile;
+            l_ContribFile=NULL;
 
             if (l_ContribIdFound)
             {
                 break;
             }
+        }
+
+        if (l_ContribFile)
+        {
+            delete l_ContribFile;
+            l_ContribFile=NULL;
         }
 
         if (rc != 1 && pContribIdFile)
