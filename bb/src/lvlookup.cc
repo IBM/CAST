@@ -161,8 +161,6 @@ int LVLookup::getData(uint64_t& pFirstByte, size_t& pSize)
 
 int LVLookup::getLVExtents(const string& vg)
 {
-    char* buffer = NULL;
-    size_t buffersize = 0;
     string cmd = "lvs --noheadings --units b --nosuffix -o lv_name,seg_pe_ranges,seg_start_pe,vg_extent_size " + vg;
     FILE* f;
     ssize_t frc;
@@ -179,6 +177,8 @@ int LVLookup::getLVExtents(const string& vg)
     f = popen(cmd.c_str(), "re");
     if (f)
     {
+        char* buffer = NULL;
+        size_t buffersize = 0;
         bool lineReturned = false, warningSent = false;
         while((frc = getline(&buffer, &buffersize, f)) >= 0)
         {
@@ -263,13 +263,6 @@ int LVLookup::getLVExtents(const string& vg)
                 buffer = NULL;
                 buffersize = 0;
             }
-        }
-
-        // Even if getline() 'fails', we should check to free the buffer...
-        if (buffer)
-        {
-            free(buffer);
-            buffer = NULL;
         }
 
         fclose(f);
