@@ -95,7 +95,7 @@ extern "C" {
  *  \param[in]  pathname       BSCFS file to be flushed
  *  \param[in]  mapfile        mapfile to be created for this flush
  *  \param[in]  cleanup_script script to be executed on the FEN
- *  \param[out] handle         handle that represents this flush
+ *  \param[out] handle_p       handle that represents this flush
  *
  *  \return Error code
  *  \retval 0     Success
@@ -190,7 +190,7 @@ static inline int BSCFS_PrepareLocalFlush(const char *pathname,
  *
  *  \param[in]  pathname       BSCFS file to be prefetched
  *  \param[in]  mapfile        mapfile to be used to direct this prefetch
- *  \param[out] handle         handle that represents this prefetch
+ *  \param[out] handle_p       handle that represents this prefetch
  *
  *  \return Error code
  *  \retval 0     Success
@@ -339,7 +339,7 @@ static inline int BSCFS_Forget(const char *pathname)
  *  \param[in]  pathname      BSCFS file to be queried
  *  \param[in]  files_length  size (in bytes) of the files array
  *  \param[out] files         space for returned file names
- *  \param[out] state         returned state of the queried file
+ *  \param[out] state_p       returned state of the queried file
  *
  *  \return Error code
  *  \retval 0     Success
