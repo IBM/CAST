@@ -215,12 +215,17 @@ int LVLookup::getLVExtents(const string& vg)
 
                 char realdevpath[PATH_MAX+1];
                 string mydevice;
-                frc = readlink(devpath.c_str(), realdevpath, sizeof(realdevpath));
+                frc = readlink(devpath.c_str(), realdevpath, PATH_MAX);//allow for /0 at PATH_MAX+1
                 if(frc >= 0)
                 {
                     realdevpath[frc] = 0;  // readlink does not NULL terminate!
                     string tmp = realdevpath;
                     mydevice = tmp.substr(tmp.rfind("/")+1);
+                }
+                else {
+                    stringstream errorText;
+                    errorText << __PRETTY_FUNCTION__<<" devpath="<<devpath<<" readlink had errno="<<errno<<" "<<strerror(errno);
+                    LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.devpath.readlinkFailed);
                 }
 
                 devpath += "/start";
