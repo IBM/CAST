@@ -312,7 +312,7 @@ int filehandle::close()
 {
     if (fd >= 0)
     {
-        LOG(bb,debug) << "Closing file " << filename << " fd=" << fd;
+        LOG(bb,info) << "Closing file " << filename << " fd=" << fd;
         FL_Write(FLProxy, CloseFile, "Close for filehandle %ld",(uint64_t)fd,0,0,0);
         ::close(fd);
         fd = -1;
