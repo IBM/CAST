@@ -81,6 +81,8 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
                 # Iterate over the categories.
                 value["categories"].each do | cat, cat_value |
                     cat_value.each do | pattern | 
+
+
                         # Verify the category has been configured
                         # TODO break.
                         if pattern.has_key?("pattern") 
@@ -89,6 +91,7 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
                         end # category test
                         
                         pattern[:action] = process_action_string ( pattern["action"] )
+                        pattern[:extract] = pattern.has_key?("extract") && pattern["extract"]
                     end
                     #value["categories"][cat] = cat_value
                 end # category iteration.
@@ -106,7 +109,7 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
         action = (action_str.gsub(/%{([^}]*)}/, "event.get(\"\\1\")").
             gsub(/\.([a-z_]*);/, "%{\\1}"))
         action = action % @@default_actions
-        eval "lambda { | event, ras_msg_id, ras_location, ras_timestamp, raw_data | #{action} }"
+        eval "lambda { | event, temp_event, ras_msg_id, ras_location, ras_timestamp, raw_data | #{action} }"
     end # def process_action
 
     # Posts a RAS event and moves on. 
@@ -153,14 +156,19 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
                 match = grok_timeout(grok_idx, event.get(raw_data))
 
                 if match
-                    @multi_grok.capture(grok_idx,match) { |attribute,value| process(attribute, value, event) }
+                    temp_event = pattern[:extract]  ? event : event.clone()
+
+                    @multi_grok.capture(grok_idx,match) { 
+                        |attribute,value| process(attribute, value, temp_event) }
+                    
 
                     # Build the message id with the event.
-                    pattern[:action].call(event, 
-                        event.sprintf(pattern["ras_msg_id"]),
-                        event.get(data_source["ras_location"] ), 
-                        event.get(data_source["ras_timestamp"]), 
-                        event.get(raw_data) )
+                    pattern[:action].call(
+                        temp_event,
+                        temp_event.sprintf(pattern["ras_msg_id"]),
+                        temp_event.get(data_source["ras_location"] ), 
+                        temp_event.get(data_source["ras_timestamp"]), 
+                        temp_event.get(raw_data) )
 
                     break # Exit loop
                 end # match

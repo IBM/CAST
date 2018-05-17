@@ -168,22 +168,30 @@ which may be used in writing patterns for event correlation. If no glob is speci
 `*` is used.
 
 Configuration with A file glob:
+
 [source,ruby]
+    
     patterns_dir => "/etc/logstash/patterns/*.conf" # Retrieves all .conf files in the directory.
 
 Configuration with multiple files:
+
 [source,ruby]
-    patterns_dir => ["/etc/logstash/patterns/mellanox_grok.conf", "/etc/logstash/patterns/ibm_grok.conf"]
+   
+   patterns_dir => ["/etc/logstash/patterns/mellanox_grok.conf", "/etc/logstash/patterns/ibm_grok.conf"]
 
 CSM Event Correlator will load the default Logstash patterns regardless of the contents of this
 field.
 
 Pattern files are plain text with the following format:
+
 [source,ruby]
+    
     NAME PATTERN
 
 For example:
+
 [source,ruby]
+
     GUID [0-9a-f]{16}
 
 The patterns are loaded on pipeline creation.
@@ -206,7 +214,9 @@ heirarchical with 3 major groupings:
      * <<plugins-{type}s-{plugin}-event_categories, Categories>>
 
 This is a sample configuration of this file:
+
 [source,YAML]
+
 ----
 ---
 # Metadata

@@ -21,24 +21,25 @@ data_sources:                                  # Mandatory, Map with the keys co
   categories:                                     # Mandatory, Map with keys corresponding to category type
     NVRM:                                          # Key, the category name, in this case this is the program name.
      - tag: "XID_GENERIC"                           # An identifier for the event, used primarily in debug (optional).
-       pattern:    "Xid(%{DATA:pciLocation}): %{NUMBER:xid:int},"  # A grok pattern, extracted values will be placed into the data event.
-       ras_msg_id: "gpu.xid.%{xid}" # A RAS message ID for use in the .send_ras; action.
-       action:     'unless %{xid}.between?(1, 81); ras_event="gpu.xid.unknown" end; .send_ras;' # An action to execute.
+       pattern:    "Xid(%{DATA}): %{NUMBER:xid:int},"  # A grok pattern, extracted values will be placed into the data event.
+       ras_msg_id: "gpu.xid.?{xid}" # A RAS message ID for use in the .send_ras; action.
+       action:     'unless ?{xid}.between?(1, 81); ras_event="gpu.xid.unknown" end; .send_ras;' # An action to execute.
+       extract: false                               # Extracts the matches in the pattern to the event, defaults to false.
 
     mlx5_core:
      - tag: "IB_CABLE_PLUG"
-       pattern:    "mlx5_core %{MLX5_PCI}.*module %{NUMBER:module}, Cable (?<cableEvent>(un)?plugged)"
-       ras_msg_id: "ib.connection.%{cableEvent}"
+       pattern:    "mlx5_core %{MLX5_PCI}.*module %{NUMBER}, Cable (?<cableEvent>(un)?plugged)"
+       ras_msg_id: "ib.connection.?{cableEvent}"
        action:     ".send_ras;"
 
     mmsysmon:
      - tag: "MMSYSMON_CLEAN_MOUNT"
-       pattern: "filesystem %{NOTSPACE:filesystem} was (?<mountEvent>(un)?mounted)"
-       ras_msg_id: "spectrumscale.fs.%{mountEvent}"
+       pattern: "filesystem %{NOTSPACE} was (?<mountEvent>(un)?mounted)"
+       ras_msg_id: "spectrumscale.fs.?{mountEvent}"
        action: ".send_ras;"
 
      - tag: "MMSYSMON_UNMOUNT_FORCED"
-       pattern: "filesystem %{NOTSPACE:filesystem} was.*forced.*unmount"
+       pattern: "filesystem %{NOTSPACE} was.*forced.*unmount"
        ras_msg_id: "spectrumscale.fs.unmount_forced"
        action: ".send_ras;"
 ...
