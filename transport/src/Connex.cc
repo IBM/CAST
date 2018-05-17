@@ -198,7 +198,7 @@ int ConnexSocket::openCnxSock() {
     if (_sockfd>0) {errno=EALREADY; return -1;}
     //flags on open: SOCK_CLOEXEC, e.g. SOCK_STREAM | SOCK_CLOEXEC
     _sockfd = socket(_family,_type|_flagsOnOpen,_protocol);
-    if (_family == PF_UNIX)
+    if ( ( _sockfd>0 )&&(_family == PF_UNIX) )
         {
             int val = 1;
             if (setsockopt(_sockfd, SOL_SOCKET, SO_PASSCRED, &val, sizeof (val)) < 0)
@@ -622,13 +622,12 @@ int ConnexSocket::attachRemote(){
 }
 
 int ConnexSocket::attachRemote(int retryTime, int retryCount){
-    int rc=0;
-    while (rc<=0){
-        rc = attachRemote();
-        if (rc>0) return rc;
-        if (!retryCount) return rc;
+    int rc = attachRemote();
+    for (int i=0; i<retryCount; i++)
+    {
+        if (rc>0) break;
         sleep(retryTime);
-        retryCount--;
+        rc = attachRemote();
     }
-    return -EHOSTDOWN;
+    return rc;
 }

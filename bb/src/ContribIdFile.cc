@@ -105,6 +105,7 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid)
 {
     int rc = 0;
+    ContribFile* l_ContribFile = 0;
     bool l_ContribIdFound = false;
 
     pContribIdFile = 0;
@@ -114,7 +115,6 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
         {
             if (!bfs::is_directory(lvuuid)) continue;
             bfs::path contribs_file = lvuuid.path() / "contribs";
-            ContribFile* l_ContribFile = 0;
             rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.string().c_str());
             if (!rc)
             {
@@ -140,16 +140,19 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
                 break;
             }
 
-            if (l_ContribFile)
-            {
-                delete l_ContribFile;
-                l_ContribFile=NULL;
-            }
+            delete l_ContribFile;
+            l_ContribFile=NULL;
 
             if (l_ContribIdFound)
             {
                 break;
             }
+        }
+
+        if (l_ContribFile)
+        {
+            delete l_ContribFile;
+            l_ContribFile=NULL;
         }
 
         if (rc != 1 && pContribIdFile)
@@ -235,11 +238,12 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pContribIdFile = 0;
     pNumHandleContribs = 0;
     pNumLVUuidContribs = 0;
+
+    ContribFile* l_ContribFile = 0;
     for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
     {
         if(!bfs::is_directory(lvuuid)) continue;
         bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
-        ContribFile* l_ContribFile = 0;
         int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
         if (!rc2)
         {
@@ -273,6 +277,13 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
         delete pContribIdFile;
         pContribIdFile = 0;
     }
+
+    if (l_ContribFile)
+    {
+        delete l_ContribFile;
+        l_ContribFile=NULL;
+    }
+
     pNumHandleContribs = ((rc == -1) ? 0 : pNumHandleContribs);
     pNumLVUuidContribs = ((rc != 1) ? 0 : pNumLVUuidContribs);
 

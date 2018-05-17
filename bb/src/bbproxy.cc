@@ -389,7 +389,7 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -442,7 +442,7 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -486,7 +486,7 @@ void msgin_changeowner(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -535,7 +535,7 @@ void msgin_changemode(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -597,7 +597,7 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -638,7 +638,7 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -700,7 +700,7 @@ void msgin_getdeviceusage(txp::Id id, const string& pConnectionName, txp::Msg* m
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -789,7 +789,7 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -917,7 +917,7 @@ void msgin_change_server(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (l_VolumeGroupName) {
@@ -989,7 +989,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1068,7 +1068,7 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1176,7 +1176,7 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1402,7 +1402,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         }
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1563,7 +1563,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1697,7 +1697,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1828,7 +1828,7 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1959,7 +1959,7 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2099,7 +2099,7 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2215,7 +2215,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2401,7 +2401,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         rc = proxy_deregLV4Usage(mountpoint);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (l_MountPoint)
@@ -2521,7 +2521,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
         l_TransferDefs = 0;
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2664,7 +2664,7 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         updateSuspendMap(DEFAULT_SERVER_ALIAS, l_EntrySuspendState);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2807,7 +2807,7 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2936,7 +2936,7 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3070,7 +3070,7 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
         l_MountPoint=NULL;
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (l_DevName) {
@@ -3167,7 +3167,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3303,7 +3303,7 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3437,7 +3437,7 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3614,7 +3614,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3856,7 +3856,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
     if (!rc)
@@ -3929,7 +3929,7 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -4107,7 +4107,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -4168,7 +4168,7 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -4240,7 +4240,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
