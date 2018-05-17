@@ -19,6 +19,8 @@ export FLOOR
 # exit on any script failure
 set -eo pipefail
 
+echo "$( date ) stage-in process for LSF_STAGE_JOBID=$LSF_STAGE_JOBID"  &>> /var/log/bb_stagein.log
+
 LSF_STAGE_STORAGE_MINSIZE="${LSF_STAGE_STORAGE_MINSIZE}G" #append unit
 export LSF_STAGE_STORAGE_MINSIZE
 export PATH_PRESERVE=$PATH
