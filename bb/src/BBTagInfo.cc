@@ -546,8 +546,8 @@ void BBTagInfo::setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobI
 
         if ((((flags & BBTI_All_Contribs_Reported) == 0) && pValue) || ((flags & BBTI_All_Contribs_Reported) && (!pValue)))
         {
-            LOG(bb,info) << "BBTagInfo::setAllContribsReported(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << " -> Changing from: " << ((flags & BBTI_All_Contribs_Reported) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+            LOG(bb,debug) << "BBTagInfo::setAllContribsReported(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                          << " -> Changing from: " << ((flags & BBTI_All_Contribs_Reported) ? "true" : "false") << " to " << (pValue ? "true" : "false");
         }
         SET_FLAG(BBTI_All_Contribs_Reported, pValue);
 
@@ -574,8 +574,8 @@ void BBTagInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJo
 
         if ((((flags & BBTD_All_Extents_Transferred) == 0) && pValue) || ((flags & BBTD_All_Extents_Transferred) && (!pValue)))
         {
-            LOG(bb,info) << "BBTagInfo::setAllExtentsTransferred(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << " -> Changing from: " << ((flags & BBTD_All_Extents_Transferred) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+            LOG(bb,debug) << "BBTagInfo::setAllExtentsTransferred(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                          << " -> Changing from: " << ((flags & BBTD_All_Extents_Transferred) ? "true" : "false") << " to " << (pValue ? "true" : "false");
         }
         SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
@@ -602,8 +602,8 @@ void BBTagInfo::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
 
         if ((((flags & BBTD_Canceled) == 0) && pValue) || ((flags & BBTD_Canceled) && (!pValue)))
         {
-            LOG(bb,info) << "BBTagInfo::setCanceled(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+            LOG(bb,debug) << "BBTagInfo::setCanceled(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                          << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
         }
 
         if (pValue && stopped() && canceled())
@@ -632,8 +632,8 @@ void BBTagInfo::setFailed(const LVKey* pLVKey, const uint64_t pJobId, const uint
     {
         if ((((flags & BBTD_Failed) == 0) && pValue) || ((flags & BBTD_Failed) && (!pValue)))
         {
-            LOG(bb,info) << "BBTagInfo::setFailed(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << " -> Changing from: " << ((flags & BBTD_Failed) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+            LOG(bb,debug) << "BBTagInfo::setFailed(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                          << " -> Changing from: " << ((flags & BBTD_Failed) ? "true" : "false") << " to " << (pValue ? "true" : "false");
         }
         SET_FLAG(BBTD_Failed, pValue);
 
@@ -660,8 +660,8 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
 
         if ((((flags & BBTD_Stopped) == 0) && pValue) || ((flags & BBTD_Stopped) && (!pValue)))
         {
-            LOG(bb,info) << "BBTagInfo::setStopped(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                         << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+            LOG(bb,debug) << "BBTagInfo::setStopped(): Jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                          << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
         }
         SET_FLAG(BBTD_Stopped, pValue);
 
@@ -862,6 +862,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             }
+
+            if (l_ContribIdFilePtr)
+            {
+                delete l_ContribIdFilePtr;
+                l_ContribIdFilePtr = 0;
+            }
         }
         else
         {
@@ -884,18 +890,15 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
 
         if (!pTransferDef->hasFilesInRequest())
         {
-            if ((l_NewContribIdFile->flags & BBTD_All_Extents_Transferred) == 0)
-            {
-                LOG(bb,info) << "BBTagInfo::update_xbbServerAddData(): For " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
-                             << ", contribid " << pContribId << " -> All extents transferred changing from: " << ((l_NewContribIdFile->flags & BBTD_All_Extents_Transferred) ? "true" : "false") << " to true";
-            }
+            // No files in the request
+            uint64_t l_OriginalFileFlags = l_NewContribIdFile->flags;
             SET_FLAG_VAR(l_NewContribIdFile->flags, l_NewContribIdFile->flags, BBTD_All_Extents_Transferred, 1);
-            if ((l_NewContribIdFile->flags & BBTD_All_Files_Closed) == 0)
-            {
-                LOG(bb,info) << "BBTagInfo::update_xbbServerAddData(): For " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
-                             << ", contribid " << pContribId << " -> All files closed changing from: " << ((l_NewContribIdFile->flags & BBTD_All_Files_Closed) ? "true" : "false") << " to true";
-            }
             SET_FLAG_VAR(l_NewContribIdFile->flags, l_NewContribIdFile->flags, BBTD_All_Files_Closed, 1);
+            if (l_OriginalFileFlags != l_NewContribIdFile->flags)
+            {
+                LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileFlags << " to 0x" << l_NewContribIdFile->flags << nouppercase << dec << ".";
+            }
         }
 
         int rc2 = ContribIdFile::saveContribIdFile(l_NewContribIdFile, pLVKey, handle, pContribId);

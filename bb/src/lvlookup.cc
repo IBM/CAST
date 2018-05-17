@@ -161,8 +161,6 @@ int LVLookup::getData(uint64_t& pFirstByte, size_t& pSize)
 
 int LVLookup::getLVExtents(const string& vg)
 {
-    char* buffer = NULL;
-    size_t buffersize = 0;
     string cmd = "lvs --noheadings --units b --nosuffix -o lv_name,seg_pe_ranges,seg_start_pe,vg_extent_size " + vg;
     FILE* f;
     ssize_t frc;
@@ -179,6 +177,8 @@ int LVLookup::getLVExtents(const string& vg)
     f = popen(cmd.c_str(), "re");
     if (f)
     {
+        char* buffer = NULL;
+        size_t buffersize = 0;
         bool lineReturned = false, warningSent = false;
         while((frc = getline(&buffer, &buffersize, f)) >= 0)
         {
@@ -215,12 +215,17 @@ int LVLookup::getLVExtents(const string& vg)
 
                 char realdevpath[PATH_MAX+1];
                 string mydevice;
-                frc = readlink(devpath.c_str(), realdevpath, sizeof(realdevpath));
+                frc = readlink(devpath.c_str(), realdevpath, PATH_MAX);//allow for /0 at PATH_MAX+1
                 if(frc >= 0)
                 {
                     realdevpath[frc] = 0;  // readlink does not NULL terminate!
                     string tmp = realdevpath;
                     mydevice = tmp.substr(tmp.rfind("/")+1);
+                }
+                else {
+                    stringstream errorText;
+                    errorText << __PRETTY_FUNCTION__<<" devpath="<<devpath<<" readlink had errno="<<errno<<" "<<strerror(errno);
+                    LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.devpath.readlinkFailed);
                 }
 
                 devpath += "/start";
@@ -263,13 +268,6 @@ int LVLookup::getLVExtents(const string& vg)
                 buffer = NULL;
                 buffersize = 0;
             }
-        }
-
-        // Even if getline() 'fails', we should check to free the buffer...
-        if (buffer)
-        {
-            free(buffer);
-            buffer = NULL;
         }
 
         fclose(f);

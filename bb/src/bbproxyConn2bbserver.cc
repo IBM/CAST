@@ -65,7 +65,7 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
     {
         //log error message--RAS??
         LOG(bb,always)<<"catch(ExceptionBailout& e)"<<" @="<<__FILE__<<":"<< __FUNCTION__<<":"<<__LINE__;
-        if (sock) delete sock;
+        delete sock;
         sock=NULL;
         stringstream errorText;
         errorText << "SSL failure in attempting to connect to "<<pName;

@@ -90,7 +90,7 @@ class BBTagInfo2
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const LVKey* pLVKey, const uint64_t pHandle, const BBSTATUS pStatus);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle);
-    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
+    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId);

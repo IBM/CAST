@@ -488,8 +488,15 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
     FILE* fd = openAsyncRequestFile("rb", pSeqNbr);
     if (fd != NULL)
     {
-        fseek(fd, 0, SEEK_END);
-        pOffset = (int64_t)ftell(fd);
+        rc = fseek(fd, 0, SEEK_END);
+        if (!rc)
+        {
+            pOffset = (int64_t)ftell(fd);
+        }
+        else
+        {
+            rc = -1;
+        }
         fclose(fd);
     }
     else
@@ -914,10 +921,16 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                     rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, CREATE_NEW_FILE);
                     if (!rc)
                     {
+                        // Close the file...
+                        fclose(l_FilePtr);
+                        l_FilePtr = 0;
+
+                        // Iterate to open the new file...
                         l_AllDone = false;
                     }
                     else
                     {
+                        // Error case...  Just return this file...
                         // \todo - Code error case @DLH
                     }
                 }

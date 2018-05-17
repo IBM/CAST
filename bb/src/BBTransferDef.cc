@@ -1216,14 +1216,14 @@ int BBTransferDef::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_Exte
 
 void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue)
 {
-    if (pValue && (!allExtentsTransferred())) {
-        LOG(bb,info) << "For " << *pLVKey << ", processing complete for the transfer definition associated with contribid " << pContribId;
+    if (pValue && (allExtentsTransferred())) {
+        LOG(bb,debug) << "For " << *pLVKey << ", processing complete for the transfer definition associated with contribid " << pContribId;
     }
 
     if ((((flags & BBTD_All_Extents_Transferred) == 0) && pValue) || ((flags & BBTD_All_Extents_Transferred) && (!pValue)))
     {
-        LOG(bb,info) << "BBTransferDef::setAllExtentsTransferred(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                     << " -> Changing from: " << ((flags & BBTD_All_Extents_Transferred) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,debug) << "BBTransferDef::setAllExtentsTransferred(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                      << " -> Changing from: " << ((flags & BBTD_All_Extents_Transferred) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
     SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
@@ -1244,8 +1244,8 @@ void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, con
 
     if ((((flags & BBTD_Canceled) == 0) && pValue) || ((flags & BBTD_Canceled) && (!pValue)))
     {
-        LOG(bb,info) << "BBTransferDef::setCanceled(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                     << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,debug) << "BBTransferDef::setCanceled(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                      << " -> Changing from: " << ((flags & BBTD_Canceled) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
 
     if (pValue && stopped() && canceled())
@@ -1275,8 +1275,8 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
 
     if ((((flags & BBTD_Failed) == 0) && pValue) || ((flags & BBTD_Failed) && (!pValue)))
     {
-        LOG(bb,info) << "BBTransferDef::setFailed(): Job " << job.getJobId() << ", jobstep " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                     << " -> Changing from: " << ((flags & BBTD_Failed) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,debug) << "BBTransferDef::setFailed(): Job " << job.getJobId() << ", jobstep " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                      << " -> Changing from: " << ((flags & BBTD_Failed) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
     SET_FLAG(BBTD_Failed, pValue);
 
@@ -1314,8 +1314,8 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
 
     if ((((flags & BBTD_Stopped) == 0) && pValue) || ((flags & BBTD_Stopped) && (!pValue)))
     {
-        LOG(bb,info) << "BBTransferDef::setStopped(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                     << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,debug) << "BBTransferDef::setStopped(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                      << " -> Changing from: " << ((flags & BBTD_Stopped) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
     SET_FLAG(BBTD_Stopped, pValue);
 

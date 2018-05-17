@@ -242,8 +242,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                     rc = -1;
                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                 }
+                                break;
                             }
-
+                          
                             case 1:
                             {
                                 rc = 0;
@@ -393,7 +394,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
         unlockTransferQueue(l_LVKey, "msgin_canceltransfer");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -433,7 +434,7 @@ void msgin_change_server(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -471,7 +472,7 @@ void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -543,7 +544,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     unlockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (rc)
@@ -608,7 +609,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -684,7 +685,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
         stringstream l_JobStr;
         l_Job.getStr(l_JobStr);
-        LOG(bb,info) << "msgin_gettransferhandle: " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib << ", contrib = " << l_Temp.str();
+        LOG(bb,info) << "msgin_gettransferhandle: job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib << ", contrib " << l_Temp.str();
 
         switchIds(msg);
 
@@ -693,7 +694,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
         //         This closes the window during activate server between the activation
         //         of the connection to the new server and the registering of any LVKeys
         //         with the new server.
-        //         \todo - Not sure if this is the right duration...  @DLH
         int l_Continue = 120;
         while ((rc) && (l_Continue--))
         {
@@ -708,8 +708,8 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                 // Log the input/results
                 Uuid lv_uuid = l_LVKey.second;
                 lv_uuid.copyTo(lv_uuid_str);
-                LOG(bb,info) << "getHandle: Local l_LVKey.first= " << l_LVKey.first<< ", LV Uuid = " << lv_uuid_str << ", " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib \
-                             << ", contrib = " << l_Temp.str() << ", handle = " << l_Handle;
+                LOG(bb,info) << "getHandle: " << l_LVKey << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib \
+                             << ", contrib " << l_Temp.str() << " -> handle " << l_Handle;
             }
             else
             {
@@ -775,7 +775,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -892,7 +892,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1037,7 +1037,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1140,7 +1140,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1214,7 +1214,7 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         unlockTransferQueue((LVKey*)0, "msgin_removejobinfo");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1259,7 +1259,7 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1315,7 +1315,7 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
         unlockTransferQueue((LVKey*)0, "msgin_resume");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1438,7 +1438,7 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
         unlockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1500,7 +1500,7 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1599,9 +1599,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         LOG(bb,info) << "msgin_starttransfer: Input " << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle \
                      << ", contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
-                     << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
-                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
-                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
+                     << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false");
+//                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false")
+//                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
 
         if (l_PerformOperation && config.get(process_whoami+".bringup.dumpTransferDefinitionAfterDemarshall", 0)) {
             l_TransferPtr->dump("info", "Transfer Definition (after demarshall)");
@@ -1692,8 +1692,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     // Process the job into a formatted stringstream
                                     stringstream l_JobStr;
                                     l_Job.getStr(l_JobStr);
-                                    LOG(bb,info) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag = " << l_Tag \
-                                                 << ", handle = " << l_Handle << ", numcontrib = " << l_NumContrib << ", contrib = " << l_ContribStr.str();
+                                    LOG(bb,debug) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag=" << l_Tag \
+                                                  << ", handle=" << l_Handle << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str();
 
                                     // Start transfer
                                     // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
@@ -2179,7 +2179,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (!rc)
@@ -2362,7 +2362,7 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2436,7 +2436,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
         unlockTransferQueue((LVKey*)0, "msgin_suspend");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2515,7 +2515,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
 
@@ -2614,7 +2614,7 @@ int bb_main(std::string who)
         rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, FULL_MAINTENANCE);
         if (l_AsyncRequestFileNamePtr)
         {
-            delete l_AsyncRequestFileNamePtr;
+            delete [] l_AsyncRequestFileNamePtr;
             l_AsyncRequestFileNamePtr = 0;
         }
         if (rc) LOG_RC_AND_BAIL(rc);

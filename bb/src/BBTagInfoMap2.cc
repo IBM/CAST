@@ -191,7 +191,7 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
 
     if (!rc)
     {
-        LOG(bb,info) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
+        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pTagInfo2;
         rc = update_xbbServerAddData(pJobId);
     }
