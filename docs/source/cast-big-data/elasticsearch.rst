@@ -184,10 +184,9 @@ The mapping for the index contains the following fields:
 | tags          | *text* | Tags containing additional metadata about the message.         |
 +---------------+--------+----------------------------------------------------------------+
 
-.. note:: Currently mmfs logs will be stored in the syslog index (due to similarity of the data mapping).
+.. note:: Currently mmfs and CAST logs will be stored in the syslog index (due to similarity of the data mapping).
 
 .. TODO: Should mmfs log inhabit the same index? The data has a 1:1 parity.
-.. TODO: Review Cumulus Swtich, not sure what the logs look like by default.
 
 cast-log-mellanox-event
 ^^^^^^^^^^^^^^^^^^^^^^^

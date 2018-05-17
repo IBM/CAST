@@ -292,6 +292,40 @@ this file will need to be modified to have the CAST syslog template:
 .. note:: For more configuration details please refer to the official `Cumulus Linux User Guide`_.
 
 
+
+CAST (csmd)
+***********
+
+.. attention:: This feature is enabled in CAST-1.1.1.
+
+CAST has enabled the boost syslog utility through use of the *csmd* configuration file.
+As of *CAST 1.1.1* this mechanism will be enabled in the default configuration files.
+
+.. code-block:: bash
+    
+    "csm" : {
+        ...
+        "log" : {
+            ... 
+            "sysLog" : true
+        }
+        ...
+    }
+
+By default enabling syslog will write to the localhost syslog port using UDP. The target may
+be changed by the *server* and *port* options.
+
+The syslog will follow the *RFC 3164* syslog protocol. After being filtered through the 
+`Syslog Redirection`_ template the log will look something like this:
+
+.. code-block:: bash
+
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - debug     csmapi TIMING: 1525910812,17,2,1526570252507364568,1526570252508039085,674517
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi [1525910812]; csm_allocation_query_active_all end
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi CSM_CMD_allocation_query_active_all[1525910812]; Client Recv; PID: 14921; UID:0; GID:0
+
+These logs will then stored in the *cast-log-syslog* index using the default CAST configuration.
+
 Counters
 --------
 
