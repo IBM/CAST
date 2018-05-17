@@ -404,7 +404,37 @@ RasRc CSMIRasEventCreate::processMsgTypeDbRes(csm::db::DBResult_sptr dbRes,
 csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
 {
     LOG(csmras, trace) << "Enter " << __PRETTY_FUNCTION__;
+    
+    string dbstr;
+    
+    // Add optional section to SQL to update the state in the csm_node table if set_state is valid
+    string set_state = rasEvent.getValue(CSM_RAS_FKEY_SET_STATE);
+    bool add_set_state_sql(false);
+    // Only change the node state if set_state=SOFT_FAILURE
+    if (set_state == CSM_NODE_STATE_SOFT_FAILURE)
+    {
+        // Only change the node state if set_state=SOFT_FAILURE and
+        // the node state is currently DISCOVERED or IN_SERVICE
+        LOG(csmras, debug) << "Generating SQL for set_state=" << set_state << endl;
+        add_set_state_sql = true;
+        dbstr += "WITH update_node_state AS ( UPDATE csm_node SET state=";
+        //dbstr += "$9::text";             // set_state
+        dbstr += "'" + set_state + "'";    // set_state
+        dbstr += " where node_name=";
+        //dbstr += "$10::text";                                              // location_name
+        dbstr += "'" + rasEvent.getValue(CSM_RAS_FKEY_LOCATION_NAME) + "'";  // location_name
+        dbstr += " AND state IN ('" + (string) CSM_NODE_STATE_DISCOVERED + "','" + (string) CSM_NODE_STATE_IN_SERVICE + "') ) ";
+    }
+    else if (set_state == "")
+    {
+        // Nothing to do
+    }
+    else
+    {
+        LOG(csmras, warning) << "Ignoring invalid state request: set_state=" << set_state << endl;
+    }
 
+    // Generate the SQL to insert the event into the csm_ras_event_action table
     // Fixed params:
     // $1::text = msg_id
     // $2::text = msg_id
@@ -418,8 +448,7 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
     if (rasEvent.hasValue(CSM_RAS_FKEY_KVCSV))           fields.push_back(CSM_RAS_FKEY_KVCSV);
     if (rasEvent.hasValue(CSM_RAS_FKEY_RAW_DATA))        fields.push_back(CSM_RAS_FKEY_RAW_DATA);
 
-    string dbstr;
-    dbstr = "INSERT INTO csm_ras_event_action (";
+    dbstr += "INSERT INTO csm_ras_event_action (";
     
     // Need to associate to the correct msg_id_seq from the csm_ras_type_audit table
     dbstr += "msg_id_seq,";
@@ -471,34 +500,8 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
     }
     dbstr += ");";
 
-    // Add sections to SQL if set_state is not null
-    string set_state = rasEvent.getValue(CSM_RAS_FKEY_SET_STATE);
-    bool add_set_state_sql(false);
-    // Only change the node state if set_state=SOFT_FAILURE
-    if (set_state == CSM_NODE_STATE_SOFT_FAILURE)
-    {
-        // Only change the node state if set_state=SOFT_FAILURE and
-        // the node state is currently DISCOVERED or IN_SERVICE
-        LOG(csmras, debug) << "Generating SQL for set_state=" << set_state << endl;
-        add_set_state_sql = true;
-        dbstr += " UPDATE csm_node SET state=";
-        dbstr += "$9::text";           // set_state
-        dbstr += " where node_name=";
-        dbstr += "$10::text";          // location_name
-        dbstr += " AND state IN ('" + (string) CSM_NODE_STATE_DISCOVERED + "','" + (string) CSM_NODE_STATE_IN_SERVICE + "');";
-    }
-    else if (set_state == "")
-    {
-        // Nothing to do
-    }
-    else
-    {
-        LOG(csmras, warning) << "Ignoring invalid state request: set_state=" << set_state << endl;
-    }
-
     LOG(csmras, debug) << "CSMIRasEventCreate::getRasCreateDbReq: " << dbstr;
     
-    // Add SQL params
     // Fixed params:
     // $1::text = msg_id
     // $2::text = msg_id
@@ -510,10 +513,18 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
     uint32_t SQL_PARAM_COUNT(FIXED_SQL_PARAM_COUNT + fields.size());
     if (add_set_state_sql) 
     { 
-        SQL_PARAM_COUNT += 2; 
+        //SQL_PARAM_COUNT += 2; 
     }
 
     csm::db::DBReqContent dbcontent(dbstr, SQL_PARAM_COUNT);
+    
+    // Add SQL params
+    // Add the optional set_state SQL
+    if (add_set_state_sql)
+    {
+        //dbcontent.AddTextParam(set_state.c_str());
+        //dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_LOCATION_NAME).c_str());
+    }
     
     // Fixed params:
     dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_MSG_ID).c_str());
@@ -525,13 +536,6 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
     for (unsigned n = 0; n < fields.size(); n++) 
     {
         dbcontent.AddTextParam(rasEvent.getValue(fields[n]).c_str());
-    }
-
-    // Add the optional set_state SQL
-    if (add_set_state_sql)
-    {
-        dbcontent.AddTextParam(set_state.c_str());
-        dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_LOCATION_NAME).c_str());
     }
 
     return dbcontent;
