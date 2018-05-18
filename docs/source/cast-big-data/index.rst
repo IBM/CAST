@@ -19,3 +19,4 @@ assumes the components of the stack are installed in the following order:
     kibana.rst
     data-aggregators.rst
     python-guide.rst
+    csm-event-correlator.rst

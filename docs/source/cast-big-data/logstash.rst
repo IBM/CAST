@@ -174,17 +174,17 @@ When writing grok patterns several rules of thumb are recommended by the CAST te
 3. _groktimeout tagging can set an upper bound time limit for grok operations.
 4. Avoid `DATA` and `GREEDYDATA` if possible.
 
-CAST Event Correlator
+CSM Event Correlator
 ---------------------
 
-CAST Event Correlator (CEC) is the CAST solution for event correlation in the logstash pipeline.
+CSM Event Correlator (CEC) is the CAST solution for event correlation in the logstash pipeline.
 CEC is written in ruby to leverage the existing Logstash plugin system. At its core CEC is a pattern
 matching engine using `grok`_ to handle pattern matching. 
 
 A sample configuration of CEC is provided as the `events.yml` file described in the `Configuration`_
 section of the document. 
 
-There's an extensive asciidoc for usage of the `CAST Event Correlator plugin`_. The following 
+There's an extensive asciidoc for usage of the `CSM Event Correlator plugin`_. The following 
 documentation is an abridged version.
 
 
@@ -203,15 +203,10 @@ git repository.
 
 .. TODO: Rename csm_event_correlator to cast_event_correlator.
 
-After the plugin has been built it may then be installed with the steps described in `Configuration`_
+After the plugin has been built it may then be installed with the steps described in 
+ref::`csm-event-correlator-config`
 
 
-Configuring CEC
-^^^^^^^^^^^^^^^^
-
-For configuration of CEC it is recommended that the user consult the bundled documentation.
-
-.. TODO: Add documentation.
 
 
 
@@ -221,5 +216,5 @@ For configuration of CEC it is recommended that the user consult the bundled doc
 .. _Tuning Logstash: https://www.elastic.co/guide/en/logstash/current/tuning-logstash.html
 .. _configuration file structure: https://www.elastic.co/guide/en/logstash/current/configuration-file-structure.html
 .. _elasticsearch plugin: https://www.elastic.co/guide/en/logstash/current/plugins-outputs-elasticsearch.html
-.. _CAST Event Correlator plugin: https://github.com/IBM/CAST/blob/master/csm_big_data/Logstash/plugins/csm_event_correlator/doc/index.asciidoc
+.. _CSM Event Correlator plugin: https://github.com/IBM/CAST/blob/master/csm_big_data/Logstash/plugins/csm_event_correlator/doc/index.asciidoc
 .. _Logstash settings file: https://www.elastic.co/guide/en/logstash/current/logstash-settings-file.html
