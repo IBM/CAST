@@ -3,16 +3,14 @@
 CSM Event Correlator Filter Plugin
 ==================================
 
+.. attention:: The following document is a work in progress! The CSM Event Correlator is currently
+    under development and the interface is subject to change. 
+
 Parses arbitrary text and structures the results of the parse into actionable events.
 
 The CSM Event Correlator is a utility by which a system administrator may specify a collection
 of patterns (grok style), grouping by context (e.g. syslog, event log, etc.), which trigger 
 actions (ruby scripts).
-
-CSM Event Correlator is compatible with all existing Logstash grok patterns default patterns
-may be found in official Logstash documentation.
-
-The CSM Event Correlator uses a yaml format to specify pattern-action pairs.
 
 .. contents::
    :local:
@@ -35,17 +33,29 @@ This plugin supports the following configuration options:
 Please refer to `common-options`_ for options supported in all Logstash
 filter plugins.
 
+This plugin is intended to be used in the filter block of the logstash configuration file.
+A sample configuration is reproduced below:
+
+.. code-block:: none
+
+    filter {
+        csm_event_correlator {
+            events_dir => "/etc/logstash/patterns/events.yml"
+            patterns_dir => "/etc/logstash/patterns/*.conf"
+        }
+    }
+
 events_dir
 ^^^^^^^^^^
 :Value type: `string`_
 :Default value:  `/etc/logstash/conf.d/events.yml`
 
-The configuration file for the event correlator, see <<plugins-{type}s-{plugin}-event_config>> for
-details on the contents of this file.
+The configuration file for the event correlator, see `CSM Event Correlator Event Configuration File`_
+for details on the contents of this file.
 
 This file is loaded on pipeline creation.
 
-.. attention:: This field will use an <<array,array>> in future iterations to specify multiple configuration
+.. attention:: This field will use an `array`_ in future iterations to specify multiple configuration
     files. This change should not impact existing configurations.
 
 patterns_dir
@@ -193,7 +203,7 @@ csm_port
 The port on the server running the CSM REST daemon. This port will be used to connect by the 
 `.send_ras;` utility.
 
-NOTE: This will eventually have a default value of `4213`
+.. attention:: In a future release `4213` will be the default value.
 
 data_sources
 ************
@@ -204,7 +214,7 @@ matches `type` field of the logstash event processed by the filter plugin. The t
 may be set in the `input` section of the logstash configuration file.
 
 Below is an example of setting the type of all incoming communication on the `10515` tcp port to
-have the _syslog_ `type`:
+have the `syslog` `type`:
 
 .. code-block:: none
 
@@ -215,11 +225,10 @@ have the _syslog_ `type`:
         }
     }
 
-The YAML configuration file for the _syslog_ data source would then look something like this:
+The YAML configuration file for the `syslog` data source would then look something like this:
 
 .. code-block:: YAML
 
-    data_sources:
         syslog:
             # Event Data Sources configuration settings.
         # More data sources.
@@ -263,9 +272,9 @@ field are then used to generate the ras event spawned with the `.send_ras;` util
 The referenced data is used in the `location_name` of the of the REST payload sent by `.send_ras;`.
 
 For example, assume an event is being processed by the filter. This event has the field 
-`syslogHostname` populated at some point in the pipeline's execution to have the value of _cn1_.
+`syslogHostname` populated at some point in the pipeline's execution to have the value of `cn1`.
 It is determined that this event was worth responding to and a RAS event is created. Since
-`ras_location` was set to `syslogHostname` the value of _cn1_ is POSTed to the CSM REST daemon
+`ras_location` was set to `syslogHostname` the value of `cn1` is POSTed to the CSM REST daemon
 when creating the RAS event.
 
 ras_timestamp
@@ -321,7 +330,7 @@ formatting examples for this section of the configuration.
 Event Categories
 ^^^^^^^^^^^^^^^^
 
-Event categories are entries in the <<plugins-{type}s-{plugin}-categories, categories>> map.
+Event categories are entries in the `categories`_ map.
 Each category has a list of tagged configuration options which specify an event correlation rule.
 
 This section has the following configuration fields:
@@ -411,13 +420,12 @@ as described later. `EXTRACTED_NAME` identifiers are added to the big data recor
 The `EXTRACTED_NAME` section is optional, patterns without the `EXTRACTED_NAME` are matched, but
 not extracted.
 
-For specifying custom patterns refer to 
-<https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns>.
+For specifying custom patterns refer to `custom patterns`_.
 
 A grok pattern may also use raw regular expressions to perform non-extracting pattern matches.
-_Anonymous_ extraction patterns may be specified with the following syntax: `(?<EXTRACTED_NAME>REGEX)`
+`Anonymous` extraction patterns may be specified with the following syntax: `(?<EXTRACTED_NAME>REGEX)`
 
-`EXTRACTED_NAME` in the _anonymous_ extraction pattern is identical to the named pattern. `REGEX` is
+`EXTRACTED_NAME` in the `anonymous` extraction pattern is identical to the named pattern. `REGEX` is
 a standard regular expression.
 
 CSM Event Correlator Action Programming
@@ -469,10 +477,17 @@ Action Keywords
 Several action keywords are provided to abstract or reduce the code written in the actions. 
 Action keywords always start with a `.` and end with a `;`.
 
-:.send_ras; :  Creates a ras event with `msg_id` == `ras_msg_id`, `location_name` == `ras_location`, 
-    `time_stamp` == `ras_timestamp`, and `raw_data` == `raw_data`.
 
-    Currently only issues RESTful create requests. Planned improvements add local calls.
+.send_ras; 
+**********
+Creates a ras event with `msg_id` == `ras_msg_id`, `location_name` == `ras_location`, 
+`time_stamp` == `ras_timestamp`, and `raw_data` == `raw_data`.
+
+Currently only issues RESTful create requests. Planned improvements add local calls.
+
+.. TODO Rewrite this documentation.
+
+.. attention:: A clarification for this section will be provided in the near future. (5/18/2018 jdunham@us.ibm.com)
 
 Sample Action
 ^^^^^^^^^^^^^
@@ -505,9 +520,9 @@ All together it becomes:
 This action script is then compiled and stored by the plugin at load time then executed when
 actions are triggered by events.
 
-
 .. Links
 .. _common-options: https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html
 .. _array: https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html
 .. _string: https://www.elastic.co/guide/en/elasticsearch/reference/current/text.html
 .. _boolean: https://www.elastic.co/guide/en/elasticsearch/reference/current/boolean.html
+.. _custom patterns: https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns

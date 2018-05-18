@@ -37,7 +37,7 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
 
     +-----------------------------+-----------+-----------+
     | Target file                 | Repo Dir  | RPM Dir   |
-    +-----------------------------+-----------+-----------+
+    +=============================+===========+===========+
     | logstash.yml                | config/   | config/   |
     +-----------------------------+-----------+-----------+
     | jvm.options                 | config/   | config/   |
@@ -57,7 +57,7 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
 .. note:: The `conf.d/logstash.conf` file requires the ELASTIC-INSTANCE field be replaced with
    your cluster's elastic search nodes.
 
-3. Install the `CAST Event Correlator`_
+3. Install the `CSM Event Correlator`_
     
 .. code:: bash
 
@@ -127,7 +127,7 @@ The default ports and data tagging are as follows:
 |       Default Port Values            |
 +-----------------+--------------------+
 |        Tag      |     Port Number    |
-+-----------------+--------------------+
++=================+====================+
 |      syslog     |       10515        |
 +-----------------+--------------------+
 | bmc_temp_sensor |       10516        |
@@ -150,7 +150,7 @@ following operations are performed:
 #. Unstructured events are parsed with the `grok`_ utility.
 #. Timestamps are reformatted (as needed).
 #. Events with JSON formatting are parsed.
-#. `CAST Event Correlator`_ is invoked on properly ingested logs.
+#. `CSM Event Correlator`_ is invoked on properly ingested logs.
 
 Generally speaking care must be taken in this section to leverage branch prediction. Additionally,
 it is easy to malform the `grok`_ plugin to result in slow downs in the pipeline performance.
@@ -204,10 +204,7 @@ git repository.
 .. TODO: Rename csm_event_correlator to cast_event_correlator.
 
 After the plugin has been built it may then be installed with the steps described in 
-ref::`csm-event-correlator-config`
-
-
-
+:ref:`csm-event-correlator-config`
 
 
 .. Links

@@ -34,7 +34,7 @@ to Logstash via a redirection hierarchy outlined in the table below:
 
 +----------------+--------------------+
 |  Type of Node  | Syslog Destination |
-+----------------+--------------------+
++================+====================+
 |  Service Node  |    Logstash        |
 +----------------+--------------------+
 |  Compute Node  |    Service Node    |
