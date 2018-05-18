@@ -2,7 +2,7 @@
 #
 #    csmi/src/inv/tests/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -14,6 +14,12 @@
 #================================================================================
 
 include (${CMAKE_SOURCE_DIR}/csmd/csmd.cmake)
+
+# cmd line interface for cluster_query_state
+add_executable(csm_cluster_query_state cluster_query_state.c)
+install(TARGETS csm_cluster_query_state COMPONENT csm-api DESTINATION csm/bin)
+target_include_directories(csm_cluster_query_state PRIVATE ./)
+target_link_libraries(csm_cluster_query_state csmi csm_network_c csmutil fsutil)
 
 # cmd line interface for ib_cable_query
 add_executable(csm_ib_cable_query ib_cable_query.c)

@@ -474,6 +474,21 @@ typedef struct {
     csmi_ssd_record_t** ssds; /**< The ssds associated with @ref node, size defined by @ref ssds_count.*/
 } csmi_node_details_t;
 /**
+ * @brief A custom cluster query record from the database.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    char* node_name; /**< The node hostname the record represents. */
+    char* collection_time; /**< replacement for 'discovery_time' after CSM_VERSION_0_4_1. the inventory information for this node was last collected at this time. */
+    char* update_time; /**< The time the node record was last updated. */
+    csmi_node_state_t state; /**< Deprecated after CSM_VERSION_0_4_1. State of the node, see @ref csmi_node_state_t for details. */
+    csmi_node_type_t type; /**< The type of the node, see @ref csmi_node_state_t for details.*/
+    uint32_t num_allocs; /**< Number of allocations that this node is participating in. also the length member for the following arrays */
+    int64_t* allocs; /**< Array of allocation ids this node is participating in. */
+    char** states; /**< Array of states the allocations on this node are in (order matches the allocation ids). */
+    char** shared; /**< Array of "is this allocation shared" . */
+} csmi_cluster_query_state_record_t;
+/**
  * @brief An input wrapper for @ref csm_ib_cable_inventory_collection
  */
 typedef struct {
@@ -768,6 +783,26 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char TBD; /**< TBD. */
 } csm_switch_children_inventory_collection_output_t;
+/**
+ * @brief An input wrapper for @ref csm_cluster_query_state.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+    int32_t num_allocs; /**< Filter query by the 'num_allocs' field in the database.. API will ignore values less than 0.*/
+    int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+    char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY node_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY node_name ASC NULLS LAST', [b] =  'ORDER BY node_name DESC NULLS LAST', [c] = 'ORDER BY state ASC NULLS LAST', [d] =  'ORDER BY state DESC NULLS LAST', [e] = 'ORDER BY type ASC NULLS LAST', [f] =  'ORDER BY type DESC NULLS LAST', [g] = 'ORDER BY num_allocs ASC NULLS LAST', [h] =  'ORDER BY num_allocs DESC NULLS LAST'. */
+    csmi_node_state_t state; /**< Query the 'state' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_DEF values for this fields, see @ref csmi_node_state_t for details.*/
+    csmi_node_type_t type; /**< Query the 'type' field in the database. API will ignore @ref csmi_node_type_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_type_t for details.*/
+} csm_cluster_query_state_input_t;
+/**
+ * @brief A wrapper for the output of @ref csm_cluster_query_state.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    uint32_t results_count; /**< Number of records retrieved, size of @ref results. */
+    csmi_cluster_query_state_record_t** results; /**< A list of records retrieved from the queries, size defined by @ref results_count.*/
+} csm_cluster_query_state_output_t;
 /** @} */
 
 #ifdef __cplusplus

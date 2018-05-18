@@ -59,6 +59,8 @@ extern const csmi_struct_mapping_t map_csmi_fabric_topology_t;
 
 extern const csmi_struct_mapping_t map_csmi_node_details_t;
 
+extern const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t;
+
 extern const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_input_t;
 
 extern const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_output_t;
@@ -122,6 +124,10 @@ extern const csmi_struct_mapping_t map_csm_switch_inventory_collection_output_t;
 extern const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_input_t;
 
 extern const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_output_t;
+
+extern const csmi_struct_mapping_t map_csm_cluster_query_state_input_t;
+
+extern const csmi_struct_mapping_t map_csm_cluster_query_state_output_t;
 
 
 #ifdef __cplusplus
