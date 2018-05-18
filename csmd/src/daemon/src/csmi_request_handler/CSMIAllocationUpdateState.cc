@@ -167,6 +167,102 @@ CSMIAllocationUpdateState::CSMIAllocationUpdateState(csm::daemon::HandlerOptions
             FINAL ));                   // Final State
 }
 
+bool CSMIAllocationUpdateState::RetrieveDataForPrivateCheck(
+        const std::string& arguments, 
+        const uint32_t len, 
+        csm::db::DBReqContent **dbPayload,
+        csm::daemon::EventContextHandlerState_sptr ctx )
+{
+    LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
+	
+	// Unpack the buffer.
+	INPUT_STRUCT* input = nullptr;
+
+    if( csm_deserialize_struct(INPUT_STRUCT, &input, arguments.c_str(), len) == 0 )
+    {
+        int paramCount = 0;
+        std::string paramStmt = "SELECT user_id "
+                "FROM csm_allocation "
+                "WHERE ";
+
+        // Determine how to set the allocation id.
+        if ( input->allocation_id > 0 )
+        {
+            ctx->SetErrorMessage("Allocation ID: " +  std::to_string(input->allocation_id) + ";");
+            paramStmt.append("allocation_id= $1::bigint ");
+            paramCount++;
+        }
+
+        if ( paramCount == 0 )
+        {
+            LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Incomplete values supplied";
+            ctx->SetErrorCode(CSMERR_MISSING_PARAM);
+            ctx->SetErrorMessage("Unable to build query, verify that an allocation id greater than 0 or a primary job id greater than zero has not been supplied");
+            csm_free_struct_ptr(INPUT_STRUCT, input);
+        
+            LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Exit";
+            return false;
+        }
+
+        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( paramStmt, paramCount );
+        dbReq->AddNumericParam<int64_t>(input->allocation_id);
+        *dbPayload = dbReq;
+
+        csm_free_struct_ptr(INPUT_STRUCT, input);
+    }
+    else
+    {
+        LOG( csmapi, error ) << STATE_NAME ":RetrieveDataForPrivateCheck: Deserialization failed";
+        LOG( csmapi, trace  ) << STATE_NAME ":RetrieveDataForPrivateCheck: Exit";
+        
+        ctx->SetErrorCode( CSMERR_MSG_UNPACK_ERROR);
+        ctx->SetErrorMessage("Unable to build the private check query, "
+            "struct could not be deserialized");
+        return false;
+    }
+
+    LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Exit";
+
+    return true;
+}
+
+bool CSMIAllocationUpdateState::CompareDataForPrivateCheck(
+        const std::vector<csm::db::DBTuple *>& tuples,
+        const csm::network::Message &msg,
+        csm::daemon::EventContextHandlerState_sptr ctx)
+{
+    LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
+    bool success = false;
+
+    if ( tuples.size() == 1 )
+    {
+		uint32_t userID = strtoul(tuples[0]->data[0], nullptr, 10);
+        success = (userID == msg.GetUserID());
+
+        // If the success failed report it.
+        if (success)
+        {
+            ctx->SetErrorMessage("");
+        }
+        else
+        {
+            std::string error = "Allocation is owned by user id ";
+            error.append(std::to_string(userID)).append(", user id ");
+            error.append(std::to_string(msg.GetUserID())).append(" does not have permission to updare the state;");
+
+            ctx->AppendErrorMessage(error);
+        }
+    }
+    else
+    {
+        ctx->SetErrorCode(CSMERR_DB_ERROR);
+        ctx->AppendErrorMessage("Database check failed for user id " + std::to_string(msg.GetUserID()) + ";" );
+    }
+
+    LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Exit";
+	return success;
+}
+
 bool CSMIAllocationUpdateState::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
