@@ -87,12 +87,12 @@ namespace utility
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_subcomponents subcomponent)
     {
         if ((subcomponent < NUM_SUBCOMPONENTS) && (subcomponent >= 0))
-            strm << setw(maxsubcomponentwidth) << right << subcomponent_str[subcomponent];
+            strm << setw(maxsubcomponentwidth) << right << subcomponent_str[subcomponent] << left;
         else
-            strm << setw(maxsubcomponentwidth) << right << static_cast< int >(subcomponent);
+            strm << setw(maxsubcomponentwidth) << right << static_cast< int >(subcomponent) << left;
         return strm;
     }
-    
+
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_filename* bfn)
     {
@@ -179,7 +179,7 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 		keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
                 keywords::open_mode = mode
 		);
-        
+
         if(config.get(ptree_prefix + ".archiveLogs", "none") != "none")
         {
             sink->locked_backend()->set_file_collector(sinks::file::make_collector(
@@ -187,11 +187,11 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
                                                            keywords::max_size = config.get(ptree_prefix + ".archiveSize", 1024 * 1024 * 1024),
                                                            keywords::min_free_space = config.get(ptree_prefix + ".archiveMinDiskSize", 1024 * 1024 * 1024)
                                                            ));
-            
+
             sink->locked_backend()->scan_for_files(sinks::file::scan_all);
         }
     }
-    
+
     if(config.get(ptree_prefix + ".sysLog", false))
     {
         boost::shared_ptr< logging::core > core = logging::core::get();
@@ -199,10 +199,10 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
                                                                         keywords::facility = logging::sinks::syslog::local0,
                                                                         keywords::use_impl = logging::sinks::syslog::udp_socket_based
                                                                         ));
-        
-        backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"), 
+
+        backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"),
                                     config.get(ptree_prefix + ".port",   514));
-        
+
         // Map severities into syslog levels:
         logging::sinks::syslog::custom_severity_mapping< std::string > mapping("Severity");
         mapping["trace"]    = logging::sinks::syslog::debug;
@@ -213,9 +213,9 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
         mapping["critical"] = logging::sinks::syslog::critical;
         mapping["always"]   = logging::sinks::syslog::info;
         backend->set_severity_mapper(mapping);
-	
+
         core->add_sink(boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend));
     }
-    
+
     return 0;
 }

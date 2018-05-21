@@ -101,7 +101,7 @@ RDMACMfship::RDMACMfship(int sockFamily, int sockType, uint64_t& pRDMAchunkSize,
    _regRDMAChunksPtr = NULL; //pointer to object for BIG RDMA blocks
    adjustRDMAchunks(pRDMAchunkSize,pMaxRDMAchunks);
    _maxRDMAchunks = pMaxRDMAchunks;
-   _RDMAchunkSize = pRDMAchunkSize; 
+   _RDMAchunkSize = pRDMAchunkSize;
 
     _numEvents = 0;
         //IBV_SEND_SIGNALED fires the completion notification indicater for the work request (WR) for the local QP.  Ignored if QP was created with sq_siq_all.
@@ -313,7 +313,7 @@ int  RDMACMfship::poll4DataIn(){
                 }
 
 		rc = ::poll(_pollInfo, numFds, timeout);
-                
+
                 if ( (_pollInfo[eventChannel].revents) || (rc==0) ) {//if RDMA event or timeout
                   int err = rdma_get_cm_event(_eventChannel, &_event);
                   if (!err) {
@@ -323,7 +323,7 @@ int  RDMACMfship::poll4DataIn(){
                        disconnect();
                        timeout=100;
                        //return -ECONNRESET;
-                     } 
+                     }
                      if (_event->event == RDMA_CM_EVENT_DEVICE_REMOVAL) {
                        _pollInfo[completionChannel].fd = -1;
                        return -ENODEV;
@@ -345,7 +345,7 @@ int  RDMACMfship::poll4DataIn(){
                 if ( (_pollInfo[asyncEvent].revents) || (rc==0) ) {//if RDMA event or timeout
                   int rc = handleAsyncEvent(_cmId);
                   if (rc) printf("rc=%d",rc);
-                  
+
                 }
 
                 if (rc==(-1)){//errno came in
@@ -360,11 +360,11 @@ int  RDMACMfship::poll4DataIn(){
                 if (_pollInfo[completionChannel].revents & POLLIN ){
                      struct ibv_cq * cq = reArmCQ();
                      // \TODO in the future plan to pull all of the cq and have other threads process work completions off a list
-                     if (cq) return 1; 
+                     if (cq) return 1;
                      _pollInfo[completionChannel].fd = -1;
 		     return -1;
                 }
-		
+
 		if (_pollInfo[completionChannel].revents & (POLLERR|POLLHUP|POLLNVAL) ) {//error!
 			close(_sockfd);
 			errno=ECONNRESET;
@@ -395,14 +395,14 @@ int RDMACMfship::accept(struct rdma_cm_id * pCmID)
    doPortQuery();//sets _slidNum and _slidList;
    //param.responder_resources = 1;
    //param.initiator_depth = 1;
-   param.responder_resources = 16;  
+   param.responder_resources = 16;
    param.initiator_depth = 16;
    lidStruct dataArea;
    param.private_data_len = sizeof(dataArea);
-   
+
    dataArea.numLids=_slidNum;
    LOG(txp,always)<<"dataArea.numLids="<<dataArea.numLids;
-   for (int i=0; i<dataArea.numLids;i++){ 
+   for (int i=0; i<dataArea.numLids;i++){
       dataArea.lid[i] = _slidList[i];
       LOG(txp,always)<<"accept dataArea.lid[i]="<<dataArea.lid[i];
    }
@@ -458,13 +458,13 @@ int RDMACMfship::acceptRemote()
   if (err) return err;
   err= waitForEstablished();
   if (err) return err;
-  
-   err =setAsyncPollFD(_cmId); 
+
+   err =setAsyncPollFD(_cmId);
    if (err) return err;
-   
+
    err=armAPM();
    if (err) LOG(txp,always)<<"acceptRemote method armAPM err="<<err;
-  
+
   return 0; //Log APM error but keep going
 }
 
@@ -494,7 +494,7 @@ int RDMACMfship::handleAsyncEvent(struct rdma_cm_id * pCmID){
      LOG(txp,info)<< "async_event=" << l_asyncEvent.event_type<<":"<< ibv_event_type_str(l_asyncEvent.event_type);
      switch(l_asyncEvent.event_type){
         //QP events (l_asyncEvent.qp is valid struct ibv_qp  *qp
-        case IBV_EVENT_QP_FATAL: //QP error state, error occurred on QP 
+        case IBV_EVENT_QP_FATAL: //QP error state, error occurred on QP
         case IBV_EVENT_QP_REQ_ERR: //invalid request to work queue (bad wookie)
         case IBV_EVENT_QP_ACCESS_ERR: //access violation
            LOG(txp,info)<< "Fatal QP async_event=" << l_asyncEvent.event_type<<":"<< ibv_event_type_str(l_asyncEvent.event_type);
@@ -551,15 +551,15 @@ int RDMACMfship::handleAsyncEvent(struct rdma_cm_id * pCmID){
 	    //SM change and reregister should be noted but no actions
             LOG(txp,always)<< "port="<<l_asyncEvent.element.port_num<<" event="<< l_asyncEvent.event_type<<":"<< ibv_event_type_str(l_asyncEvent.event_type);
             break;
-        default: 
+        default:
           abort();
           break;
      }
      ibv_ack_async_event(&l_asyncEvent);
    }
-   
-   
-   return 0;   
+
+
+   return 0;
 }
 
 int RDMACMfship::setAsyncPollFD(struct rdma_cm_id * pCmID){
@@ -574,10 +574,10 @@ int RDMACMfship::setAsyncPollFD(struct rdma_cm_id * pCmID){
    }
    flags |= O_NONBLOCK;
    int rc = fcntl(pCmID->verbs->async_fd, F_SETFL, flags);
-       
-   if (rc) { 
+
+   if (rc) {
        LOG(txp,always)<< "error changing async fd " << pCmID->verbs->async_fd<< " non-blocking mode using flags " << " errno="<<errno<<
-                    std::hex << flags <<std::dec; 
+                    std::hex << flags <<std::dec;
        return errno;
    }
    _pollInfo[asyncEvent].fd = pCmID->verbs->async_fd;
@@ -749,7 +749,7 @@ RDMACMfship::waitForConnectRequest()
          _dlidNum = dataArea->numLids;
          LOG(txp,always)<<"dataArea.numLids="<<dataArea->numLids;
          if (_dlidNum) _dlidList = new uint16_t[_dlidNum];
-         for (int i=0;i<_dlidNum;i++){ 
+         for (int i=0;i<_dlidNum;i++){
            _dlidList[i]=dataArea->lid[i];
            LOG(txp,always)<<"dlid index="<<i<<" dlid="<<_dlidList[i];
          }
@@ -818,7 +818,7 @@ int  RDMACMfship::pollEventIn(const int timeout){
         }
 	if (rc==0) return -ETIME;
 	if (rc==(-1) ) return -errno;
-        return -1;     
+        return -1;
 }
 
 int
@@ -911,21 +911,21 @@ http://lxr.free-electrons.com/source/drivers/infiniband/core/cma.c#L870
 */
    //param.responder_resources = 1;
    //param.initiator_depth = 1;
-   param.responder_resources = 16;  
+   param.responder_resources = 16;
    param.initiator_depth = 16;
    lidStruct dataArea;
    param.private_data_len = sizeof(dataArea);
-   
+
    dataArea.numLids=_slidNum;
    LOG(txp,always)<<"dataArea.numLids="<<dataArea.numLids;
-   for (int i=0; i<dataArea.numLids;i++){ 
+   for (int i=0; i<dataArea.numLids;i++){
       dataArea.lid[i] = _slidList[i];
       LOG(txp,always)<<"rdma_connect dataArea.lid[i]="<<dataArea.lid[i];
    }
    param.private_data = (void *)&dataArea;
    param.retry_count = 5;  //retry happens when retry timer pops for not getting a response from remote destination QP RQ logic
    //rnr retry of 7 means infinite
-   // RNRs happen when a send request is posted before a corresponding receive request is posted on the peer. 
+   // RNRs happen when a send request is posted before a corresponding receive request is posted on the peer.
    param.rnr_retry_count = 6; //if there was no receive posted on remote, error out after 6 timeouts
 
    int rc = rdma_connect(_cmId, &param);
@@ -1033,7 +1033,7 @@ int RDMACMfship::waitForEstablished(){
       LOG(txp,error) <<  "event " << rdma_event_str(_event->event) << " is not " << rdma_event_str(RDMA_CM_EVENT_ESTABLISHED);
       LOG(txp,error) << status2String(_event->status)<<" status="<<_event->status<<" event " << rdma_event_str(_event->event);
    }
-   else { 
+   else {
      LOG(txp,always)<<"RDMA_CM_EVENT_ESTABLISHED localport="<<getLocalPortCM(_cmId)<<" remoteport="<<getRemotePort(_cmId);
      struct rdma_conn_param * conn = &_event->param.conn;//valid for CONNECT_REQUEST and ESTABLISHED
 if (conn->private_data_len){
@@ -1046,7 +1046,7 @@ if (conn->private_data_len){
          _dlidNum = dataArea->numLids;
          LOG(txp,always)<<"dataArea.numLids="<<dataArea->numLids;
          if (_dlidNum) _dlidList = new uint16_t[_dlidNum];
-         for (int i=0;i<_dlidNum;i++){ 
+         for (int i=0;i<_dlidNum;i++){
            _dlidList[i]=dataArea->lid[i];
            LOG(txp,always)<<"dlid index="<<i<<" dlid="<<_dlidList[i];
          }
@@ -1156,7 +1156,7 @@ int RDMACMfship::putBackRcvWorkRequest(char* pAddr)const {
       lWorkRequest.num_sge=1;
       int errnoPostRecv = ibv_post_recv(_cmId->qp, &lWorkRequest,&lBadWorkRequest);
       FL_Write6(FLTxp, TXP_PRECV, "PostRecv wr_id=0x%llX, address=0x%llx, lkey=0x%llx, _regRcvMemPtr->lkey=0x%llx length=%lld ChunkSize=%lld errno=%lld", lWorkRequest.wr_id, lSge.addr, lSge.lkey,_regRcvMemPtr->lkey,lSge.length,errnoPostRecv);
-       
+
       if (errnoPostRecv){
            LOG(txp,always)<<"Repost ibv_post_recv wr_id="<<std::hex<<lWorkRequest.wr_id<<" address="<<lSge.addr<<" lkey="<<lSge.lkey<<std::dec<<" length="<<lSge.length<<" errnoPostRecv="<<errnoPostRecv<<":"<<strerror(errnoPostRecv);
            return errnoPostRecv;
@@ -1199,19 +1199,19 @@ memItemPtr RDMACMfship::getReadChunk(){
     while(numberOfCompletions>0){
         FL_Write6(FLTxp, TXP_WC, "wc.status=%lld, opcode=%lld, wr_id=0x%llx, vendor_err=%lld, _sendReceiveCQ=%llx, completions=%d", wc.status, wc.opcode, wc.wr_id, wc.vendor_err, (uint64_t)_sendReceiveCQ, numberOfCompletions);
        LOG(txp,debug)<<"wc.opcode="<< wc.opcode<< " status="<<wc.status<<"("<<ibv_wc_status_str(wc.status)<<") wr_id="<<std::hex<<wc.wr_id<<std::dec<<" vendor_err="<<wc.vendor_err;
-      
+
       if (wc.status != IBV_WC_SUCCESS){
         LOG(txp,always)<< "status="<<wc.status<<"("<<ibv_wc_status_str(wc.status)<<") wr_id="<<std::hex<<wc.wr_id<<std::dec<<" vendor_err="<<wc.vendor_err<<" wc.byte_len="<< wc.byte_len;
-        //log opcode, status,wr_id, qp_num, vendor_err 
+        //log opcode, status,wr_id, qp_num, vendor_err
         //abort();
         //return NULL;
       }
 
-      else if ( wc.opcode == IBV_WC_RECV  ){ 
+      else if ( wc.opcode == IBV_WC_RECV  ){
           memItemPtr mi = new ::memItem( (char *)wc.wr_id, wc.byte_len, _recvWorkRequestChunkSize);
           mi->opcode=wc.opcode;
           //mi->next=NULL;
-          
+
           return mi;
       }
       else if ( wc.opcode == IBV_WC_SEND){
@@ -1236,12 +1236,12 @@ memItemPtr RDMACMfship::getReadChunk(){
          mi->opcode=wc.opcode;
          return mi; //continue processing
        }
-      else if ( wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM ){ 
+      else if ( wc.opcode == IBV_WC_RECV_RDMA_WITH_IMM ){
          abort();
       }
       else {
         LOG(txp,error)<<"wc.opcode="<< wc.opcode<< " status="<<wc.status<<"("<<ibv_wc_status_str(wc.status)<<") wr_id="<<std::hex<<wc.wr_id<<std::dec<<" vendor_err="<<wc.vendor_err<<" wc.byte_len="<< wc.byte_len;
-        //log opcode, status,wr_id, qp_num, vendor_err 
+        //log opcode, status,wr_id, qp_num, vendor_err
         abort();
         return NULL;
       }
@@ -1252,13 +1252,13 @@ memItemPtr RDMACMfship::getReadChunk(){
     return NULL;
 }
 
-int RDMACMfship::rdmaReadFromTo(memItemPtr pRemoteMip,memItemPtr pRecvMsgMip){ 
+int RDMACMfship::rdmaReadFromTo(memItemPtr pRemoteMip,memItemPtr pRecvMsgMip){
      memItemPtr l_localMip4RDMA  =   pRecvMsgMip->next;
      if (!l_localMip4RDMA ) abort();
      struct ibv_send_wr lWorkRequest;
      struct ibv_send_wr * lBadWorkRequest;
 
-     struct ibv_sge sge; 
+     struct ibv_sge sge;
      sge.addr = (uintptr_t)l_localMip4RDMA->address;
      sge.length = l_localMip4RDMA->length;
      sge.lkey   = l_localMip4RDMA ->lkey;
@@ -1281,13 +1281,13 @@ int RDMACMfship::rdmaReadFromTo(memItemPtr pRemoteMip,memItemPtr pRecvMsgMip){
      return 0;
 }
 
-int RDMACMfship::rdmaWriteToFrom(memItemPtr pRemoteMip,memItemPtr pRecvMsgMip){ 
+int RDMACMfship::rdmaWriteToFrom(memItemPtr pRemoteMip,memItemPtr pRecvMsgMip){
      memItemPtr l_localMip4RDMA  =   pRecvMsgMip->next;
      if (!l_localMip4RDMA ) abort();
      struct ibv_send_wr lWorkRequest;
      struct ibv_send_wr * lBadWorkRequest;
 
-     struct ibv_sge sge; 
+     struct ibv_sge sge;
      sge.addr = (uintptr_t)l_localMip4RDMA->address;
      sge.length = l_localMip4RDMA->length;
      sge.lkey   = l_localMip4RDMA ->lkey;
@@ -1327,7 +1327,7 @@ ssize_t RDMACMfship::write(txp::Msg* pMsg) {
 }
 
 ssize_t RDMACMfship::write(txp::Msg* pMsg, memItemPtr mip){
-        
+
 	char l_MsgId[64] = {'\0'};
 	pMsg->msgIdToChar(pMsg->getMsgId(), l_MsgId, sizeof(l_MsgId));
 
@@ -1354,7 +1354,7 @@ ssize_t RDMACMfship::write(txp::Msg* pMsg, memItemPtr mip){
         lWorkRequest.sg_list=&lSge;
         lWorkRequest.num_sge=1; //using a single sge
         lWorkRequest.opcode=IBV_WR_SEND;//imm_data unused
-        lWorkRequest.imm_data= 0; 
+        lWorkRequest.imm_data= 0;
 
         lWorkRequest.send_flags =  _write_send_flags;
 
@@ -1393,7 +1393,7 @@ return 0;
 }
 
 ssize_t RDMACMfship::writeWithBuffer(txp::Msg* pMsg, memItemPtr mipWithData ) {
-        
+
 	char l_MsgId[64] = {'\0'};
 	pMsg->msgIdToChar(pMsg->getMsgId(), l_MsgId, sizeof(l_MsgId));
 
@@ -1402,8 +1402,8 @@ ssize_t RDMACMfship::writeWithBuffer(txp::Msg* pMsg, memItemPtr mipWithData ) {
         // http://manpages.ubuntu.com/manpages/saucy/man3/ibv_post_send.3.html
 
 
-        
-    
+
+
         if (!mipWithData->length){
 
           return write(pMsg, mipWithData );// \TODO caller should check and instead use write(msg) and retain RDMA buffer??
@@ -1411,8 +1411,8 @@ ssize_t RDMACMfship::writeWithBuffer(txp::Msg* pMsg, memItemPtr mipWithData ) {
         else if (mipWithData->length > _recvWorkRequestChunkSize){//trivially, need to do an RDMA transfer
           return write(pMsg);
         }
-        else { 
-         size_t l_msgLengthWithData = pMsg->getMsgLengthWithDataValues(); // \TODO remove hardcode of 64 
+        else {
+         size_t l_msgLengthWithData = pMsg->getMsgLengthWithDataValues(); // \TODO remove hardcode of 64
 
          uint64_t offset=mipWithData->length & 63;
          if (offset) offset = 64 - offset;
@@ -1425,7 +1425,7 @@ ssize_t RDMACMfship::writeWithBuffer(txp::Msg* pMsg, memItemPtr mipWithData ) {
             char * l_msgBuff = mipWithData->address + offset;
             uint32_t l_remains = mipWithData->chunkSize - offset;
             pMsg->allocateHeapBuffer(l_msgBuff,l_remains);
-            int32_t l_DataLen = pMsg->serializeWithValuesToHeapBuffer(); // \TODO remove hardcode of 64 
+            int32_t l_DataLen = pMsg->serializeWithValuesToHeapBuffer(); // \TODO remove hardcode of 64
             if (l_DataLen <= 0) abort();
 
             if (!mipWithData->lkey) abort();
@@ -1434,11 +1434,11 @@ ssize_t RDMACMfship::writeWithBuffer(txp::Msg* pMsg, memItemPtr mipWithData ) {
             lSge[1].lkey = mipWithData->lkey;
             lSge[1].addr = (uint64_t)mipWithData->address;
             lSge[1].length = mipWithData->length;
-            
+
             lSge[0].lkey = mipWithData->lkey;
             lSge[0].addr = (uint64_t)l_msgBuff;
             lSge[0].length = l_DataLen;
-            
+
             lWorkRequest.wr_id = (uint64_t)(mipWithData); //need for correlating
             lWorkRequest.next=NULL;  //last and only work request
             lWorkRequest.sg_list=&lSge[0];
@@ -1462,7 +1462,7 @@ ssize_t RDMACMfship::writeWithBuffer(txp::Msg* pMsg, memItemPtr mipWithData ) {
             return  l_DataLen;
           }
        }
-    
+
 
 	return 0;
 
@@ -1474,7 +1474,7 @@ int RDMACMfship::setDeviceAttr(){
    if (!_ibvDeviceAttrPtr) {
      _ibvDeviceAttrPtr = new(struct ibv_device_attr);
      int rcQueryDevice = ibv_query_device(_cmId->verbs, _ibvDeviceAttrPtr);
-     if (rcQueryDevice) return rcQueryDevice; 
+     if (rcQueryDevice) return rcQueryDevice;
    }
    return 0;
 }
@@ -1486,36 +1486,64 @@ int RDMACMfship::canDoAPM(){
      LOG(txp,always)<<"canDoAPM setDeviceAttr() rc="<<rc;
      return 0;
   }
-  if ( ! (_ibvDeviceAttrPtr->device_cap_flags| IBV_DEVICE_AUTO_PATH_MIG) ){ 
+  if ( ! (_ibvDeviceAttrPtr->device_cap_flags & IBV_DEVICE_AUTO_PATH_MIG) ){
       LOG(txp,always)<<"BV_DEVICE_AUTO_PATH_MIG is off flag is "<<  (int)(_ibvDeviceAttrPtr->device_cap_flags| IBV_DEVICE_AUTO_PATH_MIG);
       return 0;
   }
   return 1;
 }
 
-int RDMACMfship::doPortQuery(){ 
-   if (!_ibvDeviceAttrPtr) setDeviceAttr();
-   int queryErrnoPort = 0;
-   int portNum=0;
-   _slidNum= (int)_ibvDeviceAttrPtr->phys_port_cnt;
-   if (!_slidList){
-        _slidList = new uint16_t[_slidNum];
-   }
-   
-   if ( ! canDoAPM() ) return 0;
-   if ( !_portAttrArray) _portAttrArray = new struct ibv_port_attr[(int)_ibvDeviceAttrPtr->phys_port_cnt];
-   for (int i=0; i<(int)_ibvDeviceAttrPtr->phys_port_cnt;i++){
-      portNum=i+1;
-      queryErrnoPort =ibv_query_port(_cmId->verbs, portNum,_portAttrArray+i);
-      if (queryErrnoPort){
-         printf("queryErrnoPort=%d",queryErrnoPort);
-         return queryErrnoPort;
-      }
-      _slidList[i]=0;
-      if (_portAttrArray[i].state==IBV_PORT_ACTIVE)_slidList[i]=_portAttrArray[i].lid;
-      LOG(txp,always)<<"doPortQuery() index i="<<i<<" _slidList[i]="<<_slidList[i]<<" portNum="<<portNum;
-   }
-   return 0;
+int RDMACMfship::doPortQuery()
+{
+    int rc = 0;
+
+    if (!_ibvDeviceAttrPtr)
+    {
+        rc = setDeviceAttr();
+    }
+
+    if (!rc)
+    {
+        int queryErrnoPort = 0;
+        int portNum=0;
+
+        _slidNum = (int)_ibvDeviceAttrPtr->phys_port_cnt;
+        if (!_slidList)
+        {
+            _slidList = new uint16_t[_slidNum];
+        }
+
+        if (canDoAPM())
+        {
+            if (!_portAttrArray)
+            {
+                _portAttrArray = new struct ibv_port_attr[(int)_ibvDeviceAttrPtr->phys_port_cnt];
+            }
+
+            for (int i=0; (!rc) && i<(int)_ibvDeviceAttrPtr->phys_port_cnt; i++)
+            {
+                portNum = i+1;
+                queryErrnoPort = ibv_query_port(_cmId->verbs, portNum, _portAttrArray+i);
+                if (queryErrnoPort)
+                {
+                    rc = queryErrnoPort;
+                    LOG(txp,error) << "doPortQuery() portNum=" << portNum << ", queryErrnoPort=" << queryErrnoPort;
+                }
+
+                if (!rc)
+                {
+                    _slidList[i]=0;
+                    if (_portAttrArray[i].state == IBV_PORT_ACTIVE)
+                    {
+                        _slidList[i] = _portAttrArray[i].lid;
+                    }
+                    LOG(txp,always) << "doPortQuery() index i=" << i << " _slidList[i]=" << _slidList[i] << " portNum=" << portNum;
+                }
+            }
+        }
+    }
+
+    return rc;
 }
 
 int RDMACMfship::doQPquery(){
@@ -1531,33 +1559,33 @@ int RDMACMfship::doQPquery(){
 
 int dumpQPAttr(struct ibv_qp_attr* pAttr){
    LOG(txp,always)
-    <<" qp_state="<<pAttr->qp_state            
-    <<" cur_qp_state="<<pAttr->cur_qp_state          
-    <<" path_mtu="<<pAttr->path_mtu      
-    <<" path_mig_state="<<pAttr->path_mig_state        
-    <<" qkey="<<pAttr->qkey              
-    <<" rq_psn="<<pAttr->rq_psn               
-    <<" sq_psn="<<pAttr->sq_psn   
-    ;  
+    <<" qp_state="<<pAttr->qp_state
+    <<" cur_qp_state="<<pAttr->cur_qp_state
+    <<" path_mtu="<<pAttr->path_mtu
+    <<" path_mig_state="<<pAttr->path_mig_state
+    <<" qkey="<<pAttr->qkey
+    <<" rq_psn="<<pAttr->rq_psn
+    <<" sq_psn="<<pAttr->sq_psn
+    ;
     dumpMigState(pAttr->path_mig_state);
-    LOG(txp,always)         
-    <<" dest_qp_num="<<pAttr->dest_qp_num        
-    <<" qp_access_flags="<<pAttr->qp_access_flags      
-    <<" pkey_index="<<pAttr->pkey_index        
-    <<" alt_pkey_index="<<pAttr->alt_pkey_index    
-    <<" sq_draining="<<(int)pAttr->sq_draining 
-    ;  
-    LOG(txp,always)          
-    <<" max_rd_atomic="<<(int)pAttr->max_rd_atomic        
-    <<" max_dest_rd_atomic="<<(int)pAttr->max_dest_rd_atomic  
-    <<" min_rnr_timer="<<(int)pAttr->min_rnr_timer       
-    <<" port_num="<<(int)pAttr->port_num             
-    <<" timeout="<<(int)pAttr->timeout              
-    <<" retry_cnt="<<(int)pAttr->retry_cnt            
-    <<" rnr_retry="<<(int)pAttr->rnr_retry             
-    <<" alt_port_num="<<(int)pAttr->alt_port_num         
+    LOG(txp,always)
+    <<" dest_qp_num="<<pAttr->dest_qp_num
+    <<" qp_access_flags="<<pAttr->qp_access_flags
+    <<" pkey_index="<<pAttr->pkey_index
+    <<" alt_pkey_index="<<pAttr->alt_pkey_index
+    <<" sq_draining="<<(int)pAttr->sq_draining
+    ;
+    LOG(txp,always)
+    <<" max_rd_atomic="<<(int)pAttr->max_rd_atomic
+    <<" max_dest_rd_atomic="<<(int)pAttr->max_dest_rd_atomic
+    <<" min_rnr_timer="<<(int)pAttr->min_rnr_timer
+    <<" port_num="<<(int)pAttr->port_num
+    <<" timeout="<<(int)pAttr->timeout
+    <<" retry_cnt="<<(int)pAttr->retry_cnt
+    <<" rnr_retry="<<(int)pAttr->rnr_retry
+    <<" alt_port_num="<<(int)pAttr->alt_port_num
     <<" alt_timeout="<<(int)pAttr->alt_timeout
-    ;         
+    ;
    return 0;
 }
 
@@ -1567,7 +1595,7 @@ int RDMACMfship::findAltPort(int currentPort){
    int altPort=0;
    for (int i=0; (i<(int)_ibvDeviceAttrPtr->phys_port_cnt) && (altPort==0);i++){
      if (i==indexInUse) continue;
-     if (_portAttrArray[i].state==IBV_PORT_ACTIVE) altPort=(i+1);	
+     if (_portAttrArray[i].state==IBV_PORT_ACTIVE) altPort=(i+1);
    }
    return altPort;
 }
@@ -1602,9 +1630,9 @@ int RDMACMfship::armAPM(){
    int RCerrno=doPortQuery();
    if (!RCerrno) RCerrno=doQPquery();
    if (RCerrno) {
-      return RCerrno; 
+      return RCerrno;
    }
-   
+
    struct ibv_qp_attr l_qp_attr;
    int l_attr_mask=IBV_QP_ALT_PATH ;
 
@@ -1635,7 +1663,7 @@ int RDMACMfship::armAPM(){
    else {
      LOG(txp,always)<<"ZERO altdlid="<<altDlid<<" current value l_qp_attr.alt_ah_attr.dlid="<<l_qp_attr.alt_ah_attr.dlid;
    }
-   if ( l_attr_mask |  IBV_QP_PATH_MIG_STATE){
+   if (l_attr_mask & IBV_QP_PATH_MIG_STATE) {
      int qpModifyErrno=ibv_modify_qp(_cmId->qp, &l_qp_attr, l_attr_mask);
      return qpModifyErrno;
    }
