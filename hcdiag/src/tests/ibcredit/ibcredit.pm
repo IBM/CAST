@@ -47,7 +47,6 @@ GetOptions(
 );
 if ($help) { usage() }
 
-
 # Use ibdiagnet to check for credit loops -------------------------------------
 my $tempdir = tempdir( CLEANUP => 1 );
 my $rc=$?;
@@ -57,14 +56,15 @@ my $cmd = "sudo /usr/bin/ibdiagnet -r --fat_tree --skip all -o $tempdir/ibdiagne
 if ($verbose) {print "command: $cmd\n";}
 my $rval = `$cmd`;
 
-if (`wc -l $tempdir/stderr` eq 0) {
+if (`wc -l < $tempdir/stderr` == 0) {
     # Parse the log file for the credit loop report
     my $check = "cat $tempdir/ibdiagnet/ibdiagnet2.log | grep 'no credit loops found' | wc -l";
     if ($verbose) {print "command: $check\n";}
     my $loop = `$check`;
-
-    if ($loop eq 0) {
-        my $report = `cat $tempdir/ibdiagnet/ibdiagnet2.log`;
+    
+    if ($loop == 0) {
+        my $report = `sed -n '/Loops Report/,/Summary/p' $tempdir/ibdiagnet/ibdiagnet2.log`;
+        $report =~ s/(?:.*\n){1,3}\z//;
         push(@$errs, "Credit loop(s) found. See report:\n\n$report");
     }
 } else {
