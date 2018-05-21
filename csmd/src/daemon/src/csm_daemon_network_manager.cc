@@ -409,6 +409,16 @@ bool csm::daemon::EventManagerNetwork::ProcessNetCtlEvents()
             break;
         }
         break;
+      case csm::network::NET_CTL_RESET:  // compute tells us that it switched to a different primary aggregator
+        switch( _Config->GetRole() )
+        {
+          case CSM_DAEMON_ROLE_AGGREGATOR:
+            _DaemonState->SetConnectionTypeEP( info_itr->_Address, csm::daemon::ConnectionType::SECONDARY );
+            break;
+          default:
+            break;
+        }
+        break;
       case csm::network::NET_CTL_TIMEOUT:
       {
         csm::daemon::MessageContextContainer_sptr msgCtx = _MessageControl.FindMsgAndCtx( info_itr->_MsgId, true );

@@ -241,9 +241,9 @@ protected:
   int SecondaryUp();
   virtual int CreatePrimary();
   void QueueFailoverMsg( csm::network::Address_sptr addr );
+  void QueueResetMsg( csm::network::Address_sptr addr );
   int UpTransitionAndFailover( const csm::network::Address_sptr i_Addr,
                                const bool i_Failover );
-
 private:
   int CreateSecondary();
 

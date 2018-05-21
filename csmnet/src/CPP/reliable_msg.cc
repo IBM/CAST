@@ -213,6 +213,11 @@ retry:
           LOG( csmnet, debug ) << "Received ControlMsg from " << aMsgAddr.GetAddr()->Dump() << " to RESTART";
           AddCtrlEvent( csm::network::NET_CTL_RESTARTED, aMsgAddr.GetAddr() );
         }
+        if( 0 == aMsgAddr._Msg.GetData().compare( CSM_RESET_MSG ) )
+        {
+          LOG( csmnet, debug ) << "Received ControlMsg from " << aMsgAddr.GetAddr()->Dump() << " to RESET connection status.";
+          AddCtrlEvent( csm::network::NET_CTL_RESET, aMsgAddr.GetAddr() );
+        }
         ret = 0; // don't expose this message, the network event is enough
         break;
       }

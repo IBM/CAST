@@ -995,3 +995,22 @@ void csm::daemon::ConnectionHandling_compute::QueueFailoverMsg( csm::network::Ad
                     std::string( CSM_FAILOVER_MSG ));
   _EndpointList.SendTo( evData );
 }
+
+
+void csm::daemon::ConnectionHandling_compute::QueueResetMsg( csm::network::Address_sptr addr )
+{
+  if( addr == nullptr )
+    throw csm::daemon::Exception( "Trying reset msg to nullptr address." );
+
+  CSMLOG( csmd, debug ) << "Creating RESET message for Aggregator: " << addr->Dump() << " to signal secondary address.";
+  csm::network::MessageAndAddress evData;
+  evData.SetAddr( addr );
+  evData._Msg.Init( CSM_CMD_CONNECTION_CTRL,
+                    CSM_HEADER_INT_BIT,
+                    CSM_PRIORITY_DEFAULT,
+                    _MsgIdCandidate,
+                    0x0, 0x0,
+                    geteuid(), getegid(),
+                    std::string( CSM_RESET_MSG ));
+  _EndpointList.SendTo( evData );
+}
