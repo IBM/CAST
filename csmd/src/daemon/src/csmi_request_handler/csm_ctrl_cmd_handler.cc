@@ -80,6 +80,23 @@ void CSM_CTRL_CMD_HANDLER::Process( const csm::daemon::CoreEvent &aEvent,
     reply_payload.append( GetDaemonState()->DumpMapSize() );
   }
 
+  if( option.get_agg_reset() )
+  {
+    LOG( csmd, info ) << "Resetting Primary aggregator on user request.";
+    if( _handlerOptions.GetRole() != CSM_DAEMON_ROLE_AGENT )
+      reply_payload.append("Primary aggregator reset only applicable to compute daemons.\n");
+    else
+    {
+      csm::daemon::DaemonStateAgent *dsa = dynamic_cast<csm::daemon::DaemonStateAgent*>( _handlerOptions.GetDaemonState() );
+      if( dsa != nullptr )
+      {
+        csm::daemon::SystemContent content(csm::daemon::SystemContent::RESET_AGG);
+        postEventList.push_back( new csm::daemon::SystemEvent( content, csm::daemon::EVENT_TYPE_SYSTEM, nullptr ) );
+        reply_payload.append("Successfully created trigger for daemon to reset primary aggregator. Please check the daemon log.\n");
+      }
+    }
+  }
+
   msg.SetData(reply_payload );
   msg.SetResp();
   msg.CheckSumUpdate();
