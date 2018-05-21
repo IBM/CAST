@@ -111,6 +111,9 @@ csm::daemon::CoreGeneric::InitInfrastructure(const csm::daemon::EventManagerNetw
   else
     throw csm::daemon::Exception("BUG: no timer-mgr defined. Cannot continue.");
 
+  csm::daemon::EventSink* systemSink = new csm::daemon::EventSinkSystem( _netMgr->GetConnectionHandling() );
+  _EventSinks.Add( csm::daemon::EVENT_TYPE_SYSTEM, systemSink );
+
   //csm::daemon::EventSourceEnvironmental* envSource = new csm::daemon::EventSourceEnvironmental();
   //AddEventSource(envSource, "ENVIRONMENTAL");
   // make sure to remove from source set and delete in destructor
