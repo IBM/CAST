@@ -65,12 +65,12 @@ class BBTagInfoMap
     BBTagInfo* getTagInfo(const BBTagID& pTagId);
     int getTagInfo(BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
     size_t getTotalTransferSize();
-    void getTransferHandles(vector<uint64_t>& pHandlessendTransferCompleteForHandleMsg, const BBJob pJob, const BBSTATUS pMatchStatus, const int pStageOutStarted);
+    void getTransferHandles(vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus, const int pStageOutStarted);
     int hasContribId(const uint32_t pContribId);
     int isUniqueHandle(uint64_t pHandle);
     void removeTransferDef(const BBTagID& pTagId, const uint32_t pContribId);
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const uint64_t pHandle, const BBSTATUS pStatus);
+    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     int stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     void updateAllContribsReported(const LVKey* pLVKey, int& pAllReported);

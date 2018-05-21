@@ -176,12 +176,14 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                     ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
                     pTagInfo2->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
                     if (l_NewStatus) {
+                        // Status changed for transfer handle...
+                        // Send the transfer is complete for this handle message to bbProxy
                         string l_HostName;
                         activecontroller->gethostname(l_HostName);
-                        pTagInfo2->sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, pTagId, pHandle);
-                        // Status changed for transfer handle...
+                        metadata.sendTransferCompleteForHandleMsg(l_HostName, pTransferDef->getHostName(), pHandle);
+
                         // Check/update the status for the LVKey
-                        // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
+                        // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message for the LVKey...
                         pTagInfo2->updateTransferStatus(pConnectionName, pLVKey, 0);
                     }
                 }
@@ -525,11 +527,11 @@ int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentIn
     return rc;
 }
 
-void BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const BBTagID pTagId, const uint64_t pHandle, const BBSTATUS pStatus)
+void BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     if (pHandle == transferHandle)
     {
-        pTagInfo2->sendTransferCompleteForHandleMsg(pHostName, pConnectionName, pLVKey, pTagId, pHandle);
+        pTagInfo2->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
     return;
