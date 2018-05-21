@@ -957,6 +957,27 @@ csm::daemon::ConnectionHandling_compute::CheckConnectivityNoLock()
   return rc;
 }
 
+void csm::daemon::ConnectionHandling_compute::ResetPrimary()
+{
+  if( _SingleAggregator )
+    return;
+
+  if( _Connected == CONN_HDL_MASK_BOTH )
+  {
+    csm::network::Address_sptr addr = _DaemonState->GetActiveAddress();
+    if( addr->MakeKey() == _ScndKey )
+    {
+      CSMLOG( csmd, debug ) << "ResetPrimary() Resetting Primary agg to configured: " << _Primary->_Addr->Dump();
+      QueueResetMsg( _Secondary->_Addr );
+      QueueFailoverMsg( _Primary->_Addr );
+      _ComputeDaemonState->SetPrimaryAggregator( _Primary->_Addr );
+    }
+    else
+      CSMLOG( csmd, debug ) << "ResetPrimary() no action necessary. Primary agg already matches configured: " << _Primary->_Addr->Dump();
+  }
+}
+
+
 void csm::daemon::ConnectionHandling_compute::QueueFailoverMsg( csm::network::Address_sptr addr )
 {
   if( addr == nullptr )

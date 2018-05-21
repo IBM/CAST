@@ -760,12 +760,6 @@ void csm::daemon::DaemonStateAgent::InitActiveAddresses( )
   }
 }
 
-void csm::daemon::DaemonStateAgent::ResetPrimary()
-{
-  csm::daemon::Configuration *config = csm::daemon::Configuration::Instance();
-  SetPrimaryAggregator( config->GetConfiguredAggregatorAddress() );
-}
-
 void csm::daemon::DaemonStateAgent::SetPrimaryAggregator( const csm::network::Address_sptr primary )
 {
   std::lock_guard<std::mutex> guard( _map_lock );

@@ -337,7 +337,6 @@ public:
   {
     return _Aggregators[ 1 ];
   }
-  void ResetPrimary();
   void SetPrimaryAggregator( const csm::network::Address_sptr primary );
 
   virtual void AddEP( const csm::network::Address_sptr addr,
