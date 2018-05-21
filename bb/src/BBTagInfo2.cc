@@ -673,22 +673,24 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
     return;
 }
 
-void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const LVKey* pLVKey, const uint64_t pHandle, const BBSTATUS pStatus)
-{
-    tagInfoMap.sendTransferCompleteForHandleMsg(pHostName, connectionName, pLVKey, this, pHandle, pStatus);
-
-    return;
-}
-
-void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle)
+void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_HANDLE, l_Complete);
 
     BBSTATUS l_Status;
-    // NOTE:  We don't catch the RC here...  @DLH
-    HandleFile::get_xbbServerHandleStatus(l_Status, pLVKey, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
     char l_StatusStr[64] = {'\0'};
+
+    if (pStatus == BBNONE)
+    {
+        // NOTE:  We don't catch the RC here...  @DLH
+        HandleFile::get_xbbServerHandleStatus(l_Status, pLVKey, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
+    }
+    else
+    {
+        l_Status = pStatus;
+    }
+
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
 
     char l_TransferStatusStr[64] = {'\0'};
@@ -736,7 +738,7 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
 
     // Determine if this status update for the handle should be appended to the async file
     // to be consumed by other bbServers
-    if (sameHostName(pHostName))
+    if (sameHostName(pHostName) && pAppendAsyncRequestFlag == ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED)
     {
         size_t l_TotalContributors = 0;
         size_t l_TotalLocalReportingContributors = 0;
@@ -752,9 +754,10 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
                 // NOTE: No need to catch the return code.  If the append doesn't work,
                 //       appendAsyncRequest() will log the failure...
                 char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-                snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s None", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, l_TransferStatusStr);
+                snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s %s", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, pCN_HostName.c_str(), l_TransferStatusStr);
                 AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
                 wrkqmgr.appendAsyncRequest(l_Request);
+                pAppendAsyncRequestFlag = ASYNC_REQUEST_HAS_BEEN_APPENDED;
             }
             else
             {
@@ -1000,16 +1003,16 @@ int BBTagInfo2::updateAllTransferStatus(const string& pConnectionName, const LVK
         l_NewStatus = 0;
         BBTagID l_TagId = BBTagID(l_TransferDef->getJob(), l_TransferDef->getTag());
         updateTransferStatus(pLVKey, pExtentInfo, l_TagId, pExtentInfo.getContrib(), l_NewStatus, pNumberOfExpectedInFlight);
-        if (l_NewStatus) {
-            // NOTE: \todo - Not sure about the following long-term...  @DLH
-            if (!l_TransferDef->stopped())
-            {
-                string l_HostName;
-                activecontroller->gethostname(l_HostName);
-                sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, l_TagId, pExtentInfo.getHandle());
-            }
+
+        if (l_NewStatus && (!l_TransferDef->stopped()))
+        {
 
             // Status changed for transfer handle...
+            // Send the transfer is complete for this handle message to bbProxy
+            string l_HostName;
+            activecontroller->gethostname(l_HostName);
+            metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle());
+
             // Check/update the status for the LVKey
             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
             updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);

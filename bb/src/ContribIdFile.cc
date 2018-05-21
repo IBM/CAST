@@ -31,65 +31,38 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     handle /= bfs::path(to_string(pTagId.getJobStepId()));
     handle /= bfs::path(to_string(pHandle));
 
-    bool l_ContribIdFound = false;
     if (bfs::exists(handle))
     {
         for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
         {
             if ((rc != 1) || (!bfs::is_directory(lvuuid))) continue;
-            bfs::path lvuuid_file = lvuuid.path() / lvuuid.path().filename();
-            LVUuidFile l_LVUuidFile;
-            int rc2 = l_LVUuidFile.load(lvuuid_file.string());
+            bfs::path contribs_file = lvuuid.path() / "contribs";
+            ContribFile* l_ContribFile = 0;
+            int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
             if (!rc2)
             {
-                if (!l_LVUuidFile.allExtentsTransferred())
+                for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                 {
-                    if (!l_ContribIdFound)
+                    if (ce->first != pContribId)
                     {
-                        bfs::path contribs_file = lvuuid.path() / "contribs";
-                        ContribFile* l_ContribFile = 0;
-                        int rc3 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
-                        if (!rc3)
+                        if (!(ce->second).allExtentsTransferred())
                         {
-                            for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
-                            {
-                                if (ce->first != pContribId)
-                                {
-                                    if (!(ce->second).allExtentsTransferred())
-                                    {
-                                        rc = 0;   // Not all extents transferred...
-                                        break;
-                                    }
-                                }
-                                else
-                                {
-                                    l_ContribIdFound = true;
-                                }
-                            }
+                            rc = 0;   // Not all extents transferred...
+                            break;
                         }
-                        else
-                        {
-                            rc = -1;
-                            LOG(bb,error) << "Could not load the contrib file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << contribs_file.string();
-                        }
-
-                        if (l_ContribFile)
-                        {
-                            delete l_ContribFile;
-                            l_ContribFile=NULL;
-                        }
-                    }
-                    else
-                    {
-                        rc = 0;   // Not all extents transferred...
-                        break;
                     }
                 }
             }
             else
             {
-                rc = -1;  //  Error case...
-                LOG(bb,error) << "Could not load the LVUuid file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << lvuuid.path().string();
+                rc = -1;
+                LOG(bb,error) << "Could not load the contrib file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << contribs_file.string();
+            }
+
+            if (l_ContribFile)
+            {
+                delete l_ContribFile;
+                l_ContribFile=NULL;
             }
         }
     }
