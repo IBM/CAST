@@ -23,7 +23,7 @@ Prefix: ${CMAKE_INSTALL_PREFIX}/bb/scripts
 
 
 # RPM version pre-reqs
-set(CPACK_RPM_burstbuffer_PACKAGE_REQUIRES       "nvme-cli,nvmetcli,fuse,fuse-libs,util-linux,lvm2,coreutils,xfsprogs,openssh-clients,grep" PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer_PACKAGE_REQUIRES       "nvme-cli,nvmetcli,fuse,fuse-libs,util-linux,lvm2,coreutils,xfsprogs,openssh-clients,grep,perl-Sys-Syslog" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
 
