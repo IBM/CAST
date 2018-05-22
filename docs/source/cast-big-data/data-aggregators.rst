@@ -339,6 +339,34 @@ GFPS
 
 .. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
+To detect failures of the power hardware the following mustn be prepared on the management node
+of the GPFS cluster:
+
+.. code-block:: bash
+   
+   $ vi /var/mmfs/mmsysmon/mmsysmonitor.conf
+        [general]
+        powerhw_enabled=True
+   
+   $ mmsysmoncontrol restart
+
+collector
+^^^^^^^^^
+
+.. code-block:: bash
+    $ systemctl start pmcollector
+    $ systemctl enable pmcollector
+
+.. serivce nodes need `gpfs.gss.pmcollector`
+
+sensors
+^^^^^^^
+
+.. `gpfs.gss.pmsensors`
+
+.. mmchnode --perfmon -N <nodes>
+
+
 UFM
 ***
 
