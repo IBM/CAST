@@ -1625,7 +1625,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the contribid value
         l_ContribId = getContribId(bbconnectionName);
 
-        LOG(bb,info) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
+        LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
 
         // Build the message to send to bbserver
         txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
@@ -1685,7 +1685,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
         char l_StatusStr[64] = {'\0'};
         getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
         getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
-        LOG(bb,info) << "msgin_gettransferinfo: Handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
+        LOG(bb,info) << "msgin_gettransferinfo: handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
         bberror << err("out.localstatus", l_LocalStatusStr) << err("out.status", l_StatusStr) \
                 << err("out.localTransferSize", l_LocalTransferSize) << err("out.totalTransferSize", l_TotalTransferSize);
     }
@@ -3847,6 +3847,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
             errorText << "The getbyservername request failed";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
+        LOG(bb,info)<<"msgin_getserverbyname: l_query="<<l_query<<" serverName="<<serverName<<" waitforreplycount="<<count;
     }
     catch(ExceptionBailout& e) { LOG(bb,always)<<"msgin_getserverbyname: ExceptionBailout caught";}
     catch(exception& e)
@@ -3914,12 +3915,12 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                 rc=EINVAL;
                 if (rc) {
                     stringstream errorText;
-                    errorText << "The setserver request failed for an invalid option="<<l_query;
+                    errorText << "The getserver request failed for an invalid option="<<l_query;
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
                 break;
         }
-        LOG(bb,always)<<"msgin_getserver: l_query="<<l_query<<" result="<<result;
+        LOG(bb,info)<<"msgin_getserver: l_query="<<l_query<<" result="<<result;
     }
     catch(ExceptionBailout& e) { LOG(bb,always)<<"msgin_getserver: ExceptionBailout caught";}
     catch(exception& e)
@@ -3979,7 +3980,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
            bberror << err("inbbproxy.backup",serverName);
         }
 
-        LOG(bb,info) << "sertserver action=" << actionName << " for serverName=" << serverName;
+        LOG(bb,info) << "setserver action=" << actionName << " for serverName=" << serverName;
         if (actionName=="activate")
         {
             std::string nowActive = connectionNameFromAlias();
@@ -4201,8 +4202,6 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
-
-
         string serverName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
         bberror << err("inbbproxy.actionName", "close")<<err("inbbproxy.serverName",serverName);
         if ( serverName=="primary")
@@ -4337,7 +4336,7 @@ int bb_main(std::string who)
     {
         LOG(bb,warning) << "Connection to bbServer failed to open.  rc=" << rc;
     }
-    
+
     /* Set the master logical volume number from the configuration */
     MasterLogicalVolumeNumber.set(config.get(process_whoami+".startingvolgrpnbr", DEFAULT_MASTER_LOGICAL_VOLUME_NUMBER));
 
