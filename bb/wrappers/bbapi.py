@@ -411,7 +411,7 @@ def BB_GetTransferInfo(pHandle):
     l_ReturnStruct = BBTransferInfo_t.from_buffer_copy(l_Info)
 
     bb.printLastErrorDetailsSummary()
-    print "BB_GetTransferInfo completed%s  Handle: %12d -> Status (Local,Overall): (%13s,%13s)  Transfer Size (Local,Total): (%d,%d)" % (os.linesep, l_ReturnStruct.handle, BBSTATUS[l_ReturnStruct.localstatus], BBSTATUS[l_ReturnStruct.status], l_ReturnStruct.localTransferSize, l_ReturnStruct.totalTransferSize)
+    print "BB_GetTransferInfo completed%s  Handle: %12d -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (os.linesep, l_ReturnStruct.handle, BBSTATUS[l_ReturnStruct.localstatus], BBSTATUS[l_ReturnStruct.status], '{:,}'.format(l_ReturnStruct.localTransferSize), '{:,}'.format(l_ReturnStruct.totalTransferSize))
 
     return l_ReturnStruct
 
