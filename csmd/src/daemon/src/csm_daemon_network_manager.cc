@@ -416,6 +416,7 @@ bool csm::daemon::EventManagerNetwork::ProcessNetCtlEvents()
             _DaemonState->SetConnectionTypeEP( info_itr->_Address, csm::daemon::ConnectionType::SECONDARY );
             break;
           default:
+            CSMLOG( csmd, info ) << "NET_CTL_RESET event at non-aggregator daemon. Ignoring...";
             break;
         }
         break;
