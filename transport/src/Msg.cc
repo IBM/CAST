@@ -1900,7 +1900,7 @@ int txp::Msg::build_IO_Vector() {
 
 int txp::Msg::buildResponseMsg(txp::Msg* &oMsg) {
 	int l_RC = 0;
-
+    oMsg=NULL;
 	if (!requestMsgNumber) {
 		oMsg = new txp::Msg(getMsgId(), getMsgNumber(), getVersion(), getMsgCreatorPid(), getMsgCreatorTid());
 		if (oMsg) {

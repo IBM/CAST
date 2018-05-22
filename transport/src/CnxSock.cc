@@ -73,7 +73,10 @@ int CnxSock::accept() {
 	if (_rcLast>0) {
 		closefd();  //close listening CnxSock
 		_sockfd=_rcLast;
-		getpeername(_sockfd, &_sockaddrRemote, &lSockaddrlen);
+		int RCgetpeername=getpeername(_sockfd, &_sockaddrRemote, &lSockaddrlen);
+        if (RCgetpeername){
+            LOG(txp,always)<<"CnxSock::accept() getpeername errno="<<errno<<", "<<strerror(errno);
+        }
 		LOG(txp,always)<<"CnxSock::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
 		errno=0;
 	}
@@ -83,7 +86,7 @@ int CnxSock::accept() {
 
 int CnxSock::accept(txp::Connex* &pNewSock) {
 	int l_RC = 0;
-
+    pNewSock = NULL;
 	if (!_dialRemote) {
 		CnxSock* l_NewSock = new CnxSock(*this);
 		socklen_t l_Sockaddrlen = sizeof(l_NewSock->_sockaddrRemote);
@@ -92,20 +95,29 @@ int CnxSock::accept(txp::Connex* &pNewSock) {
 			if (l_NewSock->_rcLast<0) {
 				if (errno == EINTR) continue;
 				LOG(txp,warning)<< __PRETTY_FUNCTION__<<"l_NewSock->_rcLast"<< _rcLast<< " errno="<<errno<<", "<<strerror(errno);
-				delete l_NewSock;
-				l_NewSock = 0;
 			}
 			break;
 		}
 		l_RC = l_NewSock->_rcLast;
 		if (l_RC > 0) {
 			l_NewSock->_sockfd = l_NewSock->_rcLast;
-			getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
+			int RCgetpeername = getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
                         getsockname(l_NewSock->_sockfd, &(l_NewSock->_sockaddrLocal), &l_Sockaddrlen);
+            if (RCgetpeername){//error to log
+                LOG(txp,always)<<"CnxSock::accept(p) "<<"getpeername errno="<<errno<<", "<<strerror(errno);
+            }
+            int RCgetsockname = getsockname(l_NewSock->_sockfd, &(l_NewSock->_sockaddrLocal), &l_Sockaddrlen);
+            if (RCgetsockname) {
+                LOG(txp,always)<<"CnxSock::accept(p) "<<"getsockname errno="<<errno<<", "<<strerror(errno);
+            }
 			pNewSock = l_NewSock;
-                        LOG(txp,always)<<"CnxSock::accept(p) "<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
+            LOG(txp,always)<<"CnxSock::accept(p) "<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
 			errno = 0;
 		}
+        else {
+            delete l_NewSock;
+        }
+        
 	} else {
 		l_RC = -2;
 	}
@@ -135,8 +147,14 @@ int CnxSock::bindLocalPort() {
 		if (openCnxSock()< 0) return -errno;
 	}
 	if (bindCnxSock()==-1) return -errno;
-	_sockaddrlen=sizeof(_sockaddrLocal);
-	getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
+    if (_sockfd>0)
+    {
+        _sockaddrlen=sizeof(_sockaddrLocal);
+        int RCgetsockname = getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
+        if (RCgetsockname) {
+            LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
+        }
+    }
 
 	return _sockfd;
 }
@@ -162,8 +180,14 @@ int CnxSock::connect2Remote(){
 		LOG(txp,warning)<< __PRETTY_FUNCTION__<<"_rcLast"<< _rcLast<< " errno="<<errno<<", "<<strerror(errno);
 	} else {
 		_sockaddrlen=sizeof(_sockaddrLocal);
-		getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
-                //getpeername(_sockfd, &_sockaddrRemote, &_sockaddrlen);
+		int RCgetsockname = getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
+        if (RCgetsockname) {
+            LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
+        }
+        int RCgetpeername = getpeername(_sockfd, &_sockaddrRemote, &_sockaddrlen);
+        if (RCgetpeername){
+            LOG(txp,always)<<"CnxSock::connect2Remote getpeername errno="<<errno<<", "<<strerror(errno);
+        }
 		LOG(txp,always)<<"CnxSock::connect2Remote "<< getInfoString()<<" sockfd="<<_sockfd;
 	}
 

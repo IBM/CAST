@@ -185,8 +185,8 @@ void processAsyncRequest(WorkID& pWorkItem)
                     //        extents on a work queue for the handle in question, a status change will be sent here
                     //        and also might be sent again when this bbServer processes that last extent for the handle.
                     //        This is probably only in the status case of BBFAILED.
-                    BBSTATUS l_Status = getBBStatusFromStr(l_Str1);
-                    metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Handle, l_Status);
+                    BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
+                    metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
                     wrkqmgr.updateHeartbeatData(l_Request.getHostName());
                 }
 
@@ -297,12 +297,12 @@ int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, cons
                 }
                 else
                 {
-                    LOG(bb,info) << "cancelRequest: No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
+                    LOG(bb,debug) << "cancelRequest: No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
                 }
             }
             else
             {
-                LOG(bb,info) << "cancelRequest: No need to append an async request as there is only a single contributor for handle " << pHandle;
+                LOG(bb,debug) << "cancelRequest: No need to append an async request as there is only a single contributor for handle " << pHandle;
             }
         }
     }
@@ -722,6 +722,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         uint64_t l_FileStatus = 0;
+        uint64_t l_OriginalFileStatus = l_FileStatus;
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
@@ -754,17 +755,16 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                 break;
         }
 
-        LOG(bb,info) << "xfer::doTransfer(): For " << pKey << ", jobid " << pTransferDef->getJobId() << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle \
-                     << ", contribid " << pContribId << " -> All extents transferred changing from: " << ((l_FileStatus & BBTD_All_Extents_Transferred) ? "true" : "false") << " to true";
         SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Extents_Transferred, 1);
-        LOG(bb,info) << "xfer::doTransfer(): For " << pKey << ", jobid " << pTransferDef->getJobId() << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle \
-                     << ", contribid " << pContribId << " -> All files closed changing from: " << ((l_FileStatus & BBTD_All_Files_Closed) ? "true" : "false") << " to true";
         SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Files_Closed, 1);
+        LOG(bb,info) << "xbbServer: For " << pKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+        LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileStatus << " to 0x" << l_FileStatus << nouppercase << dec << ".";
         ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, l_FileStatus);
     }
     else if(pExtent->flags & BBI_TargetSSDSSD)
     {
         uint64_t l_FileStatus = 0;
+        uint64_t l_OriginalFileStatus = l_FileStatus;
         if (pExtent->flags & BBTD_Stopped)
         {
             l_FileStatus |= BBTD_Stopped;
@@ -789,12 +789,10 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
 
-        LOG(bb,info) << "xfer::doTransfer(): For " << pKey << ", jobid " << pTransferDef->getJobId() << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle \
-                     << " -> All extents transferred changing from: " << ((l_FileStatus & BBTD_All_Extents_Transferred) ? "true" : "false") << " to true";
         SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Extents_Transferred, 1);
-        LOG(bb,info) << "xfer::doTransfer(): For " << pKey << ", jobid " << pTransferDef->getJobId() << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle \
-                     << " -> All files closed changing from: " << ((l_FileStatus & BBTD_All_Files_Closed) ? "true" : "false") << " to true";
         SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Files_Closed, 1);
+        LOG(bb,info) << "xbbServer: For " << pKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+        LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileStatus << " to 0x" << l_FileStatus << nouppercase << dec << ".";
         ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, l_FileStatus);
     }
     else
@@ -1687,11 +1685,11 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
             l_TagInfo = pTagInfoMap->getTagInfo(pTagId);
             if (pConnectionName.size())
             {
-                LOG(bb,info) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
-                             << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
-                             << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
+                LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
+                              << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
+                              << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
             } else {
-                LOG(bb,info) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ")";
+                LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ")";
             }
         } else {
             // NOTE: errstate already filled in...
@@ -1803,13 +1801,13 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                     {
                         if (pConnectionName.size())
                         {
-                            LOG(bb,info) << "taginfo: Adding Contrib(" << pContribId << ") to TagID(" << l_JobStr.str() << "," << pTagId.getTag() \
-                                         << ") having a transfer definition with " << pTransferDef->getNumberOfExtents() << " extents to " << *pLVKey;
+                            LOG(bb,debug) << "taginfo: Adding Contrib(" << pContribId << ") to TagID(" << l_JobStr.str() << "," << pTagId.getTag() \
+                                          << ") having a transfer definition with " << pTransferDef->getNumberOfExtents() << " extents to " << *pLVKey;
                         }
                         else
                         {
-                            LOG(bb,info) << "taginfo: Adding Contrib(" << pContribId << ") to TagID(" << l_JobStr.str() << "," << pTagId.getTag() \
-                                         << ") having a transfer definition with " << pTransferDef->getNumberOfExtents() << " extents";
+                            LOG(bb,debug) << "taginfo: Adding Contrib(" << pContribId << ") to TagID(" << l_JobStr.str() << "," << pTagId.getTag() \
+                                          << ") having a transfer definition with " << pTransferDef->getNumberOfExtents() << " extents";
                         }
 
                         // NOTE: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2313,7 +2311,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 // NOTE: l_TransferDef is the transfer definition that is associated with BBTagInfo.
                                 //       It is that transfer definition that has addressability to the BBIO objects.
                                 //       Therefore, it is that transfer definition that is used when constructing the
-                                //       ExtentInfo() objects.  @DLH
+                                //       ExtentInfo() objects.
                                 size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
                                 rc = l_TagInfo2->addExtents(pHandle, (uint32_t)pContribId, l_TransferDef, pStats);
                                 if (!rc)
@@ -2331,7 +2329,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         {
                                             if (l_WrkQE)
                                             {
-                                                l_WrkQE->dump("info", "Before pushing work onto this queue ");
+                                                l_WrkQE->dump("debug", "Before pushing work onto this queue ");
                                                 bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
                                                 for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
                                                 {
@@ -2404,6 +2402,12 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     errorText << "addExtents() failed, rc = " << rc;
                                     LOG_ERROR_TEXT(errorText);
                                 }
+
+                                if (!rc)
+                                {
+                                    // Indicate in the transfer definition that the extents are enqueued
+                                    l_TransferDef->setExtentsEnqueued();
+                                }
                             }
                             else
                             {
@@ -2450,9 +2454,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                     size_t l_NewPosts = l_TagInfo2->getNumberOfExtents() - l_CurrentNumberOfExtents;
                     wrkqmgr.post_multiple(l_NewPosts);
                 }
-
-                // Indicate in the transfer definition that the extents are enqueued
-                l_TransferDef->setExtentsEnqueued();
             }
         }
     }

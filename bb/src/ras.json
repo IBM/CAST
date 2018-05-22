@@ -1,6 +1,15 @@
 { 
   "bb" : 
   {
+      "devpath" :
+      {
+          "readlinkFailed" :
+          {
+              "severity" : "WARNING",
+              "message" : "Failed on readlink to determine device path for LV.",
+              "description" : "The readlink had a bad exit status."
+          }
+      },
       "net" :
       {
 	  "nvmfConnectFail" :

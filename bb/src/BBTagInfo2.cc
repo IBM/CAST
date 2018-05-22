@@ -200,9 +200,9 @@ int BBTagInfo2::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const 
         rc = tagInfoMap.addTagInfo(pLVKey, pJob, l_TagId, l_NewTagInfo, l_GeneratedHandle);
         if (!rc) {
             l_TagInfo = tagInfoMap.getTagInfo(l_TagId);
-            LOG(bb,info) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << l_TagId.getTag() << ") with handle 0x" \
-                         << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
-                         << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
+            LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << l_TagId.getTag() << ") with handle 0x" \
+                          << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
+                          << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
         } else {
             // NOTE: errstate already filled in...
             errorText << "getTransferHandle: Failure from addTagInfo(), rc = " << rc;
@@ -331,7 +331,7 @@ void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* 
                                     FL_Write(FLTInf2, FSYNC_SSD, "Performing SSD fsync.  fd=%ld", ssd_fd,0,0,0);
                                     ::fsync(ssd_fd);
                                     FL_Write(FLTInf2, FSYNC_SSDCMP, "Performed SSD fsync.  fd=%ld", ssd_fd,0,0,0);
-                                    LOG(bb,info) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
+                                    LOG(bb,debug) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
                                 }
                                 else
                                 {
@@ -343,11 +343,11 @@ void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* 
                         else if (pExtentInfo.getExtent()->flags & BBI_TargetPFS)
                         {
                             // Target is PFS...
-                            LOG(bb,info) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
+                            LOG(bb,debug) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
                             FL_Write(FLTInf2, FSYNC_PFS, "Performing PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
                             l_IO->fsync(pExtentInfo.getExtent()->targetindex);
                             FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
-                            LOG(bb,info) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
+                            LOG(bb,debug) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
                         }
                     }
                     catch (ExceptionBailout& e) { }
@@ -643,7 +643,6 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
             assert(strlen(e.what())==0);
         }
 
-        delete l_Complete;
 
         if (l_LockTransferQueue)
         {
@@ -669,25 +668,29 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
         LOG(bb,info) << "                      Message NOT SENT to bbproxy due to the transfer definition being stopped.";
     }
 
-    return;
-}
-
-void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const LVKey* pLVKey, const uint64_t pHandle, const BBSTATUS pStatus)
-{
-    tagInfoMap.sendTransferCompleteForHandleMsg(pHostName, connectionName, pLVKey, this, pHandle, pStatus);
+    delete l_Complete;
 
     return;
 }
 
-void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle)
+void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_HANDLE, l_Complete);
 
     BBSTATUS l_Status;
-    // NOTE:  We don't catch the RC here...  @DLH
-    HandleFile::get_xbbServerHandleStatus(l_Status, pLVKey, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
     char l_StatusStr[64] = {'\0'};
+
+    if (pStatus == BBNONE)
+    {
+        // NOTE:  We don't catch the RC here...  @DLH
+        HandleFile::get_xbbServerHandleStatus(l_Status, pLVKey, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
+    }
+    else
+    {
+        l_Status = pStatus;
+    }
+
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
 
     char l_TransferStatusStr[64] = {'\0'};
@@ -735,7 +738,7 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
 
     // Determine if this status update for the handle should be appended to the async file
     // to be consumed by other bbServers
-    if (sameHostName(pHostName))
+    if (sameHostName(pHostName) && pAppendAsyncRequestFlag == ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED)
     {
         size_t l_TotalContributors = 0;
         size_t l_TotalLocalReportingContributors = 0;
@@ -751,25 +754,26 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
                 // NOTE: No need to catch the return code.  If the append doesn't work,
                 //       appendAsyncRequest() will log the failure...
                 char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-                snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s None", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, l_TransferStatusStr);
+                snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s %s", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, pCN_HostName.c_str(), l_TransferStatusStr);
                 AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
                 wrkqmgr.appendAsyncRequest(l_Request);
+                pAppendAsyncRequestFlag = ASYNC_REQUEST_HAS_BEEN_APPENDED;
             }
             else
             {
-                LOG(bb,info) << "sendTransferCompleteForHandleMsg(): No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
+                LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
             }
         }
         else
         {
-            LOG(bb,info) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
+            LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
         }
     }
 
     return;
 }
 
-void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
+void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
 {
     BBTagInfo* l_TagInfo = tagInfoMap.getTagInfo(pTagId);
     if (l_TagInfo)
@@ -818,7 +822,8 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                 {
                     if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
                     {
-                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", " << *pLVKey \
+                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                     << connectionName << ", " << *pLVKey << ", jobid " << jobid \
                                      << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
                     }
                     SET_FLAG(BBTI2_Suspended, pValue);
@@ -998,16 +1003,16 @@ int BBTagInfo2::updateAllTransferStatus(const string& pConnectionName, const LVK
         l_NewStatus = 0;
         BBTagID l_TagId = BBTagID(l_TransferDef->getJob(), l_TransferDef->getTag());
         updateTransferStatus(pLVKey, pExtentInfo, l_TagId, pExtentInfo.getContrib(), l_NewStatus, pNumberOfExpectedInFlight);
-        if (l_NewStatus) {
-            // NOTE: \todo - Not sure about the following long-term...  @DLH
-            if (!l_TransferDef->stopped())
-            {
-                string l_HostName;
-                activecontroller->gethostname(l_HostName);
-                sendTransferCompleteForHandleMsg(l_HostName, pConnectionName, pLVKey, l_TagId, pExtentInfo.getHandle());
-            }
+
+        if (l_NewStatus && (!l_TransferDef->stopped()))
+        {
 
             // Status changed for transfer handle...
+            // Send the transfer is complete for this handle message to bbProxy
+            string l_HostName;
+            activecontroller->gethostname(l_HostName);
+            metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle());
+
             // Check/update the status for the LVKey
             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
             updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);

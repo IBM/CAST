@@ -371,7 +371,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 	    }
 	    unlockConnectionWrite("connection_authenticate");
     }
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
     txp::Attr_int32 resultcode(txp::resultCode, rc);
@@ -472,8 +472,7 @@ int makeActivebbserver(const std::string& pName){
         candidate_connex = it2->second;
         if (!candidate_connex) {
             bbserverName2ReadyConnections.erase(pName);
-            LOG(bb,always) << "found a bad entry for pName="<<pName;
-            name2connections.erase(it2);
+            LOG(bb,always) << "found a bad bbserverName2ReadyConnections entry for pName="<<pName;
         }
         else if (candidate_connex!=active_connex)
         {
@@ -1219,6 +1218,10 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                 }
             } else {
                 connect_rc=-ENODATA;//should never land here
+                unlockConnectionMaps("makeConnection - ENODATA");
+                unlockConnectionWrite("makeConnection - ENODATA");
+                LOG(bb,error) << "Connecting to proxy--ENODATA";
+                return -1;
             }
         }
     }
@@ -1266,6 +1269,7 @@ int setupConnections(string whoami, string instance)
             {
                 unlockConnectionMaps("setupConnections - failure, unable to build local address");
                 LOG(bb,error) << "Unable to build local address";
+                delete sock;
                 return -1;
             }
 
@@ -1311,6 +1315,7 @@ int setupConnections(string whoami, string instance)
             {
                 unlockConnectionMaps("setupConnections - failure, SSL unable to build local address");
                 LOG(bb,error) << "SSL - Unable to build local address";
+                delete sslSock;
                 return -1;
             }
 
@@ -1622,7 +1627,10 @@ void* responseThread(void* ptr)
                     {
                         FL_Write(FLConn, FL_NewConnect, "Adding/removing connection to poll loop",0,0,0,0);
                         int tmp;
-                        read(connection_doorbell[0], &tmp, sizeof(tmp));
+                        int bytesRead = read(connection_doorbell[0], &tmp, sizeof(tmp));
+                        if (bytesRead<0) {
+                            LOG(txp,debug) << __PRETTY_FUNCTION__<< "doorbell read had errno="<<errno;
+                        }
                         sem_post(&connection_sem);
                         break; //rescan file descriptors
                     }

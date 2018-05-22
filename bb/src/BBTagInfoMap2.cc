@@ -191,7 +191,7 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
 
     if (!rc)
     {
-        LOG(bb,info) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
+        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pTagInfo2;
         rc = update_xbbServerAddData(pJobId);
     }
@@ -598,11 +598,12 @@ int BBTagInfoMap2::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, const uint64_t pHandle, const BBSTATUS pStatus)
+void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
 {
+    int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, &(it->first), pHandle, pStatus);
+        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
     }
 
     return;
