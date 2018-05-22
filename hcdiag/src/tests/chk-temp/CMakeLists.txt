@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/temp/CMakeLists.txt
+#    hcdiag/src/tests/chk-temp/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,11 +13,11 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST temp)
+set(HCDIAG_TEST chk-temp)
 
 file(GLOB HCDIAG_TEST_FILE
-  "temp.sh"
-  "temp.pm"
+  "chk-temp.sh"
+  "chk-temp.pm"
 )
 
 install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})

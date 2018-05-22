@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #==============================================================================
 #   
-#    hcdiag/src/tests/temp/temp.pm
+#    hcdiag/src/tests/chk-temp/chk-temp.pm
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
