@@ -13,10 +13,13 @@ assumes the components of the stack are installed in the following order:
 
 .. toctree::
     :maxdepth: 2
-    
+
     logstash.rst 
     elasticsearch.rst
     kibana.rst
     data-aggregators.rst
     python-guide.rst
     csm-event-correlator.rst
+    timeline.rst
+
+

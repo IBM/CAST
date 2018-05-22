@@ -354,6 +354,7 @@ collector
 ^^^^^^^^^
 
 .. code-block:: bash
+
     $ systemctl start pmcollector
     $ systemctl enable pmcollector
 
