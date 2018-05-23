@@ -230,6 +230,9 @@ public:
   virtual int ProcessSystemEvent( const csm::daemon::SystemContent::SIGNAL_TYPE i_Signal,
                                   const csm::network::Address_sptr i_Addr,
                                   const uint64_t i_MsgIdCandidate = 0 );
+
+  void ResetPrimary();
+
 protected:
   virtual int CheckConnectivityNoLock();
   virtual int PrimaryDown();
@@ -238,9 +241,9 @@ protected:
   int SecondaryUp();
   virtual int CreatePrimary();
   void QueueFailoverMsg( csm::network::Address_sptr addr );
+  void QueueResetMsg( csm::network::Address_sptr addr );
   int UpTransitionAndFailover( const csm::network::Address_sptr i_Addr,
                                const bool i_Failover );
-
 private:
   int CreateSecondary();
 

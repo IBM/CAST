@@ -33,6 +33,7 @@ typedef enum
   NET_CTL_DISCONNECT,
   NET_CTL_FAILOVER,
   NET_CTL_RESTARTED,
+  NET_CTL_RESET,
   NET_CTL_FATAL,
   NET_CTL_OTHER,
   NET_CTL_MAX
@@ -50,6 +51,7 @@ operator<<( stream &out, const csm::network::NetworkCtrlEventType &aType )
     case NET_CTL_DISCONNECT: out << "NET_CTL_DISCONNECT"; break;
     case NET_CTL_FAILOVER:   out << "NET_CTL_FAILOVER";   break;
     case NET_CTL_RESTARTED:  out << "NET_CTL_RESTARTED";  break;
+    case NET_CTL_RESET:      out << "NET_CTL_RESET";      break;
     case NET_CTL_FATAL:      out << "NET_CTL_FATAL";      break;
     case NET_CTL_OTHER:      out << "NET_CTL_OTHER";      break;
     default:                 out << "ERROR: !!!OUT-OF-RANGE!!!";
