@@ -289,7 +289,7 @@ int csm::network::ReliableMsg::Sync( const csm::network::SyncAction aSync )
   {
     // skip TIMEOUT events for any local client that's already disconnected
     if(( msg_itr.second->GetAddrType() == csm::network::CSM_NETWORK_TYPE_LOCAL ) &&
-        ( !_Unix->CheckRemoteAddress( msg_itr.second )) )
+        (( _Unix == nullptr ) || ( !_Unix->CheckRemoteAddress( msg_itr.second )) ) )
     {
       LOG(csmnet, debug ) << "Found timeout on ACK to local client that no longer exists";
       continue;

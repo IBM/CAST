@@ -244,7 +244,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 }
                                 break;
                             }
-                          
+
                             case 1:
                             {
                                 rc = 0;
@@ -504,11 +504,11 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     lv_uuid.copyTo(lv_uuid_str);
     if (!l_Option)
     {
-        LOG(bb,info) << "msgin_createlogicalvolume: From hostname |" << l_HostName << "|, l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
+        LOG(bb,info) << "msgin_createlogicalvolume: From hostname " << l_HostName << ", l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
     }
     else
     {
-        LOG(bb,info) << "msgin_createlogicalvolume: Register LVKey, from hostname |" << l_HostName << "|, l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
+        LOG(bb,info) << "msgin_createlogicalvolume: Register LVKey, from hostname " << l_HostName << ", l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
     }
 
     lockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
@@ -590,7 +590,6 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         // Demarshall data from the message
         Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
         LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
-        LOG(bb,info) << "msgin_getthrottlerate: Local Connection Name = " << pConnectionName << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr());
 
         switchIds(msg);
 
@@ -600,6 +599,9 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         if (rc) {
             LOG_RC_AND_BAIL(rc);
         }
+
+        LOG(bb,info) << "msgin_getthrottlerate: Local Connection Name " << pConnectionName << ", LV Uuid " \
+                     << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()) << ", rate " << l_Rate;
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -995,7 +997,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
         l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
         l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
         l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
-        LOG(bb,info) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId;
+        LOG(bb,debug) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId;
 
         switchIds(msg);
 
@@ -1018,7 +1020,8 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
 
             if (!rc) {
                 // Log the results
-                LOG(bb,debug) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId << " required buffersize = " << l_TransferKeyBufferSize;
+                LOG(bb,info) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId << " required buffersize = " << l_TransferKeyBufferSize \
+                             << "buffer |" << l_TransferKeyBuffer << "|";
             } else {
                 // Negative return codes indicate an error.
                 // NOTE: errstate already filled in by getTransferKeys()...
@@ -1118,7 +1121,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
                 memset(l_HandleArray, 0, l_LengthOfHandleArray);
                 for(size_t i=0; i<l_NumHandles; ++i) {
                     l_HandleArray[i] = l_Handles[i];
-                    LOG(bb,debug) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
+                    LOG(bb,info) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
                     ++l_NumHandlesReturned;
                 }
             } else {

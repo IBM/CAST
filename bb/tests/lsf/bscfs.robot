@@ -16,7 +16,7 @@ bscfs access check
       [Timeout]  5 minutes
       Using SSD  16
       Using bscfs
-      set num computes  4
+      set num computes  2
       bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/accesscheck.sh
 
 
@@ -37,7 +37,7 @@ bscfs checkpoint write series multi-server
    	 [Timeout]  30 minutes
 	 Using SSD  256
 	 Using bscfs
-	 Set num computes  4
+	 Set num computes  2
 	 
 	 bscfs cleanup	 
 	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --chkpnt_size 1G --chunk_size 256M --chkpnt_dir . --keep_all
@@ -64,7 +64,7 @@ bscfs checkpoint read series multi-server
       [Timeout]  30 minutes
       Using SSD  256
       Using bscfs
-      Set num computes  4
+      Set num computes  2
 
       bscfs cleanup
       bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all
@@ -90,7 +90,7 @@ bscfs checkpoint write every kth checkpoint multi-server
       [Timeout]  30 minutes
       Using SSD  256
       Using bscfs
-      Set num computes  4
+      Set num computes  2
       
       bscfs cleanup
       bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_combo -compute_time 40 --chkpnt_count 12 --chkpnt_start 0 --primary_interval 3 --header_size 4K --chkpnt_size 6G --stripe_size 512M --chkpnt_dir .
