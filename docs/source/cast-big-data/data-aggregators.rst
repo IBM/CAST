@@ -198,7 +198,7 @@ Console
 .. note:: This document is designed to configure the xCAT service nodes to ship goconserver output to logstash 
     (written using xCAT 2.13.11).
 
-:Logstash Port: 10520
+:Logstash Port: 10522
 
 :Relevant Directories:
     | `/etc/goconserver`
@@ -225,7 +225,7 @@ the xCAT read the docs.
         tcp:
             - name: Logstash
               host: <Logstash-Server>
-              port: 10520             # This is the port in the sample configuration.
+              port: 10522             # This is the port in the sample configuration.
               timeout: 3              # Default timeout time.
 
 
