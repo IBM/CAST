@@ -255,11 +255,12 @@ private:
      * @note SIGKILL is used in killing the tasks.
      *
      * @param[in] controlGroup The control group to kill the tasks in.
+     * @param[in] printPids If set this function will print the pids as an error log.
      * @return The total number of tasks that the kill function was run against.
      *
      * @throw CSMHandlerException If the tasks could not be killed.
      */
-    uint64_t KillTasks( const std::string& controlGroup ) const;
+    uint64_t KillTasks( const std::string& controlGroup, bool printPids = false ) const;
 
     /** @brief Copies the contents of a parameter from one group to another.
      *
