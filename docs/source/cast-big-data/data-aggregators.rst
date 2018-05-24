@@ -360,6 +360,8 @@ collector
 
 .. serivce nodes need `gpfs.gss.pmcollector`
 
+`csm_big_data/data-aggregators/gpfs/zimon_collector.py`
+
 sensors
 ^^^^^^^
 
@@ -395,6 +397,55 @@ Node
 
 .. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
+
+.. _DataArchiving:
+
+Data Archiving
+--------------
+
+:Logstash Port: 10521
+
+.. attention:: This section is currently a work in progress.
+
+CAST supplies a tool for archiving the contents of the database history tables. This tool
+is a commandline utility intended to be placed in a cron job. The table rows will be enriched with
+an `_table` field
+
+This script is bundled in the `csm-csmdb-*.rpm` and should be executed from the node hosting the 
+csm database.
+
+
+.. attention:: This crontab entry is currently a work in progress.
+.. code-block:: bash
+
+   $ crontab -e 
+    15 * * * * csm_archive_history_tables.sh # TODO needs more documentation. Needs an IP and Port
+
+
+The history tables will be stored in the *cast-<table_name>* index.
+
+.. note:: Pending future investigation the logstash configuration of this may operate on a separate pipeline.
+
+
+JSON Data Sources
+-----------------
+
+:Logstash Port: 10522
+:Required Field: `type`
+:Recommended Fields: `@timestamp`
+
+.. attention:: This section is currently a work in progress.
+
+CAST recommends JSON data sources be shipped to Logstash to leverage the batching and data enrichment
+tool. The default logstash configuration shipped with CAST will designate port `10522`. JSON shipped
+to this port should have the `type` field specified. This `type` field will be used in defining the
+name of the index.
+
+Data Aggregators shipping to this port will generate indices with the following name format:
+`cast-%{type}-%{+YYYY.MM.dd}`
+
 .. Links
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
 .. _Cumulus Linux User Guide:  https://docs.cumulusnetworks.com/display/DOCS/Cumulus+Linux+User+Guide
+
+

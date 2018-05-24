@@ -302,7 +302,36 @@ cast-environmental-node
 .. note:: The CAST team is currently in the process of reviewing the inband aggregation of the node
     environmental data.
 
+cast-csmdb
+^^^^^^^^^^
+
+.. attention:: This section is currently a work in progress
+
+:alias: cast-csmdb
+:shards: 1
+:replication: 1
+
+
+CSM history tables are archived in Elasticsearch as separate indices.
+CAST provides a document on `configuring CSM database data archival <DataArchiving>`.
+
+The mapping shared between the indices is as follows:
+
++---------------+--------+----------------------------------------------------------------+
+| Field         | Type   | Description                                                    |
++===============+========+================================================================+
+| @timestamp    | *date* | When console event occured.                                    | 
++---------------+--------+----------------------------------------------------------------+
+| tags          | *text* | Tags containing additional metadata about the console log.     |
++---------------+--------+----------------------------------------------------------------+
+| _table        | *text* | The originating table, drives index assignment.                |
++---------------+--------+----------------------------------------------------------------+
+
+.. note:: The indices will have the following name format `cast-%{type}-%{+YYYY.MM.dd}`.
+
+
 .. Links
 .. _Elasticsearch: https://www.elastic.co/products/elasticsearch
 .. _Configuring Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
+
