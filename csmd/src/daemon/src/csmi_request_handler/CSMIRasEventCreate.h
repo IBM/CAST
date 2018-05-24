@@ -63,15 +63,15 @@ protected:
     RasRc decodeRasEvent(csm::network::MessageAndAddress content, 
                          RasEvent &rasEvent);
 
-    std::string getMsgTypeSql(const std::string &msg_id, const std::string &location_name);
+    csm::db::DBReqContent getMsgTypeDbReq(const std::string &msg_id, const std::string &location_name);
 
-    RasRc getMsgTypeFromDbRec(csm::db::DBResult_sptr dbRes,
+    RasRc processMsgTypeDbRes(csm::db::DBResult_sptr dbRes,
                               RasMessageTypeRec &rec,
                               std::string &node_state);  
  
     std::string trim(const std::string& str);
 
-    std::string getRasCreateSql(RasEvent &rasEvent);
+    csm::db::DBReqContent getRasCreateDbReq(RasEvent &rasEvent);
 
     void logSyslog(RasEvent &rasEvent);
 
