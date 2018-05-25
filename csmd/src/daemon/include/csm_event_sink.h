@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_event_sink.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -39,5 +39,6 @@ public:
 #include "src/csm_event_sinks/csm_sink_network.h"
 #include "src/csm_event_sinks/csm_sink_timer.h"
 #include "src/csm_event_sinks/csm_sink_system.h"
+#include "src/csm_event_sinks/csm_sink_bds.h"
 
 #endif /* CSM_DAEMON_SRC_CSM_EVENT_SINK_H_ */

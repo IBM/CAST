@@ -44,6 +44,7 @@ file(GLOB CSM_DAEMON_SRC
   csm_event_sink_set.cc
   csm_timer_manager.cc
   csm_db_manager.cc
+  csm_bds_manager.cc
   csm_event_routing_master.cc
   csm_event_routing_agg.cc
   csm_event_routing_utility.cc
