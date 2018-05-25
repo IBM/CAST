@@ -209,6 +209,9 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
   // set up the configured tweaks
   SetTweaks();
 
+  // set up potential BDS access
+  SetBDS_Info();
+
   // set up the jitter configuration
   ConfigureDaemonTimers();
 }
@@ -1078,6 +1081,32 @@ void Configuration::CreateThreadPool()
       LOG( csmd, info ) << "CSMD Tuning enabled: " << _Tweaks;
   }
 
+  void
+  Configuration::SetBDS_Info()
+  {
+    bool enabled = true;
+    if( _Role != CSM_DAEMON_ROLE_AGGREGATOR )
+    {
+      LOG( csmd, warning ) << "BDS Info/Connection from " << _Role << " is not supported.";
+      return;
+    }
+
+    std::string host_val = GetValueInConfig( std::string("csm.bds.host") );
+    if( host_val.empty() )
+      enabled = false;
+
+    std::string port_val = GetValueInConfig( std::string("csm.bds.port") );
+    if( port_val.empty() )
+      enabled = false;
+
+    if( enabled )
+    {
+      _BDS_Info.Init( host_val, port_val );
+      LOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+    }
+    else
+      LOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made.";
+  }
 
 }  // namespace daemon
 } // namespace csm
