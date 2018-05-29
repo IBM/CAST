@@ -697,10 +697,11 @@ void CGroup::DeleteCGroup(
         // If the cgroup fails to kill all of the tasks throw an exception.
         if (tasksFound > 0 )
         {
+            KillTasks( groupPath, true );
             std::string error = 
                 "DeleteCGroup; Unable to remove " + std::to_string(tasksFound) +
                 " tasks after " +  std::to_string(killAttempts) + 
-                " attempts in the " + groupPath + " cgroup.";
+                " attempts in the " + groupPath + " cgroup;";
             throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
         }
     }
@@ -1014,7 +1015,7 @@ uint64_t CGroup::MigrateTasks(
     return failedMigration;
 }
 
-uint64_t CGroup::KillTasks( const std::string& controlGroup ) const
+uint64_t CGroup::KillTasks( const std::string& controlGroup, bool printPids ) const
 {
     LOG( csmapi, trace ) << _LOG_PREFIX "KillTasks Enter";
 
@@ -1041,20 +1042,33 @@ uint64_t CGroup::KillTasks( const std::string& controlGroup ) const
         
         // The write function appears to be the only way to transfer the tasks.
         std::string line;
+        std::string pids = "";
         while ( std::getline (sourceStream, line) )
         {
-            long pid = stol(line);
-
-            errno = 0;
-            kill(pid,_TASK_KILL);
-
-            // TODO Do something with this failure.
-            if( errno != 0 )
+            if ( !printPids )
             {
-                LOG( csmapi, warning ) << "pid " << line << 
-                    " could not be killed: " << strerror(errno);
+                long pid = stol(line);
+
+                errno = 0;
+                kill(pid,_TASK_KILL);
+
+                // TODO Do something with this failure.
+                if( errno != 0 )
+                {
+                    LOG( csmapi, debug ) << "pid " << line << 
+                        " could not be killed: " << strerror(errno);
+                }
+                numTasks++;
             }
-            numTasks++;
+            else
+            {
+                pids.append(line).append(" ");
+            }
+        }
+
+        if(printPids)
+        {
+            LOG(csmapi, error) << controlGroup << " PIDs: " << pids;
         }
         
         // XXX This makes it work, but we need to stress test it.

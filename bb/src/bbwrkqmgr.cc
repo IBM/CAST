@@ -982,6 +982,10 @@ void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
 
 void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
 {
+    // NOTE: We currently hold the lock transfer queue lock.  Therefore, we essentially process all of the
+    //       outstanding async requests in FIFO order and even if bbServer is multi-threaded, we serialize
+    //       the processing for each of these requests.  This is true even if the processing for an individual
+    //       request releases and re-acquires the lock as part of its processing.
     uint32_t i = 0;
     bool l_AllDone= false;
 

@@ -957,6 +957,27 @@ csm::daemon::ConnectionHandling_compute::CheckConnectivityNoLock()
   return rc;
 }
 
+void csm::daemon::ConnectionHandling_compute::ResetPrimary()
+{
+  if( _SingleAggregator )
+    return;
+
+  if( _Connected == CONN_HDL_MASK_BOTH )
+  {
+    csm::network::Address_sptr addr = _DaemonState->GetActiveAddress();
+    if( addr->MakeKey() == _ScndKey )
+    {
+      CSMLOG( csmd, debug ) << "ResetPrimary() Resetting Primary agg to configured: " << _Primary->_Addr->Dump();
+      QueueResetMsg( _Secondary->_Addr );
+      QueueFailoverMsg( _Primary->_Addr );
+      _ComputeDaemonState->SetPrimaryAggregator( _Primary->_Addr );
+    }
+    else
+      CSMLOG( csmd, debug ) << "ResetPrimary() no action necessary. Primary agg already matches configured: " << _Primary->_Addr->Dump();
+  }
+}
+
+
 void csm::daemon::ConnectionHandling_compute::QueueFailoverMsg( csm::network::Address_sptr addr )
 {
   if( addr == nullptr )
@@ -972,5 +993,24 @@ void csm::daemon::ConnectionHandling_compute::QueueFailoverMsg( csm::network::Ad
                     0x0, 0x0,
                     geteuid(), getegid(),
                     std::string( CSM_FAILOVER_MSG ));
+  _EndpointList.SendTo( evData );
+}
+
+
+void csm::daemon::ConnectionHandling_compute::QueueResetMsg( csm::network::Address_sptr addr )
+{
+  if( addr == nullptr )
+    throw csm::daemon::Exception( "Trying reset msg to nullptr address." );
+
+  CSMLOG( csmd, debug ) << "Creating RESET message for Aggregator: " << addr->Dump() << " to signal secondary address.";
+  csm::network::MessageAndAddress evData;
+  evData.SetAddr( addr );
+  evData._Msg.Init( CSM_CMD_CONNECTION_CTRL,
+                    CSM_HEADER_INT_BIT,
+                    CSM_PRIORITY_DEFAULT,
+                    _MsgIdCandidate,
+                    0x0, 0x0,
+                    geteuid(), getegid(),
+                    std::string( CSM_RESET_MSG ));
   _EndpointList.SendTo( evData );
 }

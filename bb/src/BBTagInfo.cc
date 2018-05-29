@@ -87,7 +87,7 @@ void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uin
     for (size_t i = 0; i < sizeof(l_CRC.str); ++i) {
         snprintf(&(l_Temp[i*2]), 3, "%02X", l_CRC->str[i]);
     }
-    LOG(bb,debug) << "crc.str=|0x" << l_Temp << "|";
+    LOG(bb,debug) << "crc.str=0x" << l_Temp;
 #endif
 
     unsigned long crcValue = 0;
@@ -95,7 +95,7 @@ void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uin
 
 #if 0
      // Log the output string...
-    LOG(bb,debug) << "crcValue=|0x" << hex << uppercase << crcValue << nouppercase << dec << "| (" << crcValue << ")";
+    LOG(bb,debug) << "crcValue=0x" << hex << uppercase << crcValue << nouppercase << dec << " (" << crcValue << ")";
 #endif
 
     delete[] l_CRC;

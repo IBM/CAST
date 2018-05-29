@@ -1265,6 +1265,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
         {
+            // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -2495,6 +2496,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
         {
+            // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -3150,6 +3152,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
         {
+            // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
