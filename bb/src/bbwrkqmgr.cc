@@ -786,7 +786,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             //
             // NOTE: rc is returned as a zero in this case.  We do not know if
             //       any other workqueue has an entry...
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
+            LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
+            dump("info", " Work Queue Mgr (Specific workqueue not found)", DUMP_ALWAYS);
         }
     }
 
