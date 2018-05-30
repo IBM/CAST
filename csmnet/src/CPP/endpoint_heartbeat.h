@@ -211,7 +211,7 @@ public:
   }
 
   // consider remote end to be dead if last successful recv was more than 2x_Interval seconds ago
-  const bool peerDead( TimeType & reference )
+  bool peerDead( TimeType & reference )
   {
     bool dead = (_EndOfUnsure < reference) && ( _Status == MISSING_RECV );
     if( dead )

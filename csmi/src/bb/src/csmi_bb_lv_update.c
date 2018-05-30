@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_bb_lv_update_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_BbLvUpdate_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_bb_lv_update;
+static const csmi_cmd_t expected_cmd = CSM_CMD_bb_lv_update;
 
 int csm_bb_lv_update(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE* input)
 {

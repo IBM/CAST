@@ -171,9 +171,9 @@ int csmi_net_unix_Send(csm_net_msg_t *msg)
       return -1;
     }
     
-    if ( (rc = csm_net_unix_Send(ep->_ep, msg)) == (size_t)-1 )
+    if ( (rc = csm_net_unix_Send(ep->_ep, msg)) == -1 )
     {
-        rc = -1;
+        //rc = -1;
         perror("csm_net_unix_Send");
         csmutil_logging(error, "%s-%d: csm_net_unix_send() failed\n", __FILE__, __LINE__);
     }

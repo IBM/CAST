@@ -24,7 +24,7 @@
 #define API_PARAMETER_INPUT_TYPE    csm_allocation_query_input_t
 #define API_PARAMETER_OUTPUT_TYPE   csm_allocation_query_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_query; ///< The expected command, used in verifying network communication.
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_query; ///< The expected command, used in verifying network communication.
 
 void csmi_allocation_query_destroy(csm_api_object *handle);
 

@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_switch_inventory_collection_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_switch_children_inventory_collection_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_switch_children_inventory_collection;
+static const csmi_cmd_t expected_cmd = CSM_CMD_switch_children_inventory_collection;
 
 void csmi_switch_children_inventory_collection_destroy(csm_api_object *csm_obj);
 

@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_bb_vg_query_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_bb_vg_query_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_bb_vg_query;
+static const csmi_cmd_t expected_cmd = CSM_CMD_bb_vg_query;
 
 void csmi_bb_vg_query_destroy(csm_api_object *csm_obj);
 

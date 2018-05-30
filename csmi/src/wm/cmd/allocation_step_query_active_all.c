@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	int opt;
 	int parameterCounter = 0;
 	/*For for loops*/
-	uint32_t i = 0;
+	int32_t i = 0;
     char *arg_check = NULL; ///< Used in verifying the long arg values.
 	
 	/*Argument Variables*/

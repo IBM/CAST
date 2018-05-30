@@ -142,7 +142,7 @@ int csmi_client(int argc, char *argv[])
     if ( !ret_val ) 
     {
         /// Output the contents of the query.
-        int i;
+        uint32_t i;
         csmi_allocation_t *allocation_query = alloc_query_out->allocation;
 
         printf("\nallocation_id: %" PRIu64 "\n", allocation_query->allocation_id);

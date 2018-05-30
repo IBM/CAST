@@ -111,7 +111,8 @@ int main(int argc, char *argv[])
 	/* getopt_long stores the option index here. */
 	int indexptr = 0;
 	/*i var for 'for loops'*/
-	int i = 0;
+	uint32_t i = 0;
+    int32_t  k = 0; 
     char *arg_check = NULL; ///< Used in verifying the long arg values.
 	
 	/*Set up data to call API*/
@@ -164,8 +165,8 @@ int main(int argc, char *argv[])
 		csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
 		csmutil_logging(error, "  Encountered %i extra parameter(s). Expected none.", argc);
 		csmutil_logging(error, "  Extra args found:");
-		for(i = 0; i < argc; i++){
-			csmutil_logging(error, "    argv[%i]: %s", i, argv[i]);
+		for(k = 0; k < argc; k++){
+			csmutil_logging(error, "    argv[%k]: %s", k, argv[k]);
 		}
 		csmutil_logging(error, "  Run with '-h' for help and information.");
 		csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
@@ -235,7 +236,7 @@ int main(int argc, char *argv[])
 				if(output->results[i]->ssds_count > 0)
 				{
 					printf("  ssds:\n");
-					int j = 0;
+					uint32_t j = 0;
 					for(j = 0; j < output->results[i]->ssds_count; j++)
 					{
 						printf("    - ssd_serial_number:  %s\n",        output->results[i]->ssds[j]->serial_number);

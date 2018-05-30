@@ -28,7 +28,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_allocation_query_active_all_input_t 
 #define API_PARAMETER_OUTPUT_TYPE csm_allocation_query_active_all_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_query_active_all;
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_query_active_all;
 
 void csmi_allocation_query_active_all_destroy(csm_api_object *handle);
 

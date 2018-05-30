@@ -43,7 +43,7 @@ build_function()
     csmi_name=${1/csm_/csmi_}
     function_prototype=${2/;/}
     
-    function_string="const static csmi_cmd_t ExpectedCmd = CSM_CMD_${trimmed_name};\n\n"
+    function_string="static const csmi_cmd_t ExpectedCmd = CSM_CMD_${trimmed_name};\n\n"
     function_string+="/** @brief Destroys the csm_api object, releasing the handle pointed "
     function_string+="to by the object.\n \*\n \*"
     function_string+=" @param csm_obj An object containing a pointer to a handle for the "

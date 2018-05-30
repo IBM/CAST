@@ -134,12 +134,13 @@ void CSMIAllocationStepQueryActiveAll::CreateStepStruct(
     s->argument             = strdup(fields->data[6]);
     s->environment_variable = strdup(fields->data[7]);
     s->num_nodes            = atol(fields->data[8 ]);
+    if( s->num_nodes < 0 ) s->num_nodes = 0; // Zero for serialization.
     s->num_processors       = atol(fields->data[9 ]);
     s->num_gpus             = atol(fields->data[10]);
     s->projected_memory     = atol(fields->data[11]);
     s->num_tasks            = atol(fields->data[12]);
     s->user_flags         = strdup(fields->data[13]);
-                                                
+
     *step = s; 
 
     LOG( csmapi, debug ) << STATE_NAME ":CreateStepStruct: Exit";

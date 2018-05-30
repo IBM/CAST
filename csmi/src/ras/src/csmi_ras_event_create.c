@@ -24,7 +24,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ras_event_create_input_t
 #define API_PARAMETER_OUTPUT_TYPE
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_event_create;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_event_create;
 
 int csm_ras_event_create(
     csm_api_object **csm_obj, 
