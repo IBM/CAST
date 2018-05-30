@@ -169,6 +169,10 @@ public:
         RETURN_FLAG(BBTD_All_Extents_Transferred);
     }
 
+    inline int extentsAreEnqueued() {
+        RETURN_FLAG(BBTD_Extents_Enqueued);
+    }
+
     inline int failed() {
         RETURN_FLAG(BBTD_Failed);
     }

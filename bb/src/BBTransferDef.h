@@ -49,7 +49,7 @@
     LOG(bb,SEV) << "      Job: " << JOBSTR; \
     LOG(bb,SEV) << " Hostname: " << hostname \
                 << hex << uppercase << setfill('0'); \
-    LOG(bb,SEV) << "      Uid: 0x" << setw(8) << uid << "   Gid: 0x" << setw(8) << gid << "   Exts Enq'ed: " << extentsEnqueued; \
+    LOG(bb,SEV) << "      Uid: 0x" << setw(8) << uid << "   Gid: 0x" << setw(8) << gid; \
     LOG(bb,SEV) << "   Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")" << hex << uppercase << setfill('0'); \
     LOG(bb,SEV) << "ContribId: " << contribid << hex << uppercase << setfill('0') << "   Tag: 0x" << setw(8) << tag << " Flags: 0x" << setw(16) << flags \
                 << setfill(' ') << nouppercase << dec; \
@@ -243,7 +243,6 @@ class BBTransferDef
         pArchive & job;
         pArchive & uid;
         pArchive & gid;
-        pArchive & extentsEnqueued;
         pArchive & contribid;
         pArchive & flags;
         pArchive & tag;
@@ -263,7 +262,6 @@ class BBTransferDef
         job(BBJob()),
         uid(0),
         gid(0),
-        extentsEnqueued(0),
         contribid(0),
         flags(0),
         tag(0),
@@ -287,7 +285,6 @@ class BBTransferDef
         job(src.job),
         uid(src.uid),
         gid(src.gid),
-        extentsEnqueued(src.extentsEnqueued),
         contribid(src.contribid),
         flags(src.flags),
         tag(src.tag),
@@ -345,6 +342,7 @@ class BBTransferDef
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
+    void setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setFailed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
 #endif
     void setJob();
@@ -375,7 +373,7 @@ class BBTransferDef
     }
 
     inline int extentsAreEnqueued() {
-        return extentsEnqueued;
+        RETURN_FLAG(BBTD_Extents_Enqueued);
     }
 
     inline int failed() {
@@ -483,11 +481,6 @@ class BBTransferDef
         return;
     }
 
-    inline void setExtentsEnqueued(const int pValue=1) {
-        extentsEnqueued = pValue;
-        return;
-    }
-
     inline void setHostName(const string& pHostName) {
         hostname = pHostName;
         return;
@@ -539,8 +532,6 @@ class BBTransferDef
     BBJob                   job;
     uid_t                   uid;
     gid_t                   gid;
-    int                     extentsEnqueued;    // Only set/valid for transfer definitions
-                                                // in the metadata
     uint32_t                contribid;          // Only set/valid for transfer definitions
                                                 // in the metadata on bbServer or rebuilt
                                                 // definitions from the metadata
