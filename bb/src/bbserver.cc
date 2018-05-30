@@ -1431,8 +1431,8 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
             {
                 xDataLocation = "the cross-bbserver metadata";
             }
-            LOG(bb,info) << l_NumberOfTransferDefs << " transfer definitions retrieved from " << xDataLocation << ".";
-            LOG(bb,info) << "    l_MarshalledTransferDefs = |" << l_MarshalledTransferDefs << "|";
+            LOG(bb,info) << l_NumberOfTransferDefs << " transfer definitions retrieved from " << xDataLocation;
+            LOG(bb,debug) << "l_MarshalledTransferDefs = |" << l_MarshalledTransferDefs << "|";
             l_TransferDefs.dump("debug", "msgin_retrievetransfers ");
         }
         else
@@ -1771,8 +1771,11 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         // This condition overrides any failure detected on bbProxy...
                         l_MarkFailedFromProxy = 0;
 
-                        if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                        if (l_TransferPtr->builtViaRetrieveTransferDefinition() ||
+                            l_TransferPtr->all_CN_CP_TransfersInDefinition() ||
+                            l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
                         {
+                            // Either a restart, all CN local cp, or no stage-in or stage-out files to transfer.
                             // Allow a restart to be retried...
                             rc = -2;
                         }
