@@ -49,6 +49,9 @@ namespace txp{
             _sslctx = NULL;
             _cSSL = NULL;
 	    trustStore = NULL;
+        _sockaddrLocal.sa_family=AF_INET;
+        _sockaddrRemote.sa_family=AF_INET;
+        _sockaddrlen = sizeof(struct sockaddr_in);
         }
         /**
          * \brief Constructor to setup base values for <b>ipv4</b>

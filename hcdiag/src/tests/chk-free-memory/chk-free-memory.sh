@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/tpsm/tpsm.sh
+#    hcdiag/src/tests/chk-free-memory/chk-free-memory.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -14,7 +14,6 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 # 
 #=============================================================================
-
 ## These lines are mandatory, so the framework knows the name of the log file
 ## This is necessary when invoked standalone --with xcat-- and common_fs=yes
 if [ -n "$HCDIAG_LOGDIR" ]; then
@@ -22,43 +21,35 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    THIS_LOG=$HCDIAG_LOGDIR/`hostname -s`-`date +%Y-%m-%d-%H_%M_%S`.output
    echo $THIS_LOG
    exec 2>$THIS_LOG 1>&2
+fi     
+
+
+# This script checks if the free memory is lower the min accepted
+# Minimal threshold accepted, in percentage
+MIN_THRESHOLD=10
+
+if [ $# -gt 0 ]; then MIN_THRESHOLD=$2; fi
+
+me=$(basename $0) 
+model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+echo -e "Running $me on $(hostname -s), machine type $model.\n"          
+
+trap 'rm -f /tmp/$$' EXIT
+
+mtotal=`grep MemTotal /proc/meminfo|awk '{print $2}'`
+mfree=`grep MemFree /proc/meminfo |awk '{print $2}'`
+min=$(( $mtotal * $MIN_THRESHOLD/100 )) 
+
+echo "Totalmemory     : $mtotal"
+echo "Free memory     : $mfree"
+echo "Min free memory : $min"
+
+if (( $(echo "$mfree < $min" | bc -l) )); then
+  echo -e "$me test FAIL, rc=1"  
+  exit 1
 fi
 
-readonly me=${0##*/}
-thisdir=`dirname $0`
-source $thisdir/../common/htx_functions
+echo -e "$me test PASS, rc=0"
+exit 0
 
-
-[ $# -lt 1 ] && echo "Usage: $me <duration> [debug]" && exit 1
-debug=0
-duration=$1
-if [ $# -gt 1 ]; then debug=$2; fi
-
-thisdir=`pwd`
-thismdt="$htxd_root/mdt/mdt.tpsm"
-
-# validates the enviroment to run htx and starts the htxd daemon
-htxdiag_setup $debug
-rc=$ret
-
-if [ $rc -eq 0 ]; then 
-   # creates the mdt file to run tpsm
-   htxdiag_get_mdt "tpsm:" $thismdt
-   rc=$ret
-   if [ $rc -eq 0 ]; then 
-      # run the test and validates
-      htxdiag_run $thismdt $duration $debug
-      rc=$ret
-   fi
    
-   # remove the files and stop the daemon
-   htxdiag_cleanup
-fi
-
-if [ $rc -eq 0 ]; then
-  echo "$me test PASS, RC=0"
-else
-  echo "$me test FAIL, RC=$rc"
-fi
-
-exit $rc

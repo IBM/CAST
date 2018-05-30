@@ -134,16 +134,14 @@
  */
 #define CSM_NETWORK_HEARTBEAT_INTERVAL ( 15 )
 
-
-#ifndef CSM_VERSION_ID
-/** @def CSM_VERSION_ID
- * @brief Version identification
+/** @def CSM_CUMULATIVE_FIX_MAX_BACK_LEVEL_SUPPORT
+ * @brief Sets the maximum back-level of supported cumulative fix versions
  *
- * Contains the version ID string for CSM to assure compatibility
- * between communication partners. If the build system is not
- * setting this ID, we set a default here.
+ * Major version has to match
+ * Cumulative Fix version may differ by this max level
+ * Efix version is supported regardless
+ *
  */
-//#define CSM_VERSION_ID "unknown"
-#endif
+#define CSM_CUMULATIVE_FIX_MAX_BACK_LEVEL_SUPPORT 1
 
 #endif // __CSM_NETWORK_CONFIG_H__

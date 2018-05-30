@@ -45,7 +45,7 @@ Stage-in script does not exist
 	[Timeout]  1 minute
 	Using SSD  10
 	Set user stagein  this-script-does-not-exist
-	bsub&wait  hostname  255
+	bsub&wait  hostname  126
 
 Stage-out1 script does not exist
 	[Tags]  lsf

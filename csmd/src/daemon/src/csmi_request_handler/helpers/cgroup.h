@@ -127,6 +127,19 @@ public:
      */
     void MigratePid( pid_t pid ) const;
 
+
+    /**
+     * @brief Wait for the pid to appear in the task list of the allocation cgroup*
+     * This function is to be used in conjunction with @ref MigratePid asynchronously.
+     *
+     * @param[in] pid The process id to to scan the tasks file for.
+     * @param[in] sleepAttempts The number of times to wait for the pid write to be a success.
+     * @param[in] sleepTime The time in seconds to wait between pid tests.
+     *
+     * @return True if the pid was successfully migrated.
+     */
+    bool WaitPidMigration(pid_t pid, uint32_t sleepAttempts=3, uint32_t sleepTime=1) const;
+
     /**
      * @brief Performs the configuration step on the cgroups created by @ref SetupCGroups.
      * Restricts memory and number of processors.
@@ -242,11 +255,12 @@ private:
      * @note SIGKILL is used in killing the tasks.
      *
      * @param[in] controlGroup The control group to kill the tasks in.
+     * @param[in] printPids If set this function will print the pids as an error log.
      * @return The total number of tasks that the kill function was run against.
      *
      * @throw CSMHandlerException If the tasks could not be killed.
      */
-    uint64_t KillTasks( const std::string& controlGroup ) const;
+    uint64_t KillTasks( const std::string& controlGroup, bool printPids = false ) const;
 
     /** @brief Copies the contents of a parameter from one group to another.
      *
@@ -269,7 +283,6 @@ private:
      *  @return True if the file exists, and is of the correct type (dir or not dir).
      */
     bool CheckFile( const char* path, bool isDir = false ) const;
-
 
     /**
      * @brief Builds the core isolation strings for the allocation and system cgroups.

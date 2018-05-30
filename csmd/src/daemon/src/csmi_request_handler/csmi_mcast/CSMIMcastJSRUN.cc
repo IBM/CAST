@@ -33,6 +33,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
     jsrunPayload->user_id        = _Data->user_id;
     jsrunPayload->allocation_id  = _Data->allocation_id;
     jsrunPayload->kv_pairs       = strdup(_Data->kv_pairs);
+    jsrunPayload->jsm_path       = strdup(_Data->jsm_path);
     jsrunPayload->hostname       = strdup("");
 
     csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrunPayload,

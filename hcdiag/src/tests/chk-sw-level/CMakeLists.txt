@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/tpsm/CMakeLists.txt
+#    hcdiag/src/tests/chk-sw-level/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,12 +13,13 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST tpsm)
+set(HCDIAG_TEST chk-sw-level)
 
-file(GLOB HCDIAG_TEST_FILE
-  "tpsm.sh"
+file(GLOB HCDIAG_TEST_PROGRAM
+  "chk-sw-level.sh"
+  "chk-sw-level.pm"
 )
 
 
-install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
+install(PROGRAMS ${HCDIAG_TEST_PROGRAM} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
 

@@ -22,6 +22,15 @@ if($CFG->{"USE_CLANG"})
     $ENV{"CXX"}= "clang++";
 }
 
+if($CFG->{"USE_CLANGANALYZE"})
+{
+    $ENV{"CC"} = "/usr/local/libexec/ccc-analyzer";
+    $ENV{"CXX"}= "/usr/local/libexec/c++-analyzer";
+    $ENV{"CCC_CC"} = "clang";
+    $ENV{"CCC_CXX"}= "clang++";
+    $ENV{"LD"}= "clang++";
+}
+
 if($0 =~ /rebuild/)
 {
     exit(-1) if($CFG->{"WORKDIR"} !~ /[A-z]/);

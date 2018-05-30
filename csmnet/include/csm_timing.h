@@ -95,7 +95,7 @@ extern int csmi_cmd_timeouts[];
 static inline
 int csm_get_timeout( int api_id )
 {
-  if( api_id % CSM_CMD_INVALID == api_id )
+  if( csmi_cmd_is_valid( api_id ) )
     return csmi_cmd_timeouts[ api_id ] * 1000;
   else
     return CSM_RECV_TIMEOUT_MILLISECONDS;

@@ -25,8 +25,7 @@
 
 int csmi_undef_hdl(csm_api_object **csm_obj)
 {
-
-  csmi_cmd_t ExpectedCmd = CSM_DB_UNKNOWN;
+  csmi_cmd_t ExpectedCmd = CSM_error_inject;
   int errcode;
   uint32_t recvDataLen=0;
   char *recvData=NULL;
@@ -45,7 +44,7 @@ int csmi_undef_hdl(csm_api_object **csm_obj)
 int csmi_undef_cmd(csm_api_object **csm_obj)
 {
 
-  csmi_cmd_t ExpectedCmd = CSM_DAEMON_UNKNOWN;
+  csmi_cmd_t ExpectedCmd = CSM_error_inject;
   int errcode;
   uint32_t recvDataLen=0;
   char *recvData=NULL;

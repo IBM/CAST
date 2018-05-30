@@ -104,7 +104,6 @@ tuple wrap_csm_allocation_query_details(
     return make_tuple(return_code, oid, *output);
 }
 
-
 tuple wrap_csm_allocation_update_history(
     csm_allocation_update_history_input_t input)
 {
@@ -302,6 +301,21 @@ tuple wrap_csm_cgroup_login(
     return make_tuple(return_code, oid);
 }
 
+tuple wrap_csm_jsrun_cmd(
+    csm_jsrun_cmd_input_t input)
+{
+    // Always sets the metadata.
+    input._metadata=CSM_VERSION_ID;
+
+    // Output objs
+    csm_api_object * updated_handle;
+
+    // Run the API
+    int return_code = csm_jsrun_cmd( (csm_api_object**)&updated_handle, &input );
+    int64_t oid = CSMIObj::GetInstance().StoreCSMObj(updated_handle);
+    
+    return make_tuple(return_code, oid);
+}
 
 //BOOST_PYTHON_MODULE(wm_structs)
 BOOST_PYTHON_MODULE(lib_csm_wm_py)
@@ -382,6 +396,11 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
     def("cgroup_login",
         wrap_csm_cgroup_login,
         CSM_GEN_DOCSTRING("Mechanism to move a user into a cgroup.",""));
+
+
+    def("jsrun_cmd",
+        wrap_csm_jsrun_cmd,
+        CSM_GEN_DOCSTRING("Executes a jsrun command as a remote user.",""));
 
     // STRUCTS_BEGIN
     enum_<csmi_state_t>("csmi_state_t")
@@ -681,6 +700,7 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
 
     class_<csm_jsrun_cmd_input_t,csm_jsrun_cmd_input_t*>("jsrun_cmd_input_t")
 		.add_property("allocation_id", &csm_jsrun_cmd_input_t::allocation_id,&csm_jsrun_cmd_input_t::allocation_id," The Allocation id for the JSM run. Exported to **CSM_ALLOCATION_ID**. ")
-		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, kv_pairs, , NULL, );
+		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, kv_pairs, , NULL, )
+		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, jsm_path, , NULL, );
 
 };

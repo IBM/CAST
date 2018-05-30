@@ -25,7 +25,6 @@
 
 #include "csmi_stateful_db/CSMIStatefulDBRecvSend.h"
 
-
 #define STATE_NAME "CSMIAllocationDelete"
 
 // Use this to make changing struct names easier.

@@ -288,10 +288,10 @@ static int newconnection_name_sequence_number=0;
 int versionCheck(const std::string& pReceivedVersion){
     boost::property_tree::ptree receivedV;
     boost::property_tree::ptree myV;
-    
+
     bbVersionToTree(pReceivedVersion, receivedV);
     bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
-    
+
     if(myV.get("version.major", "abc") != receivedV.get("version.major", "xyz"))
     {
         stringstream errorText;
@@ -308,12 +308,12 @@ int versionCheck(const std::string& pReceivedVersion){
 
 void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 {
-    const char* receivedVersionStr;
+    const char* receivedVersionStr = NULL;
     stringstream errorText;
     int rc = -1;
     uint32_t contribid;
-    const char* receivedFromWhoami;
-    const char* instance;
+    const char* receivedFromWhoami = NULL;
+    const char* instance = NULL;
 
     try
     {
@@ -371,7 +371,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 	    }
 	    unlockConnectionWrite("connection_authenticate");
     }
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
     txp::Attr_int32 resultcode(txp::resultCode, rc);
@@ -428,7 +428,7 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
         }
     }
     unlockConnectionMaps("getConnex");
-    
+
     return answer;
 }
 
@@ -472,8 +472,7 @@ int makeActivebbserver(const std::string& pName){
         candidate_connex = it2->second;
         if (!candidate_connex) {
             bbserverName2ReadyConnections.erase(pName);
-            LOG(bb,always) << "found a bad entry for pName="<<pName;
-            name2connections.erase(it2);
+            LOG(bb,always) << "found a bad bbserverName2ReadyConnections entry for pName="<<pName;
         }
         else if (candidate_connex!=active_connex)
         {
@@ -617,27 +616,39 @@ int sendMessage(const string& name, txp::Msg* msg)
     lockConnectionWrite("sendMessage(string, txp::Msg*)");
     {
         auto iter = name2connections.find(name);
-        
+
         if(  (iter != name2connections.end() ) && (iter->second != NULL ) )
         {
-            char msgidStr[64] = {'\0'};
-            if (msg->getMsgId() != CORAL_SETVAR && msg->getMsgId() != CORAL_GETVAR)
-            {
+            // We log all messages in the flight log...
+            int32_t msgid = (int32_t)msg->getMsgId();
+            FL_Write6(FLConn, FL_SendMsg, "sendMessage id=%ld(0x%08X), number=%ld, request=%ld, len=%ld",
+                      msgid, msgid, msg->getMsgNumber(), msg->getRequestMsgNumber(), msg->getMsgLengthWithDataValues(), 0);
 
-                msg->msgIdToChar(msg->getMsgId(), msgidStr, sizeof(msgidStr));
-                auto msgId = msg->getMsgId();
-                FL_Write6(FLConn, FL_SendMsg, "sendMessage id=%ld(0x%08X), number=%ld, request=%ld, len=%ld",
-                         msgId, msgId,msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getMsgLengthWithDataValues(),0);
-                LOG(bb,info) << "==> Sending msg to " << name.c_str() << ": " << msgidStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+            stringstream l_Text;
+            txp::Id l_MsgId = msg->getMsgId();
+            char l_MsgIdStr[64] = {'\0'};
+            msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
+            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+
+            // Not all messages are logged as 'info' in the console log...
+            if (txp::isMsgIdToLogAsInfo(l_MsgId))
+            {
+                LOG(bb,info) << l_Text.str();
             }
+            else
+            {
+                LOG(bb,debug) << l_Text.str();
+            }
+
             txp::Connex* cnx = iter->second;
             rc = cnx->write(msg);
             rc = rc > 0 ? 0 : rc;
             if (rc)
             {
-               FL_Write(FLConn, FL_SendMsgErr, "sendMessage error for id=%ld, number=%ld,  rc=%ld, errno=%ld",
-                         msg->getMsgId(), msg->getMsgNumber(),  rc, errno);
-               LOG(txp,info) << " sendMessage:Error, " << msgidStr<< " Msg#=" << msg->getMsgNumber() << ", RMsg#=" << msg->getRequestMsgNumber() << ", #Attrs=" << msg->getNumberOfAttributes() << ", RC=" << rc << ", errno=" << errno<<"("<<strerror(errno)<<")";
+               FL_Write(FLConn, FL_SendMsgErr1, "sendMessage error for id=%ld, number=%ld,  rc=%ld, errno=%ld",
+                        msg->getMsgId(), msg->getMsgNumber(),  rc, errno);
+               LOG(bb,error) << " sendMessage:Error, " << l_MsgIdStr << " Msg#=" << msg->getMsgNumber() << ", RMsg#=" << msg->getRequestMsgNumber() \
+                             << ", #Attrs=" << msg->getNumberOfAttributes() << ", RC=" << rc << ", errno=" << errno << "(" << strerror(errno) << ")";
             }
         }
         else
@@ -665,7 +676,7 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
         {
             auto iter = name2connections.find(name);
 
-            if(  (iter != name2connections.end() ) && (iter->second != NULL ) )
+            if((iter != name2connections.end()) && (iter->second != NULL ))
             {
                 sem_init(&(reply.semaphore),0,0);
                 txp::Connex* cnx = iter->second;
@@ -687,29 +698,46 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
                 txp::Attr_uint64* myattr = new(&reply.attr) txp::Attr_uint64(txp::responseHandle, (uint64_t)&reply);
                 msg->addAttribute(myattr);
                 reply.connName = realName;
-                if (msg->getMsgId() != CORAL_SETVAR && msg->getMsgId() != CORAL_GETVAR)
+
+                // We log all messages in the flight log...
+                FL_Write(FLConn, FL_SendMsgWReply, "Send message id=%ld, number=%ld, request=%ld, len=%ld",
+                         (int32_t)msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(), msg->getMsgLengthWithDataValues());
+
+                stringstream l_Text;
+                txp::Id l_MsgId = msg->getMsgId();
+                char l_MsgIdStr[64] = {'\0'};
+                msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
+	            size_t l_MessageToServer = name.find(DEFAULT_SERVER_ALIAS);
+                if (l_MessageToServer != std::string::npos)
                 {
-                    stringstream l_Text;
-                    char msgidStr[64] = {'\0'};
-                    msg->msgIdToChar(msg->getMsgId(), msgidStr, sizeof(msgidStr));
-                    FL_Write(FLConn, FL_SendMsgWReply, "Send message id=%ld, number=%ld, request=%ld, len=%ld",
-                             msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(), msg->getMsgLengthWithDataValues());
-	                size_t l_MessageToServer = name.find(DEFAULT_SERVER_ALIAS);
-                    if (l_MessageToServer != std::string::npos)
-                    {   
-                        l_Text << "==> Sending msg to " << realName.c_str() << ": " << msgidStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() \
-                               << ", uid=" << (uid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::uid))->getData() \
-                               << ", gid=" << (gid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::gid))->getData();
-                    }
-                    else
-                    {
-                        l_Text << "==> Sending msg to " << realName.c_str() << ": " << msgidStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
-                    }
+                    l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() \
+                           << ", uid=" << (uid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::uid))->getData() \
+                           << ", gid=" << (gid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::gid))->getData();
+                }
+                else
+                {
+                    l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+                }
+
+                // Not all messages are logged as 'info' in the console log...
+                if (txp::isMsgIdToLogAsInfo(l_MsgId))
+                {
                     LOG(bb,info) << l_Text.str();
                 }
-                
+                else
+                {
+                    LOG(bb,debug) << l_Text.str();
+                }
+
                 rc = cnx->write(msg);
                 rc = rc > 0 ? 0 : rc;
+                if (rc)
+                {
+                   FL_Write(FLConn, FL_SendMsgErr2, "sendMessage error for id=%ld, number=%ld,  rc=%ld, errno=%ld",
+                            msg->getMsgId(), msg->getMsgNumber(),  rc, errno);
+                   LOG(bb,error) << " sendMessage:Error, " << l_MsgIdStr << " Msg#=" << msg->getMsgNumber() << ", RMsg#=" << msg->getRequestMsgNumber() \
+                                 << ", #Attrs=" << msg->getNumberOfAttributes() << ", RC=" << rc << ", errno=" << errno << "(" << strerror(errno) << ")";
+                }
             }
             else
             {
@@ -816,16 +844,16 @@ int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
         replyWaiters[reply.connName][&reply] = true;
     }
     pthread_mutex_unlock(&replyWaitersLock);
-    
+
     sem_wait(&(reply.semaphore));
-    
+
     if(reply.reply == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
         return -1;
     }
     response_msg = (txp::Msg*)reply.reply;
-    
+
     return 0;
 }
 
@@ -868,7 +896,7 @@ int closeConnectionFD(const string& name)
                 {
                     name2connections.erase(it);
                 }
-                
+
             }
             //check if in config
             else if (NO_CONFIG_VALUE != config.get(name + ".ssladdress", NO_CONFIG_VALUE) ){ }
@@ -1219,6 +1247,10 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                 }
             } else {
                 connect_rc=-ENODATA;//should never land here
+                unlockConnectionMaps("makeConnection - ENODATA");
+                unlockConnectionWrite("makeConnection - ENODATA");
+                LOG(bb,error) << "Connecting to proxy--ENODATA";
+                return -1;
             }
         }
     }
@@ -1266,6 +1298,7 @@ int setupConnections(string whoami, string instance)
             {
                 unlockConnectionMaps("setupConnections - failure, unable to build local address");
                 LOG(bb,error) << "Unable to build local address";
+                delete sock;
                 return -1;
             }
 
@@ -1311,6 +1344,7 @@ int setupConnections(string whoami, string instance)
             {
                 unlockConnectionMaps("setupConnections - failure, SSL unable to build local address");
                 LOG(bb,error) << "SSL - Unable to build local address";
+                delete sslSock;
                 return -1;
             }
 
@@ -1505,43 +1539,31 @@ void* workerThread(void* ptr)
                 sem_wait(&mystate->workAvailable);
             }
 
+            // We log all messages in the flight log...
             int32_t msgid = (int32_t)wu->msg->getMsgId();
             FL_Write6(FLConn, FL_ProcessMsg, "Processing message for msgid %ld(0x%08X), request=0x%lx, response=0x%lx, length=%ld  backlog=%ld",
                       msgid, msgid, wu->msg->getMsgNumber(), wu->msg->getRequestMsgNumber(), wu->msg->getSerializedLen(), was_backlog);
 
-            switch (wu->msg->getMsgId())
-            {
-                case BB_ALL_FILE_TRANSFERS_COMPLETE:
-                case BB_TRANSFER_COMPLETE_FOR_CONTRIBID:
-                case BB_TRANSFER_COMPLETE_FOR_FILE:
-                case BB_TRANSFER_COMPLETE_FOR_HANDLE:
-                case BB_TRANSFER_PROGRESS:
-                case CORAL_SETVAR:
-                {
-                    break;
-                }
-                default:
-                {
-                    stringstream l_Text;
-                    txp::Id l_MsgId = wu->msg->getMsgId();
-                    char l_MsgIdStr[64] = {'\0'};
-                    wu->msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
+            stringstream l_Text;
+            txp::Id l_MsgId = wu->msg->getMsgId();
+            char l_MsgIdStr[64] = {'\0'};
+            wu->msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
 #if BBSERVER
-        	        l_Text << "<== Processing msg " << l_MsgIdStr << ", msg#=" << wu->msg->getMsgNumber() << ", rqstmsg#=" << wu->msg->getRequestMsgNumber() \
-                           << ", uid=" << (uid_t)((txp::Attr_uint32*)wu->msg->retrieveAttrs()->at(txp::uid))->getData() \
-                           << ", gid=" << (gid_t)((txp::Attr_uint32*)wu->msg->retrieveAttrs()->at(txp::gid))->getData();
+        	l_Text << "<== Processing msg " << l_MsgIdStr << ", msg#=" << wu->msg->getMsgNumber() << ", rqstmsg#=" << wu->msg->getRequestMsgNumber() \
+                   << ", uid=" << (uid_t)((txp::Attr_uint32*)wu->msg->retrieveAttrs()->at(txp::uid))->getData() \
+                   << ", gid=" << (gid_t)((txp::Attr_uint32*)wu->msg->retrieveAttrs()->at(txp::gid))->getData();
 #else
-                    l_Text << "<== Processing msg " << l_MsgIdStr << ", msg#=" << wu->msg->getMsgNumber() << ", rqstmsg#=" << wu->msg->getRequestMsgNumber();
+            l_Text << "<== Processing msg " << l_MsgIdStr << ", msg#=" << wu->msg->getMsgNumber() << ", rqstmsg#=" << wu->msg->getRequestMsgNumber();
 #endif
-                    if (txp::isMsgIdToLog(l_MsgId))
-                    {
-                        LOG(bb,info) << l_Text.str();
-                    }
-                    else
-                    {
-                        LOG(bb,debug) << l_Text.str();
-                    }
-                }
+
+            // Not all messages are logged as 'info' in the console log...
+            if (txp::isMsgIdToLogAsInfo(l_MsgId))
+            {
+                LOG(bb,info) << l_Text.str();
+            }
+            else
+            {
+                LOG(bb,debug) << l_Text.str();
             }
 
             try
@@ -1622,7 +1644,10 @@ void* responseThread(void* ptr)
                     {
                         FL_Write(FLConn, FL_NewConnect, "Adding/removing connection to poll loop",0,0,0,0);
                         int tmp;
-                        read(connection_doorbell[0], &tmp, sizeof(tmp));
+                        int bytesRead = read(connection_doorbell[0], &tmp, sizeof(tmp));
+                        if (bytesRead<0) {
+                            LOG(txp,debug) << __PRETTY_FUNCTION__<< "doorbell read had errno="<<errno;
+                        }
                         sem_post(&connection_sem);
                         break; //rescan file descriptors
                     }

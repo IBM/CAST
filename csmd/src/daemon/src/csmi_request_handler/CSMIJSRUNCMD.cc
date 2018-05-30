@@ -106,11 +106,10 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
         MCAST_STRUCT* mcast = new MCAST_STRUCT();
         mcast->user_id              = msg._Msg.GetUserID();
         mcast->allocation_id        = input->allocation_id;
-
-        if ( input->kv_pairs )
-            mcast->kv_pairs = strdup(input->kv_pairs);
-        else
-            mcast->kv_pairs = nullptr;
+        mcast->jsm_path             = input->jsm_path;
+        input->jsm_path             = nullptr;
+        mcast->kv_pairs             = input->kv_pairs;
+        input->kv_pairs             = nullptr;
 
         csm_free_struct_ptr( INPUT_STRUCT, input);
 
@@ -125,7 +124,9 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
                 "LEFT JOIN csm_allocation_node as an "
                 "ON a.allocation_id=an.allocation_id "
                 "WHERE a.allocation_id=$1::bigint "
-                "GROUP BY a.user_id, a.num_nodes";    
+                    "AND a.state='";
+        stmt.append(csm_get_string_from_enum(csmi_state_t,CSM_RUNNING));
+        stmt.append("' GROUP BY a.user_id, a.num_nodes");    
 
         const int paramCount = 1;
         *dbPayload = new csm::db::DBReqContent( stmt, paramCount );
@@ -158,7 +159,6 @@ bool CSMIJSRUNCMD_Master::ParseAuthQuery(
 {
     LOG(csmapi,trace) <<  STATE_NAME ":ParseAuthQuery: Enter";
     MCAST_STRUCT* mcast_ctx = mcastProps->GetData();
-
     
     // EARLY RETURN
     // First, verify that the tuple set has any usable data.

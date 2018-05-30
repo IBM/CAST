@@ -126,7 +126,7 @@ retry:
           if( aMsgAddr.GetAddr()->GetAddrType() == CSM_NETWORK_TYPE_LOCAL )
           {
             versionMsg._Version = aMsgAddr._Msg.GetData();
-            versionMsg._Hostname = "localhost";
+            versionMsg._Hostname = aMsgAddr.GetAddr()->Dump();
             versionMsg._Sequence = 0;
           }
           else
@@ -137,7 +137,7 @@ retry:
             catch( ... )
             {
               versionMsg._Version = aMsgAddr._Msg.GetData();
-              versionMsg._Hostname = "notavail";
+              versionMsg._Hostname = aMsgAddr.GetAddr()->Dump();
               versionMsg._Sequence = 0;
             }
         }
@@ -148,14 +148,14 @@ retry:
             << "; seq#: " << versionMsg._Sequence;
 
         // if not ACK, this is the initial version message
-        if(!(aMsgAddr._Msg.GetAck()) && (0 != versionMsg._Version.compare(CSM_VERSION)) )
+        if( !( aMsgAddr._Msg.GetAck() ) && ( ! csm::network::VersionMsg::Get()->Acceptable( versionMsg ) ))
         {
-          LOG(csmnet,warning) << "Version mismatch. LOCAL: " << CSM_VERSION << "; REMOTE: " << aMsgAddr._Msg.GetData();
+          LOG(csmnet,warning) << "Version mismatch from peer" << versionMsg._Hostname << ". LOCAL: " << CSM_VERSION << "; REMOTE: " << versionMsg._Version;
           aMsgAddr._Msg.SetErr();
           aMsgAddr._Msg.SetCommandType( aMsgAddr._Msg.GetReservedID() ); // restore the command type to match what the sender version had
           aMsgAddr._Msg.SetReservedID( 0 );
           KeepErrorFlag = true;
-          aMsgAddr._Msg.SetData( std::string("VERSION MISMATCH. Required: ") + std::string(CSM_VERSION, 0, 7));
+          aMsgAddr._Msg.SetData( std::string("VERSION MISMATCH. Required: ") + std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )));
           event_type = csm::network::NET_CTL_DISCONNECT;
           disconnect = true;
         }
@@ -212,6 +212,11 @@ retry:
         {
           LOG( csmnet, debug ) << "Received ControlMsg from " << aMsgAddr.GetAddr()->Dump() << " to RESTART";
           AddCtrlEvent( csm::network::NET_CTL_RESTARTED, aMsgAddr.GetAddr() );
+        }
+        if( 0 == aMsgAddr._Msg.GetData().compare( CSM_RESET_MSG ) )
+        {
+          LOG( csmnet, debug ) << "Received ControlMsg from " << aMsgAddr.GetAddr()->Dump() << " to RESET connection status.";
+          AddCtrlEvent( csm::network::NET_CTL_RESET, aMsgAddr.GetAddr() );
         }
         ret = 0; // don't expose this message, the network event is enough
         break;
@@ -289,7 +294,7 @@ int csm::network::ReliableMsg::Sync( const csm::network::SyncAction aSync )
   {
     // skip TIMEOUT events for any local client that's already disconnected
     if(( msg_itr.second->GetAddrType() == csm::network::CSM_NETWORK_TYPE_LOCAL ) &&
-        ( !_Unix->CheckRemoteAddress( msg_itr.second )) )
+        (( _Unix == nullptr ) || ( !_Unix->CheckRemoteAddress( msg_itr.second )) ) )
     {
       LOG(csmnet, debug ) << "Found timeout on ACK to local client that no longer exists";
       continue;

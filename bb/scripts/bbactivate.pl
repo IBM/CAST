@@ -17,6 +17,7 @@ use Cwd 'abs_path';
 use Carp qw( croak );
 use Getopt::Long;
 use POSIX;
+use Sys::Syslog;
 
 sub isRoot
 {
@@ -32,10 +33,22 @@ sub setprefix
 
 sub output
 {
-    my($out) = @_;
+    my($out, $level) = @_;
+    
+    if($setupSyslog == 0)
+    {
+	openlog("bbactivate", "ndelay,pid", "local0");
+	$setupSyslog = 1;
+    }
+    if(!defined $level)
+    {
+	$level = LOG_INFO;
+    }
+    
     foreach $line (split("\n", $out))
     {
 	print "$outputprefix$line\n";
+	syslog($level, $line);
     }
 }
 
@@ -60,7 +73,8 @@ sub cmd
     
     if(($? != 0) || ($@ =~ /alarm timeout/i))
     {
-	die "Command '$cmd' failed.  Aborting $0";
+	output("Command '$cmd' failed.  Aborting $0", LOG_ERR);
+	exit(4);
     }
     return $rc;
 }
@@ -93,14 +107,23 @@ GetOptions(
     "configtempl=s"         => \$CFG{"configtempl"},
     "outputconfig=s"        => \$CFG{"outputconfig"},
     "offload!"              => \$CFG{"USE_NVMF_OFFLOAD"},
-    "csm!"                  => \$CFG{"USE_CSM"}
+    "csm!"                  => \$CFG{"USE_CSM"},
+    "server!"               => \$CFG{"bbServer"}
     );
 
 getNodeName();
-makeConfigFile();
-configureNVMeTarget();
-configureVolumeGroup();
-startProxy();
+if($CFG{"bbServer"})
+{
+    makeServerConfigFile();
+    startServer();
+}
+else
+{
+    makeProxyConfigFile();
+    configureNVMeTarget();
+    configureVolumeGroup();
+    startProxy();
+}
 exit(0);
 
 
@@ -113,6 +136,7 @@ sub setDefaults
     $CFG{"outputconfig"} = "/etc/ibm/bb.cfg";
     $CFG{"USE_NVMF_OFFLOAD"} = 0;
     $CFG{"USE_CSM"} = 1;
+    $CFG{"bbServer"} = 0;
 }
 
 sub getNodeName
@@ -121,19 +145,38 @@ sub getNodeName
     $xcatinfo = "/opt/xcat/xcatinfo";
     if(! -f $xcatinfo)
     {
-	croak "Node was not deployed by xCAT.  Unable to identify the correct hostname";
+	output("Node was not deployed by xCAT.  Unable to identify the correct hostname", LOG_ERR);
+	exit(1);
     }
     $data = cat($xcatinfo);
     ($nodename) = $data =~ /NODE=(\S+)/s;
     output("node: $nodename");
 }
 
-sub makeConfigFile
+sub requireFile
 {
-    setprefix("makeConfigFile: ");
-    return if(!-f $CFG{"nodelist"});
-    return if(!-f $CFG{"esslist"});
-    return if(!-f $CFG{"configtempl"});
+    my($file) = @_;
+    if(!-f $file)
+    {
+	output("Specified file does not exist '$file'", LOG_ERR);
+	exit(2);
+    }
+}
+
+sub makeServerConfigFile
+{
+    setprefix("makeServerConfigFile: ");
+    requireFile($CFG{"configtempl"});
+    cmd("cp " . $CFG{"configtempl"} . " " . $CFG{"outputconfig"});
+}
+
+sub makeProxyConfigFile
+{
+    setprefix("makeProxyConfigFile: ");
+    requireFile($CFG{"nodelist"});
+    requireFile($CFG{"esslist"});
+    requireFile($CFG{"configtempl"});
+    
     $bbcfgtemplate = cat($CFG{"configtempl"});
     $json = decode_json($bbcfgtemplate);
     
@@ -174,7 +217,11 @@ sub makeConfigFile
     }
     close(TMP);
     
-    croak "This node '$nodename' does not appear in node list" if(!exists $NODES{$nodename});
+    if(!exists $NODES{$nodename})
+    {
+	output("This node '$nodename' does not appear in node list", LOG_ERR);
+	exit(3);
+    }
     
     $numess = $#ESS+1;
     $compute_per_ess = ceil($numnodes / $numess);
@@ -225,16 +272,25 @@ sub configureNVMeTarget
     cmd("modprobe nvmet");
     cmd("modprobe nvmet-rdma");
     
+    $mtab = cat("/etc/mtab");
+    if($mtab !~ /configfs/)
+    {
+	cmd("mount -t configfs none /sys/kernel/config");
+	$mtab = cat("/etc/mtab");
+    }
+    ($configfs) = $mtab =~ /configfs\s+(\S+)/;
+    output("Configfs found at: $configfs");
+    
     $nvmetjson = cat("$SCRIPTPATH/nvmet.json");
     $json = decode_json($nvmetjson);
     
     $ns  = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
     $nqn = $json->{"subsystems"}[0]{"nqn"};
     
-    $enabled = cat("/sys/kernel/config/nvmet/subsystems/$nqn/namespaces/$ns/enable");
+    $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
     {
-	output("NVMe over Fabrics target has been configured");
+	output("NVMe over Fabrics target has already been configured");
 	return;
     }
     
@@ -267,10 +323,10 @@ sub configureNVMeTarget
     
     if($CFG{"USE_NVMF_OFFLOAD"})  # workaround
     {
-	cmd("rm -f /sys/kernel/config/nvmet/ports/1/subsystems/$nqn");
-	cmd("echo 1 > /sys/kernel/config/nvmet/subsystems/$nqn/attr_offload");
-	cmd("echo 1 > /sys/kernel/config/nvmet/subsystems/$nqn/namespaces/$ns/enable");
-	cmd("ln -s /sys/kernel/config/nvmet/subsystems/$nqn /sys/kernel/config/nvmet/ports/1/subsystems/$nqn");
+	cmd("rm -f $configfs/nvmet/ports/1/subsystems/$nqn");
+	cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/attr_offload");
+	cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
+	cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/1/subsystems/$nqn");
     }
 }
 
@@ -316,10 +372,16 @@ sub configureVolumeGroup
     }
 }
 
+sub startServer
+{
+    setprefix("Starting bbServer: ");
+    cmd("service bbserver restart");
+}
+
 sub startProxy
 {
     setprefix("Starting bbProxy: ");
-    cmd("service bbproxy start");
+    cmd("service bbproxy restart");
 }
 
 sub isNVMeTargetOffloadCapable

@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    HandleFile.cc
  |
- |   Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -70,6 +70,7 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
         }
     }
 
+    pBuffer[l_TransferKeys.length()] = '\0';
     pBufferSize = l_TransferKeys.length();
 
     return rc;
@@ -493,7 +494,8 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
                                 rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                 if (!rc)
                                 {
-                                    pTransferKeys = l_HandleFile->transferKeys;
+                                    // The string is terminated with a line feed...  Don't copy the last character...
+                                    pTransferKeys = (l_HandleFile->transferKeys).substr(0,((l_HandleFile->transferKeys).length()-1));
                                 }
                                 else
                                 {
@@ -544,6 +546,7 @@ int HandleFile::loadHandleFile(HandleFile* &ptr, const char* filename)
     struct timeval start, stop;
     int l_LastConsoleOutput = -1;
 
+    start.tv_sec = 0; // resolve gcc optimizer complaint
     LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
 
     do
@@ -690,6 +693,8 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     }
     else
     {
+        delete[] l_ArchivePathWithName;
+        l_ArchivePathWithName = 0;
         rc = -1;
     }
 
@@ -701,7 +706,6 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
         }
         LOG(bb,debug) << "loadHandleFile(): Issue close for handle file fd " << fd;
         ::close(fd);
-        fd= -1;
     }
 
     return rc;
@@ -951,7 +955,6 @@ void HandleFile::testForLock(const char* pFilePath)
         LOG(bb,debug) << "testForLock(): Issue close for handle file fd " << fd;
         ::close(fd);
     }
-    fd = -1;
 
     return;
 }
@@ -1025,6 +1028,12 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
         // Save the handle file...
         rc = saveHandleFile(l_HandleFile, pLVKey, pJobId, pJobStepId, pHandle);
+
+        if (!rc)
+        {
+            // Update the handle status
+            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
+        }
     }
     else
     {
@@ -1098,16 +1107,22 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
     if (!rc)
     {
+        uint64_t l_StartingFlags = l_HandleFile->flags;
         uint64_t l_StartingStatus = l_HandleFile->status;
         uint64_t l_StartingTotalTransferSize = l_HandleFile->totalTransferSize;
-        //  NOTE: Partial/full success and canceled are final states so we don't have to recalculate the handle state.
+        //  NOTE: Full success and canceled are the only final states so we don't have to recalculate the handle state.
         //  NOTE: A canceled handle is a final state because it only becomes canceled after all associated files are
         //        closed and the handle itself is marked as canceled.  No additional transitions can occur.
         //  NOTE: A stopped handle can become canceled;  A failed handle can become stopped;
-        if ( (!(l_StartingStatus == BBPARTIALSUCCESS)) && (!(l_StartingStatus == BBFULLSUCCESS)) && (!(l_StartingStatus == BBCANCELED)) )
+        //  NOTE: For restart scenarios, a partially successful status can transition to stopped and then to in-progress.
+        if ( (!(l_StartingStatus == BBFULLSUCCESS)) && (!(l_StartingStatus == BBCANCELED)) )
         {
-            uint64_t l_AllFilesClosed = l_HandleFile->flags & BBTD_All_Files_Closed;
-            uint64_t l_AllExtentsTransferred = l_HandleFile->flags & BBTD_All_Extents_Transferred;
+            uint64_t l_AllFilesClosed;
+            uint64_t l_AllExtentsTransferred;
+#ifndef __clang_analyzer__
+            l_AllFilesClosed = l_HandleFile->flags & BBTD_All_Files_Closed;
+            l_AllExtentsTransferred = l_HandleFile->flags & BBTD_All_Extents_Transferred;
+#endif
 
             bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
             handle /= bfs::path(to_string(pJobId));
@@ -1145,12 +1160,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         {
                             for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                             {
-                                if (!(ce->second.flags & BBTD_All_Files_Closed))
+                                if ((ce->second.flags & BBTD_All_Files_Closed) == 0)
                                 {
                                     l_AllFilesClosed = 0;
                                     LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not closed";
                                 }
-                                if (!(ce->second.flags & BBTD_All_Extents_Transferred))
+                                if ((ce->second.flags & BBTD_All_Extents_Transferred) == 0)
                                 {
                                     l_AllExtentsTransferred = 0;
                                     LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not all extents transferred";
@@ -1158,17 +1173,17 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                                 if (ce->second.flags & BBTD_Stopped)
                                 {
                                     l_StoppedDefinitions = true;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
+                                    LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
                                 }
                                 if (ce->second.flags & BBTD_Failed)
                                 {
                                     l_FailedDefinitions = true;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
+                                    LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
                                 }
                                 if (ce->second.flags & BBTD_Canceled)
                                 {
                                     l_CanceledDefinitions = true;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
+                                    LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
                                 }
                             }
                         }
@@ -1182,6 +1197,11 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         {
                             delete l_ContribFile;
                             l_ContribFile = NULL;
+                        }
+
+                        if (rc)
+                        {
+                            break;
                         }
                     }
 
@@ -1211,8 +1231,20 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                                     else
                                     {
                                         // All extents have been transferred
+                                        // NOTE: This indication is turned on in the cross-bbServer metadata
+                                        //       before it is turned on in the local metadata for the 'last'
+                                        //       bbServer to do processing for this handle.  It will be turned
+                                        //       on in the local metadata when BBTagInfo::setAllExtentsTransferred()
+                                        //       is invoked a little later on in this code path during the processing
+                                        //       for the last extent.  It is turned on here as this is the only
+                                        //       place where we determine when all extents have been processed
+                                        //       across ALL bbServers associated with this handle.
+                                        l_HandleFile->flags |= BBTD_All_Extents_Transferred;
                                         if (l_AllFilesClosed)
                                         {
+                                            // All files have been marked as closed (but maybe not successfully,
+                                            // but then those files are marked as BBFAILED...)
+                                            l_HandleFile->flags |= BBTD_All_Files_Closed;
                                             if (!l_FailedDefinitions)
                                             {
                                                 if (!l_CanceledDefinitions)
@@ -1226,7 +1258,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                                                 else
                                                 {
                                                     l_HandleFile->status = BBPARTIALSUCCESS;
-                                                }                                            }
+                                                }
+                                            }
                                             else
                                             {
                                                 l_HandleFile->status = BBPARTIALSUCCESS;
@@ -1259,6 +1292,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         }
                         else
                         {
+                            // Mark the HandleFile as soon as we see any 'underlying' file marked as stopped
+                            l_HandleFile->flags |= BBTD_Stopped;
                             l_HandleFile->status = BBSTOPPED;
                         }
                     }
@@ -1285,7 +1320,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->totalTransferSize = (uint64_t)l_Size;
 
                 uint64_t l_EndingStatus = l_HandleFile->status;
-                if ( !(l_StartingStatus == l_EndingStatus && l_StartingTotalTransferSize == l_HandleFile->totalTransferSize) )
+                if ( !(l_StartingTotalTransferSize == l_HandleFile->totalTransferSize && l_StartingFlags == l_HandleFile->flags && l_StartingStatus == l_EndingStatus) )
                 {
                     LOG(bb,info) << "xbbServer: For jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ":";
                     if (l_StartingTotalTransferSize != l_HandleFile->totalTransferSize)
@@ -1299,6 +1334,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             LOG(bb,info) << "           Handle transferred size decreasing from " << l_StartingTotalTransferSize << " to " << l_HandleFile->totalTransferSize << ".";
                         }
                     }
+
+                    if (l_StartingFlags != l_HandleFile->flags)
+                    {
+                        LOG(bb,info) << "           Handle flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_HandleFile->flags << nouppercase << dec << ".";
+                    }
+
                     if (l_StartingStatus != l_EndingStatus)
                     {
                         char l_StartingStatusStr[64] = {'\0'};

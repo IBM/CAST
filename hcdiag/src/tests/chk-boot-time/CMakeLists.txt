@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/dcgm-diag/CMakeLists.txt
+#    hcdiag/src/tests/chk-boot-time/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,15 +13,13 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST healthmon)
+set(HCDIAG_TEST chk-boot-time)
 
-file(GLOB HCDIAG_TEST_FILE
-  "healthmon.sh"
+file(GLOB HCDIAG_TEST_PROGRAM
+  "chk-boot-time.sh"
+  "chk-boot-time.pm"
 )
 
-file(GLOB HCDIAG_TEST_CONF
-  "nvidia-healthmon-fst.conf"
-)
 
-install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
-install(FILES ${HCDIAG_TEST_CONF} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
+install(PROGRAMS ${HCDIAG_TEST_PROGRAM} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
+

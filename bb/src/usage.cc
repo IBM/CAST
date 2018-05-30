@@ -206,11 +206,15 @@ int proxy_GetUsage(const char* mountpoint, BBUsage_t& usage)
     if (bbxfer_usage.find(dinfo) != bbxfer_usage.end() )
     {
         rc = bbxfer_usage[dinfo].getlocalUsage(usage.localBytesRead, usage.localBytesWritten);
-        rc = bbxfer_usage[dinfo].getburstUsage(usage.burstBytesRead, usage.burstBytesWritten);
+        if(rc == 0)
+            rc = bbxfer_usage[dinfo].getburstUsage(usage.burstBytesRead, usage.burstBytesWritten);
         
-        usage.totalBytesRead    = usage.localBytesRead    + usage.burstBytesRead;
-        usage.totalBytesWritten = usage.localBytesWritten + usage.burstBytesWritten;
-        FL_Write6(FLBBUsage,GetUsageLV, "LocalRead=%ld LocalWrite=%ld BurstRead=%lu BurstWrite=%lu dev=%lu",usage.localBytesRead,usage.localBytesWritten,usage.burstBytesRead,usage.burstBytesWritten,0,0);  
+        if(rc == 0)
+        {
+            usage.totalBytesRead    = usage.localBytesRead    + usage.burstBytesRead;
+            usage.totalBytesWritten = usage.localBytesWritten + usage.burstBytesWritten;
+            FL_Write6(FLBBUsage,GetUsageLV, "LocalRead=%ld LocalWrite=%ld BurstRead=%lu BurstWrite=%lu dev=%lu",usage.localBytesRead,usage.localBytesWritten,usage.burstBytesRead,usage.burstBytesWritten,0,0);  
+        }
     }
     else 
     {

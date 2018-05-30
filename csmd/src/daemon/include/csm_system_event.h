@@ -39,6 +39,7 @@ public:
     RETRY_CONNECT,
     RESTARTED,
     FAILOVER,
+    RESET_AGG,
     FATAL,
     JOB_START,
     JOB_END,
@@ -86,9 +87,10 @@ operator<<( stream &out, const SystemContent::SIGNAL_TYPE &aType )
   {
     case SystemContent::CONNECTED:    out << "CONNECTED";    break;
     case SystemContent::DISCONNECTED: out << "DISCONNECTED"; break;
-    case SystemContent::FAILOVER: out << "FAILOVER"; break;
-    case SystemContent::RESTARTED: out << "RESTARTED"; break;
     case SystemContent::RETRY_CONNECT: out << "RETRY_CONNECT"; break;
+    case SystemContent::RESTARTED: out << "RESTARTED"; break;
+    case SystemContent::FAILOVER: out << "FAILOVER"; break;
+    case SystemContent::RESET_AGG: out << "RESET_AGG"; break;
     case SystemContent::FATAL: out << "FATAL"; break;
     case SystemContent::JOB_START: out << "JOB_START"; break;
     case SystemContent::JOB_END: out << "JOB_END"; break;

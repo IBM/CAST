@@ -120,10 +120,9 @@ void CSMIRasEventCreate::onRasPoolExit(RasEvent &rasEvent,
        shared_ptr<CSMIRasEventCreateContext> rctx = _contextMap[ctxId];
        assert(rctx);                     // todo, some better error checking...
 
-       string sqlStmt = getRasCreateSql(rasEvent);
        rctx->_state = CSMIRasEventCreateContext::WRITE_RAS_EVENT;      // remember we did this so we dispose of things on completion...
           
-       csm::db::DBReqContent dbcontent(sqlStmt);
+       csm::db::DBReqContent dbcontent = getRasCreateDbReq(rasEvent);
        csm::daemon::DBReqEvent *dbevent = new csm::daemon::DBReqEvent(dbcontent, csm::daemon::EVENT_TYPE_DB_Request, context);
        postEventList.push_back(dbevent);
        db_write_resp_pending = true; 
@@ -266,7 +265,7 @@ RasRc CSMIRasEventCreate::decodeRasEvent(csm::network::MessageAndAddress content
 // Generate SQL to read back the data for this msg_id from the csm_ras_type table and
 // get the current state for the node matching location_name, if applicable
 // This information should be returned in a single row containing all of the csm_ras_type data followed by the node state
-std::string CSMIRasEventCreate::getMsgTypeSql(const std::string &msg_id, const std::string &location_name)
+csm::db::DBReqContent CSMIRasEventCreate::getMsgTypeDbReq(const std::string &msg_id, const std::string &location_name)
 {
     ostringstream sqlStmt;
    
@@ -286,7 +285,8 @@ std::string CSMIRasEventCreate::getMsgTypeSql(const std::string &msg_id, const s
             << "NULL AS state, "
             << "ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS ID "
             << "FROM csm_ras_type WHERE " 
-            << "msg_id = '" << msg_id << "'"
+            << "msg_id = "
+            << "$1::text"
             << "),";
    
     // Get the node state 
@@ -304,7 +304,8 @@ std::string CSMIRasEventCreate::getMsgTypeSql(const std::string &msg_id, const s
             << "state, "
             << "ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS ID "
             << "FROM csm_node WHERE " 
-            << "node_name = '" << location_name << "'"
+            << "node_name = "
+            << "$2::text"
             << ")";
 
     // Join the two queries
@@ -323,12 +324,20 @@ std::string CSMIRasEventCreate::getMsgTypeSql(const std::string &msg_id, const s
             << "FROM T1 LEFT JOIN T2 ON(T1.ID=T2.ID)"
             << ";";
     
-    LOG(csmras, debug) << "CSMIRasEventCreate::getMsgTypeSql: " << sqlStmt.str();
+    LOG(csmras, debug) << "CSMIRasEventCreate::getMsgTypeDbReq: " << sqlStmt.str();
 
-    return(sqlStmt.str());
+    // Add SQL params
+    // $1::text = msg_id
+    // $2::text = location_name
+    const uint32_t SQL_PARAM_COUNT(2);
+    csm::db::DBReqContent dbcontent(sqlStmt.str(), SQL_PARAM_COUNT);
+    dbcontent.AddTextParam(msg_id.c_str());
+    dbcontent.AddTextParam(location_name.c_str());
+
+    return dbcontent;
 }
 
-RasRc CSMIRasEventCreate::getMsgTypeFromDbRec(csm::db::DBResult_sptr dbRes,
+RasRc CSMIRasEventCreate::processMsgTypeDbRes(csm::db::DBResult_sptr dbRes,
                                               RasMessageTypeRec &rec,
                                               std::string &node_state)
 {
@@ -391,69 +400,28 @@ RasRc CSMIRasEventCreate::getMsgTypeFromDbRec(csm::db::DBResult_sptr dbRes,
     for (uint32_t i=0;i<tuples.size();i++) csm::db::DB_TupleFree(tuples[i]);
     return rc;
 }
-
-string CSMIRasEventCreate::getRasCreateSql(RasEvent &rasEvent)
+    
+csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
 {
     LOG(csmras, trace) << "Enter " << __PRETTY_FUNCTION__;
+    
+    ostringstream sql_stmt;
+    uint32_t param(0);         // Count of SQL parameters    
 
-    vector<string> fields;
-    if (rasEvent.hasValue(CSM_RAS_FKEY_MSG_ID))          fields.push_back(CSM_RAS_FKEY_MSG_ID);
-    if (rasEvent.hasValue(CSM_RAS_FKEY_TIME_STAMP))      fields.push_back(CSM_RAS_FKEY_TIME_STAMP);
-    if (rasEvent.hasValue(CSM_RAS_FKEY_LOCATION_NAME))   fields.push_back(CSM_RAS_FKEY_LOCATION_NAME);
-    fields.push_back(CSM_RAS_FKEY_COUNT);
-    if (rasEvent.hasValue(CSM_RAS_FKEY_MESSAGE))         fields.push_back(CSM_RAS_FKEY_MESSAGE);
-    if (rasEvent.hasValue(CSM_RAS_FKEY_KVCSV))           fields.push_back(CSM_RAS_FKEY_KVCSV);
-    if (rasEvent.hasValue(CSM_RAS_FKEY_RAW_DATA))        fields.push_back(CSM_RAS_FKEY_RAW_DATA);
-
-    string dbstr;
-    dbstr = "INSERT INTO csm_ras_event_action (";
-    
-    // Need to associate to the correct msg_id_seq from the csm_ras_type_audit table
-    dbstr += "msg_id_seq,";
-    dbstr += "master_time_stamp,";
-    
-    for (unsigned n = 0; n < fields.size(); n++) {
-        if (n > 0) dbstr += ",";
-        dbstr += fields[n];
-    }
-    
-    dbstr += ") VALUES (";
-    
-    // Need to associate to the correct msg_id_seq from the csm_ras_type_audit table
-    dbstr += "(select msg_id_seq from csm_ras_type_audit where msg_id = '";
-    dbstr += rasEvent.getValue(CSM_RAS_FKEY_MSG_ID);
-    dbstr += "' order by change_time desc limit 1),";
-    
-    // master_time_stamp
-    dbstr += "now(),";
-    
-    for (unsigned n = 0; n < fields.size(); n++) 
-    {
-        if (n > 0) dbstr += ",";
-        if (fields[n] == CSM_RAS_FKEY_COUNT) 
-        {
-            //dbstr += "to_number('" + to_string(rasEvent.getCount()) + "','9999')";
-            dbstr += "'" + to_string(rasEvent.getCount()) + "'";
-        } 
-        else 
-        {
-            dbstr += "'" + rasEvent.getValue(fields[n]) + "'";
-        }
-    }
-    dbstr += ")";
-
-    // Add sections to SQL if set_state is not null
+    // Add optional section to SQL to update the state in the csm_node table if set_state is valid
     string set_state = rasEvent.getValue(CSM_RAS_FKEY_SET_STATE);
-    // Only change the node state if set_state=SOFT_FAILURE
+    bool add_set_state_sql(false);
     if (set_state == CSM_NODE_STATE_SOFT_FAILURE)
     {
         // Only change the node state if set_state=SOFT_FAILURE and
         // the node state is currently DISCOVERED or IN_SERVICE
         LOG(csmras, debug) << "Generating SQL for set_state=" << set_state << endl;
-        dbstr += ";UPDATE csm_node SET state='" + set_state + "' where node_name='";
-        dbstr += rasEvent.getValue(CSM_RAS_FKEY_LOCATION_NAME);
-        dbstr += "'";
-        dbstr += " AND state IN ('" + (string) CSM_NODE_STATE_DISCOVERED + "','" + (string) CSM_NODE_STATE_IN_SERVICE + "')";
+        add_set_state_sql = true;
+        sql_stmt << "WITH ras_update_node_state AS ( UPDATE csm_node SET state=";
+        sql_stmt << "$" << ++param << "::compute_node_states";     // SQL param: set_state
+        sql_stmt <<  " where node_name=";
+        sql_stmt << "$" << ++param << "::text";                    // SQL param: location_name
+        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE << "') ) ";
     }
     else if (set_state == "")
     {
@@ -464,9 +432,89 @@ string CSMIRasEventCreate::getRasCreateSql(RasEvent &rasEvent)
         LOG(csmras, warning) << "Ignoring invalid state request: set_state=" << set_state << endl;
     }
 
-    LOG(csmras, debug) << "CSMIRasEventCreate::getRasCreateSql: " << dbstr;
+    // Generate the SQL to insert the event into the csm_ras_event_action table
+    
+    // Add optional params to the fields vector
+    vector<string> fields;
+    if (rasEvent.hasValue(CSM_RAS_FKEY_TIME_STAMP))      fields.push_back(CSM_RAS_FKEY_TIME_STAMP);
+    if (rasEvent.hasValue(CSM_RAS_FKEY_MESSAGE))         fields.push_back(CSM_RAS_FKEY_MESSAGE);
+    if (rasEvent.hasValue(CSM_RAS_FKEY_KVCSV))           fields.push_back(CSM_RAS_FKEY_KVCSV);
+    if (rasEvent.hasValue(CSM_RAS_FKEY_RAW_DATA))        fields.push_back(CSM_RAS_FKEY_RAW_DATA);
 
-    return(dbstr);
+    sql_stmt << "INSERT INTO csm_ras_event_action (";
+    
+    // Need to associate to the correct msg_id_seq from the csm_ras_type_audit table
+    sql_stmt << "msg_id_seq,";
+    sql_stmt << "master_time_stamp,";
+    sql_stmt << "msg_id,";
+    sql_stmt << "location_name,";
+    sql_stmt << "count";
+    
+    // Append the optional params
+    for (unsigned n = 0; n < fields.size(); n++) {
+        sql_stmt << ",";
+        sql_stmt << fields[n];
+    }
+    
+    sql_stmt << ") VALUES (";
+    
+    // Need to associate to the correct msg_id_seq from the csm_ras_type_audit table
+    sql_stmt << "(select msg_id_seq from csm_ras_type_audit where msg_id = ";
+    sql_stmt << "$" << ++param << "::text";     // SQL param: msg_id
+    sql_stmt << " order by change_time desc limit 1),";
+    
+    // master_time_stamp
+    sql_stmt << "now(),";
+   
+    // msg_id
+    sql_stmt << "$" << ++param << "::text,";     // SQL param: msg_id
+    
+    // location_name
+    sql_stmt << "$" << ++param << "::text,";     // SQL param: location_name 
+    
+    // count 
+    sql_stmt << "$" << ++param << "::int";       // SQL param: count
+
+    // Add the optional params (start after the fixed params)
+    for (unsigned n = 0; n < fields.size(); n++) 
+    {
+        sql_stmt << ",";
+        if (fields[n] == CSM_RAS_FKEY_TIME_STAMP)
+        {
+            sql_stmt << "$" << ++param << "::timestamp";     // SQL param
+        }
+        else
+        {
+            sql_stmt << "$" << ++param << "::text";          // SQL param
+        }
+    }
+    sql_stmt << ");";
+
+    LOG(csmras, debug) << "CSMIRasEventCreate::getRasCreateDbReq: " << sql_stmt.str();
+    
+    // Add SQL params
+    csm::db::DBReqContent dbcontent(sql_stmt.str(), param);
+    
+    // Add the optional set_state SQL
+    if (add_set_state_sql)
+    {
+        dbcontent.AddTextParam(set_state.c_str());
+        dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_LOCATION_NAME).c_str());
+    }
+    
+    // Fixed params:
+    dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_MSG_ID).c_str());
+    dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_MSG_ID).c_str());
+    dbcontent.AddTextParam(rasEvent.getValue(CSM_RAS_FKEY_LOCATION_NAME).c_str());
+    dbcontent.AddNumericParam(rasEvent.getCount());
+
+    // Add the optional params (start after the fixed params):
+    for (unsigned n = 0; n < fields.size(); n++) 
+    {
+        dbcontent.AddTextParam(rasEvent.getValue(fields[n]).c_str());
+    }
+
+    return dbcontent;
 }
 
 
@@ -522,8 +570,6 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
         //
         // create a network event with both a ContextUuid and the 
         // original event content, type and source...
-        string sqlStmt = getMsgTypeSql(rasEvent->getValue(CSM_RAS_FKEY_MSG_ID), rasEvent->getValue(CSM_RAS_FKEY_LOCATION_NAME));
-
         csm::daemon::EventContext_sptr context(new csm::daemon::EventContext(this, CreateCtxAuxId(), CopyEvent(aEvent)));
 
         shared_ptr<CSMIRasEventCreateContext> rctx(new CSMIRasEventCreateContext());
@@ -535,7 +581,7 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
 
         LOG(csmras, info) << "NEW RAS EVENT        " << rctx->_rasEvent->getLogString();
 
-        csm::db::DBReqContent dbcontent(sqlStmt);
+        csm::db::DBReqContent dbcontent = getMsgTypeDbReq(rasEvent->getValue(CSM_RAS_FKEY_MSG_ID), rasEvent->getValue(CSM_RAS_FKEY_LOCATION_NAME));
         csm::daemon::DBReqEvent *dbevent = new csm::daemon::DBReqEvent(dbcontent, csm::daemon::EVENT_TYPE_DB_Request, context);
         postEventList.push_back(dbevent);
         return;
@@ -598,7 +644,7 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                 RasMessageTypeRec rec;
                 string node_state("");
                 if (rasRc._rc == CSMI_SUCCESS) {
-                    rasRc = getMsgTypeFromDbRec(dbRes, rec, node_state);
+                    rasRc = processMsgTypeDbRes(dbRes, rec, node_state);
                 }
     
                 if (rasRc._rc == CSMI_SUCCESS) {

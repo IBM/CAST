@@ -38,5 +38,6 @@ public:
 #include "src/csm_event_sinks/csm_sink_db.h"
 #include "src/csm_event_sinks/csm_sink_network.h"
 #include "src/csm_event_sinks/csm_sink_timer.h"
+#include "src/csm_event_sinks/csm_sink_system.h"
 
 #endif /* CSM_DAEMON_SRC_CSM_EVENT_SINK_H_ */

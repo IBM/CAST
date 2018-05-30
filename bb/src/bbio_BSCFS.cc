@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    bbio_BSCFS.cc
  |
- |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  ï¿½ Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -19,7 +19,7 @@
 #include "bbinternal.h"
 #include "bbserver_flightlog.h"
 #include "bscfs_mapfile.h"
-
+#include "tracksyscall.h"
 
 #define ERROR(text) { \
     stringstream errorText; \
@@ -297,14 +297,20 @@ int BBIO_BSCFS::closeSharedFileProcessing(uint32_t pFileIndex)
 	    uint64_t node = (contribId & 0xffff);
 	    uint64_t node_offset = offsetof(bscfs_mapfile_header_t, node) +
 				(node * sizeof(bscfs_mapfile_node_header_t));
+        
+        threadLocalTrackSyscallPtr = getSysCallTracker();
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, map,__LINE__,sizeof(node_header) ,node_offset);
 	    rc = ::pwrite(map, &node_header, sizeof(node_header), node_offset);
-	    if (rc != sizeof(node_header))
-	    {
-		SC_ERROR("pwrite(node_header) failed");
-		return -1;
-	    }
-
-	    (void) ::fsync(map);
+        threadLocalTrackSyscallPtr->clearTrack();
+        
+        if (rc != sizeof(node_header))
+        {
+            SC_ERROR("pwrite(node_header) failed");
+            return -1;
+        }
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, map, __LINE__);
+        (void) ::fsync(map);
+        threadLocalTrackSyscallPtr->clearTrack();
 	}
 
     return 0;
@@ -381,6 +387,7 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    return -1;
 	}
 	mapFileIndex = pFileIndex;
+    threadLocalTrackSyscallPtr = getSysCallTracker();
 
 	if (writing)
 	{
@@ -411,7 +418,11 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    int map = mapFileHandle->getfd();
 	    bscfs_mapfile_header_t header;
 	    ssize_t rc;
-	    rc = ::pread(map, &header, sizeof(header), 0);
+        
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map ,__LINE__,sizeof(header) , 0);
+        rc = ::pread(map, &header, sizeof(header), 0);
+        threadLocalTrackSyscallPtr->clearTrack();
+        
 	    if (rc != sizeof(header))
 	    {
 		SC_ERROR("pread(mapfile header) failed");
@@ -427,18 +438,22 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 		    (node * sizeof(bscfs_mapfile_node_header_t));
 
 	    bscfs_mapfile_node_header_t node_header = {0, 0, 0};
-	    if (node < node_count) {
-		rc = ::pread(map, &node_header, sizeof(node_header),
-			     node_offset);
-		if (rc != sizeof(node_header))
-		{
-		    SC_ERROR("pread(node_header) failed");
-		    delete mapFileHandle;
-		    mapFileHandle = NULL;
-		    mapFileIndex = -1u;
-		    return -1;
-		}
-	    }
+        if (node < node_count) {
+            
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map,__LINE__,sizeof(node_header) , node_offset);
+            rc = ::pread(map, &node_header, sizeof(node_header),
+                         node_offset);
+            threadLocalTrackSyscallPtr->clearTrack();
+            
+            if (rc != sizeof(node_header))
+            {
+                SC_ERROR("pread(node_header) failed");
+                delete mapFileHandle;
+                mapFileHandle = NULL;
+                mapFileIndex = -1u;
+                return -1;
+            }
+        }
 
 	    uint64_t region_offset = le64toh(node_header.region_offset);
 	    uint64_t region_count = le64toh(node_header.region_count);
@@ -466,23 +481,26 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    char* buffer = (char*) region;
 	    uint64_t offset = region_offset;
 	    uint64_t remainder = region_size;
-	    while (remainder > 0)
-	    {
-		rc = ::pread(map, buffer, remainder, offset);
-		if (rc < 0)
-		{
-		    SC_ERROR("pread(region) failed");
-		    free(index);
-		    index = NULL;
-		    delete mapFileHandle;
-		    mapFileHandle = NULL;
-		    mapFileIndex = -1u;
-		    return -1;
-		}
-		buffer += rc;
-		offset += rc;
-		remainder -= rc;
-	    }
+        while (remainder > 0)
+        {
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map ,__LINE__,remainder , offset);
+            rc = ::pread(map, buffer, remainder, offset);
+            threadLocalTrackSyscallPtr->clearTrack();
+            
+            if (rc < 0)
+            {
+                SC_ERROR("pread(region) failed");
+                free(index);
+                index = NULL;
+                delete mapFileHandle;
+                mapFileHandle = NULL;
+                mapFileIndex = -1u;
+                return -1;
+            }
+            buffer += rc;
+            offset += rc;
+            remainder -= rc;
+        }
 
 	    // Convert the region info to index mapping format, taking care
 	    // because the last mapping overlaps the last two regions. We keep
@@ -616,6 +634,7 @@ ssize_t BBIO_BSCFS::pread(uint32_t pFileIndex, char* pBuffer,
 		(offset < index->mapping[next].df_offset)) base = next;
 	}
 	int64_t idx = base - 1;
+    threadLocalTrackSyscallPtr = getSysCallTracker();
 
 	while (remainder > 0)
 	{
@@ -625,8 +644,12 @@ ssize_t BBIO_BSCFS::pread(uint32_t pFileIndex, char* pBuffer,
 	    // using the current mapping.
 	    uint64_t chunk = end - offset;
 	    if (chunk > remainder) chunk = remainder;
+        
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, sharedFileHandle->getfd() ,__LINE__,chunk , m->sf_offset + (offset - m->df_offset));
 	    ssize_t rc = ::pread(sharedFileHandle->getfd(), buffer, chunk,
 				 m->sf_offset + (offset - m->df_offset));
+        threadLocalTrackSyscallPtr->clearTrack();
+
 	    if (rc != (ssize_t) chunk)
 	    {
 		if (rc < 0)
@@ -669,24 +692,27 @@ int BBIO_BSCFS::fsync(uint32_t pFileIndex)
 {
     FL_Write(FLXfer, BSCFS_fsync, "BBIO_BSCFS::fsync(%p, pFileIndex %ld)", (uint64_t) this, pFileIndex, 0,0);
     LOG(bb,info) << "BBIO_BSCFS::" << __func__ << "(" << this
-	<< ", pFileIndex=" << pFileIndex
-	<< ")";
-
+    << ", pFileIndex=" << pFileIndex
+    << ")";
+    
     if (pFileIndex == mapFileIndex)
     {
-	// Nothing to do for the mapfile. We won't actually write to
-	// it until the shared file is closed.
+        // Nothing to do for the mapfile. We won't actually write to
+        // it until the shared file is closed.
     }
     else if (pFileIndex == sharedFileIndex)
     {
-	(void) ::fsync(sharedFileHandle->getfd());
+        threadLocalTrackSyscallPtr = getSysCallTracker();
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, sharedFileHandle->getfd(), __LINE__);
+        (void) ::fsync(sharedFileHandle->getfd());
+        threadLocalTrackSyscallPtr->clearTrack();
     }
     else
     {
-	ERROR("Unexpected file index: " << pFileIndex);
-	return -1;
+        ERROR("Unexpected file index: " << pFileIndex);
+        return -1;
     }
-
+    
     return 0;
 }
 
@@ -743,6 +769,8 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 	    end = m->df_offset + m->length;
 	}
 
+    threadLocalTrackSyscallPtr = getSysCallTracker();
+
 	while (remainder > 0)
 	{
 	    uint64_t chunk;
@@ -752,8 +780,12 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 		// as we can from the buffer to the shared file
 		chunk = end - offset;
 		if (chunk > remainder) chunk = remainder;
+            
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, sharedFileHandle->getfd(),__LINE__,chunk ,m->sf_offset + (offset - m->df_offset));
 		ssize_t rc = ::pwrite(sharedFileHandle->getfd(), buffer, chunk,
 				      m->sf_offset + (offset - m->df_offset));
+        threadLocalTrackSyscallPtr->clearTrack();
+            
 		if (rc != (ssize_t) chunk)
 		{
 		    if (rc < 0)

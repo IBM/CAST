@@ -6,6 +6,7 @@
   "private":
   ["csm_allocation_query_details",
    "csm_allocation_delete",
+   "csm_allocation_update_state",
    "csm_bb_cmd",
    "csm_jsrun_cmd",
    "csm_allocation_step_query_details"],

@@ -69,6 +69,13 @@
 #define CSM_FAILOVER_MSG "FAIL0VER"
 
 
+/** @def CSM_RESET_MSG
+ * @brief String to be sent between compute and aggregator to
+ *  signal a reset of primary connection to secondary
+ */
+#define CSM_RESET_MSG "R3S3T"
+
+
 /** @def CSM_RESTART_MSG
  * @brief String to be sent between compute and aggregator to
  * signal a restarted or "fresh from disconnect" state

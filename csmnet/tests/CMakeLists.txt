@@ -20,6 +20,7 @@ set(CSM_NETWORK_TEST_CPP_SOURCES
   csm_network_header_test.cc
   csm_network_msg_test.cc
   csm_multicast_msg_test.cc
+  csm_version_msg_test.cc
   endpoint_ptp_test.cc
   buffer_state_test.cc
   address_test.cc

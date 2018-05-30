@@ -27,6 +27,8 @@ fi
 
 
 set -e
+model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+echo "Running $(basename $0) on $(hostname -s), machine type $model."          
 thisdir=`dirname $0`
 $thisdir/chk-kworker.pm $@
 

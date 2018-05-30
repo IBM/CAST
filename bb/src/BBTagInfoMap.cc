@@ -268,11 +268,11 @@ int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_Exten
     return rc;
 }
 
-void BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const uint64_t pHandle, const BBSTATUS pStatus)
+void BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, pConnectionName, pLVKey, pTagInfo2, it->first, pHandle, pStatus);
+        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagInfo2, it->first, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
     return;

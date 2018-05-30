@@ -31,14 +31,14 @@ fi
 thisdir=`dirname $0`
 GPU_HEALTH=$thisdir/gpu-health
 
-EXPECTED_NVLINK_XFER_SPEED=40    # GB/s
+EXPECTED_NVLINK_XFER_SPEED=39    # GB/s
 EXPECTED_GPU_MEM_BANDWITH=800    # GB/s
 EXPECTED_DGEMM_FLOPS=7           # TFlofs
 if [ $# -gt 0 ]; then EXPECTED_NVLINK_XFER_SPEED=$1; fi
 if [ $# -gt 1 ]; then EXPECTED_GPU_MEM_BANDWITH=$2; fi
 if [ $# -gt 2 ]; then EXPECTED_DGEMM_FLOPS=$3; fi
 
-# around 40 GB/sec for nvlink transfer to devices in the same socket ... 
+# around 39 GB/sec for nvlink transfer to devices in the same socket ... 
 # around 800 GB/sec for bandwidth, 
 # around 7 TFlops dgemm 
 # checks gpu memory bw, gpu dgemm flops, nvlink transfer speeds 
@@ -90,14 +90,14 @@ if [ $rc -eq 0 ]; then
    # let's parse the output
    while [ $i -lt $n ]; do 
       counter=0 
-      echo ""
+      echo -e "\n\n"
       while read -r line; do
-         echo -e "Checking GPU $counter: ${eyecatcher[$i]}"
+         echo "Checking GPU $counter: ${eyecatcher[$i]}"
          aline=($line)
          value=${aline[${pos[$i]}]}
          ivalue=${value%.*}
          if [ $ivalue -lt ${EXPECTED_VALUE[$i]} ]; then
-            echo "Error, expecting: ${EXPECTED_VALUE[$i]} ${unit[$i]}, got: $value ${unit[$i]}."
+            echo -e "ERROR, expecting: ${EXPECTED_VALUE[$i]} ${unit[$i]}, got: $value ${unit[$i]}."
             let err+=1
          fi   
          let counter+=1
@@ -112,10 +112,10 @@ fi
 
 
 if [ $err -eq 0 ] && [ $rc -eq 0 ] ; then
-  echo "$me test PASS, rc=0"
+  echo -e "\n$me test PASS, rc=0"
 else
   if [ $rc -eq 0 ]; then rc=1; fi
-  echo "$me test FAIL, rc=$rc"
+  echo -e "\n$me test FAIL, rc=$rc"
 fi
 
 exit $rc              

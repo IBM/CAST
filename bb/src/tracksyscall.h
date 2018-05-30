@@ -59,6 +59,13 @@ uint64_t timebase;
      _timeStamp = 0;
      _syscall = nosyscall;
      _tid = pThread;
+     _fd = -1;
+     _timeStamp = 0;
+     _lineNumber = 0;
+     _rasCount = 0;
+     _size=0;
+     _offset=0;
+       
    }
 inline uint64_t   nowTrack(tracking pSyscall,const std::string& pFilename, int pLineNumber=0)
    {

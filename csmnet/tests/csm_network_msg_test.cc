@@ -163,7 +163,7 @@ int main( int argc, char **argv )
     if( ! tdata )
       datalen = 0;
 
-    bool expbool = (cmd < CSM_CMD_UNDEFINED ) || ( cmd >= CSM_CMD_MAX ) ||
+    bool expbool = ( ! csmi_cmd_is_valid( cmd ) ) ||
         ( prio > CSM_NETWORK_MAX_PRIORITY) ||
         ( uid == CSM_CREDENTIAL_ID_UNKNOWN ) || ( gid == CSM_CREDENTIAL_ID_UNKNOWN ) ||
         (flags != ( flags & CSM_HEADER_FLAGS_MASK ) );

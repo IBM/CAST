@@ -171,7 +171,14 @@ int CnxSockSSL::accept() {
         {
             close(_sockfd); //close listening CnxSockSSL
             _sockfd=_rcLast;
-            getpeername(_sockfd, &_sockaddrRemote, &lSockaddrlen);
+            int RCgetpeername=getpeername(_sockfd, &_sockaddrRemote, &lSockaddrlen);
+            if (RCgetpeername){
+                LOG(txp,always)<<"CnxSockSSL::accept() getpeername errno="<<errno<<", "<<strerror(errno);
+            }
+            int RCgetsockname = getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
+            if (RCgetsockname) {
+                LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
+            }
             LOG(txp,always)<<"CnxSockSSL::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
             _cSSL= SSL_new(_sslctx);
             SSL_set_fd(_cSSL, _sockfd);
@@ -199,7 +206,14 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
             delete l_NewSock;
         } else {
             l_NewSock->_sockfd = l_NewSock->_rcLast;
-            getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
+            int RCgetpeername=getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
+            if (RCgetpeername){
+                LOG(txp,always)<<"CnxSockSSL::accept(p) getpeername errno="<<errno<<", "<<strerror(errno);
+            }
+            int RCgetsockname = getsockname(l_NewSock->_sockfd, &(l_NewSock->_sockaddrLocal), &l_Sockaddrlen);
+            if (RCgetsockname) {
+                LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
+            }
             LOG(txp,always)<<"CnxSockSSL::accept(p) "<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
 
             l_NewSock->_cSSL= SSL_new(l_NewSock->_sslctx);
@@ -207,6 +221,7 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
             if (SSL_accept(l_NewSock->_cSSL)<0)
                 {
                     LOG(txp,error) << __PRETTY_FUNCTION__<< "SSL handcheck failed";
+                    delete l_NewSock;
                     return -2;
                 }
             pNewSock = l_NewSock;
@@ -237,7 +252,14 @@ int CnxSockSSL::connect2Remote(){
         LOG(txp,warning)<< __PRETTY_FUNCTION__<< "_rcLast="<< _rcLast << " errno="<<errno<<", "<<strerror(errno);
     } else {
         _sockaddrlen=sizeof(_sockaddrRemote);
-        getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
+        int RCgetsockname = getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
+        if (RCgetsockname) {
+            LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
+        }
+        int RCgetpeername = getpeername(_sockfd, &_sockaddrRemote, &_sockaddrlen);
+        if (RCgetpeername){
+            LOG(txp,always)<<"CnxSock::connect2Remote getpeername errno="<<errno<<", "<<strerror(errno);
+        }
         LOG(txp,always)<< "CnxSockSSL::connect2Remote() "<< getInfoString()<<" sockfd="<<_sockfd;
         _cSSL= SSL_new(_sslctx);
         SSL_set_fd(_cSSL, _sockfd);
