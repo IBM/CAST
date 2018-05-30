@@ -925,7 +925,6 @@ int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
     l_TransferDef->job = job;
     l_TransferDef->uid = uid;
     l_TransferDef->gid = gid;
-    l_TransferDef->extentsEnqueued = 0;     // Indicate no extents are enququed for this transfer definition
     l_TransferDef->contribid = contribid;
     l_TransferDef->flags = flags & BB_RetrieveTransferDefinitionsFlagsMask;
     l_TransferDef->tag = tag;
@@ -1259,6 +1258,22 @@ void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, con
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // \todo - We do not handle the return code... @DLH
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Canceled, pValue);
+
+    return;
+}
+
+void BBTransferDef::setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue)
+{
+    if ((((flags & BBTD_Extents_Enqueued) == 0) && pValue) || ((flags & BBTD_Extents_Enqueued) && (!pValue)))
+    {
+        LOG(bb,debug) << "BBTransferDef::setExtentsEnqueued(): Jobid " << job.getJobId() << ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                      << " -> Changing from: " << ((flags & BBTD_Extents_Enqueued) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+    }
+    SET_FLAG(BBTD_Extents_Enqueued, pValue);
+
+    // Now update the status for the ContribIdfiles in the xbbServer data...
+    // \todo - We do not handle the return code... @DLH
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Extents_Enqueued, pValue);
 
     return;
 }

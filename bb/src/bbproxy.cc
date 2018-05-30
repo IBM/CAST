@@ -2796,7 +2796,8 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
             // NOTE: archive string is already null terminated and the length accounts for the null terminator
             l_TransferDefs.assign((const char*)msgserver->retrieveAttrs()->at(txp::transferdefs)->getDataPtr(), l_NumBytesAvailable);
             LOG(bb,info) << "l_DataObtainedLocally = " << l_DataObtainedLocally << ", l_NumTransferDefs = " << l_NumTransferDefs
-                         << ", l_NumBytesAvailable = " << l_NumBytesAvailable << ", l_TransferDefs = |" << l_TransferDefs << "|";
+                         << ", l_NumBytesAvailable = " << l_NumBytesAvailable;
+            LOG(bb,debug) << "l_TransferDefs = |" << l_TransferDefs << "|";
         }
         delete(msgserver);
         msgserver=NULL;

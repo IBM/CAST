@@ -745,7 +745,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         else
         {
             // Dummy extent for file with no extents
-            ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+            ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
         }
     }
     else if(pExtent->flags & BBI_TargetPFSPFS)
@@ -767,7 +767,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         uint64_t l_FileStatus = 0;
-        uint64_t l_OriginalFileStatus = l_FileStatus;
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
@@ -800,16 +799,12 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                 break;
         }
 
-        SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Extents_Transferred, 1);
-        SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Files_Closed, 1);
-        LOG(bb,info) << "xbbServer: For " << pKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-        LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileStatus << " to 0x" << l_FileStatus << nouppercase << dec << ".";
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, l_FileStatus);
+        // Dummy extent for file with no extents
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else if(pExtent->flags & BBI_TargetSSDSSD)
     {
         uint64_t l_FileStatus = 0;
-        uint64_t l_OriginalFileStatus = l_FileStatus;
         if (pExtent->flags & BBTD_Stopped)
         {
             l_FileStatus |= BBTD_Stopped;
@@ -834,11 +829,8 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
 
-        SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Extents_Transferred, 1);
-        SET_FLAG_VAR(l_FileStatus, l_FileStatus, BBTD_All_Files_Closed, 1);
-        LOG(bb,info) << "xbbServer: For " << pKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-        LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileStatus << " to 0x" << l_FileStatus << nouppercase << dec << ".";
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, l_FileStatus);
+        // Dummy extent for file with no extents
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {
@@ -1763,12 +1755,12 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
             // This condition overrides any failure detected on bbProxy...
             pMarkFailedFromProxy = 0;
 
+            rc = -1;
             stringstream l_Temp;
             l_TagInfo->expectContribToSS(l_Temp);
             errorText << "taginfo: Expect contrib array mismatch for contribid " << pContribId << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag()
                       << "). Existing expect contrib array is " << l_Temp.str() << ". A different tag value must be used for this transfer definition.";
-            LOG_ERROR_TEXT(errorText);
-            rc = -1;
+            LOG_ERROR_TEXT_RC(errorText, rc);
         }
     }
 
@@ -1870,8 +1862,8 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                             // This condition overrides any failure detected on bbProxy...
                             pMarkFailedFromProxy = 0;
 
-                            errorText << "taginfo: Contribid " << pContribId << " already exists for TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "). A different tag value must be used for this transfer definition.";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                            errorText << "queueTagInfo: Failure from addTransferDef() for TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") for contribid " << pContribId << ", rc=" << rc;
+                            LOG_ERROR(errorText);
                         }
                     }
                     else
@@ -2399,9 +2391,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                             else
                                             {
                                                 // Inconsistency with metadata....
-                                                errorText << "queueTransfer(): Work queue entry was not returned from work queue manager when attempting to schedule additional extents to transfer";
-                                                LOG_ERROR_TEXT(errorText);
                                                 rc = -1;
+                                                errorText << "queueTransfer(): Work queue entry was not returned from work queue manager when attempting to schedule additional extents to transfer";
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                             }
                                         }
                                         else
@@ -2409,7 +2401,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                             // Inconsistency with metadata....
                                             rc = -1;
                                             errorText << "queueTransfer(): Could not find work queue when attempting to schedule additional extents to transfer";
-                                            LOG_ERROR_TEXT(errorText);
+                                            LOG_ERROR_TEXT_RC(errorText, rc);
                                         }
 
                                         if (!rc)
@@ -2438,20 +2430,20 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     {
                                         // Sort failed
                                         errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
-                                        LOG_ERROR_TEXT(errorText);
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
                                     }
                                 }
                                 else
                                 {
                                     // Add extents failed
                                     errorText << "addExtents() failed, rc = " << rc;
-                                    LOG_ERROR_TEXT(errorText);
+                                    LOG_ERROR(errorText);
                                 }
 
                                 if (!rc)
                                 {
-                                    // Indicate in the transfer definition that the extents are enqueued
-                                    l_TransferDef->setExtentsEnqueued();
+                                    // Indicate in the transfer definition/ContribId file that the extents are now enqueued
+                                    l_TransferDef->setExtentsEnqueued(pLVKey, pHandle, pContribId);
                                 }
                             }
                             else
@@ -2459,7 +2451,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 // Inconsistency with metadata....
                                 rc = -1;
                                 errorText << "queueTransfer(): Could not resolve to the transfer definition in the local metadata";
-                                LOG_ERROR_TEXT(errorText);
+                                LOG_ERROR_TEXT_RC(errorText, rc);
                             }
                         }
                         else
@@ -2467,7 +2459,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             // Inconsistency with metadata....
                             rc = -1;
                             errorText << "queueTransfer(): Could not resolve to BBTagInfo object in the local metadata";
-                            LOG_ERROR_TEXT(errorText);
+                            LOG_ERROR_TEXT_RC(errorText, rc);
                         }
                     }
                 }
