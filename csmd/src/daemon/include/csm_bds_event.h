@@ -19,7 +19,8 @@
 namespace csm {
 namespace daemon {
 
-typedef CoreEventBase<std::string> BDSEvent;
+typedef std::string BDSContent;
+typedef CoreEventBase<BDSContent> BDSEvent;
 typedef std::deque<const CoreEvent*> BDSEventQueue;
 
 
