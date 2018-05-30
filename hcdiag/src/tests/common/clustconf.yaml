@@ -72,6 +72,8 @@ node_info:
         - '0033:01:00.1'
       board_id: "IBM0000000002"
       firmware: "16.21.0106"
+      link_speed: "25"
+      link_width: "4x"
     os:
       name: "Red Hat Enterprise Linux Server"
       pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
@@ -144,6 +146,8 @@ node_info:
         - '0033:01:00.1'
       board_id: "IBM0000000002"
       firmware: "16.21.0106"
+      link_speed: "25"
+      link_width: "4x"
     os:
       name: "Red Hat Enterprise Linux Server"
       pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
@@ -213,6 +217,8 @@ node_info:
         - '0033:01:00.1'
       board_id: "IBM0000000002"
       firmware: "16.21.0106"
+      link_speed: "25"
+      link_width: "4x"
     os:
       name: "Red Hat Enterprise Linux Server"
       pretty_name: "Red Hat Enterprise Linux Server 7.4 (Maipo)"

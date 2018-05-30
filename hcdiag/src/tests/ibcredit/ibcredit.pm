@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #==============================================================================
 #   
-#    hcdiag/src/tests/ipoib/ipoib.pm
+#    hcdiag/src/tests/ibcredit/ibcredit.pm
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,7 +13,7 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 # 
 #==============================================================================
-# Show the state, MTU, and mode of the IPoIB devices on the node
+# Check for credit loops
 
 use strict;
 use warnings;
@@ -24,7 +24,7 @@ use File::Temp qw/ tempfile tempdir /;
 use File::Basename;
 use lib dirname(__FILE__)."/../common";
 use File::Temp qw/ tempdir /;
-
+use YAML;
 
 # SETUP: usage ----------------------------------------------------------------
 sub usage {
@@ -45,51 +45,42 @@ GetOptions(
     'h|help'      => \$help,
     'v|verbose'   => \$verbose,
 );
-
 if ($help) { usage() }
 
-
-# Print IPoIB info ------------------------------------------------------------
-my $node = `hostname -s`;
-$node =~ s/\R//g;
+# Use ibdiagnet to check for credit loops -------------------------------------
 my $tempdir = tempdir( CLEANUP => 1 );
 my $rc=$?;
 my $errs = [];
 
-my $ib_cmd = "ls /sys/class/net/ | grep 'ib.' 2>$tempdir/stderr";
-if ($verbose) { print "List ibs command: $ib_cmd\n"; }
-my $ib_list = `$ib_cmd`;
+my $cmd = "sudo /usr/bin/ibdiagnet -r --fat_tree --skip all -o $tempdir/ibdiagnet 2>$tempdir/stderr";
+if ($verbose) {print "command: $cmd\n";}
+my $rval = `$cmd`;
 
-if (length($ib_list) == 0) {
-    push (@$errs, "(ERROR) Found no IPoIB devices\n");
-}
-
-foreach my $ib (split /\n/, $ib_list) {
-    my $state_cmd = "cat /sys/class/net/$ib/operstate 2>$tempdir/stderr";
-    my $mtu_cmd = "cat /sys/class/net/$ib/mtu 2>$tempdir/stderr";
-    my $mode_cmd = "cat /sys/class/net/$ib/mode 2>$tempdir/stderr";
-    if ($verbose) {print "Info commands:\n$state_cmd\n$mtu_cmd\n$mode_cmd\n\n";}
-    my $state = `$state_cmd`;
-    my $mtu = `$mtu_cmd`;
-    my $mode = `$mode_cmd`;
-
-    if (! defined $state || ! defined $mtu || ! defined $mode) {
-      push (@$errs, "(ERROR) Missing files in /sys/class/net/$ib/\n");
-    } else {
-      print "$ib -------------------------------------\n";
-      print "State: " . uc $state;
-      print "MTU: $mtu";
-      print "Mode: " . uc $mode . "\n";
+if (`wc -l < $tempdir/stderr` == 0) {
+    # Parse the log file for the credit loop report
+    my $check = "cat $tempdir/ibdiagnet/ibdiagnet2.log | grep 'no credit loops found' | wc -l";
+    if ($verbose) {print "command: $check\n";}
+    my $loop = `$check`;
+    
+    if ($loop == 0) {
+        my $report = `sed -n '/Loops Report/,/Summary/p' $tempdir/ibdiagnet/ibdiagnet2.log`;
+        $report =~ s/(?:.*\n){1,3}\z//;
+        push(@$errs, "Credit loop(s) found. See report:\n\n$report");
+    }
+} else {
+    foreach my $l (split(/\n/,`cat $tempdir/stderr`)) { 
+        chomp $l; 
+        push(@$errs,"WARN: $l");
     }
 }
 
 # Print out errors ------------------------------------------------------------
 if (scalar @$errs) {
     for my $e (@$errs) {
-      print "(ERROR) $e\n";
+        print "(ERROR) $e\n";
     }
     print "$test test FAIL, rc=1\n";
     exit 1;
-} 
+}
 print "$test test PASS, rc=0\n";
 exit 0;
