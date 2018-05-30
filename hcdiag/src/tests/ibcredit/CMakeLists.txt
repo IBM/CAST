@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/temp/CMakeLists.txt
+#    hcdiag/src/tests/ibcredit/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,11 +13,13 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST temp)
+set(HCDIAG_TEST ibcredit)
 
-file(GLOB HCDIAG_TEST_FILE
-  "temp.sh"
-  "temp.pm"
+file(GLOB HCDIAG_TEST_PROGRAM
+  "ibcredit.sh"
+  "ibcredit.pm"
 )
 
-install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
+
+install(PROGRAMS ${HCDIAG_TEST_PROGRAM} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
+

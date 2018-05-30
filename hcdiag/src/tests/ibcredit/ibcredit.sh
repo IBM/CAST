@@ -1,7 +1,7 @@
 #!/bin/bash
-#================================================================================
+#==============================================================================
 #   
-#    hcdiag/src/tests/temp/temp.sh
+#    hcdiag/src/tests/ibcredit/ibcredit.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -12,7 +12,7 @@
 #    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 # 
-#=============================================================================
+#==============================================================================
 
 ## These lines are mandatory, so the framework knows the name of the log file
 ## This is necessary when invoked standalone --with xcat-- and common_fs=yes
@@ -28,4 +28,4 @@ model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
 echo -e "Running $(basename $0) on $(hostname -s), machine type $model.\n"          
 
 thisdir=`dirname $0`
-$thisdir/temp.pm $@
+$thisdir/ibcredit.pm $@
