@@ -788,8 +788,6 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
                             break;
                         }
                     }
-                    delete l_ContribFile;
-                    l_ContribFile = 0;
                 }
 
                 if (l_ExistingContribFile)
@@ -805,6 +803,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
                         errorText << "Contribid " << pContribId << " is already registered under lvuuid " << lvuuid.path().filename().string() << " for job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
+                }
+
+                if (l_ContribFile)
+                {
+                    delete l_ContribFile;
+                    l_ContribFile = 0;
                 }
             }
 
