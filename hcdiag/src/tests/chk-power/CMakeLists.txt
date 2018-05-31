@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/lnkqual/CMakeLists.txt
+#    hcdiag/src/tests/chk-power/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,11 +13,11 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST lnkqual)
+set(HCDIAG_TEST chk-power)
 
 file(GLOB HCDIAG_TEST_PROGRAM
-  "lnkqual.sh"
-  "lnkqual.pm"
+  "chk-power.sh"
+  "chk-power.pm"
 )
 
 
