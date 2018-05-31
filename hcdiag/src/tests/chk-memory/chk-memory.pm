@@ -67,6 +67,7 @@ my $errs=[];
 my $total=$nodeCfg->{memory}->{total};
 my $banks=$nodeCfg->{memory}->{banks};
 my $size=$nodeCfg->{memory}->{bank_size};
+
 if (!defined $total ) {
    push(@$errs, "$node: $nodeCfg->{memory}->{total} failed");
    $rc=1;
@@ -100,25 +101,43 @@ foreach my $l (split(/\n/,`cat $tempdir/stderr`)) { chomp $l; print "(WARN) $l\n
 if (length($rval) == 0) { push(@$errs,"Found No command output: "); }
 
 my $count=0;
+## /0/2/c                    memory     32GiB RDIMM DDR4 2666 MHz (0.4ns)
+## /0/2/c                    memory     RDIMM DDR4 2666 MHz (0.4ns)
+my $newfirm=1;
 foreach my $line (split(/\n/,$rval)) {
-   my ($value) = $line =~ /^\S*\s*memory\s*(.+?) .*/;
-   if ( defined $value ) {
-     if ($value =~ /GiB$/) {
-       my ($t)= $value =~ /^(.+?)GiB$/;
-       if ( $t != $total) {
-          push(@$errs,"Total memory size expected: $total, got: $t."); 
-       }   
-       else { print "Total memory size expected: $total\n";}
+   #print $line,"\n";
+   if ($line =~ /$STR2/ ) {
+     ++$count;
+     my ($rsize) = $line =~  /^\S+\s+memory\s+(\d+)GiB RDIMM.+/;
+     if ( defined $rsize ) {
+        if ( $rsize != $size) {
+           push(@$errs,"Bank size expected: $size, got: $rsize."); 
+        }
+     } 
+     else {
+        $newfirm=0;
+        if ($verbose) {print "Firmware version does not support bank size.\n";}
      }
-     else { ++$count; }
    }
-   else { push(@$errs,"Unexpected line found."); }
+   else {
+     my ($value) = $line =~  /^\S+\s+memory\s+(\d+)GiB System memory/;
+     if ( defined $value ) {
+        # total line
+        if ( $value != $total) {
+           push(@$errs,"Total memory size expected: $total, got: $value."); 
+        }   
+        else { print "Total memory size expected: $total\n";}
+     }
+     else { push(@$errs,"Unexpected line found.");}
+   }
 }
 if ( $count != $banks ) {
    push(@$errs,"Number of banks expected: $banks, got: $count."); 
 }
-else { print "Total number of banks expected: $banks\n";}
-
+else { 
+   print "Total number of banks expected: $banks\n";
+   if ( $newfirm ) { print "Bank size: $size\n";}
+}
 # ================================
 # Summary
 # ================================
