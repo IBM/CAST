@@ -1,0 +1,29 @@
+status
+version                     # Show program version
+#debug [LEVEL]              # Set debugging output level
+#buffsize NBYTES            # Set I/O data buffer size for tests
+#socksize NBYTES            # Set size of TCP send/receive buffer space
+#threads NTHREADS           # Set number of tester threads to use on clients. Default 4
+#parallel N                 # Set number of parallel socket connections (default 1)
+#rdma [on|off|all|inline  ] # Enable or disable RDMA for sending data blocks
+#maxrdma N                  # Set maximum number of RDMA ports to use per node
+#usecm [on|off]             # Use Connection Manager to establish RDMA connections
+#sinline [on|off]           # Use inline data in RDMA send
+#verify [on|off]            # Verify that contents of data messages are correct
+#ttime        120           # Set run time (in seconds) for tests
+test nwrite                 # Same as write test, but use NSD-style writing  (default)
+test read                   # Clients read round-robin from all servers      (default)
+test sread                  # Each tester thread reads from only one server
+test rw                     # Half of the tester threads read and half write
+# test write                # Clients write round-robin to all servers
+# test swrite               # Each tester thread writes to only one server
+# threshold should follow the same order as the test.
+threshold_nwrite     99
+threshold_read      110
+threshold_sread     110
+threshold_rw        100
+#threshold_write    100   
+#threshold_swrite   100   
+killall
+quit
+

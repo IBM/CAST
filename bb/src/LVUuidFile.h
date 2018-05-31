@@ -81,11 +81,6 @@ public:
 //    static int saveLVUuidFile(LVUuidFile* &pLVUuidFile, const LVKey* pLVKey, uint64_t pJobId, uint64_t pJobStepId, uint64_t pHandle);
     static int update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pFlags, const int pValue=1);
 
-    inline int allExtentsTransferred()
-    {
-        RETURN_FLAG(BBTD_All_Extents_Transferred);
-    }
-
     inline int load(const string& metadatafile)
     {
         int rc = -1;

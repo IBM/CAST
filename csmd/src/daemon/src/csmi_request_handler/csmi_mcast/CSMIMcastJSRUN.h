@@ -33,15 +33,17 @@ struct csmi_jsrun_cmd_context_t {
     uint32_t num_nodes;
     int64_t  allocation_id;
     char*    kv_pairs;
+    char*    jsm_path;
     char**   compute_nodes;
 
     csmi_jsrun_cmd_context_t() :
-        user_id(0), num_nodes(0), allocation_id(0), kv_pairs(nullptr),
+        user_id(0), num_nodes(0), allocation_id(0), kv_pairs(nullptr), jsm_path(nullptr),
         compute_nodes(nullptr) {}
 
     ~csmi_jsrun_cmd_context_t()
     {
         if ( kv_pairs ) free(kv_pairs);
+        if ( jsm_path ) free(jsm_path);
 
         if (compute_nodes != nullptr &&  num_nodes > 0 )
         {

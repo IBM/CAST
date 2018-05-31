@@ -113,6 +113,9 @@ int ParseCommandLineOptions( int argc, char **argv, CtrlCmdOption &o_cmd_option 
         ("log.csmapi",
             po::value<std::string>(&log_csmapi),
             "Specify the severity level ")
+
+        ("agg.reset",
+            "Cause a compute daemon to reset the current primary connection to the configured aggregator. ")
     ;
 
   po::variables_map vm;
@@ -207,7 +210,13 @@ int ParseCommandLineOptions( int argc, char **argv, CtrlCmdOption &o_cmd_option 
     o_cmd_option.set_dump_mem_usage();
     count++;
   }
-    
+
+  if( vm.count( "agg.reset"))
+  {
+    o_cmd_option.set_agg_reset();
+    count++;
+  }
+
   return count;
 
 }

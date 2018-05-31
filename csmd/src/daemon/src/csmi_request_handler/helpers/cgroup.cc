@@ -376,8 +376,65 @@ void CGroup::MigratePid( pid_t pid ) const
 
         // 1. Pid
         WriteToParameter( "tasks", controllerPath, pidStr.c_str(), pidStr.size() );
+
+    }
+}
+
+bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepTime) const
+{
+    bool success        = false; 
+    std::string pidStr  = std::to_string(pid); // The stringified pid.
+    uint32_t controller = CG_CPUSET; // Controller being checked.
+    uint32_t sleepCount = 0;         // Number of times the sleep has happened.
+    bool isFound        = false;     // The pid is found in a task list.
+    std::string line;                // Line for the getline operation.
+
+    for (; controller < csm_enum_max(csmi_cgroup_controller_t) && sleepCount < sleepAttempts;)
+    {
+        // Path is rebuilt each time to add an additional wait.
+        std::string controllerPath(CONTROLLER_DIR);
+        controllerPath.append(csmi_cgroup_controller_t_strs[controller]);
+        controllerPath.append(_CGroupName).append("/tasks");
+        
+        try
+        { 
+            std::ifstream sourceStream(controllerPath);
+
+            while( getline(sourceStream, line) )
+            {
+                if ( line.compare(0, std::string::npos, pidStr) == 0 )
+                {
+                    isFound = true;
+                    break;
+                }
+            }
+
+            // If the pid was found move to the next pid 
+            if (isFound)
+            {
+                controller++;
+            }
+            else
+            {
+                sleepCount++;
+                sleep(sleepTime);
+            }
+            isFound=false;
+        }
+        catch (const std::system_error& e)     
+        {
+            LOG( csmapi, warning) << "Read error for " << controllerPath;
+        }
     }
     
+    // If we didn't find everything  return false.
+    success= sleepAttempts != sleepCount;
+    if (!success)
+    {
+        LOG(csmapi, error) << "Pid was not migrated successfully: " << pidStr << " ; Failed on " << 
+            csmi_cgroup_controller_t_strs[controller];
+    }
+    return success;
 }
 
 void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32_t numProcessors ) 
@@ -640,10 +697,11 @@ void CGroup::DeleteCGroup(
         // If the cgroup fails to kill all of the tasks throw an exception.
         if (tasksFound > 0 )
         {
+            KillTasks( groupPath, true );
             std::string error = 
                 "DeleteCGroup; Unable to remove " + std::to_string(tasksFound) +
                 " tasks after " +  std::to_string(killAttempts) + 
-                " attempts in the " + groupPath + " cgroup.";
+                " attempts in the " + groupPath + " cgroup;";
             throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
         }
     }
@@ -957,7 +1015,7 @@ uint64_t CGroup::MigrateTasks(
     return failedMigration;
 }
 
-uint64_t CGroup::KillTasks( const std::string& controlGroup ) const
+uint64_t CGroup::KillTasks( const std::string& controlGroup, bool printPids ) const
 {
     LOG( csmapi, trace ) << _LOG_PREFIX "KillTasks Enter";
 
@@ -984,20 +1042,33 @@ uint64_t CGroup::KillTasks( const std::string& controlGroup ) const
         
         // The write function appears to be the only way to transfer the tasks.
         std::string line;
+        std::string pids = "";
         while ( std::getline (sourceStream, line) )
         {
-            long pid = stol(line);
-
-            errno = 0;
-            kill(pid,_TASK_KILL);
-
-            // TODO Do something with this failure.
-            if( errno != 0 )
+            if ( !printPids )
             {
-                LOG( csmapi, warning ) << "pid " << line << 
-                    " could not be killed: " << strerror(errno);
+                long pid = stol(line);
+
+                errno = 0;
+                kill(pid,_TASK_KILL);
+
+                // TODO Do something with this failure.
+                if( errno != 0 )
+                {
+                    LOG( csmapi, debug ) << "pid " << line << 
+                        " could not be killed: " << strerror(errno);
+                }
+                numTasks++;
             }
-            numTasks++;
+            else
+            {
+                pids.append(line).append(" ");
+            }
+        }
+
+        if(printPids)
+        {
+            LOG(csmapi, error) << controlGroup << " PIDs: " << pids;
         }
         
         // XXX This makes it work, but we need to stress test it.

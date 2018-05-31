@@ -20,6 +20,8 @@ if [ "$BSCFS_MNT_PATH" != "" ]; then
 fi
 export PATH_PRESERVE=$PATH
 
+echo "$( date ) stage-out process for LSF_STAGE_JOBID=$LSF_STAGE_JOBID"  &>> /var/log/bb_stageout.log
+
 su $LSF_STAGE_USER -p -c "$FLOOR/bb/scripts/stageout_admin.pl 1" | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stageout.log
 $FLOOR/bb/scripts/stageout_admin.pl 2 | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stageout.log
 su $LSF_STAGE_USER -p -c "$FLOOR/bb/scripts/stageout_admin.pl 3" | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stageout.log

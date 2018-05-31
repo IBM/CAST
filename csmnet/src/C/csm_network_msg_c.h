@@ -134,7 +134,7 @@ int csm_header_validate( csm_network_header_t const *aHeader )
   if( ! aHeader ) return 0;
   valid &= (aHeader->_ProtocolVersion == CSM_NETWORK_PROTOCOL_VERSION);
   valid &= (aHeader->_Priority < CSM_NETWORK_PRIORITY_INVALID);
-  valid &= (aHeader->_CommandType < CSM_CMD_MAX);
+  valid &= ( csmi_cmd_is_valid( aHeader->_CommandType ));
 //  valid &= (aHeader->_MessageID != 0); // messageID = 0 causes the network stack to generate a new one
   valid &= (aHeader->_Flags == ( aHeader->_Flags & CSM_HEADER_FLAGS_MASK ) );
 

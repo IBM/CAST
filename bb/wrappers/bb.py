@@ -391,7 +391,7 @@ def waitForCompletion(pEnv, pHandles, pAttempts=DEFAULT_WAIT_FOR_COMPLETION_ATTE
             print
 
         for i in xrange(len(pHandles)):
-            print "    *FINAL* Handle: %12s -> Status (Local,Overall): (%13s,%13s)  Transfer Size (Local,Total): (%s,%s)" % (pHandles[i], l_Status[i][0], l_Status[i][1], l_TransferSize[i][0], l_TransferSize[i][1])
+            print "    *FINAL* Handle: %12s -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (pHandles[i], l_Status[i][0], l_Status[i][1], '{:,}'.format(l_TransferSize[i][0]), '{:,}'.format(l_TransferSize[i][1]))
     else:
         l_AllFullSuccess = False
         print "Exceeded the maximum number of attempts to have all handles reach a status of BBFULLSUCCESS.  %d attempts were made." % (pAttempts)

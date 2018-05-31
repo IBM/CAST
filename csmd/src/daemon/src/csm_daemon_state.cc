@@ -760,18 +760,12 @@ void csm::daemon::DaemonStateAgent::InitActiveAddresses( )
   }
 }
 
-void csm::daemon::DaemonStateAgent::ResetPrimary()
-{
-  csm::daemon::Configuration *config = csm::daemon::Configuration::Instance();
-  SetPrimaryAggregator( config->GetConfiguredAggregatorAddress() );
-}
-
 void csm::daemon::DaemonStateAgent::SetPrimaryAggregator( const csm::network::Address_sptr primary )
 {
   std::lock_guard<std::mutex> guard( _map_lock );
 
   if( primary == nullptr )
-    throw csm::daemon::Exception("BUG: SetPrimaryAggregator attemped with nullptr.");
+    throw csm::daemon::Exception("BUG: SetPrimaryAggregator attempted with nullptr.");
 
   CSMLOG( csmd, debug ) << "SetPrimaryAggregator(): current status: primary=" << ( _Aggregators[ 0 ] != nullptr ? _Aggregators[ 0 ]->Dump() : "NULL" )
       << " secondary=" << ( _Aggregators[ 1 ] != nullptr ? _Aggregators[ 1 ]->Dump() : "NULL" );

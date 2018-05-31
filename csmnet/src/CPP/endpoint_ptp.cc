@@ -172,7 +172,7 @@ csm::network::NetworkCtrlInfo* csm::network::EndpointPTP_base::Sync( const csm::
 
 ssize_t csm::network::EndpointPTP_base::RecvVerify( csm::network::Message &aMsg )
 {
-  if( ! aMsg.Validate() )
+  if(( ! aMsg.Validate() ) && ( aMsg.GetCommandType() >= CSM_CMD_MAX ))
     throw csm::network::ExceptionRecv( "Invalid Header/Checksum", EBADMSG );
 
   ssize_t rlen = aMsg.GetDataLen() + sizeof( csm_network_header_t );
@@ -192,6 +192,9 @@ ssize_t csm::network::EndpointPTP_base::RecvVerify( csm::network::Message &aMsg 
   }
   else // if verified connection:
   {
+    if( ! csmi_cmd_is_valid( aMsg.GetCommandType() ))
+      throw csm::network::ExceptionProtocol( "Invalid/Unrecognized API call. Version mismatch?");
+
     if( aMsg.GetCommandType() == CSM_CMD_HEARTBEAT )
     {
       if( _Heartbeat.getInterval() != aMsg.GetReservedID() )
@@ -206,6 +209,7 @@ ssize_t csm::network::EndpointPTP_base::RecvVerify( csm::network::Message &aMsg 
       rlen = 0;  // empty this message - upper layers should not see it
     }
   }
+
   // we have received a message, therefore updating the interval here
   // but only if the message requested an ACK (otherwise we would prevent msgs to get sent to the peer
   if(( aMsg.GetPriority() >= CSM_PRIORITY_WITH_ACK) || ( aMsg.GetAck() ) || ( aMsg.GetCommandType() == CSM_CMD_HEARTBEAT ))

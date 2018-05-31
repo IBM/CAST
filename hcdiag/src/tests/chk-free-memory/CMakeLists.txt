@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/test_simple/CMakeLists.txt
+#    hcdiag/src/tests/chk-free-memory/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,11 +13,10 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST test_simple)
+set(HCDIAG_TEST chk-free-memory)
 
 file(GLOB HCDIAG_TEST_FILE
-  "test_simple.sh"
+  "chk-free-memory.sh"
 )
 
 install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
-

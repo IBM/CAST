@@ -76,9 +76,8 @@ namespace utility
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_sevs lvl)
     {
-	const char* str = severity_level_str[lvl];
 	if ((lvl < NUM_SEVERITIES) && (lvl >= 0))
-	    strm << setw(maxseveritywidth) << left << str;
+	    strm << setw(maxseveritywidth) << left << severity_level_str[lvl];
 	else
 	    strm << setw(maxseveritywidth) << left << static_cast< int >(lvl);
 	return strm;
@@ -87,9 +86,8 @@ namespace utility
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_subcomponents subcomponent)
     {
-	const char* str = subcomponent_str[subcomponent];
         if ((subcomponent < NUM_SUBCOMPONENTS) && (subcomponent >= 0))
-            strm << setw(maxsubcomponentwidth) << right << str;
+            strm << setw(maxsubcomponentwidth) << right << subcomponent_str[subcomponent];
         else
             strm << setw(maxsubcomponentwidth) << right << static_cast< int >(subcomponent);
         return strm;

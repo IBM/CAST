@@ -21,6 +21,8 @@ int main(int argc, char** argv)
 {
     FILE* fd;
     char *version;    
+    char *commit;
+    char *date;
 
     if(argc > 2)
     {
@@ -28,6 +30,18 @@ int main(int argc, char** argv)
     }
     else version = strdup("unknown");
     
+    if( argc > 3 )
+    {
+      commit = argv[3];
+    }
+    else commit = strdup("unknown");
+
+    if( argc > 4 )
+    {
+      date = argv[4];
+    }
+    else date = strdup("no date");
+
     std::string fn = argv[1];
     fn += ".tmp";
     
@@ -48,7 +62,9 @@ int main(int argc, char** argv)
     fprintf(fd, "|    U.S. Government Users Restricted Rights:  Use, duplication or disclosure\n");
     fprintf(fd, "|    restricted by GSA ADP Schedule Contract with IBM Corp.\n");
     fprintf(fd, "*******************************************************************************/\n\n");
-    fprintf(fd, "#define CSM_VERSION \"%s\"", version);
+    fprintf(fd, "#define CSM_VERSION \"%s\"\n\n", version);
+    fprintf(fd, "#define CSM_COMMIT \"%s\"\n\n", commit);
+    fprintf(fd, "#define CSM_DATE \"%s\"\n\n", date);
     fclose(fd);
     
     std::string rsynccmd = std::string("rsync -c ") + fn + " " + std::string(argv[1]);

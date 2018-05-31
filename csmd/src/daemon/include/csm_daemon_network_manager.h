@@ -134,6 +134,7 @@ public:
   }
   inline csm::daemon::VirtualNetworkChannel_sptr GetNetMgrChannel() const { return _NetMgrChannel; }
   inline csm::daemon::RetryBackOff *GetRetryBackoff() { return _IdleLoopRetry; }
+  inline csm::daemon::ConnectionHandling *GetConnectionHandling() const { return _ConnMgr; }
 
   bool ProcessNetCtlEvents();
   bool EndpointMaintenance();

@@ -111,6 +111,9 @@ csm::daemon::CoreGeneric::InitInfrastructure(const csm::daemon::EventManagerNetw
   else
     throw csm::daemon::Exception("BUG: no timer-mgr defined. Cannot continue.");
 
+  csm::daemon::EventSink* systemSink = new csm::daemon::EventSinkSystem( _netMgr->GetConnectionHandling() );
+  _EventSinks.Add( csm::daemon::EVENT_TYPE_SYSTEM, systemSink );
+
   //csm::daemon::EventSourceEnvironmental* envSource = new csm::daemon::EventSourceEnvironmental();
   //AddEventSource(envSource, "ENVIRONMENTAL");
   // make sure to remove from source set and delete in destructor
@@ -175,8 +178,7 @@ csm::daemon::CoreGeneric::GetEventHandler(const csm::daemon::CoreEvent &aEvent)
     csm::network::MessageAndAddress content = ev->GetContent();
     cmd = content._Msg.GetCommandType();
 
-    LOG(csmd, debug) << "CSM Command Type: " <<
-        ( cmd < CSM_CMD_MAX ? csmi_cmds_t_strs[cmd] : "NOT SET" ) ;
+    LOG(csmd, debug) << "CSM Command Type: " << csmi_cmds_to_str( cmd );
   }
   // if cmd is not CSM_CMD_MAX at this point, it means aEvent is a NetworkEvent.
 

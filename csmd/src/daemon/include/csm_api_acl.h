@@ -173,7 +173,7 @@ private:
             if (!api.empty())
             {
               csmi_cmd_t cmd = csmi_cmd_get(api.c_str());
-              if (cmd < CSM_CMD_MAX)
+              if( csmi_cmd_is_valid( cmd ) )
               {
                 _api_to_grp_map[cmd] = grp;
                 CSMLOG( csmd, debug ) << "API=" << api << " GROUP=" << key;

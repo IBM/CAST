@@ -2,7 +2,7 @@
 #
 #    csmutil/include/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -16,7 +16,7 @@ add_executable(csm_buildversion csm_buildversion.cc)
 
 add_custom_command(TARGET csm_buildversion
 	POST_BUILD
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/csm_buildversion ${CMAKE_CURRENT_SOURCE_DIR}/csm_version.h ${GITCOMMITID}
+    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/csm_buildversion ${CMAKE_CURRENT_SOURCE_DIR}/csm_version.h ${VERSION} ${GITCOMMITID} ${GITCOMMITDATE}
     COMMENT "Generating csm_version"
 )
 

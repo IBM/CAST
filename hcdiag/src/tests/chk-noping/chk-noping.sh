@@ -1,8 +1,7 @@
 #!/bin/bash
-
 #================================================================================
 #   
-#    hcdiag/src/tests/healthmon/healthmon.sh
+#    hcdiag/src/tests/chk-noping/chk-noping.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -16,26 +15,12 @@
 #=============================================================================
 
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
-HTOOL=gdk/usr/bin/nvidia-healthmon
-HCONF=nvidia-healthmon-fst.conf
-ARGS="-e"
 
-if [[ $# -gt 0 ]]; then
-   HCONF=$1
-fi
+set -e
+model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+echo "Running $(basename $0) on $(hostname -s), machine type $model."          
+echo -e "Checking $@ nodes.\n"
 
-if [ ! -r $HCONF ]; then echo "$HCONF configuration file not found or invalid permission"; exit -2; fi
-#####
-echo "Invoking $HTOOL with config file $HCONF"
-$HTOOL $ARGS -c $HCONF -v
-rc=$?
-if [ $rc -ne 0 ]; then 
-   echo "nvidia-healthmon FAIL RC= $rc"
-else
-   echo "nvidia-healthmon PASS, RC= $rc"
-fi
-#####
+thisdir=`dirname $0`
+$thisdir/chk-noping.pm $@
 
-
-exit $rc

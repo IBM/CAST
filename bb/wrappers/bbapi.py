@@ -411,7 +411,7 @@ def BB_GetTransferInfo(pHandle):
     l_ReturnStruct = BBTransferInfo_t.from_buffer_copy(l_Info)
 
     bb.printLastErrorDetailsSummary()
-    print "BB_GetTransferInfo completed%s  Handle: %12d -> Status (Local,Overall): (%13s,%13s)  Transfer Size (Local,Total): (%d,%d)" % (os.linesep, l_ReturnStruct.handle, BBSTATUS[l_ReturnStruct.localstatus], BBSTATUS[l_ReturnStruct.status], l_ReturnStruct.localTransferSize, l_ReturnStruct.totalTransferSize)
+    print "BB_GetTransferInfo completed%s  Handle: %12d -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (os.linesep, l_ReturnStruct.handle, BBSTATUS[l_ReturnStruct.localstatus], BBSTATUS[l_ReturnStruct.status], '{:,}'.format(l_ReturnStruct.localTransferSize), '{:,}'.format(l_ReturnStruct.totalTransferSize))
 
     return l_ReturnStruct
 
@@ -522,11 +522,19 @@ def BB_StartTransfer(pTransferDef, pHandle):
     while (rc not in l_NormalRCs and rc in l_ToleratedErrorRCs):
         rc = bb.api.BB_StartTransfer(pTransferDef, l_Handle)
         if (rc not in (l_NormalRCs + l_ToleratedErrorRCs)):
-            raise BB_StartTransferError(rc)
+            dummy = BBError()
+            if ("suspended" not in dummy.getLastErrorDetailsSummary()):
+                raise BB_StartTransferError(rc)
+            else:
+                # This is the case where the work queue is found suspended during the second volley to bbServer.
+                # Other 'suspended' scenarios will return a tolerable -2.
+                print "Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic should perform this start transfer operation." % (`pTransferDef`, pHandle)
+                break
         else:
             time.sleep(10)
 
     bb.printLastErrorDetailsSummary()
-    print "Transfer %s started for handle %s" % (`pTransferDef`, pHandle)
+    if (rc == 0):
+        print "Transfer %s started for handle %s" % (`pTransferDef`, pHandle)
 
     return

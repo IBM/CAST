@@ -156,6 +156,8 @@ typedef struct {
     char create; /**< A flag indicating whether this is a create or delete payload. */
     char* hostname; /**< The hostname of the node this Payload was sent to. */  
     int64_t gpu_energy; /**< The gpu energy (watts).*/
+    csmi_cmd_err_t error_code; /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
+    char* error_message; /**< The error message in failure cases which don'tbreak data aggregation.*/
 } csmi_allocation_mcast_payload_response_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *
@@ -195,7 +197,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t step_id; /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
     int64_t allocation_id; /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
-    int32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes.*/
+    uint32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes.*/
     char begin; /**< A flag indicating whether this is a begin or end payload. */
     char* user_flags; /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
     char** compute_nodes; /**< The list of nodes associated with this step. Used to populate the *csm_step_node* table of the CSM DB. Size stored in @ref num_nodes.*/
@@ -282,6 +284,7 @@ typedef struct {
     uint32_t user_id; /**< The user id for the spawn. */
     char* kv_pairs; /**< The arguments for JSRUN execution. */
     char* hostname; /**< The hostname of the node. */
+    char* jsm_path; /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
 } csmi_jsrun_cmd_payload_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

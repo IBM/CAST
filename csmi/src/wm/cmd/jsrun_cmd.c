@@ -36,6 +36,7 @@ struct option longopts[] = {
 	{"verbose",       required_argument, 0, 'v'},
 	{"allocation_id", required_argument, 0, 'a'},
 	{"kv_pairs",      required_argument, 0, 'k'},
+	{"jsm_path",      required_argument, 0, 'p'},
 	{0,0,0,0}
 };
 
@@ -66,6 +67,7 @@ static void help()
     puts("    -----------------------|---------------------|--------------");
     puts("    -k, --kv_pairs         | \"gpus=0,mem=1024\" | (String) A comma separated list of alphanumeric ");
     puts("                                                   key value pairs (indicated by equals signs).");
+    puts("    -p, --jsm_path         | \"/path/to/jsm\"    | (String) A linux path to the jsm executable.");
     puts("                           |                     | ");
 	puts("");
 	puts("GENERAL OPTIONS:");
@@ -86,11 +88,12 @@ int main(int argc, char *argv[])
     API_PARAMETER_INPUT_TYPE input;    
     input.allocation_id = 0;
     input.kv_pairs      = NULL;
+    input.jsm_path      = NULL;
 
 	csm_api_object   *csm_obj = NULL;
 	char             *arg_check = NULL; ///< Used in verifying the long arg values.
 
-	while ((opt = getopt_long(argc, argv, "hv:a:k:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:a:k:p:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -108,7 +111,11 @@ int main(int argc, char *argv[])
                 csm_optarg_test( "-k, --kv_pairs", optarg, USAGE );
                 input.kv_pairs = strdup(optarg);
                 break;
-			default:       
+            case 'p':
+                csm_optarg_test( "-p, --jsm_path", optarg, USAGE );
+                input.jsm_path = strdup(optarg);
+                break;
+			default:      
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
                 USAGE();
                 return CSMERR_INVALID_PARAM;

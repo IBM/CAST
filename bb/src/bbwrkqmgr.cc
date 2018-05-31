@@ -488,8 +488,15 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
     FILE* fd = openAsyncRequestFile("rb", pSeqNbr);
     if (fd != NULL)
     {
-        fseek(fd, 0, SEEK_END);
-        pOffset = (int64_t)ftell(fd);
+        rc = fseek(fd, 0, SEEK_END);
+        if (!rc)
+        {
+            pOffset = (int64_t)ftell(fd);
+        }
+        else
+        {
+            rc = -1;
+        }
         fclose(fd);
     }
     else
@@ -779,7 +786,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             //
             // NOTE: rc is returned as a zero in this case.  We do not know if
             //       any other workqueue has an entry...
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
+            LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
+            dump("info", " Work Queue Mgr (Specific workqueue not found)", DUMP_ALWAYS);
         }
     }
 
@@ -914,10 +922,16 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                     rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, CREATE_NEW_FILE);
                     if (!rc)
                     {
+                        // Close the file...
+                        fclose(l_FilePtr);
+                        l_FilePtr = 0;
+
+                        // Iterate to open the new file...
                         l_AllDone = false;
                     }
                     else
                     {
+                        // Error case...  Just return this file...
                         // \todo - Code error case @DLH
                     }
                 }
@@ -969,6 +983,10 @@ void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
 
 void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
 {
+    // NOTE: We currently hold the lock transfer queue lock.  Therefore, we essentially process all of the
+    //       outstanding async requests in FIFO order and even if bbServer is multi-threaded, we serialize
+    //       the processing for each of these requests.  This is true even if the processing for an individual
+    //       request releases and re-acquires the lock as part of its processing.
     uint32_t i = 0;
     bool l_AllDone= false;
 

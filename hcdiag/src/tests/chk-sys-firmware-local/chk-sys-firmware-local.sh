@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-sys-firmare/chk-sys-firmware-local.sh
+#    hcdiag/src/tests/chk-sys-firmware/chk-sys-firmware-local.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #

@@ -22,6 +22,7 @@
 #include <grp.h> 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "cgroup.h"
 
 namespace csm {
 namespace daemon {
@@ -77,7 +78,7 @@ void ProcessExit(int sig)
     while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 }
 
-int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool nohup ) 
+int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id)
 {
     #define FROM_CHILD 0
     #define TO_PARENT 1
@@ -108,26 +109,26 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
                 if(rc)
                 {
                     // \todo bail out due to failure
-                    return -1;
+                    _Exit(-1);
                 }
                 rc = setgroups(ngroups, groups);
                 if(rc)
                 {
                     // \todo bail out due to failure
-                    return -1;
+                    _Exit(-1);
                 }
             }
             rc = setreuid(user_id, user_id);  // must set UID last
             if(rc)
             {
                 // \todo bail out due to failure
-                return -1;
+                _Exit(-1);
             }
         }
         else
         {
             // \todo pw lookup failure, exit
-            return -1;
+            _Exit(-1);
         }
     }
     
@@ -135,29 +136,16 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
     if ( execPid == 0  )
     {
         close(uni_pipe[FROM_CHILD]);
-
-        // If not nohup duplicate the streams.
-        if ( !nohup )
-        {
-            dup2(uni_pipe[TO_PARENT], STDOUT_FILENO);
-            dup2(uni_pipe[TO_PARENT], STDERR_FILENO);
-        }
-         
+        dup2(uni_pipe[TO_PARENT], STDOUT_FILENO);
+        dup2(uni_pipe[TO_PARENT], STDERR_FILENO);
         close(uni_pipe[TO_PARENT]);
 
         _Exit(execv(*argv, argv));
-        
     }
     else // Save the output.
     {
         *output = nullptr;
         close(uni_pipe[TO_PARENT]);
-
-        if (nohup)
-        {
-            close(uni_pipe[FROM_CHILD]);
-            return 0;
-        }
 
         size_t buffer_read= 0,buffer_total= 1;
         char buffer[BUFFER_SIZE];
@@ -183,6 +171,82 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, bool 
 
     return WEXITSTATUS(status);
 }
+
+int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid_t user_id)
+{
+    #define FROM_CHILD 0
+    #define TO_PARENT 1
+    #define BUFFER_SIZE 1024
+    int status = 0;
+    int rc;
+    pid_t execPid = fork();
+    
+    if ( execPid == 0  )
+    {
+        execPid = fork();
+        if(execPid != 0)
+        {
+            // Setup the cgroup.
+            csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
+            cgroup.MigratePid(execPid);
+            _Exit(0);
+        }
+
+        // Set the userid.
+        passwd *pw = getpwuid(user_id);
+        if (pw)
+        {
+            #define MaxGroups 1024  // LDAP limit is slightly less than 1024
+            int ngroups = MaxGroups;
+            gid_t groups[MaxGroups];
+            
+            // TODO make this into a function.
+            if( getgrouplist(pw->pw_name, pw->pw_gid, groups, &ngroups) != -1)
+            {
+                rc = setregid(pw->pw_gid, pw->pw_gid);
+                if(rc)
+                {
+                    // \todo bail out due to failure
+                    _Exit(-1);
+                }
+                rc = setgroups(ngroups, groups);
+                if(rc)
+                {
+                    // \todo bail out due to failure
+                    _Exit(-1);
+                }
+            }
+            rc = setreuid(user_id, user_id);  // must set UID last
+            if(rc)
+            {
+                // \todo bail out due to failure
+                _Exit(-1);
+            }
+
+
+            // Wait on the PID migration then execute.
+            try
+            {
+                csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
+
+                if(cgroup.WaitPidMigration(getpid()))
+                    _Exit(execv(*argv, argv));
+            }
+            catch ( const std::exception& e )
+            {
+                _Exit(-1);
+            }
+        } 
+
+        _Exit(0);
+    }
+
+    waitpid(execPid, &status, 0);
+
+    return WEXITSTATUS(status);
+        
+}
+
 int ForkAndExec( char * const argv[] )
 {
     int status = 0;
