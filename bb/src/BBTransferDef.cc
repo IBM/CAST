@@ -1361,7 +1361,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 //       bbProxy.  We have to make sure that the extents are first enqueued
                 //       so that the stop processing is properly performed.
                 //
-                //       We spin for up to a 30 seconds...
+                //       We spin for up to a 2 minutes...
                 string l_ConnectionName = string();
                 int l_Attempts = 120;
                 while (!rc && l_Attempts--)
@@ -1371,7 +1371,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     {
                         unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                         {
-                            usleep((useconds_t)250000);    // Delay 250 milliseconds
+                            usleep((useconds_t)1000000);    // Delay 1 second
                         }
                         lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
 
@@ -1463,10 +1463,10 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 {
                     if (!rc)
                     {
-                        LOG(bb,info) << "Extents have not yet been scheduled for the transfer definition associated with host " << pHostName \
-                                     << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                                     << ".  A start transfer request was caught in mid-flight.  If a restart operation follows this stop transfer" \
-                                     << " request, that operation will properly restart this transfer definition.  Stop transfer request ignored.";
+                        LOG(bb,info) << "Transfer definition associated with host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                                     << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
+                                     << ". However, the transfer definition does not have enqueued extents for transfer for any file, so the stop transfer request" \
+                                     << " is ignored.";
                         rc = 5;
                     }
                     else

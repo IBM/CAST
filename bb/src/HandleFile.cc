@@ -1173,17 +1173,17 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                                 if (ce->second.flags & BBTD_Stopped)
                                 {
                                     l_StoppedDefinitions = true;
-                                    LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
+                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
                                 }
                                 if (ce->second.flags & BBTD_Failed)
                                 {
                                     l_FailedDefinitions = true;
-                                    LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
+                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
                                 }
                                 if (ce->second.flags & BBTD_Canceled)
                                 {
                                     l_CanceledDefinitions = true;
-                                    LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
+                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
                                 }
                             }
                         }
