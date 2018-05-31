@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_environmental_data.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -79,7 +79,7 @@ public:
 
   void Print(){
 
-    LOG( csmd, debug ) << " ENVDATA: BitSet:" << _Data_Mask.to_string();
+    LOG( csmenv, debug ) << " ENVDATA: BitSet:" << _Data_Mask.to_string();
 
     if( _Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) ){ Print_GPU_Double_DCGM_Field_String_Identifiers(); }
     if( _Data_Mask.test( GPU_DOUBLE_DATA_BIT ) ){ Print_GPU_Double_DCGM_Field_Values(); }
