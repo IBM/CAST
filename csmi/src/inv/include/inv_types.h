@@ -141,6 +141,23 @@ typedef struct csm_ssd_inventory_t
 
 } csm_ssd_inventory_t;
 
+typedef struct csm_processor_inventory_t
+{
+  char serial_number[CSM_PROCESSOR_SERIAL_NUMBER_MAX];
+  char physical_location[CSM_PROCESSOR_PHYSICAL_LOCATION_MAX];
+  uint32_t discovered_cores;
+  
+  // Constructor 
+  csm_processor_inventory_t()
+  { 
+    // Initialize the whole struct with 0s first; guarantees any pad bytes are also initialized
+    memset(this, 0, sizeof(*this));
+
+    // Set any non-zero defaults here
+  }
+
+} csm_processor_inventory_t;
+
 typedef struct csm_full_inventory_t
 {
   csm_node_inventory_t node;
