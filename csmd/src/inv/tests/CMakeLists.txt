@@ -2,7 +2,7 @@
 #   
 #    csmd/src/inv/tests/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -52,6 +52,15 @@ file(GLOB TEST_INV_HCA_INVENTORY
 add_executable(test_inv_hca_inventory ${TEST_INV_HCA_INVENTORY})
 target_link_libraries(test_inv_hca_inventory csmutil fsutil)
 install(TARGETS test_inv_hca_inventory COMPONENT csm-unittest DESTINATION csm/tests/inv)
+
+file(GLOB TEST_INV_PROCESSOR_INVENTORY
+  ../src/inv_processor_inventory.cc
+  test_inv_processor_inventory.cc 
+)
+
+add_executable(test_inv_processor_inventory ${TEST_INV_PROCESSOR_INVENTORY})
+target_link_libraries(test_inv_processor_inventory csmutil fsutil)
+install(TARGETS test_inv_processor_inventory COMPONENT csm-unittest DESTINATION csm/tests/inv)
 
 file(GLOB TEST_INV_SSD_INVENTORY
   ../src/inv_ssd_inventory.cc
