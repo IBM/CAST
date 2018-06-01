@@ -75,6 +75,7 @@ void help(){
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
+	puts("[-J, --JSON]                  | Set output to print in JSON. ");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
 	puts("  csm_switch_attributes_query -s \"abc123\"");
@@ -85,6 +86,7 @@ struct option longopts[] = {
 	//general options
 	{"help",          no_argument,       0, 'h'},
 	{"verbose",       required_argument, 0, 'v'},
+	{"JSON",          no_argument,       0, 'J'},
 	//api arguments
 	{"switch_name",   required_argument, 0, 's'},
 	{"serial_number", required_argument, 0, 'S'},
@@ -117,6 +119,8 @@ int main(int argc, char *argv[])
 	int indexptr = 0;
 	/*i var for 'for loops'*/
 	uint32_t i = 0;
+	/*For format printing later. */
+	char JSON = 0;
 
 	/*Set up data to call API*/
 	csm_switch_attributes_query_input_t* input = NULL;
@@ -125,13 +129,16 @@ int main(int argc, char *argv[])
 	csm_switch_attributes_query_output_t* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:l:o:O:s:S:t:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:Jl:o:O:s:S:t:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
 				return CSMI_HELP;
 			case 'v':
                 csm_set_verbosity( optarg, USAGE )
+				break;
+			case 'J':
+				JSON = 1;
 				break;
 			case 'l':
 				csm_optarg_test( "-l, --limit", optarg, USAGE );
@@ -229,45 +236,97 @@ int main(int argc, char *argv[])
     switch( return_value )
     {
         case CSMI_SUCCESS:
-	    	puts("---");
-	    	printf("Total_Records: %i\n", output->results_count);
-	    	for (i = 0; i < output->results_count; i++) {
-	    		printf("RECORD_%i:\n", i+1);
-	    		printf("  switch_name:             %s\n", output->results[i]->switch_name);
-				printf("  serial_number:           %s\n", output->results[i]->serial_number);
-	    		printf("  discovery_time:          %s\n", output->results[i]->discovery_time);
-				printf("  collection_time:         %s\n", output->results[i]->collection_time);
-				printf("  comment:                 %s\n", output->results[i]->comment);
-				printf("  description:             %s\n", output->results[i]->description);
-				printf("  fw_version:              %s\n", output->results[i]->fw_version);
-				printf("  gu_id:                   %s\n", output->results[i]->gu_id);
-				printf("  has_ufm_agent:           %c\n", csm_print_bool_custom(output->results[i]->has_ufm_agent,'t','f'));
-				printf("  hw_version:              %s\n", output->results[i]->hw_version);
-				printf("  ip:                      %s\n", output->results[i]->ip);
-				printf("  model:                   %s\n", output->results[i]->model);
-				printf("  num_modules:             %"PRId32"\n", output->results[i]->num_modules);
-				printf("  physical_frame_location: %s\n", output->results[i]->physical_frame_location);
-				printf("  physical_u_location:     %s\n", output->results[i]->physical_u_location);
-				printf("  ps_id:                   %s\n", output->results[i]->ps_id);
-				printf("  role:                    %s\n", output->results[i]->role);
-				printf("  server_operation_mode:   %s\n", output->results[i]->server_operation_mode);
-				printf("  sm_mode:                 %s\n", output->results[i]->sm_mode);
-				printf("  state:                   %s\n", output->results[i]->state);
-				printf("  sw_version:              %s\n", output->results[i]->sw_version);
-				printf("  system_guid:             %s\n", output->results[i]->system_guid);
-				printf("  system_name:             %s\n", output->results[i]->system_name);
-				printf("  total_alarms:            %"PRId32"\n", output->results[i]->total_alarms);
-				printf("  type:                    %s\n", output->results[i]->type);
-				printf("  vendor:                  %s\n", output->results[i]->vendor);
-	    	}
-	    	puts("...");
+			if(JSON == 1)
+			{
+				puts("[");
+				for (i = 0; i < output->results_count; i++) {
+					printf("    {\n");
+					//check if statement for null strings. print out literal null for json standard.
+					if(output->results[i]->switch_name[0] == '\0'){ printf("        \"switch_name\": null,\n"); }else{ printf("        \"switch_name\": \"%s\",\n", output->results[i]->switch_name); }
+					if(output->results[i]->serial_number[0] == '\0'){ printf("        \"serial_number\": null,\n"); }else{ printf("        \"serial_number\": \"%s\",\n", output->results[i]->serial_number); }
+					if(output->results[i]->discovery_time[0] == '\0'){ printf("        \"discovery_time\": null,\n"); }else{ printf("        \"discovery_time\": \"%s\",\n", output->results[i]->discovery_time); }
+					if(output->results[i]->collection_time[0] == '\0'){ printf("        \"collection_time\": null,\n"); }else{ printf("        \"collection_time\": \"%s\",\n", output->results[i]->collection_time); }
+					if(output->results[i]->comment[0] == '\0'){ printf("        \"comment\": null,\n"); }else{ printf("        \"comment\": \"%s\",\n", output->results[i]->comment); }
+					if(output->results[i]->description[0] == '\0'){ printf("        \"description\": null,\n"); }else{ printf("        \"description\": \"%s\",\n", output->results[i]->description); }
+					if(output->results[i]->fw_version[0] == '\0'){ printf("        \"fw_version\": null,\n"); }else{ printf("        \"fw_version\": \"%s\",\n", output->results[i]->fw_version); }
+					if(output->results[i]->gu_id[0] == '\0'){ printf("        \"gu_id\": null,\n"); }else{ printf("        \"gu_id\": \"%s\",\n", output->results[i]->gu_id); }
+					printf("        \"has_ufm_agent\": %c\n", csm_print_bool_custom(output->results[i]->has_ufm_agent,'t','f')); 
+					if(output->results[i]->hw_version[0] == '\0'){ printf("        \"hw_version\": null,\n"); }else{ printf("        \"hw_version\": \"%s\",\n", output->results[i]->hw_version); }
+					if(output->results[i]->ip[0] == '\0'){ printf("        \"ip\": null,\n"); }else{ printf("        \"ip\": \"%s\",\n", output->results[i]->ip); }
+					if(output->results[i]->model[0] == '\0'){ printf("        \"model\": null,\n"); }else{ printf("        \"model\": \"%s\",\n", output->results[i]->model); }
+					printf("        \"num_modules\": %"PRId32"\n", output->results[i]->num_modules); 
+					if(output->results[i]->physical_frame_location[0] == '\0'){ printf("        \"physical_frame_location\": null,\n"); }else{ printf("        \"physical_frame_location\": \"%s\",\n", output->results[i]->physical_frame_location); }
+					if(output->results[i]->physical_u_location[0] == '\0'){ printf("        \"physical_u_location\": null,\n"); }else{ printf("        \"physical_u_location\": \"%s\",\n", output->results[i]->physical_u_location); }
+					if(output->results[i]->ps_id[0] == '\0'){ printf("        \"ps_id\": null,\n"); }else{ printf("        \"ps_id\": \"%s\",\n", output->results[i]->ps_id); }
+					if(output->results[i]->role[0] == '\0'){ printf("        \"role\": null,\n"); }else{ printf("        \"role\": \"%s\",\n", output->results[i]->role); }
+					if(output->results[i]->server_operation_mode[0] == '\0'){ printf("        \"server_operation_mode\": null,\n"); }else{ printf("        \"server_operation_mode\": \"%s\",\n", output->results[i]->server_operation_mode); }
+					if(output->results[i]->sm_mode[0] == '\0'){ printf("        \"sm_mode\": null,\n"); }else{ printf("        \"sm_mode\": \"%s\",\n", output->results[i]->sm_mode); }
+					if(output->results[i]->state[0] == '\0'){ printf("        \"state\": null,\n"); }else{ printf("        \"state\": \"%s\",\n", output->results[i]->state); }
+					if(output->results[i]->sw_version[0] == '\0'){ printf("        \"sw_version\": null,\n"); }else{ printf("        \"sw_version\": \"%s\",\n", output->results[i]->sw_version); }
+					if(output->results[i]->system_guid[0] == '\0'){ printf("        \"system_guid\": null,\n"); }else{ printf("        \"system_guid\": \"%s\",\n", output->results[i]->system_guid); }
+					if(output->results[i]->system_name[0] == '\0'){ printf("        \"system_name\": null,\n"); }else{ printf("        \"system_name\": \"%s\",\n", output->results[i]->system_name); }
+					printf("        \"total_alarms\": %"PRId32"\n", output->results[i]->total_alarms); 
+					if(output->results[i]->type[0] == '\0'){ printf("        \"type\": null,\n"); }else{ printf("        \"type\": \"%s\",\n", output->results[i]->type); }
+					if(output->results[i]->vendor[0] == '\0'){ printf("        \"vendor\": null\n"); }else{ printf("        \"vendor\": \"%s\"\n", output->results[i]->vendor); }
+					//if someone adds a new last field above make sure to update the commas here correctly so the JSON still validates. 
+					printf("    }");
+					if(i+1 != output->results_count)
+					{
+						printf(",");
+					}
+					printf("\n");
+				}
+				puts("]");
+			}
+			else
+			{
+				puts("---");
+				printf("Total_Records: %i\n", output->results_count);
+				for (i = 0; i < output->results_count; i++) {
+					printf("RECORD_%i:\n", i+1);
+					printf("  switch_name:             %s\n", output->results[i]->switch_name);
+					printf("  serial_number:           %s\n", output->results[i]->serial_number);
+					printf("  discovery_time:          %s\n", output->results[i]->discovery_time);
+					printf("  collection_time:         %s\n", output->results[i]->collection_time);
+					printf("  comment:                 %s\n", output->results[i]->comment);
+					printf("  description:             %s\n", output->results[i]->description);
+					printf("  fw_version:              %s\n", output->results[i]->fw_version);
+					printf("  gu_id:                   %s\n", output->results[i]->gu_id);
+					printf("  has_ufm_agent:           %c\n", csm_print_bool_custom(output->results[i]->has_ufm_agent,'t','f'));
+					printf("  hw_version:              %s\n", output->results[i]->hw_version);
+					printf("  ip:                      %s\n", output->results[i]->ip);
+					printf("  model:                   %s\n", output->results[i]->model);
+					printf("  num_modules:             %"PRId32"\n", output->results[i]->num_modules);
+					printf("  physical_frame_location: %s\n", output->results[i]->physical_frame_location);
+					printf("  physical_u_location:     %s\n", output->results[i]->physical_u_location);
+					printf("  ps_id:                   %s\n", output->results[i]->ps_id);
+					printf("  role:                    %s\n", output->results[i]->role);
+					printf("  server_operation_mode:   %s\n", output->results[i]->server_operation_mode);
+					printf("  sm_mode:                 %s\n", output->results[i]->sm_mode);
+					printf("  state:                   %s\n", output->results[i]->state);
+					printf("  sw_version:              %s\n", output->results[i]->sw_version);
+					printf("  system_guid:             %s\n", output->results[i]->system_guid);
+					printf("  system_name:             %s\n", output->results[i]->system_name);
+					printf("  total_alarms:            %"PRId32"\n", output->results[i]->total_alarms);
+					printf("  type:                    %s\n", output->results[i]->type);
+					printf("  vendor:                  %s\n", output->results[i]->vendor);
+				}
+				puts("...");
+			}
             break;
 
         case CSMI_NO_RESULTS:
-            puts("---");
-            printf("Total_Records: 0\n");
-            puts("# No matching records found.");
-            puts("...");
+			if(JSON == 1)
+			{
+				
+			}
+			else
+			{
+				puts("---");
+				printf("Total_Records: 0\n");
+				puts("# No matching records found.");
+				puts("...");
+			}
             break;
         
         default:
