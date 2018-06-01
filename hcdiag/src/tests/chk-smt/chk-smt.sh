@@ -23,32 +23,24 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi     
 
-PROCS="csmd nvidia-persistenced nv-hostengine opal-prd automount"
 me=$(basename $0) 
 model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-procs=($PROCS)
-if [ $# -ne 0 ]; then procs=("$@"); fi
+SMT=4
+if [ $# -gt 0 ]; then SMT=$1; fi
 
-total=0
-failed=0
-for p in "${procs[@]}"; do
-  pid=`ps -ef | grep $p | egrep -v 'chk-process|grep' | awk '{ print $2}'`
-  if [ -z "$pid" ]; then
-    echo "Error: $p is not running"
-    let failed+=1
-  fi
-  let total+=1
-done
-if [ $failed -eq 0 ]; then
-   echo "$total process(es) running."
+smt=`/usr/sbin/ppc64_cpu --smt -n`;
+smt=`echo $smt | cut -d '=' -f2`
+
+if [ "$smt" -eq "$SMT" ]; then
+   echo "Node SMT=$smt"
    echo "$me test PASS, rc=0"
-else
-  echo "$failed process(es) out of $total is(are) not running."
-  echo "$me test FAIL, rc=$failed"  
+   exit 0
 fi
 
-exit $failed
+echo "Node SMT expected $SMT, got: $smt"
+echo "$me test FAIL, rc=1"
+exit 1
 
    
