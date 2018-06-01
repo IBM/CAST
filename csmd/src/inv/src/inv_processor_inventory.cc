@@ -13,15 +13,15 @@
  
 ================================================================================*/
 #include "inv_processor_inventory.h"
-//#include "inv_functions.h"
+#include "inv_functions.h"
 #include "logging.h"
 
-//#include <dirent.h>       // Provides scandir()
-//#include <glob.h>
+#include <dirent.h>       // Provides scandir()
+#include <glob.h>
 
 #include <string>
-//#include <fstream>
-//#include <list>
+#include <fstream>
+#include <list>
 //#include <stdint.h>
 
 using namespace std;
@@ -40,27 +40,12 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
 
   processor_count = 0;
 
-#ifdef TODO 
-  // Scan the device-tree for the list of memory dimms
+  // Scan the device-tree for the list of processor sockets 
   // Use globbing "*" for the @XXX portions of the directory names in case they change in the future 
-  // ls -d /proc/device-tree/xscom*/mcbist*/mcs*/mca*/dimm* | sort -t '/' -k8
-  // /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@8/mca@80/dimm@d000
-  // /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@8/mca@40/dimm@d001
-  // /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@4/mca@20/dimm@d002
-  // /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@4/mca@10/dimm@d003
-  // /proc/device-tree/xscom@603fc00000000/mcbist@1/mcs@2/mca@8/dimm@d004
-  // /proc/device-tree/xscom@603fc00000000/mcbist@1/mcs@2/mca@4/dimm@d005
-  // /proc/device-tree/xscom@603fc00000000/mcbist@1/mcs@1/mca@2/dimm@d006
-  // /proc/device-tree/xscom@603fc00000000/mcbist@1/mcs@1/mca@1/dimm@d007
-  // /proc/device-tree/xscom@623fc00000000/mcbist@2/mcs@8/mca@80/dimm@d008
-  // /proc/device-tree/xscom@623fc00000000/mcbist@2/mcs@8/mca@40/dimm@d009
-  // /proc/device-tree/xscom@623fc00000000/mcbist@2/mcs@4/mca@20/dimm@d00a
-  // /proc/device-tree/xscom@623fc00000000/mcbist@2/mcs@4/mca@10/dimm@d00b
-  // /proc/device-tree/xscom@623fc00000000/mcbist@1/mcs@2/mca@8/dimm@d00c
-  // /proc/device-tree/xscom@623fc00000000/mcbist@1/mcs@2/mca@4/dimm@d00d
-  // /proc/device-tree/xscom@623fc00000000/mcbist@1/mcs@1/mca@2/dimm@d00e
-  // /proc/device-tree/xscom@623fc00000000/mcbist@1/mcs@1/mca@1/dimm@d00f
-  const char PROCESSOR_GLOB_PATH[] = "/proc/device-tree/xscom*/mcbist*/mcs*/mca*/dimm*";
+  // ls -d /proc/device-tree/vpd/root-node-vpd*/enclosure*/backplane*/processor*
+  // /proc/device-tree/vpd/root-node-vpd@a000/enclosure@1e00/backplane@800/processor@1000
+  // /proc/device-tree/vpd/root-node-vpd@a000/enclosure@1e00/backplane@800/processor@1001
+  const char PROCESSOR_GLOB_PATH[] = "/proc/device-tree/vpd/root-node-vpd*/enclosure*/backplane*/processor*";
   std::list<std::string> processorlist;
 
   int32_t globflags(0);
@@ -78,7 +63,7 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
   }
   else
   {
-    LOG(csmd, warning) << "glob() returned rc=" << rc << " for " << PROCESSOR_GLOB_PATH << ". Firmware level may not support processor inventory.";
+    LOG(csmd, warning) << "glob() returned rc=" << rc << " for " << PROCESSOR_GLOB_PATH << ".";
   } 
   
   globfree(&processorpaths);
@@ -89,34 +74,30 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
     bool fields_valid(true);
  
     // Collect the serial number 
-    // cat /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@8/mca@80/dimm@d000/serial-number | hexdump -C | head -n 1
-    // 00000000  36 e3 d5 b5
-    ifstream serial_in(*processor_itr + "/serial-number", ios::binary);
-    uint32_t serial_integer(0); 
+    // cat /proc/device-tree/vpd/root-node-vpd\@a000/enclosure\@1e00/backplane\@800/processor\@1000/serial-number
+    // YA1934276846
+    ifstream serial_in(*processor_itr + "/serial-number");
     string serial_number("");
-    ostringstream serial_out;
 
     if (serial_in.is_open())
     {
-      serial_in.read((char*) &serial_integer, sizeof(serial_integer));
-      serial_integer = __builtin_bswap32(serial_integer); 
-      
-      serial_out << hex << serial_integer; 
-      serial_number = serial_out.str();
-     
-      if (serial_in.gcount() == 0)
+      getline(serial_in, serial_number);
+      serial_in.close();    
+      serial_number = trimString(serial_number);
+ 
+      if (serial_number.empty())
       {
-        LOG(csmd, warning) << processor << "detected empty processor serial_number";
+        LOG(csmd, warning) << processor << "detected empty processor serial_number.";
         fields_valid = false;
       }
     }
     else
     {
-      LOG(csmd, warning) << processor << "failed to read processor serial_number";
+      LOG(csmd, warning) << processor << "Failed to read processor serial_number. Firmware level may not support processor inventory.";
       fields_valid = false;
     }
-    serial_in.close();
-      
+     
+#ifdef TODO 
     // Collect the size
     // cat /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@8/mca@80/dimm@d000/size | hexdump -C | head -n 1
     // 00000000  00 00 80 00 
@@ -164,13 +145,16 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
       LOG(csmd, warning) << processor << "failed to read processor physical_location";
       fields_valid = false;
     }
- 
+#endif 
+
     if ((fields_valid) && (processor_count < CSM_PROCESSOR_MAX_DEVICES))
     {
-      setProcessorInventoryValue(processor, "serial_number", serial_number, processor_inventory[processor_count].serial_number, CSM_PROCESSOR_SERIAL_NUMBER_MAX);
-      LOG(csmd, info) << processor << "size = " << size;
-      processor_inventory[processor_count].size = size;
-      setProcessorInventoryValue(processor, "physical_location", physical_location, processor_inventory[processor_count].physical_location, CSM_PROCESSOR_PHYSICAL_LOCATION_MAX);
+      setProcessorInventoryValue(processor, "serial_number", serial_number, processor_inventory[processor_count].serial_number, 
+        CSM_PROCESSOR_SERIAL_NUMBER_MAX);
+      //LOG(csmd, info) << processor << "size = " << size;
+      //processor_inventory[processor_count].size = size;
+      //setProcessorInventoryValue(processor, "physical_location", physical_location, processor_inventory[processor_count].physical_location, 
+      //  CSM_PROCESSOR_PHYSICAL_LOCATION_MAX);
       processor_count++;
     }
   }
@@ -179,7 +163,6 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
   {
     LOG(csmd, warning) << "processor_inventory truncated to " << processor_count << " entries, " << processorlist.size() << " processors discovered.";
   }
-#endif
  
   return true;
 }
