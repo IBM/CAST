@@ -47,11 +47,11 @@ public:
 
   virtual csm::daemon::CoreEvent* FetchEvent()
   {
-    csm::daemon::NetworkEvent *nwe = nullptr;
+    csm::daemon::BDSEvent *nwe = nullptr;
     std::lock_guard<std::mutex> guard( _OutboundLock );
     if( ! _Outbound.empty() )
     {
-      nwe = (csm::daemon::NetworkEvent *) _Outbound.front();
+      nwe = (csm::daemon::BDSEvent *) _Outbound.front();
       _Outbound.pop_front();
     }
 
