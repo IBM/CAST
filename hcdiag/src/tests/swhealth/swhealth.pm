@@ -135,6 +135,11 @@ if ($rc == 0) {
 }
 
 # Print out errors ------------------------------------------------------------
+foreach my $l (split(/\n/,`cat $tempdir/stderr`)) { 
+    chomp $l; 
+    push(@$errs,"WARN: $l");
+}
+
 if (scalar @$errs) {
     for my $e (@$errs) {
         print "(ERROR) $e\n";
