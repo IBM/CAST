@@ -22,9 +22,15 @@
 #include <string>
 #include <fstream>
 #include <list>
-//#include <stdint.h>
+#include <stdint.h>
 
 using namespace std;
+
+// Helper function for finding the number of cores associated with the given processor_chip_id
+// processor_chip_id defines which processor to match against
+// discovered_cores is the number of matching cores found if successful
+// function will return false if the number of cores cannot be determined
+bool GetDiscoveredCores(const uint32_t processor_chip_id, uint32_t& discovered_cores);
 
 // Helper function for copying strings to the processor_inventory structure
 // processor is the specific processor being processed, used for logging
@@ -121,41 +127,56 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
       fields_valid = false;
     }
      
-#ifdef TODO 
-    // Collect the size
-    // cat /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@8/mca@80/dimm@d000/size | hexdump -C | head -n 1
-    // 00000000  00 00 80 00 
-    ifstream size_in(*dimm_itr + "/size", ios::binary);
-    uint32_t size(0);
+    // Collect the chip-id for the current processor socket
+    // cat /proc/device-tree/vpd/root-node-vpd@a000/enclosure@1e00/backplane@800/processor@1000/ibm,chip-id | hexdump -C | head -n 1
+    // 00000000  00 00 00 00                                       |....|
+    // cat /proc/device-tree/vpd/root-node-vpd@a000/enclosure@1e00/backplane@800/processor@1001/ibm,chip-id | hexdump -C | head -n 1
+    // 00000000  00 00 00 08    
+    ifstream processor_chip_id_in(*processor_itr + "/ibm,chip-id", ios::binary);
+    uint32_t processor_chip_id(0);
+    uint32_t discovered_cores(0);
 
-    if (size_in.is_open())
+    if (processor_chip_id_in.is_open())
     {
-      size_in.read((char*) &size, sizeof(size));
-      size = __builtin_bswap32(size); 
+      processor_chip_id_in.read((char*) &processor_chip_id, sizeof(processor_chip_id));
+      processor_chip_id = __builtin_bswap32(processor_chip_id); 
  
-      if (size_in.gcount() == 0)
+      if (processor_chip_id_in.gcount() == 0)
       {
-        LOG(csmd, warning) << processor << "detected empty processor size";
+        LOG(csmd, warning) << processor << "detected empty processor chip-id";
         fields_valid = false;
+      }
+      else
+      {
+        // Determine the number of cores for this processor socket by counting the cores with a matching chip-id
+        bool rc(false);
+        rc = GetDiscoveredCores(processor_chip_id, discovered_cores);
+        
+        if (rc == false)
+        {
+          LOG(csmd, warning) << processor << "Unable to determine discovered_cores for processor chip-id = " << processor_chip_id;
+          fields_valid = false;
+        }
       }
     }
     else
     {
-      LOG(csmd, warning) << processor << "failed to read processor size";
+      LOG(csmd, warning) << processor << "failed to read processor chip-id";
       fields_valid = false;
     }
-    size_in.close();
+    processor_chip_id_in.close();
    
-#endif 
-
     if ((fields_valid) && (processor_count < CSM_PROCESSOR_MAX_DEVICES))
     {
       setProcessorInventoryValue(processor, "serial_number", serial_number, processor_inventory[processor_count].serial_number, 
         CSM_PROCESSOR_SERIAL_NUMBER_MAX);
+
       setProcessorInventoryValue(processor, "physical_location", physical_location, processor_inventory[processor_count].physical_location, 
         CSM_PROCESSOR_PHYSICAL_LOCATION_MAX);
-      //LOG(csmd, info) << processor << "size = " << size;
-      //processor_inventory[processor_count].size = size;
+
+      LOG(csmd, info) << processor << "discovered_cores = " << discovered_cores;
+      processor_inventory[processor_count].discovered_cores = discovered_cores;
+
       processor_count++;
     }
   }
@@ -166,6 +187,121 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
   }
  
   return true;
+}
+
+bool GetDiscoveredCores(const uint32_t processor_chip_id, uint32_t& discovered_cores)
+{
+  bool success(true); 
+  uint32_t matching_cores(0);
+
+  // Scan the device-tree for the list of cpu cores 
+  // Use globbing "*" for the @XXX portions of the directory names in case they change in the future 
+  // ls -d1 /proc/device-tree/cpus/PowerPC,POWER9@*/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@0/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@10/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@14/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@18/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@1c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@20/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@24/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@28/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@2c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@30/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@34/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@38/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@3c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@40/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@44/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@4/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@50/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@54/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@58/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@5c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@800/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@804/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@808/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@80c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@810/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@814/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@820/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@824/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@828/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@82c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@830/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@834/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@838/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@83c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@840/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@844/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@848/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@84c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@850/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@854/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@858/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@85c/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@8/ibm,chip-id
+  // /proc/device-tree/cpus/PowerPC,POWER9@c/ibm,chip-id
+  const char CPU_CORE_GLOB_PATH[] = "/proc/device-tree/cpus/PowerPC,POWER9@*/ibm,chip-id";
+  int32_t globflags(0);
+  glob_t corepaths;
+  int32_t rc(0);
+
+  rc = glob(CPU_CORE_GLOB_PATH, globflags, nullptr, &corepaths);
+  if (rc == 0)
+  {
+    for (uint32_t i=0; i < corepaths.gl_pathc; i++)
+    {
+      //LOG(csmd, debug) << "Found core chip-id = " << corepaths.gl_pathv[i];
+    
+      // Collect the chip-id for the current core
+      // cat /proc/device-tree/cpus/PowerPC,POWER9@0/ibm,chip-id | hexdump -C | head -n 1
+      // 00000000  00 00 00 00
+      // cat /proc/device-tree/cpus/PowerPC,POWER9@800/ibm,chip-id | hexdump -C | head -n 1
+      // 00000000  00 00 00 08      
+      ifstream core_chip_id_in(corepaths.gl_pathv[i], ios::binary);
+      uint32_t core_chip_id(0);
+
+      if (core_chip_id_in.is_open())
+      {
+        core_chip_id_in.read((char*) &core_chip_id, sizeof(core_chip_id));
+        core_chip_id = __builtin_bswap32(core_chip_id); 
+ 
+        if (core_chip_id_in.gcount() == 0)
+        {
+          LOG(csmd, warning) << "detected empty core chip-id";
+          success = false;
+        }
+        else
+        {
+          //LOG(csmd, debug) << "processor chip-id = " << processor_chip_id << ", core chip-id = " << core_chip_id;
+          if (core_chip_id == processor_chip_id)
+          {
+            matching_cores++;
+          }
+        }
+      }
+      else
+      {
+        LOG(csmd, warning) << "failed to read core chip-id";
+        success = false;
+      }
+      core_chip_id_in.close();
+    }
+  }
+  else
+  {
+    LOG(csmd, warning) << "glob() returned rc=" << rc << " for " << CPU_CORE_GLOB_PATH << ".";
+    success = false;
+  } 
+  
+  globfree(&corepaths);
+ 
+  if (success == true)
+  {
+    discovered_cores = matching_cores;
+  }
+ 
+  return success;
 }
 
 void setProcessorInventoryValue(const string& processor, const string& field, const string& value, char* dest_ptr, const uint32_t& DEST_MAX)
