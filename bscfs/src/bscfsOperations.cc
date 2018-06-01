@@ -673,7 +673,7 @@ int bscfs_unlink(const char *name)
 	if (rpath == NULL) {
 	    LOG(bscfsagent,info)
 		<< "bscfs_unlink() path too long: " << name;
-        pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
+	    pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
 	    return -ENAMETOOLONG;
 	}
 	if (unlink(rpath) < 0) {
@@ -821,7 +821,6 @@ static shared_file_t *shared_file_create(int *resp, const char *path,
     sf->accmode = flags & O_ACCMODE;
     sf->open_count = 0;
     sf->pfs_file_name = bscfs_pfs_path(path);
-    LOG(bscfsagent, info) << "shared_file_create: path=" << path << "  flags=" << flags << "  mode=" << mode << "  pfsname=" << (sf->pfs_file_name ?sf->pfs_file_name : "(null)" ) ;
     if (sf->pfs_file_name == NULL) {
 	LOG(bscfsagent,info)
 	    << "shared_file_create() path too long: " << path;
@@ -831,6 +830,12 @@ static shared_file_t *shared_file_create(int *resp, const char *path,
 	(*resp) = -ENAMETOOLONG;
 	return NULL;
     }
+    LOG(bscfsagent,info)
+	<< "shared_file_create:"
+	<< "  path=" << path
+	<< "  flags=" << flags
+	<< "  mode=" << mode
+	<< "  pfsname=" << sf->pfs_file_name;
     sf->pfs_fd = open(sf->pfs_file_name, flags, mode);
     if (sf->pfs_fd < 0) {
 	int errno_save = errno;
@@ -846,8 +851,13 @@ static shared_file_t *shared_file_create(int *resp, const char *path,
 	return NULL;
     }
 #if USE_INODE
-    if ( fstat(sf->pfs_fd, &sf->pfsstatcache) ){
-        LOG(bscfsagent,info)<< "shared_file_create: unexected failure on fstat, errno="<<errno;
+    int rc = fstat(sf->pfs_fd, &sf->pfsstatcache);
+    if (rc < 0) {
+	int errno_save = errno;
+	LOG(bscfsagent,info)
+	    << "shared_file_create() failed to fstat pfs file "
+	    << sf->pfs_file_name
+	    << ": " << strerror(errno_save);
     }
 #endif
     
@@ -1735,6 +1745,7 @@ int bscfs_release(const char *path, struct fuse_file_info *file_info)
 	free(sf->pfs_file_name);
 	free(sf->file_name);
 	FL_sf_delete(sf);
+	pthread_mutex_unlock(&(sf->lock)); // for coverity
 	delete sf;
     } else {
 	pthread_mutex_unlock(&(sf->lock));
@@ -2264,6 +2275,7 @@ int bscfs_rename(const char *oldname, const char *newname)
 	if (rpath_old == NULL) {
 	    LOG(bscfsagent,info)
 		<< "bscfs_rename() path too long: " << oldname;
+	    pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
 	    return -ENAMETOOLONG;
 	}
 	char *rpath_new = bscfs_pfs_path(newname);
@@ -2271,6 +2283,7 @@ int bscfs_rename(const char *oldname, const char *newname)
 	    LOG(bscfsagent,info)
 		<< "bscfs_rename() path too long: " << newname;
 	    free(rpath_old);
+	    pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
 	    return -ENAMETOOLONG;
 	}
 	if (rename(rpath_old, rpath_new) < 0) {
@@ -2288,7 +2301,8 @@ int bscfs_rename(const char *oldname, const char *newname)
 	    if (rpath_new == NULL) {
 		LOG(bscfsagent,info)
 		    << "bscfs_rename() path too long: " << newname;
-                pthread_mutex_unlock(&(sf->lock));
+		pthread_mutex_unlock(&(sf->lock));
+		pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
 		return -ENAMETOOLONG;
 	    }
 	    if (rename(sf->pfs_file_name, rpath_new) < 0) {
@@ -2866,7 +2880,7 @@ int bscfs_check_local_transfer(void *data)
 	LOG(bscfsagent,info)
 	    << "bscfs_check_local_transfer: handle not found";
 	request->return_code = EBADR;
-    pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
+	pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
 	return 0;
     }
 
@@ -3173,13 +3187,13 @@ int bscfs_forget(void *data)
 	free(sf->pfs_file_name);
 	free(sf->file_name);
 	FL_sf_delete(sf);
+	pthread_mutex_unlock(&(sf->lock)); // for coverity
 	delete sf;
     } else {
 	pthread_mutex_unlock(&(sf->lock));
     }
 
     pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
-    pthread_mutex_unlock(&(sf->lock));
     request->return_code = 0;
     return 0;
 }
