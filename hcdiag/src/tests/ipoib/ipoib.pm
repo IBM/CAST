@@ -84,6 +84,11 @@ foreach my $ib (split /\n/, $ib_list) {
 }
 
 # Print out errors ------------------------------------------------------------
+foreach my $l (split(/\n/,`cat $tempdir/stderr`)) { 
+    chomp $l; 
+    push(@$errs,"WARN: $l");
+}
+
 if (scalar @$errs) {
     for my $e (@$errs) {
       print "(ERROR) $e\n";
