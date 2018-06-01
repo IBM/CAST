@@ -1025,7 +1025,7 @@ const csmi_struct_node_t csm_switch_attributes_query_input_tree[11] = {{"limit",
 {"switch_names",offsetof(csm_switch_attributes_query_input_t,switch_names),offsetof(csm_switch_attributes_query_input_t, switch_names_count),NULL,0x4d7c5dca,5},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
+{"order_by",offsetof(csm_switch_attributes_query_input_t,order_by),0,NULL,0x245553bb,68},
 {"serial_number",offsetof(csm_switch_attributes_query_input_t,serial_number),0,NULL,0xd931f68d,4}}
 ;
 

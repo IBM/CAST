@@ -54,7 +54,7 @@ void help(){
 	puts("");
 	puts("ARGUMENTS:");
 	puts("  OPTIONAL:");
-	puts("    csm_switch_attributes_query can have 3 optional arguments and requires at least 1");
+	puts("    csm_switch_attributes_query can have 3 optional arguments");
 	puts("    Argument            | Example value         | Description  ");                                                 
 	puts("    --------------------|-----------------------|--------------");
 	puts("    -s, --switch_names  | \"switch_01,switch_02\" | (STRING) This is a csv field of switch names to query. Filter results to only include records that have a matching switch name. The switch name is a unique identification for a switch.");
@@ -64,10 +64,13 @@ void help(){
 	puts("                        |                       | ");
 	puts("  FILTERS:");
 	puts("    csm_switch_attributes_query can have 2 optional filters.");
-	puts("    Argument     | Example value | Description  ");                                                 
-	puts("    -------------|---------------|--------------");
-	puts("    -l, --limit  | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
-    puts("    -o, --offset | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    Argument       | Example value | Description  ");                                                 
+	puts("    ---------------|---------------|--------------");
+	puts("    -l, --limit    | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
+    puts("    -o, --offset   | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    -O, --order_by | a             | (CHAR) SQL 'ORDER BY' numeric value. Default Value: 'a'");
+	puts("                                   | Valid Values: [a] = 'ORDER BY switch_name ASC NULLS LAST'"); 
+	puts("                                   |               [b] = 'ORDER BY switch_name DESC NULLS LAST'");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -89,6 +92,7 @@ struct option longopts[] = {
 	//filters
 	{"limit",         required_argument, 0, 'l'},
 	{"offset",        required_argument, 0, 'o'},
+	{"order_by",      required_argument, 0, 'O'},
 	{0,0,0,0}
 };
 
@@ -104,7 +108,7 @@ int main(int argc, char *argv[])
 	int requiredParameterCounter = 0;
 	int optionalParameterCounter = 0;
 	const int NUMBER_OF_REQUIRED_ARGUMENTS = 0;
-	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 1;
+	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
 	int opt;
     char *arg_check = NULL; ///< Used in verifying the long arg values.
@@ -121,7 +125,7 @@ int main(int argc, char *argv[])
 	csm_switch_attributes_query_output_t* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:l:o:s:S:t:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:l:o:O:s:S:t:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -136,6 +140,20 @@ int main(int argc, char *argv[])
 			case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
+				break;
+			case 'O':
+				if(strlen(optarg) == 1 && 
+                    (  optarg[0] == 'a' 
+					|| optarg[0] == 'b'
+					)
+				)
+                {
+					input->order_by = optarg[0];
+				}else{
+					csmutil_logging(error, "Invalid parameter for -O: optarg , encountered: %s", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
 				break;
 			case 's':
 				csm_optarg_test( "-s, --switch_names", optarg, USAGE );

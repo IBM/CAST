@@ -29,8 +29,8 @@
 #define DB_RECORD_STRUCT csmi_switch_record_t 
 
 bool CSMISwitchAttributesQuery::CreatePayload(
-        const std::string& arguments,
-        const uint32_t len,
+        const std::string& stringBuffer,
+        const uint32_t bufferLength,
         csm::db::DBReqContent **dbPayload,
         csm::daemon::EventContextHandlerState_sptr ctx )
 {
@@ -38,90 +38,101 @@ bool CSMISwitchAttributesQuery::CreatePayload(
 	
     // Unpack the buffer.
     API_PARAMETER_INPUT_TYPE* input = nullptr;
-
-    if ( csm_deserialize_struct(API_PARAMETER_INPUT_TYPE, &input, arguments.c_str(), len) == 0 )
+	
+	/* Error in case something went wrong with the unpack*/
+	if( csm_deserialize_struct(API_PARAMETER_INPUT_TYPE, &input, stringBuffer.c_str(), bufferLength) != 0)
     {
-        int paramCount = 0;
-        std::string stmt = "SELECT "
-                "switch_name, "
-				"serial_number, "
-				"discovery_time, "
-				"collection_time, "
-				"comment, "
-				"description, "
-                "fw_version, "
-				"gu_id, "
-				"has_ufm_agent, "
-				"hw_version, "
-				"ip, "
-				"model, "
-				"num_modules, "
-                "physical_frame_location, " 
-                "physical_u_location, "
-				"ps_id, "
-				"role, "
-				"server_operation_mode, "
-				"sm_mode, "
-				"state, "
-				"sw_version, "
-				"system_guid, "
-				"system_name, "
-				"total_alarms, "
-                "type, "
-				"vendor "
-            "FROM csm_switch "
-            "WHERE ";
-        
-        if ( input->switch_names_count > 0 ) {
-            stmt.append("switch_name = ANY ( $1::text[] ) ");
-            paramCount++;
-        }
-        
-        if ( input->state[0] != '\0' ){
-            if (paramCount > 0) stmt.append(" AND state = $");
-            else                stmt.append(" state = $");
-            
-            stmt.append(std::to_string(++paramCount)).append("::text ");
-        }
-		
-		if ( input->serial_number[0] != '\0' ){
-            if (paramCount > 0) stmt.append(" AND serial_number = $");
-            else                stmt.append(" serial_number = $");
-            
-            stmt.append(std::to_string(++paramCount)).append("::text ");
-        }
-        
-        stmt.append("ORDER BY switch_name ASC NULLS LAST ");
-        
-        if ( input->limit > 0 ) 
-            stmt.append("LIMIT $").append(
-                std::to_string(++paramCount)).append("::int ");
-
-        if ( input->offset > 0 )
-            stmt.append("OFFSET $").append(
-                std::to_string(++paramCount)).append("::int ");
-
-        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
-		if ( input->switch_names_count > 0 ) dbReq->AddTextArrayParam(input->switch_names, input->switch_names_count);
-        if ( input->state[0] != '\0') dbReq->AddTextParam(input->state);
-		if ( input->serial_number[0] != '\0') dbReq->AddTextParam(input->serial_number);
-        if ( input->limit  > 0 ) dbReq->AddNumericParam<int>(input->limit); 
-        if ( input->offset > 0 ) dbReq->AddNumericParam<int>(input->offset);
-
-        *dbPayload = dbReq;
-        csm_free_struct_ptr( API_PARAMETER_INPUT_TYPE, input );
-		
-		LOG( csmapi, trace ) << STATE_NAME ":SQL: " << stmt;
-    }
-    else
+		LOG(csmapi,error) << STATE_NAME ":CreatePayload: csm_deserialize_struct failed...";
+		LOG(csmapi,error) << "  bufferLength = " << bufferLength << " stringBuffer = " 
+            << stringBuffer.c_str();
+		ctx->SetErrorCode(CSMERR_MSG_UNPACK_ERROR);
+		//append to the err msg as to preserve other previous messages.
+		ctx->AppendErrorMessage("CreatePayload: csm_deserialize_struct failed...");
+		return false;
+	}
+	
+	// =====================================================================
+	std::string stmtParams = "";
+	int SQLparameterCount = 0;
+	
+	//where statement parameters
+	add_param_sql(stmtParams, input->switch_names_count > 0, ++SQLparameterCount, "switch_name = ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->state[0] != '\0', ++SQLparameterCount, "state = $","::text AND ")
+	add_param_sql(stmtParams, input->serial_number[0] != '\0', ++SQLparameterCount, "serial_number = $","::text AND ")
+	
+    // Replace the last 4 characters if any parameters were found.
+    if ( SQLparameterCount > 0)
     {
-        LOG( csmapi, error ) << STATE_NAME ":CreatePayload: argUnpackFunc failed...";
-        LOG( csmapi, trace  ) << STATE_NAME ":CreatePayload: Exit";
-        
-        ctx->SetErrorCode( CSMERR_MSG_UNPACK_ERROR);
-        ctx->SetErrorMessage("Unable to build the query, struct could not be deserializ    ed");
-        return false;
+        int len = stmtParams.length() - 1;
+        for( int i = len - 3; i < len; ++i)
+            stmtParams[i] = ' ';
     }
+	
+	
+
+	int paramCount = 0;
+	std::string stmt = "SELECT "
+			"switch_name, "
+			"serial_number, "
+			"discovery_time, "
+			"collection_time, "
+			"comment, "
+			"description, "
+			"fw_version, "
+			"gu_id, "
+			"has_ufm_agent, "
+			"hw_version, "
+			"ip, "
+			"model, "
+			"num_modules, "
+			"physical_frame_location, " 
+			"physical_u_location, "
+			"ps_id, "
+			"role, "
+			"server_operation_mode, "
+			"sm_mode, "
+			"state, "
+			"sw_version, "
+			"system_guid, "
+			"system_name, "
+			"total_alarms, "
+			"type, "
+			"vendor "
+		"FROM csm_switch ";
+	if(SQLparameterCount > 0)
+	{
+		//Filters have been provided. 
+		//Filter query pased off of input.
+		stmt.append("WHERE (");
+		stmt.append( stmtParams );
+		stmt.append(") ");
+	}
+	stmt.append("ORDER BY ");
+	switch (input->order_by)
+	{
+		case 'a':
+			stmt.append("switch_name ASC NULLS LAST ");
+			break;
+		case 'b':
+			stmt.append("switch_name DESC NULLS LAST ");
+			break;
+		default:
+			stmt.append("switch_name ASC NULLS LAST ");
+	}
+	add_param_sql( stmt, input->limit > 0, ++SQLparameterCount, "LIMIT $", "::int ")
+	add_param_sql( stmt, input->offset > 0, ++SQLparameterCount, "OFFSET $", "::int ")
+
+	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
+	if ( input->switch_names_count > 0 ) dbReq->AddTextArrayParam(input->switch_names, input->switch_names_count);
+	if ( input->state[0] != '\0') dbReq->AddTextParam(input->state);
+	if ( input->serial_number[0] != '\0') dbReq->AddTextParam(input->serial_number);
+	if ( input->limit  > 0 ) dbReq->AddNumericParam<int>(input->limit); 
+	if ( input->offset > 0 ) dbReq->AddNumericParam<int>(input->offset);
+
+	*dbPayload = dbReq;
+	csm_free_struct_ptr( API_PARAMETER_INPUT_TYPE, input );
+	
+	LOG( csmapi, debug ) << STATE_NAME ":SQL: " << stmt;
     
     LOG( csmapi, trace ) << STATE_NAME ":CreatePayload: Exit";
 
