@@ -96,6 +96,30 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
       LOG(csmd, warning) << processor << "Failed to read processor serial_number. Firmware level may not support processor inventory.";
       fields_valid = false;
     }
+    
+    // Collect the physical location 
+    // cat /proc/device-tree/vpd/root-node-vpd@a000/enclosure@1e00/backplane@800/processor@1000/ibm,loc-code 
+    // UOPWR.7852C8A-Node0-Proc0
+    ifstream location_in(*processor_itr + "/ibm,loc-code");
+    string physical_location("");
+
+    if (location_in.is_open())
+    {
+      getline(location_in, physical_location);
+      location_in.close();    
+      physical_location = trimString(physical_location);
+ 
+      if (physical_location.empty())
+      {
+        LOG(csmd, warning) << processor << "detected empty processor physical_location";
+        fields_valid = false;
+      }
+    }
+    else
+    {
+      LOG(csmd, warning) << processor << "failed to read processor physical_location";
+      fields_valid = false;
+    }
      
 #ifdef TODO 
     // Collect the size
@@ -122,39 +146,16 @@ bool GetProcessorInventory(csm_processor_inventory_t processor_inventory[CSM_PRO
     }
     size_in.close();
    
-    // Collect the physical location 
-    // cat /proc/device-tree/xscom@603fc00000000/mcbist@2/mcs@8/mca@80/dimm@d000/ibm,loc-code
-    // UOPWR.7852C0A-Node0-DIMM0
-    ifstream location_in(*processor_itr + "/ibm,loc-code");
-    string physical_location("");
-
-    if (location_in.is_open())
-    {
-      getline(location_in, physical_location);
-      location_in.close();    
-      physical_location = trimString(physical_location);
- 
-      if (physical_location.empty())
-      {
-        LOG(csmd, warning) << processor << "detected empty processor physical_location";
-        fields_valid = false;
-      }
-    }
-    else
-    {
-      LOG(csmd, warning) << processor << "failed to read processor physical_location";
-      fields_valid = false;
-    }
 #endif 
 
     if ((fields_valid) && (processor_count < CSM_PROCESSOR_MAX_DEVICES))
     {
       setProcessorInventoryValue(processor, "serial_number", serial_number, processor_inventory[processor_count].serial_number, 
         CSM_PROCESSOR_SERIAL_NUMBER_MAX);
+      setProcessorInventoryValue(processor, "physical_location", physical_location, processor_inventory[processor_count].physical_location, 
+        CSM_PROCESSOR_PHYSICAL_LOCATION_MAX);
       //LOG(csmd, info) << processor << "size = " << size;
       //processor_inventory[processor_count].size = size;
-      //setProcessorInventoryValue(processor, "physical_location", physical_location, processor_inventory[processor_count].physical_location, 
-      //  CSM_PROCESSOR_PHYSICAL_LOCATION_MAX);
       processor_count++;
     }
   }
