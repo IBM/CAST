@@ -90,7 +90,9 @@ if ($rc == 0) {
         $vendor = `$cmd`;
         chomp $vendor;
         
-        if(`cat $tempdir/stderr | grep "command not found" | wc -l` ne 0) {
+        my $cmd_err=`cat $tempdir/stderr | grep "command not found" | wc -l`; 
+        chomp $cmd_err;
+        if ("$cmd_err" ne "0") {
             push(@$errs, "$node: lscpi command not found");
         }
         elsif (length($vendor) == 0) {
@@ -114,8 +116,9 @@ if ($rc == 0) {
         my $cmd = "sudo nvme list -o json 2>$tempdir/stderr";
         if ($verbose) {print "command: $cmd\n";}
         my $var1 = `$cmd`;
-        
-        if(`cat $tempdir/stderr | grep "command not found" | wc -l` ne 0) {
+        my $cmd_err=`cat $tempdir/stderr | grep "command not found" | wc -l`; 
+        chomp $cmd_err;
+        if ("$cmd_err" ne "0") {
             push(@$errs, "$node: nvme command not found");
         } else {
             my $json = decode_json($var1);
@@ -139,6 +142,11 @@ if ($rc == 0) {
 }
 
 # Print out errors ------------------------------------------------------------
+foreach my $l (split(/\n/,`cat $tempdir/stderr`)) {
+   chomp $l;
+   push(@$errs,"$l");
+}
+
 if (scalar @$errs) {
     for my $e (@$errs) {
         print "(ERROR) $e\n";
