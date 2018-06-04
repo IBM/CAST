@@ -54,7 +54,7 @@ sub output
 
 sub cmd
 {
-    my($cmd) = @_;
+    my($cmd, $ignoreFailure) = @_;
     my $timeout = 60;
 
     output("Running command: $cmd");
@@ -73,8 +73,15 @@ sub cmd
     
     if(($? != 0) || ($@ =~ /alarm timeout/i))
     {
-	output("Command '$cmd' failed.  Aborting $0", LOG_ERR);
-	exit(4);
+	if($ignoreFailure)
+	{
+	    output("Command '$cmd' had exit status $?");
+	}
+	else
+	{
+	    output("Command '$cmd' failed.  Aborting $0", LOG_ERR);
+	    exit(4);
+	}
     }
     return $rc;
 }
@@ -360,9 +367,9 @@ sub configureVolumeGroup
 		my $ismounted = "";
 		eval
 		{
-		    $ismounted = cmd("grep '/dev/mapper/$vgname-$lvname ' /proc/mounts");
+		    $ismounted = cmd("grep '/dev/mapper/$vgname-$lvname ' /proc/mounts", 1);
 		};
-		print "ismounted: $ismounted\n";
+		output("Mounted $vgname-$lvname at: $ismounted");
 		if($ismounted !~ /\S/)
 		{
 		    cmd("lvremove -f /dev/$vgname/$lvname");
