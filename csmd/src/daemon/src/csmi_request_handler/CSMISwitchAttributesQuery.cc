@@ -68,9 +68,6 @@ bool CSMISwitchAttributesQuery::CreatePayload(
             stmtParams[i] = ' ';
     }
 	
-	
-
-	int paramCount = 0;
 	std::string stmt = "SELECT "
 			"switch_name, "
 			"serial_number, "
@@ -122,7 +119,7 @@ bool CSMISwitchAttributesQuery::CreatePayload(
 	add_param_sql( stmt, input->limit > 0, ++SQLparameterCount, "LIMIT $", "::int ")
 	add_param_sql( stmt, input->offset > 0, ++SQLparameterCount, "OFFSET $", "::int ")
 
-	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
+	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, SQLparameterCount );
 	if ( input->switch_names_count > 0 ) dbReq->AddTextArrayParam(input->switch_names, input->switch_names_count);
 	if ( input->state[0] != '\0') dbReq->AddTextParam(input->state);
 	if ( input->serial_number[0] != '\0') dbReq->AddTextParam(input->serial_number);
