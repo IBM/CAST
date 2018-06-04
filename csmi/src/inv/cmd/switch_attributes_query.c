@@ -32,10 +32,14 @@
 #include "csmutil/include/csmutil_logging.h"
 /* Command line macros for ease of use. */
 #include "csmi/src/common/include/csmi_internal_macros.h"
+#include "csmi/src/inv/include/csmi_inv_internal.h"
 
-/* Should we do this? */
-// #define API_PARAMETER_INPUT_TYPE  = csm_switch_attributes_query_input_t
-// #define API_PARAMETER_OUTPUT_TYPE = csm_switch_attributes_query_output_t
+#define API_PARAMETER_INPUT_TYPE csm_switch_attributes_query_input_t
+#define API_PARAMETER_OUTPUT_TYPE csm_switch_attributes_query_output_t
+
+#define API_FORMAT_START "results_count,results{"
+#define API_FORMAT_STRING "switch_name,serial_number"
+#define API_FORMAT_END   "}"
 
 ///< For use as the usage variable in the input parsers.
 #define USAGE csm_free_struct_ptr(csm_switch_attributes_query_input_t, input); help
@@ -73,9 +77,15 @@ void help(){
 	puts("                                   |               [b] = 'ORDER BY switch_name DESC NULLS LAST'");
 	puts("");
 	puts("GENERAL OPTIONS:");
+	puts("    -f, --format | allocation_id,compute_nodes | (STRING) Format string detailing the fields to display.");
+    puts("                                   Values are comma delimited, matching the contents of the struct.");
+    puts("                                   If a result has a subresult (e.g. struct pointer) those elements");
+    puts("                                   may be indicated by <subresult_field>\"{\"<formatting>\"}\".");
+    puts("                                   \"%\" Indicates all values should be shown for that result level and deeper.");
 	puts("[-h, --help]                  | Help.");
-	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("[-J, --JSON]                  | Set output to print in JSON. ");
+	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
+
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
 	puts("  csm_switch_attributes_query -s \"abc123\"");
@@ -86,6 +96,7 @@ struct option longopts[] = {
 	//general options
 	{"help",          no_argument,       0, 'h'},
 	{"verbose",       required_argument, 0, 'v'},
+	{"format",        required_argument, 0, 'f'},
 	{"JSON",          no_argument,       0, 'J'},
 	//api arguments
 	{"switch_name",   required_argument, 0, 's'},
@@ -121,6 +132,8 @@ int main(int argc, char *argv[])
 	uint32_t i = 0;
 	/*For format printing later. */
 	char JSON = 0;
+	char *format = NULL;
+	char format_output = 0;
 
 	/*Set up data to call API*/
 	csm_switch_attributes_query_input_t* input = NULL;
@@ -129,7 +142,7 @@ int main(int argc, char *argv[])
 	csm_switch_attributes_query_output_t* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:Jl:o:O:s:S:t:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:f:Jl:o:O:s:S:t:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -137,6 +150,12 @@ int main(int argc, char *argv[])
 			case 'v':
                 csm_set_verbosity( optarg, USAGE )
 				break;
+			case 'f':
+			{
+				CSM_WRAP_FORMAT_STRING( format, API_FORMAT_START, optarg, API_FORMAT_END );
+				format_output = 1;
+                break;
+			}
 			case 'J':
 				JSON = 1;
 				break;
@@ -241,6 +260,13 @@ int main(int argc, char *argv[])
 				puts("[");
 				for (i = 0; i < output->results_count; i++) {
 					printf("    {\n");
+					if(format_output == 1)
+					{
+						//format not support JSON atm
+						csmutil_logging(warning, "%s-%d:", __FILE__, __LINE__);
+						csmutil_logging(warning, "  format doesn't support JSON combination at the moment.");
+						csmutil_logging(warning, "  please contribute to open source and improve this feature.");
+					}
 					//check if statement for null strings. print out literal null for json standard.
 					if(output->results[i]->switch_name[0] == '\0'){ printf("        \"switch_name\": null,\n"); }else{ printf("        \"switch_name\": \"%s\",\n", output->results[i]->switch_name); }
 					if(output->results[i]->serial_number[0] == '\0'){ printf("        \"serial_number\": null,\n"); }else{ printf("        \"serial_number\": \"%s\",\n", output->results[i]->serial_number); }
@@ -281,35 +307,42 @@ int main(int argc, char *argv[])
 			else
 			{
 				puts("---");
-				printf("Total_Records: %i\n", output->results_count);
-				for (i = 0; i < output->results_count; i++) {
-					printf("RECORD_%i:\n", i+1);
-					printf("  switch_name:             %s\n", output->results[i]->switch_name);
-					printf("  serial_number:           %s\n", output->results[i]->serial_number);
-					printf("  discovery_time:          %s\n", output->results[i]->discovery_time);
-					printf("  collection_time:         %s\n", output->results[i]->collection_time);
-					printf("  comment:                 %s\n", output->results[i]->comment);
-					printf("  description:             %s\n", output->results[i]->description);
-					printf("  fw_version:              %s\n", output->results[i]->fw_version);
-					printf("  gu_id:                   %s\n", output->results[i]->gu_id);
-					printf("  has_ufm_agent:           %c\n", csm_print_bool_custom(output->results[i]->has_ufm_agent,'t','f'));
-					printf("  hw_version:              %s\n", output->results[i]->hw_version);
-					printf("  ip:                      %s\n", output->results[i]->ip);
-					printf("  model:                   %s\n", output->results[i]->model);
-					printf("  num_modules:             %"PRId32"\n", output->results[i]->num_modules);
-					printf("  physical_frame_location: %s\n", output->results[i]->physical_frame_location);
-					printf("  physical_u_location:     %s\n", output->results[i]->physical_u_location);
-					printf("  ps_id:                   %s\n", output->results[i]->ps_id);
-					printf("  role:                    %s\n", output->results[i]->role);
-					printf("  server_operation_mode:   %s\n", output->results[i]->server_operation_mode);
-					printf("  sm_mode:                 %s\n", output->results[i]->sm_mode);
-					printf("  state:                   %s\n", output->results[i]->state);
-					printf("  sw_version:              %s\n", output->results[i]->sw_version);
-					printf("  system_guid:             %s\n", output->results[i]->system_guid);
-					printf("  system_name:             %s\n", output->results[i]->system_name);
-					printf("  total_alarms:            %"PRId32"\n", output->results[i]->total_alarms);
-					printf("  type:                    %s\n", output->results[i]->type);
-					printf("  vendor:                  %s\n", output->results[i]->vendor);
+				if(format_output == 1)
+				{
+					csmi_printer(CSM_YAML,format,output,CSM_STRUCT_MAP(API_PARAMETER_OUTPUT_TYPE));
+				}
+				else
+				{
+					printf("Total_Records: %i\n", output->results_count);
+					for (i = 0; i < output->results_count; i++) {
+						printf("RECORD_%i:\n", i+1);
+						printf("  switch_name:             %s\n", output->results[i]->switch_name);
+						printf("  serial_number:           %s\n", output->results[i]->serial_number);
+						printf("  discovery_time:          %s\n", output->results[i]->discovery_time);
+						printf("  collection_time:         %s\n", output->results[i]->collection_time);
+						printf("  comment:                 %s\n", output->results[i]->comment);
+						printf("  description:             %s\n", output->results[i]->description);
+						printf("  fw_version:              %s\n", output->results[i]->fw_version);
+						printf("  gu_id:                   %s\n", output->results[i]->gu_id);
+						printf("  has_ufm_agent:           %c\n", csm_print_bool_custom(output->results[i]->has_ufm_agent,'t','f'));
+						printf("  hw_version:              %s\n", output->results[i]->hw_version);
+						printf("  ip:                      %s\n", output->results[i]->ip);
+						printf("  model:                   %s\n", output->results[i]->model);
+						printf("  num_modules:             %"PRId32"\n", output->results[i]->num_modules);
+						printf("  physical_frame_location: %s\n", output->results[i]->physical_frame_location);
+						printf("  physical_u_location:     %s\n", output->results[i]->physical_u_location);
+						printf("  ps_id:                   %s\n", output->results[i]->ps_id);
+						printf("  role:                    %s\n", output->results[i]->role);
+						printf("  server_operation_mode:   %s\n", output->results[i]->server_operation_mode);
+						printf("  sm_mode:                 %s\n", output->results[i]->sm_mode);
+						printf("  state:                   %s\n", output->results[i]->state);
+						printf("  sw_version:              %s\n", output->results[i]->sw_version);
+						printf("  system_guid:             %s\n", output->results[i]->system_guid);
+						printf("  system_name:             %s\n", output->results[i]->system_name);
+						printf("  total_alarms:            %"PRId32"\n", output->results[i]->total_alarms);
+						printf("  type:                    %s\n", output->results[i]->type);
+						printf("  vendor:                  %s\n", output->results[i]->vendor);
+					}
 				}
 				puts("...");
 			}
