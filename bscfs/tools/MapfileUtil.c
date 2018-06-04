@@ -123,9 +123,8 @@ void MapfileLoad(char *mapfile, int summary)
 	    Node[n].region_count_max = 0;
 	    Node[n].region = NULL;
 	} else {
-	    uint64_t region_size = count * sizeof(RegionInfo);
 	    if ((offset < (sizeof(file_header) + node_header_size)) ||
-		((offset + region_size) >= file_size))
+		(count >= ((file_size - offset) / sizeof(RegionInfo))))
 	    {
 		fprintf(stderr,
 			"%s: bad region_offset (%ld) or region_count (%ld) "
@@ -134,6 +133,7 @@ void MapfileLoad(char *mapfile, int summary)
 		exit(-1);
 	    }
 	    Node[n].region_count_max = count;
+	    uint64_t region_size = count * sizeof(RegionInfo);
 	    Node[n].region = (RegionInfo *) malloc(region_size);
 	    if (Node[n].region == NULL) {
 		fprintf(stderr,
