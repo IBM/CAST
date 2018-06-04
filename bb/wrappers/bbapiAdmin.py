@@ -237,12 +237,25 @@ def BB_RemoveJobInfo():
     return
 
 def BB_RemoveLogicalVolume(pMountpoint):
+    l_NormalRCs = BB_RemoveLogicalVolumeError(BBError(Exception())).getNormalRCs()
+    l_ToleratedErrorRCs = BB_RemoveLogicalVolumeError(BBError(Exception())).getToleratedErrorRCs()
+
     l_Mountpoint = bb.cvar("mountpoint", pMountpoint)
 
     print "%sBB_RemoveLogicalVolume issued to remove the logical volume associated with mountpoint %s" % (os.linesep, pMountpoint)
+
     rc = bb.api.BB_RemoveLogicalVolume(l_Mountpoint)
-    if (rc):
-        raise BB_RemoveLogicalVolumeError(rc)
+    while ((rc not in l_NormalRCs) and (rc not in l_ToleratedErrorRCs)):
+        dummy = BBError()
+        if ("Device or resource busy" not in dummy.getLastErrorDetailsSummary()):
+            raise BB_RemoveLogicalVolumeError(rc)
+        else:
+            # NOTE: This could be a 'normal' case where restart transfer definition has not completed before remove logical volume
+            #       is attempted in the normal flow of operations from the original start transfer request.
+            #       The restart transfer may take 'minutes' attempting to determine if the transfer definition is in a stopped state.
+            print "Device or resource busy.  The remove logical volume for mountpoint %s request will be re-attempted in 30 seconds." % (pMountpoint)
+            time.sleep(30)
+            rc = bb.api.BB_RemoveLogicalVolume(l_Mountpoint)
 
     bb.printLastErrorDetailsSummary()
     print "Logical volume associated with mountpoint %s removed" % (pMountpoint)
