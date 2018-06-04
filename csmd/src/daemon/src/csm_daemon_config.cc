@@ -1063,7 +1063,12 @@ void Configuration::CreateThreadPool()
       enabled = true;
     }
     else
-      _Tweaks._NetMgr_polling_loops = 1000;
+    {
+      if( _Role == CSM_DAEMON_ROLE_AGENT )
+        _Tweaks._NetMgr_polling_loops = 10;
+      else
+        _Tweaks._NetMgr_polling_loops = 1000;
+    }
 
     uint_val = GetValueInConfig( std::string("csm.tuning.dcgm_update_interval_s") );
     if( ! uint_val.empty() )
