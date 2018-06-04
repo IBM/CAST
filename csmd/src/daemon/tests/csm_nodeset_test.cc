@@ -508,7 +508,7 @@ int MTCPerformanceTest( const int listSize, const unsigned mtcSize )
 
   // create the master set of aggregators
   csm::daemon::AggregatorSet master;
-  for( int i=0; i<AGG_COUNT+1; ++i )
+  for( int i=0; i<AGG_COUNT; ++i )
   {
     master.Add( agg[i], csm::daemon::ComputeSet( PickNodeList( nodes, listSize, (i * listSize/2) ) ) );
     master.Connect( agg[ i ] );
