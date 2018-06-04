@@ -49,6 +49,8 @@ class EventManagerBDS : public EventManager
   std::atomic_bool _ReadyToRun;
   csm::daemon::RetryBackOff _IdleRetryBackOff;
 
+  int _Socket;
+
 public:
   EventManagerBDS( const BDS_Info &i_BDS_Info,
                    RetryBackOff *i_MainIdleLoopRetry );
@@ -85,6 +87,11 @@ public:
   inline csm::daemon::RetryBackOff *GetRetryBackoff() { return &_IdleRetryBackOff; }
 
   inline bool BDSActive() const { return _BDS_Info.Active(); }
+
+  bool CheckConnectivity();
+  bool Connect();
+  bool SendData( const std::string data );
+
 };
 
 }   // namespace daemon

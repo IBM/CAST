@@ -44,20 +44,33 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
 
     // if nothing to do, just wait for regular wakeup
     if( idle )
+    {
       retry->AgainOrWait( false );
+    }
     else
     {
+      // is BDS connection enabled at all?
       if( ! bds_enabled )
         continue;
 
-      /* if there's a timer-event, set up an interruptable sleep
-       * (interruptable because a new timer event might require to wake up earlier and change ordering
-       */
+      if( ! aMgr->CheckConnectivity() )
+        aMgr->Connect();
+
       std::string content = bds_ev->GetContent();
 
-      // send string to bds connection
-      CSMLOG( csmd, debug ) << "Sending data to BDS: " << content;
+      // anything to send in the event data?
+      if( content.length() == 0 )
+        continue;
 
+      // send string to bds connection
+      if( aMgr->SendData( content ) )
+      {
+        CSMLOG( csmd, trace ) << "Sent data to BDS: " << content;
+      }
+      else
+      {
+        CSMLOG( csmd, info ) << "Error sending to BDS: " << content;
+      }
     }
   }
 }
@@ -67,7 +80,8 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
 : _BDS_Info( i_BDS_Info ),
   _IdleRetryBackOff( "BDSMgr", csm::daemon::RetryBackOff::SleepType::CONDITIONAL,
                      csm::daemon::RetryBackOff::SleepType::INTERRUPTIBLE_SLEEP,
-                     0, 10000000, 1 )
+                     0, 10000000, 1 ),
+  _Socket( 0 )
 {
   _Sink = new csm::daemon::EventSinkBDS( &_IdleRetryBackOff );
 
@@ -75,8 +89,85 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   _ReadyToRun = false;
   _Thread = new boost::thread( BDSManagerMain, this );
   _IdleRetryBackOff.SetThread( _Thread );
+
+  Connect();
   Unfreeze();
+
 }
+
+bool
+csm::daemon::EventManagerBDS::Connect()
+{
+  struct addrinfo hints, *clist;
+  memset( &hints, 0, sizeof( struct addrinfo ) );
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+
+  if( getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist ) != 0 )
+  {
+    CSMLOG( csmd, warning ) << "Unable to collect address info for " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort()
+        << " error: " << strerror( errno );
+    return false;
+  }
+
+  _Socket = 0;
+  for( struct addrinfo *c = clist; c != nullptr; c = c->ai_next )
+  {
+    _Socket = socket( c->ai_family, c->ai_socktype, c->ai_protocol );
+    if( _Socket <= 0 )
+    {
+      CSMLOG( csmd, warning ) << "Unable to create socket: " << strerror( errno );
+      freeaddrinfo( clist );
+      return false;
+    }
+
+    if( connect( _Socket, c->ai_addr, c->ai_addrlen ) == 0 )
+    {
+      CSMLOG( csmd, info ) << "Connected to BDS at " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+      break;
+    }
+
+    close( _Socket );
+    _Socket = 0;
+  }
+
+  freeaddrinfo( clist );
+
+  if( _Socket == 0 )
+  {
+    CSMLOG( csmd, warning ) << "Unable to connect to BDS at " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort()
+        << " No functional connection path found.";
+    return false;
+  }
+
+  return true;
+}
+
+bool
+csm::daemon::EventManagerBDS::CheckConnectivity()
+{
+  return (_Socket > 0 );
+}
+
+bool
+csm::daemon::EventManagerBDS::SendData( const std::string data )
+{
+  ssize_t rc = 0;
+  ssize_t done = 0;
+  ssize_t remain = data.length();
+  while(( rc >= 0 ) && ( rc < remain ))
+  {
+    rc = write( _Socket, data.c_str() + done, remain );
+    if( rc > 0 )
+    {
+      remain -= rc;
+      done += rc;
+    }
+  }
+
+  return ((rc >= 0) && ( remain == 0 ));
+}
+
 
 csm::daemon::EventManagerBDS::~EventManagerBDS()
 {
