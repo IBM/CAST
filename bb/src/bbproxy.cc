@@ -2160,8 +2160,6 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         // Check permissions
         checkForSuperUserPermission();
 
-        LOG(bb,info) << "msgin_removejobinfo: jobid=" << l_JobId;
-
         // Resolve the jobid
         if (bbconnectionName.size())
         {
@@ -2173,6 +2171,8 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
             errorText << "NULL connection name";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
+
+        LOG(bb,info) << "msgin_removejobinfo: jobid=" << l_JobId;
 
         // Build the message to send to bbserver
         txp::Msg::buildMsg(txp::BB_REMOVEJOBINFO, msgserver);
