@@ -49,6 +49,7 @@ file(GLOB CSM_DAEMON_SRC
   csm_event_routing_agg.cc
   csm_event_routing_utility.cc
   csm_event_routing_agent.cc
+  csm_environmental_data.cc
   csmi_request_handler/CSMIAllocationQuery.cc
   csmi_request_handler/CSMIAllocationQueryDetails.cc
   csmi_request_handler/CSMIAllocationResourcesQuery.cc
