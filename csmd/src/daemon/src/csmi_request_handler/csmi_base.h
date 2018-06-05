@@ -969,6 +969,24 @@ protected:
     return new csm::daemon::SystemEvent( content, csm::daemon::EVENT_TYPE_SYSTEM, aContext );
   }
     
+  /***********************************************************
+   ***              Helper functions for BDSEvent       ***
+   **********************************************************/
+
+  /**
+    \brief Check if a CoreEvent is a BDS-event
+  */
+  inline bool isBDSEvent(const csm::daemon::CoreEvent& aEvent) const
+  {
+    return aEvent.HasSameContentTypeAs( typeid( csm::daemon::EventContentContainer<csm::daemon::BDSContent> ) );
+  }
+
+  inline csm::daemon::BDSEvent* CreateBDSEvent( const csm::daemon::BDSContent aBDSData )
+  {
+    return new csm::daemon::BDSEvent( aBDSData, csm::daemon::EVENT_TYPE_BDS, nullptr );
+  }
+
+
   // only handle the Connected system event for MQTT connections
   bool CheckMQTTConnection( const csm::daemon::CoreEvent &aEvent )
   {
