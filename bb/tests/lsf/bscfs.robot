@@ -6,8 +6,9 @@ Suite teardown  Clear LSF jobs
 
 *** Keywords ***
 bscfs cleanup
-	 :FOR  ${i}   in range   1   6
+	 :FOR  ${i}   in range   0   10
 	 \  Run Keyword And Continue On Failure  remove files  ${PFSDIR}/chkpnt_00${i}  ${PFSDIR}/chkpnt_00${i}.mapfile
+	 \  Run Keyword And Continue On Failure  remove files  ${PFSDIR}/chkpnt_01${i}  ${PFSDIR}/chkpnt_01${i}.mapfile
 
 *** Test Cases ***
 
