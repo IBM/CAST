@@ -26,6 +26,7 @@ set(CSM_DAEMON_LIB_SRC
   csm_daemon_state.cc
   connection_handling.cc
   csm_daemon_network_manager.cc
+  csm_environmental_data.cc
   ${CSM_INVENTORY_SRC}
   ${CSM_DB_SRC}
 
