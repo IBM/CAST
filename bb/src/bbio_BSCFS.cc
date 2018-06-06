@@ -414,6 +414,11 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	{
 	    // Instantiate an index for the client node from the just-opened
 	    // mapfile.
+
+	    // These limits are arbitrary.
+	    const uint64_t MAX_NODE_COUNT = 16384;
+	    const uint64_t MAX_REGION_COUNT = 1024 * 1024 * 1024;
+
 	    mapFileHandle = new filehandle(pFileName, O_RDONLY, 0);
 	    int map = mapFileHandle->getfd();
 	    bscfs_mapfile_header_t header;
@@ -431,7 +436,17 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 		mapFileIndex = -1u;
 		return -1;
 	    }
+
 	    uint64_t node_count = le64toh(header.node_count);
+	    if (node_count > MAX_NODE_COUNT)
+	    {
+		ERROR("bad node_count");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+
 	    uint64_t node = (contribId & 0xffff);
 	    uint64_t node_offset =
 		offsetof(bscfs_mapfile_header_t, node) +
@@ -459,6 +474,38 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    uint64_t region_count = le64toh(node_header.region_count);
 	    uint64_t total_data_size = le64toh(node_header.total_data_size);
 
+	    if (region_count > MAX_REGION_COUNT) {
+		ERROR("bad region_count");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+	    uint64_t region_size =
+		region_count * sizeof(bscfs_mapfile_region_t);
+
+	    uint64_t mapfile_end = ::lseek(map, 0, SEEK_END);
+	    if (mapfile_end == ((uint64_t) -1))
+	    {
+		SC_ERROR("lseek(SEEK_END) failed");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+
+	    uint64_t node_headers_size =
+		node_count * sizeof(bscfs_mapfile_node_header);
+	    if ((region_offset < (sizeof(header) + node_headers_size)) ||
+		((region_offset + region_size) > mapfile_end))
+	    {
+		ERROR("bad region_offset or region_count");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+
 	    indexBytes = BSCFS_INDEX_SIZE(region_count);
 	    index = (bscfs_index_t*) malloc(indexBytes);
 	    if (index == NULL)
@@ -473,8 +520,6 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    dataBytes = total_data_size;
 
 	    // Read the region info into the end of the index space.
-	    uint64_t region_size =
-		region_count * sizeof(bscfs_mapfile_region_t);
 	    bscfs_mapfile_region_t* region = (bscfs_mapfile_region_t*)
 		(((uint64_t) index) + indexBytes - region_size);
 
