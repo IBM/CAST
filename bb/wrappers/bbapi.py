@@ -513,25 +513,26 @@ def BB_SetUsageLimit(pMountpoint, pUsage):
 def BB_StartTransfer(pTransferDef, pHandle):
     l_NormalRCs = BB_StartTransferError(BBError(Exception())).getNormalRCs()
     l_ToleratedErrorRCs = BB_StartTransferError(BBError(Exception())).getToleratedErrorRCs()
-    rc = l_ToleratedErrorRCs[0]
 
     l_Handle = bb.cvar("handle", pHandle)
 
     print "%sBB_StartTransfer issued to start the transfer %s for handle %s" % (os.linesep, `pTransferDef`, pHandle)
 
-    while (rc not in l_NormalRCs and rc in l_ToleratedErrorRCs):
+    while (True):
         rc = bb.api.BB_StartTransfer(pTransferDef, l_Handle)
-        if (rc not in (l_NormalRCs + l_ToleratedErrorRCs)):
-            dummy = BBError()
-            if ("suspended" not in dummy.getLastErrorDetailsSummary()):
-                raise BB_StartTransferError(rc)
+        if (rc in (l_NormalRCs + l_ToleratedErrorRCs)):
+            if (rc in l_ToleratedErrorRCs):
+                dummy = BBError()
+                if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
+                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in one second." % (`pTransferDef`, pHandle)
+                    time.sleep(1)
+                else:
+                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic will resubmit this start transfer operation." % (`pTransferDef`, pHandle)
+                    break
             else:
-                # This is the case where the work queue is found suspended during the second volley to bbServer.
-                # Other 'suspended' scenarios will return a tolerable -2.
-                print "Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic should perform this start transfer operation." % (`pTransferDef`, pHandle)
                 break
         else:
-            time.sleep(10)
+            raise BB_StartTransferError(rc)
 
     bb.printLastErrorDetailsSummary()
     if (rc == 0):
