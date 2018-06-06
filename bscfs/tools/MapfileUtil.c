@@ -105,35 +105,45 @@ void MapfileLoad(char *mapfile, int summary)
 	exit(-1);
     }
 
-    off_t file_size = lseek(map, 0, SEEK_END);
-    if (file_size < 0) {
-	fprintf(stderr, "%s: lseek(\"%s\") failed: %s\n",
+    uint64_t file_size = lseek(map, 0, SEEK_END);
+    if (file_size == ((uint64_t) -1)) {
+	fprintf(stderr, "%s: lseek(\"%s\", END) failed: %s\n",
 		ProgName, mapfile, strerror(errno));
 	exit(-1);
     }
+
+    // This limit is arbitrary.
+    const uint64_t MAX_REGION_COUNT = 1024 * 1024 * 1024;
 
     uint64_t n;
     for (n = 0; n < NodeCount; n++) {
 	off_t offset = le64toh(node_header[n].region_offset);
 	uint64_t count = le64toh(node_header[n].region_count);
 	uint64_t data_size = le64toh(node_header[n].total_data_size);
+
+	if (count > MAX_REGION_COUNT) {
+	    fprintf(stderr,
+		    "%s: region_count (%ld) for node %ld too large (max %ld)\n",
+		    ProgName, count, n, MAX_REGION_COUNT);
+	    exit(-1);
+	}
+
 	Node[n].region_count = count;
 	Node[n].total_data_size = data_size;
 	if (summary || (count == 0)) {
 	    Node[n].region_count_max = 0;
 	    Node[n].region = NULL;
 	} else {
-	    if ((offset < (sizeof(file_header) + node_header_size)) ||
-		(count >= ((file_size - offset) / sizeof(RegionInfo))))
-	    {
-		fprintf(stderr,
-			"%s: bad region_offset (%ld) or region_count (%ld) "
-			"for node %ld\n",
-			ProgName, offset, count, n);
-		exit(-1);
-	    }
 	    Node[n].region_count_max = count;
 	    uint64_t region_size = count * sizeof(RegionInfo);
+	    if ((offset < (sizeof(file_header) + node_header_size)) ||
+		((offset + region_size) > file_size))
+	    {
+		fprintf(stderr,
+			"%s: bad region_offset (%ld) for node %ld\n",
+			ProgName, offset, n);
+		exit(-1);
+	    }
 	    Node[n].region = (RegionInfo *) malloc(region_size);
 	    if (Node[n].region == NULL) {
 		fprintf(stderr,
