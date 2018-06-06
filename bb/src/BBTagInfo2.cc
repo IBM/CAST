@@ -74,11 +74,11 @@ int BBTagInfo2::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBTagInfo2::cancelExtents(uint64_t* pHandle, uint32_t* pContribId)
+void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
-    extentInfo.sortExtents(pHandle, pContribId);
+    extentInfo.sortExtents(pLVKey, pHandle, pContribId);
 
     // Indicate that next findWork() needs to look for canceled extents
     wrkqmgr.setCheckForCanceledExtents(1);
@@ -680,6 +680,7 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
 
     BBSTATUS l_Status;
     char l_StatusStr[64] = {'\0'};
+    bool l_SendMessage = true;
 
     if (pStatus == BBNONE)
     {
@@ -710,63 +711,71 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
             strCpy(l_TransferStatusStr, "canceled", sizeof(l_TransferStatusStr));
             break;
         }
-        default:
+        case BBFULLSUCCESS:
+        case BBPARTIALSUCCESS:
         {
             strCpy(l_TransferStatusStr, "completed", sizeof(l_TransferStatusStr));
             break;
         }
+        default:
+        {
+            l_SendMessage = false;
+        }
     }
 
-    Uuid lv_uuid = pLVKey->second;
-    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
-    lv_uuid.copyTo(lv_uuid_str);
-
-    LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for handle " << pHandle \
-                 << ":  " << *pLVKey << ", status " << l_StatusStr;
-
-    // NOTE:  The char array is copied to heap by addAttribute and the storage for
-    //        the logical volume uuid attribute is owned by the message facility.
-    //        Our copy can then go out of scope...
-    l_Complete->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
-    l_Complete->addAttribute(txp::handle, pHandle);
-    l_Complete->addAttribute(txp::status, (int64_t)l_Status);
-
-    // Send the message
-    int rc = sendMessage(pConnectionName,l_Complete);
-    if (rc) LOG(bb,info) << "sendMessage rc="<<rc<<" @ func="<<__func__<<":"<<__LINE__;
-    delete l_Complete;
-
-    // Determine if this status update for the handle should be appended to the async file
-    // to be consumed by other bbServers
-    if (sameHostName(pHostName) && pAppendAsyncRequestFlag == ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED)
+    if (l_SendMessage)
     {
-        size_t l_TotalContributors = 0;
-        size_t l_TotalLocalReportingContributors = 0;
-        metadata.accumulateTotalLocalContributorInfo(pHandle, l_TotalContributors, l_TotalLocalReportingContributors);
-        LOG(bb,debug) << "sendTransferCompleteForHandleMsg: pHandle=" << pHandle << ", l_TotalContributors=" << l_TotalContributors << ", l_TotalLocalReportingContributors=" << l_TotalLocalReportingContributors;
-        if (l_TotalContributors > 1)
+        Uuid lv_uuid = pLVKey->second;
+        char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
+        lv_uuid.copyTo(lv_uuid_str);
+
+        LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for handle " << pHandle \
+                     << ":  " << *pLVKey << ", status " << l_StatusStr;
+
+        // NOTE:  The char array is copied to heap by addAttribute and the storage for
+        //        the logical volume uuid attribute is owned by the message facility.
+        //        Our copy can then go out of scope...
+        l_Complete->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
+        l_Complete->addAttribute(txp::handle, pHandle);
+        l_Complete->addAttribute(txp::status, (int64_t)l_Status);
+
+        // Send the message
+        int rc = sendMessage(pConnectionName,l_Complete);
+        if (rc) LOG(bb,info) << "sendMessage rc="<<rc<<" @ func="<<__func__<<":"<<__LINE__;
+        delete l_Complete;
+
+        // Determine if this status update for the handle should be appended to the async file
+        // to be consumed by other bbServers
+        if (sameHostName(pHostName) && pAppendAsyncRequestFlag == ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED)
         {
-            if (l_TotalLocalReportingContributors != l_TotalContributors)
+            size_t l_TotalContributors = 0;
+            size_t l_TotalLocalReportingContributors = 0;
+            metadata.accumulateTotalLocalContributorInfo(pHandle, l_TotalContributors, l_TotalLocalReportingContributors);
+            LOG(bb,debug) << "sendTransferCompleteForHandleMsg: pHandle=" << pHandle << ", l_TotalContributors=" << l_TotalContributors << ", l_TotalLocalReportingContributors=" << l_TotalLocalReportingContributors;
+            if (l_TotalContributors > 1)
             {
-                // Communicate this handle status change to other bbServers by
-                // posting this request to the async request file.
-                // NOTE: Regardless of the rc, post the async request...
-                // NOTE: No need to catch the return code.  If the append doesn't work,
-                //       appendAsyncRequest() will log the failure...
-                char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-                snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s %s", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, pCN_HostName.c_str(), l_TransferStatusStr);
-                AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
-                wrkqmgr.appendAsyncRequest(l_Request);
-                pAppendAsyncRequestFlag = ASYNC_REQUEST_HAS_BEEN_APPENDED;
+                if (l_TotalLocalReportingContributors != l_TotalContributors)
+                {
+                    // Communicate this handle status change to other bbServers by
+                    // posting this request to the async request file.
+                    // NOTE: Regardless of the rc, post the async request...
+                    // NOTE: No need to catch the return code.  If the append doesn't work,
+                    //       appendAsyncRequest() will log the failure...
+                    char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+                    snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s %s", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, pCN_HostName.c_str(), l_TransferStatusStr);
+                    AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
+                    wrkqmgr.appendAsyncRequest(l_Request);
+                    pAppendAsyncRequestFlag = ASYNC_REQUEST_HAS_BEEN_APPENDED;
+                }
+                else
+                {
+                    LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
+                }
             }
             else
             {
-                LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as all " << l_TotalContributors << " contributors for handle " << pHandle << " are local to this bbServer";
+                LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
             }
-        }
-        else
-        {
-            LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
         }
     }
 
@@ -795,7 +804,7 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(&pHandle, &l_ContribId);
+        cancelExtents(pLVKey, &pHandle, &l_ContribId);
     }
 
     return;
@@ -909,7 +918,7 @@ int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
             //
             // Sort the extents, moving the canceled extents to the front of
             // the work queue so they are immediately removed...
-            cancelExtents(&pHandle, &pContribId);
+            cancelExtents(pLVKey, &pHandle, &pContribId);
         }
     }
 
