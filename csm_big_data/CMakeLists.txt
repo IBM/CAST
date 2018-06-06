@@ -14,7 +14,7 @@
 #================================================================================
 
 set(BDS_BASE_NAME csm/bigdata)
-set(BDS_RPM_NAME ccsm-bds)
+set(BDS_RPM_NAME csm-bds)
 
 add_subdirectory(elasticsearch)
 
