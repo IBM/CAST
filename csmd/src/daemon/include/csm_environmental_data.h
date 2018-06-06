@@ -85,6 +85,8 @@ public:
 
   void Set_Data( const CSM_CPU_Data& CPU_data_to_copy );
 
+  bool Set_Labels( const CSM_Environmental_Data& in );
+
   std::string Get_Json_String();
 
   CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );

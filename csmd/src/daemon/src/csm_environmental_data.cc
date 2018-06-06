@@ -148,6 +148,36 @@ void CSM_Environmental_Data::Set_Data( const CSM_CPU_Data& CPU_data_to_copy )
   _Data_Mask.set( CPU_DATA_BIT );
 }
 
+bool CSM_Environmental_Data::Set_Labels( const CSM_Environmental_Data& in )
+{
+  // Attempt to copy associated labels from in to this object for any data that is set in this object
+  if( _Data_Mask.test( GPU_DOUBLE_DATA_BIT ) )
+  {
+    if( in._Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) )
+    {
+      this->Set_Data( in._GPU_Double_Label_Data );
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+  if( _Data_Mask.test( GPU_LONG_DATA_BIT ) )
+  {
+    if( in._Data_Mask.test( GPU_LONG_LABEL_BIT ) )
+    {
+      this->Set_Data( in._GPU_Long_Label_Data );
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 std::string CSM_Environmental_Data::Get_Json_String()
 {
   return "Test string";
