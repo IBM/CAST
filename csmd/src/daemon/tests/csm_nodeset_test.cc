@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_nodeset_test.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -12,14 +12,12 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-/* csm_nodeset_test.cc
- *
- ******************************************/
 
 #include "logging.h"
 #include <string>
 #include <set>
 #include <chrono>
+#include <algorithm>
 
 #include "csmnet/src/CPP/address.h"
 #include "include/csm_node_bitset.h"
@@ -27,9 +25,9 @@
 
 #include "csmutil/include/csm_test_utils.h"
 
-#define NODE_COUNT_MAX (4608)
-//#define NODE_COUNT_MAX (100)
 #define AGG_COUNT (16)
+#define NODE_COUNT_MAX (288 * AGG_COUNT + 288)  // +288 because for testing, the first and last aggregator  have half of their nodes covered only once
+//#define NODE_COUNT_MAX (100)
 #define TEST_COUNT (10000)
 
 #define RANDOM_MAGIC (0xFFFFFFFF)
@@ -59,11 +57,20 @@ typedef struct
   void update( const unsigned c, const uint64_t mic )
   {
     _avg += c;
-    _msgs[ _idx ] = c;
+    _msgs[ _idx % TEST_COUNT ] = c;
     _mic += mic;
     if( _min > c ) _min = c;
     if( _max < c ) _max = c;
-    _idx = ( _idx + 1 ) % TEST_COUNT;
+    if( _idx < TEST_COUNT )
+      ++_idx;
+  }
+  double GetAvgAggs()
+  {
+    return _avg/(double)_idx;
+  }
+  double GetAvgMics()
+  {
+    return (double)_mic/(double)_idx;
   }
 } Stats_t;
 
@@ -85,12 +92,12 @@ std::string RandomString( const uint64_t number = RANDOM_MAGIC )
   else
   {
 #define RACKSIZE (18)
-#define COLUMS (12)
+#define COLUMS (16)
     uint64_t r = number / (RACKSIZE*COLUMS);
     uint64_t c = ( number / RACKSIZE ) % COLUMS;
-    uint64_t n = number % RACKSIZE + 1;
+    uint64_t n = number % RACKSIZE;
 
-    len = 2;
+    len = 4;
 
     out.append("-r");
     out.append( std::to_string(r) );
@@ -115,10 +122,10 @@ csm::daemon::NodeNameList_t GenerateNodeList( const int i_Size )
     std::string name;
     do
     {
-      name = RandomString( n+1 );
+      name = RandomString( n );
     } while ( nodeSet.find( name ) != nodeSet.end() );
     nodeSet.insert( name );
-//    std::cout << "  " << name;
+    std::cout << "  " << name << std::endl;
     ret.push_back( name );
   }
   return ret;
@@ -222,6 +229,7 @@ int bitset_test( int argc, char **argv )
 
   int listSize = atoi( argv[1] );
   int mtcSize = atoi( argv[2] );
+
   csm::daemon::NodeNameList_t nodes = GenerateNodeList( NODE_COUNT_MAX );
 
   BitFilter_t check( nodes );
@@ -255,7 +263,7 @@ csm::daemon::ComputeNodeList_t GenerateAddrList( const int i_Size )
     std::string name;
     do
     {
-      name = RandomString( n+1 );
+      name = RandomString( n );
     } while ( nodeSet.find( name ) != nodeSet.end() );
     nodeSet.insert( name );
 //    std::cout << "  " << name;
@@ -285,8 +293,8 @@ int computeset_test( int argc, char **argv )
     switch( action )
     {
       case 0:
-        LOG( csmd, always ) << index << ":" << "Commit; " << starter.GetUncommittedInsert()
-          << ":" << starter.GetUncommittedDelete() << " c=" << c;
+        LOG( csmd, always ) << index << ":" << "Commit; " << starter.GetUncommittedUpdates()
+          << " c=" << c;
         starter.Commit( csm::daemon::ComputeSet::SET_COMMIT_BOTH );
         rc += TEST( starter.GetSize(), c );
         if( rc )
@@ -384,8 +392,7 @@ int computeset_test( int argc, char **argv )
   rc += TEST( deser.HasNode("bla2"), false );
   rc += TEST( deser.HasNode("bla3"), true );
 
-  rc += TEST( deser.GetDeleteList().size(), 1 );
-  rc += TEST( deser.GetInsertList().size(), 1 );
+  rc += TEST( deser.GetUpdateList().size(), 2 );
 
 
 
@@ -429,6 +436,12 @@ int aggregatorset_test( int argc, char **argv )
     rc += TEST( master.GetAggrDisconnectedNodes( agg[ i ] ).size(), 0 );
   rc += TEST( master.GetAggrDisconnectedNodes( agg[ AGG_COUNT-1 ] ).size(), (size_t)listSize/2 );
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Aggtest node coverage rc=" << rc;
+    return rc;
+  }
+
   // check node connectivity
   for( size_t i=0; i<nodes.size(); ++i )
   {
@@ -438,30 +451,154 @@ int aggregatorset_test( int argc, char **argv )
       rc += TEST( master.IsNodeConnected( nodes[ i ] ), false );
   }
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Node Connectivity check failed: rc=" << rc;
+    return rc;
+  }
+
   // disconnect agg 3 and check for full connectivity
   master.Disconnect( agg[ 3 ] );
   for( size_t i=(size_t)listSize; i<(size_t)listSize * 3; ++i )
     rc += TEST( master.IsNodeConnected( nodes[ i ] ), true );
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Disconnect Agg3: rc=" << rc;
+    return rc;
+  }
+
   master.Disconnect( agg[ 4 ] );
   for( size_t i=(size_t)listSize * 2; i<(size_t)(listSize * 5) / 2; ++i )
     rc += TEST( master.IsNodeConnected( nodes[ i ] ), false );
+
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Disconnect Agg4: rc=" << rc;
+    return rc;
+  }
 
   master.Connect( agg[ 3 ] );
   for( size_t i=(size_t)listSize * 2; i<(size_t)(listSize * 5) / 2; ++i )
     rc += TEST( master.IsNodeConnected( nodes[ i ] ), true );
 
+  if( rc != 0 )
+  {
+    LOG( csmd, error ) << "Connect Agg3: rc=" << rc;
+    return rc;
+  }
+
   return rc;
 }
 
+
+int MTCPerformanceTest( const int listSize, const unsigned mtcSize )
+{
+  Stats_t SetMsg;
+  SetMsg.reset();
+  int rc = 0;
+
+  // create aggregator addresses
+  csm::network::Address_sptr agg[ AGG_COUNT ];
+  for( int i=0; i<AGG_COUNT; ++i )
+    agg[ i ] = std::make_shared<csm::network::AddressAggregator>( 0x33557722 + i, 10000 + i  );
+
+  // generate the nodelist
+  csm::daemon::NodeNameList_t nodes = GenerateNodeList( NODE_COUNT_MAX );
+
+  // create the master set of aggregators
+  csm::daemon::AggregatorSet master;
+  for( int i=0; i<AGG_COUNT; ++i )
+  {
+    master.Add( agg[i], csm::daemon::ComputeSet( PickNodeList( nodes, listSize, (i * listSize/2) ) ) );
+    master.Connect( agg[ i ] );
+  }
+
+  size_t overlappedOffset = listSize/2;
+  size_t overlappedNodes = overlappedOffset * (AGG_COUNT-2);
+  double minimal = ceil( (double)mtcSize / ((double)listSize/2) ) + 1;
+  double maximal = ceil( (double)mtcSize / ((double)listSize/2) ) + 2;
+
+//  for( int i=0; i<TEST_COUNT; ++i )
+  int i;
+  int test_count = 0;
+  for( i=0; i<TEST_COUNT; ++i, ++test_count )
+  {
+    size_t testOffset = overlappedOffset + (i % (overlappedNodes-mtcSize));
+    if( i >(int)(overlappedNodes-mtcSize) )
+      testOffset = (overlappedOffset + (random() % (overlappedNodes-mtcSize) ));
+
+    std::cout << "Testing MTC Coverage at offset: " << testOffset << std::endl;
+    csm::daemon::NodeNameList_t mtcNodes = PickNodeList( nodes, mtcSize, testOffset );
+    if( ! std::is_sorted( mtcNodes.begin(), mtcNodes.end() ) )
+      std::sort( mtcNodes.begin(), mtcNodes.end() );
+
+//    csm::daemon::NodeNameList_t mtcNodes = PickNodeList( nodes, mtcSize, RANDOM_MAGIC );
+
+    std::chrono::high_resolution_clock::time_point start_set = std::chrono::high_resolution_clock::now();
+
+    std::vector<csm::network::Address_sptr> destList;
+
+    destList = master.MtcMatch( mtcNodes );
+
+    std::chrono::high_resolution_clock::time_point end_set = std::chrono::high_resolution_clock::now();
+    uint64_t micros = std::chrono::duration_cast<std::chrono::microseconds>(end_set-start_set).count();
+    SetMsg.update( destList.size(), micros );
+
+    rc += TESTFAIL( destList.empty(), true );
+    rc += TEST( destList.size() < minimal, false );
+    if( destList.empty() )
+      std::cerr << "Coverage error: No destination for MTC " << std::endl;
+
+    if( destList.size() < minimal )
+      std::cerr << "Coverage error: Need at least " << minimal
+        << " aggr for MTC of size " << mtcSize << " at offs " << testOffset
+        << ". Found only: " << destList.size() << std::endl;
+
+  }
+
+  std::cout << "Agg-Msgs for nodes= " << mtcSize
+      << ":   Res_set=(avg: " << SetMsg.GetAvgAggs() << " aggs/mtc, min-max: "<< SetMsg._min << "-" << SetMsg._max
+      << "; " << SetMsg.GetAvgMics() <<" micros/mtc;" << SetMsg.GetAvgAggs() / maximal * 100. << "%)"
+
+      << " entries = " << listSize/2 << " min = " << minimal << " max = " << maximal
+      << std::endl;
+
+  return rc;
+}
 
 int main( int argc, char **argv )
 {
   int rc = 0;
 
-//  rc += bitset_test( argc, argv );
+  if( argc < 3 )
+  {
+    std::cerr << "Usage: " << argv[0] << " <nodes_per_aggr> <mtc_size>" << std::endl;
+    exit(1);
+  }
+
+  int listSize = atoi( argv[1] );
+  int mtcSize = atoi( argv[2] );
+
+  int maxNodes = NODE_COUNT_MAX / AGG_COUNT * 2;
+  if(( listSize > maxNodes) || ( listSize % AGG_COUNT != 0 ))
+  {
+    std::cerr << " <nodes_per_agg> needs to be number divisible by " << AGG_COUNT
+        << " and less than " << maxNodes << std::endl;
+    exit(1);
+  }
+
+  if( mtcSize > NODE_COUNT_MAX )
+  {
+    std::cerr << " <mtc_size> needs to be smaller than " << NODE_COUNT_MAX << std::endl;
+    exit(1);
+  }
+
+
+  //  rc += bitset_test( argc, argv );
   rc += computeset_test( argc, argv );
   rc += aggregatorset_test( argc, argv );
+  rc += MTCPerformanceTest( listSize, mtcSize );
 
   LOG( csmd, always ) << "Test exiting with rc=" << rc;
   return rc;

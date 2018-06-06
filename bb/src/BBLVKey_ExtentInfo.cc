@@ -630,7 +630,7 @@ void BBLVKey_ExtentInfo::setStageOutStarted(const LVKey* pLVKey, const uint64_t 
     return;
 }
 
-int BBLVKey_ExtentInfo::sortExtents(uint64_t* pHandle, uint32_t* pContribId)
+int BBLVKey_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
 {
     const uint64_t l_CanceledGroupKey = 1;
     const uint64_t l_CanceledFileKey = 1;
@@ -663,7 +663,7 @@ int BBLVKey_ExtentInfo::sortExtents(uint64_t* pHandle, uint32_t* pContribId)
                 size_t l_NotMarkedAsCanceledBSCFS = 0;
                 bool l_CheckForNewlyCanceledExtents = ((pHandle && pContribId) ? true : false);
 
-                LOG(bb,debug) << "sortExtents(): " << allExtents.size() << " extent(s) on the queue upon entry to sort";
+                LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue upon entry to sort";
 
                 for (size_t i=0; i<allExtents.size(); ++i)
                 {
@@ -748,15 +748,15 @@ int BBLVKey_ExtentInfo::sortExtents(uint64_t* pHandle, uint32_t* pContribId)
                 // Perform the sort of the extents vector...
                 if (!resizeLogicalVolumeDuringStageOut())
                 {
-                    LOG(bb,info) << "Start sorting " << allExtents.size() << " extent(s) for the LVKey, positive SSD stride";
+                    LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", start sorting " << allExtents.size() << " extent(s) for the LVKey, positive SSD stride";
                     sort(allExtents.begin(), allExtents.end(), compareOpPositiveStride);
                 }
                 else
                 {
-                    LOG(bb,info) << "Start sorting " << allExtents.size() << " extent(s) for the LVKey, negative SSD stride";
+                    LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", start sorting " << allExtents.size() << " extent(s) for the LVKey, negative SSD stride";
                     sort(allExtents.begin(), allExtents.end(), compareOpNegativeStride);
                 }
-                LOG(bb,info) << "End sorting " << allExtents.size() << " extent(s) for the LVKey";
+                LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", end sorting " << allExtents.size() << " extent(s) for the LVKey";
 
                 // Find the first/last extent for each (transfer definition,sourceindex)
                 BBTransferDef* l_TransferDef;
@@ -801,13 +801,13 @@ int BBLVKey_ExtentInfo::sortExtents(uint64_t* pHandle, uint32_t* pContribId)
                     }
                 }
 
-                LOG(bb,info) << "sortExtents(): " << l_AlreadyMarkedAsCanceled << " extent(s) were already marked as canceled, " \
+                LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", " << l_AlreadyMarkedAsCanceled << " extent(s) were already marked as canceled, " \
                              << l_MarkedAsCanceled << " additional extent(s) were newly marked as canceled, " \
                              << l_NotMarkedAsCanceled << " regular and " << l_NotMarkedAsCanceledBSCFS << " BSCFS extent(s) remain to be transfered";
             }
             else
             {
-                LOG(bb,info) << "sortExtents(): No extents on the work queue for the LVKey";
+                LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", no extents on the work queue for the LVKey";
             }
         }
         catch(ExceptionBailout& e) { }
@@ -823,7 +823,7 @@ int BBLVKey_ExtentInfo::sortExtents(uint64_t* pHandle, uint32_t* pContribId)
         ResizeSSD_Timer.forcePop();
 #endif
 
-        LOG(bb,debug) << "sortExtents(): " << allExtents.size() << " extent(s) on the queue when exiting sort.";
+        LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue when exiting sort.";
 
         if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 1))
         {

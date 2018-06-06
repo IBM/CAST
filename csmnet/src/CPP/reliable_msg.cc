@@ -213,6 +213,11 @@ retry:
           LOG( csmnet, debug ) << "Received ControlMsg from " << aMsgAddr.GetAddr()->Dump() << " to RESTART";
           AddCtrlEvent( csm::network::NET_CTL_RESTARTED, aMsgAddr.GetAddr() );
         }
+        if( 0 == aMsgAddr._Msg.GetData().compare( CSM_RESET_MSG ) )
+        {
+          LOG( csmnet, debug ) << "Received ControlMsg from " << aMsgAddr.GetAddr()->Dump() << " to RESET connection status.";
+          AddCtrlEvent( csm::network::NET_CTL_RESET, aMsgAddr.GetAddr() );
+        }
         ret = 0; // don't expose this message, the network event is enough
         break;
       }
@@ -289,7 +294,7 @@ int csm::network::ReliableMsg::Sync( const csm::network::SyncAction aSync )
   {
     // skip TIMEOUT events for any local client that's already disconnected
     if(( msg_itr.second->GetAddrType() == csm::network::CSM_NETWORK_TYPE_LOCAL ) &&
-        ( !_Unix->CheckRemoteAddress( msg_itr.second )) )
+        (( _Unix == nullptr ) || ( !_Unix->CheckRemoteAddress( msg_itr.second )) ) )
     {
       LOG(csmnet, debug ) << "Found timeout on ACK to local client that no longer exists";
       continue;

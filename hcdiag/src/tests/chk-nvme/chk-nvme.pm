@@ -90,8 +90,13 @@ if ($rc == 0) {
         $vendor = `$cmd`;
         chomp $vendor;
         
-        if (length($vendor) == 0) {
-           push (@$errs, "(ERROR) Found no NVMe devices mounted\n");
+        my $cmd_err=`cat $tempdir/stderr | grep "command not found" | wc -l`; 
+        chomp $cmd_err;
+        if ("$cmd_err" ne "0") {
+            push(@$errs, "$node: lscpi command not found");
+        }
+        elsif (length($vendor) == 0) {
+           push (@$errs, "(ERROR) Found no NVMe devices mounted");
         } else {
            # Get bus and device number of nvme device
            my $bus = substr($vendor, 0, index($vendor, ':'));
@@ -111,10 +116,16 @@ if ($rc == 0) {
         my $cmd = "sudo nvme list -o json 2>$tempdir/stderr";
         if ($verbose) {print "command: $cmd\n";}
         my $var1 = `$cmd`;
-        my $json = decode_json($var1);
-        my $info = @{$json->{'Devices'}}[0];
-        $firmware = $info->{'Firmware'};
-        $vendor = $info->{'ProductName'};
+        my $cmd_err=`cat $tempdir/stderr | grep "command not found" | wc -l`; 
+        chomp $cmd_err;
+        if ("$cmd_err" ne "0") {
+            push(@$errs, "$node: nvme command not found");
+        } else {
+            my $json = decode_json($var1);
+            my $info = @{$json->{'Devices'}}[0];
+            $firmware = $info->{'Firmware'};
+            $vendor = $info->{'ProductName'};
+        }
     }
 
     if (! defined $firmware || ! defined $vendor) {
@@ -131,6 +142,11 @@ if ($rc == 0) {
 }
 
 # Print out errors ------------------------------------------------------------
+foreach my $l (split(/\n/,`cat $tempdir/stderr`)) {
+   chomp $l;
+   push(@$errs,"$l");
+}
+
 if (scalar @$errs) {
     for my $e (@$errs) {
         print "(ERROR) $e\n";

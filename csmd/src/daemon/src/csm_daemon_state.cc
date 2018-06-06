@@ -574,7 +574,7 @@ csm::daemon::DaemonStateMaster::ConnectEP(const csm::network::Address_sptr addr)
 bool
 csm::daemon::DaemonStateMaster::IsNodeConnected( const std::string node )
 {
-  return true;
+  return _aggregators.IsNodeConnected(node);
 }
 
 std::vector<std::string>
@@ -592,10 +592,9 @@ csm::daemon::DaemonStateMaster::UpdateAggregator( const csm::network::Address_sp
   ComputeSet cs;
   csm::daemon::ComputeSet::ConvertDiffToClass( data, cs );
 
-  csm::daemon::ComputeNodeList_t newnodes = cs.GetInsertList();
-  csm::daemon::ComputeNodeList_t deadnodes = cs.GetDeleteList();
+  csm::daemon::ComputeSetUpdates_t newnodes = cs.GetUpdateList();
 
-  _aggregators.Update( aggr, newnodes, deadnodes );
+  _aggregators.Update( aggr, newnodes );
 }
 
 csm::daemon::ComputeActionEntry_t
@@ -604,6 +603,18 @@ csm::daemon::DaemonStateMaster::GetNextComputeAction()
   return _aggregators.GetNextEvent();
 }
 
+std::vector<csm::network::Address_sptr>
+csm::daemon::DaemonStateMaster::GetMulticastAggregators( const std::vector<std::string> computes )
+{
+  if(( computes.size() > MTC_BROADCAST_THRESHOLD ) || ( std::is_sorted( computes.begin(), computes.end() ) ))
+    return _aggregators.MtcMatch( computes );
+  else
+  {
+    std::vector<std::string> sorted_computes = computes;
+    std::sort( sorted_computes.begin(), sorted_computes.end() );
+    return _aggregators.MtcMatch( sorted_computes );
+  }
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -760,18 +771,12 @@ void csm::daemon::DaemonStateAgent::InitActiveAddresses( )
   }
 }
 
-void csm::daemon::DaemonStateAgent::ResetPrimary()
-{
-  csm::daemon::Configuration *config = csm::daemon::Configuration::Instance();
-  SetPrimaryAggregator( config->GetConfiguredAggregatorAddress() );
-}
-
 void csm::daemon::DaemonStateAgent::SetPrimaryAggregator( const csm::network::Address_sptr primary )
 {
   std::lock_guard<std::mutex> guard( _map_lock );
 
   if( primary == nullptr )
-    throw csm::daemon::Exception("BUG: SetPrimaryAggregator attemped with nullptr.");
+    throw csm::daemon::Exception("BUG: SetPrimaryAggregator attempted with nullptr.");
 
   CSMLOG( csmd, debug ) << "SetPrimaryAggregator(): current status: primary=" << ( _Aggregators[ 0 ] != nullptr ? _Aggregators[ 0 ]->Dump() : "NULL" )
       << " secondary=" << ( _Aggregators[ 1 ] != nullptr ? _Aggregators[ 1 ]->Dump() : "NULL" );

@@ -409,6 +409,17 @@ bool csm::daemon::EventManagerNetwork::ProcessNetCtlEvents()
             break;
         }
         break;
+      case csm::network::NET_CTL_RESET:  // compute tells us that it switched to a different primary aggregator
+        switch( _Config->GetRole() )
+        {
+          case CSM_DAEMON_ROLE_AGGREGATOR:
+            _DaemonState->SetConnectionTypeEP( info_itr->_Address, csm::daemon::ConnectionType::SECONDARY );
+            break;
+          default:
+            CSMLOG( csmd, info ) << "NET_CTL_RESET event at non-aggregator daemon. Ignoring...";
+            break;
+        }
+        break;
       case csm::network::NET_CTL_TIMEOUT:
       {
         csm::daemon::MessageContextContainer_sptr msgCtx = _MessageControl.FindMsgAndCtx( info_itr->_MsgId, true );
@@ -862,7 +873,15 @@ int csm::daemon::EventManagerNetwork::ExtractDestinationAddresses( csm::network:
 
     case csm::network::ABSTRACT_ADDRESS_AGGREGATOR:
     {
-      o_DestAddrList = GetAggregatorAddress();
+      if(( i_MsgAddr->_Msg.GetMulticast() ) && (_Config->GetRole() == CSM_DAEMON_ROLE_MASTER))
+      {
+        std::vector<std::string> nodeList;
+        uint32_t nodeStrLen;
+        csm::network::ExtractMulticastNodelist( i_MsgAddr->_Msg, nodeList, &nodeStrLen );
+        o_DestAddrList = dynamic_cast<csm::daemon::DaemonStateMaster*>( _DaemonState )->GetMulticastAggregators( nodeList );
+      }
+      else
+        o_DestAddrList = GetAggregatorAddress();
       if( _Config->GetRole() == CSM_DAEMON_ROLE_MASTER )
         expectedResponses = 5000;  // todo: temporary setting until we have more detailed info about aggregators
       break;
@@ -921,9 +940,9 @@ bool csm::daemon::EventManagerNetwork::CreateComputeSetUpdateMsg()
   if( cs == nullptr )
     return false;
 
-  CSMLOG( csmd, trace ) << "NodeSetStatus: " << cs->GetUncommittedDelete() << ":" << cs->GetUncommittedInsert();
+  CSMLOG( csmd, trace ) << "NodeSetStatus: " << cs->GetUncommittedUpdates();
 
-  if( cs->GetUncommittedDelete() + cs->GetUncommittedInsert() == 0 )
+  if( cs->GetUncommittedUpdates() == 0 )
   {
     return false;
   }

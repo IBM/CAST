@@ -20,6 +20,7 @@
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/utility/setup/formatter_parser.hpp>
 #include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/support/date_time.hpp>
 
@@ -76,9 +77,8 @@ namespace utility
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_sevs lvl)
     {
-	const char* str = severity_level_str[lvl];
 	if ((lvl < NUM_SEVERITIES) && (lvl >= 0))
-	    strm << setw(maxseveritywidth) << left << str;
+	    strm << setw(maxseveritywidth) << left << severity_level_str[lvl];
 	else
 	    strm << setw(maxseveritywidth) << left << static_cast< int >(lvl);
 	return strm;
@@ -87,9 +87,8 @@ namespace utility
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_subcomponents subcomponent)
     {
-	const char* str = subcomponent_str[subcomponent];
         if ((subcomponent < NUM_SUBCOMPONENTS) && (subcomponent >= 0))
-            strm << setw(maxsubcomponentwidth) << right << str;
+            strm << setw(maxsubcomponentwidth) << right << subcomponent_str[subcomponent];
         else
             strm << setw(maxsubcomponentwidth) << right << static_cast< int >(subcomponent);
         return strm;
@@ -197,26 +196,32 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
     if(config.get(ptree_prefix + ".sysLog", false))
     {
         boost::shared_ptr< logging::core > core = logging::core::get();
-        boost::shared_ptr< logging::sinks::syslog_backend > backend(new logging::sinks::syslog_backend(
-                                                                        keywords::facility = logging::sinks::syslog::local0,
-                                                                        keywords::use_impl = logging::sinks::syslog::udp_socket_based
-                                                                        ));
+        boost::shared_ptr< logging::sinks::syslog_backend > backend(
+            new logging::sinks::syslog_backend(
+                keywords::facility = logging::sinks::syslog::local0,
+                keywords::use_impl = logging::sinks::syslog::udp_socket_based
+        ));
         
         backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"), 
                                     config.get(ptree_prefix + ".port",   514));
         
         // Map severities into syslog levels:
-        logging::sinks::syslog::custom_severity_mapping< std::string > mapping("Severity");
-        mapping["trace"]    = logging::sinks::syslog::debug;
-        mapping["debug"]    = logging::sinks::syslog::debug;
-        mapping["info"]     = logging::sinks::syslog::info;
-        mapping["warning"]  = logging::sinks::syslog::warning;
-        mapping["error"]    = logging::sinks::syslog::error;
-        mapping["critical"] = logging::sinks::syslog::critical;
-        mapping["always"]   = logging::sinks::syslog::info;
+        logging::sinks::syslog::custom_severity_mapping< bluecoral_sevs > mapping("Severity");
+        mapping[off]      = logging::sinks::syslog::debug;
+        mapping[trace]    = logging::sinks::syslog::debug;
+        mapping[debug]    = logging::sinks::syslog::debug;
+        mapping[info]     = logging::sinks::syslog::info;
+        mapping[warning]  = logging::sinks::syslog::warning;
+        mapping[error]    = logging::sinks::syslog::error;
+        mapping[critical] = logging::sinks::syslog::critical;
+        mapping[always]   = logging::sinks::syslog::info;
         backend->set_severity_mapper(mapping);
-	
-        core->add_sink(boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend));
+        
+        auto sink = boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend);
+        sink->set_formatter(
+            boost::log::parse_formatter("CAST[-]:%SubComponent% %Message%")
+        );
+        core->add_sink(sink);
     }
     
     return 0;

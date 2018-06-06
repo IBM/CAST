@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-sys-firmare/chk-sys-firmare-local.pm
+#    hcdiag/src/tests/chk-sys-firmware/chk-sys-firwmare-local.pm
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #

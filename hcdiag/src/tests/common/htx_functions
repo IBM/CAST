@@ -57,8 +57,11 @@ function htxdiag_get_mdt()
    echo "mdt file: $mdtfile requested."
    # creates the mdt file to run 
    if [ ! -f $mdtfile ]; then
+
      echo "$mdtfile file not found, trying to generate it."
-     if [ ! -f $htxd_root/mdt/mdt.all ]; then
+     if [ ! -f $htxd_root/mdt/mdt.all ] || [ "$rule" == "None" ]; then
+        sudo touch $htxd_root/refresh_mdt
+        sudo touch $htxd_root/create_ewm_mdts
         echo "Creating mdt files with -createmdt. This might take some time."
         $HTX_CMD -createmdt
         if [ ! -f $htxd_root/mdt/mdt.all ]; then ret=1; echo "ERROR: createmdt failed."; return; fi

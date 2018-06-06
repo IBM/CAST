@@ -202,7 +202,7 @@ bool GetGPFSUsage(int64_t &gpfs_read, int64_t &gpfs_write)
     return success;
 }
 
-bool GetOCCAccounting(int64_t &energy, int64_t &power_cap_hit, int64_t& gpu_energy)
+bool GetOCCAccounting(int64_t &energy, int64_t &power_cap_hit, int64_t &gpu_energy)
 {
     // Generate the value map for the query.
     std::unordered_map<std::string, int64_t> valueMap = {

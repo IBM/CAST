@@ -105,8 +105,9 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
     // shall not continue. The code for now will come here only when csm.role is not valid
   }
 
-  CSMLOGp( csmd, info, "CSMD" ) << _Role << "; Build: " << std::string( CSM_VERSION, strnlen( CSM_VERSION, 10 ) )
-    << "; Config file: " << _CfgFile;
+  CSMLOGp( csmd, info, "CSMD" ) << _Role << "; Version: " << std::string( CSM_VERSION, strnlen( CSM_VERSION, 10 ) )
+    << "; Build: " << std::string( CSM_COMMIT, strnlen( CSM_COMMIT, 10 ))
+    << "; Date: " << std::string( CSM_DATE) << "; Config file: " << _CfgFile;
 
   #define RETRIES 5
   #define WAIT 30
@@ -1062,7 +1063,12 @@ void Configuration::CreateThreadPool()
       enabled = true;
     }
     else
-      _Tweaks._NetMgr_polling_loops = 1000;
+    {
+      if( _Role == CSM_DAEMON_ROLE_AGENT )
+        _Tweaks._NetMgr_polling_loops = 10;
+      else
+        _Tweaks._NetMgr_polling_loops = 1000;
+    }
 
     uint_val = GetValueInConfig( std::string("csm.tuning.dcgm_update_interval_s") );
     if( ! uint_val.empty() )

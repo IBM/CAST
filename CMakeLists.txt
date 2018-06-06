@@ -3,7 +3,7 @@ project (ibm)
 
 set(BUILDID_RELEASE    1)
 set(BUILDID_CUMULFIXID 1)
-set(BUILDID_EFIXID     0)
+set(BUILDID_EFIXID     2)
 
 execute_process(
   COMMAND git rev-list --count HEAD
@@ -38,6 +38,12 @@ execute_process(
   OUTPUT_VARIABLE GITCOMMITIDSHORT
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+execute_process(
+  COMMAND git log -1 --format=%cd
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE tmp_COMMITDATE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 
 message("GIT commit: ${tmp_GITCOMMITID}")
@@ -46,8 +52,10 @@ message("Build time: ${tmp_BUILDTIME}")
 if(tmp_GITCOMMITID STREQUAL "")
    message("GIT commit could not be determined.  Using current build time as commit ID")
    set(GITCOMMITID ${tmp_BUILDTIME})
+   set(GITCOMMITDATE ${tmp_BUILDTIME})
 else()
    set(GITCOMMITID ${tmp_GITCOMMITID})
+   set(GITCOMMITDATE ${tmp_COMMITDATE})
 endif()
 
 

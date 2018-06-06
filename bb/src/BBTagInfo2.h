@@ -74,7 +74,7 @@ class BBTagInfo2
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
     int allContribsReported(const uint64_t pHandle, const BBTagID& pTagId);
     int allExtentsTransferred(const BBTagID& pTagId);
-    void cancelExtents(uint64_t* pHandle, uint32_t* pContribId);
+    void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId);
     void changeServer();
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
@@ -88,9 +88,8 @@ class BBTagInfo2
     int retrieveTransfers(BBTransferDefs& pTransferDefs);
     void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef);
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const LVKey* pLVKey, const uint64_t pHandle, const BBSTATUS pStatus);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle);
-    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
+    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
+    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId);
@@ -214,6 +213,10 @@ class BBTagInfo2
         return extentInfo.resizeLogicalVolumeDuringStageOut();
     }
 
+    inline void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const LVKey* pLVKey, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE) {
+        return tagInfoMap.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, connectionName, pLVKey, this, pHandle, pAppendAsyncRequestFlag, pStatus);
+    }
+
     inline void setAllContribsReported(const LVKey* pLVKey, const int pValue=1) {
         return extentInfo.setAllContribsReported(pLVKey, pValue);
     }
@@ -240,8 +243,8 @@ class BBTagInfo2
         return extentInfo.setStageOutStarted(pLVKey, pJobId, pValue);
     }
 
-    inline int sortExtents() {
-        return extentInfo.sortExtents();
+    inline int sortExtents(const LVKey* pLVKey) {
+        return extentInfo.sortExtents(pLVKey);
     }
 
     inline int stageOutEnded() {
@@ -261,7 +264,17 @@ class BBTagInfo2
     }
 
     inline void updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight) {
-        return extentInfo.updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);
+        string l_ConnectionName = string();
+        if (!pConnectionName.empty())
+        {
+            l_ConnectionName = pConnectionName;
+        }
+        else
+        {
+            l_ConnectionName = connectionName;
+        }
+
+        return extentInfo.updateTransferStatus(l_ConnectionName, pLVKey, pNumberOfExpectedInFlight);
     }
 
     inline void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight) {

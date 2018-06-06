@@ -447,7 +447,7 @@ int removeDeviceSerial(string serial)
         stringstream errorText;
         errorText << "There are zero remaining viable devices between bbProxy and bbServer";
         bberror << err("error.serial.num", "0");
-        LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, -1, bb.net.noViableDevices);
+        LOG_ERROR_TEXT_RC_AND_RAS(errorText, -1, bb.net.noViableDevices);
         throw runtime_error(string("There are zero remaining viable devices between bbProxy and bbServer"));
     }
     genSerialByDrive();

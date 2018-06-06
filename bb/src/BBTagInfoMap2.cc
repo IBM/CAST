@@ -109,7 +109,9 @@ int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
-        rc = -1;
+        // NOTE: There is a window between checking for the job above and subsequently removing
+        //       the job.  This is the most likely exception...  Return -2...
+        rc = -2;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -191,7 +193,7 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
 
     if (!rc)
     {
-        LOG(bb,info) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
+        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pTagInfo2;
         rc = update_xbbServerAddData(pJobId);
     }
@@ -598,11 +600,12 @@ int BBTagInfoMap2::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, const uint64_t pHandle, const BBSTATUS pStatus)
+void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
 {
+    int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, &(it->first), pHandle, pStatus);
+        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
     }
 
     return;
@@ -770,7 +773,7 @@ int BBTagInfoMap2::stopTransfer(const string& pHostName, const string& pCN_HostN
                 // Found the transfer definition on this bbServer.
                 // However, extents had not yet been scheduled.
                 // Situation was logged, and nothing more to do...
-                l_Result = ", the transfer definition did not yet have any extents scheduled for transfer.  A start transfer was caught in mid-flight.";
+                l_Result = ", the transfer definition did not yet have any extents scheduled for transfer. A start transfer request was caught in mid-flight and the original request was issued to the new bbServer to complete the trasnfer request.";
 
                 break;
             }

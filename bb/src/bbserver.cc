@@ -224,7 +224,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 if (l_Continue)
                                 {
                                     rc = 0;
+#ifndef __clang_analyzer__  // l_LockHeld is never read, but keep it for debug
                                     l_LockHeld = false;
+#endif
                                     unlockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
                                         usleep((useconds_t)1000000);    // Delay 1 second
@@ -240,6 +242,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                     rc = -1;
                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                 }
+                                break;
                             }
 
                             case 1:
@@ -333,7 +336,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_TagInfo2->cancelExtents(&l_Handle, &l_ContribId);
+                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId);
                         }
                         else
                         {
@@ -391,7 +394,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
         unlockTransferQueue(l_LVKey, "msgin_canceltransfer");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -431,7 +434,7 @@ void msgin_change_server(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -469,7 +472,7 @@ void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -501,11 +504,11 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     lv_uuid.copyTo(lv_uuid_str);
     if (!l_Option)
     {
-        LOG(bb,info) << "msgin_createlogicalvolume: From hostname |" << l_HostName << "|, l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
+        LOG(bb,info) << "msgin_createlogicalvolume: From hostname " << l_HostName << ", l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
     }
     else
     {
-        LOG(bb,info) << "msgin_createlogicalvolume: Register LVKey, from hostname |" << l_HostName << "|, l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
+        LOG(bb,info) << "msgin_createlogicalvolume: Register LVKey, from hostname " << l_HostName << ", l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
     }
 
     lockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
@@ -541,7 +544,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     unlockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (rc)
@@ -587,7 +590,6 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         // Demarshall data from the message
         Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
         LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
-        LOG(bb,info) << "msgin_getthrottlerate: Local Connection Name = " << pConnectionName << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr());
 
         switchIds(msg);
 
@@ -597,6 +599,9 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         if (rc) {
             LOG_RC_AND_BAIL(rc);
         }
+
+        LOG(bb,info) << "msgin_getthrottlerate: Local Connection Name " << pConnectionName << ", LV Uuid " \
+                     << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()) << ", rate " << l_Rate;
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -606,7 +611,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -682,7 +687,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
         stringstream l_JobStr;
         l_Job.getStr(l_JobStr);
-        LOG(bb,info) << "msgin_gettransferhandle: " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib << ", contrib = " << l_Temp.str();
+        LOG(bb,info) << "msgin_gettransferhandle: job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib << ", contrib " << l_Temp.str();
 
         switchIds(msg);
 
@@ -691,7 +696,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
         //         This closes the window during activate server between the activation
         //         of the connection to the new server and the registering of any LVKeys
         //         with the new server.
-        //         \todo - Not sure if this is the right duration...  @DLH
         int l_Continue = 120;
         while ((rc) && (l_Continue--))
         {
@@ -706,8 +710,8 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                 // Log the input/results
                 Uuid lv_uuid = l_LVKey.second;
                 lv_uuid.copyTo(lv_uuid_str);
-                LOG(bb,info) << "getHandle: Local l_LVKey.first= " << l_LVKey.first<< ", LV Uuid = " << lv_uuid_str << ", " << l_JobStr.str() << ", tag = " << l_Tag << ", numcontrib = " << l_NumContrib \
-                             << ", contrib = " << l_Temp.str() << ", handle = " << l_Handle;
+                LOG(bb,info) << "getHandle: " << l_LVKey << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib \
+                             << ", contrib " << l_Temp.str() << " -> handle " << l_Handle;
             }
             else
             {
@@ -773,7 +777,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -890,7 +894,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -993,7 +997,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
         l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
         l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
         l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
-        LOG(bb,info) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId;
+        LOG(bb,debug) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId;
 
         switchIds(msg);
 
@@ -1010,14 +1014,26 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
                     l_TransferKeyBuffer = 0;
                 }
                 // NOTE: l_TransferKeyBufferSize is returned as the length of the transfer keys WITHOUT the trailing null terminator
+                //       However, the buffer is returned as null terminated, even if the length of the keys is zero.
                 l_TransferKeyBuffer = new char[++l_TransferKeyBufferSize];
                 rc = HandleFile::getTransferKeys(l_JobId, l_Handle, l_TransferKeyBufferSize, l_TransferKeyBuffer);
             }
 
-            if (!rc) {
+            if (!rc)
+            {
                 // Log the results
-                LOG(bb,debug) << "msgin_gettransferkeys: jobid = " << l_JobId << ", handle = " << l_Handle << ", contribid = " << l_ContribId << " required buffersize = " << l_TransferKeyBufferSize;
-            } else {
+                if (!l_TransferKeyBufferSize)
+                {
+                    LOG(bb,info) << "msgin_gettransferkeys: jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", required buffersize " << l_TransferKeyBufferSize;
+                }
+                else
+                {
+                    LOG(bb,info) << "msgin_gettransferkeys: jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", required buffersize " << l_TransferKeyBufferSize \
+                                 << ", buffer " << l_TransferKeyBuffer;
+                }
+            }
+            else
+            {
                 // Negative return codes indicate an error.
                 // NOTE: errstate already filled in by getTransferKeys()...
             }
@@ -1035,7 +1051,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1116,7 +1132,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
                 memset(l_HandleArray, 0, l_LengthOfHandleArray);
                 for(size_t i=0; i<l_NumHandles; ++i) {
                     l_HandleArray[i] = l_Handles[i];
-                    LOG(bb,debug) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
+                    LOG(bb,info) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
                     ++l_NumHandlesReturned;
                 }
             } else {
@@ -1138,7 +1154,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
         unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1212,7 +1228,7 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         unlockTransferQueue((LVKey*)0, "msgin_removejobinfo");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1257,7 +1273,7 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1313,7 +1329,7 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
         unlockTransferQueue((LVKey*)0, "msgin_resume");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1415,8 +1431,8 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
             {
                 xDataLocation = "the cross-bbserver metadata";
             }
-            LOG(bb,info) << l_NumberOfTransferDefs << " transfer definitions retrieved from " << xDataLocation << ".";
-            LOG(bb,info) << "    l_MarshalledTransferDefs = |" << l_MarshalledTransferDefs << "|";
+            LOG(bb,info) << l_NumberOfTransferDefs << " transfer definitions retrieved from " << xDataLocation;
+            LOG(bb,debug) << "l_MarshalledTransferDefs = |" << l_MarshalledTransferDefs << "|";
             l_TransferDefs.dump("debug", "msgin_retrievetransfers ");
         }
         else
@@ -1436,7 +1452,7 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
         unlockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1498,7 +1514,7 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1598,8 +1614,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG(bb,info) << "msgin_starttransfer: Input " << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle \
                      << ", contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
                      << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
-                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
-                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
+                     << ", restart " << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "yes" : "no");
+//                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false")
+//                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
 
         if (l_PerformOperation && config.get(process_whoami+".bringup.dumpTransferDefinitionAfterDemarshall", 0)) {
             l_TransferPtr->dump("info", "Transfer Definition (after demarshall)");
@@ -1612,6 +1629,56 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         bool l_AllDone = false;
 
         {
+            if ((l_PerformOperation) && (!l_TransferPtr->builtViaRetrieveTransferDefinition()))
+            {
+                // Second volley from bbProxy and not a restart scenario...
+                // First, ensure that this transfer definition is NOT marked as stopped in the cross bbServer metadata...
+                ContribIdFile* l_ContribIdFile = 0;
+                bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
+                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
+                l_HandleFilePath /= bfs::path(to_string(l_Handle));
+
+                // NOTE: The handle file does not have to be locked exclusive here because the stop transfer processsing 'waits'
+                //       for the extents to be enqueued.  The processing of competing start/restart transfer definition processing is
+                //       serialized via the transfer queue lock above...
+                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId);
+                if (rc >= 0)
+                {
+                    // Process the contribid file
+                    if (rc == 1 && l_ContribIdFile)
+                    {
+                        if (l_ContribIdFile->stopped())
+                        {
+                            // This condition overrides any failure detected on bbProxy...
+                            l_MarkFailedFromProxy = 0;
+
+                            // Set rc to 1 and this will be returned as a -2 back to bbProxy...
+                            rc = 1;
+                            errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                      << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
+                                      << " This transfer definition can only be submitted via restart transfer definition processing.";
+                            LOG_ERROR_TEXT_AND_BAIL(errorText);
+                        }
+                    }
+                    else
+                    {
+                        // Could be normal...
+                    }
+                }
+                else
+                {
+                    // Could be normal...
+                }
+
+                if (l_ContribIdFile)
+                {
+                    delete l_ContribIdFile;
+                }
+
+                rc = 0;
+            }
+
             if ((!l_PerformOperation) && l_TransferPtr->builtViaRetrieveTransferDefinition())
             {
                 // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure that all stop/cancel
@@ -1676,7 +1743,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             LOG(bb,debug) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
                                           << ", mark_failed_from_bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
                                           << ", no stage in/out in transfer definition " << l_TransferPtr->noStageinOrStageoutTransfersInDefinition() \
-                                          << ", lvuuid |" << lv_uuid_str << "|, lvuuid2 |" << lv_uuid2_str << "|";
+                                          << ", lvuuid " << lv_uuid_str << ", lvuuid2 " << lv_uuid2_str;
                             if (!l_PerformOperation || l_lvuuid == l_lvuuid2 || l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
                             {
                                 if (l_TagInfo->inExpectContrib(l_ContribId))
@@ -1690,8 +1757,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     // Process the job into a formatted stringstream
                                     stringstream l_JobStr;
                                     l_Job.getStr(l_JobStr);
-                                    LOG(bb,info) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag = " << l_Tag \
-                                                 << ", handle = " << l_Handle << ", numcontrib = " << l_NumContrib << ", contrib = " << l_ContribStr.str();
+                                    LOG(bb,debug) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag=" << l_Tag \
+                                                  << ", handle=" << l_Handle << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str();
 
                                     // Start transfer
                                     // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
@@ -1750,12 +1817,35 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                     } else {
+                        // Suspended...
                         // This condition overrides any failure detected on bbProxy...
                         l_MarkFailedFromProxy = 0;
 
-                        rc = 1;
-                        errorText << "Hostname " << l_TagInfo2->getHostName() << " is suspended. Therefore, no transfer is allowed to start.";
-                        LOG_ERROR_TEXT_AND_BAIL(errorText);
+                        if (!l_TransferPtr->builtViaRetrieveTransferDefinition())
+                        {
+                            rc = -2;
+                            if (!l_PerformOperation)
+                            {
+                                // Start transfer request, first message volley...  Suggest to submit again...
+                                errorText << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
+                                          << " Suspended condition detected during the first message volley to bbServer.  Attempt to retry the start transfer request when the connection is not suspended.";
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                            else
+                            {
+                                // Start transfer request, second message volley...  Indicate to not aubmit again, as restart logic will resubmit...
+                                errorText << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
+                                          << " Suspended condition detected during the second message volley to bbServer.  A following restart transfer request will resubmit this transfer definition.";
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                        }
+                        else
+                        {
+                            // Restart transfer request...  Indicate to not restart this transfer definition...
+                            rc = 1;
+                            LOG(bb,info) << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to restart at this time.";
+                            BAIL;
+                        }
                     }
                 }
                 else
@@ -1822,37 +1912,54 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                             if (!rc)
                                             {
                                                 l_HandleFileLocked = true;
-                                                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
-                                                if (rc == 1)
+                                                if (l_HandleFile->stopped())
                                                 {
-                                                    if (l_ContribIdFile)
+                                                    rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
+                                                    if (rc == 1)
                                                     {
-                                                        if (!l_ContribIdFile->stopped())
+                                                        if (l_ContribIdFile)
                                                         {
-                                                            //  Continue to spin...
-                                                            if (l_ContribIdFile->notRestartable())
+                                                            if (!l_ContribIdFile->stopped())
                                                             {
-                                                                // All extents have been processed, all files closed, with no failed files.
-                                                                // The transfer definition is not marked as stopped, therefore, no need to restart this
-                                                                // transfer definition.
-                                                                LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << l_ContribId \
-                                                                             << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
-                                                                             << " See previous messages.";
-                                                                BAIL;
+                                                                //  Continue to spin...
+                                                                if (l_ContribIdFile->notRestartable())
+                                                                {
+                                                                    // All extents have been processed, all files closed, with no failed files.
+                                                                    // The transfer definition is not marked as stopped, therefore, no need to restart this
+                                                                    // transfer definition.
+                                                                    LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << l_ContribId \
+                                                                                 << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
+                                                                                 << " See previous messages.";
+                                                                    BAIL;
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                // Stopped, will exit both loops...
+                                                                rc = 0;
                                                             }
                                                         }
                                                         else
                                                         {
-                                                            // Stopped, will exit both loops...
-                                                            rc = 0;
+                                                            if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                                            {
+                                                                rc = 1;
+                                                                LOG(bb,info) << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                                                             << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                                BAIL;
+                                                            }
                                                         }
                                                     }
                                                     else
                                                     {
+                                                        // The Contrib file could not be loaded -or-
+                                                        // the ContribId file could not be found in the Contrib file
                                                         if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                                         {
                                                             rc = 1;
-                                                            LOG(bb,info) << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                                            // This condition overrides any failure detected on bbProxy...
+                                                            l_MarkFailedFromProxy = 0;
+                                                            LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
                                                                          << " All transfers for this contributor may have already finished.  See previous messages.";
                                                             BAIL;
                                                         }
@@ -1860,17 +1967,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 }
                                                 else
                                                 {
-                                                    // The Contrib file could not be loaded -or-
-                                                    // the ContribId file could not be found in the Contrib file
-                                                    if (l_TransferPtr->builtViaRetrieveTransferDefinition())
-                                                    {
-                                                        rc = 1;
-                                                        // This condition overrides any failure detected on bbProxy...
-                                                        l_MarkFailedFromProxy = 0;
-                                                        LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
-                                                                     << " All transfers for this contributor may have already finished.  See previous messages.";
-                                                        BAIL;
-                                                    }
+                                                    // Handle file not marked as stopped...
+                                                    //  Continue to spin...
+                                                    rc = 1;
                                                 }
 
                                                 if (rc && l_Continue)
@@ -2177,7 +2276,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (!rc)
@@ -2216,13 +2315,16 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             l_TransferPtr->cleanUpIOMap();
         }
 
-        // Mark the transfer definition and the handle failed if this is the second pass -or-
-        // we got far enough along to insert this transfer definition into the local metadata
         if (rc < 0)
         {
-            if (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr))
+            if (rc == -1)
             {
-                markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
+                // Mark the transfer definition and the handle failed if this is the second pass -or-
+                // we got far enough along to insert this transfer definition into the local metadata
+                if (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr))
+                {
+                    markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
+                }
             }
         }
         else
@@ -2360,7 +2462,7 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2434,7 +2536,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
         unlockTransferQueue((LVKey*)0, "msgin_suspend");
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2513,7 +2615,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
 
@@ -2612,7 +2714,7 @@ int bb_main(std::string who)
         rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, FULL_MAINTENANCE);
         if (l_AsyncRequestFileNamePtr)
         {
-            delete l_AsyncRequestFileNamePtr;
+            delete [] l_AsyncRequestFileNamePtr;
             l_AsyncRequestFileNamePtr = 0;
         }
         if (rc) LOG_RC_AND_BAIL(rc);

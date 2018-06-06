@@ -806,7 +806,7 @@ const csmi_struct_mapping_t map_csmi_allocation_mcast_payload_response_t= {
     cast_csmi_allocation_mcast_payload_response_t
 };
 
-const csmi_struct_node_t csmi_allocation_step_mcast_context_tree[7] = {{"num_nodes",offsetof(csmi_allocation_step_mcast_context_t,num_nodes),0,NULL,0xa5d6722d,36},
+const csmi_struct_node_t csmi_allocation_step_mcast_context_tree[7] = {{"num_nodes",offsetof(csmi_allocation_step_mcast_context_t,num_nodes),0,NULL,0xa5d6722d,24},
 {"compute_nodes",offsetof(csmi_allocation_step_mcast_context_t,compute_nodes),offsetof(csmi_allocation_step_mcast_context_t, num_nodes),NULL,0x74676dda,5},
 {"step_id",offsetof(csmi_allocation_step_mcast_context_t,step_id),0,NULL,0xae22086d,40},
 {"begin",offsetof(csmi_allocation_step_mcast_context_t,begin),0,NULL,0xf2587ea,68},

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #==============================================================================
 #   
-#    hcdiag/src/tests/chk-nvidia-vbios/chk-nvidia-vbios.pm
+#    hcdiag/src/tests/ipoib/ipoib.pm
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -84,6 +84,11 @@ foreach my $ib (split /\n/, $ib_list) {
 }
 
 # Print out errors ------------------------------------------------------------
+foreach my $l (split(/\n/,`cat $tempdir/stderr`)) { 
+    chomp $l; 
+    push(@$errs,"WARN: $l");
+}
+
 if (scalar @$errs) {
     for my $e (@$errs) {
       print "(ERROR) $e\n";

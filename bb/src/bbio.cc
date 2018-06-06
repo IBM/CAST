@@ -98,20 +98,20 @@ int getWriteFdByExtent(Extent* pExtent)
        pthread_mutex_unlock(&ssdWriteFdMutex);
        return fd;
     }
-    LOG(bb,always) << "Need to open write device by Serial="<<pExtent->serial<<".  In getWriteFdByExtent ExtentInfo: "<<*pExtent;
+    LOG(bb,debug) << "Need to open write device by Serial="<<pExtent->serial<<".  In getWriteFdByExtent ExtentInfo: "<<*pExtent;
     pthread_mutex_unlock(&ssdWriteFdMutex); //give up the lock in case some other thread needs it
     string l_disk = getDeviceBySerial(pExtent->serial);
     if (!ssdwritedirect){
       threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDopenwriteNOTdirect, l_disk.c_str(),__LINE__);
       fd = ::open(l_disk.c_str(), O_WRONLY);
       threadLocalTrackSyscallPtr->clearTrack();
-      LOG(bb,always) << "OPEN O_WRONLY " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? (  string(strerror(errno)) +":"+to_string(errno) ) : " ");
+      LOG(bb,info) << "OPEN O_WRONLY " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? (  string(strerror(errno)) +":"+to_string(errno) ) : " ");
     }
     else{
       threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDopenwritedirect, l_disk.c_str(),__LINE__);
       fd = ::open(l_disk.c_str(), O_WRONLY | O_DIRECT );
       threadLocalTrackSyscallPtr->clearTrack();
-      LOG(bb,always) << "OPEN O_WRONLY | O_DIRECT " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? (  string(strerror(errno)) +":"+to_string(errno) ) : " ");
+      LOG(bb,info) << "OPEN O_WRONLY | O_DIRECT " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? (  string(strerror(errno)) +":"+to_string(errno) ) : " ");
     }
 
     if (fd < 0) return fd;
@@ -156,13 +156,13 @@ int BBIO::getReadFdByExtent(Extent* pExtent)
        pthread_mutex_unlock(&ssdReadFdMutex);
        return fd;
     }
-    LOG(bb,always) << "Need to open read device by Serial=" <<pExtent->serial<<".  In BBIO::getReadFdByExtent ExtentInfo: "<<*pExtent;
+    LOG(bb,debug) << "Need to open read device by Serial=" <<pExtent->serial<<".  In BBIO::getReadFdByExtent ExtentInfo: "<<*pExtent;
     pthread_mutex_unlock(&ssdReadFdMutex);  //give up the lock in case some other thread needs it
     string l_disk = getDeviceBySerial(pExtent->serial);
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDopenreaddirect, l_disk.c_str(),__LINE__);
-    fd =  ::open(l_disk.c_str(), O_RDONLY | O_DIRECT);
+    fd = ::open(l_disk.c_str(), O_RDONLY | O_DIRECT);
     threadLocalTrackSyscallPtr->clearTrack();
-    LOG(bb,always) << "OPEN O_RDONLY | O_DIRECT " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? strerror(errno) : " ");
+    LOG(bb,info) << "OPEN O_RDONLY | O_DIRECT " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? strerror(errno) : " ");
     if (fd < 0) return fd;
     pthread_mutex_lock(&ssdReadFdMutex);
     Serial2ssdReadFd[pExtent->serial]=fd;

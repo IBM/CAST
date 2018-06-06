@@ -45,6 +45,7 @@ struct option longopts[] = {
 	{"node_range",       required_argument, 0, 'n'},
 	{"isolated_cores",   required_argument, 0, 'c'},
     {"shared",           no_argument,       0, 'S'},
+	{"launch_node_name", required_argument, 0, 'l'},
     //{"user_flags",       required_argument, 0, 'A'},/// FIXME REMOVE IN FINAL 
     //{"system_flags",     required_argument, 0, 'a'},/// FIXME REMOVE IN FINAL 
 	{0, 0, 0, 0}
@@ -54,7 +55,7 @@ static void help() {
 	puts("_____CSM_ALLOCATION_CREATE_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_allocation_create ARGUMENTS [OPTIONS]");
-	puts("  csm_allocation_create -j primary_job_id -n \"node01,node02\" [-J secondary_job_id] [-s state] [-t type] [-u user_name] [-U user_id] [-h] [-v verbose_level] [--create_cgroup]");
+	puts("  csm_allocation_create -j primary_job_id -n \"node01,node02\" [-J secondary_job_id] [-s state] [-t type] [-u user_name] [-U user_id] [-h] [-v verbose_level] [--create_cgroup] [-l launch_node_name]");
 	puts("");
 	puts("SUMMARY: Used to create an allocation.");
 	puts("");
@@ -91,6 +92,7 @@ static void help() {
 	puts("    -u, --user_name        |                 | (STRING) The owner of this allocation's Linux user name.");
 	puts("                           |                 | (default is invoking user)");
 	puts("                           |                 | ");
+	puts("    -l, --launch_node_name | \"some_host\"     | (STRING) The hostname of the launch node for the allocation.");
 	puts("    -U, --user_id          | 0               | (INTEGER) The owner of this allocation's Linux user id.");
 	puts("                           |                 | ");
 	puts("    --isolated_cores       | 0               | (INTEGER) Specifies the number of cores ot isolate in the system cgroup ( if 0 the system cgroup will not be created ).");
@@ -124,7 +126,7 @@ int main(int argc, char *argv[])
     allocation->user_id = INT32_MAX;
     allocation->state   = CSM_RUNNING; 
 
-    while ((opt = getopt_long(argc, argv, "hv:j:J:n:s:Sc:t:u:U:", longopts, &indexptr)) != -1) 
+    while ((opt = getopt_long(argc, argv, "hv:j:J:n:s:Sc:t:u:U:l:", longopts, &indexptr)) != -1) 
     {
         switch (opt) 
         {
@@ -192,6 +194,10 @@ int main(int argc, char *argv[])
             case 'U':
                 csm_optarg_test( "-U, --user_id", optarg, USAGE )
                 csm_str_to_int32( allocation->user_id, optarg, arg_check, "-U, --user_id", USAGE);
+                break;
+            case 'l':
+                csm_optarg_test( "-l, --launch_node_name", optarg, USAGE )
+                allocation->launch_node_name = strdup(optarg);
                 break;
             /*
             case 'a':

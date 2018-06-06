@@ -31,65 +31,38 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     handle /= bfs::path(to_string(pTagId.getJobStepId()));
     handle /= bfs::path(to_string(pHandle));
 
-    bool l_ContribIdFound = false;
     if (bfs::exists(handle))
     {
         for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
         {
             if ((rc != 1) || (!bfs::is_directory(lvuuid))) continue;
-            bfs::path lvuuid_file = lvuuid.path() / lvuuid.path().filename();
-            LVUuidFile l_LVUuidFile;
-            int rc2 = l_LVUuidFile.load(lvuuid_file.string());
+            bfs::path contribs_file = lvuuid.path() / "contribs";
+            ContribFile* l_ContribFile = 0;
+            int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
             if (!rc2)
             {
-                if (!l_LVUuidFile.allExtentsTransferred())
+                for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                 {
-                    if (!l_ContribIdFound)
+                    if (ce->first != pContribId)
                     {
-                        bfs::path contribs_file = lvuuid.path() / "contribs";
-                        ContribFile* l_ContribFile = 0;
-                        int rc3 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
-                        if (!rc3)
+                        if (!(ce->second).allExtentsTransferred())
                         {
-                            for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
-                            {
-                                if (ce->first != pContribId)
-                                {
-                                    if (!(ce->second).allExtentsTransferred())
-                                    {
-                                        rc = 0;   // Not all extents transferred...
-                                        break;
-                                    }
-                                }
-                                else
-                                {
-                                    l_ContribIdFound = true;
-                                }
-                            }
+                            rc = 0;   // Not all extents transferred...
+                            break;
                         }
-                        else
-                        {
-                            rc = -1;
-                            LOG(bb,error) << "Could not load the contrib file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << contribs_file.string();
-                        }
-
-                        if (l_ContribFile)
-                        {
-                            delete l_ContribFile;
-                            l_ContribFile=NULL;
-                        }
-                    }
-                    else
-                    {
-                        rc = 0;   // Not all extents transferred...
-                        break;
                     }
                 }
             }
             else
             {
-                rc = -1;  //  Error case...
-                LOG(bb,error) << "Could not load the LVUuid file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << lvuuid.path().string();
+                rc = -1;
+                LOG(bb,error) << "Could not load the contrib file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << contribs_file.string();
+            }
+
+            if (l_ContribFile)
+            {
+                delete l_ContribFile;
+                l_ContribFile=NULL;
             }
         }
     }
@@ -105,6 +78,7 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid)
 {
     int rc = 0;
+    ContribFile* l_ContribFile = 0;
     bool l_ContribIdFound = false;
 
     pContribIdFile = 0;
@@ -114,7 +88,6 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
         {
             if (!bfs::is_directory(lvuuid)) continue;
             bfs::path contribs_file = lvuuid.path() / "contribs";
-            ContribFile* l_ContribFile = 0;
             rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.string().c_str());
             if (!rc)
             {
@@ -140,16 +113,19 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
                 break;
             }
 
-            if (l_ContribFile)
-            {
-                delete l_ContribFile;
-                l_ContribFile=NULL;
-            }
+            delete l_ContribFile;
+            l_ContribFile=NULL;
 
             if (l_ContribIdFound)
             {
                 break;
             }
+        }
+
+        if (l_ContribFile)
+        {
+            delete l_ContribFile;
+            l_ContribFile=NULL;
         }
 
         if (rc != 1 && pContribIdFile)
@@ -235,11 +211,12 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pContribIdFile = 0;
     pNumHandleContribs = 0;
     pNumLVUuidContribs = 0;
+
+    ContribFile* l_ContribFile = 0;
     for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
     {
         if(!bfs::is_directory(lvuuid)) continue;
         bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
-        ContribFile* l_ContribFile = 0;
         int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
         if (!rc2)
         {
@@ -273,6 +250,13 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
         delete pContribIdFile;
         pContribIdFile = 0;
     }
+
+    if (l_ContribFile)
+    {
+        delete l_ContribFile;
+        l_ContribFile=NULL;
+    }
+
     pNumHandleContribs = ((rc == -1) ? 0 : pNumHandleContribs);
     pNumLVUuidContribs = ((rc != 1) ? 0 : pNumLVUuidContribs);
 
@@ -338,7 +322,9 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     {
         case 1:
         {
+#ifndef __clang_analyzer__  // zeroing rc is not necessary, but safer to have this here
             rc = 0;
+#endif
             uint64_t l_Flags = l_ContribIdFile->flags;
 
             uint64_t l_NewFlags = 0;
@@ -601,7 +587,9 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
     {
         case 1:
         {
+#ifndef __clang_analyzer__  // zeroing rc is not necessary, but defensive coding
             rc = 0;
+#endif
             vector<BUNDLE_ID_ENTRY> l_NonZeroBundlesWithStoppedFile;
             for (size_t i=0; i<l_ContribIdFile->files.size(); ++i)
             {

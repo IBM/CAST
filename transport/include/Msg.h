@@ -54,30 +54,50 @@ namespace txp {
 static void my_noop() { return; };
 #endif
 
-inline int isBB_MsgId(txp::Id pId) {
-    return (pId >= BB_ALL_FILE_TRANSFERS_COMPLETE ? 1 : 0);
-}
+extern inline int isMsgIdToLogAsInfo(txp::Id pId)
+{
+    int rc = 1;
 
-inline int isCORAL_MsgId_ToLog(txp::Id pId) {
-    int rc = 0;
     switch (pId)
     {
+        case CORAL_AUTHENTICATE:
+        case CORAL_CHANGESERVER:
+        case CORAL_ERROR:
+        case CORAL_GETVAR:
+        case CORAL_GOODBYE:
+        case CORAL_HELLO:
+        case CORAL_HELLO_MONITOR:
+        case CORAL_NO_OP:
+        case CORAL_READY:
+        case CORAL_SETVAR:
+        case CORAL_SIGNAL:
         case CORAL_STAGEOUT_START:
+
+        case BB_ALL_FILE_TRANSFERS_COMPLETE:
+        case BB_TRANSFER_COMPLETE_FOR_CONTRIBID:
+        case BB_TRANSFER_COMPLETE_FOR_FILE:
+        case BB_TRANSFER_COMPLETE_FOR_HANDLE:
+        case BB_TRANSFER_PROGRESS:
+
+        case BB_CHMOD:
+        case BB_CHOWN:
+        case BB_CREATEDIR:
+        case BB_GETTHROTTLERATE:
+        case BB_GETTRANSFERINFO:
+        case BB_GETTRANSFERKEYS:
+        case BB_GETTRANSFERLIST:
+        case BB_REMOVEDIR:
+        case BB_SETTHROTTLERATE:
         {
-            rc = 1;
-            break;
+            rc = 0;
         }
+        break;
 
         default:
             break;
     }
 
     return rc;
-}
-
-extern inline int isMsgIdToLog(txp::Id pId)
-{
-    return ((isBB_MsgId(pId) || isCORAL_MsgId_ToLog(pId)) ? 1 : 0);
 }
 
 

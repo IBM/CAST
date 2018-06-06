@@ -389,7 +389,7 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -442,7 +442,7 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -486,7 +486,7 @@ void msgin_changeowner(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -535,7 +535,7 @@ void msgin_changemode(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -597,7 +597,7 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -638,7 +638,7 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -700,7 +700,7 @@ void msgin_getdeviceusage(txp::Id id, const string& pConnectionName, txp::Msg* m
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -789,7 +789,7 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -917,7 +917,7 @@ void msgin_change_server(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (l_VolumeGroupName) {
@@ -989,7 +989,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1038,19 +1038,19 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (strstr(l_Variable, "jobid"))
         {   uint64_t value = stoull(l_Value);
             rc = setJobId(pConnectionName, value);
-            LOG(bb,info) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
+            LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
         else if (strstr(l_Variable, "jobstepid"))
         {
             uint64_t value = stoull(l_Value);
             rc = setJobStepId(pConnectionName, value);
-            LOG(bb,info) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
+            LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
         else if (strstr(l_Variable, "contribid"))
         {
             uint32_t value = stoul(l_Value);
             rc = setContribId(pConnectionName, value);
-            LOG(bb,info) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
+            LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
         else
         {
@@ -1068,7 +1068,7 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1176,7 +1176,7 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1265,6 +1265,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
         {
+            // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -1402,7 +1403,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         }
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1563,7 +1564,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1625,7 +1626,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the contribid value
         l_ContribId = getContribId(bbconnectionName);
 
-        LOG(bb,info) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
+        LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
 
         // Build the message to send to bbserver
         txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
@@ -1685,7 +1686,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
         char l_StatusStr[64] = {'\0'};
         getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
         getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
-        LOG(bb,info) << "msgin_gettransferinfo: Handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
+        LOG(bb,info) << "msgin_gettransferinfo: handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
         bberror << err("out.localstatus", l_LocalStatusStr) << err("out.status", l_StatusStr) \
                 << err("out.localTransferSize", l_LocalTransferSize) << err("out.totalTransferSize", l_TotalTransferSize);
     }
@@ -1697,7 +1698,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1828,7 +1829,7 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -1959,7 +1960,7 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2042,8 +2043,10 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::numhandles, l_NumHandles);
         msgserver->addAttribute(txp::matchstatus, (uint64_t)l_MatchStatus);
 
+#ifndef __clang_analyzer__  // keep for debug
         l_NumHandles=0;
         l_NumAvailHandles=0;
+#endif
 
         // Send the message to bbserver
         rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
@@ -2059,8 +2062,6 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         rc = waitReply(reply, msgserver);
         if (rc)
         {
-            l_NumHandles=0;
-            l_NumAvailHandles=0;
             errorText << "waitReply failure";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
@@ -2099,7 +2100,7 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2159,8 +2160,6 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         // Check permissions
         checkForSuperUserPermission();
 
-        LOG(bb,info) << "msgin_removejobinfo: jobid=" << l_JobId;
-
         // Resolve the jobid
         if (bbconnectionName.size())
         {
@@ -2172,6 +2171,8 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
             errorText << "NULL connection name";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
+
+        LOG(bb,info) << "msgin_removejobinfo: jobid=" << l_JobId;
 
         // Build the message to send to bbserver
         txp::Msg::buildMsg(txp::BB_REMOVEJOBINFO, msgserver);
@@ -2215,7 +2216,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2401,7 +2402,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         rc = proxy_deregLV4Usage(mountpoint);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (l_MountPoint)
@@ -2495,6 +2496,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
         {
+            // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -2521,7 +2523,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
         l_TransferDefs = 0;
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2664,7 +2666,7 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         updateSuspendMap(DEFAULT_SERVER_ALIAS, l_EntrySuspendState);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2794,7 +2796,8 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
             // NOTE: archive string is already null terminated and the length accounts for the null terminator
             l_TransferDefs.assign((const char*)msgserver->retrieveAttrs()->at(txp::transferdefs)->getDataPtr(), l_NumBytesAvailable);
             LOG(bb,info) << "l_DataObtainedLocally = " << l_DataObtainedLocally << ", l_NumTransferDefs = " << l_NumTransferDefs
-                         << ", l_NumBytesAvailable = " << l_NumBytesAvailable << ", l_TransferDefs = |" << l_TransferDefs << "|";
+                         << ", l_NumBytesAvailable = " << l_NumBytesAvailable;
+            LOG(bb,debug) << "l_TransferDefs = |" << l_TransferDefs << "|";
         }
         delete(msgserver);
         msgserver=NULL;
@@ -2807,7 +2810,7 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -2936,7 +2939,7 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     // Build/send the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3070,7 +3073,7 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
         l_MountPoint=NULL;
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     if (l_DevName) {
@@ -3150,6 +3153,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
         {
+            // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -3167,7 +3171,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3303,7 +3307,7 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3437,7 +3441,7 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3614,7 +3618,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     }
 
     // Build the response message
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3847,6 +3851,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
             errorText << "The getbyservername request failed";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
+        LOG(bb,info)<<"msgin_getserverbyname: l_query="<<l_query<<" serverName="<<serverName<<" waitforreplycount="<<count;
     }
     catch(ExceptionBailout& e) { LOG(bb,always)<<"msgin_getserverbyname: ExceptionBailout caught";}
     catch(exception& e)
@@ -3856,7 +3861,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
     addReply(msg, response);
     if (!rc)
@@ -3914,12 +3919,12 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                 rc=EINVAL;
                 if (rc) {
                     stringstream errorText;
-                    errorText << "The setserver request failed for an invalid option="<<l_query;
+                    errorText << "The getserver request failed for an invalid option="<<l_query;
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
                 break;
         }
-        LOG(bb,always)<<"msgin_getserver: l_query="<<l_query<<" result="<<result;
+        LOG(bb,info)<<"msgin_getserver: l_query="<<l_query<<" result="<<result;
     }
     catch(ExceptionBailout& e) { LOG(bb,always)<<"msgin_getserver: ExceptionBailout caught";}
     catch(exception& e)
@@ -3929,7 +3934,7 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -3979,7 +3984,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
            bberror << err("inbbproxy.backup",serverName);
         }
 
-        LOG(bb,info) << "sertserver action=" << actionName << " for serverName=" << serverName;
+        LOG(bb,info) << "setserver action=" << actionName << " for serverName=" << serverName;
         if (actionName=="activate")
         {
             std::string nowActive = connectionNameFromAlias();
@@ -4107,7 +4112,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -4168,7 +4173,7 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -4200,8 +4205,6 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             errorText << "Root user or primary group required";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-
-
 
         string serverName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
         bberror << err("inbbproxy.actionName", "close")<<err("inbbproxy.serverName",serverName);
@@ -4240,7 +4243,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    txp::Msg* response = NULL;
+    txp::Msg* response;
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
@@ -4333,6 +4336,10 @@ int bb_main(std::string who)
 
     /* Open connection to bbServer */
     rc = openConnectionToBBserver();
+    if(rc)
+    {
+        LOG(bb,warning) << "Connection to bbServer failed to open.  rc=" << rc;
+    }
 
     /* Set the master logical volume number from the configuration */
     MasterLogicalVolumeNumber.set(config.get(process_whoami+".startingvolgrpnbr", DEFAULT_MASTER_LOGICAL_VOLUME_NUMBER));

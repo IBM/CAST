@@ -32,6 +32,7 @@ fi
 #           If unit is average, please read NOTE, below.
 #    TOTAL_PROCESS: the number of process you want to be include in the check. Default is 1. 
 #           If unit is average, this parameter is ignored       
+#    list of process to exclude (cpu and mem only)
 
 # NOTE:
 # System load averages is the average number of processes that are either
@@ -51,12 +52,14 @@ if [ $# -gt 0 ]; then UNIT=$1; fi
 if [ $# -gt 1 ]; then LOAD_THRESHOLD=$2; fi
 if [ $# -gt 2 ]; then TOTAL_PROCESS=$3; fi
 
+
 me=$(basename $0) 
 model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-
 trap 'rm -f /tmp/$$' EXIT
+
+exc=""
 if [ "$UNIT" != "mem" ] && [ "$UNIT" != "cpu" ] && [ "$UNIT" != "average" ] ; then  
    echo "Invalid argument: $INIT. Valid values are: mem|cpu."
 else
@@ -75,17 +78,33 @@ else
          exit 0
       fi
    else 
+      #check if there is a list of exclusions
+      if [ $# -gt 3 ]; then 
+        i=4
+        tmp=()
+        while [ $i -le $# ]; do 
+          tmp+=( ${!i} )
+          let i+=1
+        done
+        if [ ${#tmp[@]} -ne 0 ]; then
+          exc=$(echo ${tmp[@]} | tr ' ' '|')
+          exc="| egrep -v '${exc}'"
+        fi
+      fi
       let TOTAL_PROCESS+=1
       if [ "$UNIT" == "cpu" ] ; then  
-         ps -eo pid,ppid,user,%cpu,%mem,state,lstart,cmd --sort=-%cpu |head -$TOTAL_PROCESS | tee /tmp/$$
+         cmd="ps -eo pid,ppid,user,%cpu,%mem,state,lstart,cmd --sort=-%cpu ${exc} |head -$TOTAL_PROCESS | tee /tmp/$$"
       else 
-         ps -eo pid,ppid,user,%mem,%cpu,state,lstart,cmd --sort=-%mem |head -$TOTAL_PROCESS | tee /tmp/$$
+         cmd="ps -eo pid,ppid,user,%mem,%cpu,state,lstart,cmd --sort=-%mem ${exc} |head -$TOTAL_PROCESS | tee /tmp/$$"
       fi
+      eval $cmd
       total=`tail -${TOTAL_PROCESS} /tmp/$$| awk '{s+=$4}END {print s}'` 
    
       let TOTAL_PROCESS-=1
       echo -e "\n$TOTAL_PROCESS process(es) using $total% $UNIT."
       echo -e "Threshold set to $LOAD_THRESHOLD%."
+      if [ ! -z "$exc" ]; then echo "Excluding: ${tmp[@]}."; fi
+
       if (( $(echo "$total <= $LOAD_THRESHOLD" | bc -l) )); then
          echo -e "$me test PASS, rc=0"  
          exit 0
