@@ -42,7 +42,7 @@ int csmi_client(int argc, char *argv[])
 	//csmutil_logging_level_set("info");
 	
 	//Helper Variables*/
-	int32_t i = 0;
+	uint32_t i = 0;
 
 	/*Variables*/
 	csm_api_object *csm_obj = NULL;

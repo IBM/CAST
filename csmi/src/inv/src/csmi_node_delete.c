@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE  csm_node_delete_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_node_delete_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_node_delete;
+static const csmi_cmd_t expected_cmd = CSM_CMD_node_delete;
 
 void csmi_node_delete_destroy(csm_api_object *csm_obj);
 

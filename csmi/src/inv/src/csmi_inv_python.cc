@@ -690,6 +690,17 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		ARRAY_STRUCT_PROPERTY(csmi_node_details_t, csmi_processor_record_t**, processors, processors_count, NULL, csmi_processor_record_t)
 		ARRAY_STRUCT_PROPERTY(csmi_node_details_t, csmi_ssd_record_t**, ssds, ssds_count, NULL, csmi_ssd_record_t);
 
+    class_<csmi_cluster_query_state_record_t,csmi_cluster_query_state_record_t*>("cluster_query_state_record_t")
+		STRING_PROPERTY(csmi_cluster_query_state_record_t, char*, node_name, , NULL, )
+		STRING_PROPERTY(csmi_cluster_query_state_record_t, char*, collection_time, , NULL, )
+		STRING_PROPERTY(csmi_cluster_query_state_record_t, char*, update_time, , NULL, )
+		.add_property("state", &csmi_cluster_query_state_record_t::state,&csmi_cluster_query_state_record_t::state," Deprecated after CSM_VERSION_0_4_1. State of the node, see @ref csmi_node_state_t for details. ")
+		.add_property("type", &csmi_cluster_query_state_record_t::type,&csmi_cluster_query_state_record_t::type," The type of the node, see @ref csmi_node_state_t for details.")
+		.add_property("num_allocs", &csmi_cluster_query_state_record_t::num_allocs,&csmi_cluster_query_state_record_t::num_allocs," Number of allocations that this node is participating in. also the length member for the following arrays ")
+		ARRAY_PROPERTY(csmi_cluster_query_state_record_t, int64_t*, allocs, num_allocs, NULL, int64_t)
+		ARRAY_STR_PROPERTY(csmi_cluster_query_state_record_t, char**, states, num_allocs, NULL, )
+		ARRAY_STR_PROPERTY(csmi_cluster_query_state_record_t, char**, shared, num_allocs, NULL, );
+
     class_<csm_ib_cable_inventory_collection_input_t,csm_ib_cable_inventory_collection_input_t*>("ib_cable_inventory_collection_input_t")
 		.add_property("inventory_count", &csm_ib_cable_inventory_collection_input_t::inventory_count,&csm_ib_cable_inventory_collection_input_t::inventory_count," Number of ib cable records, size of @ref inventory. ")
 		ARRAY_STRUCT_PROPERTY(csm_ib_cable_inventory_collection_input_t, csmi_ib_cable_record_t**, inventory, inventory_count, NULL, csmi_ib_cable_record_t);
@@ -850,5 +861,17 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 
     class_<csm_switch_children_inventory_collection_output_t,csm_switch_children_inventory_collection_output_t*>("switch_children_inventory_collection_output_t")
 		.add_property("TBD", &csm_switch_children_inventory_collection_output_t::TBD,&csm_switch_children_inventory_collection_output_t::TBD," TBD. ");
+
+    class_<csm_cluster_query_state_input_t,csm_cluster_query_state_input_t*>("cluster_query_state_input_t")
+		.add_property("limit", &csm_cluster_query_state_input_t::limit,&csm_cluster_query_state_input_t::limit," SQL 'LIMIT' numeric value. API will ignore values less than 1.")
+		.add_property("num_allocs", &csm_cluster_query_state_input_t::num_allocs,&csm_cluster_query_state_input_t::num_allocs," Filter query by the 'num_allocs' field in the database.. API will ignore values less than 0.")
+		.add_property("offset", &csm_cluster_query_state_input_t::offset,&csm_cluster_query_state_input_t::offset," SQL 'OFFSET' numeric value. API will ignore values less than 1.")
+		.add_property("order_by", &csm_cluster_query_state_input_t::order_by,&csm_cluster_query_state_input_t::order_by," Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY node_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY node_name ASC NULLS LAST', [b] =  'ORDER BY node_name DESC NULLS LAST', [c] = 'ORDER BY state ASC NULLS LAST', [d] =  'ORDER BY state DESC NULLS LAST', [e] = 'ORDER BY type ASC NULLS LAST', [f] =  'ORDER BY type DESC NULLS LAST', [g] = 'ORDER BY num_allocs ASC NULLS LAST', [h] =  'ORDER BY num_allocs DESC NULLS LAST'. ")
+		.add_property("state", &csm_cluster_query_state_input_t::state,&csm_cluster_query_state_input_t::state," Query the 'state' field in the database. API will ignore @ref csmi_node_state_t::CSM_NODE_NO_DEF values for this fields, see @ref csmi_node_state_t for details.")
+		.add_property("type", &csm_cluster_query_state_input_t::type,&csm_cluster_query_state_input_t::type," Query the 'type' field in the database. API will ignore @ref csmi_node_type_t::CSM_NODE_NO_TYPE values for this fields, see @ref csmi_node_type_t for details.");
+
+    class_<csm_cluster_query_state_output_t,csm_cluster_query_state_output_t*>("cluster_query_state_output_t")
+		.add_property("results_count", &csm_cluster_query_state_output_t::results_count,&csm_cluster_query_state_output_t::results_count," Number of records retrieved, size of @ref results. ")
+		ARRAY_STRUCT_PROPERTY(csm_cluster_query_state_output_t, csmi_cluster_query_state_record_t**, results, results_count, NULL, csmi_cluster_query_state_record_t);
 
 };

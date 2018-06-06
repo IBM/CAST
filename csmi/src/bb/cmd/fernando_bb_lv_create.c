@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 	/* getopt_long stores the option index here. */
 	int indexptr = 0;
 	/*i var for 'for loops'*/
-	//int i = 0;
+	//uint32_t i = 0;
 
     char *arg_check = NULL; ///< Used in verifying the long arg values.
 	

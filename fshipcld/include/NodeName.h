@@ -190,7 +190,8 @@ public:
   char isUnkFile() { return (_d_type == DT_UNKNOWN); }
   int isRoot() { return (_inodeForFuse == FUSE_ROOT_ID); }
 
-  const char *const accessNamePTR() {
+  // XXX Not sure why it was complaining about const char* const
+  const char * accessNamePTR() {
     if (_name_ptr)
       return _name_ptr;
     return _shortName;

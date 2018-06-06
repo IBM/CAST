@@ -32,7 +32,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_node_attributes_query_details_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_node_attributes_query_details_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_node_attributes_query_details;
+static const csmi_cmd_t expected_cmd = CSM_CMD_node_attributes_query_details;
 
 void csmi_node_attributes_query_details_destroy(csm_api_object *csm_obj);
 

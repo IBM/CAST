@@ -25,7 +25,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ras_event_query_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_ras_event_query_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_event_query;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_event_query;
 
 void csm_ras_event_query_destroy(csm_api_object *csm_obj);
 

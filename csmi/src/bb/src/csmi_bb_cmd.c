@@ -64,7 +64,7 @@
         }                                                               \
     }
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_bb_cmd;
+static const csmi_cmd_t expected_cmd = CSM_CMD_bb_cmd;
 
 void csmi_bb_cmd_destroy(csm_api_object *handle);
 

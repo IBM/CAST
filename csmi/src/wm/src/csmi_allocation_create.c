@@ -49,7 +49,7 @@
         }                                                               \
     }           
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_create;
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_create;
 
 int csm_allocation_create(
     csm_api_object **handle, 

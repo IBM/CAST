@@ -33,7 +33,7 @@
 
 #define API_PARAMETER_INPUT_TYPE csm_diag_run_end_input_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_diag_run_end;
+static const csmi_cmd_t expected_cmd = CSM_CMD_diag_run_end;
 
 int csm_diag_run_end(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE* input)
 {

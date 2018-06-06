@@ -1,8 +1,8 @@
 /*================================================================================
 
-    csmi/include/csm_types/struct_defs/wm/csm_cgroup_login_input.def
+    csmi/include/csm_types/struct_defs/inv/csm_cluster_query_state_output.def
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -13,15 +13,13 @@
 
 ================================================================================*/
 
-/** 
+/**
  * CSMI_COMMENT
- * @brief An input wrapper for @ref csm_cgroup_login.
- *
- * This struct is used internally for the PAM module.
+ * @brief A wrapper for the output of @ref csm_cluster_query_state.
  */
 
 #ifndef CSMI_STRUCT_NAME
-    #define CSMI_STRUCT_NAME csm_cgroup_login_input_t
+    #define CSMI_STRUCT_NAME csm_cluster_query_state_output_t
     
     #undef CSMI_BASIC              
     #undef CSMI_STRING             
@@ -36,31 +34,25 @@
     #undef CSMI_NONE  
     
     #define CSMI_BASIC               1
-    #define CSMI_STRING              1
+    #define CSMI_STRING              0
     #define CSMI_STRING_FIXED        0
     #define CSMI_ARRAY               0
     #define CSMI_ARRAY_FIXED         0
     #define CSMI_ARRAY_STR           0
     #define CSMI_ARRAY_STR_FIXED     0
     #define CSMI_STRUCT              0
-    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT        1
     #define CSMI_ARRAY_STRUCT_FIXED  0
     #define CSMI_NONE                0
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_VERSION_0_4_1)
-
-CSMI_STRUCT_MEMBER(int64_t, allocation_id,  BASIC, ,   -1, ) /**< Allocation ID to prefer (rejected if >0 and not found in daemon). */
-CSMI_STRUCT_MEMBER(pid_t,             pid,  BASIC, ,    0, ) /**< The process id to push to the allocation cgroup. */
-CSMI_STRUCT_MEMBER(char*,       user_name, STRING, , NULL, ) /**< User name for logging in. */
-CSMI_VERSION_END(7abc0fd516f773957ae20e5d59fa90e2)
-
 CSMI_VERSION_START(CSM_DEVELOPMENT)
-CSMI_STRUCT_MEMBER(char,      migrate_pid,  BASIC, ,    0, ) /**< Flag to migrate pid in to cgroup if true. */
-CSMI_VERSION_END(0)
 
+CSMI_STRUCT_MEMBER(uint32_t, results_count, BASIC, , 0, ) /**< Number of records retrieved, size of @ref results. */
+CSMI_STRUCT_MEMBER(csmi_cluster_query_state_record_t**, results, ARRAY_STRUCT, results_count, NULL, csmi_cluster_query_state_record_t) /**< A list of records retrieved from the queries, size defined by @ref results_count.*/
+
+CSMI_VERSION_END(0)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER
-

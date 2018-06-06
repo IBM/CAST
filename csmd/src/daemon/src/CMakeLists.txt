@@ -70,6 +70,7 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/CSMIBBVGCreate.cc
   csmi_request_handler/CSMIBBVGDelete.cc
   csmi_request_handler/CSMIBBVGQuery.cc
+  csmi_request_handler/CSMIClusterQueryState.cc
   csmi_request_handler/CSMICGROUPLogin.cc
   csmi_request_handler/CSMIDiagResultCreate.cc
   csmi_request_handler/CSMIDiagRunBegin.cc

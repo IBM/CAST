@@ -34,7 +34,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_node_resources_query_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_node_resources_query_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_node_resources_query;
+static const csmi_cmd_t expected_cmd = CSM_CMD_node_resources_query;
 
 void csmi_node_resources_query_destroy(csm_api_object *handle);
 
@@ -121,7 +121,7 @@ void csmi_node_resources_query_destroy(csm_api_object *handle)
 	csmi_api_internal *csmi_hdl;
     API_PARAMETER_OUTPUT_TYPE *output = NULL;
 	/* Helper variables. */
-    //int i = 0;
+    //uint32_t i = 0;
     
 	/* Verify it exists */
     if (handle == NULL || handle->hdl == NULL)

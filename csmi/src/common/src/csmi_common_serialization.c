@@ -120,7 +120,7 @@ int csm_serialize_str_array( char** array, uint32_t array_len, char** return_buf
 {
     if ( !array && array_len != 0) return 1;
 
-    int i;
+    uint32_t i;
     int offset = 0;
     int size_dump=0;
     *return_buffer_len = UINT32_T_SIZE;
@@ -200,7 +200,7 @@ int csm_deserialize_str_array( char** array[], uint32_t* array_len, const char* 
 int csm_enum_from_string(char *enum_str, const char *enum_strs[])
 {
     int retval = -1; ///< The enum value of the string.
-    int i = 0;       ///< While loop counter.
+    uint32_t i = 0;       ///< While loop counter.
 
     // If a null string was supplied return -1
     if (!enum_str || !enum_str[0])

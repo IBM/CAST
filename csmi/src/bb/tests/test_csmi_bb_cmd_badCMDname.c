@@ -34,7 +34,7 @@ int csmi_client(int argc, char *argv[])
 	/*Helper Variables*/
 	int returnValue = 0;
 	/*For for loops*/
-	int i = 0;
+	uint32_t i = 0;
 
 	/*Variables*/
 	csm_api_object *csm_obj = NULL;

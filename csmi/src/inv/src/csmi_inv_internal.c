@@ -661,6 +661,33 @@ const csmi_struct_mapping_t map_csmi_node_details_t= {
     cast_csmi_node_details_t
 };
 
+const csmi_struct_node_t csmi_cluster_query_state_record_tree[15] = {{"node_name",offsetof(csmi_cluster_query_state_record_t,node_name),0,NULL,0x746e3e2b,4},
+{"states",offsetof(csmi_cluster_query_state_record_t,states),offsetof(csmi_cluster_query_state_record_t, num_allocs),NULL,0x1c8a8b39,5},
+{"update_time",offsetof(csmi_cluster_query_state_record_t,update_time),0,NULL,0x7ceafa96,4},
+{"state",offsetof(csmi_cluster_query_state_record_t,state),csmi_node_state_t_MAX,&csmi_node_state_t_strs,0x10614a06,8},
+{"num_allocs",offsetof(csmi_cluster_query_state_record_t,num_allocs),0,NULL,0x421fea12,24},
+{"type",offsetof(csmi_cluster_query_state_record_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8},
+{"collection_time",offsetof(csmi_cluster_query_state_record_t,collection_time),0,NULL,0xd67e7d1f,4},
+{NULL,0,0,NULL,0,0},
+{"shared",offsetof(csmi_cluster_query_state_record_t,shared),offsetof(csmi_cluster_query_state_record_t, num_allocs),NULL,0x1bb15c9c,5},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"allocs",offsetof(csmi_cluster_query_state_record_t,allocs),offsetof(csmi_cluster_query_state_record_t, num_allocs),NULL,0xf202de83,1}}
+;
+
+void* cast_csmi_cluster_query_state_record_t(void* ptr,size_t index) { 
+    csmi_cluster_query_state_record_t ** ptr_cast = *(csmi_cluster_query_state_record_t***)ptr;
+    return ptr_cast ? ptr_cast[index] : NULL;
+};
+const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t= {
+    15,
+    csmi_cluster_query_state_record_tree,
+    cast_csmi_cluster_query_state_record_t
+};
+
 const csmi_struct_node_t csm_ib_cable_inventory_collection_input_tree[3] = {{"inventory_count",offsetof(csm_ib_cable_inventory_collection_input_t,inventory_count),0,NULL,0xde0c63b,24},
 {NULL,0,0,NULL,0,0},
 {"inventory",offsetof(csm_ib_cable_inventory_collection_input_t,inventory),offsetof(csm_ib_cable_inventory_collection_input_t, inventory_count),&map_csmi_ib_cable_record_t,0xac696ff3,1}}
@@ -1173,5 +1200,38 @@ const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_output_
     1,
     csm_switch_children_inventory_collection_output_tree,
     cast_csm_switch_children_inventory_collection_output_t
+};
+
+const csmi_struct_node_t csm_cluster_query_state_input_tree[7] = {{"offset",offsetof(csm_cluster_query_state_input_t,offset),0,NULL,0x123b4b4c,36},
+{"limit",offsetof(csm_cluster_query_state_input_t,limit),0,NULL,0xfdcc804,36},
+{"num_allocs",offsetof(csm_cluster_query_state_input_t,num_allocs),0,NULL,0x421fea12,36},
+{NULL,0,0,NULL,0,0},
+{"state",offsetof(csm_cluster_query_state_input_t,state),csmi_node_state_t_MAX,&csmi_node_state_t_strs,0x10614a06,8},
+{"order_by",offsetof(csm_cluster_query_state_input_t,order_by),0,NULL,0x245553bb,68},
+{"type",offsetof(csm_cluster_query_state_input_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8}}
+;
+
+void* cast_csm_cluster_query_state_input_t(void* ptr,size_t index) { 
+    csm_cluster_query_state_input_t ** ptr_cast = *(csm_cluster_query_state_input_t***)ptr;
+    return ptr_cast ? ptr_cast[index] : NULL;
+};
+const csmi_struct_mapping_t map_csm_cluster_query_state_input_t= {
+    7,
+    csm_cluster_query_state_input_tree,
+    cast_csm_cluster_query_state_input_t
+};
+
+const csmi_struct_node_t csm_cluster_query_state_output_tree[2] = {{"results_count",offsetof(csm_cluster_query_state_output_t,results_count),0,NULL,0x8261013f,24},
+{"results",offsetof(csm_cluster_query_state_output_t,results),offsetof(csm_cluster_query_state_output_t, results_count),&map_csmi_cluster_query_state_record_t,0x3f2ab7f7,1}}
+;
+
+void* cast_csm_cluster_query_state_output_t(void* ptr,size_t index) { 
+    csm_cluster_query_state_output_t ** ptr_cast = *(csm_cluster_query_state_output_t***)ptr;
+    return ptr_cast ? ptr_cast[index] : NULL;
+};
+const csmi_struct_mapping_t map_csm_cluster_query_state_output_t= {
+    2,
+    csm_cluster_query_state_output_tree,
+    cast_csm_cluster_query_state_output_t
 };
 
