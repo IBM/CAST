@@ -1,7 +1,7 @@
 # The following settings file is in the YAML format.
 #
 # Author: John Dunham (jdunham@us.ibm.com)
-# Update: 2/12/18
+# Update: 5/7/2018
 #
 # Work on this file format/field names is ongoing. Organization is presented as is, but subject to change.
 # 
@@ -14,31 +14,32 @@ csm_target: "c650f99p04"              # Mandatory, Specifies the hostname of a n
 csm_port: 4213                                 # Mandatory, Specifies the port running the CSMRESTD daemon.
 data_sources:                                  # Mandatory, Map with the keys corresponding to data source types.
  syslog:                                        # Key, corresponds to a data source type.
-  ras_location:  "syslogHostname"                 # Mandatory, the event field representing the location of the event for the RAS generation.
+  ras_location:  "hostname"                 # Mandatory, the event field representing the location of the event for the RAS generation.
   ras_timestamp: "timestamp"                      # Mandatory, the event field representing the time of the RAS Event.
   event_data:    "message"                        # Mandatory, the event field representing the remaining data to process for RAS generation.
-  category_key:  "programName"                    # Mandatory, the event field representing the categorization for the event, used to select a category object.
+  category_key:  "program_name"                    # Mandatory, the event field representing the categorization for the event, used to select a category object.
   categories:                                     # Mandatory, Map with keys corresponding to category type
     NVRM:                                          # Key, the category name, in this case this is the program name.
      - tag: "XID_GENERIC"                           # An identifier for the event, used primarily in debug (optional).
-       pattern:    "Xid(%{DATA:pciLocation}): %{NUMBER:xid:int},"  # A grok pattern, extracted values will be placed into the data event.
+       pattern:    "Xid(%{DATA}): %{NUMBER:xid:int},"  # A grok pattern, extracted values will be placed into the data event.
        ras_msg_id: "gpu.xid.%{xid}" # A RAS message ID for use in the .send_ras; action.
        action:     'unless %{xid}.between?(1, 81); ras_event="gpu.xid.unknown" end; .send_ras;' # An action to execute.
+       extract: false                               # Extracts the matches in the pattern to the event, defaults to false.
 
     mlx5_core:
      - tag: "IB_CABLE_PLUG"
-       pattern:    "mlx5_core %{MLX5_PCI}.*module %{NUMBER:module}, Cable (?<cableEvent>(un)?plugged)"
+       pattern:    "mlx5_core %{MLX5_PCI}.*module %{NUMBER}, Cable (?<cableEvent>(un)?plugged)"
        ras_msg_id: "ib.connection.%{cableEvent}"
        action:     ".send_ras;"
 
     mmsysmon:
      - tag: "MMSYSMON_CLEAN_MOUNT"
-       pattern: "filesystem %{NOTSPACE:filesystem} was (?<mountEvent>(un)?mounted)"
+       pattern: "filesystem %{NOTSPACE} was (?<mountEvent>(un)?mounted)"
        ras_msg_id: "spectrumscale.fs.%{mountEvent}"
        action: ".send_ras;"
 
      - tag: "MMSYSMON_UNMOUNT_FORCED"
-       pattern: "filesystem %{NOTSPACE:filesystem} was.*forced.*unmount"
+       pattern: "filesystem %{NOTSPACE} was.*forced.*unmount"
        ras_msg_id: "spectrumscale.fs.unmount_forced"
        action: ".send_ras;"
 ...
