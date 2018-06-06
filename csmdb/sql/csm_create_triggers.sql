@@ -294,6 +294,8 @@ BEGIN
                  node_names, ib_rx_list, ib_tx_list, gpfs_read_list, gpfs_write_list, 
                  energy_list, pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list);
         END IF;
+
+        UPDATE csm_allocation_node SET state=i_state WHERE allocation_id=allocationid;
     END IF;
 END;
 $$ LANGUAGE 'plpgsql';
@@ -1594,6 +1596,7 @@ BEGIN
     -- Update the allocation node tables.
     UPDATE csm_allocation_node
     SET 
+        state                = i_state,
         ib_tx                = d.tx, 
         ib_rx                = d.rx, 
         gpfs_read            = d.g_read, 
