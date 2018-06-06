@@ -137,6 +137,8 @@ public:
   virtual void ConnectEP(const csm::network::Address_sptr addr);
   
   virtual bool UpdateEnvironmentalData( const csm::network::Address_sptr addr, const CSM_Environmental_Data& data );
+  virtual bool GetEnvironmentalData( const csm::network::Address_sptr addr, CSM_Environmental_Data& data );
+  
   std::string GetCNUidFromAddr(const csm::network::Address_sptr addr) const;
   
   virtual int GetAllEPs(csm::daemon::AddressListType &list,

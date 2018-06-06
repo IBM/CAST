@@ -471,6 +471,24 @@ csm::daemon::DaemonState::UpdateEnvironmentalData( const csm::network::Address_s
   return true;
 }
 
+bool
+csm::daemon::DaemonState::GetEnvironmentalData( const csm::network::Address_sptr addr,
+                                                CSM_Environmental_Data& data )
+{
+  csm::network::AddressCode key = GenerateNodeID( addr );
+
+  std::lock_guard<std::mutex> guard( _map_lock );
+
+  if( _NodeStateMap.find( key ) == _NodeStateMap.end() )
+  {
+    CSMLOG( csmd, warning ) << "GetEnvironmentalData: Cannot get env data for unknown node: " << addr->Dump();
+    return false;
+  }
+
+  data = _NodeStateMap[ key ]._EnvData;
+  return true;
+}
+
 std::string
 csm::daemon::DaemonState::GetCNUidFromAddr(const csm::network::Address_sptr addr) const
 {
