@@ -2358,7 +2358,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                                  << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
                                                  << " extents";
                                     // If necessary, sort the extents...
-                                    rc = l_TagInfo2->sortExtents();
+                                    rc = l_TagInfo2->sortExtents(pLVKey);
                                     if (!rc)
                                     {
                                         WRKQE* l_WrkQE = 0;
