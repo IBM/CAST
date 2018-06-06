@@ -17,6 +17,7 @@
 #define CSMD_SRC_DAEMON_INCLUDE_CSM_ENVIRONMENTAL_DATA_H_
 
 #include <bitset>
+#include <string>
 #include "csm_CPU_data.h"
 #include "csm_GPU_double_data.h"
 #include "csm_GPU_long_data.h"
@@ -83,6 +84,8 @@ public:
   void Set_Data( const CSM_GPU_Long_Label_Data& GPU_Long_Label_Data_To_Copy );
 
   void Set_Data( const CSM_CPU_Data& CPU_data_to_copy );
+
+  std::string Get_Json_String();
 
   CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );
 

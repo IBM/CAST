@@ -148,6 +148,11 @@ void CSM_Environmental_Data::Set_Data( const CSM_CPU_Data& CPU_data_to_copy )
   _Data_Mask.set( CPU_DATA_BIT );
 }
 
+std::string CSM_Environmental_Data::Get_Json_String()
+{
+  return "Test string";
+}
+
 CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
 {
   _Data_Mask = in._Data_Mask;
