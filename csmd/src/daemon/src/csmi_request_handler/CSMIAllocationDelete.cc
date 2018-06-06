@@ -22,6 +22,9 @@
 #include "csmi/include/csm_api.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h"
 #include "include/csm_event_type_definitions.h"
+#include "csmi/src/wm/include/csmi_wm_internal.h"
+#include "csmi/src/common/include/csmi_api_internal.h"
+#include "csmi/src/common/include/csmi_json.h"
 
 #include "csmi_stateful_db/CSMIStatefulDBRecvSend.h"
 
@@ -422,6 +425,40 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
         char **buf, uint32_t &bufLen,
         csm::daemon::EventContextHandlerState_sptr ctx )
 {
+
+    if( tuples.size() > 0 && tuples[0]->data && tuples[0]->nfields > 0)
+    {
+        MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
+        std::unique_lock<std::mutex>dataLock =
+            ctx->GetUserData<MCAST_PROPS_PAYLOAD*>(&mcastProps);
+        
+        MCAST_STRUCT *allocation = mcastProps->GetData();
+
+        // Build the ending strings.
+        std::string end_time_str = tuples[0]->data[0];
+        std::string state_str    = csm_get_string_from_enum(csmi_state_t,
+            ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED );
+
+        if (allocation )
+        {
+            std::string json = "";
+
+            if ( end_time_str.compare("") != 0 )
+            {
+                json.append("{\"state\":\"").append(state_str).append("\",\"history\":{\"end_time\":\"")
+                    .append(end_time_str).append("\"}}");
+            }
+            else
+            {
+                json = "{}";
+            }
+                
+            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+        }
+        
+        dataLock.unlock();
+    }
+
     return CreateByteArray(buf, bufLen, ctx);
 }
 

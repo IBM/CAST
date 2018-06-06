@@ -21,7 +21,9 @@
 #include <iostream>
 #include <string>
 
-#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/sources/severity_channel_logger.hpp>
+#include <boost/log/sources/channel_feature.hpp>
+#include <boost/log/sources/channel_logger.hpp>
 #include <boost/log/utility/manipulators.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -65,7 +67,8 @@ namespace utility
     };
     extern utility::bluecoral_sevs minlevel[NUM_SUBCOMPONENTS];
 
-    extern boost::log::sources::severity_logger_mt< bluecoral_sevs > logger;
+    extern boost::log::sources::severity_channel_logger_mt< bluecoral_sevs > logger;
+    extern boost::log::sources::channel_logger_mt< > bds_logger;
 };
 
 /**
@@ -87,6 +90,9 @@ namespace utility
                                << boost::log::add_value("FileName"    , (utility::bluecoral_filename*)__FILE__) \
                                << boost::log::add_value("Line"        , __LINE__) \
                                << boost::log::add_value("Function"    , __func__)
+
+#define BDS(type, traceid, uid, data) BOOST_LOG(utility::bds_logger) << "{\"type\":\"" << type << \
+    "\",\"traceid\":" << traceid << ",\"uid\":" << uid << ",\"data\":" << data << "}"
 
 #define setLoggingLevel(subcomponent, setlevel) \
     utility::minlevel[utility::bluecoral_subcomponents::subcomponent] = utility::bluecoral_sevs::setlevel

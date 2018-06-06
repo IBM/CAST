@@ -22,6 +22,9 @@
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/support/date_time.hpp>
+#include <boost/log/expressions/keyword_fwd.hpp>
+#include <boost/log/expressions/keyword.hpp>
+
 
 #include "logging.h"
 
@@ -33,6 +36,7 @@ namespace keywords = boost::log::keywords;
 namespace sinks    = boost::log::sinks;
 
 BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", boost::posix_time::ptime)
+BOOST_LOG_ATTRIBUTE_KEYWORD(channel, "Channel", std::string)
 
 
 static const char* severity_level_str[] =
@@ -60,7 +64,9 @@ static size_t maxseveritywidth = 1;
 
 namespace utility
 {
-    src::severity_logger_mt< bluecoral_sevs > logger;
+    src::severity_channel_logger_mt< bluecoral_sevs > logger(keywords::channel = "LOG" );
+    //src::logger_mt bds_logger;
+    src::channel_logger_mt<> bds_logger( keywords::channel = "BDS" );
     bluecoral_sevs minlevel[NUM_SUBCOMPONENTS];
 
     void touch_unused_variable()
@@ -110,7 +116,7 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 {
     static bool alreadyInitialized = false;
     if(alreadyInitialized)
-	return 0;
+	    return 0;
     alreadyInitialized = true;
 
 #define SUBCOMPONENT(n) maxsubcomponentwidth = max(strlen(#n), maxsubcomponentwidth);
@@ -125,15 +131,15 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
     string defaultsev = config.get(ptree_prefix + ".default_sev", "info");
     for(x=0; x<NUM_SUBCOMPONENTS; x++)
     {
-	string setlvl = config.get(ptree_prefix + "." + subcomponent_str[x], defaultsev);
-	if(str2severity.find(setlvl) != str2severity.end())
-	{
-	    minlevel[x] = str2severity[setlvl];
-	}
-	else
-	{
-	    cout << "Invalid severity: " << subcomponent_str[x] << " = " << setlvl << endl;
-	}
+	    string setlvl = config.get(ptree_prefix + "." + subcomponent_str[x], defaultsev);
+	    if(str2severity.find(setlvl) != str2severity.end())
+	    {
+	        minlevel[x] = str2severity[setlvl];
+	    }
+	    else
+	    {
+	        cout << "Invalid severity: " << subcomponent_str[x] << " = " << setlvl << endl;
+	    }
     }
 
     logging::add_common_attributes();
@@ -160,7 +166,8 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 	logging::add_console_log
 	    (
 		((config.get(ptree_prefix + ".consoleStream", "stdout") == "stdout")?(std::cout):(std::cerr)),
-		keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%")
+		keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
+        keywords::filter = channel == "LOG"
 		);
     }
 
@@ -171,13 +178,14 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
         {
             mode |= std::ios::app;
         }
-	auto sink = logging::add_file_log
+	    auto sink = logging::add_file_log
 	    (
-		keywords::file_name = config.get(ptree_prefix + ".fileLog", "none"),
-		keywords::rotation_size = config.get(ptree_prefix + ".rotationSize", (~0)),
-		keywords::auto_flush = true,
-		keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
-                keywords::open_mode = mode
+		    keywords::file_name = config.get(ptree_prefix + ".fileLog", "none"),
+		    keywords::rotation_size = config.get(ptree_prefix + ".rotationSize", (~0)),
+		    keywords::auto_flush = true,
+		    keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
+            keywords::open_mode = mode,
+            keywords::filter = channel == "LOG"
 		);
         
         if(config.get(ptree_prefix + ".archiveLogs", "none") != "none")
@@ -195,10 +203,12 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
     if(config.get(ptree_prefix + ".sysLog", false))
     {
         boost::shared_ptr< logging::core > core = logging::core::get();
-        boost::shared_ptr< logging::sinks::syslog_backend > backend(new logging::sinks::syslog_backend(
-                                                                        keywords::facility = logging::sinks::syslog::local0,
-                                                                        keywords::use_impl = logging::sinks::syslog::udp_socket_based
-                                                                        ));
+        boost::shared_ptr< logging::sinks::syslog_backend > backend(
+            new logging::sinks::syslog_backend(
+                keywords::facility = logging::sinks::syslog::local0,
+                keywords::use_impl = logging::sinks::syslog::udp_socket_based,
+                keywords::filter = channel == "LOG"
+        ));
         
         backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"), 
                                     config.get(ptree_prefix + ".port",   514));
@@ -216,6 +226,21 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 	
         core->add_sink(boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend));
     }
+
+
+    if(config.get(ptree_prefix + ".bds", true))
+    {
+         auto sink = logging::add_file_log(
+		    keywords::file_name = config.get(ptree_prefix + ".bds_file", "none"),
+		    keywords::rotation_size = config.get(ptree_prefix + ".bds_rotation_size", (~0)),
+		    keywords::auto_flush = true,
+            keywords::open_mode = std::ios::app,
+            keywords::filter = channel == "BDS");
+
+         
+    }
+
     
     return 0;
 }
+

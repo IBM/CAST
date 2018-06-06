@@ -25,8 +25,11 @@
 
 #include "csmi/include/csm_api.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h"
+#include "csmi/src/wm/include/csmi_wm_internal.h"
 #include "csmi/src/common/include/csmi_api_internal.h"
+#include "csmi/src/common/include/csmi_json.h"
 #include "include/csm_event_type_definitions.h"
+
 
 #define STATE_NAME "CSMIAllocationCreate:"
 
@@ -39,6 +42,11 @@
 #define MCAST_PROPS_PAYLOAD CSMIMcastAllocation
 #define EXTRA_STATES 6
 #define SPAWN_STATE STATEFUL_DB_RECV_DB + 1
+
+#define DATA_STRING "allocation_id,begin_time,primary_job_id,secondary_job_id,ssd_file_system_name,"\
+    "launch_node_name,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,"\
+    "projected_memory,state,type,job_type,user_name,user_id,user_group_id,user_script,account,"\
+    "comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key,isolated_cores}"
 
 CSMIAllocationCreate_Master::CSMIAllocationCreate_Master(csm::daemon::HandlerOptions& options) :
     CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
@@ -139,50 +147,11 @@ bool CSMIAllocationCreate_Master::CreatePayload(
 
     if ( csm_deserialize_struct( INPUT_STRUCT, &allocation, arguments.c_str(), len ) == 0 )
     {
-        // Copy the meaningful values. 
-        // // TODO write something that copys the intersection of the structs?
-        // ========================================================================================
-        MCAST_STRUCT *mcastProps = nullptr; 
-        csm_init_struct_ptr(MCAST_STRUCT, mcastProps);
-
-        // Job ids.
-        //mcastProps->allocation_id    = 0;
-        mcastProps->primary_job_id   = allocation->primary_job_id;
-        mcastProps->secondary_job_id = allocation->secondary_job_id;
-        
-        // Job details.
-        mcastProps->isolated_cores   = allocation->isolated_cores;
-        mcastProps->shared           = allocation->shared;
-        mcastProps->user_flags       = allocation->user_flags;
-        mcastProps->system_flags     = allocation->system_flags;  
-        mcastProps->type             = allocation->type;
-        mcastProps->state            = allocation->state;
-        mcastProps->user_name        = allocation->user_name;
-
-        // Node details.
-       mcastProps->shared            = allocation->shared; 
-       mcastProps->num_processors    = allocation->num_processors;
-       mcastProps->num_gpus          = allocation->num_gpus; 
-       mcastProps->projected_memory  = allocation->projected_memory;
-
-        // Initialize arrays
-        mcastProps->num_nodes        = allocation->num_nodes;
-        mcastProps->compute_nodes    = allocation->compute_nodes;
-
-        // Create shouldn't save config errors:
-        mcastProps->save_allocation  = 0;
-
-        // Null the allocation values cached to save the trouble of a strdup and free.
-        allocation->user_name         = nullptr;
-        allocation->user_flags        = nullptr;  
-        allocation->system_flags      = nullptr;
-        allocation->compute_nodes     = nullptr; 
-        // ========================================================================================
-        // Lambda expression for destructor.
-        MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, mcastProps, true, true, 
-            CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT);
-        ctx->SetDataDestructor( []( void* data ){ delete static_cast<MCAST_PROPS_PAYLOAD*>(data);});
-        ctx->SetUserData( payload );
+        ctx->SetUserData( allocation );
+        ctx->SetDataDestructor( []( void* data ){ 
+           free_csm_allocation_create_input_t((INPUT_STRUCT*)data);
+           free(data);  
+           data = NULL;});
 
         // Compute what state the create should start in.
         csmi_state_t creating_state = allocation->state == CSM_RUNNING ? CSM_TO_RUNNING : allocation->state;
@@ -208,7 +177,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "$19::text,      $20::text,    $21::text,    $22::text,"
                 "$23::timestamp, $24::text,    $25::text,    $26::bigint,"
                 "$27::text,      $28::integer"
-            ") returning allocation_id";
+            ") returning allocation_id, begin_time";
 
         const int paramCount = 28;
         csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
@@ -217,8 +186,8 @@ bool CSMIAllocationCreate_Master::CreatePayload(
 
         dbReq->AddTextParam(allocation->ssd_file_system_name);                      // $3 - text
         dbReq->AddTextParam(allocation->launch_node_name);                          // $4 - text
-        dbReq->AddTextParam(mcastProps->user_flags);                                // $5 - text
-        dbReq->AddTextParam(mcastProps->system_flags);                              // $6 - text 
+        dbReq->AddTextParam(allocation->user_flags);                                // $5 - text
+        dbReq->AddTextParam(allocation->system_flags);                              // $6 - text 
 
         dbReq->AddNumericParam<int64_t>(allocation->ssd_min);                       // $7 - bigint
         dbReq->AddNumericParam<int64_t>(allocation->ssd_min);                       // $8 - bigint
@@ -228,10 +197,10 @@ bool CSMIAllocationCreate_Master::CreatePayload(
         dbReq->AddNumericParam<int32_t>(allocation->num_gpus);                      // $11 - integer
         dbReq->AddNumericParam<int32_t>(allocation->projected_memory);              // $12 - integer 
         dbReq->AddTextParam(csm_get_string_from_enum(csmi_state_t, ( creating_state ))); // $13 - text
-        dbReq->AddTextParam(csm_get_string_from_enum(csmi_allocation_type_t,mcastProps->type)); // $14 - text
+        dbReq->AddTextParam(csm_get_string_from_enum(csmi_allocation_type_t,allocation->type)); // $14 - text
 
         dbReq->AddTextParam(csm_get_string_from_enum(csmi_job_type_t,allocation->job_type));  // $15 - text
-        dbReq->AddTextParam(mcastProps->user_name);                                       // $16 - text
+        dbReq->AddTextParam(allocation->user_name);                                       // $16 - text
         dbReq->AddNumericParam<int32_t>(allocation->user_id);                             // $17 - integer
         dbReq->AddNumericParam<int32_t>(allocation->user_group_id);                       // $18 - integer
 
@@ -249,12 +218,12 @@ bool CSMIAllocationCreate_Master::CreatePayload(
         dbReq->AddNumericParam<int32_t>(allocation->isolated_cores); // $28 - text
         // --------------------------------------------------------------------------
         
-        csm_free_struct_ptr(INPUT_STRUCT, allocation );
 
         *dbPayload = dbReq;
         
         // Log that the request is happening. 
-        LOG(csmapi,info) << ctx << payload->GenerateIdentifierString() 
+        LOG(csmapi,info) << ctx << "Primary Job Id: " << allocation->primary_job_id 
+            << "; Secondary Job Id: " << allocation->secondary_job_id 
             << "; Message: Requesting allocation in database; ";
     }
     else
@@ -280,68 +249,121 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
     LOG(csmapi,trace) << STATE_NAME ":ReserveNodes: Enter";
     
     // Get the allocation data.
-    MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
-    std::unique_lock<std::mutex>dataLock =
-        ctx->GetUserData<MCAST_PROPS_PAYLOAD*>(&mcastProps);
+    INPUT_STRUCT* allocation = nullptr;
+    std::unique_lock<std::mutex>dataLock = ctx->GetUserData<INPUT_STRUCT*>(&allocation);
 
-    // Cache the allocation for readability.
-    MCAST_STRUCT* allocation = mcastProps->GetData();
-
-    if( allocation )
+    // EARLY RETURN
+    if (allocation)
     {
-        // EARLY RETURN
-        if ( tuples.size() == 0 )
+        if ( tuples.size() == 1 && tuples[0]->data && tuples[0]->nfields == 2 )
         {
-            std::string error = mcastProps->GenerateIdentifierString() + 
-                "; Message: Could not create the allocation in the database;";
+            // TODO Perform an arg check?
+            allocation->allocation_id = strtoll( tuples[0]->data[0], nullptr, 10 );
+            allocation->begin_time    = strdup( tuples[0]->data[1] );
+
+            std::string json="";
+            csmiGenerateJSON(json, DATA_STRING, allocation, CSM_STRUCT_MAP(INPUT_STRUCT));
+            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+        }
+        else
+        {
+            std::string error = " Primary Job Id: " ;
+            error.append(std::to_string(allocation->primary_job_id)).append("; Secondary Job Id: ")
+                .append(std::to_string(allocation->secondary_job_id))
+                .append("; Message: Could not create the allocation in the database;");
 
             ctx->SetErrorCode(CSMERR_DB_ERROR);
             ctx->SetErrorMessage(error);
             return false;
         }
-
-        // TODO Perform an arg check?
-        allocation->allocation_id = strtoll( *tuples[0]->data, nullptr, 10 );
-        //
-        // --------------------------------------------------------------------------
-        // INSERT into allocation nodes.
-        // --------------------------------------------------------------------------
-        std::string stmt = "SELECT fn_csm_allocation_node_sharing_status( "
-            "$1::bigint, $2::text, $3::text, $4::boolean, $5::text[] )";
-
-        const int paramCount = 5;
-        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
-
-        dbReq->AddNumericParam<int64_t>(allocation->allocation_id);
-        dbReq->AddTextParam(csm_get_string_from_enum(csmi_allocation_type_t,allocation->type));
-        dbReq->AddTextParam(csm_get_string_from_enum(csmi_state_t, allocation->state));
-        dbReq->AddCharacterParam(allocation->shared == CSM_TRUE); // TODO should this just be the contents?
-        dbReq->AddTextArrayParam(allocation->compute_nodes, allocation->num_nodes);
-
-        // --------------------------------------------------------------------------
-        
-        LOG(csmapi,info) << ctx <<  mcastProps->GenerateIdentifierString() 
-            << "; Message: Reserving nodes in database; ";
-
-        *dbPayload = dbReq;
     }
     else
     {
-        // TODO might need more.
-        std::string error = mcastProps->GenerateIdentifierString() + 
-            "; Message: The cached allocation settings could not be found;";
-        int errorCode     = CSMERR_INVALID_PARAM;
-        
+        std::string error = "Message: Allocation data was lost in context object";
+        int errorCode = CSMERR_GENERIC; 
+
         // This is a larger error.
         if(tuples.size() == 0)
         {   
-            error.append(" Allocation could not be created in the database;");
+            error.append("; Allocation could not be created in the database;");
             errorCode = CSMERR_DB_ERROR;
         }
 
         ctx->SetErrorCode(errorCode);
         ctx->SetErrorMessage(error);
+        return false;
     }
+
+    // Copy the meaningful values. 
+    // ========================================================================================
+    MCAST_STRUCT *mcastAlloc = nullptr; 
+    csm_init_struct_ptr(MCAST_STRUCT, mcastAlloc);
+
+    // Job ids.
+    mcastAlloc->allocation_id    = allocation->allocation_id;
+    mcastAlloc->primary_job_id   = allocation->primary_job_id;
+    mcastAlloc->secondary_job_id = allocation->secondary_job_id;
+    
+    // Job details.
+    mcastAlloc->isolated_cores   = allocation->isolated_cores;
+    mcastAlloc->shared           = allocation->shared;
+    mcastAlloc->user_flags       = allocation->user_flags;
+    mcastAlloc->system_flags     = allocation->system_flags;  
+    mcastAlloc->type             = allocation->type;
+    mcastAlloc->state            = allocation->state;
+    mcastAlloc->user_name        = allocation->user_name;
+
+    // Node details.
+    mcastAlloc->shared            = allocation->shared; 
+    mcastAlloc->num_processors    = allocation->num_processors;
+    mcastAlloc->num_gpus          = allocation->num_gpus; 
+    mcastAlloc->projected_memory  = allocation->projected_memory;
+
+    // Initialize arrays
+    mcastAlloc->num_nodes        = allocation->num_nodes;
+    mcastAlloc->compute_nodes    = allocation->compute_nodes;
+
+    // Create shouldn't save config errors:
+    mcastAlloc->save_allocation  = 0;
+
+    // Null the allocation values cached to save the trouble of a strdup and free.
+    allocation->user_name         = nullptr;
+    allocation->user_flags        = nullptr;  
+    allocation->system_flags      = nullptr;
+    allocation->compute_nodes     = nullptr; 
+
+
+    MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, mcastAlloc, true, true, 
+        CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT);
+
+    dataLock.unlock();
+    ctx->SetUserData( payload );
+    dataLock.lock();
+
+    ctx->SetDataDestructor( []( void* data ){ delete static_cast<MCAST_PROPS_PAYLOAD*>(data);});
+    // ========================================================================================
+    
+    // --------------------------------------------------------------------------
+    // INSERT into allocation nodes.
+    // --------------------------------------------------------------------------
+    std::string stmt = "SELECT fn_csm_allocation_node_sharing_status( "
+        "$1::bigint, $2::text, $3::text, $4::boolean, $5::text[] )";
+
+    const int paramCount = 5;
+    csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
+
+    dbReq->AddNumericParam<int64_t>(mcastAlloc->allocation_id);
+    dbReq->AddTextParam(csm_get_string_from_enum(csmi_allocation_type_t,mcastAlloc->type));
+    dbReq->AddTextParam(csm_get_string_from_enum(csmi_state_t,          mcastAlloc->state));
+    dbReq->AddCharacterParam(mcastAlloc->shared == CSM_TRUE); // TODO should this just be the contents?
+    dbReq->AddTextArrayParam(mcastAlloc->compute_nodes, mcastAlloc->num_nodes);
+
+    // --------------------------------------------------------------------------
+    
+    LOG(csmapi,info) << ctx <<  payload->GenerateIdentifierString() 
+        << "; Message: Reserving nodes in database; ";
+
+    *dbPayload = dbReq;
 
     dataLock.unlock();
 
@@ -373,7 +395,7 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(
         // Else simply delete.
         if ( reserve )
         {
-            stmt = "SELECT fn_csm_allocation_history_dump( $1::bigint, 'now', -1, $2::text, 'f', "
+            stmt = "SELECT * FROM fn_csm_allocation_history_dump( $1::bigint, 'now', -1, $2::text, 'f', "
                 "'{}',  '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}' )";
 
             const int paramCount = 2;
@@ -453,6 +475,30 @@ bool CSMIAllocationCreate_Master::UndoTerminal(
 
     if ( mcastProps )
     {
+        MCAST_STRUCT *allocation = mcastProps->GetData();
+
+        if( tuples.size() > 0 && tuples[0]->data && tuples[0]->nfields > 0)
+        {
+            std::string end_time_str = tuples[0]->data[0];
+
+            std::string json = "";
+            if ( end_time_str.compare("") == 0 )
+            {
+                json = "{\"state\":\"reverted\"}";
+            }
+            else
+            {
+                json.append("{\"state\":\"failed\",\"history\":{\"end_time\":\"")
+                    .append(end_time_str).append("\"}}");
+            }
+
+            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+        }
+        else
+        {
+            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, "{\"state\":\"reverted\"}");
+        }
+
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
         ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
         ctx->AppendErrorMessage("; Message: Allocation was successfully reverted;", ' ');
