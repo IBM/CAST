@@ -336,7 +336,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_TagInfo2->cancelExtents(&l_Handle, &l_ContribId);
+                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId);
                         }
                         else
                         {
@@ -1565,7 +1565,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     BBTransferDef* l_OrgTransferPtr = l_TransferPtr;
     bool l_LockHeld = false;
     bool l_HandleFileLocked = false;
-    bool l_OnFailureMarkTransferAsFailed = true;
 
     try
     {
@@ -1630,6 +1629,56 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         bool l_AllDone = false;
 
         {
+            if ((l_PerformOperation) && (!l_TransferPtr->builtViaRetrieveTransferDefinition()))
+            {
+                // Second volley from bbProxy and not a restart scenario...
+                // First, ensure that this transfer definition is NOT marked as stopped in the cross bbServer metadata...
+                ContribIdFile* l_ContribIdFile = 0;
+                bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
+                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
+                l_HandleFilePath /= bfs::path(to_string(l_Handle));
+
+                // NOTE: The handle file does not have to be locked exclusive here because the stop transfer processsing 'waits'
+                //       for the extents to be enqueued.  The processing of competing start/restart transfer definition processing is
+                //       serialized via the transfer queue lock above...
+                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId);
+                if (rc >= 0)
+                {
+                    // Process the contribid file
+                    if (rc == 1 && l_ContribIdFile)
+                    {
+                        if (l_ContribIdFile->stopped())
+                        {
+                            // This condition overrides any failure detected on bbProxy...
+                            l_MarkFailedFromProxy = 0;
+
+                            // Set rc to 1 and this will be returned as a -2 back to bbProxy...
+                            rc = 1;
+                            errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                      << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
+                                      << " This transfer definition can only be submitted via restart transfer definition processing.";
+                            LOG_ERROR_TEXT_AND_BAIL(errorText);
+                        }
+                    }
+                    else
+                    {
+                        // Could be normal...
+                    }
+                }
+                else
+                {
+                    // Could be normal...
+                }
+
+                if (l_ContribIdFile)
+                {
+                    delete l_ContribIdFile;
+                }
+
+                rc = 0;
+            }
+
             if ((!l_PerformOperation) && l_TransferPtr->builtViaRetrieveTransferDefinition())
             {
                 // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure that all stop/cancel
@@ -1768,29 +1817,35 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                     } else {
+                        // Suspended...
                         // This condition overrides any failure detected on bbProxy...
                         l_MarkFailedFromProxy = 0;
 
-                        if (l_TransferPtr->builtViaRetrieveTransferDefinition() ||
-                            l_TransferPtr->all_CN_CP_TransfersInDefinition() ||
-                            l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
+                        if (!l_TransferPtr->builtViaRetrieveTransferDefinition())
                         {
-                            // Either a restart, all CN local cp, or no stage-in or stage-out files to transfer.
-                            // Allow a restart to be retried...
                             rc = -2;
+                            if (!l_PerformOperation)
+                            {
+                                // Start transfer request, first message volley...  Suggest to submit again...
+                                errorText << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
+                                          << " Suspended condition detected during the first message volley to bbServer.  Attempt to retry the start transfer request when the connection is not suspended.";
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                            else
+                            {
+                                // Start transfer request, second message volley...  Indicate to not aubmit again, as restart logic will resubmit...
+                                errorText << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
+                                          << " Suspended condition detected during the second message volley to bbServer.  A following restart transfer request will resubmit this transfer definition.";
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
                         }
                         else
                         {
-                            // Return -1 as this suspended scenario should not be considered as retryable.
-                            // If this is the second volley to bbServer for start transfer, we want that
-                            // start transfer to be cleaned up (locks released) and not resubmitted.
-                            // In this situation for a failover case, a restart will be performed for this
-                            // transfer definition.
-                            l_OnFailureMarkTransferAsFailed = false;
-                            rc = -1;
+                            // Restart transfer request...  Indicate to not restart this transfer definition...
+                            rc = 1;
+                            LOG(bb,info) << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to restart at this time.";
+                            BAIL;
                         }
-                        errorText << "Hostname " << l_TagInfo2->getHostName() << " is suspended. Therefore, no transfer is allowed to start.";
-                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
                 else
@@ -2260,13 +2315,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             l_TransferPtr->cleanUpIOMap();
         }
 
-        // Mark the transfer definition and the handle failed if this is the second pass -or-
-        // we got far enough along to insert this transfer definition into the local metadata
         if (rc < 0)
         {
             if (rc == -1)
             {
-                if (l_OnFailureMarkTransferAsFailed && (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr)))
+                // Mark the transfer definition and the handle failed if this is the second pass -or-
+                // we got far enough along to insert this transfer definition into the local metadata
+                if (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr))
                 {
                     markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
                 }

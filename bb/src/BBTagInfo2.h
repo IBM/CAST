@@ -74,7 +74,7 @@ class BBTagInfo2
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
     int allContribsReported(const uint64_t pHandle, const BBTagID& pTagId);
     int allExtentsTransferred(const BBTagID& pTagId);
-    void cancelExtents(uint64_t* pHandle, uint32_t* pContribId);
+    void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId);
     void changeServer();
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
@@ -243,8 +243,8 @@ class BBTagInfo2
         return extentInfo.setStageOutStarted(pLVKey, pJobId, pValue);
     }
 
-    inline int sortExtents() {
-        return extentInfo.sortExtents();
+    inline int sortExtents(const LVKey* pLVKey) {
+        return extentInfo.sortExtents(pLVKey);
     }
 
     inline int stageOutEnded() {

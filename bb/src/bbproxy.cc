@@ -1038,19 +1038,19 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (strstr(l_Variable, "jobid"))
         {   uint64_t value = stoull(l_Value);
             rc = setJobId(pConnectionName, value);
-            LOG(bb,info) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
+            LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
         else if (strstr(l_Variable, "jobstepid"))
         {
             uint64_t value = stoull(l_Value);
             rc = setJobStepId(pConnectionName, value);
-            LOG(bb,info) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
+            LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
         else if (strstr(l_Variable, "contribid"))
         {
             uint32_t value = stoul(l_Value);
             rc = setContribId(pConnectionName, value);
-            LOG(bb,info) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
+            LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
         else
         {
