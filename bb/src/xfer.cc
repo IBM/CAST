@@ -3006,11 +3006,22 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_Temp2.pop();
                             l_Key = l_WorkId.getLVKey();
                             l_WorkItemTagInfo2 = metadata.getTagInfo2(&l_Key);
-                            ExtentInfo l_ExtentInfo = l_WorkItemTagInfo2->getNextExtentInfo();
-                            transferExtent(l_WorkId, l_ExtentInfo);
+                            if (l_WorkItemTagInfo2)
+                            {
+                                ExtentInfo l_ExtentInfo = l_WorkItemTagInfo2->getNextExtentInfo();
+                                transferExtent(l_WorkId, l_ExtentInfo);
+                            }
+                            else
+                            {
+                                // Do not set rc...  Plow ahead...
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be tramsferred for " << l_Key;
+                            }
                         }
-                    } else {
-                        // \todo - Inconsistency with metadata....  Error???  @DLH
+                    }
+                    else
+                    {
+                        // Do not set rc...  Plow ahead...
+                        LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << *pLVKey;
                     }
                 }
 

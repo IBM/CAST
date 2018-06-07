@@ -114,6 +114,10 @@ int getIPAddrByInterface(const std::string& pInterface, std::string& pIPAddress)
     struct ifreq ifr;
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd<=0) {
+        l_RC=-errno;
+        pIPAddress="0.0.0.0";
+    }
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, pInterface.c_str(), IFNAMSIZ-1);
     if (!ioctl(fd, SIOCGIFADDR, &ifr)) {

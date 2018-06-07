@@ -2668,9 +2668,11 @@ int bb_main(std::string who)
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
     int rc = 0;
     stringstream errorText;
-    LOG(bb,always) << "bbserver bb_main BBAPI_CLIENTVERSIONSTR="<<BBAPI_CLIENTVERSIONSTR;
+
     try
     {
+        LOG(bb,always) << "bbserver bb_main BBAPI_CLIENTVERSIONSTR="<<BBAPI_CLIENTVERSIONSTR;
+
         // Increase the number of allowed file descriptors...
         struct rlimit l_Limits;
         rc = getrlimit(RLIMIT_NOFILE, &l_Limits);

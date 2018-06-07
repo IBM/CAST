@@ -197,6 +197,7 @@ void DisplayByOffset(char *mapfile, char *range, int cmdfile)
 
 	if (cmdfile) {
 	    if ((node_cnt == 1) &&
+		(cmd_count > 0) &&
 		(length == cmd_length) &&
 		(offset == (cmd_offset + (cmd_length * cmd_count))))
 	    {

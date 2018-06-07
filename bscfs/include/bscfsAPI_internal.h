@@ -53,6 +53,11 @@ static inline int __BSCFS_CheckConnection()
     return 1;
 }
 
+// These routines pass various path names to bscfsAgent via ioctls. We don't
+// check the string lengths here but instead let bscfsAgent do that. If a name
+// is too long, strncpy() will truncate it and will not terminate it with a
+// NULL, allowing bscfsAgent to detect the truncation and return ENAMETOOLONG.
+
 static inline int __BSCFS_StartLocalFlush(const char *pathname,
 					  const char *mapfile,
 					  const char *cleanup_script,
