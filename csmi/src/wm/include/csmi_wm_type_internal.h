@@ -53,6 +53,8 @@ typedef struct {
     char* system_flags; /**< System flags for the epilog/prolog. */
     char* user_name; /**< User name of allocation owner. */
     int64_t* gpu_energy; /**< The gpu energy .*/
+    char* timestamp; /**< A Timestamp for tracking miscellaneous timestamps. */
+    csmi_state_t start_state; /**< State of allocation at the start of the , refer to @ref csmi_state_t for details. */
 } csmi_allocation_mcast_context_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

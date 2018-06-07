@@ -204,13 +204,10 @@ public:
      *
      * @return True
      */
-    static inline bool ParseStatsQuery(
+    static  bool ParseStatsQuery(
         csm::daemon::EventContextHandlerState_sptr ctx,
         const std::vector<csm::db::DBTuple *>& tuples,
-        CSMIMcastAllocation* mcastProps) 
-    {
-        return true;
-    }
+        CSMIMcastAllocation* mcastProps);
 };
 
 /**

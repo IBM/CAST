@@ -46,7 +46,7 @@
 #define DATA_STRING "allocation_id,begin_time,primary_job_id,secondary_job_id,ssd_file_system_name,"\
     "launch_node_name,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,"\
     "projected_memory,state,type,job_type,user_name,user_id,user_group_id,user_script,account,"\
-    "comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key,isolated_cores}"
+    "comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key,isolated_cores,compute_nodes}"
 
 CSMIAllocationCreate_Master::CSMIAllocationCreate_Master(csm::daemon::HandlerOptions& options) :
     CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
@@ -433,7 +433,7 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::InsertStatsStatement(
 
     if ( allocation )
     {
-        std::string stmt = "SELECT fn_csm_allocation_create_data_aggregator( "
+        std::string stmt = "SELECT * FROM  fn_csm_allocation_create_data_aggregator( "
             "$1::bigint, $2::text, $3::text[], $4::bigint[], "
             "$5::bigint[], $6::bigint[], $7::bigint[], " 
             "$8::bigint[], $9::int[], $10::int[], "
@@ -539,9 +539,20 @@ bool CSMIAllocationCreate_Master::CreateByteArray(
 
             LOG(csmapi,info) << ctx->GetCommandName() << ctx <<
                 mcastProps->GenerateIdentifierString() << "; Message: Create Completed; ";
+
+            if( allocation->state == CSM_RUNNING )
+            {
+                std::string time_str(allocation->timestamp ? allocation->timestamp : "");
+
+                std::string json  = "{\"running-start-timestamp\":\"";
+                json.append(time_str).append("\"}");
+                BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+            }
         }
         else
+        {
             success = false;
+        }
     }
     else
     {
@@ -552,6 +563,29 @@ bool CSMIAllocationCreate_Master::CreateByteArray(
 
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Exit";
     return success;
+}
+
+bool CSMIAllocationCreate_Master::ParseStatsQuery(
+    csm::daemon::EventContextHandlerState_sptr ctx,
+    const std::vector<csm::db::DBTuple *>& tuples,
+    CSMIMcastAllocation* mcastProps) 
+{
+    if ( mcastProps )
+    {
+        MCAST_STRUCT* allocation = mcastProps->GetData();
+        
+        if ( allocation && tuples.size() == 1 && tuples[0]->data && tuples[0]->nfields > 0)
+        {
+            if( allocation->timestamp != nullptr )
+            {
+                free(allocation->timestamp);
+                allocation->timestamp = nullptr;
+            }
+            allocation->timestamp = strdup(tuples[0]->data[0]);
+        }
+    }
+
+    return true;
 }
 
 CSMIAllocationCreate_Agent::CSMIAllocationCreate_Agent( csm::daemon::HandlerOptions& options ) : 

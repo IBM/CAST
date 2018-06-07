@@ -289,7 +289,7 @@ bool CSMIAllocationUpdateState::CreatePayload(
             // Create a mcast property object and set _EEReply to true (meaning early exit just exits).
             MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( 
                 CMD_ID, allocation, stateArgs->new_state == CSM_RUNNING, true, 
-                 CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT );
+                CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT );
             ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
             ctx->SetUserData( payload );
 
@@ -346,7 +346,7 @@ csm::db::DBReqContent* CSMIAllocationUpdateState::InsertStatsStatement(
     if ( allocation )
     {
         // // TODO add energy
-        std::string stmt = "SELECT fn_csm_allocation_finish_data_stats( $1::bigint, $2::text, $3::text[],"
+        std::string stmt = "SELECT * FROM fn_csm_allocation_finish_data_stats( $1::bigint, $2::text, $3::text[],"
             "$4::bigint[],$5::bigint[],$6::bigint[],$7::bigint[],$8::bigint[],$9::bigint[], $10::bigint[],"
             "$11::bigint[], $12::bigint[])";
     
@@ -424,14 +424,20 @@ bool CSMIAllocationUpdateState::ParseInfoQuery(
         a->projected_memory     = strtol(fields->data[11], nullptr, 10);
 
         
-        csmi_state_t start_state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, fields->data[12]);
-        if ( start_state == CSM_STAGING_IN && a->state == CSM_STAGING_OUT )
+        a->start_state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, fields->data[12]);
+        if ( a->start_state == CSM_STAGING_IN && a->state == CSM_STAGING_OUT )
         {
             success=false;
             ctx->SetErrorCode(CSM_STATE_JUMPED);
             ctx->SetErrorMessage("State jumped, skipping multicast.");
+            
+            std::string state =  csm_get_string_from_enum(csmi_state_t, (a->state ) );
+            std::string json  = "{\"state\":\"";
+            json.append(state).append("\"}");
+
+            BDS("allocation", ctx->GetRunID(), a->allocation_id, json);
         }
-        else if ( start_state == a->state )
+        else if ( a->start_state == a->state )
         {
             success=false;
             ctx->SetErrorCode(CSM_SAME_STATE_TRANSITION);
@@ -486,7 +492,7 @@ bool CSMIAllocationUpdateState::CreateByteArray(
         char **buf, uint32_t &bufLen,
         csm::daemon::EventContextHandlerState_sptr ctx )
 {
-    return CreateByteArray( buf, bufLen, ctx );
+    return CSMIAllocationUpdateState::UpdateTerminal( tuples, buf, bufLen, ctx );
 }
 
 bool CSMIAllocationUpdateState::CreateByteArray(
@@ -511,9 +517,23 @@ bool CSMIAllocationUpdateState::CreateByteArray(
             if ( allocation ) 
             {
                 std::string state =  csm_get_string_from_enum(csmi_state_t, (allocation->state ) );
-                
+                std::string time_str(allocation->timestamp ? allocation->timestamp : "");
+
                 std::string json  = "{\"state\":\"";
-                json.append(state).append("\"}");
+                json.append(state);//.append("\"}");
+
+                if ( allocation->timestamp &&
+                        (allocation->state == CSM_RUNNING 
+                            || allocation->start_state == CSM_RUNNING )) 
+                {
+                    std::string run_state = allocation->state == CSM_RUNNING ? "start" : "end";
+                    json.append("\",\"running-").append(run_state)
+                        .append("-timestamp\":\"").append(time_str).append("\"}");
+                }
+                else
+                {
+                    json.append("\"}");
+                }
 
                 BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
             }
@@ -543,8 +563,34 @@ bool CSMIAllocationUpdateState::UpdateTerminal(
     char **buf, uint32_t &bufLen,
     csm::daemon::EventContextHandlerState_sptr ctx )
 {
-
+    // Get the allocation data.
+    MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
+    std::unique_lock<std::mutex>dataLock =
+        ctx->GetUserData<MCAST_PROPS_PAYLOAD*>(&mcastProps);
     
+    if ( mcastProps )
+    {
+        MCAST_STRUCT* allocation = mcastProps->GetData();
+        if ( allocation && tuples.size() == 1 && tuples[0]->data && tuples[0]->nfields > 0) 
+        {
+            if( allocation->timestamp != nullptr ) 
+            { 
+                free(allocation->timestamp); 
+                allocation->timestamp = nullptr;
+            }
+            allocation->timestamp = strdup(tuples[0]->data[0]);
+
+            // If the end time and state is returned, process it.
+            // Otherwise just update the state.
+            if ( tuples[0]->nfields == 2 )
+            {
+                allocation->state = 
+                    (csmi_state_t)csm_get_enum_from_string(csmi_state_t,tuples[0]->data[1]);
+            }
+        }
+    }
+
+    dataLock.unlock();
 
     return CreateByteArray( buf, bufLen, ctx );
 }

@@ -19,7 +19,7 @@
 --   create:        06-22-2016
 --   last modified: 06-06-2018
 --   change log:
---     4.3.85 -  added fields to fn_csm_allocation_history_dump and fn_csm_allocation_finish_data_stats
+--     4.3.85 - Added fields to fn_csm_allocation_history_dump, fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     4.3.84 - fn_csm_allocation_node_sharing_status - Improved the node sharing test to account for failed allocation transitions.
 --              fn_csm_allocation_update_state - Tests to verify that the node states are valid (whitelist).
 --     4.3.83 - fn_csm_allocation_delete_start - Added i_timeout_time to function, now tests for timeouts on deletes.
@@ -282,14 +282,16 @@ BEGIN
         -- Verify the state is not "deleting"
         SELECT state INTO current_state FROM csm_allocation WHERE allocation_id=allocationid;
 
+        o_end_time = now();
+
         -- IF the current state is not deleting, finalize it.
         -- ELSE finish the delete.
         IF (current_state != 'deleting' ) THEN
+            o_final_state = i_state;
             -- Update the state of the chosen allocation.
             UPDATE csm_allocation SET state = i_state WHERE allocation_id=allocationid;
         ELSE
             o_final_state = 'complete';
-            o_end_time = now();
             PERFORM fn_csm_allocation_history_dump (allocationid, o_end_time, 0, 'complete', false,
                  node_names, ib_rx_list, ib_tx_list, gpfs_read_list, gpfs_write_list, 
                  energy_list, pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list);
@@ -1577,8 +1579,9 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_create_data_aggregator(
     i_power_cap       integer[],
     i_ps_ratio        integer[],
     i_power_cap_hit   bigint[],
-    i_gpu_usage       bigint[]
-) RETURNS void AS $$
+    i_gpu_usage       bigint[],
+    out o_timestamp   timestamp   
+) RETURNS timestamp AS $$
 DECLARE
     current_state TEXT;
 BEGIN
@@ -1620,7 +1623,8 @@ BEGIN
             unnest(i_gpu_usage)       as gpu_usage
         ) d
     WHERE allocation_id = i_allocation_id AND node_name = d.node;
-
+    
+    o_timestamp=now();
 
 END;
 $$ LANGUAGE plpgsql;

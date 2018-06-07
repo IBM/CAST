@@ -19,7 +19,7 @@
 --   create:        06-13-2016
 --   last modified: 06-06-2018
 --   change log: 
---     04.26 -  added fields to fn_csm_allocation_history_dump and fn_csm_allocation_finish_data_stats
+--     04.26 -  added fields to fn_csm_allocation_history_dump,fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     04.25 -  added in fn_csm_allocation_delete_start and cleaned up some other data types
 --     04.24 -  updated fn_csm_lv_history_dump function header
 --     04.23 -  updated fn_csm_switch_children_inventory_collection function header
@@ -73,7 +73,7 @@ BEGIN;
 -- CSM API database helper functions
 DROP FUNCTION IF EXISTS fn_csm_allocation_node_sharing_status(i_allocation_id bigint,i_type text,i_state text,i_shared boolean,variadic i_nodenames text[]);
 DROP FUNCTION IF EXISTS fn_csm_allocation_finish_data_stats(allocationid bigint,i_state text,node_names text[],ib_rx_list bigint[],ib_tx_list bigint[],gpfs_read_list bigint[],gpfs_write_list bigint[],energy_list bigint[],pc_hit_list bigint[],gpu_usage_list bigint[],cpu_usage_list bigint[],mem_max_list bigint[], out o_end_time timestamp, out o_final_state text);
-DROP FUNCTION IF EXISTS fn_csm_allocation_create_data_aggregator(i_allocation_id bigint,i_state text,i_node_names text[],i_ib_rx_list bigint[],i_ib_tx_list bigint[],i_gpfs_read_list bigint[],i_gpfs_write_list bigint[],i_energy bigint[],i_power_cap integer[],i_ps_ratio integer[],i_power_cap_hit bigint[],i_gpu_usage bigint[]);
+DROP FUNCTION IF EXISTS fn_csm_allocation_create_data_aggregator(i_allocation_id bigint,i_state text,i_node_names text[],i_ib_rx_list bigint[],i_ib_tx_list bigint[],i_gpfs_read_list bigint[],i_gpfs_write_list bigint[],i_energy bigint[],i_power_cap integer[],i_ps_ratio integer[],i_power_cap_hit bigint[],i_gpu_usage bigint[], out o_timestamp   timestamp);
 DROP FUNCTION IF EXISTS fn_csm_allocation_node_change();
 DROP FUNCTION IF EXISTS fn_csm_step_begin(i_step_id bigint,i_allocation_id bigint,i_status text,i_executable text,i_working_directory text,i_argument text,i_environment_variable text,i_num_nodes integer,i_num_processors integer,i_num_gpus integer,i_projected_memory integer,i_num_tasks integer,i_user_flags text,i_node_names text[]);
 DROP FUNCTION IF EXISTS fn_csm_step_end(IN i_stepid bigint,IN i_allocationid bigint,IN i_exitstatus int,IN i_errormessage text,IN i_cpustats text,IN i_totalutime double precision,IN i_totalstime double precision,IN i_ompthreadlimit text,IN i_gpustats text,IN i_memorystats text,IN i_maxmemory bigint,IN i_iostats text,OUT o_user_flags text,OUT o_num_nodes int,OUT o_nodes text);

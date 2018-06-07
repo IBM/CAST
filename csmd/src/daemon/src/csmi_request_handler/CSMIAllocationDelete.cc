@@ -434,24 +434,25 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
         
         MCAST_STRUCT *allocation = mcastProps->GetData();
 
-        // Build the ending strings.
-        std::string end_time_str = tuples[0]->data[0];
-        std::string state_str    = csm_get_string_from_enum(csmi_state_t,
-            ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED );
-
+        // Do the transaction/BDS write.
         if (allocation )
         {
-            std::string json = "";
+            std::string end_time_str(tuples[0]->data[0]);
+            std::string state_str    = csm_get_string_from_enum(csmi_state_t,
+                ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED );
 
-            if ( end_time_str.compare("") != 0 )
+            std::string json = "";
+            json.append("{\"state\":\"").append(state_str).append("\",\"history\":{\"end_time\":\"")
+                .append(end_time_str).append("\"}");
+                
+            if ( allocation->state == CSM_RUNNING )
             {
-                json.append("{\"state\":\"").append(state_str).append("\",\"history\":{\"end_time\":\"")
-                    .append(end_time_str).append("\"}}");
+                // TODO make this cleaner.
+                json.append(",\"running-end-timestamp\":\"")
+                    .append(end_time_str).append("\"");
             }
-            else
-            {
-                json = "{}";
-            }
+
+            json.append("}");
                 
             BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
         }
