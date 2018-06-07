@@ -54,8 +54,12 @@ CSMI_VERSION_START(CSM_VERSION_0_4_1)
 CSMI_STRUCT_MEMBER(int64_t, allocation_id,  BASIC, ,   -1, ) /**< Allocation ID to prefer (rejected if >0 and not found in daemon). */
 CSMI_STRUCT_MEMBER(pid_t,             pid,  BASIC, ,    0, ) /**< The process id to push to the allocation cgroup. */
 CSMI_STRUCT_MEMBER(char*,       user_name, STRING, , NULL, ) /**< User name for logging in. */
-
 CSMI_VERSION_END(7abc0fd516f773957ae20e5d59fa90e2)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(char,      migrate_pid,  BASIC, ,    0, ) /**< Flag to migrate pid in to cgroup if true. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

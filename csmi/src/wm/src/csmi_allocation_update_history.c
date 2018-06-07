@@ -36,7 +36,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_allocation_update_history_input_t
 #define API_PARAMETER_OUTPUT_TYPE 
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_update_history;
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_update_history;
 
 int csm_allocation_update_history(
 

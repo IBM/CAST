@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	/* getopt_long stores the option index here. */
 	int indexptr = 0;
 	/*i var for 'for loops'*/
-	int i = 0;
+	uint32_t i = 0;
     char *arg_check = NULL; ///< Used in verifying the long arg values.
 	
 	/*Set up data to call API*/
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 				if(output->results[i]->ssds_count > 0)
 				{
 					printf("  ssds:\n");
-					int j = 0;
+					uint32_t j = 0;
 					for(j = 0; j < output->results[i]->ssds_count; j++)
 					{
 						printf("    - ssd_serial_number:  %s\n",        output->results[i]->ssds[j]->serial_number);

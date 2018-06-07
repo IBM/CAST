@@ -114,7 +114,7 @@ waitproc
 	Log  ExitRC: ${result.rc}
 	Log  Output: ${result.stdout} ${result.stderr}
 	Should be equal as integers  ${result.rc}  ${expect_rc}
-	[Return]  ${result.stdout} ${result.stderr}
+	[Return]  ${result}
 
 ok to run mpi executable
      Run keyword if  '${HOSTLIST}' == ''  broken  Testcase runs an MPI executable but HOSTLIST is empty

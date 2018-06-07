@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_switch_attributes_query_history_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_switch_attributes_query_history_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_switch_attributes_query_history;
+static const csmi_cmd_t expected_cmd = CSM_CMD_switch_attributes_query_history;
 
 void csmi_switch_attributes_query_history_destroy(csm_api_object *csm_obj);
 

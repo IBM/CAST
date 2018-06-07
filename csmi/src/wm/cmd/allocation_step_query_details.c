@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 	/* getopt_long stores the option index here. */
 	int indexptr = 0;
 	/*For for loops*/
-	uint32_t i = 0;
+	int32_t i = 0;
     char *arg_check = NULL; ///< Used in verifying the long arg values.
 	
 	/*Set up data to call API*/
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
                 printf("  num_tasks:            %"PRId32"\n", step->num_tasks);
                 printf("  user_flags:           %s\n",        step->user_flags);
 	        	printf("  compute_nodes:\n");
-	        	uint32_t j = 0;
+	        	int32_t j = 0;
 	        	for(j = 0; j < step->num_nodes; j++){
 	        		printf("    - %s\n", step->compute_nodes[j]);
 	        	}

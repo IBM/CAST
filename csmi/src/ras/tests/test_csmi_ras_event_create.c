@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
    strftime(ftime,80,"%Y-%m-%dT%H:%M:%S %z", info);
 
 
-  //int i;
+  //uint32_t i;
   //int nodeCount;
   //csm_api_object *csm_obj = NULL;
 

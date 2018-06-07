@@ -50,8 +50,8 @@ MemChunkBase(int pNumChunks, uint64_t pChunkSize){
 virtual memItemPtr getChunk()=0;
 virtual void putChunk(memItemPtr pMi)=0;
 virtual ~MemChunkBase(){};
-const uint64_t getChunkSize()const{return _chunkSize;}
-const int getNumChunks()const{return _numChunks;}
+uint64_t getChunkSize()const{return _chunkSize;}
+int getNumChunks()const{return _numChunks;}
 protected:
    uint64_t _chunkSize;
    int _numChunks;

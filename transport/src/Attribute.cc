@@ -1947,7 +1947,7 @@ txp::AttrPtr_char_array::AttrPtr_char_array(HeapBuffer* pBuffer, const size_t pO
                     memcpy((void*)data, pBuffer->getAddrData_char_array_data(pOffset), length);
                     break;
                 case txp::BUFFER_HAS_PTR_TO_DATA:
-                    memcpy((void*)data, pBuffer->getAttrPtr_char_array_data(pOffset), length);
+                    data = pBuffer->getAttrPtr_char_array_data(pOffset);
                     break;
                 default:
                     // Should never get here...

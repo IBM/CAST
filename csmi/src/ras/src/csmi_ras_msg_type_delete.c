@@ -31,7 +31,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ras_msg_type_delete_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_ras_msg_type_delete_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_delete;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_delete;
 
 void csm_ras_msg_type_delete_destroy(csm_api_object *csm_obj);
 
@@ -93,10 +93,10 @@ int csm_ras_msg_type_delete(
                 (*output)->not_deleted_msg_ids = (char**)calloc((*output)->not_deleted_msg_ids_count, sizeof(char*));
                 
                 // FIXME This is not great can be nearly O(N^2)
-                int i;
+                uint32_t i;
                 int not_deleted_msg_ids_COUNTER = 0;
                 for(i = 0; i < input->msg_ids_count; i ++){
-                	int j = 0;
+                	uint32_t j = 0;
                 	char foundMatch = 0;
                 	for(j = 0; j < (*output)->deleted_msg_ids_count; j++){
                 		if(strcmp(input->msg_ids[i], (*output)->deleted_msg_ids[j]) == 0){
@@ -148,7 +148,7 @@ void csm_ras_msg_type_delete_destroy(csm_api_object *csm_obj)
 	csmi_api_internal *csmi_hdl;
     API_PARAMETER_OUTPUT_TYPE *output = NULL;
 	/* Helper variables. */
-    //int i = 0;
+    //uint32_t i = 0;
     
 	/* Verify it exists */
     if (csm_obj == NULL || csm_obj->hdl == NULL)

@@ -734,6 +734,37 @@ int csm_fabric_topology_get(csmi_fabric_topology_t **fabricTopology);
  */
 int csm_node_env_data_query(csm_api_object **handle, const char *node_list[], 
                             uint32_t *data_count, csmi_node_env_data_t *env_data[]);
+							
+							
+/** @ingroup inv_apis
+ * @brief Used to query the CSM database get information about all the nodes in the system and what allocaitons they are apart of.
+ *
+ * 
+ * @p output must be destroyed using @ref csm_api_object_destroy.
+ *
+ *  ## Database Tables ##
+ *                Table   | Description 
+ *           -------------|-------------
+ *           csm_node | Contains information about the node.
+ *           csm_allocation_node | Contains information about the allocation node.
+ *
+ * @param[out] handle An output pointer containing internally managed api data, destroy 
+ *                      with @ref csm_api_object_destroy.
+ * @param[in]  input Used to contain the input parameters for the this API.
+ * @param[out] output Used to contain the output parameters for the this API, consult @ref csm_cluster_query_state_output_t
+ *                      for details. Null in the event of an error.
+ *                      Destroy using @ref csm_api_object_destroy
+ *
+ * @note The error message may be retrieved though use of @ref csm_api_object_errmsg_get with 
+ *      @p handle.
+ * 
+ * @returns An error code from the table below.
+ *
+ * Error Code                   | Description
+ * -----------------------------|-------------
+ * @ref CSMI_SUCCESS            | Successfully queried the *csm_switch* table.
+ */
+int csm_cluster_query_state(csm_api_object **handle, csm_cluster_query_state_input_t* input, csm_cluster_query_state_output_t* *output);
 
 #ifdef __cplusplus
 }

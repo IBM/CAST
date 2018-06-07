@@ -117,7 +117,7 @@
         len += sizeof(target->length_member);                       \
                                                                     \
         if ( target->name )                                         \
-            for( i=0; i < target->length_member; i++)               \
+            for( i=0; i < (size_t)target->length_member; i++)               \
                 len += UINT32_T_SIZE + STR_LENGTH(target->name[i]);
 
 #define LEN_ARRAY_STR_FIXED(type, name, length, metadata)       \
@@ -137,7 +137,7 @@
         len += sizeof(target->length_member);                             \
                                                                           \
         if( target->name )                                                \
-            for ( i=0; i < target->length_member; i++ )                   \
+            for ( i=0; i < (size_t)target->length_member; i++ )            \
                 len += len_##metadata( target->name[i], version_id ) ;               
 
 #define LEN_ARRAY_STRUCT_FIXED(type, name, length, metadata)          \
@@ -216,7 +216,7 @@
 #define PACK_ARRAY_STR(type, name, length_member, metadata)         \
         if ( target->name ){                                            \
             PACK_ELEMENT(target->length_member);                        \
-            for( i=0; i < target->length_member; i++ ) {                \
+            for( i=0; i < (size_t)target->length_member; i++ ) {        \
                 PACK_STRING(type, name[i], length_member, metadata)     \
             }                                                           \
         }                                                               \
@@ -390,7 +390,7 @@
     // Reuse the fixed length macro.
 #define FREE_ARRAY_ARRAY_STR(type, name, length_member, metadata) \
         if (target->name) {                                           \
-            for ( i=0; i < target->length_member; i++ ) {             \
+            for ( i=0; i < (size_t)target->length_member; i++ ) {             \
                 free(target->name[i]);                                \
             }                                                         \
             free(target->name);                                       \
@@ -408,7 +408,7 @@
     //TODO 
 #define FREE_ARRAY_ARRAY_STRUCT(type, name, length_member, metadata) \
         if (target->name) {                                              \
-            for ( i=0; i < target->length_member; i++ ) {                \
+            for ( i=0; i < (size_t)target->length_member; i++ ) {                \
                 free_##metadata(target->name[i]);                        \
                 free(target->name[i]);                                   \
             }                                                            \

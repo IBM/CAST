@@ -379,10 +379,13 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
             "$9::bigint[],$10::bigint[],$11::bigint[],$12::bigint[]);";
 
         dbReq = new csm::db::DBReqContent( stmt, paramCount );
+
+
+        csmi_state_t error_code = (csmi_cmd_err_t) ctx->GetErrorCode() == CSMI_SUCCESS ? 
+            CSM_COMPLETE : CSM_FAILED;
         
         dbReq->AddNumericParam<int64_t>(allocation->allocation_id);
-        dbReq->AddTextParam(csm_get_string_from_enum(csmi_state_t,
-            ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED ));
+        dbReq->AddTextParam(csm_get_string_from_enum(csmi_state_t, error_code));
         dbReq->AddTextArrayParam(allocation->compute_nodes, allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->ib_rx,      allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->ib_tx,      allocation->num_nodes);

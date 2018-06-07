@@ -183,7 +183,7 @@ void csmi_printer_internal(
     const csmi_struct_mapping_t* sub_map;   // A sub mapping for contained structs.
     size_t array_size = 0;                  // The size of an array.
 
-    int array_index = 0;
+    size_t array_index = 0;
     int type = 0;
     int offset = 0;
     void* member = NULL;

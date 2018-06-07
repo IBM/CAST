@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 	/* getopt_long stores the option index here. */
 	int indexptr = 0;
 	/*i var for 'for loops'*/
-	int i = 0;
+	uint32_t i = 0;
 
 	/*Set up data to call API*/
 	csm_switch_attributes_update_input_t* input = NULL;

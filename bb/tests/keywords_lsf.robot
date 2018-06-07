@@ -57,6 +57,7 @@ bsub&wait
         [Arguments]  ${runcmd}  ${expect_rc}=0  ${timeout}=10mins
 	bsub  bsubwaiter  ${runcmd}  ${expect_rc}
 	${result}=  waitproc  bsubwaiter  ${expect_rc}  ${timeout}
+        [Return]  ${result}
 
 bsub
 	[Arguments]  ${handle}  ${runcmd}  ${expect_rc}=0
