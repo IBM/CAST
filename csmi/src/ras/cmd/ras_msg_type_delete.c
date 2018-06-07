@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	int opt;
 	/* getopt_long stores the option index here. */
     int option_index = 0;
-	int i = 0;
+	uint32_t i = 0;
 	
 	/*Set up data to call API*/
 	API_PARAMETER_INPUT_TYPE* input = NULL;

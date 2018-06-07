@@ -2,7 +2,7 @@
 
     csmi/src/common/include/csmi_cmds_def.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -85,12 +85,14 @@ cmd(ras_event_query_allocation)
 cmd(cgroup_login)
 cmd(jsrun_cmd)
 
+//OPEN SOURCE
+cmd(cluster_query_state)
+
 // new APIS should go here by adding the new API immediately above this line
 // and removing the first reserved_NN that appears after MAX_REGULAR
 cmd(MAX_REGULAR)
 
 // reserved cmd IDS
-cmd(reserved_62)
 cmd(reserved_63)
 cmd(reserved_64)
 cmd(reserved_65)

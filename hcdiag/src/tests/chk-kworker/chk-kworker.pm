@@ -26,7 +26,7 @@ use lib dirname(__FILE__)."/../common";
 use File::Temp qw/ tempdir /;
 
 sub usage {
-   print "$0 [options]\n";
+   print "$0 [options] [threshold]\n";
    print "    options\n";
    print "    -v|--verbose: set verbose on\n";
    print "    -h|--help : print this\n" ;

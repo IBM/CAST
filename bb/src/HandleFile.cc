@@ -70,6 +70,7 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
         }
     }
 
+    pBuffer[l_TransferKeys.length()] = '\0';
     pBufferSize = l_TransferKeys.length();
 
     return rc;
@@ -493,7 +494,8 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
                                 rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                 if (!rc)
                                 {
-                                    pTransferKeys = l_HandleFile->transferKeys;
+                                    // The string is terminated with a line feed...  Don't copy the last character...
+                                    pTransferKeys = (l_HandleFile->transferKeys).substr(0,((l_HandleFile->transferKeys).length()-1));
                                 }
                                 else
                                 {

@@ -33,7 +33,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_bb_lv_delete_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_BbLvDelete_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_bb_lv_delete;
+static const csmi_cmd_t expected_cmd = CSM_CMD_bb_lv_delete;
 
 
 int csm_bb_lv_delete(csm_api_object **csm_obj, csm_bb_lv_delete_input_t* input)

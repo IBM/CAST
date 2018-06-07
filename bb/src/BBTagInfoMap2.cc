@@ -109,7 +109,9 @@ int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
-        rc = -1;
+        // NOTE: There is a window between checking for the job above and subsequently removing
+        //       the job.  This is the most likely exception...  Return -2...
+        rc = -2;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -771,7 +773,7 @@ int BBTagInfoMap2::stopTransfer(const string& pHostName, const string& pCN_HostN
                 // Found the transfer definition on this bbServer.
                 // However, extents had not yet been scheduled.
                 // Situation was logged, and nothing more to do...
-                l_Result = ", the transfer definition did not yet have any extents scheduled for transfer.  A start transfer was caught in mid-flight.";
+                l_Result = ", the transfer definition did not yet have any extents scheduled for transfer. A start transfer request was caught in mid-flight and the original request was issued to the new bbServer to complete the trasnfer request.";
 
                 break;
             }

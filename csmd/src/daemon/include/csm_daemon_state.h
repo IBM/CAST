@@ -273,6 +273,7 @@ public:
                          csm::network::Message msg );
 
   csm::daemon::ComputeActionEntry_t GetNextComputeAction();
+  std::vector<csm::network::Address_sptr> GetMulticastAggregators( const std::vector<std::string> computes );
 };
 
 class DaemonStateAgg : public DaemonState
@@ -337,7 +338,6 @@ public:
   {
     return _Aggregators[ 1 ];
   }
-  void ResetPrimary();
   void SetPrimaryAggregator( const csm::network::Address_sptr primary );
 
   virtual void AddEP( const csm::network::Address_sptr addr,

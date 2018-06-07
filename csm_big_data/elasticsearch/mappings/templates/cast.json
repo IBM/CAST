@@ -1,0 +1,18 @@
+{
+    "index_patterns": ["cast-*"],
+    "order" : 0,
+    "settings" : {
+        "number_of_shards"   : 1,
+        "number_of_replicas" : 1
+    },
+    "mappings" : {
+        "_doc": {
+            "properties" : {
+                "@version"   : { "type" : "text" },
+                "@timestamp" : { "type" : "date" },
+                "tags"       : { "type" : "text" },
+                "type"       : { "type" : "text" } 
+            }
+        }
+    }
+}

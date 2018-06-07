@@ -696,7 +696,8 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
     class_<csm_cgroup_login_input_t,csm_cgroup_login_input_t*>("cgroup_login_input_t")
 		.add_property("allocation_id", &csm_cgroup_login_input_t::allocation_id,&csm_cgroup_login_input_t::allocation_id," Allocation ID to prefer (rejected if >0 and not found in daemon). ")
 		.add_property("pid", &csm_cgroup_login_input_t::pid,&csm_cgroup_login_input_t::pid," The process id to push to the allocation cgroup. ")
-		STRING_PROPERTY(csm_cgroup_login_input_t, char*, user_name, , NULL, );
+		STRING_PROPERTY(csm_cgroup_login_input_t, char*, user_name, , NULL, )
+		.add_property("migrate_pid", &csm_cgroup_login_input_t::migrate_pid,&csm_cgroup_login_input_t::migrate_pid," Flag to migrate pid in to cgroup if true. ");
 
     class_<csm_jsrun_cmd_input_t,csm_jsrun_cmd_input_t*>("jsrun_cmd_input_t")
 		.add_property("allocation_id", &csm_jsrun_cmd_input_t::allocation_id,&csm_jsrun_cmd_input_t::allocation_id," The Allocation id for the JSM run. Exported to **CSM_ALLOCATION_ID**. ")

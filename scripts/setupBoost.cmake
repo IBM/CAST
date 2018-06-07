@@ -10,7 +10,7 @@ find_package(Boost ${BoostVersion} REQUIRED COMPONENTS ${BoostComponents})
 message("boost includes: ${Boost_INCLUDE_DIRS}")
 message("boost librarys: ${Boost_LIBRARY_DIRS}")
 
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 #
 # Boost install steps:

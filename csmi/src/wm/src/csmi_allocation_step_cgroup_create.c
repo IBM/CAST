@@ -28,7 +28,7 @@
 #define API_PARAMETER_INPUT_TYPE    csm_allocation_step_cgroup_create_input_t
 #define API_PARAMETER_OUTPUT_TYPE  
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_allocation_step_cgroup_create;
+static const csmi_cmd_t expected_cmd = CSM_CMD_allocation_step_cgroup_create;
 
 int csm_allocation_step_cgroup_create(
     csm_api_object **handle, 

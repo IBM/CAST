@@ -25,8 +25,8 @@
 int csmi_client(int argc, char *argv[])
 {
   int retval = 0;
-  int i;
-  int j;
+  uint32_t i;
+  uint32_t j;
   csm_api_object    *csm_obj = NULL;
   csm_allocation_query_active_all_input_t input;
   csm_allocation_query_active_all_output_t* output = NULL;

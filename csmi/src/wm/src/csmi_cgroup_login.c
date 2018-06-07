@@ -28,7 +28,7 @@
 #define API_PARAMETER_INPUT_TYPE    csm_cgroup_login_input_t
 #define API_PARAMETER_OUTPUT_TYPE  
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_cgroup_login;
+static const csmi_cmd_t expected_cmd = CSM_CMD_cgroup_login;
 
 int csm_cgroup_login(
     csm_api_object **handle, 

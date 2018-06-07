@@ -27,7 +27,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_node_query_state_history_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_node_query_state_history_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_node_query_state_history;
+static const csmi_cmd_t expected_cmd = CSM_CMD_node_query_state_history;
 
 void csmi_node_query_state_history_destroy(csm_api_object *csm_obj);
 

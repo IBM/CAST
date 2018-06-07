@@ -109,7 +109,7 @@ static void help() {
 
 int main(int argc, char *argv[])
 {
-    int                i;
+    uint32_t             i;
     int                opt;
     int                indexptr = 0;
     int                return_value;

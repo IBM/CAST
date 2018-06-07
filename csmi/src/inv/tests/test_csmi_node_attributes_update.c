@@ -35,7 +35,7 @@ int csmi_client(int argc, char *argv[])
 	/*Comment out these variables for now because they are not used and it throws an error in the compile.*/
 	
 	int retval;
-	//int i;
+	//uint32_t i;
 	//int nodeCount;
 	//csm_node_attributes_update_t *nodeAttributes;
 	//char **nodeList;

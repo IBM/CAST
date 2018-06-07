@@ -31,7 +31,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_ras_msg_type_update_input_t
 #define API_PARAMETER_OUTPUT_TYPE csm_ras_msg_type_update_output_t
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_update;
+static const csmi_cmd_t expected_cmd = CSM_CMD_ras_msg_type_update;
 
 void csm_ras_msg_type_update_destroy(csm_api_object *csm_obj);
 
@@ -141,7 +141,7 @@ void csm_ras_msg_type_update_destroy(csm_api_object *csm_obj)
 	csmi_api_internal *csmi_hdl;
     API_PARAMETER_OUTPUT_TYPE *output = NULL;
 	/* Helper variables. */
-    //int i = 0;
+    //uint32_t i = 0;
     
 	/* Verify it exists */
     if (csm_obj == NULL || csm_obj->hdl == NULL)

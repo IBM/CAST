@@ -1023,17 +1023,26 @@ int BB_GetTransferKeys(BBTransferHandle_t handle, size_t buffersize, char* buffe
         {
             // NOTE:  Only return information if the rc from bbServer is zero...
             uint64_t l_ActualSize = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::buffersize))->getData();
-            if (buffersize >= l_ActualSize+1)
+            if (l_ActualSize)
             {
-                strCpy(bufferForKeyData, (char*)msg->retrieveAttrs()->at(txp::buffer)->getDataPtr(), l_ActualSize);
+                // Key data exists
+                if (buffersize >= l_ActualSize+1)
+                {
+                    // Copy the key data
+                    strCpy(bufferForKeyData, (char*)msg->retrieveAttrs()->at(txp::buffer)->getDataPtr(), l_ActualSize);
+                }
+                else
+                {
+                    // Not enough room in the buffer
+                    rc = -2;
+                }
             }
             else
             {
-                bufferForKeyData[0] = '\0';
-                rc = -2;
+                // No key data exists.  Zero the first byte in the buffer...
+                memset(bufferForKeyData, 0, 1);
             }
         }
-
         delete msg;
     }
     catch(ExceptionBailout& e) { }
@@ -2132,18 +2141,18 @@ int BB_GetServerByName(const char* bbserverName, const char* type,size_t bufsize
             errorText << "Parameter buffer is NULL";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
-        
+
         txp::Msg::buildMsg(txp::BB_GETSERVERBYNAME, msg);
         msg->addAttribute(txp::value64, (int64_t)l_query);
         msg->addAttribute(txp::hostname, bbserverName, strlen(bbserverName)+1);
-        
+
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
         if (rc) LOG_RC_AND_BAIL(rc);
-        
+
         rc = waitReply(reply, msg);
         if (rc) LOG_RC_AND_BAIL(rc);
-        
+
         rc = bberror.merge(msg);
         if (!rc)
         {
@@ -2165,7 +2174,7 @@ int BB_GetServerByName(const char* bbserverName, const char* type,size_t bufsize
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-    
+
     return rc;
 }
 

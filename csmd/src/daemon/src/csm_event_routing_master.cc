@@ -54,6 +54,7 @@ void EventRoutingMaster::RegisterHandlers()
    Register<CSMIBBVGCreate>(CSM_CMD_bb_vg_create);
    Register<CSMIBBVGDelete>(CSM_CMD_bb_vg_delete);
    Register<CSMIBBVGQuery>(CSM_CMD_bb_vg_query);
+   Register<CSMIClusterQueryState>(CSM_CMD_cluster_query_state);
    Register<CSMIDiagResultCreate>(CSM_CMD_diag_result_create);
    Register<CSMIDiagRunBegin>(CSM_CMD_diag_run_begin);
    Register<CSMIDiagRunEnd>(CSM_CMD_diag_run_end);

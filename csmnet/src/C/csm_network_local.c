@@ -653,7 +653,7 @@ int csm_net_unix_Connect( csm_net_endpoint_t *aEP,
 
   csmutil_logging(debug, "%s-%d: Sending connection message", __FILE__, __LINE__);
   rc = csm_net_unix_Send( aEP->_ep, VersionMsg );
-  if(( rc < strnlen(CSM_VERSION, 64) ) || ( rc == -1))
+  if(( rc < (int)strnlen(CSM_VERSION, 64) ) || ( rc == -1))
   {
     csmutil_logging(error, "%s-%d: Failed to send connection message. errno=%d", __FILE__, __LINE__, errno);
     free( VersionMsg );
@@ -1021,7 +1021,7 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
       size_t newdata_count = (size_t)rlen;
       // accommodate the skipped space of the header vs. msg type
       if( (( partial == 0 ) || ( aEP->_BufferState._BufferedDataLen < sizeof( csm_network_header_t ) )) &&
-          ( rlen >= sizeof( csm_network_header_t ) ))
+          ( (size_t)rlen >= sizeof( csm_network_header_t ) ))
         newdata_count += (sizeof( csm_net_msg_t ) - sizeof( csm_network_header_t ));
 
       aEP->_BufferState._DataEnd += newdata_count;
@@ -1133,7 +1133,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
         rlen = EPBS->_BufferedDataLen;
 
         // did we receive a whole header at all?
-        if( rlen < sizeof( csm_net_msg_t ) )
+        if( (size_t)rlen < sizeof( csm_net_msg_t ) )
         {
             csmutil_logging( error, "INCOMPLETE HEADER received. rlen=%d", rlen );
             EPBS->_PartialMsg = 1;  // trigger recv next time we loop
@@ -1155,7 +1155,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
         ssize_t parsed = EPBS->_BufferedData - aEP->_DataBuffer;
 
         // todo: we're currently limited in msg-size. So we have to check and make a fuzz about it when it happens
-        if( csm_net_msg_GetDataLen( ret ) + sizeof( csm_network_header_t ) > DGRAM_PAYLOAD_MAX - parsed )
+        if( csm_net_msg_GetDataLen( ret ) + sizeof( csm_network_header_t ) > (size_t)DGRAM_PAYLOAD_MAX - parsed )
         {
             csmutil_logging( critical, "MESSAGE PROTOCOL EXCEEDS CURRENT REMAINING BUFFER: %d BYTES.", DGRAM_PAYLOAD_MAX - parsed );
             BufferStateReset( aEP );

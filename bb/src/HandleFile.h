@@ -170,6 +170,11 @@ public:
         return numContrib;
     }
 
+    inline int stopped()
+    {
+        RETURN_FLAG(BBTD_Stopped);
+    }
+
     virtual ~HandleFile()
     {
         close();

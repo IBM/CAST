@@ -170,7 +170,7 @@ char *csmi_err_pack(const int errcode, const char *errmsg, uint32_t *buf_len)
 {
   char *buf = NULL;
   int len;
-  int offset = 0;
+  uint32_t offset = 0;
   
   *buf_len = sizeof(errcode);
   if (errmsg) *buf_len += strnlen(errmsg, MAX_ERR_MSG_LEN) + sizeof(len);
@@ -205,10 +205,10 @@ char *csmi_err_pack(const int errcode, const char *errmsg, uint32_t *buf_len)
 csmi_err_t* csmi_err_unpack(const char *buf, const uint32_t buf_len) 
 {
   int errcode;
-  int offset = 0;
+  uint32_t offset = 0;
   csmi_err_t *cdata=NULL;
   static const size_t min_buf_size = sizeof(cdata->errcode);
-  int len;
+  uint32_t len;
 
   if (buf == NULL || buf_len < min_buf_size) {
     csmutil_logging(warning,"csmi_err_unpack: buf not valid");

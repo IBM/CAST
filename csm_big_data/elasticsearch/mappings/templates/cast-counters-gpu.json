@@ -1,0 +1,20 @@
+{
+    "index_patterns" : ["cast-counters-gpu*"],
+    "order" : 1,
+    "aliases" : {
+        "cast-counters-gpu" : {}
+    },
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    },
+    "mappings": {
+        "_doc" : {
+            "properties" :
+            {
+            }
+        }
+    }
+}

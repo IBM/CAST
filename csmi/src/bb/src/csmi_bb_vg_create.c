@@ -36,7 +36,7 @@
 #define API_PARAMETER_INPUT_TYPE csm_bb_vg_create_input_t
 #define API_PARAMETER_OUTPUT_TYPE 
 
-const static csmi_cmd_t expected_cmd = CSM_CMD_bb_vg_create;
+static const csmi_cmd_t expected_cmd = CSM_CMD_bb_vg_create;
 
 int csm_bb_vg_create(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE *input)
 {
@@ -49,7 +49,7 @@ int csm_bb_vg_create(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE *input)
     uint32_t  return_buffer_length = 0;
     int       error_code           = CSMI_SUCCESS;
     int64_t   ssd_allocation_total = 0;
-    int32_t   ssd_idx;
+    uint32_t  ssd_idx;
     
     // EARLY RETURN
     // Create a csm_api_object and sets its csmi cmd and the destroy function
