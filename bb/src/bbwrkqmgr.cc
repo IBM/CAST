@@ -81,7 +81,9 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId)
 {
     int rc = 0;
 
-    wrkqmgr.dump("debug", " - addWrkQ() before", DUMP_ALWAYS);
+    stringstream l_Prefix;
+    l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId;
+    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
@@ -94,12 +96,13 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId)
     {
         rc = -1;
         stringstream errorText;
-        errorText << "Failure when trying to add workqueue for " << *pLVKey;
+        errorText << " Failure when attempting to add workqueue for " << *pLVKey << " for jobid " << pJobId;
+        wrkqmgr.dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
-        wrkqmgr.dump("info", " Failure when trying to add workqueue", DUMP_ALWAYS);
     }
 
-    wrkqmgr.dump("debug", " - addWrkQ() after", DUMP_ALWAYS);
+    l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
+    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     return rc;
 }
@@ -332,21 +335,29 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
     if (allowDump)
     {
-        if (pDumpOption==DUMP_ALWAYS || inThrottleMode())
+        if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
         {
             bool l_DumpIt = false;
-            if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+            if (pDumpOption != DUMP_UNCONDITIONALLY)
             {
-                l_DumpIt = true;
+                if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                {
+                    l_DumpIt = true;
+                }
+                else
+                {
+                    if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests > numberOfAllowedSkippedDumpRequests)
+                    {
+                        l_DumpIt = true;
+                        l_PostfixStr = const_cast<char*>(l_PostfixOverride);
+                    }
+                }
             }
             else
             {
-                if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests > numberOfAllowedSkippedDumpRequests)
-                {
-                    l_DumpIt = true;
-                    l_PostfixStr = const_cast<char*>(l_PostfixOverride);
-                }
+                l_DumpIt = true;
             }
+
             if (l_DumpIt)
             {
                 if (!strcmp(pSev,"debug")) {
@@ -396,7 +407,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
             }
             else
             {
-                // Nothing has changed...  Skip the dump...
+                // Not dumped...
                 ++numberOfSkippedDumpRequests;
             }
         }
@@ -1102,7 +1113,9 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 {
     int rc = 0;
 
-    wrkqmgr.dump("debug", " - rmvWrkQ() before", DUMP_ALWAYS);
+    stringstream l_Prefix;
+    l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
+    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
@@ -1116,11 +1129,15 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     }
     else
     {
-        LOG(bb,error) << "Failure when trying to remove a workqueue";
         rc = -1;
+        stringstream errorText;
+        errorText << " Failure when attempting to remove workqueue for " << *pLVKey;
+        wrkqmgr.dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
+        LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    wrkqmgr.dump("debug", " - rmvWrkQ() after", DUMP_ALWAYS);
+    l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
+    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     return rc;
 }

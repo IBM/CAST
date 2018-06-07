@@ -62,7 +62,8 @@ const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
  *******************************************************************************/
 enum DUMP_OPTION {
     DUMP_ALWAYS             = 0,
-    DUMP_ONLY_IF_THROTTLING = 1
+    DUMP_ONLY_IF_THROTTLING = 1,
+    DUMP_UNCONDITIONALLY    = 2
 };
 typedef enum DUMP_OPTION DUMP_OPTION;
 
