@@ -340,138 +340,137 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         l_AllDone = true;
 
         rc = 2;
-        int i = 0;
-        int l_Continue = wrkqmgr.getDeclareServerDeadCount();
+        uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
         while ((rc != 1) && (l_Continue--))
         {
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
             //       bbServer that is marking the handle/contribid file as 'stopped'
             // NOTE: It is possible, if all of the local metadata was present, that we did not verify that the
-            //       handle is marked as stopped in the earlier bbserver start transfer code.  We do so here,
-            //       even if it may be redundant...
+            //       handle is marked as stopped in the earlier bbserver start transfer code.  We do not have to
+            //       verify that the handle file is stopped here, as we are only concerned in this routine with the
+            //       contributor.  In fact, checking for the handle file being stopped may slow the restart processing
+            //       down in the case where a given contributor doesn't need to be restarted, and thus, the handle will
+            //       not be marked as stopped.
             rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
             if (!rc)
             {
-                if (l_HandleFile->stopped())
+                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
+                if (rc >= 0)
                 {
-                    rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
-                    if (rc >= 0)
+                    // Contribid file successfully loaded...  Unlock the handle file...
+                    l_HandleFile->close();
+
+                    // Process the contribid file
+                    if (rc == 1 && l_ContribIdFile)
                     {
-                        // Contribid file successfully loaded...  Unlock the handle file...
-                        l_HandleFile->close();
-
-                        // Process the contribid file
-                        if (rc == 1 && l_ContribIdFile)
+                        if (l_ContribIdFile->allExtentsTransferred())
                         {
-                            if (l_ContribIdFile->allExtentsTransferred())
+                            // All extents have been processed...
+                            if (l_ContribIdFile->stopped())
                             {
-                                // All extents have been processed...
-                                if (l_ContribIdFile->stopped())
+                                // Transfer definition is stopped and all previously enqueued extents have been processed.
+                                // Will exit both loops...  rc is already 1
+                            }
+                            else
+                            {
+                                // Transfer definition is not marked as stopped...
+                                if (l_ContribIdFile->allFilesClosed())
                                 {
-                                    // Transfer definition is stopped and all previously enqueued extents have been processed.
-                                    // Will exit both loops...  rc is already 1
-                                }
-                                else
-                                {
-                                    // Transfer definition is not marked as stopped...
-                                    if (l_ContribIdFile->allFilesClosed())
+                                    // All files are marked as closed (but, some could have failed...)
+                                    if (l_ContribIdFile->notRestartable())
                                     {
-                                        // All files are marked as closed (but, some could have failed...)
-                                        if (l_ContribIdFile->notRestartable())
-                                        {
-                                            // All extents have been processed, all files closed, with no failed files.
-                                            // The transfer definition is not marked as stopped, therefore, no need to restart this
-                                            // transfer definition.
-                                            rc = 0;
-                                            l_Continue = 0;
-                                            LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << pContribId \
-                                                         << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
-                                                         << " See previous messages.";
-                                        }
-                                        else
-                                        {
-                                            // At least one of the files failed.  (It may have been marked failed after processing the
-                                            // last extent for the transfer definition...)
-                                            //
-                                            // Mark the transfer definition as stopped...
-                                            uint64_t l_StartingFlags = l_ContribIdFile->flags;
-                                            SET_FLAG_VAR(l_ContribIdFile->flags, l_ContribIdFile->flags, BBTD_Stopped, 1);
+                                        // All extents have been processed, all files closed, with no failed files.
+                                        // The transfer definition is not marked as stopped, therefore, no need to restart this
+                                        // transfer definition.
+                                        rc = 0;
+                                        l_Continue = 0;
+                                        LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << pContribId \
+                                                     << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
+                                                     << " See previous messages.";
+                                    }
+                                    else
+                                    {
+                                        // At least one of the files failed.  (It may have been marked failed after processing the
+                                        // last extent for the transfer definition...)
+                                        //
+                                        // Mark the transfer definition as stopped...
+                                        uint64_t l_StartingFlags = l_ContribIdFile->flags;
+                                        SET_FLAG_VAR(l_ContribIdFile->flags, l_ContribIdFile->flags, BBTD_Stopped, 1);
 
-                                            LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                                            LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_ContribIdFile->flags << nouppercase << dec << ".";
+                                        LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                                        LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_ContribIdFile->flags << nouppercase << dec << ".";
 
-                                            // Save the contribid file
-                                            rc = ContribIdFile::saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                                        // Save the contribid file
+                                        rc = ContribIdFile::saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                                        if (!rc)
+                                        {
+                                            // Update the handle status
+                                            rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
                                             if (!rc)
                                             {
-                                                // Update the handle status
-                                                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
-                                                if (!rc)
-                                                {
-                                                    // Indicate to restart this transfer defintion as it is now marked as stopped
-                                                    rc = 1;
-                                                    LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
-                                                                 << "Transfer definition marked as stopped for jobid " << pJobId \
-                                                                 << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
-                                                }
-                                                else
-                                                {
-                                                    // Indicate to not restart this transfer defintion
-                                                    rc = 0;
-                                                    l_Continue = 0;
-                                                    LOG(bb,error) << "contribIdStopped():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
-                                                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
-                                                }
+                                                // Indicate to restart this transfer defintion as it is now marked as stopped
+                                                rc = 1;
+                                                LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
+                                                             << "Transfer definition marked as stopped for jobid " << pJobId \
+                                                             << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
                                             }
                                             else
                                             {
                                                 // Indicate to not restart this transfer defintion
                                                 rc = 0;
                                                 l_Continue = 0;
-                                                LOG(bb,error) << "contribIdStopped():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
+                                                LOG(bb,error) << "contribIdStopped():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
                                                               << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
                                             }
                                         }
-                                    }
-                                    else
-                                    {
-                                        // Not all of the files have been marked as closed.
-                                        rc = 0;     //  Assume that we will keep spinning...
-                                        if (!l_Continue)
+                                        else
                                         {
-                                            //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
-                                            rc = -2;
+                                            // Indicate to not restart this transfer defintion
+                                            rc = 0;
+                                            l_Continue = 0;
+                                            LOG(bb,error) << "contribIdStopped():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
+                                                          << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
                                         }
                                     }
                                 }
-                            }
-                            else
-                            {
-                                // Not all previously enqueued extents have been processed
-                                rc = 0;     //  Assume that we will keep spinning...
-                                if (!l_Continue)
+                                else
                                 {
-                                    //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
-                                    rc = -2;
+                                    // Not all of the files have been marked as closed.
+                                    rc = 0;     //  Assume that we will keep spinning...
+                                    if (!l_Continue)
+                                    {
+                                        //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                        rc = -2;
+                                    }
                                 }
                             }
                         }
                         else
                         {
-                            rc = 0;
-                            l_Continue = 0;
-                            LOG(bb,info) << "contribIdStopped(): ContribId " << pContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
-                                         << " All transfers for this contributor may have already finished.  See previous messages.";
+                            // Not all previously enqueued extents have been processed
+                            rc = 0;     //  Assume that we will keep spinning...
+                            if (!l_Continue)
+                            {
+                                //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                rc = -2;
+                            }
                         }
                     }
                     else
                     {
                         rc = 0;
                         l_Continue = 0;
-                        l_HandleFile->close();
-                        LOG(bb,info) << "contribIdStopped(): Error occurred when attempting to load the contrib file for contribid " << pContribId \
-                                     << " (Negative rc from loadContribIdFile()). All transfers for this contributor may have already finished.  See previous messages.";
+                        LOG(bb,info) << "contribIdStopped(): ContribId " << pContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                     << " All transfers for this contributor may have already finished.  See previous messages.";
                     }
+                }
+                else
+                {
+                    rc = 0;
+                    l_Continue = 0;
+                    l_HandleFile->close();
+                    LOG(bb,info) << "contribIdStopped(): Error occurred when attempting to load the contrib file for contribid " << pContribId \
+                                 << " (Negative rc from loadContribIdFile()). All transfers for this contributor may have already finished.  See previous messages.";
                 }
             }
             else
@@ -507,13 +506,13 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                 // extents to be processed for the transfer definition.
                 // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
                 //       \todo - What to do???  @DLH
-                // NOTE: Currently set to log after 1 second of not being able to clear, and every 10 seconds thereafter...
-                if ((i++ % 40) == 4)
+                // NOTE: Currently set to log after 1 second of not being able to clear, and every 15 seconds thereafter...
+                if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
                 {
                     LOG(bb,info) << ">>>>> DELAY <<<<< contribIdStopped(): Attempting to restart a transfer definition for jobid " << pJobId \
                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
                                  << ". Waiting for all extents to finish being processed on the prior bbServer" \
-                                 << " and the transfer definition to be marked as stopped. Delay of 250 milliseconds before retry. " \
+                                 << " and the transfer definition to be marked as stopped. Delay of 1 second before retry. " \
                                  << l_Continue << " seconds remain before the original bbServer is declared dead.";
                     if (pOrigTransferDef)
                     {
@@ -524,7 +523,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                 }
                 unlockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
                 {
-                    usleep((useconds_t)250000);
+                    usleep((useconds_t)1000000);
                 }
                 lockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
 
