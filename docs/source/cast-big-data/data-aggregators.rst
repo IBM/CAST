@@ -102,7 +102,9 @@ After completing this process the gpfs log should now be forwarded to the `syslo
 
 .. note:: Refer to `Syslog Redirection`_ for gpfs log forwarding, the default syslog port is recommended (10515).
 
-.. note:: The `systemLogLevel` attribute will forward logs of the specified level and higher to the syslog. It supports the following options: **alert**, **critical**, **error**, **warning**, **notice**, **configuration**, **informational**, **detail**, and **debug**.
+.. note:: The `systemLogLevel` attribute will forward logs of the specified level and higher to the 
+   syslog. It supports the following options: **alert**, **critical**, **error**, **warning**, 
+   **notice**, **configuration**, **informational**, **detail**, and **debug**.
 
 .. note:: This data type will inhabit the same index as the *syslog* documents due to data similarity.
 
@@ -293,38 +295,6 @@ this file will need to be modified to have the CAST syslog template:
 
 
 
-CAST (csmd)
-***********
-
-.. attention:: This feature is enabled in CAST-1.1.1.
-
-CAST has enabled the boost syslog utility through use of the *csmd* configuration file.
-As of *CAST 1.1.1* this mechanism will be enabled in the default configuration files.
-
-.. code-block:: bash
-    
-    "csm" : {
-        ...
-        "log" : {
-            ... 
-            "sysLog" : true
-        }
-        ...
-    }
-
-By default enabling syslog will write to the localhost syslog port using UDP. The target may
-be changed by the *server* and *port* options.
-
-The syslog will follow the *RFC 3164* syslog protocol. After being filtered through the 
-`Syslog Redirection`_ template the log will look something like this:
-
-.. code-block:: bash
-
-    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - debug     csmapi TIMING: 1525910812,17,2,1526570252507364568,1526570252508039085,674517
-    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi [1525910812]; csm_allocation_query_active_all end
-    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi CSM_CMD_allocation_query_active_all[1525910812]; Client Recv; PID: 14921; UID:0; GID:0
-
-These logs will then stored in the *cast-log-syslog* index using the default CAST configuration.
 
 Counters
 --------
@@ -398,10 +368,69 @@ Node
 .. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
 
+
+
+JSON Data Sources
+-----------------
+
+:Logstash Port: 10522
+:Required Field: `type`
+:Recommended Fields: `@timestamp`
+
+.. attention:: This section is currently a work in progress.
+
+CAST recommends JSON data sources be shipped to Logstash to leverage the batching and data enrichment
+tool. The default logstash configuration shipped with CAST will designate port `10522`. JSON shipped
+to this port should have the `type` field specified. This `type` field will be used in defining the
+name of the index.
+
+Data Aggregators shipping to this port will generate indices with the following name format:
+`cast-%{type}-%{+YYYY.MM.dd}`
+
+
+CAST Data Sources
+-----------------
+
+csmd syslog
+***********
+
+:Logstash Port: 10515
+
+CAST has enabled the boost syslog utility through use of the *csmd* configuration file.
+
+.. code-block:: bash
+    
+    "csm" : {
+        ...
+        "log" : {
+            ... 
+            "sysLog" : true,
+            "server" : "127.0.0.1",
+            "port"   : "514"
+        }
+        ...
+    }
+
+By default enabling syslog will write to the localhost syslog port using UDP. The target may
+be changed by the *server* and *port* options.
+
+The syslog will follow the *RFC 3164* syslog protocol. After being filtered through the 
+`Syslog Redirection`_ template the log will look something like this:
+
+.. code-block:: bash
+
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - debug     csmapi TIMING: 1525910812,17,2,1526570252507364568,1526570252508039085,674517
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi [1525910812]; csm_allocation_query_active_all end
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi CSM_CMD_allocation_query_active_all[1525910812]; Client Recv; PID: 14921; UID:0; GID:0
+
+These logs will then stored in the *cast-log-syslog* index using the default CAST configuration.
+
+
+
 .. _DataArchiving:
 
-Data Archiving
---------------
+Database Archiving
+******************
 
 :Logstash Port: 10521
 
@@ -427,25 +456,125 @@ The history tables will be stored in the *cast-<table_name>* index.
 .. note:: Pending future investigation the logstash configuration of this may operate on a separate pipeline.
 
 
-JSON Data Sources
------------------
+Transaction Log
+***************
+
+:Logstash Port:  10522 
+
+.. note:: CAST only ships the transaction log to a local file, a utility such as Filebeats or
+    a local Logstash service would be needed to ship the log to a Big Data Store.
+
+
+CAST offers a transaction log for select CSM API events. Today the following events are tracked:
+
+* Allocation create/delete/update
+
+This transaction log represents a set of events that may be assembled to create the current state of
+an event in a Big Data Store. 
+
+In the CSM design these transactions are intended to be stored in a single elasticsearch index
+each transaction should be identified by a `uid` in the index.
+
+Configuration
+^^^^^^^^^^^^^
+
+CSM Configuration
+#################
+
+CAST has enabled the boost syslog utility through use of the *csmd* configuration file.
+
+.. code-block:: bash
+    
+    "csm" : {
+        ...
+        "log" : {
+            ... 
+             "transaction"               :   true,
+             "transaction_file"          :   "/var/log/ibm/csm/csm_transaction.log",
+             "transaction_rotation_size" :   1000000000 
+        }
+        ...
+    }
+
+This configuration will generate a transaction log at `/var/log/ibm/csm/csm_transaction.log`,
+rotating at 1GB.
+
++---------------------------+---------+--------------------------------------------------------------------------------------------+
+| Field                     | Type    | Description                                                                                |
++---------------------------+---------+--------------------------------------------------------------------------------------------+
+| transaction               | Boolean | Generates a transaction log if set to true.                                                |
++---------------------------+---------+--------------------------------------------------------------------------------------------+
+| transaction_file          | Text    | The file to write the transaction log to.                                                  |
++---------------------------+---------+--------------------------------------------------------------------------------------------+
+| transaction_rotation_size | Numeric | The file size in bytes at which to rotate the transaction log (by default doesn't rotate). |
++---------------------------+---------+--------------------------------------------------------------------------------------------+
+
+
+
+Filebeats Configuration
+#######################
+
+To export this data to Logstash/Elasticsearch the CAST team recommends the use of the Filebeats
+utility to export the data to logstash where the pipeline may properly enrich and target the correct
+index for the transaction.
+
+.. code-block:: YAML
+
+    paths:
+        - /var/log/ibm/csm/csm_transaction.log
+    
+    output.logstash:
+        # The Logstash hosts
+        hosts: ["<logstash-host>:10523"]
+
+
+Events
+^^^^^^
+
+Transaction events will have the following pattern:
+
+.. code-block:: javascript
+
+    {
+        "type": "type-of-event"
+        "traceid": <API traceid (for correlation) >,
+        "uid": <unique identifier, numeric>,
+        "data": {
+        }
+    }
+
+:type:  The type of the transaction, used to determine the appropriate index.
+:traceid: Traceid for correlating a transaction with a logged message in the CSM log.
+:uid: Unique id for the transaction (usually correlates to something in `data`).
+:data: The actual data changes in the transaction.
+
+
+Allocation
+##########
+
+.. TODO: How do I document this well?
+
+
+CSM Buckets
+***********
 
 :Logstash Port: 10522
-:Required Field: `type`
-:Recommended Fields: `@timestamp`
 
-.. attention:: This section is currently a work in progress.
 
-CAST recommends JSON data sources be shipped to Logstash to leverage the batching and data enrichment
-tool. The default logstash configuration shipped with CAST will designate port `10522`. JSON shipped
-to this port should have the `type` field specified. This `type` field will be used in defining the
-name of the index.
+.. code-block:: javascript
 
-Data Aggregators shipping to this port will generate indices with the following name format:
-`cast-%{type}-%{+YYYY.MM.dd}`
+    {
+        "type": "type-of-record"
+        "timestamp": "Timestamp of record"
+        "data": {
+            ...
+        }
+    }
+
+:type:  The type of the data, used to determine the appropriate index.
+:timestamp: The timestamp of the collection
+:data: The actual data from the bucket run.
 
 .. Links
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
 .. _Cumulus Linux User Guide:  https://docs.cumulusnetworks.com/display/DOCS/Cumulus+Linux+User+Guide
-
-
