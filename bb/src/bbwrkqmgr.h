@@ -62,7 +62,8 @@ const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
  *******************************************************************************/
 enum DUMP_OPTION {
     DUMP_ALWAYS             = 0,
-    DUMP_ONLY_IF_THROTTLING = 1
+    DUMP_ONLY_IF_THROTTLING = 1,
+    DUMP_UNCONDITIONALLY    = 2
 };
 typedef enum DUMP_OPTION DUMP_OPTION;
 
@@ -313,7 +314,7 @@ class WRKQMGR
         return checkForCanceledExtents;
     };
 
-    inline int getDeclareServerDeadCount()
+    inline uint64_t getDeclareServerDeadCount()
     {
         return declareServerDeadCount;
     };
@@ -554,7 +555,7 @@ class WRKQMGR
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
-    int64_t             declareServerDeadCount;
+    int64_t             declareServerDeadCount;     // In seconds
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;

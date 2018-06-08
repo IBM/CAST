@@ -140,6 +140,11 @@ public:
         RETURN_FLAG(BBTI_All_Contribs_Reported);
     }
 
+    inline int allExtentsTransferred()
+    {
+        RETURN_FLAG(BBTD_All_Extents_Transferred);
+    }
+
     inline void dump(const char* pPrefix) {
         stringstream l_Line;
         char l_Status[64] = {'\0'};
