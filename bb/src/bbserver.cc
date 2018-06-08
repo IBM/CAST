@@ -1903,7 +1903,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         l_AllDone = true;
 
                                         rc = 1;
-                                        int l_Continue = wrkqmgr.getDeclareServerDeadCount();
+                                        uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
                                         while ((rc) && (l_Continue--))
                                         {
                                             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
@@ -1967,9 +1967,30 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 }
                                                 else
                                                 {
-                                                    // Handle file not marked as stopped...
-                                                    //  Continue to spin...
+                                                    // Handle file not marked as stopped
                                                     rc = 1;
+                                                    if (l_HandleFile->allExtentsTransferred())
+                                                    {
+                                                        // All extents processed for the handle file
+                                                        if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                                        {
+                                                            // This condition overrides any failure detected on bbProxy...
+                                                            l_MarkFailedFromProxy = 0;
+                                                            LOG(bb,info) << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                                                         << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                         << ", all extents for the handle file have been processed and the handle is not marked as stopped." \
+                                                                         << ". All transfers for this contributor may have already finished.  See previous messages.";
+                                                            BAIL;
+                                                        }
+                                                        else
+                                                        {
+                                                            // Continue to spin...
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        // Continue to spin...
+                                                    }
                                                 }
 
                                                 if (rc && l_Continue)
