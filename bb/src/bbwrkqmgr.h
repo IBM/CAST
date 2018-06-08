@@ -314,7 +314,7 @@ class WRKQMGR
         return checkForCanceledExtents;
     };
 
-    inline int getDeclareServerDeadCount()
+    inline uint64_t getDeclareServerDeadCount()
     {
         return declareServerDeadCount;
     };
@@ -555,7 +555,7 @@ class WRKQMGR
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
-    int64_t             declareServerDeadCount;
+    int64_t             declareServerDeadCount;     // In seconds
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;

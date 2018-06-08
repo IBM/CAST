@@ -1181,7 +1181,8 @@ void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
     // Currently, for a restart transfer operation, we will wait a total
     // of twice the bbServer heartbeat before declaring a bbServer dead
     // because the transfer definiiton is not marked as being stopped.
-    declareServerDeadCount = heartbeatTimerPoppedCount * 2;
+    // Value stored in seconds.
+    declareServerDeadCount = (uint64_t)(l_HeartbeatTimeInterval * 2);
 
     return;
 }
