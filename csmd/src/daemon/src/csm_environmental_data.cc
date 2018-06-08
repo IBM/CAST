@@ -185,20 +185,18 @@ bool CSM_Environmental_Data::Set_Labels( const CSM_Environmental_Data& in )
 
 std::string CSM_Environmental_Data::Get_Json_String()
 {
-  boost::property_tree::ptree node_pt;
-  std::ostringstream oss;
-  
   std::string json("");
 
   // This function will return a series of json documents in a single string
-  // Each json document has a set of common node level fields followed by fields specific to 
+  // Each json document has a set of common parent fields followed by fields specific to 
   // the type of environmental data being collected
-  // Build the common node level fields first, to be used in each of the individual json documents
-  #define CSM_ENV_DATA_KEY_TIME_STAMP "time_stamp"
-  #define CSM_ENV_DATA_KEY_NODE "node"
-  #define CSM_ENV_DATA_KEY_TYPE "type"
+  // Build the common fields first, to be used in each of the individual json documents
+  #define CSM_BDS_KEY_TYPE "type"
+  #define CSM_BDS_TYPE_ENV_GPU "csm-env-gpu"
   
-  #define CSM_ENV_DATA_TYPE_GPU "GPU"
+  #define CSM_BDS_KEY_TIME_STAMP "timestamp"
+  
+  #define CSM_ENV_DATA_KEY_NODE "node"
 
   // Generate a time_stamp
   char time_stamp_buffer[80];
@@ -217,9 +215,6 @@ std::string CSM_Environmental_Data::Get_Json_String()
   
   std::string node("testnode01"); 
   
-  node_pt.put(CSM_ENV_DATA_KEY_TIME_STAMP, time_stamp_with_usec);   
-  node_pt.put(CSM_ENV_DATA_KEY_NODE, node);   
-
   // Create any GPU json documents 
   if ( _Data_Mask.test(GPU_DOUBLE_DATA_BIT) || _Data_Mask.test(GPU_LONG_DATA_BIT) )
   {
@@ -277,9 +272,12 @@ std::string CSM_Environmental_Data::Get_Json_String()
       
       for (uint32_t gpu = 0; gpu < gpu_count; gpu++)
       {
-        // Copy the node level fields into the json and set the type field to GPU
-        boost::property_tree::ptree gpu_pt(node_pt);
-        gpu_pt.put(CSM_ENV_DATA_KEY_TYPE, CSM_ENV_DATA_TYPE_GPU);
+        // Set the top level fields into the json
+        boost::property_tree::ptree gpu_pt;
+        gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_ENV_GPU);
+        gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, time_stamp_with_usec);   
+        
+        gpu_pt.put(CSM_ENV_DATA_KEY_NODE, node);   
 
         for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
         {
