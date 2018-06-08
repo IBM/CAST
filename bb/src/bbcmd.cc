@@ -632,11 +632,7 @@ int bbcmd_gettransferkeys(po::variables_map& vm)
         bberror.errdirect("out.buffer", l_Buffer);
     }
 
-    if (l_Buffer)
-    {
-        delete[] l_Buffer;
-        l_Buffer = 0;
-    }
+    delete[] l_Buffer;
 
     return rc;
 }
@@ -962,11 +958,7 @@ int bbcmd_retrievetransfers(po::variables_map& vm)
     // NOTE: Any data to be returned is also inserted into bberror/errstate
     rc = BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags, &l_NumTransferDefs, &l_TransferDefsSize, l_BufferSize, l_Buffer);
 
-    if (l_Buffer)
-    {
-        delete[] l_Buffer;
-        l_Buffer = 0;
-    }
+    delete[] l_Buffer;
 
     return rc;
 }

@@ -420,7 +420,7 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
             // Make sure that the HandleFile indicates that the handle has at least
             // one transfer definition that is stopped
             rc = 1;
-            int l_Continue = wrkqmgr.getDeclareServerDeadCount();
+            uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
             while ((rc == 1) && (l_Continue--))
             {
                 BBSTATUS l_Status;

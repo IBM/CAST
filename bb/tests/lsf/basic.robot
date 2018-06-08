@@ -52,14 +52,26 @@ Stage-out1 script does not exist
 	[Timeout]  1 minute
 	Using SSD  10
 	Set user stageout1  this-script-does-not-exist
-	bsub&wait  hostname  255
+	${result}=  bsub&wait  hostname  0
+        Sleep  20s
+        ${ignore}  ${jobid}=  Run and Return RC and Output  echo '${result.stdout}'|awk -F'<' '/Job/ {print $2}'|awk -F'>' '{print $1}'
+        ${rc2}  ${jobhist}=  Run and Return RC and Output  bread -i123 ${jobid} | tee tmp.${jobid} 
+        ${ignore}  ${c}=  Run and Return RC and Output  grep completed tmp.${jobid}|grep -c "\\-1"
+        Log  JOBHIST: ${jobhist}
+        Should be equal as integers  ${c}  1
 
 Stage-out2 script does not exist
 	[Tags]  lsf
 	[Timeout]  1 minute
 	Using SSD  10
 	Set user stageout2  this-script-does-not-exist
-	bsub&wait  hostname  255
+        ${result}=  bsub&wait  hostname  0
+        Sleep  20s
+        ${ignore}  ${jobid}=  Run and Return RC and Output  echo '${result.stdout}'|awk -F'<' '/Job/ {print $2}'|awk -F'>' '{print $1}'
+        ${rc2}  ${jobhist}=  Run and Return RC and Output  bread -i124 ${jobid} | tee tmp.${jobid} 
+        ${ignore}  ${c}=  Run and Return RC and Output  grep completed tmp.${jobid}|grep -c "\\-1"
+        Log  JOBHIST: ${jobhist}
+        Should be equal as integers  ${c}  1 
 
 Stage-in script is started
 	 [Tags]  lsf

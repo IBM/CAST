@@ -116,202 +116,202 @@ void BBIO_BSCFS::closeCleanUp()
 
 int BBIO_BSCFS::closeFileIndexProcessing(uint32_t pFileIndex)
 {
-	// Convert index to host-endian format, if necessary, so it can be
-	// used in handling the data file.
-	if (le64toh(0x0123456789abcdefull) != 0x0123456789abcdefull)
-	{
-	    index->node = le32toh(index->node);
-	    index->node_count = le32toh(index->node_count);
-	    index->normalized = le32toh(index->normalized);
-	    index->finalized = le32toh(index->finalized);
-	    index->mapping_count = le64toh(index->mapping_count);
+    // Convert index to host-endian format, if necessary, so it can be
+    // used in handling the data file.
+    if (le64toh(0x0123456789abcdefull) != 0x0123456789abcdefull)
+    {
+	index->node = le32toh(index->node);
+	index->node_count = le32toh(index->node_count);
+	index->normalized = le32toh(index->normalized);
+	index->finalized = le32toh(index->finalized);
+	index->mapping_count = le64toh(index->mapping_count);
 
-	    for (uint64_t i = 0; i < index->mapping_count; i++)
-	    {
-		bscfs_mapping_t* m = &index->mapping[i];
-		m->sf_offset = le64toh(m->sf_offset);
-		m->df_offset = le64toh(m->df_offset);
-		m->length = le64toh(m->length);
-	    }
+	for (uint64_t i = 0; i < index->mapping_count; i++)
+	{
+	    bscfs_mapping_t* m = &index->mapping[i];
+	    m->sf_offset = le64toh(m->sf_offset);
+	    m->df_offset = le64toh(m->df_offset);
+	    m->length = le64toh(m->length);
+	}
+    }
+
+    if (writing)
+    {
+	uint32_t sourceIndex = BBTransferDef::getSourceIndex(mapFileIndex);
+	indexBytes = BBTransferDef::getTotalTransferSize(transferDef,
+							 sourceIndex);
+	if (indexBytes != BSCFS_INDEX_SIZE(index->mapping_count))
+	{
+	    ERROR("Size inconsistency for index file");
+	    return -1;
 	}
 
-	if (writing)
+	if (!index->finalized)
 	{
-	    uint32_t sourceIndex = BBTransferDef::getSourceIndex(mapFileIndex);
-	    indexBytes = BBTransferDef::getTotalTransferSize(transferDef,
-							     sourceIndex);
-	    if (indexBytes != BSCFS_INDEX_SIZE(index->mapping_count))
-	    {
-		ERROR("Size inconsistency for index file");
-		return -1;
-	    }
-
-	    if (!index->finalized)
-	    {
-		ERROR("Index file expected to be finalized");
-		return -1;
-	    }
-
-	    indexComplete = true;
+	    ERROR("Index file expected to be finalized");
+	    return -1;
 	}
 
-	return 0;
+	indexComplete = true;
+    }
+
+    return 0;
 }
 
 int BBIO_BSCFS::closeSharedFileProcessing(uint32_t pFileIndex)
 {
-	if (writing && (mapFileHandle != NULL))
+    if (writing && (mapFileHandle != NULL))
+    {
+	// We're done writing to the shared file. Now update the mapfile
+	// if one was specified.
+
+	// Re-use the index mapping space to construct the mapfile region
+	// array. Mapfile regions are smaller than index mappings, but we
+	// still have to be careful: region[0].offset and
+	// mapping[0].sf_offset are in the same location.
+	bscfs_mapfile_region_t* region =
+	    (bscfs_mapfile_region_t*) index->mapping;
+	for (uint64_t i = 0; i < index->mapping_count; i++)
 	{
-	    // We're done writing to the shared file. Now update the mapfile
-	    // if one was specified.
-
-	    // Re-use the index mapping space to construct the mapfile region
-	    // array. Mapfile regions are smaller than index mappings, but we
-	    // still have to be careful: region[0].offset and
-	    // mapping[0].sf_offset are in the same location.
-	    bscfs_mapfile_region_t* region =
-		(bscfs_mapfile_region_t*) index->mapping;
-	    for (uint64_t i = 0; i < index->mapping_count; i++)
-	    {
-		region[i].offset = htole64(index->mapping[i].sf_offset);
-		region[i].length = htole64(index->mapping[i].length);
-	    }
-	    uint64_t region_count = index->mapping_count;
-	    uint64_t total_data_size = 0;
-	    if (region_count > 0)
-	    {
-		// sort the regions into file-offset order
-		qsort(region, region_count, sizeof(bscfs_mapfile_region_t),
-		      CmpRegion);
-		// merge adjacent regions
-		total_data_size = region[0].length;
-		uint64_t current = 0;
-		for (uint64_t i = 1; i < region_count; i++)
-		{
-		    total_data_size += region[i].length;
-		    if (region[i].offset ==
-			    (region[current].offset + region[current].length))
-		    {
-			// region[i] is adjacent to current region; simply
-			// increment length
-			region[current].length += region[i].length;
-		    }
-		    else
-		    {
-			// region[i] is not adjacent; start a new current region
-			current++;
-			if (current != i) region[current] = region[i];
-		    }
-		}
-		region_count = current + 1; // update count
-	    }
-
-	    int map = mapFileHandle->getfd();
-	    ssize_t rc;
-	    struct flock map_lock;
-	    map_lock.l_whence = SEEK_SET;
-	    map_lock.l_start = 0;
-	    map_lock.l_len = 0; // Lock entire file
-
-	    map_lock.l_type = F_WRLCK;
-	    rc = ::fcntl(map, F_SETLKW, &map_lock);
-	    if (rc < 0)
-	    {
-		SC_ERROR("fcntl(F_WRLCK) failed");
-		return -1;
-	    }
-
-	    uint64_t region_offset = ::lseek(map, 0, SEEK_END);
-	    if (region_offset == ((uint64_t) -1))
-	    {
-		SC_ERROR("lseek(SEEK_END) failed");
-		return -1;
-	    }
-
-	    if (region_offset == 0)
-	    {
-		uint64_t node_count = index->node_count;
-		uint64_t header_size =
-		    sizeof(bscfs_mapfile_header_t) +
-			(node_count * sizeof(bscfs_mapfile_node_header_t));
-		bscfs_mapfile_header_t* header =
-		    (bscfs_mapfile_header_t*) malloc(header_size);
-		header->node_count = htole64(node_count);
-		for (uint64_t n = 0; n < node_count; n++)
-		{
-		    header->node[n].region_offset = 0;
-		    header->node[n].region_count = 0;
-		    header->node[n].total_data_size = 0;
-		}
-
-		rc = ::write(map, header, header_size);
-		if (rc != (ssize_t) header_size)
-		{
-		    SC_ERROR("write(header) failed");
-		    free(header);
-		    return -1;
-		}
-
-		region_offset = header_size;
-
-		free(header);
-	    }
-
-	    uint64_t region_size = region_count *
-					sizeof(bscfs_mapfile_region_t);
-	    rc = ::ftruncate(map, region_offset + region_size);
-	    if (rc < 0)
-	    {
-		SC_ERROR("ftruncate(region_end) failed");
-		return -1;
-	    }
-
-	    map_lock.l_type = F_UNLCK;
-	    rc = ::fcntl(map, F_SETLK, &map_lock);
-	    if (rc < 0)
-	    {
-		SC_ERROR("fcntl(F_UNLCK) failed");
-		return -1;
-	    }
-
-	    char* buffer = (char*) region;
-	    uint64_t remainder = region_size;
-	    while (remainder > 0)
-	    {
-		rc = ::write(map, buffer, remainder);
-		if (rc < 0)
-		{
-		    SC_ERROR("write(region) failed");
-		    return -1;
-		}
-		buffer += rc;
-		remainder -= rc;
-	    }
-
-	    bscfs_mapfile_node_header_t node_header;
-
-	    node_header.region_offset = htole64(region_offset);
-	    node_header.region_count = htole64(region_count);
-	    node_header.total_data_size = htole64(total_data_size);
-
-	    uint64_t node = (contribId & 0xffff);
-	    uint64_t node_offset = offsetof(bscfs_mapfile_header_t, node) +
-				(node * sizeof(bscfs_mapfile_node_header_t));
-        
-        threadLocalTrackSyscallPtr = getSysCallTracker();
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, map,__LINE__,sizeof(node_header) ,node_offset);
-	    rc = ::pwrite(map, &node_header, sizeof(node_header), node_offset);
-        threadLocalTrackSyscallPtr->clearTrack();
-        
-        if (rc != sizeof(node_header))
-        {
-            SC_ERROR("pwrite(node_header) failed");
-            return -1;
-        }
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, map, __LINE__);
-        (void) ::fsync(map);
-        threadLocalTrackSyscallPtr->clearTrack();
+	    region[i].offset = htole64(index->mapping[i].sf_offset);
+	    region[i].length = htole64(index->mapping[i].length);
 	}
+	uint64_t region_count = index->mapping_count;
+	uint64_t total_data_size = 0;
+	if (region_count > 0)
+	{
+	    // sort the regions into file-offset order
+	    qsort(region, region_count, sizeof(bscfs_mapfile_region_t),
+		  CmpRegion);
+	    // merge adjacent regions
+	    total_data_size = region[0].length;
+	    uint64_t current = 0;
+	    for (uint64_t i = 1; i < region_count; i++)
+	    {
+		total_data_size += region[i].length;
+		if (region[i].offset ==
+			(region[current].offset + region[current].length))
+		{
+		    // region[i] is adjacent to current region; simply
+		    // increment length
+		    region[current].length += region[i].length;
+		}
+		else
+		{
+		    // region[i] is not adjacent; start a new current region
+		    current++;
+		    if (current != i) region[current] = region[i];
+		}
+	    }
+	    region_count = current + 1; // update count
+	}
+
+	int map = mapFileHandle->getfd();
+	ssize_t rc;
+	struct flock map_lock;
+	map_lock.l_whence = SEEK_SET;
+	map_lock.l_start = 0;
+	map_lock.l_len = 0; // Lock entire file
+
+	map_lock.l_type = F_WRLCK;
+	rc = ::fcntl(map, F_SETLKW, &map_lock);
+	if (rc < 0)
+	{
+	    SC_ERROR("fcntl(F_WRLCK) failed");
+	    return -1;
+	}
+
+	uint64_t region_offset = ::lseek(map, 0, SEEK_END);
+	if (region_offset == ((uint64_t) -1))
+	{
+	    SC_ERROR("lseek(SEEK_END) failed");
+	    return -1;
+	}
+
+	if (region_offset == 0)
+	{
+	    uint64_t node_count = index->node_count;
+	    uint64_t header_size =
+		sizeof(bscfs_mapfile_header_t) +
+		    (node_count * sizeof(bscfs_mapfile_node_header_t));
+	    bscfs_mapfile_header_t* header =
+		(bscfs_mapfile_header_t*) malloc(header_size);
+	    header->node_count = htole64(node_count);
+	    for (uint64_t n = 0; n < node_count; n++)
+	    {
+		header->node[n].region_offset = 0;
+		header->node[n].region_count = 0;
+		header->node[n].total_data_size = 0;
+	    }
+
+	    rc = ::write(map, header, header_size);
+	    if (rc != (ssize_t) header_size)
+	    {
+		SC_ERROR("write(header) failed");
+		free(header);
+		return -1;
+	    }
+
+	    region_offset = header_size;
+
+	    free(header);
+	}
+
+	uint64_t region_size = region_count *
+				    sizeof(bscfs_mapfile_region_t);
+	rc = ::ftruncate(map, region_offset + region_size);
+	if (rc < 0)
+	{
+	    SC_ERROR("ftruncate(region_end) failed");
+	    return -1;
+	}
+
+	map_lock.l_type = F_UNLCK;
+	rc = ::fcntl(map, F_SETLK, &map_lock);
+	if (rc < 0)
+	{
+	    SC_ERROR("fcntl(F_UNLCK) failed");
+	    return -1;
+	}
+
+	char* buffer = (char*) region;
+	uint64_t remainder = region_size;
+	while (remainder > 0)
+	{
+	    rc = ::write(map, buffer, remainder);
+	    if (rc < 0)
+	    {
+		SC_ERROR("write(region) failed");
+		return -1;
+	    }
+	    buffer += rc;
+	    remainder -= rc;
+	}
+
+	bscfs_mapfile_node_header_t node_header;
+
+	node_header.region_offset = htole64(region_offset);
+	node_header.region_count = htole64(region_count);
+	node_header.total_data_size = htole64(total_data_size);
+
+	uint64_t node = (contribId & 0xffff);
+	uint64_t node_offset = offsetof(bscfs_mapfile_header_t, node) +
+			    (node * sizeof(bscfs_mapfile_node_header_t));
+
+	threadLocalTrackSyscallPtr = getSysCallTracker();
+	threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, map,__LINE__,sizeof(node_header) ,node_offset);
+	rc = ::pwrite(map, &node_header, sizeof(node_header), node_offset);
+	threadLocalTrackSyscallPtr->clearTrack();
+
+	if (rc != sizeof(node_header))
+	{
+	    SC_ERROR("pwrite(node_header) failed");
+	    return -1;
+	}
+	threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, map, __LINE__);
+	(void) ::fsync(map);
+	threadLocalTrackSyscallPtr->clearTrack();
+    }
 
     return 0;
 }
@@ -387,7 +387,7 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    return -1;
 	}
 	mapFileIndex = pFileIndex;
-    threadLocalTrackSyscallPtr = getSysCallTracker();
+	threadLocalTrackSyscallPtr = getSysCallTracker();
 
 	if (writing)
 	{
@@ -414,15 +414,20 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	{
 	    // Instantiate an index for the client node from the just-opened
 	    // mapfile.
+
+	    // These limits are arbitrary.
+	    const uint64_t MAX_NODE_COUNT = 16384;
+	    const uint64_t MAX_REGION_COUNT = 1024 * 1024 * 1024;
+
 	    mapFileHandle = new filehandle(pFileName, O_RDONLY, 0);
 	    int map = mapFileHandle->getfd();
 	    bscfs_mapfile_header_t header;
 	    ssize_t rc;
-        
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map ,__LINE__,sizeof(header) , 0);
-        rc = ::pread(map, &header, sizeof(header), 0);
-        threadLocalTrackSyscallPtr->clearTrack();
-        
+
+	    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map ,__LINE__,sizeof(header) , 0);
+	    rc = ::pread(map, &header, sizeof(header), 0);
+	    threadLocalTrackSyscallPtr->clearTrack();
+
 	    if (rc != sizeof(header))
 	    {
 		SC_ERROR("pread(mapfile header) failed");
@@ -431,33 +436,75 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 		mapFileIndex = -1u;
 		return -1;
 	    }
+
 	    uint64_t node_count = le64toh(header.node_count);
+	    if (node_count > MAX_NODE_COUNT)
+	    {
+		ERROR("bad node_count");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+
 	    uint64_t node = (contribId & 0xffff);
 	    uint64_t node_offset =
 		offsetof(bscfs_mapfile_header_t, node) +
 		    (node * sizeof(bscfs_mapfile_node_header_t));
 
 	    bscfs_mapfile_node_header_t node_header = {0, 0, 0};
-        if (node < node_count) {
-            
-            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map,__LINE__,sizeof(node_header) , node_offset);
-            rc = ::pread(map, &node_header, sizeof(node_header),
-                         node_offset);
-            threadLocalTrackSyscallPtr->clearTrack();
-            
-            if (rc != sizeof(node_header))
-            {
-                SC_ERROR("pread(node_header) failed");
-                delete mapFileHandle;
-                mapFileHandle = NULL;
-                mapFileIndex = -1u;
-                return -1;
-            }
-        }
+	    if (node < node_count) {
+
+		threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map,__LINE__,sizeof(node_header) , node_offset);
+		rc = ::pread(map, &node_header, sizeof(node_header),
+			     node_offset);
+		threadLocalTrackSyscallPtr->clearTrack();
+
+		if (rc != sizeof(node_header))
+		{
+		    SC_ERROR("pread(node_header) failed");
+		    delete mapFileHandle;
+		    mapFileHandle = NULL;
+		    mapFileIndex = -1u;
+		    return -1;
+		}
+	    }
 
 	    uint64_t region_offset = le64toh(node_header.region_offset);
 	    uint64_t region_count = le64toh(node_header.region_count);
 	    uint64_t total_data_size = le64toh(node_header.total_data_size);
+
+	    if (region_count > MAX_REGION_COUNT) {
+		ERROR("bad region_count");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+	    uint64_t region_size =
+		region_count * sizeof(bscfs_mapfile_region_t);
+
+	    uint64_t mapfile_end = ::lseek(map, 0, SEEK_END);
+	    if (mapfile_end == ((uint64_t) -1))
+	    {
+		SC_ERROR("lseek(SEEK_END) failed");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
+
+	    uint64_t node_headers_size =
+		node_count * sizeof(bscfs_mapfile_node_header);
+	    if ((region_offset < (sizeof(header) + node_headers_size)) ||
+		((region_offset + region_size) > mapfile_end))
+	    {
+		ERROR("bad region_offset or region_count");
+		delete mapFileHandle;
+		mapFileHandle = NULL;
+		mapFileIndex = -1u;
+		return -1;
+	    }
 
 	    indexBytes = BSCFS_INDEX_SIZE(region_count);
 	    index = (bscfs_index_t*) malloc(indexBytes);
@@ -473,34 +520,32 @@ int BBIO_BSCFS::open(uint32_t pFileIndex, uint64_t pBBFileFlags,
 	    dataBytes = total_data_size;
 
 	    // Read the region info into the end of the index space.
-	    uint64_t region_size =
-		region_count * sizeof(bscfs_mapfile_region_t);
 	    bscfs_mapfile_region_t* region = (bscfs_mapfile_region_t*)
 		(((uint64_t) index) + indexBytes - region_size);
 
 	    char* buffer = (char*) region;
 	    uint64_t offset = region_offset;
 	    uint64_t remainder = region_size;
-        while (remainder > 0)
-        {
-            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map ,__LINE__,remainder , offset);
-            rc = ::pread(map, buffer, remainder, offset);
-            threadLocalTrackSyscallPtr->clearTrack();
-            
-            if (rc < 0)
-            {
-                SC_ERROR("pread(region) failed");
-                free(index);
-                index = NULL;
-                delete mapFileHandle;
-                mapFileHandle = NULL;
-                mapFileIndex = -1u;
-                return -1;
-            }
-            buffer += rc;
-            offset += rc;
-            remainder -= rc;
-        }
+	    while (remainder > 0)
+	    {
+		threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, map ,__LINE__,remainder , offset);
+		rc = ::pread(map, buffer, remainder, offset);
+		threadLocalTrackSyscallPtr->clearTrack();
+
+		if (rc < 0)
+		{
+		    SC_ERROR("pread(region) failed");
+		    free(index);
+		    index = NULL;
+		    delete mapFileHandle;
+		    mapFileHandle = NULL;
+		    mapFileIndex = -1u;
+		    return -1;
+		}
+		buffer += rc;
+		offset += rc;
+		remainder -= rc;
+	    }
 
 	    // Convert the region info to index mapping format, taking care
 	    // because the last mapping overlaps the last two regions. We keep
@@ -634,7 +679,7 @@ ssize_t BBIO_BSCFS::pread(uint32_t pFileIndex, char* pBuffer,
 		(offset < index->mapping[next].df_offset)) base = next;
 	}
 	int64_t idx = base - 1;
-    threadLocalTrackSyscallPtr = getSysCallTracker();
+	threadLocalTrackSyscallPtr = getSysCallTracker();
 
 	while (remainder > 0)
 	{
@@ -644,11 +689,11 @@ ssize_t BBIO_BSCFS::pread(uint32_t pFileIndex, char* pBuffer,
 	    // using the current mapping.
 	    uint64_t chunk = end - offset;
 	    if (chunk > remainder) chunk = remainder;
-        
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, sharedFileHandle->getfd() ,__LINE__,chunk , m->sf_offset + (offset - m->df_offset));
+
+	    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, sharedFileHandle->getfd() ,__LINE__,chunk , m->sf_offset + (offset - m->df_offset));
 	    ssize_t rc = ::pread(sharedFileHandle->getfd(), buffer, chunk,
 				 m->sf_offset + (offset - m->df_offset));
-        threadLocalTrackSyscallPtr->clearTrack();
+	    threadLocalTrackSyscallPtr->clearTrack();
 
 	    if (rc != (ssize_t) chunk)
 	    {
@@ -694,7 +739,7 @@ int BBIO_BSCFS::fsync(uint32_t pFileIndex)
     LOG(bb,info) << "BBIO_BSCFS::" << __func__ << "(" << this
     << ", pFileIndex=" << pFileIndex
     << ")";
-    
+
     if (pFileIndex == mapFileIndex)
     {
         // Nothing to do for the mapfile. We won't actually write to
@@ -712,7 +757,7 @@ int BBIO_BSCFS::fsync(uint32_t pFileIndex)
         ERROR("Unexpected file index: " << pFileIndex);
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -769,7 +814,7 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 	    end = m->df_offset + m->length;
 	}
 
-    threadLocalTrackSyscallPtr = getSysCallTracker();
+	threadLocalTrackSyscallPtr = getSysCallTracker();
 
 	while (remainder > 0)
 	{
@@ -780,12 +825,12 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 		// as we can from the buffer to the shared file
 		chunk = end - offset;
 		if (chunk > remainder) chunk = remainder;
-            
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, sharedFileHandle->getfd(),__LINE__,chunk ,m->sf_offset + (offset - m->df_offset));
+
+		threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, sharedFileHandle->getfd(),__LINE__,chunk ,m->sf_offset + (offset - m->df_offset));
 		ssize_t rc = ::pwrite(sharedFileHandle->getfd(), buffer, chunk,
 				      m->sf_offset + (offset - m->df_offset));
-        threadLocalTrackSyscallPtr->clearTrack();
-            
+		threadLocalTrackSyscallPtr->clearTrack();
+
 		if (rc != (ssize_t) chunk)
 		{
 		    if (rc < 0)

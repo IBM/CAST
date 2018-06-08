@@ -312,7 +312,15 @@ int main (int argc, char **argv)
 	<< "\n    Node count         --> " << bscfs_data.node_count
 	<< "\n";
 
-    std::string fl = config.get("bb.bscfsagent.flightlog", "none");
+    std::string fl;
+    try {
+	fl = config.get("bb.bscfsagent.flightlog", "none");
+    }
+    catch(int e)
+    {
+	LOG(bscfsagent,error) << "Exception getting flightlog config: " << e;
+	exit(-1);
+    }
     int rc = FL_CreateAll(fl.c_str());
     if (rc != 0) {
 	LOG(bscfsagent,error)

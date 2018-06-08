@@ -39,7 +39,7 @@ void TrackSyscall::reset()
     _fileName.clear();
 }
 
-thread_local TrackSyscallPtr threadLocalTrackSyscallPtr = NULL;
+thread_local TrackSyscallPtr threadLocalTrackSyscallPtr = new TrackSyscall();
 
 pthread_mutex_t tidTrackerMutex = PTHREAD_MUTEX_INITIALIZER;
 std::map<pthread_t, TrackSyscallPtr>   pthread_syscalltracker;
@@ -77,8 +77,12 @@ void checkForStuckSyscall()
 {
     uint64_t nowTimeStamp = timeStamp();
     uint64_t tick_diff = 0;
+    
     pthread_mutex_lock(&tidTrackerMutex);
-    for (auto iter : pthread_syscalltracker)
+    auto l_pthread_syscalltracker = pthread_syscalltracker; //make a local copy
+    pthread_mutex_unlock(&tidTrackerMutex);
+    
+    for (auto iter : l_pthread_syscalltracker)
     {
         //auto l_tid = iter.first;
         TrackSyscallPtr l_ptr=iter.second;
@@ -103,26 +107,28 @@ void checkForStuckSyscall()
             }
         }
     }
+}
+
+TrackSyscall::TrackSyscall()
+{
+    _tid = pthread_self();
+    _timeStamp = 0;
+    _syscall = nosyscall;
+    _fd = -1;
+    _timeStamp = 0;
+    _lineNumber = 0;
+    _rasCount = 0;
+    _size=0;
+    _offset=0;
+    pthread_mutex_lock(&tidTrackerMutex);
+    pthread_syscalltracker[_tid] = this;
     pthread_mutex_unlock(&tidTrackerMutex);
 }
 
+
 TrackSyscallPtr getSysCallTracker()
 {
-    TrackSyscallPtr l_ptr = NULL;
-    pthread_mutex_lock(&tidTrackerMutex);
-    pthread_t l_tid = pthread_self();
-    auto it = pthread_syscalltracker.find( l_tid );
-    if (it != pthread_syscalltracker.end() )
-    {
-        l_ptr = it->second;
-    }
-    else
-    {
-        l_ptr = new TrackSyscall(l_tid);
-        pthread_syscalltracker[l_tid] = l_ptr;
-    }
-    pthread_mutex_unlock(&tidTrackerMutex);
-    return l_ptr;
+    return threadLocalTrackSyscallPtr; //thread local
 }
 
 uint64_t getTimeBaseScale()

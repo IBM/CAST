@@ -45,28 +45,9 @@ uint64_t timebase;
    enum tracking{nosyscall=0, opensyscall=1, preadsyscall=2, pwritesyscall=3, statsyscall=4,
                  fstatsyscall=5, fsyncsyscall=6, fcntlsyscall=7,
                  SSDopenwritedirect=32, SSDopenwriteNOTdirect=33, SSDpreadsyscall=34, SSDpwritesyscall=35, SSDopenreaddirect=48};
-   TrackSyscall()
-   {
-     _timeStamp = 0;
-     _syscall = nosyscall;
-     _tid = pthread_self();
-      _size=0;
-      _offset=0;
-   }
 
-   TrackSyscall(pthread_t pThread)
-   {
-     _timeStamp = 0;
-     _syscall = nosyscall;
-     _tid = pThread;
-     _fd = -1;
-     _timeStamp = 0;
-     _lineNumber = 0;
-     _rasCount = 0;
-     _size=0;
-     _offset=0;
-       
-   }
+     TrackSyscall();
+     
 inline uint64_t   nowTrack(tracking pSyscall,const std::string& pFilename, int pLineNumber=0)
    {
     _syscall = pSyscall;
@@ -106,13 +87,13 @@ inline void  clearTrack(){
 inline bool isClear(){ return  !_timeStamp;}
 
 void reset();
-   volatile tracking _syscall;
+   tracking _syscall;
    int      _lineNumber;
    int      _fd;
    int      _rasCount;
    uint64_t _size;
    uint64_t _offset;
-   volatile uint64_t _timeStamp;
+   uint64_t _timeStamp;
    pthread_t _tid;
    std::string _fileName;
 
