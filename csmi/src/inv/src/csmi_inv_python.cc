@@ -814,7 +814,8 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		.add_property("switch_names_count", &csm_switch_attributes_query_input_t::switch_names_count,&csm_switch_attributes_query_input_t::switch_names_count," Number of switches being queried, size of @ref switch_names. ")
 		STRING_PROPERTY(csm_switch_attributes_query_input_t, char*, state, , NULL, )
 		ARRAY_STR_PROPERTY(csm_switch_attributes_query_input_t, char**, switch_names, switch_names_count, NULL, )
-		STRING_PROPERTY(csm_switch_attributes_query_input_t, char*, serial_number, , NULL, );
+		STRING_PROPERTY(csm_switch_attributes_query_input_t, char*, serial_number, , NULL, )
+		.add_property("order_by", &csm_switch_attributes_query_input_t::order_by,&csm_switch_attributes_query_input_t::order_by," Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' ");
 
     class_<csm_switch_attributes_query_output_t,csm_switch_attributes_query_output_t*>("switch_attributes_query_output_t")
 		.add_property("results_count", &csm_switch_attributes_query_output_t::results_count,&csm_switch_attributes_query_output_t::results_count," Number of switch records, size of @ref results. ")

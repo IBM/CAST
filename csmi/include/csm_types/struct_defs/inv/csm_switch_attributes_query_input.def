@@ -2,7 +2,7 @@
 
     csmi/include/csm_types/struct_defs/inv/csm_switch_attributes_query_input.def
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -60,6 +60,10 @@ CSMI_VERSION_END(5cea7e82366c0a8f464ec6e76c0e7f0c)
 CSMI_VERSION_START(CSM_VERSION_1_0_0)
 CSMI_STRUCT_MEMBER(char*, serial_number, STRING, , NULL, ) /**< Optionally filter results to only a specific serial_number - unique identifier for a switch */
 CSMI_VERSION_END(9a26d6863bb01b596b21b9d651383fba)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(char, order_by, BASIC, , '\0', ) /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' */
+CSMI_VERSION_END(0)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
