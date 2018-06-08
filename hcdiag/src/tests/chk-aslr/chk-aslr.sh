@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-smt/chk-smt.sh
+#    hcdiag/src/tests/chk-aslr/chk-aslr.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -27,20 +27,37 @@ me=$(basename $0)
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-SMT=4
-if [ $# -gt 0 ]; then SMT=$1; fi
-
-smt=`/usr/sbin/ppc64_cpu --smt -n`;
-smt=`echo $smt | cut -d '=' -f2`
-
-if [ "$smt" -eq "$SMT" ]; then
-   echo "Node SMT=$smt"
-   echo "$me test PASS, rc=0"
-   exit 0
+# desired ASLR is disabled
+desired_aslr=0
+if [ $# -gt 0 ]; then 
+   case $1 in  
+      0) 
+      ;;
+      1|2) desired_aslr=$1
+      ;;
+      *) echo "Invalid value for ASLR. Posible values are: 0, 1, 2"
+         echo "$me test FAIL, rc=1"
+         exit 1
+      ;;
+   esac
 fi
 
-echo "Node SMT expected $SMT, got: $smt"
-echo "$me test FAIL, rc=1"
-exit 1
+
+if [ -r /proc/sys/kernel/randomize_va_space ]; then
+   aslr=`cat /proc/sys/kernel/randomize_va_space`
+   if [ "$aslr" -eq "$desired_aslr" ]; then
+     echo "ASLR is set to $desired_aslr."
+     echo "$me test PASS, rc=0"
+     exit 0
+   else
+     echo "ASLR value expected: $desired_aslr, got: $aslr."
+     echo "$me test FAIL, rc=1"
+     exit 1
+   fi
+fi
+
+echo "Can not read /proc/sys/kernel/randomize_va_space."
+echo "$me test FAIL, rc=2"
+exit 2
 
    

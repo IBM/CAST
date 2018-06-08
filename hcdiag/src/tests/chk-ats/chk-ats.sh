@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-smt/chk-smt.sh
+#    hcdiag/src/tests/chk-ats/chk-ats.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -27,20 +27,37 @@ me=$(basename $0)
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-SMT=4
-if [ $# -gt 0 ]; then SMT=$1; fi
-
-smt=`/usr/sbin/ppc64_cpu --smt -n`;
-smt=`echo $smt | cut -d '=' -f2`
-
-if [ "$smt" -eq "$SMT" ]; then
-   echo "Node SMT=$smt"
-   echo "$me test PASS, rc=0"
-   exit 0
+# desired ATS is disabled
+desired_ats=0
+if [ $# -gt 0 ]; then 
+   case $1 in  
+      0)  
+      ;;
+      1) desired_ats=$1
+      ;;
+      *) echo "Invalid value for ATS. Posible values are: 0, 1"
+         echo "$me test FAIL, rc=1"
+         exit 1
+      ;;
+   esac
 fi
 
-echo "Node SMT expected $SMT, got: $smt"
-echo "$me test FAIL, rc=1"
-exit 1
+
+if [ -r /sys/module/nvidia_uvm/parameters/uvm8_ats_mode ]; then
+   ats=`cat /sys/module/nvidia_uvm/parameters/uvm8_ats_mode`
+   if [ "$ats" -eq "$desired_ats" ]; then
+     echo "ATS is set to $desired_ats."
+     echo "$me test PASS, rc=0"
+     exit 0
+   else
+     echo "ATS value expected: $desired_ats, got: $ats."
+     echo "$me test FAIL, rc=1"
+     exit 1
+   fi
+fi
+
+echo "Can not read /sys/module/nvidia_uvm/parameters/uvm8_ats_mode"
+echo "$me test FAIL, rc=2"
+exit 2
 
    

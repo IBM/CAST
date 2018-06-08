@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-smt/chk-smt.sh
+#    hcdiag/src/tests/chk-idle-state/chk-idle-state.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -27,20 +27,43 @@ me=$(basename $0)
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-SMT=4
-if [ $# -gt 0 ]; then SMT=$1; fi
+idle_state=3
+eyecatcher1=DISABLED
+eyecatcher2="Number of idle states"
 
-smt=`/usr/sbin/ppc64_cpu --smt -n`;
-smt=`echo $smt | cut -d '=' -f2`
+cmd=/usr/bin/cpupower
+args=idle-info
+tmpf=/tmp/$$
 
-if [ "$smt" -eq "$SMT" ]; then
-   echo "Node SMT=$smt"
-   echo "$me test PASS, rc=0"
-   exit 0
+trap 'rm -f $tmpf' EXIT
+
+[ ! -x $cmd ] && echo "$cmd command not not found" && echo "$me  test FAIL, rc=1" &&  exit 1;
+rc=0
+$cmd $args| tee $tmpf
+n_idle_state=`grep "$eyecatcher2" $tmpf | awk '{print $5}'` 
+if [ -n "$n_idle_state" ]; then
+   if  [ "$n_idle_state" -eq "$idle_state" ]; then 
+      # look for DISABLED
+      while IFS= read -r line; do 
+         if [ ! -z $line ]; then
+            echo "ERROR: `echo $line | cut -d':' -f1`"
+            rc=1
+         fi
+      done <<< $(grep $eyecatcher1 $tmpf)
+   else
+      echo "ERROR: $eyecatcher2, expecting: $idle_state, got: $n_idle_state" 
+      rc=2
+   fi
+else 
+   echo "ERROR: Expecting: $eyecatcher2: $idle_state, got: 0" 
+   rc=1
+fi
+if [ $rc -eq 0 ]; then
+    echo "$me test PASS, rc=$rc" 
+else
+  echo "$me test FAIL, rc=$rc"
 fi
 
-echo "Node SMT expected $SMT, got: $smt"
-echo "$me test FAIL, rc=1"
-exit 1
+exit $rc
 
    
