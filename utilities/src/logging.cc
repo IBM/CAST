@@ -209,7 +209,6 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
                 keywords::facility = logging::sinks::syslog::local0,
                 keywords::use_impl = logging::sinks::syslog::udp_socket_based,
                 keywords::filter = channel == "LOG"
-                keywords::use_impl = logging::sinks::syslog::udp_socket_based
         ));
         
         backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"), 
@@ -234,11 +233,11 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
         core->add_sink(sink);
     }
 
-    if(config.get(ptree_prefix + ".bds", true))
+    if(config.get(ptree_prefix + ".transaction", true))
     {
          auto sink = logging::add_file_log(
-		    keywords::file_name = config.get(ptree_prefix + ".bds_file", "none"),
-		    keywords::rotation_size = config.get(ptree_prefix + ".bds_rotation_size", (~0)),
+		    keywords::file_name = config.get(ptree_prefix + ".transaction_file", "none"),
+		    keywords::rotation_size = config.get(ptree_prefix + ".transaction_rotation_size", (~0)),
 		    keywords::auto_flush = true,
             keywords::open_mode = std::ios::app,
             keywords::filter = channel == "BDS");

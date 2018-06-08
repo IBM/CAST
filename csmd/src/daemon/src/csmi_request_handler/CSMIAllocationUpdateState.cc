@@ -435,7 +435,7 @@ bool CSMIAllocationUpdateState::ParseInfoQuery(
             std::string json  = "{\"state\":\"";
             json.append(state).append("\"}");
 
-            BDS("allocation", ctx->GetRunID(), a->allocation_id, json);
+            TRANSACTION("allocation", ctx->GetRunID(), a->allocation_id, json);
         }
         else if ( a->start_state == a->state )
         {
@@ -535,7 +535,7 @@ bool CSMIAllocationUpdateState::CreateByteArray(
                     json.append("\"}");
                 }
 
-                BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+                TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, json);
             }
 
             LOG(csmapi, info) << ctx->GetCommandName() << ctx 

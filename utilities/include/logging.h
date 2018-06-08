@@ -91,7 +91,7 @@ namespace utility
                                << boost::log::add_value("Line"        , __LINE__) \
                                << boost::log::add_value("Function"    , __func__)
 
-#define BDS(type, traceid, uid, data) BOOST_LOG(utility::bds_logger) << "{\"type\":\"" << type << \
+#define TRANSACTION(type, traceid, uid, data) BOOST_LOG(utility::bds_logger) << "{\"type\":\"" << type << \
     "\",\"traceid\":" << traceid << ",\"uid\":" << uid << ",\"data\":" << data << "}"
 
 #define setLoggingLevel(subcomponent, setlevel) \

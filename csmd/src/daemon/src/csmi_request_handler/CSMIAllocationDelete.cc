@@ -437,7 +437,7 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
         
         MCAST_STRUCT *allocation = mcastProps->GetData();
 
-        // Do the transaction/BDS write.
+        // Do the transaction/TRANSACTION write.
         if (allocation )
         {
             std::string end_time_str(tuples[0]->data[0]);
@@ -457,7 +457,7 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
 
             json.append("}");
                 
-            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+            TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, json);
         }
         
         dataLock.unlock();

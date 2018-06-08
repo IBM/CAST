@@ -263,7 +263,7 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
 
             std::string json="";
             csmiGenerateJSON(json, DATA_STRING, allocation, CSM_STRUCT_MAP(INPUT_STRUCT));
-            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+            TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, json);
         }
         else
         {
@@ -492,11 +492,11 @@ bool CSMIAllocationCreate_Master::UndoTerminal(
                     .append(end_time_str).append("\"}}");
             }
 
-            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+            TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, json);
         }
         else
         {
-            BDS("allocation", ctx->GetRunID(), allocation->allocation_id, "{\"state\":\"reverted\"}");
+            TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, "{\"state\":\"reverted\"}");
         }
 
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
@@ -546,7 +546,7 @@ bool CSMIAllocationCreate_Master::CreateByteArray(
 
                 std::string json  = "{\"running-start-timestamp\":\"";
                 json.append(time_str).append("\"}");
-                BDS("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+                TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, json);
             }
         }
         else
