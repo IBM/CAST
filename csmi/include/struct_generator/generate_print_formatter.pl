@@ -24,12 +24,12 @@ my %type_resolver = (
     enum     => [2 ,"\"\""  ],
     enum_bit => [3 ,"\"\""  ], # TODO Implement.
     csm_bool => [4 , "\"\"" ], # Bool is a special case.
-    uint8_t  => [5  ,"\"%\"PRIu8 "], # Do not place any printable types above this.
-    uint32_t => [6 ,"\"%\"PRIu32"],
-    uint64_t => [7 ,"\"%\"PRIu64"],
-    int8_t   => [8 ,"\"%\"PRId8 "],
-    int32_t  => [9 ,"\"%\"PRId32"],
-    int64_t  => [10,"\"%\"PRId64"],
+    uint8_t  => [5  ,"\"%\" PRIu8 "], # Do not place any printable types above this.
+    uint32_t => [6 ,"\"%\" PRIu32"],
+    uint64_t => [7 ,"\"%\" PRIu64"],
+    int8_t   => [8 ,"\"%\" PRId8 "],
+    int32_t  => [9 ,"\"%\" PRId32"],
+    int64_t  => [10,"\"%\" PRId64"],
     int      => [11,"\"%d\"" ],
     short    => [12,"\"%d\"" ],
     long     => [13,"\"%ld\""],
@@ -56,6 +56,7 @@ elsif( $ARGV[0] =~ "^h\$")
     my $min_printable = $type_resolver{uint8_t}[0];
     my $type_enum = "typedef enum {\n";
     my $macro = "\n#define CSM_PRINT_PRIMATIVE( ptr, post)\\\n";
+    my $generic_macro = "\n#define CSM_PRIMATIVE(str, ptr)\\\n";
 
     for my $key (keys %type_resolver) {
         if ( $type_resolver{$key}[0] < $min_printable )
@@ -66,12 +67,14 @@ elsif( $ARGV[0] =~ "^h\$")
         else
         {
             $macro .= "    case $type_resolver{$key}[0]: printf($type_resolver{$key}[1] post, *(($key*)ptr));break;\\\n";
+            $generic_macro .= "    case $type_resolver{$key}[0]: str.append(std::to_string(*(($key*)ptr))).append(\",\"); break;\\\n";
         }
     }
     $macro .= "\n";
     $type_enum .= "} csmi_type_resolver;\n";
     print $type_enum;
     print $macro;
+    print $generic_macro;
 
 }
 

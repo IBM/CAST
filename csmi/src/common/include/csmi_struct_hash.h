@@ -45,6 +45,12 @@ extern "C"
    strcat(str_ptr, format_custom);                                                                       \
    strcat(str_ptr, format_end);
 
+// Determines the size of the supplied field's array.
+#define determine_array_size(array_size, node_type, node_size, struct_ptr)                   \
+    array_size = node_type & CSM_ARRAY_BIT ?                                                 \
+        ( node_type & CSM_FIXED_BIT ? node_size : (size_t) *((char*)struct_ptr + node_size)) \
+        : 1
+
 /// Represents the array bit in the type field of the @ref csmi_struct_tree_t.
 #define CSM_ARRAY_BIT 1 
 
@@ -159,6 +165,17 @@ static inline const csmi_struct_node_t* csmi_search(
 
 #define csmi_printer(print_type, format_str, print_struct, mapping) \
     csmi_printer_internal( print_type, format_str, print_struct, mapping, 0)
+
+/**
+ * @brief Seeks the end of the supplied print string.
+ *
+ * INTERNAL USE ONLY.
+ *
+ * @param[in] print_string A pointer to an arbitrary print string.
+ *
+ * @return The number of characters until the end of the struct in the print string.
+ */
+int seek_struct_end( char* print_string );
 
 /** @todo document. */
 void csmi_printer_internal( 
