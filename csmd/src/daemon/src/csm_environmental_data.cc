@@ -196,6 +196,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
   
   #define CSM_BDS_KEY_TIME_STAMP "timestamp"
   
+  #define CSM_ENV_DATA_GPU_PREFIX "data"
   #define CSM_ENV_DATA_KEY_NODE "node"
 
   // Generate a time_stamp
@@ -277,17 +278,17 @@ std::string CSM_Environmental_Data::Get_Json_String()
         gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_ENV_GPU);
         gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, time_stamp_with_usec);   
         
-        gpu_pt.put(CSM_ENV_DATA_KEY_NODE, node);   
+        gpu_pt.put(CSM_ENV_DATA_GPU_PREFIX "." CSM_ENV_DATA_KEY_NODE, node);   
 
         for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
         {
-          gpu_pt.put( gpu_double_labels[i], std::to_string(gpu_double_data[j]) );
+          gpu_pt.put( CSM_ENV_DATA_GPU_PREFIX "." + gpu_double_labels[i], std::to_string(gpu_double_data[j]) );
           j++;
         }       
         
         for ( uint32_t x = 0; x < gpu_long_labels.size() && y < gpu_long_data.size(); x++ )
         {
-          gpu_pt.put( gpu_long_labels[x], std::to_string(gpu_long_data[y]) );
+          gpu_pt.put( CSM_ENV_DATA_GPU_PREFIX "." + gpu_long_labels[x], std::to_string(gpu_long_data[y]) );
           y++;
         } 
   
