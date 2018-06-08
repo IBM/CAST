@@ -102,7 +102,7 @@ function has_disk()
 # ====================================================================================
 function supported_machine() 
 {
-   model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+   model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
    c=$(echo "${SUPPORTED_MODELS[@]}" | grep -o $model |wc -w)  
    ret=0
    if [ "$c" -ne "1" ]; then

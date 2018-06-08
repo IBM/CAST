@@ -54,7 +54,7 @@ if [ $# -gt 2 ]; then TOTAL_PROCESS=$3; fi
 
 
 me=$(basename $0) 
-model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
 trap 'rm -f /tmp/$$' EXIT

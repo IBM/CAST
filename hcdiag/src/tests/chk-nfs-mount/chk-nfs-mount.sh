@@ -27,17 +27,24 @@ fi
 
 
 me=$(basename $0) 
-model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $(basename $0) on $(hostname -s), machine type $model.\n"          
 
 count=0
+
 for fs in "$@"; do
    timeout 30 ls $fs 1> /dev/null 2>&1
    if [ $? -eq 0 ]; then
-       if [ `findmnt -n -o FSTYPE $fs` == "nfs" ]; then
-          echo "$fs mount is correct"
+       o=`findmnt -n -o FSTYPE $fs` 
+       if [ -n "$o" ]; then 
+          if [ `findmnt -n -o FSTYPE $fs` == "nfs" ]; then
+             echo "$fs mount is correct"
+          else
+             echo "ERROR: $fs mount is incorrect"
+             let count+=1
+          fi
        else
-          echo "ERROR: $fs mount is incorrect"
+          echo "ERROR: perhaps automount is not running?"
           let count+=1
        fi
    else
