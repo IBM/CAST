@@ -50,22 +50,22 @@ node_info:
       max: 3.8
       min: 2.0
     firmware:   
-      name: 1742B
+      name: 1742FxRev8
       versions:
-        - 'HOST Firmware Product: IBM-witherspoon-ibm-OP9_v1.19_1.68 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
-        - 'HOST Firmware Product: -- additional info: hostboot-b1e6bb'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-da1227e'
-        - 'HOST Firmware Product: -- additional info: linux-4.13.5-openpower1-pc511380'
-        - 'HOST Firmware Product: -- additional info: machine-xml-389c56f'
-        - 'HOST Firmware Product: -- additional info: occ-ba4e81e'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.7-1473-g6f195a1'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.0-p3f89369'
-        - 'HOST Firmware Product: -- additional info: sbe-374add4'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.9-rc3'
-        - 'BMC Firmware Product: ibm-v1.99.10-113-g65edf7d-r3-0-g9e4f715 (Active)*'
-
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+           
     gpu: 
       pciids:
         - '0004:04:00.0'
@@ -94,21 +94,21 @@ node_info:
       max: 3.8
       min: 2.0
     firmware:
-      name: 1742ExRev7
+      name: 1742FxRev8
       versions:
-        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.154 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - 'HOST Firmware Product: -- additional info: hostboot-7329fe0'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-9bd4056'
-        - 'HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p70ef7b9'
-        - 'HOST Firmware Product: -- additional info: machine-xml-ecb6952'
-        - 'HOST Firmware Product: -- additional info: occ-8c5b727'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.21.2-243-ga721185-dirty'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.6-p0cd10f8'
-        - 'HOST Firmware Product: -- additional info: sbe-706e220'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.10.3-op910-1'
-        - 'BMC Firmware Product:   ibm-v2.0-0-r44-0-g843c2e1 (Active)*'
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
 
     gpu:
       pciids:
@@ -138,21 +138,21 @@ node_info:
       max: 3.8
       min: 2.0
     firmware:
-      name: 1742FxRev2
+      name: 1742FxRev8
       versions:
-        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.154 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - 'HOST Firmware Product: -- additional info: hostboot-7329fe0'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-9bd4056'
-        - 'HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p70ef7b9'
-        - 'HOST Firmware Product: -- additional info: machine-xml-ecb6952'
-        - 'HOST Firmware Product: -- additional info: occ-8c5b727'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.21.2-243-ga721185-dirty'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.6-p0cd10f8'
-        - 'HOST Firmware Product: -- additional info: sbe-706e220'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.10.3-op910-1'
-        - 'BMC Firmware Product:   ibm-v2.0-0-r44-0-g843c2e1 (Active)*'
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
 
     gpu:
       pciids:
@@ -204,21 +204,21 @@ node_info:
       max: 3.8
       min: 2.0
     firmware:
-      name: 1742FxRev2
+      name: 1742FxRev8
       versions:
-        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.154 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - 'HOST Firmware Product: -- additional info: hostboot-7329fe0'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-9bd4056'
-        - 'HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p70ef7b9'
-        - 'HOST Firmware Product: -- additional info: machine-xml-ecb6952'
-        - 'HOST Firmware Product: -- additional info: occ-8c5b727'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.21.2-243-ga721185-dirty'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.6-p0cd10f8'
-        - 'HOST Firmware Product: -- additional info: sbe-706e220'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.10.3-op910-1'
-        - 'BMC Firmware Product:   ibm-v2.0-0-r44-0-g843c2e1 (Active)*'
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
 
     gpu:
       pciids:
