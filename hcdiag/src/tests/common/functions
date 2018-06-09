@@ -103,13 +103,12 @@ function has_disk()
 function supported_machine() 
 {
    model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
-   c=$(echo "${SUPPORTED_MODELS[@]}" | grep -o $model |wc -w)  
    ret=0
-   if [ "$c" -ne "1" ]; then
-      echo "Machine type $model not supported." 
-      ret=1
-   fi
-   ### 
+   if [[ "${model}" =~ [0]+  ]]; then echo "WARN: $model. Invalid machine model, continuing."; return; fi
+
+   c=$(echo "${SUPPORTED_MODELS[@]}" | grep -o $model |wc -w)  
+   if [ "$c" -ne "1" ]; then echo "Machine type $model not supported." ; ret=1; return; fi
+   
    is_witherspoon=False
    is_garrison=False
    is_firestone=False
