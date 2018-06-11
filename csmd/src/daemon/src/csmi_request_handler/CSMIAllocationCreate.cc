@@ -64,8 +64,6 @@ CSMIAllocationCreate_Master::CSMIAllocationCreate_Master(csm::daemon::HandlerOpt
     
     const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
 
-    LOG(csmapi,error) << STATE_NAME ":Timeout TIME "<<  MASTER_TIMEOUT;
-
     // State for reservation of the nodes.
     SetState( RESERVE_NODES, 
         new StatefulDBRecvSend<ReserveNodes>(
