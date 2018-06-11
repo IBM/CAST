@@ -40,24 +40,28 @@ export me=$(basename $0)
 
 sudo -E bash <<"EOF"
 
+
+trap 'rm -f /tmp/$$' EXIT
+
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-rc=0
+rc=1
 if [ -x /usr/lpp/mmfs/bin/mmhealth ]; then 
-  /usr/lpp/mmfs/bin/mmhealth node show | tee 1
+  /usr/lpp/mmfs/bin/mmhealth node show | tee /tmp/$$
+  ls -ltr /tmp/$$
   echo ""
   rc=$?
   if [ $rc -eq 0 ]; then 
-     status=`grep "Node status:" 1 | awk '{print $3}'`
+     status=`grep "Node status:" /tmp/$$ | awk '{print $3}'`
      if [ ${status} ]; then
-        if [ "${status}" != "HEALTHY" ]; then
+        if [ "${status}" == "HEALTHY" ]; then
+           rc=0
+        else
            echo "ERROR: Node health is: ${status}"  
-           rc=1
         fi
      else 
         echo "ERROR: Node health is: ${status}"  
-        rc=2
      fi
   else
      echo "ERROR: '/usr/lpp/mmfs/bin/mmhealth node show' command failed"
