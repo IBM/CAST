@@ -49,7 +49,6 @@ echo -e "Running $me on $(hostname -s), machine type $model.\n"
 rc=1
 if [ -x /usr/lpp/mmfs/bin/mmhealth ]; then 
   /usr/lpp/mmfs/bin/mmhealth node show | tee /tmp/$$
-  ls -ltr /tmp/$$
   echo ""
   rc=$?
   if [ $rc -eq 0 ]; then 
