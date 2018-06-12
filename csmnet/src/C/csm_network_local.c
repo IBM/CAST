@@ -952,7 +952,7 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
     iov[0].iov_base = rbuf;
     iov[0].iov_len = sizeof( csm_network_header_t );
     iov[1].iov_base = data;
-    iov[1].iov_len = (DGRAM_PAYLOAD_MAX - (aEP->_BufferState._DataEnd - aEP->_DataBuffer)) - CMSG_SPACE( sizeof( csm_net_msg_t ) );
+    iov[1].iov_len = (DGRAM_PAYLOAD_MAX - (aEP->_BufferState._DataEnd - aEP->_DataBuffer));
 
     memset( &msg, 0, sizeof( struct msghdr ) );
     msg.msg_iov = iov;
@@ -964,7 +964,7 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
     if( partial != 0 )
     {
       msg.msg_iovlen = 1;
-      iov[0].iov_len = (DGRAM_PAYLOAD_MAX - (aEP->_BufferState._DataEnd - aEP->_DataBuffer)) - CMSG_SPACE( sizeof( csm_net_msg_t ) );
+      iov[0].iov_len = (DGRAM_PAYLOAD_MAX - (aEP->_BufferState._DataEnd - aEP->_DataBuffer));
       data = rbuf;
     }
 
@@ -1019,11 +1019,15 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
     {
         case MSG_TRUNC:
             csmutil_logging( critical, "TRUNCATED INCOMING DATA!!!"
-                " TODO: another recv for remaining data!!!");
+                " Part of data is lost!!! rlen=%d", rlen);
+            errno = ENOBUFS;
+            rlen = -1;
             break;
         case MSG_CTRUNC:
             csmutil_logging( critical, "TRUNCATED INCOMING CONTROL-DATA!!!"
-                " TODO: another recv for remaining data!!!");
+                " Msg Control data is lost!!!");
+            errno = ENOBUFS;
+            rlen = -1;
             break;
         case MSG_OOB:
         case MSG_ERRQUEUE:
@@ -1085,7 +1089,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
     csm_dgram_buffer_state_t *EPBS = &( aEP->_BufferState );
     if( ( EPBS->_BufferedData < aEP->_DataBuffer ) ||
         ( EPBS->_DataEnd < EPBS->_BufferedData ) ||
-        ( EPBS->_BufferedDataLen > DGRAM_PAYLOAD_MAX ) ||
+        ( EPBS->_BufferedDataLen >= DGRAM_PAYLOAD_MAX ) ||
         (   ( EPBS->_BufferedDataLen < DGRAM_PAYLOAD_MAX ) &&
             ( aEP->_BufferState._BufferedData > aEP->_DataBuffer + DGRAM_PAYLOAD_MAX - aEP->_BufferState._BufferedDataLen)
         ) )
