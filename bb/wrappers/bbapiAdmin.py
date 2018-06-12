@@ -132,15 +132,25 @@ def BB_CreateLogicalVolume(pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
 
     print "%sBB_CreateLogicalVolume issued to create logical volume with size %s, directory %s mounted, file system flag %s" % (os.linesep, pSize, pMountpoint, BBCREATEFLAGS[l_Flags.value])
 
-    while (rc not in l_NormalRCs and rc in l_ToleratedErrorRCs):
+    while (True):
         rc = bb.api.BB_CreateLogicalVolume(l_Mountpoint, l_Size, l_Flags)
-        if (rc not in (l_NormalRCs + l_ToleratedErrorRCs)):
-            raise BB_CreateLogicalVolumeError(rc)
+        if (rc in (l_NormalRCs + l_ToleratedErrorRCs)):
+            if (rc in l_ToleratedErrorRCs):
+                dummy = BBError()
+                if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
+                    print "Logical volume cannot be created because of a suspended condition.  This create logical volume request will be attempted again in three seconds."
+                    time.sleep(3)
+                else:
+                    print "Logical volume cannot be created now. See error details."
+                    break
+            else:
+                break
         else:
-            time.sleep(10)
+            raise BB_CreateLogicalVolumeError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Logical volume created with size %s, directory %s mounted, file system flag %s" % (pSize, pMountpoint, BBCREATEFLAGS[l_Flags.value])
+    if (rc == 0):
+        print "Logical volume created with size %s, directory %s mounted, file system flag %s" % (pSize, pMountpoint, BBCREATEFLAGS[l_Flags.value])
 
     return
 
@@ -288,17 +298,28 @@ def BB_RestartTransfers(pHostName, pHandle, pTransferDefs, pTransferDefsSize):
 
     print '%sBB_RestartTransfers issued to restart transfer definitions using this criteria:  hostname %s, handle %d, transferdefs size %d, transferdefs %s' % (os.linesep, ValueMap.get(l_HostName.value, l_HostName.value), l_Handle.value, pTransferDefsSize.value, pTransferDefs.value)
 
-    while (rc not in l_NormalRCs and rc in l_ToleratedErrorRCs):
+    while (True):
         rc = bb.api.BB_RestartTransfers(l_HostName, l_Handle, byref(l_NumberOfRestartedTransferDefs), byref(pTransferDefs), pTransferDefsSize)
-        if (rc not in (l_NormalRCs + l_ToleratedErrorRCs)):
-            raise BB_RestartTransfersError(rc)
+        if (rc in (l_NormalRCs + l_ToleratedErrorRCs)):
+            if (rc in l_ToleratedErrorRCs):
+                dummy = BBError()
+                if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
+                    print "Restart transfers cannot be performed for handle %s because of a suspended condition.  This restart transfers request will be attempted again in three seconds." % (l_Handle)
+                    time.sleep(3)
+                else:
+                    print "Restart transfers cannot be performed for handle %s. See error details." % (l_Handle)
+                    break
+            else:
+                break
         else:
-            time.sleep(10)
+            raise BB_RestartTransfersError(rc)
+
 
     bb.printLastErrorDetailsSummary()
     print '%sBB_RestartTransfers completed' % (os.linesep)
 
-    return l_NumberOfRestartedTransferDefs.value
+    if (rc == 0):
+        return l_NumberOfRestartedTransferDefs.value
 
 def BB_Resume(pHostHame):
     l_HostName = bb.cvar("hostname", pHostHame)
