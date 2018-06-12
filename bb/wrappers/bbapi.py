@@ -524,8 +524,8 @@ def BB_StartTransfer(pTransferDef, pHandle):
             if (rc in l_ToleratedErrorRCs):
                 dummy = BBError()
                 if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
-                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in one second." % (`pTransferDef`, pHandle)
-                    time.sleep(1)
+                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in three seconds." % (`pTransferDef`, pHandle)
+                    time.sleep(3)
                 else:
                     print "Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic will resubmit this start transfer operation." % (`pTransferDef`, pHandle)
                     break

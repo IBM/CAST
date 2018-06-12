@@ -1267,7 +1267,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
-            errorText << "Connection to the active server is suspended";
+            errorText << "Connection to the active server is suspended. Attempt to retry the create logical volume request when the connection is not suspended.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
@@ -2498,7 +2498,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
         {
             // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
-            errorText << "Connection to the active server is suspended";
+            errorText << "Connection to the active server is suspended. Attempt to retry the restart transfers request when the connection is not suspended.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
@@ -3155,7 +3155,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         {
             // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
-            errorText << "Connection to the active server is suspended";
+            errorText << "Connection to the active server is suspended. Attempt to retry the start transfer request when the connection is not suspended.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
