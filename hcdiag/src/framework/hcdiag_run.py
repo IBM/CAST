@@ -115,10 +115,6 @@ if __name__ == "__main__":
                        type=str, metavar='dir', help='root directory for the log files')
   parser.add_argument('--stoponerror',
                        type=str, choices=['no','node','system'], metavar='action', help='define action if test fail {no: continue, node: stop at node level, system: stop the run}')
-  parser.add_argument('--allocation_id',
-                       type=int, help='allocation id if it is know}')
-  parser.add_argument('--job_id',
-                       type=int, help='job id if it is known}')
   # this is console verbose
   parser.add_argument('--verbose', '-v', 
                        type=str, choices=['debug','info', 'warn', 'error', 'critical'], metavar='level', help='stdout verbosity {debug, info, warn, error, critical}')
@@ -169,7 +165,6 @@ if __name__ == "__main__":
         print me, ': running in Node mode, --fanout will be innored.'
 
 
-      
   usecsm= False
   csmidir= None
   if mconfig['csm'] == 'yes' : 
@@ -180,10 +175,7 @@ if __name__ == "__main__":
        sys.exit(1)
      usecsm= True
 
-  if args and args.job_id: 
-     runid=args.job_id;
-  else :
-     runid=datetime.now().strftime("%y%m%d%H%M%S%f")
+  runid=datetime.now().strftime("%y%m%d%H%M%S%f")
 
   logd= '%s/%s' %(mconfig['logdir'], runid )
   logf= '%s/%s-%s.log' %(mconfig['logdir'], me, runid)
@@ -202,9 +194,7 @@ if __name__ == "__main__":
 
   
   thisuser = getpass.getuser() 
-  allocation_id=0
-  if args and args.allocation_id: allocation_id=args.allocation_id
-  csmii = csmi.CsmiInterface(logger, csmidir, usecsm, allocation_id,  runid, thisuser, allocation_id )
+  csmii = csmi.CsmiInterface(logger, csmidir, usecsm, mconfig['allocation'],  runid, thisuser )
 
   logger.set_csmi(csmii)
   if mgmt_mode:
