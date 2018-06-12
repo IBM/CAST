@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_wrapper_delete_script_template.sh
+#    csm_ras_event_action_wrapper_delete_script.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -16,7 +16,7 @@
 
 #================================================================================
 #   usage:         Delete related history table data which has been archived
-#   version:       1.1
+#   version:       1.0
 #   create:        04-10-2017
 #   last modified: 06-11-2017
 #================================================================================
@@ -66,7 +66,7 @@ pid=$BASHPID
 #-------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------
-script_name="csm_history_wrapper_delete_script_template.sh"
+script_name="csm_ras_event_action_wrapper_delete_script.sh"
 #echo "------------------------------------------------------------------------------"
 
 #----------------------------------------------------------------
@@ -85,7 +85,7 @@ average="0"
         echo "----------------------------------------------------------------------------------------------------------------------"
         echo "[Error  ] illegal # of import arguments"
         echo "[Info   ] Data_dir is where the archive files will be written"
-        echo "[Example] [./csm_history_wrapper_delete_script_template.sh] [dbname] [time_mins] [history_table_name] [data_dir]"
+        echo "[Example] [./csm_ras_event_action_wrapper_delete_script.sh] [dbname] [time_mins] [table_name] [data_dir]"
         echo "----------------------------------------------------------------------------------------------------------------------"
         exit 1
     fi
@@ -160,9 +160,9 @@ average="0"
 
     echo "-------------------------------------------------------------------------------------------------------------"
     LogMsg "---------------------------------------------------------------------------------------"
-    echo   "[Info   ] Delete process for $table_name has been interrupted or terminated."
+    echo   "[Info   ] Delete process for $table_name1 has been interrupted or terminated."
     echo   "[Info   ] Please see log file for more details"
-    LogMsg "[Info  ] Delete process for $table_name has been interrupted or terminated."
+    LogMsg "[Info  ] Delete process for $table_name1 has been interrupted or terminated."
     LogMsg "[Info  ] Please see log file for more details"
     LogMsg "[End   ] Exiting csm_history_wrapper_delete_script_template.sh."
     echo "-------------------------------------------------------------------------------------------------------------"
@@ -247,15 +247,14 @@ declare -A delete_array
 # All the raw combined timing results before trimming
 #----------------------------------------------------------------
 
-    all_results="$data_dir/${pid}_csm_db_history_delete_results.$now.timings"
+    all_results="$data_dir/${pid}_csm_db_ras_delete_results.$now.timings"
     delete_avg_results="delete_avg_results_$count_$now.csv"
 
 #-------------------------------------------------------------------------------------------------------------------
-# This is the script that deletes the Beta 1 history tables
+# This is the script that deletes the history tables
 #-------------------------------------------------------------------------------------------------------------------
-
     
-    ./csm_history_table_delete_template.sh $dbname $interval_time $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
+    ./csm_ras_event_action_table_delete.sh $dbname $interval_time $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
     awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) ($table_name1.del ) [Error ] "'" $0 }' | tee -a >>"${logfile}" &
 
 #-------------------------------------------------------------------------------------------------------------------
@@ -285,8 +284,8 @@ getArray() {
 }
 
 d=0
-if [[ -f "${data_dir}${pid}_tmp_delete_count.count" ]]; then
-    line=$(head -n 1 "${data_dir}${pid}_tmp_delete_count.count")
+if [[ -f "${data_dir}${pid}_ras_tmp_delete_count.count" ]]; then
+    line=$(head -n 1 "${data_dir}${pid}_ras_tmp_delete_count.count")
     if [ -z "$line" ]; then
         echo "-------------------------------------------------------------------------------------------------------------"
         echo "[Error: ] The directory ($data_dir$table_name1) was invalid."
@@ -298,11 +297,11 @@ if [[ -f "${data_dir}${pid}_tmp_delete_count.count" ]]; then
         LogMsg "[Info  ] Exiting CSM datatbase: ${table_name1}_wrapper_delete_script.sh"
         #echo "-------------------------------------------------------------------------------------------------------------"
         rm ${all_results}
-        rm ${data_dir}${pid}_tmp_delete_count.count
+        rm ${data_dir}${pid}_ras_tmp_delete_count.count
         finish
         exit 0
     else    
-        for file in $( ls -1 $data_dir/${pid}_tmp_delete_count.count)
+        for file in $( ls -1 $data_dir/${pid}_ras_tmp_delete_count.count)
         do
         getArray "$file"
         done
@@ -371,7 +370,7 @@ echo "-------------------------------|-------------|----------------------------
 #----------------------------------------------------------------
 
     rm ${all_results}
-    rm ${data_dir}${pid}_tmp_delete_count.count
+    rm ${data_dir}${pid}_ras_tmp_delete_count.count
 
 #----------------------------------------------------------------
 

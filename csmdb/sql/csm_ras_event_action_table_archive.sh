@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_table_archive_template.sh
+#    csm_ras_event_action_table_archive.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,9 +15,9 @@
 #================================================================================
 
 #================================================================================
-#   usage:         run ./csm_history_table_archive_template.sh
-#   version:       1.1
-#   create:        02-01-2018
+#   usage:         run ./csm_ras_event_action_table_archive.sh
+#   version:       1.0
+#   create:        06-01-2018
 #   last modified: 06-11-2018
 #   change log:
 #================================================================================
@@ -64,7 +64,7 @@ average="0"
 #        echo "------------------------------------------------------------------------------------------------------------------------"
 #        echo "[Error  ] illegal # of import arguments"
 #        echo "[Info   ] Data_dir is where the archive files will be written"
-#        echo "[Example] [./csm_history_table_archive_template.sh] [dbname] [archive_counter] [history_table_name] [/data_dir/]"
+#        echo "[Example] [./csm_ras_event_action_table_archive.sh] [dbname] [archive_counter] [table_name] [/data_dir/]"
 #        echo "------------------------------------------------------------------------------------------------------------------------"
 #        exit 1
 #    fi
@@ -122,12 +122,12 @@ average="0"
 #    echo "$LogTime ($pid) ($current_user) ($table_name.arc ) $1" >> $logfile
 #    }
 #
-#   LogMsg "[Start   ] Welcome to CSM datatbase: ./csm_history_table_archive_template.sh."
+#   LogMsg "[Start   ] Welcome to CSM datatbase: ./csm_ras_event_action_table_archive.sh."
 
 #--------------------------------------------------------------------------------
 # Check if postgresql exists already (not used when combined with wrapper script)
 #--------------------------------------------------------------------------------
-
+#
 #    psql -l 2>&1>/dev/null
 #    if [ $? -eq 0  ]; then
 #        LogMsg "------------------------------------------------------------------------------"
@@ -141,7 +141,7 @@ average="0"
 #        LogMsg "---------------------------------------------------------------------------------------"
 #        exit 1
 #    fi
-
+#
 #----------------------------------------------------------------
 # Check if database exists
 #----------------------------------------------------------------
@@ -174,17 +174,18 @@ average="0"
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
-# Along with csm allocation history archive results
+# Along with csm_ras_event_action archive results
 #----------------------------------------------------------------
 
     time="$(time ( ls ) 2>&1 1>/dev/null )"
 
 #-------------------------------------------------------------------------------
-# psql history archive query execution
+# psql ras archive query execution
 #-------------------------------------------------------------------------------
 return_code=0
 if [ $? -ne 127 ]; then
-archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_END
+archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERROR_STOP=1" << THE_END
+            \set ON_ERROR_STOP TRUE
             BEGIN;
             --DROP TABLE IF EXISTS temp_$table_name;
             CREATE TEMP TABLE temp_$table_name
@@ -192,14 +193,14 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_E
                     (SELECT *,'${table_name}' AS _table, ctid AS id
                         FROM $table_name
                         WHERE archive_history_time IS NULL
-                        ORDER BY history_time ASC
+                        ORDER BY master_time_stamp ASC
                         LIMIT $archive_counter FOR UPDATE); -- (Lock rows associated with this archive batch)
                     
                         UPDATE $table_name
                         SET archive_history_time = 'now()'
                         FROM temp_$table_name
                         WHERE
-                        $table_name.history_time = temp_$table_name.history_time
+                        $table_name.master_time_stamp = temp_$table_name.master_time_stamp
                         AND
                         $table_name.archive_history_time IS NULL
                         AND

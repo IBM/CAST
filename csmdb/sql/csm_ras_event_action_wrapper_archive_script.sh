@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_wrapper_delete_script_template.sh
+#    csm_ras_event_action_wrapper_archive_script.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,10 +15,10 @@
 #================================================================================
 
 #================================================================================
-#   usage:         Delete related history table data which has been archived
-#   version:       1.1
-#   create:        04-10-2017
-#   last modified: 06-11-2017
+#   usage:         Archive csm_ras_event_action table
+#   version:       1.0
+#   created:       06-01-2018
+#   last modified: 06-11-2018
 #================================================================================
 
 #----------------------------------------------------------------
@@ -41,16 +41,21 @@ OPTERR=0
 #----------------------------------------------------------------
 # Command line variables passed in:
 # 1. Database Name,
-# 2. Minute interval value passed in for deleting history records
+# 2. Value of archive records to be processed
 #----------------------------------------------------------------
 
 DEFAULT_DB="csmdb"
 logpath="/var/log/ibm/csm/db"
-logname="csm_db_delete_script.log"
-tmp_logname="$$_csm_db_delete_script.log"
+logname="csm_db_archive_script.log"
+tmp_logname="$$_csm_db_archive_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 dbname=$DEFAULT_DB
-now=$(date '+%Y-%m-%d.%H.%M.%S')
+now=$(date '+%Y-%m-%d.%H.%M.%S.%N')
+
+#------------------------------------------------------------------------------------
+script_name="csm_ras_event_action_wrapper_archive_script.sh"
+#echo "------------------------------------------------------------------------------"
+#echo "[Script name:   ]  $script_name"
 
 #-------------------------------------------------------------------------------
 # Current user connected
@@ -61,16 +66,8 @@ db_username="postgres"
 now1=$(date '+%Y-%m-%d %H:%M:%S')
 pid=$BASHPID
 
-#-------------------------------------------------------------------------------
-# Environment variables for delete counts
-#-------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------------
-script_name="csm_history_wrapper_delete_script_template.sh"
-#echo "------------------------------------------------------------------------------"
-
 #----------------------------------------------------------------
-#  These are the variables for the avg processing
+# These are the variables for the avg processing
 #----------------------------------------------------------------
 
 count=0
@@ -82,31 +79,30 @@ average="0"
 #----------------------------------------------------------------
 
     if [ "$#" -ne 4 ]; then
-        echo "----------------------------------------------------------------------------------------------------------------------"
+        echo "------------------------------------------------------------------------------------------------------------------------"
         echo "[Error  ] illegal # of import arguments"
         echo "[Info   ] Data_dir is where the archive files will be written"
-        echo "[Example] [./csm_history_wrapper_delete_script_template.sh] [dbname] [time_mins] [history_table_name] [data_dir]"
-        echo "----------------------------------------------------------------------------------------------------------------------"
+        echo "[Example] [./csm_ras_event_action_wrapper_archive_script.sh] [dbname] [archive_counter] [table_name] [/data_dir/]"
+        echo "------------------------------------------------------------------------------------------------------------------------"
         exit 1
     fi
 
     dbname=$1
-    interval_time=$2
-    i=$interval_time
+    archive_counter=$2
     table_name1=$3
     data_dir=$4
     cur_path=$data_dir
-    logpath=$data_dir
+    logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
 
 #----------------------------------------------------------------
 # Below makes the directory if it does not exist
 # First checks if the "/" is specified at the end of the
 # directory given path. If not then it is added
 #----------------------------------------------------------------
-
+    
     if [[ "${data_dir: -1}" != "/" ]]; then
         data_dir="${data_dir}/"
-    fi
+    fi 
 
     if [[ ! -e $data_dir ]]; then
         mkdir -p $data_dir 2>>/dev/null
@@ -115,7 +111,7 @@ average="0"
             echo "[Error  ] make directory failed for: $data_dir"
             echo "[Info   ] mkdir: cannot create directory ‘$data_dir’: Permission denied"
             echo "[Info   ] please provide a valid writable directory"
-            echo "------------------------------------------------------------------------------------------------------------------------" 
+            echo "------------------------------------------------------------------------------------------------------------------------"
             exit 1
         else
             chown postgres:postgres $data_dir
@@ -145,12 +141,12 @@ average="0"
 #-------------------------------------------------------------------------------
 
      function LogMsg () {
-     LogTime=$(date '+%Y-%m-%d %H:%M:%S')
-     echo "$LogTime ($pid) ($current_user) ($table_name1.del ) $1" >> $logfile
+     LogTime=$(date '+%Y-%m-%d.%H:%M:%S')
+     echo "$LogTime ($pid) ($current_user) ($table_name1.arc ) $1" >> $logfile 2>&1
      }
 
      LogMsg "[Start ] Welcome to CSM database:"
-     LogMsg "---------------------------------------------------------------------------------------"
+     LogMsg "------------------------------------------------------------------------------------"
 
 #-------------------------------------------------------------------------------
 # Error Log Message
@@ -158,14 +154,14 @@ average="0"
 
     function finish () {
 
-    echo "-------------------------------------------------------------------------------------------------------------"
+    echo   "---------------------------------------------------------------------------------------"
     LogMsg "---------------------------------------------------------------------------------------"
-    echo   "[Info   ] Delete process for $table_name has been interrupted or terminated."
+    echo   "[Info   ] Archiving process for $table_name has been interrupted or terminated."
     echo   "[Info   ] Please see log file for more details"
-    LogMsg "[Info  ] Delete process for $table_name has been interrupted or terminated."
+    LogMsg "[Info  ] Archiving process for $table_name has been interrupted or terminated."
     LogMsg "[Info  ] Please see log file for more details"
-    LogMsg "[End   ] Exiting csm_history_wrapper_delete_script_template.sh."
-    echo "-------------------------------------------------------------------------------------------------------------"
+    LogMsg "[End   ] Exiting csm_ras_event_action_wrapper_archive_script.sh."
+    echo   "---------------------------------------------------------------------------------------"
     echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
 
     cat ${data_dir}$tmp_logname >> ${data_dir}$logname
@@ -178,7 +174,7 @@ average="0"
 # Check if postgresql exists already
 #----------------------------------------------------------------
 
-string1="$now1 ($pid) ($current_user) ($table_name1.del ) [Info  ] DB Names:"
+string1="$now1 ($pid) ($current_user) ($table_name1.arc ) [Info  ] DB Names:"
 psql -l 2>>/dev/null $logfile
 
 #if [ $? -eq 0 ]; then
@@ -187,8 +183,10 @@ db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
 \set ON_ERROR_STOP true
 select string_agg(datname,' | ') from pg_database;
 EOF`
-    echo "$string1 $db_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile
+    echo "$string1 $db_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile 2>&1
+    LogMsg "---------------------------------------------------------------------------------------"
     LogMsg "[Info  ] PostgreSQL is installed"
+#   LogMsg "---------------------------------------------------------------------------------------"
 else
     echo "-----------------------------------------------------------------------------------------"
     echo "[Error ] PostgreSQL may not be installed. Please check configuration settings"
@@ -198,8 +196,8 @@ else
     exit 1
 fi
 
-     LogMsg "[Info  ] $table_name1.wrapper_delete_script.sh"
-     LogMsg "---------------------------------------------------------------------------------------"
+        LogMsg "[Info  ] csm_ras_event_action_wrapper_archive_script.sh"
+        #LogMsg "------------------------------------------------------------------------------------"
 
 #----------------------------------------------------------------
 # Check if database exists
@@ -217,15 +215,15 @@ fi
 #----------------------------------------------------------------
 
     if [ $db_exists == "no" ]; then
-    
+
         LogMsg "[Start ] Database does not exist."
         echo "-------------------------------------------------------------------------------------------------------------"
         echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
-        echo "[Info    ] Please provide a valid DB that exists on the system."
+        echo "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
         echo "-------------------------------------------------------------------------------------------------------------"
         LogMsg "[Error ] Cannot perform action because the $dbname database does not exist. Exiting."
-        LogMsg "[End   ] Please provide a valid DB that exists on the system."
-        echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+        LogMsg "[End   ] Please provide a valid DB that exists on the system (hint: psql -l)."
+        LogMsg "------------------------------------------------------------------------------------"
         exit 1
     fi
 
@@ -234,38 +232,35 @@ fi
 #-----------------------------------------------
 
 declare -A avg_data
-declare -A delete_array
 
 #----------------------------------------------------------------
 # This should be in the order of each of the child history scripts
 #----------------------------------------------------------------
 
     table_name=()
-    table_name+=(${3}                          )
+    table_name+=(${3}                  )
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
 #----------------------------------------------------------------
 
-    all_results="$data_dir/${pid}_csm_db_history_delete_results.$now.timings"
-    delete_avg_results="delete_avg_results_$count_$now.csv"
+    all_results="$data_dir/${pid}_$table_name1_archive_results.$now.timings"
 
-#-------------------------------------------------------------------------------------------------------------------
-# This is the script that deletes the Beta 1 history tables
-#-------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------
+# These are the individual history tables being archived
+#----------------------------------------------------------------
 
-    
-    ./csm_history_table_delete_template.sh $dbname $interval_time $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
-    awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) ($table_name1.del ) [Error ] "'" $0 }' | tee -a >>"${logfile}" &
+./csm_ras_event_action_table_archive.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
+        awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) ($table_name1.arc ) [Error ] "'"$0}' | tee -a >>"${logfile}"
 
 #-------------------------------------------------------------------------------------------------------------------
 # Waits for the process to finish before calculating and trimming the results
 #-------------------------------------------------------------------------------------------------------------------
 
-    wait
+    wait        
 
 #----------------------------------------------------------------
-# Create the delete count array from external file
+# Create the archive count array from external file
 #----------------------------------------------------------------
 # 1. create array
 # 2. read a line in
@@ -274,105 +269,88 @@ declare -A delete_array
 #----------------------------------------------------------------
 
 z=0
-
-getArray() {
-    delete_array=()
-    while IFS= read -r line
-    do
-       delete_array[${table_name[z]}]="$line"
-       ((z++))
-    done < "$1"
-}
-
 d=0
-if [[ -f "${data_dir}${pid}_tmp_delete_count.count" ]]; then
-    line=$(head -n 1 "${data_dir}${pid}_tmp_delete_count.count")
-    if [ -z "$line" ]; then
-        echo "-------------------------------------------------------------------------------------------------------------"
-        echo "[Error: ] The directory ($data_dir$table_name1) was invalid."
-        LogMsg "[Error ] The directory ($data_dir$table_name1) was invalid."
-        echo "[Error: ] Or the table: $table_name1 is not a valid deletion table."
-        LogMsg "[Error ] Or the table: $table_name1 is not a valid deletion table."
-        echo "[Info:  ] Please check the log file: $data_dir$logname for detailed info."
-        LogMsg "[Info  ] Please check the log file: $data_dir$logname for detailed info."
-        LogMsg "[Info  ] Exiting CSM datatbase: ${table_name1}_wrapper_delete_script.sh"
-        #echo "-------------------------------------------------------------------------------------------------------------"
-        rm ${all_results}
-        rm ${data_dir}${pid}_tmp_delete_count.count
-        finish
-        exit 0
-    else    
-        for file in $( ls -1 $data_dir/${pid}_tmp_delete_count.count)
+
+declare -A archive_array
+
+if [ -f "$data_dir/${pid}_$table_name1.count" ]; then
+    for file in $( ls -1 $data_dir/${pid}_$table_name1.count)
         do
-        getArray "$file"
+            archive_array[${table_name[z]}]=$(cat $file)
+            ((z++))
         done
-    fi
+else
+    echo "-------------------------------------------------------------------------------------------------------------"
+    echo "[Error: ] The directory ($data_dir$table_name1) was invalid."
+    LogMsg "[Error ] The directory ($data_dir$table_name1) was invalid."
+    echo "[Error: ] Or the table: $table_name1 is not a valid archiving table."
+    LogMsg "[Error ] Or the table: $table_name1 is not a valid archiving table."
+    echo "[Info:  ] Please check the log file: $data_dir$logname for detailed info."
+    LogMsg "[Info  ] Please check the log file: $data_dir$logname for detailed info."
+    LogMsg "[Info  ] Exiting: $table_name1 archive process"
+    #echo "-------------------------------------------------------------------------------------------------------------"
+    rm ${all_results}
+    #rm ${data_dir}${pid}_$table_name1.count
+    finish    
+    echo "-------------------------------------------------------------------------------------------------------------"
+    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+    exit 0
 fi
+
 #-------------------------------------------------------------------------------------------------------------------
-# This calculates and trims the results to a csv file and sets array index for table names
+# This calculates and trims the results to a csv file
 #-------------------------------------------------------------------------------------------------------------------
 
     j=0
+    echo "------------------------------------------------------------------------------"
+
     for i in $(grep real $all_results | awk '{ print substr($2,3,5) }'); do
         total=$(echo $total+$i | bc | awk '{printf "%.3f\n", $0}')
-#        echo "$i" >> "${data_dir}/${trim_timing_file}"
+#       echo "$i" >> "${data_dir}/${trim_timing_file}"
         avg_data[${table_name[j]}]="$i"
         ((count++))
         ((j++))
     done
 
     average=$(echo "scale=6; $total / $count" | bc | awk '{printf "%.3f\n", $0}')
-#    echo $average > "${data_dir}/${delete_avg_results}"
+#   echo $average > "${data_dir}/${avg_results}"
 
-#----------------------------------------------------------------
-# Headers to be displayed for the loop below
-#----------------------------------------------------------------
-
-echo "------------------------------------------------------------------------------"
-echo "  Table                        | Time        |  Delete Count                  "
+echo "  Table                        |  Time       |  Archive Count                 "          
 echo "-------------------------------|-------------|--------------------------------"
 
-#----------------------------------------------------------------
-# This loop combines both table name and delete count 
-#----------------------------------------------------------------
+LogMsg "------------------------------------------------------------------------------------"
 
-    for ((j=0; j<${#table_name[*]}; j++));
-    do
-        table=${table_name[j]}
-        table_avg=${avg_data[$table]}
-        delete_count=${delete_array[$table]}
-        printf '%-0s %-29s %-13s %0s\n' "" "$table" "|  $table_avg" "|   $delete_count"
-        LogMsg "[Info  ] Tbl name: $table | Tbl time: $table_avg | Del count: $delete_count"
-    done
+for ((j=0; j<${#table_name[*]}; j++));
+do
+    table=${table_name[j]}
+    table_avg=${avg_data[$table]}
+    archive_count=${archive_array[$table]}
+    printf '%-0s %-29s %-13s %0s\n' "" "$table" "|  $table_avg" "|   $archive_count"
+    LogMsg "[Info  ] Tbl name: $table | Tbl time: $table_avg | Arc ct: $archive_count"
+done
 
-#----------------------------------------------------------------
-# Displays the results to the screen 
-#----------------------------------------------------------------
+      echo "------------------------------------------------------------------------------"
+      echo " Date/Time:                    |  $now"
+      echo " DB Name:                      |  $dbname"
+      echo " DB User:                      |  $current_user"
+      echo " archive_counter:              |  $archive_counter"
+      echo " Total time:                   |  $total"
+      echo " Average time:                 |  $average"
+      echo "------------------------------------------------------------------------------"
 
-        echo "------------------------------------------------------------------------------"
-        echo " Date/Time:                    |  $now"
-        echo " DB Name:                      |  $dbname"
-        echo " DB User:                      |  $current_user"
-        echo " Interval time:                |  $interval_time Min(s)."
-        echo " Total time:                   |  $total"
-        echo " Average time:                 |  $average"
-        echo "------------------------------------------------------------------------------"
-       
-        LogMsg "---------------------------------------------------------------------------------------"
-        LogMsg "[Info  ] Total Time:   $total"
-        LogMsg "[Info  ] Average Time: $average"
-        LogMsg "---------------------------------------------------------------------------------------"
-        LogMsg "[End   ] Complete CSM datatbase: ${table_name1}_wrapper_delete_script.sh"
-#       LogMsg "---------------------------------------------------------------------------------------"
-        echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+      LogMsg "------------------------------------------------------------------------------------"
+      LogMsg "[Info  ] Total Time:   $total"
+      LogMsg "[Info  ] Average Time: $average"
+      LogMsg "------------------------------------------------------------------------------------"
+      LogMsg "[End   ] Complete: $table_name1 archive process"
+      echo "-------------------------------------------------------------------------------------------------------------------------------------------------------" >> $logfile
 
 #----------------------------------------------------------------
-# This removes all .timing & .count files left over
+# This removes all .timing files left over
 #----------------------------------------------------------------
 
     rm ${all_results}
-    rm ${data_dir}${pid}_tmp_delete_count.count
-
+    rm ${data_dir}${pid}_$table_name1.count
 #----------------------------------------------------------------
 
 #----------------------------------------------------------------

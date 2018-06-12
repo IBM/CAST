@@ -16,10 +16,25 @@
 
 #================================================================================
 #   usage:         Archive history related tables
-#   version:       1.0
+#   version:       1.1
 #   created:       04-10-2017
-#   last modified: 03-15-2017
+#   last modified: 06-11-2018
 #================================================================================
+
+#----------------------------------------------------------------
+# Traps any interrupted or terminated sessions 
+# (see finish function below)
+#----------------------------------------------------------------
+
+trap finish SIGINT
+trap finish SIGTERM
+
+#------------------------------------------------
+# Postgres and other error handling options
+#------------------------------------------------
+
+export PGOPTIONS='--client-min-messages=warning'
+OPTERR=0
 
 #----------------------------------------------------------------
 # Defined variables
@@ -29,16 +44,15 @@
 # 2. Value of archive records to be processed
 #----------------------------------------------------------------
 
-export PGOPTIONS='--client-min-messages=warning'
-OPTERR=0
-
 DEFAULT_DB="csmdb"
 logpath="/var/log/ibm/csm/db"
 logname="csm_db_archive_script.log"
+tmp_logname="$$_csm_db_archive_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 dbname=$DEFAULT_DB
 now=$(date '+%Y-%m-%d.%H.%M.%S.%N')
 
+#------------------------------------------------------------------------------------
 script_name="csm_history_wrapper_archive_script_template.sh"
 #echo "------------------------------------------------------------------------------"
 #echo "[Script name:   ]  $script_name"
@@ -50,6 +64,7 @@ script_name="csm_history_wrapper_archive_script_template.sh"
 current_user=`id -u -n`
 db_username="postgres"
 now1=$(date '+%Y-%m-%d %H:%M:%S')
+pid=$BASHPID
 
 #----------------------------------------------------------------
 # These are the variables for the avg processing
@@ -81,19 +96,31 @@ average="0"
 
 #----------------------------------------------------------------
 # Below makes the directory if it does not exist
+# First checks if the "/" is specified at the end of the
+# directory given path. If not then it is added
 #----------------------------------------------------------------
 
+    if [[ "${data_dir: -1}" != "/" ]]; then
+        data_dir="${data_dir}/"
+    fi
+
     if [[ ! -e $data_dir ]]; then
-        mkdir -p $data_dir
+        mkdir -p $data_dir 2>>/dev/null
         if [ $? -ne 0 ]; then
-            echo "make directory failed for: $data_dir"
+            echo "------------------------------------------------------------------------------------------------------------------------"
+            echo "[Error  ] make directory failed for: $data_dir"
+            echo "[Info   ] mkdir: cannot create directory ‘$data_dir’: Permission denied"
+            echo "[Info   ] please provide a valid writable directory"
+            echo "------------------------------------------------------------------------------------------------------------------------"
             exit 1
         else
             chown postgres:postgres $data_dir
             chmod 755 $data_dir
         fi
     elif [[ ! -d $data_dir ]]; then
+        echo "------------------------------------------------------------------------------------------------------------------------"
         echo "$data_dir already exists but is not a directory" 1>&2
+        echo "------------------------------------------------------------------------------------------------------------------------"
         exit 1
     fi
 
@@ -103,30 +130,51 @@ average="0"
 #-------------------------------------------------------------------------------
 
      if [ -d "$logpath" -a -w "$logpath" ]; then #<--- if logpath exist and u have permission
-#    if [ -d "$logpath" ]; then
          logdir="$logpath"
      else
          logdir="/tmp"
      fi
-     logfile="${logdir}/${logname}"
+     logfile="${logdir}/${tmp_logname}"
 
 #-------------------------------------------------------------------------------
 # Log Message
 #-------------------------------------------------------------------------------
 
-     function LogMsg () {
+    function LogMsg () {
      LogTime=$(date '+%Y-%m-%d.%H:%M:%S')
-     echo "$LogTime ($current_user) ($table_name1.arc ) $1" >> $logfile
+     echo "$LogTime ($pid) ($current_user) ($table_name1.arc ) $1" >> $logfile 2>&1
      }
 
-     LogMsg "[Start ] Welcome to CSM datatbase:"
+     LogMsg "[Start ] Welcome to CSM database:"
      LogMsg "------------------------------------------------------------------------------------"
+
+#-------------------------------------------------------------------------------
+# Error Log Message
+#-------------------------------------------------------------------------------
+
+    function finish () {
+
+    echo   "---------------------------------------------------------------------------------------"
+    LogMsg "---------------------------------------------------------------------------------------"
+    echo   "[Info   ] Archiving process for $table_name has been interrupted or terminated."
+    echo   "[Info   ] Please see log file for more details"
+    LogMsg "[Info  ] Archiving process for $table_name has been interrupted or terminated."
+    LogMsg "[Info  ] Please see log file for more details"
+    LogMsg "[End   ] Exiting csm_history_wrapper_archive_script_template.sh."
+    echo   "---------------------------------------------------------------------------------------"
+    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+
+    cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+    wait
+    rm -rf ${data_dir}$tmp_logname
+    exit $?
+}
 
 #----------------------------------------------------------------
 # Check if postgresql exists already
 #----------------------------------------------------------------
 
-string1="$now1 ($current_user) ($table_name1.arc ) [Info  ] DB Names:"
+string1="$now1 ($pid) ($current_user) ($table_name1.arc ) [Info  ] DB Names:"
 psql -l 2>>/dev/null $logfile
 
 #if [ $? -eq 0 ]; then
@@ -135,7 +183,8 @@ db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
 \set ON_ERROR_STOP true
 select string_agg(datname,' | ') from pg_database;
 EOF`
-    echo "$string1 $db_query" | sed "s/.\{80\}|/&\n$string1 /g" >> $logfile
+    echo "$string1 $db_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile 2>&1
+    LogMsg "---------------------------------------------------------------------------------------"
     LogMsg "[Info  ] PostgreSQL is installed"
 #   LogMsg "---------------------------------------------------------------------------------------"
 else
@@ -148,7 +197,7 @@ else
 fi
 
         LogMsg "[Info  ] csm_history_wrapper_archive_script_template.sh"
-        LogMsg "------------------------------------------------------------------------------------"
+        #LogMsg "------------------------------------------------------------------------------------"
 
 #----------------------------------------------------------------
 # Check if database exists
@@ -195,14 +244,14 @@ declare -A avg_data
 # All the raw combined timing results before trimming
 #----------------------------------------------------------------
 
-    all_results="$data_dir/$table_name1_archive_results.$now.timings"
+    all_results="$data_dir/${pid}_$table_name1_archive_results.$now.timings"
 
 #----------------------------------------------------------------
 # These are the individual history tables being archived
 #----------------------------------------------------------------
-    
-    ./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
-        awk '/^ERROR:.*$/ { print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($current_user) ($table_name1.arc ) [Error ] $table_name1: "'" $0 }' | tee -a >>"${logfile}"
+
+./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
+        awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) ($table_name1.arc ) [Error ] "'"$0}' | tee -a >>"${logfile}"
 
 #-------------------------------------------------------------------------------------------------------------------
 # Waits for the process to finish before calculating and trimming the results
@@ -224,8 +273,8 @@ d=0
 
 declare -A archive_array
 
-if [ -f "$data_dir/$table_name1.count" ]; then
-    for file in $( ls -1 $data_dir/$table_name1.count*)
+if [ -f "$data_dir/${pid}_$table_name1.count" ]; then
+    for file in $( ls -1 $data_dir/${pid}_$table_name1.count)
         do
             archive_array[${table_name[z]}]=$(cat $file)
             ((z++))
@@ -238,7 +287,11 @@ else
     LogMsg "[Error ] Or the table: $table_name1 is not a valid archiving table."
     echo "[Info:  ] Please check the log file: $data_dir$logname for detailed info."
     LogMsg "[Info  ] Please check the log file: $data_dir$logname for detailed info."
-    LogMsg "[End   ] Exiting: $table_name1 archive process"
+    LogMsg "[Info  ] Exiting: $table_name1 archive process"
+    #echo "-------------------------------------------------------------------------------------------------------------"
+    rm ${all_results}
+    #rm ${data_dir}${pid}_$table_name1.count
+    finish
     echo "-------------------------------------------------------------------------------------------------------------"
     echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
     exit 0
@@ -290,13 +343,20 @@ done
       LogMsg "[Info  ] Average Time: $average"
       LogMsg "------------------------------------------------------------------------------------"
       LogMsg "[End   ] Complete: $table_name1 archive process"
-      echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-
+      echo "-------------------------------------------------------------------------------------------------------------------------------------------------------" >> $logfile
 
 #----------------------------------------------------------------
 # This removes all .timing files left over
 #----------------------------------------------------------------
 
     rm ${all_results}
-    rm ${data_dir}$table_name1.count*
+    rm ${data_dir}${pid}_$table_name1.count
 #----------------------------------------------------------------
+
+#----------------------------------------------------------------
+# Temp file to master log file and clean up
+#----------------------------------------------------------------
+
+cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+wait
+rm ${data_dir}$tmp_logname

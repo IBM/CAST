@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_table_archive_template.sh
+#    csm_ras_event_action_table_delete.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,11 +15,10 @@
 #================================================================================
 
 #================================================================================
-#   usage:         run ./csm_history_table_archive_template.sh
-#   version:       1.1
-#   create:        02-01-2018
+#   usage:         run ./csm_ras_event_action_wrapper_delete_script.sh
+#   version:       1.0
+#   create:        04-10-2017
 #   last modified: 06-11-2018
-#   change log:
 #================================================================================
 
 #----------------------------------------------------------------
@@ -27,7 +26,7 @@
 #----------------------------------------------------------------
 # Command line variables passed in:
 # 1. Database Name,
-# 2. Value of archive records to be processed
+# 2. Value of archive records to be deleted
 #----------------------------------------------------------------
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -35,9 +34,10 @@ OPTERR=0
 
 DEFAULT_DB="csmdb"
 logpath="/var/log/ibm/csm/db"
-logname="csm_db_archive_script.log"
+logname="csm_db_delete_script.log"
 cd "${BASH_SOURCE%/*}" || exit
-now=$(date '+%Y-%m-%d.%H.%M.%S.%N')
+dbname=$DEFAULT_DB
+now=$(date '+%Y-%m-%d.%H.%M.%S')
 
 #-------------------------------------------------------------------------------
 # Current user connected
@@ -61,20 +61,20 @@ average="0"
 #----------------------------------------------------------------
 
 #    if [ "$#" -ne 4 ]; then
-#        echo "------------------------------------------------------------------------------------------------------------------------"
+#        echo "-------------------------------------------------------------------------------------------------------------"
 #        echo "[Error  ] illegal # of import arguments"
-#        echo "[Info   ] Data_dir is where the archive files will be written"
-#        echo "[Example] [./csm_history_table_archive_template.sh] [dbname] [archive_counter] [history_table_name] [/data_dir/]"
-#        echo "------------------------------------------------------------------------------------------------------------------------"
+#        echo "[Example] [./csm_ras_event_action_table_delete.sh] [dbname] [archive_counter] [table_name] [data_dir]"
+#        echo "-------------------------------------------------------------------------------------------------------------"
 #        exit 1
 #    fi
-    
+
     dbname=$1
-    archive_counter=$2
+    interval_time=$2
+    i=$interval_time  #<-------variable passed into the SQL statement
     table_name=$3
     data_dir=$4
     cur_path=$data_dir
-    logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db" 
+    logpath=$data_dir
 
 #----------------------------------------------------------------
 # Below makes the directory if it does not exist
@@ -106,7 +106,7 @@ average="0"
 #-------------------------------------------------------------------------------
 
 #    if [ -d "$logpath" -a -w "$logpath" ]; then #<--- if logpath exist and u have permission
-#   if [ -d "$logpath" ]; then
+##    if [ -d "$logpath" ]; then
 #        logdir="$logpath"
 #    else
 #        logdir="/tmp"
@@ -114,20 +114,18 @@ average="0"
 #    logfile="${logdir}/${logname}"
 
 #-------------------------------------------------------------------------------
-# Log Message 
+# Log Message
 #-------------------------------------------------------------------------------
 
 #    function LogMsg () {
-#    LogTime=$(date '+%Y-%m-%d.%H:%M:%S')
-#    echo "$LogTime ($pid) ($current_user) ($table_name.arc ) $1" >> $logfile
+#    LogTime=$(date '+%Y-%m-%d.%H.%M.%S')
+#    echo "$LogTime ($current_user) ($table_name.del ) $1" >> $logfile
 #    }
-#
-#   LogMsg "[Start   ] Welcome to CSM datatbase: ./csm_history_table_archive_template.sh."
 
 #--------------------------------------------------------------------------------
 # Check if postgresql exists already (not used when combined with wrapper script)
 #--------------------------------------------------------------------------------
-
+#
 #    psql -l 2>&1>/dev/null
 #    if [ $? -eq 0  ]; then
 #        LogMsg "------------------------------------------------------------------------------"
@@ -136,12 +134,12 @@ average="0"
 #        LogMsg "------------------------------------------------------------------------------"
 #    else
 #        LogMsg "------------------------------------------------------------------------------"
-#        echo "[Error   ] PostgreSQL may not be installed. Please check configuration settings" <------add check from wrapper script
+#        echo "[Error   ] PostgreSQL may not be installed. Please check configuration settings" #<------add check from wrapper script
 #        LogMsg "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
 #        LogMsg "---------------------------------------------------------------------------------------"
 #        exit 1
 #    fi
-
+#
 #----------------------------------------------------------------
 # Check if database exists
 #----------------------------------------------------------------
@@ -160,70 +158,69 @@ average="0"
 #    if [ $db_exists == "no" ]; then
 #
 #        LogMsg "[Start ] Database does not exist."
-#        echo "-------------------------------------------------------------------------------------------------------------"
-#        echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting." #<------add check from wrapper script
-#        echo "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
-#        echo "-------------------------------------------------------------------------------------------------------------"
+##       echo "------------------------------------------------------------------------------"
+#        echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
+##       echo "------------------------------------------------------------------------------"
 #        LogMsg "[Error ] Cannot perform action because the $dbname database does not exist. Exiting."
-#        LogMsg "[End   ] Please provide a valid DB that exists on the system (hint: psql -l)."
 #        LogMsg "[End   ] Database does not exist."
-#        echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
 ##       LogMsg "---------------------------------------------------------------------------------------"
 #        exit 1
 #    fi
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
-# Along with csm allocation history archive results
+# Along with archive results
 #----------------------------------------------------------------
 
     time="$(time ( ls ) 2>&1 1>/dev/null )"
+#   all_results="csm_delete_archive_all_results.$now.timings"
+    ras_tmp_delete_count="$data_dir/${parent_pid}_ras_tmp_delete_count.count"
 
 #-------------------------------------------------------------------------------
-# psql history archive query execution
+# psql ras delete query execution
+# variables were created and nested queries to track delete count totals
 #-------------------------------------------------------------------------------
-return_code=0
-if [ $? -ne 127 ]; then
-archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_END
-            BEGIN;
-            --DROP TABLE IF EXISTS temp_$table_name;
-            CREATE TEMP TABLE temp_$table_name
-                as
-                    (SELECT *,'${table_name}' AS _table, ctid AS id
-                        FROM $table_name
-                        WHERE archive_history_time IS NULL
-                        ORDER BY history_time ASC
-                        LIMIT $archive_counter FOR UPDATE); -- (Lock rows associated with this archive batch)
-                    
-                        UPDATE $table_name
-                        SET archive_history_time = 'now()'
-                        FROM temp_$table_name
-                        WHERE
-                        $table_name.history_time = temp_$table_name.history_time
-                        AND
-                        $table_name.archive_history_time IS NULL
-                        AND
-                        temp_$table_name.id = $table_name.ctid;
 
-                        ALTER TABLE temp_$table_name
-                        DROP COLUMN id;
-
-                        COPY (select row_to_json(temp_$table_name) from temp_$table_name)
-                        to '$cur_path/$table_name.archive.${parent_pid}.$now.json';
-
-                        COPY (select count(*) from temp_$table_name)
-                        to '$cur_path/${parent_pid}_$table_name.count';
-           COMMIT;
+delete_count=`time psql -q -tA -U $db_username -d $dbname "ON_ERROR_STOP=1" << THE_END
+    WITH delete_1 AS(
+    DELETE FROM $table_name WHERE master_time_stamp < (NOW() - INTERVAL '$i MIN') AND archive_history_time IS NOT NULL RETURNING *)
+    select count(*) from delete_1;
 THE_END`
-)
-else
-    echo "[Error] Archiving process for $table_name has been interrupted or terminated. please see log file"
-    LogMsg "[Error] Archiving process for $table_name has been interrupted or terminated. please see log file"
-    LogMsg "---------------------------------------------------------------------------------------"
-    return_code=1
-fi
+    echo "$delete_count" > "$ras_tmp_delete_count"
 
-#            LogMsg "[Info    ] Database archive complete."
-#            LogMsg "[Info  ] Database process for $table_name table."
-#            LogMsg "---------------------------------------------------------------------------------------"
-#cat $tmp_logname
+#   echo "$time" >> $all_results
+#   LogMsg "[Info    ] Database archive complete."
+#    LogMsg "[Info  ] Database process complete for deletion script."
+#   LogMsg "---------------------------------------------------------------------------------------"
+
+#-------------------------------------------------------------------------------------------------------------------
+# Waits for the process to finish before calculating and trimming the results
+#-------------------------------------------------------------------------------------------------------------------
+#
+#    wait
+#
+#-------------------------------------------------------------------------------------------------------------------
+# This calculates and trims the results to a csv file
+# (currently the caluculations are done within the wrapper script)
+#-------------------------------------------------------------------------------------------------------------------
+#
+#    for i in $(grep real $all_results | awk '{ print substr($2,3,5) }'); do
+#       total=$(echo $total+$i | bc )
+#         echo "$i" >> $trim_timing_file
+#           ((count++))
+#           done
+#
+#           average=$(echo "scale=8; $total / $count" | bc)
+#
+#           echo $average > csm_db_history_delete_avg_results_$count_$now.csv
+#
+#----------------------------------------------------------------
+# This removes all .timing files left over
+# ToDo: handle unique .timing external file names (clean up)
+#----------------------------------------------------------------
+#
+#    rm *timings #<-- this needs to be modified
+#                 <-- (unique from other scripts running the
+#                 <-- with .timings external files)
+#
+#----------------------------------------------------------------
