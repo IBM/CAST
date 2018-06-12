@@ -61,7 +61,7 @@
 #define KB_TO_B(kB) kB * 1024
 
 /// Enables a check for development enviroment.
-#define VM_DEVELOPMENT 1
+//#define VM_DEVELOPMENT 1
 
 namespace csm {
 namespace daemon {
