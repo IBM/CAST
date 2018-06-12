@@ -23,6 +23,8 @@
 #include "csmi_stateful_forward/CSMIStatefulForwardResponse.h"
 #include "CSMIStepUpdateAgent.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h"
+#include "csmi/src/wm/include/csmi_wm_internal.h"
+#include "csmi/src/common/include/csmi_json.h"
 
 #define STATE_NAME "CSMIAllocationStepEnd:"
 #define CMD_ID CSM_CMD_allocation_step_end
@@ -35,7 +37,10 @@
 #define MCAST_STRUCT csmi_allocation_step_mcast_context_t
 #define OUPUT_STRUCT 
 
-const int NUM_STEP_END_FIELDS=3;
+#define DATA_STRING "status,history{exit_status,error_message,cpu_stats,total_u_time,total_s_time,omp_thread_limit"\
+    "gpu_stats,memory_stats,max_memory,io_stats}"
+
+const int NUM_STEP_END_FIELDS=4;
 
 CSMIAllocationStepEnd::CSMIAllocationStepEnd( csm::daemon::HandlerOptions& options ):
         CSMIStatefulDB( CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES )
@@ -43,7 +48,7 @@ CSMIAllocationStepEnd::CSMIAllocationStepEnd( csm::daemon::HandlerOptions& optio
     const int MCAST_SPAWN     = STATEFUL_DB_RECV_DB;     // 2
     const int MCAST_RESP      = STATEFUL_DB_RECV_DB + 1; // 3
     
-    const int FINAL       =  STATEFUL_DB_RECV_DB + EXTRA_STATES;
+    const int FINAL       =  STATEFUL_DB_DONE + EXTRA_STATES;
 
     const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
 
@@ -91,6 +96,12 @@ bool CSMIAllocationStepEnd::CreatePayload(
         mcastContext->step_id       = input->step_id;
         mcastContext->allocation_id = input->allocation_id;
 
+        printf("%p\n",input->history);
+        // Generate the baseline step json transaction.
+        std::string json = "";
+        csmiGenerateJSON(json, DATA_STRING, input, CSM_STRUCT_MAP(csm_allocation_step_end_input_t));
+        mcastContext->json_str = strdup(json.c_str());
+            
         MCAST_PROPS_PAYLOAD *payload = new MCAST_PROPS_PAYLOAD( CMD_ID, mcastContext, false, true );
         ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
         ctx->SetUserData( payload ); // Begin and early exit.
@@ -190,7 +201,15 @@ bool CSMIAllocationStepEnd::ParseInfoQuery(
             /// The step is assumed to have not been populated before this.
             step->user_flags = strdup(fields->data[0]);
             int32_t node_count = strtol(fields->data[1], nullptr, 10);
-            
+
+            std::string timestamp = fields->data[3];
+            TRANSACTION("allocation-step", ctx->GetRunID(),
+                "\""<< step->allocation_id << "-" << step->step_id << "\"", step->json_str);
+            TRANSACTION("allocation-step", ctx->GetRunID(),
+                "\"" << step->allocation_id << "-" << step->step_id << "\"",
+                "{\"history\":{\"end_time\":\"" << timestamp << "\"}}" );
+
+
             // TODO should this be a function?
             if ( node_count > 0 )
             {
