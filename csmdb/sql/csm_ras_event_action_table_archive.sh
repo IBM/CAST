@@ -69,12 +69,12 @@ average="0"
 #        exit 1
 #    fi
     
-    dbname=$1
-    archive_counter=$2
-    table_name=$3
-    data_dir=$4
-    cur_path=$data_dir
-    logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db" 
+dbname=$1
+archive_counter=$2
+table_name=$3
+data_dir=$4
+cur_path=$data_dir
+logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db" 
 
 #----------------------------------------------------------------
 # Below makes the directory if it does not exist
@@ -184,13 +184,15 @@ average="0"
 #-------------------------------------------------------------------------------
 return_code=0
 if [ $? -ne 127 ]; then
+
+json_file="$cur_path/$table_name.archive.${parent_pid}.$now.json"
 archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERROR_STOP=1" << THE_END
             \set ON_ERROR_STOP TRUE
             BEGIN;
             --DROP TABLE IF EXISTS temp_$table_name;
             CREATE TEMP TABLE temp_$table_name
                 as
-                    (SELECT *,'${table_name}' AS _table, ctid AS id
+                    (SELECT *, ctid AS id
                         FROM $table_name
                         WHERE archive_history_time IS NULL
                         ORDER BY master_time_stamp ASC
@@ -210,13 +212,16 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERRO
                         DROP COLUMN id;
 
                         COPY (select row_to_json(temp_$table_name) from temp_$table_name)
-                        to '$cur_path/$table_name.archive.${parent_pid}.$now.json';
+                        to '$json_file';
 
                         COPY (select count(*) from temp_$table_name)
                         to '$cur_path/${parent_pid}_$table_name.count';
            COMMIT;
 THE_END`
 )
+awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' $json_file > ${json_file}.swp
+mv ${json_file}.swp $json_file
+
 else
     echo "[Error] Archiving process for $table_name has been interrupted or terminated. please see log file"
     LogMsg "[Error] Archiving process for $table_name has been interrupted or terminated. please see log file"
