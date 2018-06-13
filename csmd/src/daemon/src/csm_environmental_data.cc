@@ -14,6 +14,8 @@
 ================================================================================*/
 
 #include "include/csm_environmental_data.h"
+#include "csm_daemon_config.h"
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
@@ -27,7 +29,7 @@ CSM_Environmental_Data::CSM_Environmental_Data()
   
 CSM_Environmental_Data::CSM_Environmental_Data( const CSM_Environmental_Data& in ) : 
   _Data_Mask( in._Data_Mask ),
-  _source( in._source ),
+  _source_node( in._source_node ),
   _timestamp ( in._timestamp ),
   _CPU_Data( in._CPU_Data ),
   _GPU_Double_Data( in._GPU_Double_Data ),
@@ -261,7 +263,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
         // Set the top level fields into the json
         boost::property_tree::ptree gpu_pt;
         gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_ENV_GPU);
-        gpu_pt.put(CSM_BDS_KEY_SOURCE, _source);   
+        gpu_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
         gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
 
         for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
@@ -308,14 +310,22 @@ void CSM_Environmental_Data::Set_Node_Data()
   snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
   _timestamp = time_stamp_buffer;
 
-  // Set _source
-  _source = "testnode01";
+  // Set _source_node
+  try
+  {
+    _source_node = csm::daemon::Configuration::Instance()->GetHostname();
+  }
+  catch (csm::daemon::Exception &e)
+  {
+    LOG(csmd, error) << "Caught exception when trying GetHostname()";
+  }
+
 }
 
 CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
 {
   _Data_Mask = in._Data_Mask;
-  _source = in._source;
+  _source_node = in._source_node;
   _timestamp = in._timestamp;
   _GPU_Double_Data = in._GPU_Double_Data;
   _GPU_Long_Data = in._GPU_Long_Data;
@@ -330,8 +340,8 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmen
 {
   _Data_Mask |= in._Data_Mask;
   
-  if( !in._source.empty() )
-    _source = in._source;
+  if( !in._source_node.empty() )
+    _source_node = in._source_node;
   
   if( !in._timestamp.empty() )
     _timestamp = in._timestamp;

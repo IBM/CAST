@@ -109,7 +109,7 @@ private:
      std::string dmString = _Data_Mask.to_string();
      archive & dmString;
 
-     archive & _source;
+     archive & _source_node;
      archive & _timestamp;
 
      // update from the string for the deserialization path
@@ -137,7 +137,7 @@ private:
   std::bitset<MAX_DATA_BIT> _Data_Mask;
 
   // Node level data common to all elements 
-  std::string _source;
+  std::string _source_node;
   std::string _timestamp;
 
   CSM_CPU_Data _CPU_Data;
