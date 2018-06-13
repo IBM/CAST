@@ -82,6 +82,11 @@ CSMI_STRUCT_MEMBER(char*,    user_name           , STRING, , NULL, ) /**< User n
 CSMI_STRUCT_MEMBER(int64_t*, gpu_energy           , ARRAY,  num_nodes, NULL, int64_t ) /**< The gpu energy .*/
 CSMI_VERSION_END(a76588b6cb8f7f4b75d09b7744e27dfc)
 
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(char*, timestamp, STRING, ,NULL,) /**< A Timestamp for tracking miscellaneous timestamps. */
+CSMI_STRUCT_MEMBER(csmi_state_t, start_state, BASIC,, CSM_FAILED,) /**< State of allocation at the start of the , refer to @ref csmi_state_t for details. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

@@ -22,7 +22,10 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 readonly me=${0##*/}
+
+echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 echo "from $me: hello world!"
 rc=$?
 #rc=10

@@ -30,19 +30,34 @@ typedef enum {
 
 #define CSM_PRINT_PRIMATIVE( ptr, post)\
     case 11: printf("%d" post, *((int*)ptr));break;\
-    case 5: printf("%"PRIu8  post, *((uint8_t*)ptr));break;\
-    case 9: printf("%"PRId32 post, *((int32_t*)ptr));break;\
+    case 5: printf("%" PRIu8  post, *((uint8_t*)ptr));break;\
+    case 9: printf("%" PRId32 post, *((int32_t*)ptr));break;\
     case 15: printf("%zd" post, *((size_t*)ptr));break;\
     case 14: printf("%f" post, *((double*)ptr));break;\
     case 12: printf("%d" post, *((short*)ptr));break;\
-    case 7: printf("%"PRIu64 post, *((uint64_t*)ptr));break;\
+    case 7: printf("%" PRIu64 post, *((uint64_t*)ptr));break;\
     case 13: printf("%ld" post, *((long*)ptr));break;\
-    case 8: printf("%"PRId8  post, *((int8_t*)ptr));break;\
-    case 10: printf("%"PRId64 post, *((int64_t*)ptr));break;\
-    case 6: printf("%"PRIu32 post, *((uint32_t*)ptr));break;\
+    case 8: printf("%" PRId8  post, *((int8_t*)ptr));break;\
+    case 10: printf("%" PRId64 post, *((int64_t*)ptr));break;\
+    case 6: printf("%" PRIu32 post, *((uint32_t*)ptr));break;\
     case 16: printf("%d" post, *((pid_t*)ptr));break;\
     case 17: printf("%c" post, *((char*)ptr));break;\
 
+
+#define CSM_PRIMATIVE(str, ptr)\
+    case 11: str.append(std::to_string(*((int*)ptr))).append(","); break;\
+    case 5: str.append(std::to_string(*((uint8_t*)ptr))).append(","); break;\
+    case 9: str.append(std::to_string(*((int32_t*)ptr))).append(","); break;\
+    case 15: str.append(std::to_string(*((size_t*)ptr))).append(","); break;\
+    case 14: str.append(std::to_string(*((double*)ptr))).append(","); break;\
+    case 12: str.append(std::to_string(*((short*)ptr))).append(","); break;\
+    case 7: str.append(std::to_string(*((uint64_t*)ptr))).append(","); break;\
+    case 13: str.append(std::to_string(*((long*)ptr))).append(","); break;\
+    case 8: str.append(std::to_string(*((int8_t*)ptr))).append(","); break;\
+    case 10: str.append(std::to_string(*((int64_t*)ptr))).append(","); break;\
+    case 6: str.append(std::to_string(*((uint32_t*)ptr))).append(","); break;\
+    case 16: str.append(std::to_string(*((pid_t*)ptr))).append(","); break;\
+    case 17: str.append(std::to_string(*((char*)ptr))).append(","); break;\
 
 #ifdef __cplusplus
 }

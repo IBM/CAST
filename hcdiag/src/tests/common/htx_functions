@@ -103,6 +103,8 @@ function htxdiag_check_device()
       sudo bash -c "rm -f $htx_mdt_dir/*coral*"
       # create default mdt files again
       echo "Creating mdt files with -createmdt. This might take some time."
+      sudo touch $htxd_root/refresh_mdt
+      sudo touch $htxd_root/create_ewm_mdts
       $HTX_CMD -createmdt
    fi
    if [ ! -f $htx_mdt_dir/mdt.all ]; then ret=1; echo "ERROR: createmdt failed."; return; fi

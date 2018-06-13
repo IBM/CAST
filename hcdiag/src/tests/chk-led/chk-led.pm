@@ -59,14 +59,14 @@ my $nodeRange = shift @ARGV || do {
 };
 if ($verbose) { print "nodes = ".Dumper($nodeRange)."\n"; }
 
-my $cmd = "rvitals $nodeRange leds | grep 'Fault:On' 2>$tempdir/stderr";
+my $cmd = "sudo /opt/xcat/bin/rvitals $nodeRange leds | grep 'Fault:\\s*On' 2>$tempdir/stderr";
 if ($verbose) { print "$cmd\n"; }
 my $rval = `$cmd`;
 my $rc=$?;
 
 foreach my $l (split(/\n/,`cat $tempdir/stderr`)) {
    chomp $l;
-   print "(WARNING) $l\n";
+   push(@$errs, "(WARNING) $l\n")
 }
 
 if (length($rval) != 0) {
@@ -74,6 +74,7 @@ if (length($rval) != 0) {
       chomp $l;
       if ($verbose) { print "$l\n"; }
       my ($node,$fault) = (split /\s*[:\.]\s*/, $l)[0,1];
+      $fault =~ s/\s*Fault//g;
       if ((defined $node) && (defined $fault)) {
          push(@$errs, "$node: Fault led at $fault\n");
       }

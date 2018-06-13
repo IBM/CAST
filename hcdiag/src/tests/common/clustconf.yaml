@@ -1,34 +1,47 @@
-#================================================================================
-#   
-#    hcdiag/src/framework/clustconf.yaml
-# 
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
-#
-#    This program is licensed under the terms of the Eclipse Public License
-#    v1.0 as published by the Eclipse Foundation and available at
-#    http://www.eclipse.org/legal/epl-v10.html
-#
-#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
-#    restricted by GSA ADP Schedule Contract with IBM Corp.
-# 
-#===============================================================================*/
----
-# configuration information for witherspoon
-# by model number.
+# configuration information about the onie/edgecore/mellanox cumulus switches.
+onie_switches: 
+  - nodename: c699tor00
+    srcdir: /install/custom/switch/c699tor00
+    files: 
+      - /etc/network/interfaces.d/xCAT.intf
+  - nodename: c699tor.*
+    srcdir: /install/custom/switch/c699tor01
+    files: 
+      - /etc/network/interfaces.d/xCAT.intf
 
 # node specific information, make it work like a 
 # bash case statement.
 # note very little of this information is actually used yet.
 # so this is a placeholder for when we get all the tests to pick it up
-
-# Water cluster definitions
-# =========================
 node_info:
-  - case: c650f99p(04|06|08|10|12)
-    # water cooled dd2.01 cluster with 4 GPUS
-    # ========================================
+  - case: c699mgt00
+    rvitals: habenaro
+    firmware: 
+      name: "unknown version"
+      versions:
+        - 'BMC Firmware: 2.16'
+        - 'System Firmware Product Version: IBM-habanero-ibm-OP8_v1.8_1.1'
+        - 'System Firmware Product Additional Info: hostboot-bc98d0b-74f74b1'
+        - 'System Firmware Product Additional Info: occ-0362706-opdirty-60bbdf1'
+        - 'System Firmware Product Additional Info: skiboot-5.1.16'
+        - 'System Firmware Product Additional Info: hostboot-binaries-43d5a59'
+        - 'System Firmware Product Additional Info: habanero-xml-a71550e-9ba0a35'
+        - 'System Firmware Product Additional Info: capp-ucode-105cb8f-opdirty'
+
+  - case: c699mgt0.*
+    rvitals: boston
+    firmware: 
+      name: "unknown version"
+      versions:
+        - 'TBD'
+
+
+  # RB: 10-25-2017 -- login node reporint short cpu count, 
+  #                   temporarly making it pass the test, 
+  # https://github.ibm.com/DCS-research/WSC-coral/issues/239 -- issue to track this.
+  - case: (c699launch03)
     rvitals: wspoon_dd2
-    ncpus: 176
+    ncpus: 160
     memory: 
       total: 572
       banks: 16
@@ -36,24 +49,69 @@ node_info:
     clock: 
       max: 3.8
       min: 2.0
-    firmware: 
-      name: 1742Ef
+    firmware:   
+      name: 1742FxRev8
       versions:
-        - 'BMC Firmware Product:   ibm-v2.0-0-r26-0-g7285b52 (Active)*'
-        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.111 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
-        - 'HOST Firmware Product: -- additional info: hostboot-7050d0a'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-159f2e8'
-        - 'HOST Firmware Product: -- additional info: linux-4.13.16-openpower1-p98dd271'
-        - 'HOST Firmware Product: -- additional info: machine-xml-592a6dd'
-        - 'HOST Firmware Product: -- additional info: occ-39d5490'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.19-320-gf959966-dirty'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.3-p9911320'
-        - 'HOST Firmware Product: -- additional info: sbe-b6b7bb7'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.9.8'
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+           
     gpu: 
-      pciids: 
+      pciids:
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.03"
+      clocks_applications_gr: 1530
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+      link_speed : 25
+    ib: 
+      slot_rx: "00(03|33):01:00.(0|1)"
+      board_id: "IBM0000000002"
+      firmware: "16.22.8030"
+
+  - case: (c699login\d+|c699wrk\d+|c699launch01)
+    rvitals: wspoon_dd2
+    ncpus: 160
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
+    clock: 
+      max: 3.8
+      min: 2.0
+    firmware:
+      name: 1742FxRev8
+      versions:
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+
+    gpu:
+      pciids:
         - '0004:04:00.0'
         - '0004:05:00.0'
         - '0035:03:00.0'
@@ -63,69 +121,41 @@ node_info:
       clocks_applications_gr: 1530
       clocks_applications_mem: 877
       persistence_mode: Enabled
-    ib: 
-      slot_rx: "0003:01:00.[01]|0033:01:00.[01]"
-      pciids: 
-        - '0003:01:00.0'
-        - '0003:01:00.1'
-        - '0033:01:00.0'
-        - '0033:01:00.1'
+      link_speed : 25
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
-      firmware: "16.21.0106"
-      link_speed: "25"
-      link_width: "4x"
-    os:
-      name: "Red Hat Enterprise Linux Server"
-      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
-    kernel:
-      release: "4.14.0-38.el7a.ppc64le"
-    software:
-        - ibm-csm: 1.1.0-67
-        - gpfs.base: 5.0.0-2
-        - smpi: 10.02.00.00dev0
-        - lm_sensors: 3.4.0-4.20160601gitf9185e5
-        - datacenter: 1.4.2-1
-    ufm:
-      ip_address: "10.7.0.41"
-      user: "admin"
-      password: "123456"
-    nvme:
-      vendor: "Samsung"
-      firmware_rev: "MN12MN12"
-    temp:
-      celsius_high: "35.0"
-      celsius_low: "14.0"
+      firmware: "16.22.8030"
 
-  - case: c650f99p(14|16|18|20)
-    # water cooled dd2.01 nodes with 6 gpus
-    # =====================================
+  - case: (c699c0([0-5]+[0-9]))
     rvitals: wspoon_dd2
     ncpus: 176
     memory: 
-      total: 572
+      total: 602
       banks: 16
       bank_size:  32
     clock: 
       max: 3.8
       min: 2.0
-    firmware: 
-      name: 1742Ef
+    firmware:
+      name: 1742FxRev8
       versions:
-        - 'BMC Firmware Product:   ibm-v2.0-0-r26-0-g7285b52 (Active)*'
-        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.111 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
-        - 'HOST Firmware Product: -- additional info: hostboot-7050d0a'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-159f2e8'
-        - 'HOST Firmware Product: -- additional info: linux-4.13.16-openpower1-p98dd271'
-        - 'HOST Firmware Product: -- additional info: machine-xml-592a6dd'
-        - 'HOST Firmware Product: -- additional info: occ-39d5490'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.19-320-gf959966-dirty'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.3-p9911320'
-        - 'HOST Firmware Product: -- additional info: sbe-b6b7bb7'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.9.8'
-    gpu: 
-      pciids: 
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+
+    gpu:
+      pciids:
         - '0004:04:00.0'
         - '0004:05:00.0'
         - '0004:06:00.0'
@@ -137,32 +167,25 @@ node_info:
       clocks_applications_gr: 1530
       clocks_applications_mem: 877
       persistence_mode: Enabled
-    ib: 
-      slot_rx: "0003:01:00.[01]|0033:01:00.[01]"
-      pciids: 
-        - '0003:01:00.0'
-        - '0003:01:00.1'
-        - '0033:01:00.0'
-        - '0033:01:00.1'
+      link_speed : 25
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
-      firmware: "16.21.0106"
-      link_speed: "25"
-      link_width: "4x"
+      firmware: "16.22.8030"
+
     os:
       name: "Red Hat Enterprise Linux Server"
-      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
     kernel:
-      release: "4.14.0-38.el7a.ppc64le"
+      release: "4.14.0-49.8.1.el7a.ppc64le"
+
     software:
-        - ibm-csm: 1.1.0-68
-        - gpfs.base: 5.0.0-2
-        - smpi: 10.02.00.00dev0
+        - ibm-csm: 1.1.1-163
+        - gpfs.base: 5.0.1
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
-        - datacenter: 1.4.1-1
-    ufm:
-      ip_address: "10.7.0.41"
-      user: "admin"
-      password: "123456"
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.88
+        - smpi: 10.02.00.02rtm0
     nvme:
       vendor: "Samsung"
       firmware_rev: "MN12MN12"
@@ -170,12 +193,9 @@ node_info:
       celsius_high: "35.0"
       celsius_low: "14.0"
 
-# Air cluster definitions
-# =========================
-  - case: c650f07p(09|11|13|15|17|19|21)
-    rvitals: garison
+  - case: c699c0([6-9]+[0-9])|c699c1([0-9]+[0-9])|c699c2([0-5]+[0-9])
     rvitals: wspoon_dd2
-    ncpus: 160
+    ncpus: 176
     memory: 
       total: 572
       banks: 16
@@ -183,22 +203,25 @@ node_info:
     clock: 
       max: 3.8
       min: 2.0
-    firmware: 
-        - 'BMC Firmware Product:   ibm-v2.0-0-r26-0-g7285b52 (Active)*'
-        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.111 (Active)*'
-        - 'HOST Firmware Product: -- additional info: buildroot-2017.08-8-g5e23247'
-        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v2'
-        - 'HOST Firmware Product: -- additional info: hostboot-7050d0a'
-        - 'HOST Firmware Product: -- additional info: hostboot-binaries-159f2e8'
-        - 'HOST Firmware Product: -- additional info: linux-4.13.16-openpower1-p98dd271'
-        - 'HOST Firmware Product: -- additional info: machine-xml-592a6dd'
-        - 'HOST Firmware Product: -- additional info: occ-39d5490'
-        - 'HOST Firmware Product: -- additional info: op-build-v1.19-320-gf959966-dirty'
-        - 'HOST Firmware Product: -- additional info: petitboot-v1.6.3-p9911320'
-        - 'HOST Firmware Product: -- additional info: sbe-b6b7bb7'
-        - 'HOST Firmware Product: -- additional info: skiboot-v5.9.8'
-    gpu: 
-      pciids: 
+    firmware:
+      name: 1742FxRev8
+      versions:
+        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
+        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
+        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
+        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
+        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
+        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
+        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
+        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
+        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
+        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
+        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+
+    gpu:
+      pciids:
         - '0004:04:00.0'
         - '0004:05:00.0'
         - '0035:03:00.0'
@@ -208,32 +231,24 @@ node_info:
       clocks_applications_gr: 1530
       clocks_applications_mem: 877
       persistence_mode: Enabled
-    ib: 
-      slot_rx: "0003:01:00.[01]|0033:01:00.[01]"
-      pciids: 
-        - '0003:01:00.0'
-        - '0003:01:00.1'
-        - '0033:01:00.0'
-        - '0033:01:00.1'
+      link_speed : 25
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
-      firmware: "16.21.0106"
-      link_speed: "25"
-      link_width: "4x"
+      firmware: "16.22.8030"
     os:
       name: "Red Hat Enterprise Linux Server"
-      pretty_name: "Red Hat Enterprise Linux Server 7.4 (Maipo)"
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
     kernel:
-      release: "4.11.0-44.el7a.ppc64le"
+      release: "4.14.0-49.8.1.el7a.ppc64le"
+
     software:
-        - ibm-csm: 1.1.0-68
-        - gpfs.base: 5.0.0-2
-        - smpi: 10.02.00.00dev0
+        - ibm-csm: 1.1.1-163
+        - gpfs.base: 5.0.1
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
-        - datacenter: 1.4.1-1
-    ufm:
-      ip_address: "10.7.0.41"
-      user: "admin"
-      password: "123456"    
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.88
+        - smpi: 10.02.00.02rtm0
     nvme:
       vendor: "Samsung"
       firmware_rev: "MN12MN12"
@@ -241,70 +256,42 @@ node_info:
       celsius_high: "35.0"
       celsius_low: "14.0"
 
+
+#
+# map of cpu part numbers to ws dd version and cpu flavor.
+#
+cpu_partnumbers:
+  01HL909: { cores: 16c, dd: ws_dd2_0 }
+  01HL908: { cores: 18c, dd: ws_dd2_0 }
+  01HL907: { cores: 20c, dd: ws_dd2_0 }
+  01HL906: { cores: 22c, dd: ws_dd2_0 }
+
+  02AA767: { cores: 16c, dd: ws_dd2_01 }
+  02AA766: { cores: 18c, dd: ws_dd2_01 }
+  02AA765: { cores: 20c, dd: ws_dd2_01 }
+  02AA764: { cores: 22c, dd: ws_dd2_01 }
+
+  02AA863: { cores: 16c, dd: ws_dd2_1 }
+  02AA862: { cores: 18c, dd: ws_dd2_1 }
+  02AA861: { cores: 20c, dd: ws_dd2_1 }
+  02AA860: { cores: 22c, dd: ws_dd2_1 }
+  02AA966: { cores: 22c, dd: ws_dd2_11 }
+  # Fused Witherspoon - S922HPC DD2.1
+  02CY141: { cores: 22c, dd: ws_dd2_1 }
+  02CY166: { cores: 20c, dd: ws_dd2_1 }
+
 #
 # gpfs mounts expected on all nodes.
 gpfs_mounts: 
-  - {mount: '/gpfs/r92gpfs01',  match: 'r92gpfs01' }
-  - {mount: '/gpfs/r92gpfs02',  match: 'r92gpfs02' }
-#
-# rvital parsing table
+  - {mount: '/gpfs/wscgpfs01',  match: 'wscgpfs01' }
+  - {mount: '/gpfs/wscgpfs02',  match: 'wscgpfs02' }
+
+
 rvitals:
   habenaro:
     - {id: 'nada', match: 0 }
-  garison:
-    - {id: 'Power Status',   match: on }
-    - {id: 'Power Overload', match: false }
-    - {id: 'Power Fault', match: false }
-    - {id: 'Power Control Fault', match: false }
-    - {id: 'Power Restore Policy', match: 'Always off' }
-    - {id: 'Drive Fault', match: false }
-    - {id: 'Cooling Fault', match: false }
-    - {id: 'APSS Fault', match: 0 }
-    - {id: 'Ambient Temp', regex: (\S+), range: [10,40] }
-    - {id: 'BIOS Golden Side', regex: (\S+), match: 0 }
-    - {id: 'BMC Golden Side',  regex: (\S+), match: 0 }
-    - {id: 'CPU (1|2) VDD Temp',  regex: (\S+), range: [15,80,N/A]}
-    - {id: 'CPU Core Temp .*',    regex: (\S+), range: [15,90,N/A]}
-    - {id: 'CPU Diode .*',        regex: (\S+), range: [15,75,N/A]}
-    - {id: 'CPU Func .*',  match: '.*Present.*' }
-    - {id: 'CPU VDD Curr', regex: (\S+), range: [1,250] }
-    - {id: 'CPU. Temp',    regex: (\S+), range: [18,90,N/A] }
-    - {id: 'Checkstop', match: '(0|.*\(Present\).*)' }
-    - {id: 'CurPwr Redundant', match: 0 }
-    - {id: 'DIMM Func \d+',  match: '.*Present.*' }
-    - {id: 'DIMM\d+ Temp', regex: (\S+), range: [15,75,N/A]}
-    # NOTE: this seems a bit high
-    - {id: 'Fan \d',  regex: (\S+), range: [3000,12000,N/A] }
-    - {id: 'Fan Power',  regex: (\S+), range: [10,300,N/A] }
-    - {id: 'GPU Func \d',   match: '(.*Present.*|0)' }
-    - {id: 'GPU Power',  regex: (\S+), range: [10,1800,N/A] }
-    - {id: 'GPU Temp \d', regex: (\S+), range: [15,85,N/A]}
-    - {id: 'Host Status',  match: '(.*working.*|0)' }
-    - {id: 'Mem Buf Func \d+',  match: '.*Present.*' }
-    - {id: 'Mem Buf Temp \d+', regex: (\S+), range: [15,75,N/A] }
-    - {id: 'Mem Cache Power',  regex: (\S+), range: [10,200,N/A] }
-    - {id: 'Mem Proc\d Pwr',  regex: (\S+), range: [10,100,N/A] }
-    - {id: 'OCC \d Active',  match: 0 }
-    - {id: 'PCI',  match: 0 }
-    - {id: 'PCI Clock Fault',  match: 0 }
-    - {id: 'PCIE Proc\d Pwr',  regex: (\S+), range: [10,120,N/A] }
-    - {id: 'PSU Fault \d',  regex: 0.*\((.*)\), match: Present }
-    - {id: 'Proc\d Power',  regex: (\S+), range: [10,300,N/A] }
-    - {id: 'Quick Pwr Drop \d',  match: 0 }
-    - {id: 'Ref Clock Fault',  match: 0 }
-    - {id: 'System Event',   match: 0 }
-    - {id: 'System Power',  regex: (\S+), range: [10,3000,N/A] }
-    - {id: 'TOD Clock Fault',  match: 0 }
-    - {id: 'Watchdog', match: 0 }
-  wspoon_dd1: 
-    - {id: 'Ambient', regex: (\S+), range: [10,40] }
-    # note this is an error, remove when correct in https://github.ibm.com/DCS-research/R92-cluster/issues/1710
-    - {id: 'Fan1 \d',  regex: (\S+), range: [0,24000] }
-    - {id: 'Fan[0-3] \d',  regex: (\S+), range: [3000,14000] }
-    - {id: 'P[0-1] Vcs Temp',  regex: (\S+), range: [15,80]}
-    - {id: 'P[0-1] Vdd Temp',  regex: (\S+), range: [15,80]}
-    - {id: 'P[0-1] Vddr Temp',  regex: (\S+), range: [15,80]}
-    - {id: 'P[0-1] Vvdn Temp',  regex: (\S+), range: [15,80]}
+  boston:
+    - {id: 'nada', match: 0 }
   wspoon_dd2: 
     - {id: 'Ambient', regex: (\S+), range: [10,40] }
     # note this is an error, remove when correct in https://github.ibm.com/DCS-research/R92-cluster/issues/1710
@@ -315,7 +302,7 @@ rvitals:
     - {id: 'P\d Vddr Temp',  regex: (\S+), range: [15,80]}
     - {id: 'P\d Vdn Temp',  regex: (\S+), range: [15,80]}
     - {id: 'Ambient', regex: (\S+), range: [10,40] }
-    - {id: 'Dimm\d+ Temp', regex: (\S+), range: [15,75,N/A]}
+    - {id: 'DIMM\d+ Temp', regex: (\S+), range: [15,75,N/A]}
     # core 6 frequetly reports https://github.ibm.com/DCS-research/WSC-coral/issues/335
     - {id: 'P\d Core6 Temp',    regex: (\S+), range: [0,90,N/A]}
     # core 7 frequetly reports https://github.ibm.com/DCS-research/WSC-coral/issues/639
@@ -338,6 +325,4 @@ rvitals:
     - {id: 'Storage A Power',  regex: (\S+), range: [10,500,N/A] }
     - {id: 'Storage B Power',  regex: (\S+), range: [10,500,N/A] }
     - {id: 'Total Power',  regex: (\S+), range: [10,2000,N/A] }
-
-
 

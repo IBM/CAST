@@ -24,6 +24,8 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
+echo -e "Running $(basename $0) on $(hostname -s), machine type $model.\n"          
 CIHC=/opt/ibm/csm/bin/csm_infrastructure_health_check
 if [ ! -x $CIHC ]; then echo "$CIHC executable not found or invalid permission"  ; exit -1; fi
 
