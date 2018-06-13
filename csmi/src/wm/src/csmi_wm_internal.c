@@ -687,7 +687,7 @@ const csmi_struct_mapping_t map_csm_cgroup_login_input_t= {
     cast_csm_cgroup_login_input_t
 };
 
-const csmi_struct_node_t csmi_allocation_mcast_context_tree[46] = {{"allocation_id",offsetof(csmi_allocation_mcast_context_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csmi_allocation_mcast_context_tree[47] = {{"allocation_id",offsetof(csmi_allocation_mcast_context_t,allocation_id),0,NULL,0x99d3da77,40},
 {"num_gpus",offsetof(csmi_allocation_mcast_context_t,num_gpus),0,NULL,0x338e5253,36},
 {"num_processors",offsetof(csmi_allocation_mcast_context_t,num_processors),0,NULL,0xeac9b7c7,36},
 {"ib_tx",offsetof(csmi_allocation_mcast_context_t,ib_tx),offsetof(csmi_allocation_mcast_context_t, num_nodes),NULL,0xfa26dbb,1},
@@ -725,14 +725,15 @@ const csmi_struct_node_t csmi_allocation_mcast_context_tree[46] = {{"allocation_
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
+{"timestamp",offsetof(csmi_allocation_mcast_context_t,timestamp),0,NULL,0x5c073e19,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"compute_nodes",offsetof(csmi_allocation_mcast_context_t,compute_nodes),offsetof(csmi_allocation_mcast_context_t, num_nodes),NULL,0x74676dda,5},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{"user_name",offsetof(csmi_allocation_mcast_context_t,user_name),0,NULL,0xc029f5a4,4}}
+{"user_name",offsetof(csmi_allocation_mcast_context_t,user_name),0,NULL,0xc029f5a4,4},
+{"start_state",offsetof(csmi_allocation_mcast_context_t,start_state),csmi_state_t_MAX,&csmi_state_t_strs,0xc8b079b3,8}}
 ;
 
 void* cast_csmi_allocation_mcast_context_t(void* ptr,size_t index) { 
@@ -740,7 +741,7 @@ void* cast_csmi_allocation_mcast_context_t(void* ptr,size_t index) {
     return ptr_cast ? ptr_cast[index] : NULL;
 };
 const csmi_struct_mapping_t map_csmi_allocation_mcast_context_t= {
-    46,
+    47,
     csmi_allocation_mcast_context_tree,
     cast_csmi_allocation_mcast_context_t
 };

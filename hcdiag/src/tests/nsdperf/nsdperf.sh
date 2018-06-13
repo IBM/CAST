@@ -28,6 +28,8 @@ fi
 
 readonly me=${0##*/}
 thisdir=`pwd`
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
+echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
 # The definitions here should be customized
 # 

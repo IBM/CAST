@@ -198,6 +198,7 @@ protected:
     
     /** @brief Pushes a multicast(MCAST) message to the event list.
      *
+     * @param targets Sorts the targets for multicast.
      * @param payload
      * @param payloadLen
      * @param ctx
@@ -206,12 +207,13 @@ protected:
      * @param errorOnFail If error handling for a failure is state specific, set to false. 
      *  Otherwise, an error will be pushed to the event list. Defaults to true.
      *
+     *
      * @return True  If successful.
      * @return False If failed.
      */
     bool PushMCAST(
         csm::network::Message message,
-        const std::vector<std::string>& targets,
+        std::vector<std::string>& targets,
         csm::daemon::EventContextHandlerState_sptr ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         uint64_t targetState = UINT64_MAX,
