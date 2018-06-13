@@ -27,6 +27,8 @@ CSM_Environmental_Data::CSM_Environmental_Data()
   
 CSM_Environmental_Data::CSM_Environmental_Data( const CSM_Environmental_Data& in ) : 
   _Data_Mask( in._Data_Mask ),
+  _source( in._source ),
+  _timestamp ( in._timestamp ),
   _CPU_Data( in._CPU_Data ),
   _GPU_Double_Data( in._GPU_Double_Data ),
   _GPU_Long_Data( in._GPU_Long_Data ),
@@ -194,28 +196,11 @@ std::string CSM_Environmental_Data::Get_Json_String()
   #define CSM_BDS_KEY_TYPE "type"
   #define CSM_BDS_TYPE_ENV_GPU "csm-env-gpu"
   
+  #define CSM_BDS_KEY_SOURCE "source"
   #define CSM_BDS_KEY_TIME_STAMP "timestamp"
   
   #define CSM_ENV_DATA_GPU_PREFIX "data"
-  #define CSM_ENV_DATA_KEY_NODE "node"
 
-  // Generate a time_stamp
-  char time_stamp_buffer[80];
-  char time_stamp_with_usec[80];
-
-  struct timeval now_tv;
-  time_t rawtime;
-  struct tm *info;
-
-  gettimeofday(&now_tv, NULL);
-  rawtime = now_tv.tv_sec;
-  info = localtime( &rawtime );
-
-  strftime(time_stamp_buffer, 80, "%Y-%m-%d %H:%M:%S", info);
-  snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
-  
-  std::string node("testnode01"); 
-  
   // Create any GPU json documents 
   if ( _Data_Mask.test(GPU_DOUBLE_DATA_BIT) || _Data_Mask.test(GPU_LONG_DATA_BIT) )
   {
@@ -276,9 +261,8 @@ std::string CSM_Environmental_Data::Get_Json_String()
         // Set the top level fields into the json
         boost::property_tree::ptree gpu_pt;
         gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_ENV_GPU);
-        gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, time_stamp_with_usec);   
-        
-        gpu_pt.put(CSM_ENV_DATA_GPU_PREFIX "." CSM_ENV_DATA_KEY_NODE, node);   
+        gpu_pt.put(CSM_BDS_KEY_SOURCE, _source);   
+        gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
 
         for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
         {
@@ -306,9 +290,33 @@ std::string CSM_Environmental_Data::Get_Json_String()
   return json;
 }
 
+void CSM_Environmental_Data::Set_Node_Data()
+{
+  // Set _timestamp
+  char time_stamp_buffer[80];
+  char time_stamp_with_usec[80];
+
+  struct timeval now_tv;
+  time_t rawtime;
+  struct tm *info;
+
+  gettimeofday(&now_tv, NULL);
+  rawtime = now_tv.tv_sec;
+  info = localtime( &rawtime );
+
+  strftime(time_stamp_buffer, 80, "%Y-%m-%d %H:%M:%S", info);
+  snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
+  _timestamp = time_stamp_buffer;
+
+  // Set _source
+  _source = "testnode01";
+}
+
 CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
 {
   _Data_Mask = in._Data_Mask;
+  _source = in._source;
+  _timestamp = in._timestamp;
   _GPU_Double_Data = in._GPU_Double_Data;
   _GPU_Long_Data = in._GPU_Long_Data;
   _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
@@ -321,6 +329,12 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environment
 CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmental_Data& in )
 {
   _Data_Mask |= in._Data_Mask;
+  
+  if( !in._source.empty() )
+    _source = in._source;
+  
+  if( !in._timestamp.empty() )
+    _timestamp = in._timestamp;
 
   if( in._Data_Mask.test( GPU_DOUBLE_DATA_BIT ) )
     _GPU_Double_Data = in._GPU_Double_Data;

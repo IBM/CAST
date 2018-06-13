@@ -89,6 +89,9 @@ public:
 
   std::string Get_Json_String();
 
+  // Collects the common node level data and sets it in the object
+  void Set_Node_Data();
+
   CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );
 
   // operator to only update the items that are present in the input
@@ -105,6 +108,9 @@ private:
      // serialize the bitset as a sting
      std::string dmString = _Data_Mask.to_string();
      archive & dmString;
+
+     archive & _source;
+     archive & _timestamp;
 
      // update from the string for the deserialization path
      _Data_Mask = std::bitset<MAX_DATA_BIT>( dmString );
@@ -129,6 +135,10 @@ private:
  private:
 
   std::bitset<MAX_DATA_BIT> _Data_Mask;
+
+  // Node level data common to all elements 
+  std::string _source;
+  std::string _timestamp;
 
   CSM_CPU_Data _CPU_Data;
 
