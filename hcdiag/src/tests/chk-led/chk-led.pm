@@ -59,7 +59,7 @@ my $nodeRange = shift @ARGV || do {
 };
 if ($verbose) { print "nodes = ".Dumper($nodeRange)."\n"; }
 
-my $cmd = "rvitals $nodeRange leds | grep 'Fault:\s*On' 2>$tempdir/stderr";
+my $cmd = "rvitals $nodeRange leds | grep 'Fault:\\s*On' 2>$tempdir/stderr";
 if ($verbose) { print "$cmd\n"; }
 my $rval = `$cmd`;
 my $rc=$?;
