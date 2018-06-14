@@ -312,7 +312,7 @@ void CSM_Environmental_Data::Set_Node_Data()
 
   strftime(time_stamp_buffer, 80, "%Y-%m-%d %H:%M:%S", info);
   snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
-  _timestamp = time_stamp_buffer;
+  _timestamp = time_stamp_with_usec;
 
   // Set _source_node
   try
@@ -323,7 +323,6 @@ void CSM_Environmental_Data::Set_Node_Data()
   {
     LOG(csmd, error) << "Caught exception when trying GetHostname()";
   }
-
 }
 
 CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
