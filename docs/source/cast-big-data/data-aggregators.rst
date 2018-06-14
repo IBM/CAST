@@ -432,34 +432,89 @@ These logs will then stored in the *cast-log-syslog* index using the default CAS
 Database Archiving
 ******************
 
-:Logstash Port: 10521
+:Logstash Port: 10523
+:Script Location: /opt/ibm/csm/db/csm_db_history_archive.sh
+:Script RPM: csm-csmdb-*.rpm
 
-.. attention:: This section is currently a work in progress.
+CAST supplies a commandline utility for archiving the contents of the database history tables. 
+When run the utility (`csm_db_history_archive.sh`) will appened to a daily JSON dump file 
+(`<table>.archive.<YYYY>-<MM>-<DD>.json`) the contents of all history tables and the RAS event 
+action table. The content appended is the next `n` records without a archive time as provided to 
+the commandline utility.Any records archived in this manner are then marked with an archive time 
+for their eventaul removal from the database. The utility should be executed on the node running
+the CSM Postgres database.
 
-CAST supplies a tool for archiving the contents of the database history tables. This tool
-is a commandline utility intended to be placed in a cron job. The table rows will be enriched with
-an `_table` field
+Each row archived in this way will be converted to a JSON document with the following pattern:
 
-This script is bundled in the `csm-csmdb-*.rpm` and should be executed from the node hosting the 
-csm database.
+.. code-block:: javascript
+    
+    # type helps define the index in Logstash ingestion
+    # data isolates column names to prevent collisions with any logstash enrichment.  
+    { "type": "db-<table-name>", "data": { <table-row-contents>} } 
 
 
-.. attention:: This crontab entry is currently a work in progress.
+CAST recommends the use of a cron job to run this archival. The following sample runs every 
+five minutes, gathers up to 100 unarchived records from the csmdb tables, then appends the JSON
+formatted records to the daily dump file in the `/var/log/ibm/csm/archive` directory.
+
 .. code-block:: bash
 
    $ crontab -e 
-    15 * * * * csm_archive_history_tables.sh # TODO needs more documentation. Needs an IP and Port
+    */5 * * * * /opt/ibm/csm/db/csm_db_history_archive.sh -d csmdb -n 100 -t /var/log/ibm/csm/archive
 
+CAST recommends ingesting this data through the `filebeats`_ utility. A sample log configuration is 
+given below:
 
-The history tables will be stored in the *cast-<table_name>* index.
+.. code-block:: YAML
 
-.. note:: Pending future investigation the logstash configuration of this may operate on a separate pipeline.
+    filebeat.inputs:
+    - type: log 
+      enabled: true
+      paths:
+        - "/var/log/ibm/csm/archive/*.json"
+      # CAST recommends tagging all filebeats input sources.
+      tags: ["archive"]
+
+.. note:: For the sake of brevity further filebeats configuration documentation will be ommited. 
+    Please refer to the `filebeats`_ documentation for more details.
+
+To configure logstash to ingest the archives the `beats` input plugin must be used, CAST recommends
+port `10523` for ingesting `beats` records as shown below:
+
+.. code-block:: none
+
+    input
+    {
+        beats { 
+            port => 10523
+            codec=>"json"
+        }
+    
+    }
+    filter
+    {
+        mutate {
+            remove_field => [ "beat", "host", "source", "offset", "prospector"]
+        }
+    
+    }
+    output
+    {
+        elasticsearch { 
+            hosts => ['10.7.4.15:9200','10.7.4.17:9200','10.7.4.19:9200']
+            index => "cast-%{type}-%{+YYYY.MM.dd}"
+            http_compression =>true
+            document_type => "_doc"
+        }
+    }
+
+In this sample configuration the archived history will be stored in the *cast-db-<table_name>* indices.
 
 
 Transaction Log
 ***************
 
-:Logstash Port:  10522 
+:Logstash Port:  10523 
 
 .. note:: CAST only ships the transaction log to a local file, a utility such as Filebeats or
     a local Logstash service would be needed to ship the log to a Big Data Store.
@@ -578,3 +633,4 @@ CSM Buckets
 .. Links
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
 .. _Cumulus Linux User Guide:  https://docs.cumulusnetworks.com/display/DOCS/Cumulus+Linux+User+Guide
+.. _filebeats: https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-getting-started.html
