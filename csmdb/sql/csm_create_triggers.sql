@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:         run ./csm_db_script.sh <----- to create the csm_db with triggers
---   version:       4.3.85
+--   version:       4.3.86
 --   create:        06-22-2016
---   last modified: 06-06-2018
+--   last modified: 06-14-2018
 --   change log:
+--     4.3.86 - Added a fix to fn_csm_allocation_node_sharing_status for diagnostics.
 --     4.3.85 - Added fields to fn_csm_allocation_history_dump, fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     4.3.84 - fn_csm_allocation_node_sharing_status - Improved the node sharing test to account for failed allocation transitions.
 --              fn_csm_allocation_update_state - Tests to verify that the node states are valid (whitelist).
@@ -1489,9 +1490,12 @@ BEGIN
         WHERE n.node_name IS NULL
     );
 
+    IF (i_type = 'diagnostics')
+    THEN
+        UPDATE csm_allocation SET state = i_state WHERE allocation_id=i_allocation_id;
     -- If this is not a diagnostic and any bad nodes were found
     -- OR there were nodes that couldn't be found, raise an exception.
-    IF (i_type != 'diagnostics' AND array_length(bad_nodes, 1) > 0 )
+    ELSIF (array_length(bad_nodes, 1) > 0 )
         OR  array_length(missing_nodes,1) > 0 THEN
         RAISE EXCEPTION 'The following nodes were not available: % 
 The following nodes were not found: %',
