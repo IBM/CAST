@@ -125,6 +125,7 @@ class MasterProperties(DiagProperties):
       self.cfgparser.set(self.section, 'csm', usecsm)
       self.cfgparser.set(self.section, 'allocation', allocation)
 
+
       ddir='/opt/ibm/csm/hcdiag'
       try:                           
          ddir=self.cfgparser.get(self.section, 'installdir')
@@ -196,7 +197,6 @@ class MasterProperties(DiagProperties):
          except ConfigParser.NoOptionError:
             self.cfgparser.set(self.section, 'xcat_fanout', '64')
       
-
       cfs='no'  # default is no
       try:         
          cfs=self.cfgparser.get(self.section, 'common_fs')

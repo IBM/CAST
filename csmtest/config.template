@@ -1,0 +1,28 @@
+#! /bin/bash
+
+# This file contains global configuration options for the regression test suite
+
+# Paths
+export FVT_PATH=
+export CAST_PATH=
+export LOG_PATH=
+export CSM_PATH=
+export INSTALL_DIR=
+export RPM_DIR=
+export BIG_DATA_DIR=
+export SQL_DIR=
+
+# Node Types
+export MASTER=
+export AGGREGATOR_A=
+export AGGREGATOR_B=
+export COMPUTE_NODES=
+export SINGLE_COMPUTE=
+export UFM_ADDR=
+
+# Users
+export USER=
+export SECOND_USER=
+
+# Source xCAT commands
+source /etc/profile.d/xcat.sh

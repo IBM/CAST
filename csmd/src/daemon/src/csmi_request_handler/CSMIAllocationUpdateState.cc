@@ -40,123 +40,123 @@
 #define MCAST_PROPS_PAYLOAD CSMIMcastAllocation
 #define EXTRA_STATES 7 
 
-const int NUM_SPAWN_PAYLOAD_FIELDS=13;
+    const int NUM_SPAWN_PAYLOAD_FIELDS=13;
 
-CSMIAllocationUpdateState::CSMIAllocationUpdateState(csm::daemon::HandlerOptions& options) :
-    CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
-{
-    ///< State wherein the handler spawns a multicast event.
-    const int MCAST_SPAWN   = STATEFUL_DB_RECV_DB;              // 2 Creates the multicast message.
+    CSMIAllocationUpdateState::CSMIAllocationUpdateState(csm::daemon::HandlerOptions& options) :
+        CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
+    {
+        ///< State wherein the handler spawns a multicast event.
+        const int MCAST_SPAWN   = STATEFUL_DB_RECV_DB;              // 2 Creates the multicast message.
 
-    ///< A State for processing a staging in->running multicast.
-    const int MCAST_RESPONSE_CRE = STATEFUL_DB_RECV_DB + 1;     // 3
-    //< State which reverts the Multicast.      
-    const int UNDO_MCAST_RES_CRE = STATEFUL_DB_RECV_DB + 2;     // 4
-    ///< State which removes the allocation.
-    const int REMOVE_ALLOCATION  = STATEFUL_DB_RECV_DB + 3;     // 5 Terminal point
+        ///< A State for processing a staging in->running multicast.
+        const int MCAST_RESPONSE_CRE = STATEFUL_DB_RECV_DB + 1;     // 3
+        //< State which reverts the Multicast.      
+        const int UNDO_MCAST_RES_CRE = STATEFUL_DB_RECV_DB + 2;     // 4
+        ///< State which removes the allocation.
+        const int REMOVE_ALLOCATION  = STATEFUL_DB_RECV_DB + 3;     // 5 Terminal point
 
-    ///< A State for processing a running->staging out multicast.
-    const int MCAST_RESPONSE_DEL = STATEFUL_DB_RECV_DB + 4;     // 6
+        ///< A State for processing a running->staging out multicast.
+        const int MCAST_RESPONSE_DEL = STATEFUL_DB_RECV_DB + 4;     // 6
 
-    ///< State which processes a successful multicast response. Same state as delete.
-    const int TERMINAL_STATE     = STATEFUL_DB_RECV_DB + 5;     // 7 NOTE: This is recv_db 
-    const int UPDATE_STATS_CRE   = STATEFUL_DB_RECV_DB + 6;     // 8 Terminal point.
-    const int UPDATE_STATS_DEL   = STATEFUL_DB_RECV_DB + 7;     // 9 NOTE: This is recv_db
+        ///< State which processes a successful multicast response. Same state as delete.
+        const int TERMINAL_STATE     = STATEFUL_DB_RECV_DB + 5;     // 7 NOTE: This is recv_db 
+        const int UPDATE_STATS_CRE   = STATEFUL_DB_RECV_DB + 6;     // 8 Terminal point.
+        const int UPDATE_STATS_DEL   = STATEFUL_DB_RECV_DB + 7;     // 9 NOTE: This is recv_db
 
-    const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES;
-    const int TO_FINAL       = STATEFUL_DB_DONE + EXTRA_STATES + 1; // 10 NOTE: This is for a timeout.
-    
-    const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
+        const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES;
+        const int TO_FINAL       = STATEFUL_DB_DONE + EXTRA_STATES + 1; // 10 NOTE: This is for a timeout.
+        
+        const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
 
-    // Primary path : Staging In -> Running
-    // Alternate Path : Running -> Staging Out
-    // Path determinate : If the current state != to next state and is a valid transition. 
-    SetState( MCAST_SPAWN,
-        new McastSpawner< 
-            MCAST_PROPS_PAYLOAD,
-            ParseInfoQuery, 
-            NULLDBResp,
-            CreateByteArray >(
-        MCAST_RESPONSE_CRE,             // Success State 
-        TERMINAL_STATE,                 // Failure State 
-        FINAL,                          // Final State   
-        csm::daemon::helper::BAD_STATE, // Timeout State 
-        MASTER_TIMEOUT,                 // Timeout Time  
-        MCAST_RESPONSE_DEL));           // Alternate State
-    
-    // ===============================================================
-    // Create States
-    // ===============================================================
-    // XXX This might "smell bad", but the point is to use the existing create functionality, where possible.
-    //
-    SetState( MCAST_RESPONSE_CRE,
-        new McastResponder< 
-            MCAST_PROPS_PAYLOAD,
-            PayloadConstructor<MCAST_PROPS_PAYLOAD>,
-            CSMIAllocationCreate_Master::InsertStatsStatement, // Called when all responses are successful.
-            MCASTDBReqSpawn,                                   // Called for failure.
-            csm::mcast::allocation::ParseResponseCreate,       // Performs a parse of the responses.
-            false >(                                            // Specifies that a second multicast should be attempted in a failure. 
-        UPDATE_STATS_CRE,           // Success State 
-        TERMINAL_STATE,             // Failure State
-        FINAL,                      // Final State
-        TERMINAL_STATE,             // Timeout State
-        MASTER_TIMEOUT));           // Timeout Time
-    
-    // Processes the statistics update results.
-    SetState( UPDATE_STATS_CRE,
-        new McastTerminal< 
-            MCAST_PROPS_PAYLOAD, 
-            CSMIAllocationCreate_Master::ParseStatsQuery,
-            CreateByteArray,
-            CSMIAllocationCreate_Master::UndoAllocationDB >(
-        FINAL,                          // Success State
-        UNDO_MCAST_RES_CRE,             // Failure State
-        FINAL,                          // Final State 
-        UNDO_MCAST_RES_CRE,             // Timeout State
-        MASTER_TIMEOUT));               // Timeout Time
-
-    // Failure Path - Uses the CSMIAllocationCreate_Master behavior.
-    // --------------------------------------
-    // Revert the Allocations on the individual nodes.
-    SetState ( UNDO_MCAST_RES_CRE,
-        new McastResponder< MCAST_PROPS_PAYLOAD,
-                            PayloadConstructor<MCAST_PROPS_PAYLOAD>,
-                            CSMIAllocationCreate_Master::UndoAllocationDB, // Called when all responses are successful.                               
-                            CSMIAllocationCreate_Master::UndoAllocationDB, // Called for failure.                                                 
-                            csm::mcast::allocation::ParseResponseRecover,  // Performs a parse of the responses.                                  
-                            false >(                                       // Specifies that a second multicast shouldn't be attempted in a failure. 
-            REMOVE_ALLOCATION,          // Success State  
-            REMOVE_ALLOCATION,          // Failure State  
-            FINAL,                      // Final State    
-            REMOVE_ALLOCATION,          // Timeout State  
+        // Primary path : Staging In -> Running
+        // Alternate Path : Running -> Staging Out
+        // Path determinate : If the current state != to next state and is a valid transition. 
+        SetState( MCAST_SPAWN,
+            new McastSpawner< 
+                MCAST_PROPS_PAYLOAD,
+                ParseInfoQuery, 
+                NULLDBResp,
+                CreateByteArray >(
+            MCAST_RESPONSE_CRE,             // Success State 
+            TERMINAL_STATE,                 // Failure State 
+            FINAL,                          // Final State   
+            csm::daemon::helper::BAD_STATE, // Timeout State 
+            MASTER_TIMEOUT,                 // Timeout Time  
+            MCAST_RESPONSE_DEL));           // Alternate State
+        
+        // ===============================================================
+        // Create States
+        // ===============================================================
+        // XXX This might "smell bad", but the point is to use the existing create functionality, where possible.
+        //
+        SetState( MCAST_RESPONSE_CRE,
+            new McastResponder< 
+                MCAST_PROPS_PAYLOAD,
+                PayloadConstructor<MCAST_PROPS_PAYLOAD>,
+                CSMIAllocationCreate_Master::InsertStatsStatement, // Called when all responses are successful.
+                MCASTDBReqSpawn,                                   // Called for failure.
+                csm::mcast::allocation::ParseResponseCreate,       // Performs a parse of the responses.
+                false >(                                            // Specifies that a second multicast should be attempted in a failure. 
+            UPDATE_STATS_CRE,           // Success State 
+            TERMINAL_STATE,             // Failure State
+            FINAL,                      // Final State
+            TERMINAL_STATE,             // Timeout State
             MASTER_TIMEOUT));           // Timeout Time
+        
+        // Processes the statistics update results.
+        SetState( UPDATE_STATS_CRE,
+            new McastTerminal< 
+                MCAST_PROPS_PAYLOAD, 
+                CSMIAllocationCreate_Master::ParseStatsQuery,
+                CreateByteArray,
+                CSMIAllocationCreate_Master::UndoAllocationDB >(
+            FINAL,                          // Success State
+            UNDO_MCAST_RES_CRE,             // Failure State
+            FINAL,                          // Final State 
+            UNDO_MCAST_RES_CRE,             // Timeout State
+            MASTER_TIMEOUT));               // Timeout Time
 
-    // TODO Should this be a custom solution? 
-    // Process the Removal of the allocation.
-    SetState ( REMOVE_ALLOCATION,
-        new StatefulDBRecvTerminal<CSMIAllocationCreate_Master::UndoTerminal>(
-            FINAL,                      // Success State  
-            FINAL,                      // Failure State
-            FINAL ));                   // Final State
-    // --------------------------------------
-    
+        // Failure Path - Uses the CSMIAllocationCreate_Master behavior.
+        // --------------------------------------
+        // Revert the Allocations on the individual nodes.
+        SetState ( UNDO_MCAST_RES_CRE,
+            new McastResponder< MCAST_PROPS_PAYLOAD,
+                                PayloadConstructor<MCAST_PROPS_PAYLOAD>,
+                                CSMIAllocationCreate_Master::UndoAllocationDB, // Called when all responses are successful.                               
+                                CSMIAllocationCreate_Master::UndoAllocationDB, // Called for failure.                                                 
+                                csm::mcast::allocation::ParseResponseRecover,  // Performs a parse of the responses.                                  
+                                false >(                                       // Specifies that a second multicast shouldn't be attempted in a failure. 
+                REMOVE_ALLOCATION,          // Success State  
+                REMOVE_ALLOCATION,          // Failure State  
+                FINAL,                      // Final State    
+                REMOVE_ALLOCATION,          // Timeout State  
+                MASTER_TIMEOUT));           // Timeout Time
 
-    // ===============================================================
-    // Delete States
-    // ===============================================================
-    // TODO Should timeouts do something special?
-    SetState( MCAST_RESPONSE_DEL,
-        new McastResponder< 
-            MCAST_PROPS_PAYLOAD,
-            PayloadConstructor<MCAST_PROPS_PAYLOAD>,
-            CSMIAllocationUpdateState::InsertStatsStatement, // Called when all responses are successful. 
-            MCASTDBReqSpawn,                                 // Called for failure.
-            csm::mcast::allocation::ParseResponseDelete,     // Performs a parse of the responses. 
-            false >(                                         // Specifies that a second multicast shouldn't be attempted in a failure. 
-        UPDATE_STATS_DEL,    // Success State 
-        TERMINAL_STATE,      // Failure State
-        FINAL,               // Final State  
+        // TODO Should this be a custom solution? 
+        // Process the Removal of the allocation.
+        SetState ( REMOVE_ALLOCATION,
+            new StatefulDBRecvTerminal<CSMIAllocationCreate_Master::UndoTerminal>(
+                FINAL,                      // Success State  
+                FINAL,                      // Failure State
+                FINAL ));                   // Final State
+        // --------------------------------------
+        
+
+        // ===============================================================
+        // Delete States
+        // ===============================================================
+        // TODO Should timeouts do something special?
+        SetState( MCAST_RESPONSE_DEL,
+            new McastResponder< 
+                MCAST_PROPS_PAYLOAD,
+                PayloadConstructor<MCAST_PROPS_PAYLOAD>,
+                CSMIAllocationUpdateState::InsertStatsStatement, // Called when all responses are successful. 
+                MCASTDBReqSpawn,                                 // Called for failure.
+                csm::mcast::allocation::ParseResponseDelete,     // Performs a parse of the responses. 
+                false >(                                         // Specifies that a second multicast shouldn't be attempted in a failure. 
+            UPDATE_STATS_DEL,    // Success State 
+            TERMINAL_STATE,      // Failure State
+            FINAL,               // Final State  
         TO_FINAL,            // Timeout State
         MASTER_TIMEOUT));    // Timeout Time
 
@@ -289,14 +289,14 @@ bool CSMIAllocationUpdateState::CreatePayload(
             // Create a mcast property object and set _EEReply to true (meaning early exit just exits).
             MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( 
                 CMD_ID, allocation, stateArgs->new_state == CSM_RUNNING, true, 
-                 CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT );
+                CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT );
             ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
             ctx->SetUserData( payload );
 
             // Build the stmt.
             // XXX * is used for convenience, if the function changes this needs to changed.
             std::string stmt = "SELECT * FROM fn_csm_allocation_update_state($1::bigint, $2::text)";
-
+            
             // Build the request.
             const int paramCount = 2;
             csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
@@ -346,7 +346,7 @@ csm::db::DBReqContent* CSMIAllocationUpdateState::InsertStatsStatement(
     if ( allocation )
     {
         // // TODO add energy
-        std::string stmt = "SELECT fn_csm_allocation_finish_data_stats( $1::bigint, $2::text, $3::text[],"
+        std::string stmt = "SELECT * FROM fn_csm_allocation_finish_data_stats( $1::bigint, $2::text, $3::text[],"
             "$4::bigint[],$5::bigint[],$6::bigint[],$7::bigint[],$8::bigint[],$9::bigint[], $10::bigint[],"
             "$11::bigint[], $12::bigint[])";
     
@@ -424,14 +424,20 @@ bool CSMIAllocationUpdateState::ParseInfoQuery(
         a->projected_memory     = strtol(fields->data[11], nullptr, 10);
 
         
-        csmi_state_t start_state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, fields->data[12]);
-        if ( start_state == CSM_STAGING_IN && a->state == CSM_STAGING_OUT )
+        a->start_state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, fields->data[12]);
+        if ( a->start_state == CSM_STAGING_IN && a->state == CSM_STAGING_OUT )
         {
             success=false;
             ctx->SetErrorCode(CSM_STATE_JUMPED);
             ctx->SetErrorMessage("State jumped, skipping multicast.");
+            
+            std::string state =  csm_get_string_from_enum(csmi_state_t, (a->state ) );
+            std::string json  = "{\"state\":\"";
+            json.append(state).append("\"}");
+
+            TRANSACTION("allocation", ctx->GetRunID(), a->allocation_id, json);
         }
-        else if ( start_state == a->state )
+        else if ( a->start_state == a->state )
         {
             success=false;
             ctx->SetErrorCode(CSM_SAME_STATE_TRANSITION);
@@ -486,7 +492,7 @@ bool CSMIAllocationUpdateState::CreateByteArray(
         char **buf, uint32_t &bufLen,
         csm::daemon::EventContextHandlerState_sptr ctx )
 {
-    return CreateByteArray( buf, bufLen, ctx );
+    return CSMIAllocationUpdateState::UpdateTerminal( tuples, buf, bufLen, ctx );
 }
 
 bool CSMIAllocationUpdateState::CreateByteArray(
@@ -506,9 +512,36 @@ bool CSMIAllocationUpdateState::CreateByteArray(
         *buf = nullptr;
         bufLen= 0;
         if ( mcastProps )
+        {
+            MCAST_STRUCT* allocation = mcastProps->GetData();
+            if ( allocation ) 
+            {
+                std::string state =  csm_get_string_from_enum(csmi_state_t, (allocation->state ) );
+                std::string time_str(allocation->timestamp ? allocation->timestamp : "");
+
+                std::string json  = "{\"state\":\"";
+                json.append(state);//.append("\"}");
+
+                if ( allocation->timestamp &&
+                        (allocation->state == CSM_RUNNING 
+                            || allocation->start_state == CSM_RUNNING )) 
+                {
+                    std::string run_state = allocation->state == CSM_RUNNING ? "start" : "end";
+                    json.append("\",\"running-").append(run_state)
+                        .append("-timestamp\":\"").append(time_str).append("\"}");
+                }
+                else
+                {
+                    json.append("\"}");
+                }
+
+                TRANSACTION("allocation", ctx->GetRunID(), allocation->allocation_id, json);
+            }
+
             LOG(csmapi, info) << ctx->GetCommandName() << ctx 
                 << mcastProps->GenerateIdentifierString() 
                 << "; Message: Update completed;";
+        }
     }
     else
     {
@@ -530,6 +563,35 @@ bool CSMIAllocationUpdateState::UpdateTerminal(
     char **buf, uint32_t &bufLen,
     csm::daemon::EventContextHandlerState_sptr ctx )
 {
+    // Get the allocation data.
+    MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
+    std::unique_lock<std::mutex>dataLock =
+        ctx->GetUserData<MCAST_PROPS_PAYLOAD*>(&mcastProps);
+    
+    if ( mcastProps )
+    {
+        MCAST_STRUCT* allocation = mcastProps->GetData();
+        if ( allocation && tuples.size() == 1 && tuples[0]->data && tuples[0]->nfields > 0) 
+        {
+            if( allocation->timestamp != nullptr ) 
+            { 
+                free(allocation->timestamp); 
+                allocation->timestamp = nullptr;
+            }
+            allocation->timestamp = strdup(tuples[0]->data[0]);
+
+            // If the end time and state is returned, process it.
+            // Otherwise just update the state.
+            if ( tuples[0]->nfields == 2 )
+            {
+                allocation->state = 
+                    (csmi_state_t)csm_get_enum_from_string(csmi_state_t,tuples[0]->data[1]);
+            }
+        }
+    }
+
+    dataLock.unlock();
+
     return CreateByteArray( buf, bufLen, ctx );
 }
 

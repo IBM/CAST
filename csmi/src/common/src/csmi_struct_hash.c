@@ -21,13 +21,6 @@
 
 #define CSMI_WILDCARD '%'
 
-
-// Determines the size of the supplied field's array.
-#define determine_array_size(array_size, node_type, node_size, struct_ptr)                   \
-    array_size = node_type & CSM_ARRAY_BIT ?                                                 \
-        ( node_type & CSM_FIXED_BIT ? node_size : (size_t) *((char*)struct_ptr + node_size)) \
-        : 1
-
 /**
  * @brief Seeks the end of the supplied print string.
  *

@@ -28,7 +28,7 @@ PPPING=/opt/xcat/bin/ppping
 
 readonly me=${0##*/}
 if [ ! -x $PPPING ]; then echo -e "$PPPING not found or invalid permission.\n$me test FAIL, rc=1"  ; exit 1; fi
-model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo "Running $me on `hostname -s`, machine type $model."          
 
 trap 'rm -f /tmp/$$' EXIT

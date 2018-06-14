@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-process/chk-process.sh
+#    hcdiag/src/tests/chk-smt/chk-smt.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -24,7 +24,7 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 fi     
 
 me=$(basename $0) 
-model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
 SMT=4

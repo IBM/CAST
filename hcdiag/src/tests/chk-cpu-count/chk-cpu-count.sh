@@ -25,7 +25,7 @@ fi
 
 
 
-model=$(cat /proc/device-tree/model | awk '{ print substr($1,1,8) }')
+model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $(basename $0) on $(hostname -s), machine type $model.\n"          
 
 set -e

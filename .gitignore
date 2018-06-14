@@ -27,3 +27,6 @@ report.html
 
 #Python byte code
 *.pyc
+
+#CSM test config
+csm_test.cfg
