@@ -182,7 +182,7 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
                 //        We rely on bbProxy to prevent that from happening...
                 if ((!pTolerateAlreadyExists) && (it->second).isSuspended() && pHostName == (it->second).getHostName())
                 {
-                    errorText << "Hostname " << (it->second).getHostName() << " is currently suspended. Therefore " << *pLVKey << " cannot be added.  Registration failed with bbserver."
+                    errorText << "Hostname " << (it->second).getHostName() << " is currently suspended. Therefore " << *pLVKey << " cannot be added.  Registration failed with bbserver." \
                               << " Attempt to retry the create logical volume request when the connection is not suspended.";
                     LOG_ERROR_TEXT(errorText);
                     rc = 1;
