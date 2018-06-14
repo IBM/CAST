@@ -22,7 +22,7 @@ void csmiGenerateJSON(
     void* target,
     const csmi_struct_mapping_t* mapping )
 {
-    json = "{";
+    json.append("{");
     
     char* token_str = strdup(format); // Duplicate so the string can be modified.
     char* start_token = token_str;        // The start of the current token.
@@ -35,7 +35,7 @@ void csmiGenerateJSON(
     int offset = 0;
     int type = 0;
     void* member = NULL;
-
+    printf("%s\n", format);
 
     while ( *end_token != 0 )
     {
@@ -47,10 +47,10 @@ void csmiGenerateJSON(
             node = csmi_search( start_token, mapping );
             start_token = end_token + 1;
 
-
             if ( ! node ) break;
             type = node->type >> CSM_TYPE_SHIFT;
             
+            printf("%s\n", node->name);
             determine_array_size(array_size, node->type, node->size_offset, target);
             json.append("\"").append(node->name).append("\":");
             
@@ -121,11 +121,20 @@ void csmiGenerateJSON(
             
             json.append("\"").append(node->name).append("\":");
             if( array_size > 1 ) json.append("[");
+            printf("%zu %s\n",array_size,  node->name);
 
             for( size_t i=0; i < array_size; ++i )
             {
-                if ( ( member = sub_map->ptr_funct(((char*)target + node->offset),i) ) )
+                printf("here ");
+                printf("%p\n ", target);
+                printf("%zu\n ", node->offset);
+                printf("point %p\n", (((char**)target + node->offset))[0]);
+
+                // Something is broken here, it looks like C++ handles this differently.
+                if ( ( member = sub_map->ptr_funct( 
+                        ((char*)target + node->offset),(node->type & CSM_ARRAY_BIT),i) ) )
                 {
+                    printf("MADE IT");
                     csmiGenerateJSON(
                         json, 
                         start_token, 

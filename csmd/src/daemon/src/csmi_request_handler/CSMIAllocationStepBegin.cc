@@ -25,12 +25,17 @@
 #include "csmi_stateful_forward/CSMIStatefulForwardResponse.h"
 #include "CSMIStepUpdateAgent.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h"
+#include "csmi/src/wm/include/csmi_wm_internal.h"
+#include "csmi/src/common/include/csmi_json.h"
 
 #define STATE_NAME "CSMIAllocationStepBegin:"
 #define CMD_ID CSM_CMD_allocation_step_begin
 
 #define MCAST_PROPS_PAYLOAD CSMIStepMcast
 #define EXTRA_STATES 4
+
+#define DATA_STRING "allocation_id,step_id,num_nodes,compute_nodes,num_processors,num_gpus,projected_memory,"\
+    "num_tasks,status,executable,working_directory,user_flags,argument,environment_variable,begin_time}"
 
 CSMIAllocationStepBegin::CSMIAllocationStepBegin( csm::daemon::HandlerOptions& options ):
         CSMIStatefulDB( CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES )
@@ -40,7 +45,7 @@ CSMIAllocationStepBegin::CSMIAllocationStepBegin( csm::daemon::HandlerOptions& o
     const int UNDO_MCAST_RESP = STATEFUL_DB_RECV_DB + 2; // 4
     const int REVERT_STEP     = STATEFUL_DB_RECV_DB + 3; // 5
     
-    const int FINAL       =  STATEFUL_DB_RECV_DB + EXTRA_STATES;
+    const int FINAL       =  STATEFUL_DB_DONE + EXTRA_STATES;
 
     const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
 
@@ -114,6 +119,11 @@ bool CSMIAllocationStepBegin::CreatePayload(
         // @note I alias here to reduce the number of mallocs to keep the non multicast case fast.
         mcastContext->compute_nodes = step->compute_nodes; 
         mcastContext->user_flags    = step->user_flags;
+        
+        // Generate the baseline step json transaction.
+        std::string json = "";
+        csmiGenerateJSON(json, DATA_STRING, step, CSM_STRUCT_MAP(csmi_allocation_step_t));
+        mcastContext->json_str = strdup(json.c_str());
 
         MCAST_PROPS_PAYLOAD *payload = new MCAST_PROPS_PAYLOAD( CMD_ID, mcastContext, true, true );
         ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
@@ -121,7 +131,7 @@ bool CSMIAllocationStepBegin::CreatePayload(
 
         // ------------------------------------------------------------------------------
 
-        std::string stmt = "SELECT fn_csm_step_begin( $1::bigint, $2::bigint, "
+        std::string stmt = "SELECT * FROM fn_csm_step_begin( $1::bigint, $2::bigint, "
             "$3::character, $4::text, $5::text, $6::text, $7::text, "
             "$8::integer, $9::integer, $10::integer, $11::integer, $12::integer, "
             "$13::text, $14::text[] )";
@@ -148,6 +158,7 @@ bool CSMIAllocationStepBegin::CreatePayload(
 
         *dbPayload = dbReq;
         // ------------------------------------------------------------------------------
+        
 
         // These have been aliased above so we don't allocate excess memory.
         // Prevent them from being freed.
@@ -182,6 +193,13 @@ bool CSMIAllocationStepBegin::ParseInfoQuery(
     {
         LOG( csmapi, trace ) << STATE_NAME ":ParseInfoQuery: Enter";
         bool success = false;
+        
+        // Get the timestamp from the 
+        std::string timestamp = "";
+        if(tuples.size() == 1 && tuples[0]->data && tuples[0]->nfields == 1 && tuples[0]->data[0])
+        {
+            timestamp = tuples[0]->data[0];
+        }
 
         // If the user flags are null then multicasting is not needed.
         if( mcastProps )
@@ -189,18 +207,27 @@ bool CSMIAllocationStepBegin::ParseInfoQuery(
             csmi_allocation_step_mcast_context_t* step = mcastProps->GetData();
             success = step && ( step->user_flags[0] != 0 );
 
-            if ( success ) 
+            if ( step )
             {
-                LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString() <<
-                    "; User Flags: \"" << step->user_flags << 
-                    " \"; Message: Step begin multicast;";
+                TRANSACTION("allocation-step", ctx->GetRunID(), 
+                    "\""<< step->allocation_id << "-" << step->step_id << "\"", step->json_str);
+                TRANSACTION("allocation-step", ctx->GetRunID(), 
+                    "\"" << step->allocation_id << "-" << step->step_id << "\"", 
+                    "{\"begin_time\":\"" << timestamp << "\",\"history\":{\"end_time\":\"\"}}" );
 
-            }
-            else if ( step )
-            {
-                LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString() <<
-                    "; User Flags: \"" << step->user_flags << 
-                    " \"; Message: Skipping step begin multicast (no user flags);";
+                if ( success ) 
+                {
+                    LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString() <<
+                        "; User Flags: \"" << step->user_flags << 
+                        " \"; Message: Step begin multicast;";
+
+                }
+                else 
+                {
+                    LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString() <<
+                        "; User Flags: \"" << step->user_flags << 
+                        " \"; Message: Skipping step begin multicast (no user flags);";
+                }
             }
             else
             {
@@ -237,7 +264,7 @@ csm::db::DBReqContent* CSMIAllocationStepBegin::UndoStepDB(
         error.append(mcastProps->GenerateIdentifierString())
             .append("; Message: Step is being reverted;");
 
-        std::string stmt = "SELECT fn_csm_step_end("
+        std::string stmt = "SELECT * FROM fn_csm_step_end("
             "$1::bigint, $2::bigint, '', $3::int, $4::text,"
             "'', '', 0.0, 0.0, '',"
             "'', '', '', '', '' )";
@@ -272,11 +299,23 @@ bool CSMIAllocationStepBegin::UndoTerminal(
     
     std::string error = "";
 
+    
     if ( mcastProps )
     {
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(), ';');
         ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
         ctx->AppendErrorMessage("; Message: Step was successfully reverted;", ' ');
+
+        csmi_allocation_step_mcast_context_t* step = mcastProps->GetData();
+        if(step && tuples.size() == 1 && tuples[0]->data && 
+            tuples[0]->nfields == 4 && tuples[0]->data[3])
+        {
+            std::string timestamp(tuples[0]->data[3]);
+
+            TRANSACTION("allocation-step", ctx->GetRunID(), 
+                "\"" << step->allocation_id << "-" << step->step_id << "\"", 
+                "{\"history\":{\"end_time\":\"" << timestamp << "\"}}" );
+        }
     }
     else
     {

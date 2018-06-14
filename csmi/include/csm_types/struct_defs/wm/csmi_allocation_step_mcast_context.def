@@ -59,6 +59,10 @@ CSMI_STRUCT_MEMBER( char    , begin        ,  BASIC, ,    0, ) /**< A flag indic
 CSMI_STRUCT_MEMBER( char*   , user_flags   , STRING, , NULL, ) /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
 CSMI_STRUCT_MEMBER( char**  , compute_nodes, ARRAY_STR, num_nodes, NULL, ) /**< The list of nodes associated with this step. Used to populate the *csm_step_node* table of the CSM DB. Size stored in @ref num_nodes.*/
 CSMI_VERSION_END(ccb4e1a553467dc4e56938f393e9b5da)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(char*, json_str, STRING, ,NULL,) /**< A JSON string for use in transaction logging. */
+CSMI_VERSION_END(0)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER
