@@ -202,6 +202,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
   #define CSM_BDS_KEY_TIME_STAMP "timestamp"
   
   #define CSM_ENV_DATA_GPU_PREFIX "data"
+  #define CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER "serial_number"
 
   // Create any GPU json documents 
   if ( _Data_Mask.test(GPU_DOUBLE_DATA_BIT) || _Data_Mask.test(GPU_LONG_DATA_BIT) )
@@ -265,6 +266,9 @@ std::string CSM_Environmental_Data::Get_Json_String()
         gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_ENV_GPU);
         gpu_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
         gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
+  
+        // Temporarily set an artifical serial_number
+        gpu_pt.put( std::string(CSM_ENV_DATA_GPU_PREFIX) + "." + CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER, std::to_string(gpu) );
 
         for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
         {
