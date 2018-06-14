@@ -448,10 +448,12 @@ Each row archived in this way will be converted to a JSON document with the foll
 
 .. code-block:: javascript
     
-    # type helps define the index in Logstash ingestion
+    # type helps define the index in logstash ingestion
     # data isolates column names to prevent collisions with any logstash enrichment.  
     { "type": "db-<table-name>", "data": { <table-row-contents>} } 
 
+:type: The table in the database, converted to index in default configuration.
+:data: Encapsulates the row data.
 
 CAST recommends the use of a cron job to run this archival. The following sample runs every 
 five minutes, gathers up to 100 unarchived records from the csmdb tables, then appends the JSON
@@ -489,19 +491,17 @@ port `10523` for ingesting `beats` records as shown below:
             port => 10523
             codec=>"json"
         }
-    
     }
     filter
     {
         mutate {
             remove_field => [ "beat", "host", "source", "offset", "prospector"]
         }
-    
     }
     output
     {
         elasticsearch { 
-            hosts => ['10.7.4.15:9200','10.7.4.17:9200','10.7.4.19:9200']
+            hosts => [<elastic-server>:<port>]
             index => "cast-%{type}-%{+YYYY.MM.dd}"
             http_compression =>true
             document_type => "_doc"
@@ -509,7 +509,6 @@ port `10523` for ingesting `beats` records as shown below:
     }
 
 In this sample configuration the archived history will be stored in the *cast-db-<table_name>* indices.
-
 
 Transaction Log
 ***************
@@ -519,16 +518,107 @@ Transaction Log
 .. note:: CAST only ships the transaction log to a local file, a utility such as Filebeats or
     a local Logstash service would be needed to ship the log to a Big Data Store.
 
-
 CAST offers a transaction log for select CSM API events. Today the following events are tracked:
 
 * Allocation create/delete/update
+* Allocation step begin/end
 
 This transaction log represents a set of events that may be assembled to create the current state of
 an event in a Big Data Store. 
 
 In the CSM design these transactions are intended to be stored in a single elasticsearch index
 each transaction should be identified by a `uid` in the index.
+
+
+To enable the transaction logging mechanism the following configuration settings must be specified
+in the CSM master configuration file:
+
+.. code-block:: javascript
+
+    "log" :
+    {
+        "transaction"                       : true,
+        "transaction_file"                  : "/var/log/ibm/csm/csm_transaction.log",
+        "transaction_rotation_size"         : 1000000000
+    }
+
+:transaction: Enables the mechanism transaction log mechanism. 
+:transaction_file: Specifies the location the transaction log will be saved to.
+:transaction_rotation_size: The size of the file (in bytes) to rotate the log at.
+
+Each transaction record will follow the following pattern:
+
+.. code-block:: javascript
+    
+    { 
+        "type": "<transaction-type>", 
+        "data": { <table-row-contents>},
+        "traceid":<traceid-api>,
+        "uid": <unique-id>
+    }
+
+:type: The type of the transaction, converted to index in default configuration.
+:data: Encapsulates the transactional data.
+:traceid: The API's trace id as used in the CSM API trace functionality.
+:uid: A unique identifier for the record in the elasticsearch index.
+
+
+CAST recommends ingesting this data through the `filebeats`_ utility. A sample log configuration is 
+given below:
+
+.. code-block:: YAML
+
+    filebeat.inputs:
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/ibm/csm/csm_transaction.log
+      tags: ["transaction"]
+
+.. note:: For the sake of brevity further filebeats configuration documentation will be ommited. 
+    Please refer to the `filebeats`_ documentation for more details.
+
+.. warning:: Filebeats has some difficulty with rollover events.
+
+To configure logstash to ingest the archives the `beats` input plugin must be used, CAST recommends
+port `10523` for ingesting `beats` records. Please note that this configuration only creates one
+index for each transaction log type, this is to prevent transactions that span days from duplicating
+logs.
+
+.. code-block:: none
+
+    input
+    {
+        beats { 
+            port => 10523
+            codec=>"json"
+        }
+    }
+    filter
+    {
+        mutate {
+            remove_field => [ "beat", "host", "source", "offset", "prospector"]
+        }
+    }
+    output
+    {
+        elasticsearch { 
+            hosts => [<elastic-server>:<port>]
+            action => "update"
+            index => "cast-%{type}"
+            http_compression =>true
+            doc_as_upsert => true
+            document_id => "%{uid}"
+            document_type => "_doc"
+        }
+    }
+
+The resulting indices for this configuation will be one per transaction type with each document 
+corresponding to the current state of a set of transactions.
+
+.. attention:: Documentation for the supported transactions to follow. 
+
+.. note:: The following sections are currently deprecated.
 
 Configuration
 ^^^^^^^^^^^^^
