@@ -38,7 +38,7 @@ DEFAULT_DB="csmdb"
 logpath="/var/log/ibm/csm/db"
 logname="csm_db_archive_script.log"
 cd "${BASH_SOURCE%/*}" || exit
-now=$(date '+%Y-%m-%d.%H.%M.%S.%N')
+now=$(date '+%Y-%m-%d')
 
 #-------------------------------------------------------------------------------
 # Current user connected
@@ -186,7 +186,8 @@ logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db"
 return_code=0
 if [ $? -ne 127 ]; then
 
-json_file="$cur_path/$table_name.archive.${parent_pid}.$now.json"
+json_file="$cur_path/$table_name.archive.$now.json"
+swap_file="$cur_path/.$table_name.archive.$now.swp"
 archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_END
             BEGIN;
             --DROP TABLE IF EXISTS temp_$table_name;
@@ -212,15 +213,21 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_E
                         DROP COLUMN id;
 
                         COPY (select row_to_json(temp_$table_name) from temp_$table_name)
-                        to '$json_file';
+                        to '$swap_file';
 
                         COPY (select count(*) from temp_$table_name)
                         to '$cur_path/${parent_pid}_$table_name.count';
            COMMIT;
 THE_END`
 )
-awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' $json_file > ${json_file}.swp
-mv ${json_file}.swp $json_file
+
+# Enrich the 
+awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file}\
+    >> ${json_file}
+if [ $? -eq 0 ]
+then
+    rm -f ${swap_file}
+fi
 
 else
     echo "[Error] Archiving process for $table_name has been interrupted or terminated. please see log file"
