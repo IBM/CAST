@@ -2406,7 +2406,7 @@ int txp::Attr_uint8::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_uint16::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_uint16, pCRC);
+    ADD_DATA(Attr_uint16, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2422,7 +2422,7 @@ int txp::Attr_uint16::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_uint32::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_uint32, pCRC);
+    ADD_DATA(Attr_uint32, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2438,7 +2438,7 @@ int txp::Attr_uint32::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_uint64::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_uint64, pCRC);
+    ADD_DATA(Attr_uint64, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2454,7 +2454,7 @@ int txp::Attr_uint64::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_int8::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_int8, pCRC);
+    ADD_DATA(Attr_int8, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2470,7 +2470,7 @@ int txp::Attr_int8::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_int16::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_int16, pCRC);
+    ADD_DATA(Attr_int16, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2486,7 +2486,7 @@ int txp::Attr_int16::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_int32::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_int32, pCRC);
+    ADD_DATA(Attr_int32, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2502,7 +2502,7 @@ int txp::Attr_int32::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::Attr_int64::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_int64, pCRC);
+    ADD_DATA(Attr_int64, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2518,7 +2518,7 @@ int txp::Attr_int64::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::AttrPtr_char::add(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA(attr_ptr_char, pCRC);
+    ADD_DATA(AttrPtr_char, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {
@@ -2831,7 +2831,7 @@ int txp::Attr_int64::addValue(HeapBuffer* pBuffer, unsigned long* pCRC) {
 int txp::AttrPtr_char::addValue(HeapBuffer* pBuffer, unsigned long* pCRC) {
     int l_RC = 0;
 
-    ADD_DATA_VALUE_WITH_PTR(attr_ptr_char, pCRC);
+    ADD_DATA_VALUE_WITH_PTR(AttrPtr_char, pCRC);
 
 #ifdef TXP_DEVELOPMENT
     if (l_RC) {

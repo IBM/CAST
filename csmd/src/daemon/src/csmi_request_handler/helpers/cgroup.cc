@@ -61,7 +61,7 @@
 #define KB_TO_B(kB) kB * 1024
 
 /// Enables a check for development enviroment.
-//#define VM_DEVELOPMENT 0
+//#define VM_DEVELOPMENT 1
 
 namespace csm {
 namespace daemon {
@@ -255,18 +255,23 @@ void CGroup::SetupCGroups(int64_t cores)
     {
         const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
 
+        WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
+        WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
+ 
+        CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
+        MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
+
+        // Migrate the tasks.
         for( uint32_t controller = CG_CPUSET + 1;
             controller < csm_enum_max(csmi_cgroup_controller_t);
             ++controller )
         {
-            CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
+            std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
+            MigrateTasks( 
+                std::string(CGroup::CONTROLLER_DIR)
+                    .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
+                cg );
         }
-
-        WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
-        WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
-
-        CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
-        MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
 
         // TODO Compute System CGroup limit.
     }
@@ -930,6 +935,7 @@ uint64_t CGroup::MigrateTasks(
     const std::string& targetGroup ) const
 {
     LOG( csmapi, trace ) << _LOG_PREFIX "MigrateTasks Enter";
+    LOG( csmapi, debug) << sourceGroup << "  " <<  targetGroup;
 
     // Build the tasks strings.
     std::string sourceTasks(sourceGroup);

@@ -25,10 +25,19 @@ sub isSetuid
 sub setDefaults
 {
     $newserver = "primary";
+    $pollrate  = 5;
     $::DEFAULT_HOSTLIST  = "localhost";
     @::GETOPS=(
-	"server=s" => \$newserver
+	"server=s"   => \$newserver,
+	"pollrate=i" => \$pollrate
 	);
+}
+sub window_sleep
+{
+    my($pollrate) = @_;
+    my $curtime = time();
+    my $sleeptime = $pollrate - ($curtime - (int($curtime/$pollrate)) * $pollrate);
+    sleep($sleeptime);
 }
 
 
@@ -49,7 +58,12 @@ BEGIN
 
 use bbtools;
 
-monitor();
+do
+{
+    $rc = monitor();
+    &window_sleep(60);
+}
+while($rc == -1);
 
 sub serverOffline
 {
@@ -66,12 +80,15 @@ sub serverOffline
 sub monitor
 {
     $result = bbcmd("getserver --connected=primary");
+    return -1 if(bbgetrc($result) != 0);
     $myprimary = $result->{"out"}{"serverList"};
     
     $result = bbcmd("getserver --connected=backup");
+    return -1 if(bbgetrc($result) != 0);    
     $mybackup = $result->{"out"}{"serverList"};
 
     $result = bbcmd("getserver --connected=active");
+    return -1 if(bbgetrc($result) != 0);
     $myserver = $result->{"out"}{"serverList"};
     
     $myserver = $myprimary if(($myserver eq "") || ($myserver eq "none"));
@@ -101,7 +118,15 @@ sub monitor
 		$failurecnt = 0;
 	    }
 	}
-	sleep(5);
+	else
+	{
+	    if($result->{"error"}{"text"} =~ /Unable to create bb.proxy connection/i)
+	    {
+		cmd("systemctl start bbproxy.service");
+	    }
+	}
+	
+	&window_sleep($pollrate);
     }
 }
 

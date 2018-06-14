@@ -115,7 +115,8 @@ GetOptions(
     "outputconfig=s"        => \$CFG{"outputconfig"},
     "offload!"              => \$CFG{"USE_NVMF_OFFLOAD"},
     "csm!"                  => \$CFG{"USE_CSM"},
-    "server!"               => \$CFG{"bbServer"}
+    "server!"               => \$CFG{"bbServer"},
+    "metadata=s"            => \$CFG{"metadata"}
     );
 
 getNodeName();
@@ -144,6 +145,7 @@ sub setDefaults
     $CFG{"USE_NVMF_OFFLOAD"} = 0;
     $CFG{"USE_CSM"} = 1;
     $CFG{"bbServer"} = 0;
+    $CFG{"metadata"} = "";
 }
 
 sub getNodeName
@@ -152,11 +154,15 @@ sub getNodeName
     $xcatinfo = "/opt/xcat/xcatinfo";
     if(! -f $xcatinfo)
     {
-	output("Node was not deployed by xCAT.  Unable to identify the correct hostname", LOG_ERR);
-	exit(1);
+	output("Node was not deployed by xCAT, using hostname", LOG_ERR);
+	$nodename = cmd("hostname");
+	chomp($nodename);
     }
-    $data = cat($xcatinfo);
-    ($nodename) = $data =~ /NODE=(\S+)/s;
+    else
+    {
+	$data = cat($xcatinfo);
+	($nodename) = $data =~ /NODE=(\S+)/s;
+    }
     output("node: $nodename");
 }
 
@@ -174,7 +180,20 @@ sub makeServerConfigFile
 {
     setprefix("makeServerConfigFile: ");
     requireFile($CFG{"configtempl"});
-    cmd("cp " . $CFG{"configtempl"} . " " . $CFG{"outputconfig"});
+    
+    my $bbcfgtemplate = cat($CFG{"configtempl"});
+    my $json = decode_json($bbcfgtemplate);
+    
+    if($CFG{"metadata"} =~ /\S/)
+    {
+	$json->{"bb"}{"bbserverMetadataPath"} = $CFG{"metadata"};
+    }
+    
+    my $jsonoo = JSON->new->allow_nonref;
+    my $out = $jsonoo->pretty->encode( $json );
+    open(TMP, ">$CFG{outputconfig}");
+    print TMP $out;
+    close(TMP);
 }
 
 sub makeProxyConfigFile
@@ -184,9 +203,8 @@ sub makeProxyConfigFile
     requireFile($CFG{"esslist"});
     requireFile($CFG{"configtempl"});
     
-    $bbcfgtemplate = cat($CFG{"configtempl"});
-    $json = decode_json($bbcfgtemplate);
-    
+    my $bbcfgtemplate = cat($CFG{"configtempl"});
+    my $json = decode_json($bbcfgtemplate);
     my $numnodes = 0;
     open(TMP, $CFG{"nodelist"});
     while($node = <TMP>)
@@ -266,8 +284,9 @@ sub makeProxyConfigFile
     }
     $json->{"bb"}{"cmd"}{"controller"} = "none";   # disable on compute nodes
     
-    $cfgfile = $json;
-    $out = encode_json($json);
+    $cfgfile = $json;  # make global
+    my $jsonoo = JSON->new->allow_nonref;
+    my $out = $jsonoo->pretty->encode( $json );
     open(TMP, ">$CFG{outputconfig}");
     print TMP $out;
     close(TMP);
@@ -279,7 +298,7 @@ sub configureNVMeTarget
     cmd("modprobe nvmet");
     cmd("modprobe nvmet-rdma");
     
-    $mtab = cat("/etc/mtab");
+    my $mtab = cat("/etc/mtab");
     if($mtab !~ /configfs/)
     {
 	cmd("mount -t configfs none /sys/kernel/config");
@@ -288,13 +307,12 @@ sub configureNVMeTarget
     ($configfs) = $mtab =~ /configfs\s+(\S+)/;
     output("Configfs found at: $configfs");
     
-    $nvmetjson = cat("$SCRIPTPATH/nvmet.json");
-    $json = decode_json($nvmetjson);
+    my $nvmetjson = cat("$SCRIPTPATH/nvmet.json");
+    my $json = decode_json($nvmetjson);
+    my $ns  = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
+    my $nqn = $json->{"subsystems"}[0]{"nqn"};
     
-    $ns  = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
-    $nqn = $json->{"subsystems"}[0]{"nqn"};
-    
-    $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
+    my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
     {
 	output("NVMe over Fabrics target has already been configured");
@@ -303,7 +321,7 @@ sub configureNVMeTarget
     
     output("ipaddr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
     
-    $ipaddr = cmd("ip addr show dev ib0 | grep \"inet \"");
+    my $ipaddr = cmd("ip addr show dev ib0 | grep \"inet \"");
     ($myip) = $ipaddr =~  /inet\s+(\S+?)\//;
     
     output("myip: $myip");
@@ -321,7 +339,7 @@ sub configureNVMeTarget
     $json->{"subsystems"}[0]{"offload"} = $CFG{"USE_NVMF_OFFLOAD"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"USE_NVMF_OFFLOAD"};  # workaround
     
-    $out = encode_json($json);    
+    my $out = encode_json($json);    
     open(TMP, ">/etc/ibm/nvmet.json");
     print TMP $out;
     close(TMP);
@@ -340,7 +358,7 @@ sub configureNVMeTarget
 sub configureVolumeGroup
 {
     setprefix("Configuring VG: ");
-    $bbvgname = $cfgfile->{"bb"}{"proxy"}{"volumegroup"};
+    my $bbvgname = $cfgfile->{"bb"}{"proxy"}{"volumegroup"};
     
     cmd("vgscan --cache");
     eval
@@ -353,15 +371,15 @@ sub configureVolumeGroup
     }
     
     setprefix("Removing stale LVs: ");
-    $lvdata = cmd("lvs --reportformat json $vgname");
-    $json = decode_json($lvdata);
+    my $lvdata = cmd("lvs --reportformat json $vgname");
+    my $json = decode_json($lvdata);
     
     foreach $rep (@{ $json->{"report"} })
     {
 	foreach $lv (@{ $rep->{"lv"} })
 	{
-	    $lvname   = $lv->{"lv_name"};
-	    $vgname = $lv->{"vg_name"};
+	    my $lvname = $lv->{"lv_name"};
+	    my $vgname = $lv->{"vg_name"};
 	    if($vgname eq $bbvgname)
 	    {
 		my $ismounted = "";
