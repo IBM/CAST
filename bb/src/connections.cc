@@ -689,14 +689,16 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
                     msg->addAttribute(txp::gid, (uint32_t)threadLocalgid);
                 }
 
-
-                /* Warning:
-                   The following uses new-with-placement using storage already allocated in ResponseDescriptor.
-                   This means that no malloc/mmap was performed to acquire the storage, so do not call C++ destructors or
-                   attempt to deallocate this storage.  Deallocation will occur when ResponseDescriptor goes out of scope.
-                */
-                txp::Attr_uint64* myattr = new(&reply.attr) txp::Attr_uint64(txp::responseHandle, (uint64_t)&reply);
-                msg->addAttribute(myattr);
+                if (msg->retrieveAttrs()->find(txp::responseHandle) == msg->retrieveAttrs()->end())
+                {
+                    /* Warning:
+                       The following uses new-with-placement using storage already allocated in ResponseDescriptor.
+                       This means that no malloc/mmap was performed to acquire the storage, so do not call C++ destructors or
+                       attempt to deallocate this storage.  Deallocation will occur when ResponseDescriptor goes out of scope.
+                    */
+                    txp::Attr_uint64* myattr = new(&reply.attr) txp::Attr_uint64(txp::responseHandle, (uint64_t)&reply);
+                    msg->addAttribute(myattr);
+                }
                 reply.connName = realName;
 
                 // We log all messages in the flight log...
