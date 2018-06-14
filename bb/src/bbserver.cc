@@ -1969,22 +1969,34 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 {
                                                     // Handle file not marked as stopped
                                                     rc = 1;
-                                                    if (l_HandleFile->allExtentsTransferred())
+                                                    BBSTATUS l_Status = (BBSTATUS)l_HandleFile->status;
+                                                            char l_StatusStr[64] = {'\0'};
+                                                            getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
+                                                    if (l_Status == BBFULLSUCCESS || l_Status == BBCANCELED)
                                                     {
-                                                        // All extents processed for the handle file
+                                                        // The handle status is at a final status state.  No need to restart this transfer definition.
+                                                        // NOTE:  Cannot check the 'all extents transferred' or 'all files closed' indicator
+                                                        //        because the stopped indicator is set after those indicators are set.
+                                                        //        So, we simply check for the final status values for an early exit.
+                                                        char l_StatusStr[64] = {'\0'};
+                                                        getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
                                                         if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                                         {
                                                             // This condition overrides any failure detected on bbProxy...
                                                             l_MarkFailedFromProxy = 0;
+                                                            char l_StatusStr[64] = {'\0'};
+                                                            getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
                                                             LOG(bb,info) << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
                                                                          << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                         << ", all extents for the handle file have been processed and the handle is not marked as stopped." \
-                                                                         << ". All transfers for this contributor may have already finished.  See previous messages.";
+                                                                         << ", all extents for the handle file have been processed and the final handle status was " << l_StatusStr << ".";
                                                             BAIL;
                                                         }
                                                         else
                                                         {
-                                                            // Continue to spin...
+                                                            // Continue to spin...  (Cannot get here, but we send a warning...)
+                                                            LOG(bb,warning) << "msgin_starttransfer(): Handle status for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                                                            << ", handle " << l_Handle << ", contribid " << l_ContribId << " has an inconsistent status of " \
+                                                                            << l_StatusStr << ".";
                                                         }
                                                     }
                                                     else
