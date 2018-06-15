@@ -212,7 +212,7 @@ git repository.
 
 .. attention:: In future iterations of the CAST rpm this gem will be packed in the bds RPM. 
 
-After the plugin has been built it may then be installed with the steps described in 
+After the plugin has been built it may then be configured with the steps described in 
 :ref:`csm-event-correlator-config`
 
 
