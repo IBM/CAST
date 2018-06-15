@@ -142,8 +142,8 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
                 "; Primary Job Id: "   << allocation->primary_job_id << 
                 "; Secondary Job Id: " << allocation->secondary_job_id <<
                 "; Error Code: "       << response->error_code << 
+                "; Error Message: "    << response->error_message << 
                 "; Message: Agent completed;";
-                
         }
         else
         {
@@ -253,10 +253,6 @@ bool AllocationAgentUpdateState::InitNode(
         payload->secondary_job_id, 
         payload->user_name )
 
-    // Free this since it's all done.
-    //if ( payload->user_name ) free( payload->user_name ); 
-    //payload->user_name = nullptr;
-
     // 4. Run the Prolog.
     // EARLY RETURN!
     LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
@@ -318,11 +314,6 @@ bool AllocationAgentUpdateState::RevertNode(
         payload->primary_job_id, 
         payload->secondary_job_id, 
         payload->user_name)
-
-    // Free this since it's all done.
-    //if ( payload->user_name ) free( payload->user_name ); 
-    //payload->user_name = nullptr;
-
     
     // 1. Executes epilog.
     LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
