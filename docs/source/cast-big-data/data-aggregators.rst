@@ -1,7 +1,7 @@
 Data Aggregation
 ================
 
-Data Aggregation in CAST utilizes the Logstash pipeline to process events and pass it along to 
+Data Aggregation in CAST utilizes the logstash pipeline to process events and pass it along to 
 Elasticsearch.
 
 .. note:: In the following documentation, examples requiring replacement will be annotated with the bash style 
@@ -10,12 +10,11 @@ Elasticsearch.
 .. contents::
     :local:
 
-
 Logs
 ----
 
 The default configuration of the CAST Big Data Store has support for a number of logging types,
-most of which are processed through the syslog utilty and then enriched by Logstash and 
+most of which are processed through the syslog utility and then enriched by Logstash and 
 the CAST Event Correlator.
 
 .. TODO: Add more context?
@@ -29,7 +28,7 @@ Syslog
 
 Syslog is generally aggregated through the use of the rsyslog daemon. 
 
-Most devices are capable of producing syslogs, and it is sugggested that syslogs should be sent
+Most devices are capable of producing syslogs, and it is suggested that syslogs should be sent
 to Logstash via a redirection hierarchy outlined in the table below: 
 
 +----------------+--------------------+
@@ -205,7 +204,7 @@ Console
 :Relevant Directories:
     | `/etc/goconserver`
 
-CSM recommends using the goconserver bundled in the xCAT dependicies and documented in xCat-GoConserver_.
+CSM recommends using the goconserver bundled in the xCAT dependencies and documented in xCat-GoConserver_.
 A limited configuration guide is provided below, but for gaps or more details please refer to the 
 the xCAT read the docs.
 
@@ -294,22 +293,20 @@ this file will need to be modified to have the CAST syslog template:
 .. note:: For more configuration details please refer to the official `Cumulus Linux User Guide`_.
 
 
-
-
 Counters
 --------
 
 The default configuration of the CAST Big Data Store has support for a number of counter types,
 most of which are processed through Logstash and the CAST Event Correlator.
 
-GFPS
+GPFS
 ****
 
 .. attention:: This section is currently a work in progress.
 
 .. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
-To detect failures of the power hardware the following mustn be prepared on the management node
+To detect failures of the power hardware the following must be prepared on the management node
 of the GPFS cluster:
 
 .. code-block:: bash
@@ -328,7 +325,7 @@ collector
     $ systemctl start pmcollector
     $ systemctl enable pmcollector
 
-.. serivce nodes need `gpfs.gss.pmcollector`
+.. service nodes need `gpfs.gss.pmcollector`
 
 `csm_big_data/data-aggregators/gpfs/zimon_collector.py`
 
@@ -339,7 +336,6 @@ sensors
 
 .. mmchnode --perfmon -N <nodes>
 
-
 UFM
 ***
 
@@ -347,35 +343,14 @@ UFM
 
 .. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
 
-GPU
-***
-
-.. attention:: This section is currently a work in progress.
-
-.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
-
-Environmental
--------------
-
-The default configuration of the CAST Big Data Store has support for a number of environmental types,
-most of which are processed through Logstash and the CAST Event Correlator.
-
-Node
-****
-
-.. attention:: This section is currently a work in progress.
-
-.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
-
-
-
+.. _JSONDataSources:
 
 JSON Data Sources
 -----------------
 
 :Logstash Port: 10522
 :Required Field: `type`
-:Recommended Fields: `@timestamp`
+:Recommended Fields: `timestamp`
 
 .. attention:: This section is currently a work in progress.
 
@@ -425,7 +400,83 @@ The syslog will follow the *RFC 3164* syslog protocol. After being filtered thro
 
 These logs will then stored in the *cast-log-syslog* index using the default CAST configuration.
 
+CSM Buckets
+***********
 
+:Logstash Port: 10522
+
+CSM provides a mechanism for running buckets to aggregate environmental and counter data from 
+a variety of sources in the cluster. This data will be aggregated and shipped by the CSM 
+aggregator to a logstash server (typically the local logstash server).
+
+
+Each run of a bucket will be encapsulated in a JSON document with the following pattern:
+
+.. code-block:: javascript
+
+    {
+        "type": "type-of-record",
+        "source": "source-of-record",
+        "timestamp": "timestamp-of-record",
+        "data": {
+            ...
+        }
+    }
+
+:type:  The type of the bucket, used to determine the appropriate index.
+:source: The source of the bucket run (typically a hostname, but can depend on the bucket).
+:timestamp: The timestamp of the collection
+:data: The actual data from the bucket run.
+
+.. note:: Each JSON document is newline delimited.
+
+CSM Configuration
+^^^^^^^^^^^^^^^^^
+
+In the aggregator configuration file the following must be configured to enable this feature:
+
+.. code-block:: javascript
+    
+    "bds" : {
+        "host" : "__LOGSTASH_IP__"
+        "port" : 10522
+    }
+
+:host: The hostname the logstash server is configured on.
+:port: A tcp port capable of receiving a JSON encoded message. `10522` is the default port in CAST
+    logstash configuration files.
+
+This will ship the environmental data to the specified ip and port. Officially CAST suggests the
+use of logstash for this feature and suggests targeting the local logstash instance running on the
+service node.
+
+.. attention:: For users not employing logstash in their solution the output of this feature is
+   a newline delimited list of JSON documents formatted as seen above.
+
+Logstash Configuration
+^^^^^^^^^^^^^^^^^^^^^^
+
+CAST uses a generic port (`10522`) for processing data matching the `JSONDataSources`_ pattern. 
+The default logstash configuration file specifies the following in the `input` section of the
+configuration file:
+
+.. code-block:: none
+    
+    tcp {
+        port => 10522
+        codec => "json"
+    }
+
+Default Buckets
+^^^^^^^^^^^^^^^
+
+CSM supplies several default buckets for environmental collection:
+
++-------------+----------+-----------------------------------------------+
+| Bucket Type | Source   | Description                                   |
++=============+==========+===============================================+
+| csm-env-gpu | Hostname | Environmental counters about the node's GPUs. |
++-------------+----------+-----------------------------------------------+
 
 .. _DataArchiving:
 
@@ -434,23 +485,24 @@ Database Archiving
 
 :Logstash Port: 10523
 :Script Location: /opt/ibm/csm/db/csm_db_history_archive.sh
-:Script RPM: csm-csmdb-*.rpm
+:Script RPM: `csm-csmdb-*.rpm`
 
-CAST supplies a commandline utility for archiving the contents of the database history tables. 
-When run the utility (`csm_db_history_archive.sh`) will appened to a daily JSON dump file 
+CAST supplies a command line utility for archiving the contents of the CSM database history tables. 
+When run the utility (`csm_db_history_archive.sh`) will append to a daily JSON dump file 
 (`<table>.archive.<YYYY>-<MM>-<DD>.json`) the contents of all history tables and the RAS event 
 action table. The content appended is the next `n` records without a archive time as provided to 
-the commandline utility.Any records archived in this manner are then marked with an archive time 
-for their eventaul removal from the database. The utility should be executed on the node running
+the command line utility.Any records archived in this manner are then marked with an archive time 
+for their eventual removal from the database. The utility should be executed on the node running
 the CSM Postgres database.
 
 Each row archived in this way will be converted to a JSON document with the following pattern:
 
 .. code-block:: javascript
     
-    # type helps define the index in logstash ingestion
-    # data isolates column names to prevent collisions with any logstash enrichment.  
-    { "type": "db-<table-name>", "data": { <table-row-contents>} } 
+    { 
+        "type": "db-<table-name>", 
+        "data": { "<table-row-contents>" } 
+    } 
 
 :type: The table in the database, converted to index in default configuration.
 :data: Encapsulates the row data.
@@ -477,7 +529,7 @@ given below:
       # CAST recommends tagging all filebeats input sources.
       tags: ["archive"]
 
-.. note:: For the sake of brevity further filebeats configuration documentation will be ommited. 
+.. note:: For the sake of brevity further filebeats configuration documentation will be omitted. 
     Please refer to the `filebeats`_ documentation for more details.
 
 To configure logstash to ingest the archives the `beats` input plugin must be used, CAST recommends
@@ -529,6 +581,8 @@ an event in a Big Data Store.
 In the CSM design these transactions are intended to be stored in a single elasticsearch index
 each transaction should be identified by a `uid` in the index.
 
+CSM Configuration
+^^^^^^^^^^^^^^^^^
 
 To enable the transaction logging mechanism the following configuration settings must be specified
 in the CSM master configuration file:
@@ -562,6 +616,8 @@ Each transaction record will follow the following pattern:
 :traceid: The API's trace id as used in the CSM API trace functionality.
 :uid: A unique identifier for the record in the elasticsearch index.
 
+Filebeats Configuration
+^^^^^^^^^^^^^^^^^^^^^^^
 
 CAST recommends ingesting this data through the `filebeats`_ utility. A sample log configuration is 
 given below:
@@ -575,10 +631,13 @@ given below:
         - /var/log/ibm/csm/csm_transaction.log
       tags: ["transaction"]
 
-.. note:: For the sake of brevity further filebeats configuration documentation will be ommited. 
+.. note:: For the sake of brevity further filebeats configuration documentation will be omitted. 
     Please refer to the `filebeats`_ documentation for more details.
 
 .. warning:: Filebeats has some difficulty with rollover events.
+
+Logstash Configuration
+^^^^^^^^^^^^^^^^^^^^^^
 
 To configure logstash to ingest the archives the `beats` input plugin must be used, CAST recommends
 port `10523` for ingesting `beats` records. Please note that this configuration only creates one
@@ -613,112 +672,26 @@ logs.
         }
     }
 
-The resulting indices for this configuation will be one per transaction type with each document 
+The resulting indices for this configuration will be one per transaction type with each document 
 corresponding to the current state of a set of transactions.
 
-.. attention:: Documentation for the supported transactions to follow. 
 
-.. note:: The following sections are currently deprecated.
+Supported Transactions
+^^^^^^^^^^^^^^^^^^^^^^
 
-Configuration
-^^^^^^^^^^^^^
+The following transactions currently tracked by CSM are as follows:
 
-CSM Configuration
-#################
-
-CAST has enabled the boost syslog utility through use of the *csmd* configuration file.
-
-.. code-block:: bash
-    
-    "csm" : {
-        ...
-        "log" : {
-            ... 
-             "transaction"               :   true,
-             "transaction_file"          :   "/var/log/ibm/csm/csm_transaction.log",
-             "transaction_rotation_size" :   1000000000 
-        }
-        ...
-    }
-
-This configuration will generate a transaction log at `/var/log/ibm/csm/csm_transaction.log`,
-rotating at 1GB.
-
-+---------------------------+---------+--------------------------------------------------------------------------------------------+
-| Field                     | Type    | Description                                                                                |
-+---------------------------+---------+--------------------------------------------------------------------------------------------+
-| transaction               | Boolean | Generates a transaction log if set to true.                                                |
-+---------------------------+---------+--------------------------------------------------------------------------------------------+
-| transaction_file          | Text    | The file to write the transaction log to.                                                  |
-+---------------------------+---------+--------------------------------------------------------------------------------------------+
-| transaction_rotation_size | Numeric | The file size in bytes at which to rotate the transaction log (by default doesn't rotate). |
-+---------------------------+---------+--------------------------------------------------------------------------------------------+
++-----------------+---------------------------+-------------------------------------------------------------+
+| `type`          | `uid`                     | `data`                                                      |
++=================+===========================+=============================================================+
+| allocation      | <allocation_id>           | Superset of `csmi_allocation_t`.                            |
+|                 |                           | Adds `running-start-timestamp` and `running-end-timestamp`. |
+|                 |                           | Failed allocation creates have special `state`: `reverted`. |
++-----------------+---------------------------+-------------------------------------------------------------+
+| allocation-step | <allocation_id>-<step_id> | Direct copy of `csmi_allocation_step_t`.                    |
++-----------------+---------------------------+-------------------------------------------------------------+
 
 
-
-Filebeats Configuration
-#######################
-
-To export this data to Logstash/Elasticsearch the CAST team recommends the use of the Filebeats
-utility to export the data to logstash where the pipeline may properly enrich and target the correct
-index for the transaction.
-
-.. code-block:: YAML
-
-    paths:
-        - /var/log/ibm/csm/csm_transaction.log
-    
-    output.logstash:
-        # The Logstash hosts
-        hosts: ["<logstash-host>:10523"]
-
-
-Events
-^^^^^^
-
-Transaction events will have the following pattern:
-
-.. code-block:: javascript
-
-    {
-        "type": "type-of-event"
-        "traceid": <API traceid (for correlation) >,
-        "uid": <unique identifier, numeric>,
-        "data": {
-        }
-    }
-
-:type:  The type of the transaction, used to determine the appropriate index.
-:traceid: Traceid for correlating a transaction with a logged message in the CSM log.
-:uid: Unique id for the transaction (usually correlates to something in `data`).
-:data: The actual data changes in the transaction.
-
-
-Allocation
-##########
-
-.. TODO: How do I document this well?
-
-
-CSM Buckets
-***********
-
-:Logstash Port: 10522
-
-
-.. code-block:: javascript
-
-    {
-        "type": "type-of-record"
-        "timestamp": "Timestamp of record"
-        "data": {
-            ...
-        }
-    }
-
-:type:  The type of the data, used to determine the appropriate index.
-:timestamp: The timestamp of the collection
-:data: The actual data from the bucket run.
 
 .. Links
 .. _xCat-GoConserver: http://xcat-docs.readthedocs.io/en/stable/advanced/goconserver/
