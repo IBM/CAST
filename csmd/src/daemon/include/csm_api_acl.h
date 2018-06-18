@@ -169,6 +169,10 @@ private:
           BOOST_FOREACH(pt::ptree::value_type &api_list, list.second)
           {
             std::string api = api_list.second.data();
+
+            if( api.find("#") != std::string::npos )
+              continue;
+
             boost::algorithm::to_lower(api);
             if (!api.empty())
             {
