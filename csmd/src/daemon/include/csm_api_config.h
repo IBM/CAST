@@ -70,6 +70,10 @@ private:
       BOOST_FOREACH(pt::ptree::value_type &list, auth_tree)
       {
         std::string key = list.first.data();
+
+        if( key.find("#") != std::string::npos )
+          continue;
+
         boost::algorithm::to_lower(key);
 
         csmi_cmd_t cmd = csmi_cmd_get( key.c_str() );
