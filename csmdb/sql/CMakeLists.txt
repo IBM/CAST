@@ -32,7 +32,7 @@ file(GLOB INSTALL_PROGRAMS
   "csm_ras_event_action_table_delete.sh"
   "csm_ras_event_action_wrapper_delete_script.sh"
   "csm_db_backup_script_v1.sh"
-)
+  "csm_db_history_archive.sh"
 
 # Files that should not be executable when shipped
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME})
