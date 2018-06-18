@@ -1056,7 +1056,7 @@ void Configuration::CreateThreadPool()
   }
   
   void
-  csm::daemon::Configuration::SetTweaks()
+  Configuration::SetTweaks()
   {
     bool enabled = false;
     std::string uint_val = GetValueInConfig( std::string("csm.tuning.netmgr_poll_loops") );
@@ -1086,10 +1086,23 @@ void Configuration::CreateThreadPool()
       LOG( csmd, info ) << "CSMD Tuning enabled: " << _Tweaks;
   }
 
+  HostNameConfigState_t
+  Configuration::HostNameValidate( std::string host_val )
+  {
+    if( host_val.empty() )
+      return HOST_CONFIG_NONE;
+    if( host_val.substr(0, 2 ) == "__" )
+      return HOST_CONFIG_EMPTY;
+    if( host_val.compare( CONFIGURATION_HOSTNAME_NONE ) == 0 )
+      return HOST_CONFIG_NONE;
+    return HOST_CONFIG_VALID;
+  }
+
   void
   Configuration::SetBDS_Info()
   {
     bool enabled = true;
+    bool inactive = false;
     if( _Role != CSM_DAEMON_ROLE_AGGREGATOR )
     {
       LOG( csmd, warning ) << "BDS Info/Connection from " << _Role << " is not supported.";
@@ -1097,8 +1110,17 @@ void Configuration::CreateThreadPool()
     }
 
     std::string host_val = GetValueInConfig( std::string("csm.bds.host") );
-    if( host_val.empty() )
-      enabled = false;
+    switch( HostNameValidate( host_val ) )
+    {
+      case HOST_CONFIG_VALID:
+        break;
+      case HOST_CONFIG_EMPTY:
+        inactive = true;
+      case HOST_CONFIG_NONE:
+        enabled = false;
+      default:
+        break;
+    }
 
     std::string port_val = GetValueInConfig( std::string("csm.bds.port") );
     if( port_val.empty() )
@@ -1110,7 +1132,17 @@ void Configuration::CreateThreadPool()
       LOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
     }
     else
-      LOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made.";
+    {
+      if( inactive )
+      {
+        LOG( csmd, info ) << "Empty BDS configuration. No attempts to access BDS will be made.";
+      }
+      else
+      {
+        LOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made. ("
+          << host_val << ":" << port_val << ")";
+      }
+    }
   }
 
 }  // namespace daemon

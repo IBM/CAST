@@ -53,6 +53,8 @@
 #define ENVIRONMENTAL_GRANULARITY_DEFAULT "00:00:01"
 #define ENVIRONMENTAL_GRANULARITY_MINIMUM "00:00:00.50"
 
+#define CONFIGURATION_HOSTNAME_NONE ("NONE")
+
 namespace pt = boost::property_tree;
 namespace po = boost::program_options;
 
@@ -67,6 +69,13 @@ namespace csm {
 namespace daemon {
 
 typedef std::pair<unsigned, csm::db::DBConnInfo> DBDefinitionInfo;
+
+enum HostNameConfigState_t
+{
+  HOST_CONFIG_NONE,
+  HOST_CONFIG_VALID,
+  HOST_CONFIG_EMPTY
+};
 
 class Configuration
 {
@@ -202,6 +211,7 @@ private:
 
   // retrieve hostname from xCAT
   void SetHostname();
+  HostNameConfigState_t HostNameValidate( std::string host_val );
   
   std::string GetUnixServerSocket() const ;
   mode_t GetLocalSocketPermissions() const;
