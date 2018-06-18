@@ -12,12 +12,12 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-#include "csmi/src/common/include/csmi_common_utils.h"
-#include "csmi/src/common/include/csmi_serialization.h"
-#include "csmi/src/common/include/csmi_api_internal.h"
 #include "csmutil/include/csmutil_logging.h"
 #include "csmnet/src/C/csm_network_internal_api_c.h"
 #include "csmi/include/csm_api_common.h"
+#include "csmi/src/common/include/csmi_common_utils.h"
+#include "csmi/src/common/include/csmi_serialization.h"
+#include "csmi/src/common/include/csmi_api_internal.h"
 
 #include <assert.h>
 #include <pthread.h>

@@ -31,8 +31,13 @@ source $thisdir/../common/functions
 source $thisdir/../common/gpu_functions
 
 supported_machine
-if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
 echo "Running $me on `hostname -s`, machine type $model."          
+
+if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
+if [ -z $is_boston ]; then 
+   echo -e "Could not determine if the machine has GPUs by model. Continuing.."
+   is_boston=False
+fi 
 if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PASS, rc=0"; exit 0; fi 
 
 [ $# -lt 2 ] && echo "Usage: $me <duration> <pass> [debug]" && exit 1
@@ -45,8 +50,9 @@ if [ $pass -ne 1 -a $pass -ne 2 ]; then echo "Invalid pass $pass. Valid values: 
 # check if machine has GPUs
 # ===========================
 has_gpus
-if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
-if [ "$ngpus" -eq "0" ]; then echo -e "GPUs not found.\n$me test FAIL, rc=1"; exit 1; fi 
+rc=$ret
+if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi 
+if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
 
 read_gpu_basics 0
 

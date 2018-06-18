@@ -137,7 +137,7 @@ void csmi_print_all(
                         csmi_print_all(
                             depth+1,     
                             print_type,
-                            sub_map->ptr_funct((print_struct + node.offset), i),
+                            sub_map->ptr_funct((print_struct + node.offset), i, 1),
                             sub_map);
                     }
                 }
@@ -278,7 +278,7 @@ void csmi_printer_internal(
             printf("%*c%s: \n", get_spaces(), ' ', node->name);
             for( array_index=0; array_index < array_size; ++array_index )
             {
-                if ( ( member = sub_map->ptr_funct((print_struct + node->offset), array_index) ) )
+                if ( ( member = sub_map->ptr_funct((print_struct + node->offset), array_index, 1) ) )
                 {
                     if ( array_size > 1 )
                         printf("\n%*c -", get_spaces(), ' '); 

@@ -40,10 +40,15 @@ trap 'rm -rf /tmp/$$' EXIT
 
 source $thisdir/../common/functions
 source $thisdir/../common/gpu_functions
+
 supported_machine
 if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
 
 echo "Running $me on $thishost, machine type $model."          
+if [ -z $is_boston ]; then 
+   echo -e "Could not determine if the machine has GPUs by model. Continuing.."
+   is_boston=False
+fi 
 if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PASS, rc=0"; exit 0; fi 
 
 # Example of the output for 4 gpus
@@ -88,8 +93,12 @@ BI_GPU_GPU=96
 BI_GPU_PPC=24                
 
 if [ "$ngpus" -eq "6" ]; then 
-   UN_GPU_GPU=32                 
-   BI_GPU_GPU=64  
+   UN_GPU_LOCAL=730            
+   UN_GPU_GPU=45                 
+   UN_GPU_PPC=26                
+   BI_GPU_LOCAL=750             
+   BI_GPU_GPU=91              
+   BI_GPU_PPC=22  
 fi
 
 GPU_LOCAL=( 1 $UN_GPU_LOCAL  $BI_GPU_LOCAL)

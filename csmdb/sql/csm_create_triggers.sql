@@ -19,7 +19,7 @@
 --   create:        06-22-2016
 --   last modified: 06-14-2018
 --   change log:
---     4.3.86 - Added a fix to fn_csm_allocation_node_sharing_status for diagnostics.
+--     4.3.86 - Added fields to fn_csm_step_begin and fn_csm_step_end, fn_csm_allocation_node_sharing_status for diagnostics
 --     4.3.85 - Added fields to fn_csm_allocation_history_dump, fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     4.3.84 - fn_csm_allocation_node_sharing_status - Improved the node sharing test to account for failed allocation transitions.
 --              fn_csm_allocation_update_state - Tests to verify that the node states are valid (whitelist).
@@ -1765,10 +1765,12 @@ CREATE OR REPLACE FUNCTION fn_csm_step_begin(
     i_projected_memory        integer,
     i_num_tasks               integer,
     i_user_flags              text,
-    i_node_names              text[]
+    i_node_names              text[],
+    OUT o_begin_time          timestamp
 )
-RETURNS void AS $$
+RETURNS timestamp AS $$
 BEGIN
+    o_begin_time = now();
     INSERT INTO csm_step (
         step_id, 
         allocation_id,
@@ -1787,7 +1789,7 @@ BEGIN
     ) VALUES (
         i_step_id, 
         i_allocation_id,
-        'now',
+        o_begin_time,
         i_status, 
         i_executable, 
         i_working_directory, 
@@ -1831,8 +1833,8 @@ CREATE OR REPLACE FUNCTION fn_csm_step_end(
         IN  i_iostats                 text,
         OUT o_user_flags              text,
         OUT o_num_nodes               int,
-        OUT o_nodes                   text
-
+        OUT o_nodes                   text,
+        OUT o_end_time                timestamp
 )
 RETURNS record AS $$
 BEGIN
@@ -1854,10 +1856,11 @@ BEGIN
         step_id = i_stepid AND 
         allocation_id = i_allocationid;
 
+    o_end_time = now();
     PERFORM fn_csm_step_history_dump( 
         i_stepid,
         i_allocationid,
-        now(),
+        o_end_time,
         i_exitstatus,  
         i_errormessage,     
         i_cpustats,
@@ -1956,14 +1959,14 @@ COMMENT ON FUNCTION fn_csm_step_begin(
     i_step_id bigint, i_allocation_id bigint, i_status text, i_executable text, i_working_directory text,
     i_argument text, i_environment_variable text, i_num_nodes integer, i_num_processors integer,
     i_num_gpus integer, i_projected_memory integer, i_num_tasks integer,i_user_flags text, 
-    i_node_names text[])
+    i_node_names text[], OUT o_begin_time timestamp)
 is 'csm_step_begin function to begin a step, adds the step to csm_step and csm_step_node';
 
 COMMENT ON FUNCTION fn_csm_step_end(
     IN i_stepid bigint, IN i_allocationid bigint, IN i_exitstatus int, IN i_errormessage text,
     IN i_cpustats text, IN i_totalutime double precision, IN i_totalstime double precision,
     IN i_ompthreadlimit text, IN i_gpustats text, IN i_memorystats text, IN i_maxmemory bigint, IN i_iostats text,
-    OUT o_user_flags text, OUT o_num_nodes int, OUT o_nodes text )
+    OUT o_user_flags text, OUT o_num_nodes int, OUT o_nodes text, OUT o_end_time timestamp)
 is 'csm_step_end function to delete the step from the nodes table (fn_csm_step_end)';
 
 COMMENT ON FUNCTION fn_csm_step_history_dump(

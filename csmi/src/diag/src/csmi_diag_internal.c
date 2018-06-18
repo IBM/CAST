@@ -26,9 +26,9 @@ const csmi_struct_node_t csmi_diag_run_tree[10] = {{"cmd_line",offsetof(csmi_dia
 {"log_dir",offsetof(csmi_diag_run_t,log_dir),0,NULL,0x87bb87e5,4}}
 ;
 
-void* cast_csmi_diag_run_t(void* ptr,size_t index) { 
+void* cast_csmi_diag_run_t(void* ptr,size_t index, char isArray) { 
     csmi_diag_run_t ** ptr_cast = *(csmi_diag_run_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_diag_run_t= {
     10,
@@ -50,9 +50,9 @@ const csmi_struct_node_t csmi_diag_run_query_details_result_tree[12] = {{"node_n
 {"log_file",offsetof(csmi_diag_run_query_details_result_t,log_file),0,NULL,0x7f2d9ce6,4}}
 ;
 
-void* cast_csmi_diag_run_query_details_result_t(void* ptr,size_t index) { 
+void* cast_csmi_diag_run_query_details_result_t(void* ptr,size_t index, char isArray) { 
     csmi_diag_run_query_details_result_t ** ptr_cast = *(csmi_diag_run_query_details_result_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_diag_run_query_details_result_t= {
     12,
@@ -65,9 +65,9 @@ const csmi_struct_node_t csm_diag_run_end_input_tree[3] = {{"status",offsetof(cs
 {"inserted_ras",offsetof(csm_diag_run_end_input_t,inserted_ras),0,NULL,0x89b6b1e8,16}}
 ;
 
-void* cast_csm_diag_run_end_input_t(void* ptr,size_t index) { 
+void* cast_csm_diag_run_end_input_t(void* ptr,size_t index, char isArray) { 
     csm_diag_run_end_input_t ** ptr_cast = *(csm_diag_run_end_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_end_input_t= {
     3,
@@ -86,9 +86,9 @@ const csmi_struct_node_t csm_diag_result_create_input_tree[9] = {{"status",offse
 {"log_file",offsetof(csm_diag_result_create_input_t,log_file),0,NULL,0x7f2d9ce6,4}}
 ;
 
-void* cast_csm_diag_result_create_input_t(void* ptr,size_t index) { 
+void* cast_csm_diag_result_create_input_t(void* ptr,size_t index, char isArray) { 
     csm_diag_result_create_input_t ** ptr_cast = *(csm_diag_result_create_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_result_create_input_t= {
     9,
@@ -103,9 +103,9 @@ const csmi_struct_node_t csm_diag_run_begin_input_tree[5] = {{"cmd_line",offseto
 {"log_dir",offsetof(csm_diag_run_begin_input_t,log_dir),0,NULL,0x87bb87e5,4}}
 ;
 
-void* cast_csm_diag_run_begin_input_t(void* ptr,size_t index) { 
+void* cast_csm_diag_run_begin_input_t(void* ptr,size_t index, char isArray) { 
     csm_diag_run_begin_input_t ** ptr_cast = *(csm_diag_run_begin_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_begin_input_t= {
     5,
@@ -137,9 +137,9 @@ const csmi_struct_node_t csm_diag_run_query_input_tree[22] = {{"allocation_ids_c
 {"allocation_ids",offsetof(csm_diag_run_query_input_t,allocation_ids),offsetof(csm_diag_run_query_input_t, allocation_ids_count),NULL,0xd44f29ca,1}}
 ;
 
-void* cast_csm_diag_run_query_input_t(void* ptr,size_t index) { 
+void* cast_csm_diag_run_query_input_t(void* ptr,size_t index, char isArray) { 
     csm_diag_run_query_input_t ** ptr_cast = *(csm_diag_run_query_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_query_input_t= {
     22,
@@ -152,9 +152,9 @@ const csmi_struct_node_t csm_diag_run_query_output_tree[3] = {{"num_runs",offset
 {"runs",offsetof(csm_diag_run_query_output_t,runs),offsetof(csm_diag_run_query_output_t, num_runs),&map_csmi_diag_run_t,0x7c9d930d,1}}
 ;
 
-void* cast_csm_diag_run_query_output_t(void* ptr,size_t index) { 
+void* cast_csm_diag_run_query_output_t(void* ptr,size_t index, char isArray) { 
     csm_diag_run_query_output_t ** ptr_cast = *(csm_diag_run_query_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_query_output_t= {
     3,
@@ -165,9 +165,9 @@ const csmi_struct_mapping_t map_csm_diag_run_query_output_t= {
 const csmi_struct_node_t csm_diag_run_query_details_input_tree[1] = {{"run_id",offsetof(csm_diag_run_query_details_input_t,run_id),0,NULL,0x1a4e4326,40}}
 ;
 
-void* cast_csm_diag_run_query_details_input_t(void* ptr,size_t index) { 
+void* cast_csm_diag_run_query_details_input_t(void* ptr,size_t index, char isArray) { 
     csm_diag_run_query_details_input_t ** ptr_cast = *(csm_diag_run_query_details_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_query_details_input_t= {
     1,
@@ -180,9 +180,9 @@ const csmi_struct_node_t csm_diag_run_query_details_output_tree[3] = {{"num_deta
 {"run_data",offsetof(csm_diag_run_query_details_output_t,run_data),0,&map_csmi_diag_run_t,0xe6e8e953,0}}
 ;
 
-void* cast_csm_diag_run_query_details_output_t(void* ptr,size_t index) { 
+void* cast_csm_diag_run_query_details_output_t(void* ptr,size_t index, char isArray) { 
     csm_diag_run_query_details_output_t ** ptr_cast = *(csm_diag_run_query_details_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_query_details_output_t= {
     3,
