@@ -74,7 +74,7 @@ enum HostNameConfigState_t
 {
   HOST_CONFIG_NONE,
   HOST_CONFIG_VALID,
-  HOST_CONFIG_EMPTY
+  HOST_CONFIG_INVALID
 };
 
 class Configuration

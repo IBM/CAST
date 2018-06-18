@@ -210,7 +210,8 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
   SetTweaks();
 
   // set up potential BDS access
-  SetBDS_Info();
+  if( _Role == CSM_DAEMON_ROLE_AGGREGATOR )
+    SetBDS_Info();
 
   // set up the jitter configuration
   ConfigureDaemonTimers();
@@ -851,17 +852,29 @@ void Configuration::CreateThreadPool()
   
   csm::network::Address_sptr Configuration::AddConnectionDefinitionComputeClient( const int i_PrioA, const int i_PrioB )
   {
-    if(( GetValueInConfig("csm.net.aggregatorA.host").empty() ) || GetValueInConfig("csm.net.aggregatorB.host").empty())
+    std::string aggA_host = GetValueInConfig("csm.net.aggregatorA.host");
+    if( HostNameValidate( aggA_host ) != HOST_CONFIG_VALID )
     {
-      CSMLOG( csmd, error ) << "Config file has incomplete aggregator configuration.";
-      throw csm::daemon::Exception("Incomplete aggregator configuration. csm.net.aggregator<A|B>.host missing.");
+      CSMLOG( csmd, error ) << "Config file has incomplete aggregatorA configuration (" << aggA_host << ")";
+      throw csm::daemon::Exception("Incomplete aggregator configuration. csm.net.aggregatorA.host missing or invalid.");
     }
 
     bool singleAggMode = false;
-    if( GetValueInConfig("csm.net.aggregatorB.host") == std::string( "__AGGREGATOR_B__" ) )
+    std::string aggB_host = GetValueInConfig("csm.net.aggregatorB.host");
+    switch( HostNameValidate( aggB_host ) )
     {
-      LOG( csmd, warning ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
-      singleAggMode = true;
+      case HOST_CONFIG_NONE:
+        LOG( csmd, info ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
+        singleAggMode = true;
+        break;
+      case HOST_CONFIG_INVALID:
+        LOG( csmd, warning ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
+        singleAggMode = true;
+        break;
+      case HOST_CONFIG_VALID:
+      default:
+        break;
+
     }
 
     csm::network::SSLFilesCollection files;
@@ -1089,12 +1102,14 @@ void Configuration::CreateThreadPool()
   HostNameConfigState_t
   Configuration::HostNameValidate( std::string host_val )
   {
-    if( host_val.empty() )
+    if(( host_val.empty() ) || ( host_val.compare( CONFIGURATION_HOSTNAME_NONE ) == 0 ))
       return HOST_CONFIG_NONE;
-    if( host_val.substr(0, 2 ) == "__" )
-      return HOST_CONFIG_EMPTY;
-    if( host_val.compare( CONFIGURATION_HOSTNAME_NONE ) == 0 )
-      return HOST_CONFIG_NONE;
+
+    // todo: could be improved by excluding more invalid characters
+    if(( host_val.find(' ') != std::string::npos ) ||
+        ( host_val.find('_') != std::string::npos ))
+      return HOST_CONFIG_INVALID;
+
     return HOST_CONFIG_VALID;
   }
 
@@ -1114,9 +1129,9 @@ void Configuration::CreateThreadPool()
     {
       case HOST_CONFIG_VALID:
         break;
-      case HOST_CONFIG_EMPTY:
-        inactive = true;
       case HOST_CONFIG_NONE:
+        inactive = true;
+      case HOST_CONFIG_INVALID:
         enabled = false;
       default:
         break;
@@ -1135,7 +1150,7 @@ void Configuration::CreateThreadPool()
     {
       if( inactive )
       {
-        LOG( csmd, info ) << "Empty BDS configuration. No attempts to access BDS will be made.";
+        LOG( csmd, info ) << "BDS access disabled by configuration.";
       }
       else
       {
