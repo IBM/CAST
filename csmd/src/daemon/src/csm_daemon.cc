@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_daemon.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -59,6 +59,7 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
   csm::daemon::EventManagerDB* dbMgr = nullptr;
   csm::daemon::EventManagerNetwork *netMgr = nullptr;
   csm::daemon::EventManagerTimer *timerMgr = nullptr;
+  csm::daemon::EventManagerBDS *bdsMgr = nullptr;
 
   csm::daemon::EventManagerPool evMgrPool;
   csm::daemon::ThreadManager *threadMgr = nullptr;
@@ -121,6 +122,7 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           case CSM_DAEMON_ROLE_AGGREGATOR:
               DaemonCore = new csm::daemon::CoreAggregator();
               connHdl = new csm::daemon::ConnectionHandling_aggregator( CSMDaemonConfig->GetCriticalConnectionList(), &_RunMode );
+              bdsMgr = new csm::daemon::EventManagerBDS( CSMDaemonConfig->GetBDS_Info(), DaemonCore->GetRetryBackOff() );
               break;
 
           case CSM_DAEMON_ROLE_AGENT:
@@ -151,7 +153,7 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           throw csm::daemon::Exception( "BUG: failed to create timer manager." );
         evMgrPool.push_back( timerMgr );
 
-        DaemonCore->InitInfrastructure( netMgr, dbMgr, timerMgr );
+        DaemonCore->InitInfrastructure( netMgr, dbMgr, timerMgr, bdsMgr );
 
         thread_pool = CSMDaemonConfig->GetThreadPool();
         if ( thread_pool != nullptr)

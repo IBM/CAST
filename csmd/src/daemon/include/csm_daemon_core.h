@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_daemon_core.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -35,6 +35,7 @@
 #include "include/csm_daemon_network_manager.h"
 #include "include/csm_db_manager.h"
 #include "include/csm_timer_manager.h"
+#include "include/csm_bds_manager.h"
 
 #include "src/csmi_request_handler/csmi_base.h"
 
@@ -61,6 +62,7 @@ protected:
   csm::daemon::EventManagerNetwork *_netMgr;
   csm::daemon::EventManagerDB *_dbMgr;
   csm::daemon::EventManagerTimer *_timerMgr;
+  csm::daemon::EventManagerBDS *_bdsMgr;
 
   csm::daemon::EventSourceEnvironmental* _envSource;
   
@@ -86,7 +88,8 @@ public:
   // call this only after _EventRouting is initialized by the daemons
   void InitInfrastructure(const csm::daemon::EventManagerNetwork *netMgr,
                           const csm::daemon::EventManagerDB *dbMgr,
-                          const csm::daemon::EventManagerTimer *timerMgr );
+                          const csm::daemon::EventManagerTimer *timerMgr,
+                          const csm::daemon::EventManagerBDS *bdsMgr );
   inline bool AssignToWorkerThread(csmi_cmd_t aCmd)
   { return (_cmdsByMainThread.find((int) aCmd) == _cmdsByMainThread.end()); }
   

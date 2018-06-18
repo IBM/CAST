@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_environmental_data.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -17,6 +17,7 @@
 #define CSMD_SRC_DAEMON_INCLUDE_CSM_ENVIRONMENTAL_DATA_H_
 
 #include <bitset>
+#include <string>
 #include "csm_CPU_data.h"
 #include "csm_GPU_double_data.h"
 #include "csm_GPU_long_data.h"
@@ -47,137 +48,69 @@ class CSM_Environmental_Data
 
 public:
 
-  CSM_Environmental_Data()
-  {
-    _Data_Mask.reset();
-  }
+  CSM_Environmental_Data();
   
-  CSM_Environmental_Data( const CSM_Environmental_Data& in )
-  : _Data_Mask( in._Data_Mask ),
-    _CPU_Data( in._CPU_Data ),
-    _GPU_Double_Data( in._GPU_Double_Data ),
-    _GPU_Long_Data( in._GPU_Long_Data ),
-    _GPU_Double_Label_Data( in._GPU_Double_Label_Data ),
-    _GPU_Long_Label_Data( in._GPU_Long_Label_Data )
-  {}
+  CSM_Environmental_Data( const CSM_Environmental_Data& in );
 
-  ~CSM_Environmental_Data()
-  {
-  }
+  ~CSM_Environmental_Data();
 
-  inline void Get_GPU_Double_DCGM_Field_Values_And_Set_Bit() { _GPU_Double_Data.Get_Double_DCGM_Field_Values(); _Data_Mask.set( GPU_DOUBLE_DATA_BIT ); }
-  inline void Get_GPU_Long_DCGM_Field_Values_And_Set_Bit() {       _GPU_Long_Data.Get_Long_DCGM_Field_Values(); _Data_Mask.set( GPU_LONG_DATA_BIT ); }
+  void Get_GPU_Double_DCGM_Field_Values_And_Set_Bit();
+  void Get_GPU_Long_DCGM_Field_Values_And_Set_Bit();
 
-  inline void Get_GPU_Double_DCGM_Field_String_Identifiers_And_Set_Bit(){ _GPU_Double_Label_Data.Get_Double_DCGM_Field_String_Identifiers(); _Data_Mask.set( GPU_DOUBLE_LABEL_BIT ); }
-  inline void Get_GPU_Long_DCGM_Field_String_Identifiers_And_Set_Bit(){       _GPU_Long_Label_Data.Get_Long_DCGM_Field_String_Identifiers(); _Data_Mask.set( GPU_LONG_LABEL_BIT ); }
+  void Get_GPU_Double_DCGM_Field_String_Identifiers_And_Set_Bit();
+  void Get_GPU_Long_DCGM_Field_String_Identifiers_And_Set_Bit();
 
-  inline void Print_GPU_Double_DCGM_Field_Values(){                         _GPU_Double_Data.Print_Double_DCGM_Field_Values(); }
-  inline void Print_GPU_Long_DCGM_Field_Values(){                               _GPU_Long_Data.Print_Long_DCGM_Field_Values(); }
+  void Print_GPU_Double_DCGM_Field_Values();
+  void Print_GPU_Long_DCGM_Field_Values();
 
-  inline void Print_GPU_Double_DCGM_Field_String_Identifiers(){ _GPU_Double_Label_Data.Print_Double_DCGM_Field_String_Identifiers(); }
-  inline void Print_GPU_Long_DCGM_Field_String_Identifiers(){       _GPU_Long_Label_Data.Print_Long_DCGM_Field_String_Identifiers(); }
+  void Print_GPU_Double_DCGM_Field_String_Identifiers();
+  void Print_GPU_Long_DCGM_Field_String_Identifiers();
 
-  void Print(){
+  void Print();
 
-    LOG( csmd, debug ) << " ENVDATA: BitSet:" << _Data_Mask.to_string();
+  CSM_CPU_Data& Return_CPU_Data_Object();
 
-    if( _Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) ){ Print_GPU_Double_DCGM_Field_String_Identifiers(); }
-    if( _Data_Mask.test( GPU_DOUBLE_DATA_BIT ) ){ Print_GPU_Double_DCGM_Field_Values(); }
+  CSM_GPU_Double_Data& Return_GPU_Double_Data_Object();
+  CSM_GPU_Long_Data& Return_GPU_Long_Data_Object();
+  CSM_GPU_Double_Label_Data& Return_GPU_Double_Label_Data_Object();
+  CSM_GPU_Long_Label_Data& Return_GPU_Long_Label_Data_Object();
 
-    if( _Data_Mask.test( GPU_LONG_LABEL_BIT ) ){ Print_GPU_Long_DCGM_Field_String_Identifiers(); }
-    if( _Data_Mask.test( GPU_LONG_DATA_BIT ) ){ Print_GPU_Long_DCGM_Field_Values(); }
+  void Set_Data( const CSM_GPU_Double_Data& GPU_Double_Data_To_Copy );
 
-    /*
-    if( _Data_Mask.test( CPU_DATA_BIT ) ){ LOG( csmd, debug ) << "       DummyInt = " << _CPUData._DummyTestInt; }
-    */
+  void Set_Data( const CSM_GPU_Long_Data& GPU_Long_Data_To_Copy );
 
-  }
+  void Set_Data( const CSM_GPU_Double_Label_Data& GPU_Double_Label_Data_To_Copy );
 
-  inline CSM_CPU_Data& Return_CPU_Data_Object(){ return (this->_CPU_Data); }
+  void Set_Data( const CSM_GPU_Long_Label_Data& GPU_Long_Label_Data_To_Copy );
 
-  inline CSM_GPU_Double_Data& Return_GPU_Double_Data_Object(){ return (this->_GPU_Double_Data); }
-  inline CSM_GPU_Long_Data& Return_GPU_Long_Data_Object(){ return (this->_GPU_Long_Data); }
-  inline CSM_GPU_Double_Label_Data& Return_GPU_Double_Label_Data_Object(){ return (this->_GPU_Double_Label_Data); }
-  inline CSM_GPU_Long_Label_Data& Return_GPU_Long_Label_Data_Object(){ return (this->_GPU_Long_Label_Data); }
+  void Set_Data( const CSM_CPU_Data& CPU_data_to_copy );
 
-  void Set_Data( const CSM_GPU_Double_Data& GPU_Double_Data_To_Copy )
-  {
-    _GPU_Double_Data = GPU_Double_Data_To_Copy;
-   _Data_Mask.set( GPU_DOUBLE_DATA_BIT );
-  }
+  bool Set_Labels( const CSM_Environmental_Data& in );
 
-  void Set_Data( const CSM_GPU_Long_Data& GPU_Long_Data_To_Copy )
-  {
-    _GPU_Long_Data = GPU_Long_Data_To_Copy;
-   _Data_Mask.set( GPU_LONG_DATA_BIT );
-  }
+  std::string Get_Json_String();
 
-  void Set_Data( const CSM_GPU_Double_Label_Data& GPU_Double_Label_Data_To_Copy )
-  {
-    _GPU_Double_Label_Data = GPU_Double_Label_Data_To_Copy;
-   _Data_Mask.set( GPU_DOUBLE_LABEL_BIT );
-  }
+  // Collects the common node level data and sets it in the object
+  void Set_Node_Data();
 
-  void Set_Data( const CSM_GPU_Long_Label_Data& GPU_Long_Label_Data_To_Copy )
-  {
-    _GPU_Long_Label_Data = GPU_Long_Label_Data_To_Copy;
-   _Data_Mask.set( GPU_LONG_LABEL_BIT );
-  }
-
-  void Set_Data( const CSM_CPU_Data& CPU_data_to_copy )
-  {
-    _CPU_Data = CPU_data_to_copy;
-   _Data_Mask.set( CPU_DATA_BIT );
-  }
-
-  CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in )
-  {
-    _Data_Mask = in._Data_Mask;
-    _GPU_Double_Data = in._GPU_Double_Data;
-    _GPU_Long_Data = in._GPU_Long_Data;
-    _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
-    _GPU_Long_Label_Data = in._GPU_Long_Label_Data;
-    _CPU_Data = in._CPU_Data;
-    return *this;
-  }
+  CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );
 
   // operator to only update the items that are present in the input
-  CSM_Environmental_Data& operator|=( const CSM_Environmental_Data& in )
-  {
-    _Data_Mask |= in._Data_Mask;
+  CSM_Environmental_Data& operator|=( const CSM_Environmental_Data& in );
 
-    if( in._Data_Mask.test( GPU_DOUBLE_DATA_BIT ) )
-      _GPU_Double_Data = in._GPU_Double_Data;
-
-    if( in._Data_Mask.test( GPU_LONG_DATA_BIT ) )
-      _GPU_Long_Data = in._GPU_Long_Data;
-
-   if( in._Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) )
-      _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
-
-    if( in._Data_Mask.test( GPU_LONG_LABEL_BIT ) )
-      _GPU_Long_Label_Data = in._GPU_Long_Label_Data;
-
-    if( in._Data_Mask.test( CPU_DATA_BIT ) )
-      _CPU_Data = in._CPU_Data;
-
-    return *this;
-  }
-
-  inline bool HasData() const
-  {
-    return _Data_Mask.any();
-  }
+  bool HasData() const;
 
 private:
    friend class boost::serialization::access;
 
-   template <class Archive>
+  template <class Archive>
   void serialize(Archive &archive, const unsigned int version)
   {
      // serialize the bitset as a sting
      std::string dmString = _Data_Mask.to_string();
      archive & dmString;
+
+     archive & _source_node;
+     archive & _timestamp;
 
      // update from the string for the deserialization path
      _Data_Mask = std::bitset<MAX_DATA_BIT>( dmString );
@@ -202,6 +135,10 @@ private:
  private:
 
   std::bitset<MAX_DATA_BIT> _Data_Mask;
+
+  // Node level data common to all elements 
+  std::string _source_node;
+  std::string _timestamp;
 
   CSM_CPU_Data _CPU_Data;
 

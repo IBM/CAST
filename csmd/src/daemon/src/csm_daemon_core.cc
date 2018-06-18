@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_daemon_core.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -48,6 +48,7 @@ csm::daemon::CoreGeneric::CoreGeneric()
 : _netMgr(nullptr),
   _dbMgr(nullptr),
   _timerMgr(nullptr),
+  _bdsMgr(nullptr),
   _envSource(nullptr),
   _EventRouting(nullptr),
   _threadMgr(nullptr),
@@ -79,7 +80,8 @@ csm::daemon::CoreGeneric::CoreGeneric()
 void
 csm::daemon::CoreGeneric::InitInfrastructure(const csm::daemon::EventManagerNetwork *netMgr,
                                              const csm::daemon::EventManagerDB *dbMgr,
-                                             const csm::daemon::EventManagerTimer *timerMgr )
+                                             const csm::daemon::EventManagerTimer *timerMgr,
+                                             const csm::daemon::EventManagerBDS *bdsMgr )
 {
   // specify the command type of the handler to have access to all public api handlers
   AddPublicAPIHandlers(CSM_CTRL_cmd);
@@ -111,6 +113,12 @@ csm::daemon::CoreGeneric::InitInfrastructure(const csm::daemon::EventManagerNetw
   else
     throw csm::daemon::Exception("BUG: no timer-mgr defined. Cannot continue.");
 
+  if( bdsMgr )
+  {
+    _bdsMgr = const_cast<csm::daemon::EventManagerBDS*>( bdsMgr );
+    _EventSinks.Add( csm::daemon::EVENT_TYPE_BDS, _bdsMgr->GetEventSink() );
+  }
+
   csm::daemon::EventSink* systemSink = new csm::daemon::EventSinkSystem( _netMgr->GetConnectionHandling() );
   _EventSinks.Add( csm::daemon::EVENT_TYPE_SYSTEM, systemSink );
 
@@ -136,6 +144,13 @@ csm::daemon::CoreGeneric::DestroyInfrastructure()
     _EventSinks.Remove( csm::daemon::EVENT_TYPE_TIMER );
     delete _timerMgr;
     _timerMgr = nullptr;
+  }
+
+  if( _bdsMgr )
+  {
+    _EventSinks.Remove( csm::daemon::EVENT_TYPE_BDS );
+    delete _bdsMgr;
+    _bdsMgr = nullptr;
   }
 
   if (_envSource) delete _envSource;
