@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_table_delete_template.sh
+#    csm_ras_event_action_table_delete.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,8 +15,8 @@
 #================================================================================
 
 #================================================================================
-#   usage:         run ./csm_db_history_combo_wrapper_delete_script.sh
-#   version:       1.1
+#   usage:         run ./csm_ras_event_action_wrapper_delete_script.sh
+#   version:       1.0
 #   create:        04-10-2017
 #   last modified: 06-18-2018
 #================================================================================
@@ -60,30 +60,28 @@ average="0"
 dbname=$1
 interval_time=$2
 i=$interval_time  #<-------variable passed into the SQL statement
-table_name1=$3
+table_name=$3
 data_dir=$4
 cur_path=$data_dir
 logpath=$data_dir
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
-# Along with history archive results
+# Along with archive results
 #----------------------------------------------------------------
 
     time="$(time ( ls ) 2>&1 1>/dev/null )"
 #   all_results="csm_delete_archive_all_results.$now.timings"
-    tmp_delete_count="$data_dir/${parent_pid}_${table_name1}_delete_count.count"
+    ras_tmp_delete_count="$data_dir/${parent_pid}_${table_name}_delete_count.count"
 
 #-------------------------------------------------------------------------------
-# psql history archive query execution
+# psql ras delete query execution
 # variables were created and nested queries to track delete count totals
 #-------------------------------------------------------------------------------
 
 delete_count=`time psql -q -tA -U $db_username -d $dbname "ON_ERROR_STOP=1" << THE_END
     WITH delete_1 AS(
-    DELETE FROM $table_name1 WHERE history_time < (NOW() - INTERVAL '$i MIN') AND archive_history_time IS NOT NULL RETURNING *)
+    DELETE FROM $table_name WHERE master_time_stamp < (NOW() - INTERVAL '$i MIN') AND archive_history_time IS NOT NULL RETURNING *)
     select count(*) from delete_1;
 THE_END`
-    echo "$delete_count" > "$tmp_delete_count"
-
-#    LogMsg "[Info  ] Database process complete for deletion script."
+    echo "$delete_count" > "$ras_tmp_delete_count"

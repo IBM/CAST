@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_table_archive_template.sh
+#    csm_ras_event_action_table_archive.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,9 +15,9 @@
 #================================================================================
 
 #================================================================================
-#   usage:         run ./csm_history_table_archive_template.sh
-#   version:       1.1
-#   create:        02-01-2018
+#   usage:         run ./csm_ras_event_action_table_archive.sh
+#   version:       1.0
+#   create:        06-01-2018
 #   last modified: 06-18-2018
 #   change log:
 #================================================================================
@@ -65,22 +65,23 @@ logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db"
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
-# Along with csm allocation history archive results
+# Along with csm_ras_event_action archive results
 #----------------------------------------------------------------
 
     time="$(time ( ls ) 2>&1 1>/dev/null )"
 
 #-------------------------------------------------------------------------------
-# psql history archive query execution
+# psql ras archive query execution
 #-------------------------------------------------------------------------------
 return_code=0
 if [ $? -ne 127 ]; then
 
 json_file="$cur_path/$table_name.archive.$now.json"
 swap_file="$cur_path/.$table_name.archive.$now.swp"
-archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_END
+archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERROR_STOP=1" << THE_END
             \set AUTOCOMMIT off
             \set ON_ERROR_ROLLBACK on
+            \set ON_ERROR_STOP TRUE
             BEGIN;
             --DROP TABLE IF EXISTS temp_$table_name;
             CREATE TEMP TABLE temp_$table_name
@@ -88,14 +89,14 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_E
                     (SELECT *, ctid AS id
                         FROM $table_name
                         WHERE archive_history_time IS NULL
-                        ORDER BY history_time ASC
+                        ORDER BY master_time_stamp ASC
                         LIMIT $archive_counter FOR UPDATE); -- (Lock rows associated with this archive batch)
                     
                         UPDATE $table_name
                         SET archive_history_time = 'now()'
                         FROM temp_$table_name
                         WHERE
-                        $table_name.history_time = temp_$table_name.history_time
+                        $table_name.master_time_stamp = temp_$table_name.master_time_stamp
                         AND
                         $table_name.archive_history_time IS NULL
                         AND
@@ -112,14 +113,13 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_E
            COMMIT;
 THE_END`
 )
-
-# Enrich the 
-awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file}\
-    >> ${json_file}
-if [ $? -eq 0 ]
+awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file} \
+    >> ${json_file} 
+if [ $? -eq 0]
 then
     rm -f ${swap_file}
 fi
+
 
 else
     echo "[Error] Archiving process for $table_name has been interrupted or terminated. please see log file"
