@@ -14,6 +14,7 @@
 ================================================================================*/
 
 #include "include/csm_environmental_data.h"
+#include "include/csm_bds_keys.h"
 #include "csm_daemon_config.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -196,7 +197,8 @@ std::string CSM_Environmental_Data::Get_Json_String()
   // the type of environmental data being collected
   // Build the common fields first, to be used in each of the individual json documents
   #define CSM_BDS_KEY_TYPE "type"
-  #define CSM_BDS_TYPE_ENV_GPU "csm-env-gpu"
+  #define CSM_BDS_TYPE_GPU "csm-gpu"
+  #define CSM_BDS_TYPE_ENVIRONMENTAL "csm-environmental"
   
   #define CSM_BDS_KEY_SOURCE "source"
   #define CSM_BDS_KEY_TIME_STAMP "timestamp"
@@ -263,7 +265,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
       {
         // Set the top level fields into the json
         boost::property_tree::ptree gpu_pt;
-        gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_ENV_GPU);
+        gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU);
         gpu_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
         gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
   
