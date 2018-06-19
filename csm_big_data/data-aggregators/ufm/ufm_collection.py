@@ -17,48 +17,80 @@
 import socket
 import json
 import sys
+import getopt
 
 from urllib import urlencode
 import urllib2
 
 ''' The default payload for requests.'''
 POST_PAYLOAD= {
-    "attributes"    : [ "Infiniband_PckIn","Infiniband_PckOut", 
-                        "Infiniband_MBIn","Infiniband_MBOut" ],
+    "attributes"    : [ "Infiniband_MBOut", "Infiniband_MBOutRate", "Infiniband_MBIn",
+        "Infiniband_MBInRate", "Infiniband_PckOut","Infiniband_PckOutRate","Infiniband_PckIn",
+        "Infiniband_PckInRate","Infiniband_RcvErrors","Infiniband_RcvErrors_Delta",
+        "Infiniband_XmtDiscards","Infiniband_XmtDiscards_Delta","Infiniband_SymbolErrors",
+        "Infiniband_SymbolErrors_Delta","Infiniband_LinkRecovers", "Infiniband_LinkRecovers_Delta",
+        "Infiniband_LinkDowned","Infiniband_LinkDowned_Delta","Infiniband_LinkIntegrityErrors",
+
+        "Infiniband_LinkIntegrityErrors_Delta","Infiniband_RcvRemotePhysErrors",
+        "Infiniband_RcvRemotePhysErrors_Delta","Infiniband_XmtConstraintErrors",
+        "Infiniband_XmtConstraintErrors_Delta","Infiniband_RcvConstraintErrors",
+        "Infiniband_RcvConstraintErrors_Delta","Infiniband_ExcBufOverrunErrors",
+        "Infiniband_ExcBufOverrunErrors_Delta","Infiniband_RcvSwRelayErrors",
+        "Infiniband_RcvSwRelayErrors_Delta","Infiniband_VL15Dropped",
+
+        "Infiniband_VL15Dropped_Delta","Infiniband_XmitWait","Infiniband_CumulativeErrors",
+        "Infiniband_CBW","Infiniband_Normalized_MBOut","Infiniband_Normalized_CBW",
+        "Infiniband_NormalizedXW" ],
     "functions"     : [ "RAW" ],
     "scope_object"  : "Site",
     "interval"      : 2,
-    "monitor_object": "Device",
+    "monitor_object": "Port",
     "objects"       : ["Grid.default"]
 }
 
 ''' The snapshot uri.'''
 SNAPSHOT_URL = 'http://%s/ufmRest/monitoring/snapshot'
 
-
+SHORT_OPTS=[]
+LONG_OPTS=["ufm=", "logstash=", "logstash-port="]
 
 def main(args):
+    
+    ufm_url=None
+    logstash=None
+    logstash_port=10522
 
-    # TODO This section should be converted to Commandline input
-    HOST= '10.7.4.41'
-    PORT= 10522
-    URL='http://10.7.0.41/ufmRest/monitoring/snapshot'
+    # Load the options.
+    try:
+        opts, optargs = getopt.getopt(args[1:], SHORT_OPTS, LONG_OPTS)
+    except getopt.GetoptError as err:
+        print("Invalid option detected: %s", err)
+        return 1
+    
+    for o,a in opts:
+        if o in ("--ufm"):
+            ufm_url= SNAPSHOT_URL % a
+        elif o in ("--logstash"):
+            logstash=a
+        elif o in ("--logstash-port"):
+            logstash_port=a
+    
+    if ( ufm_url == None or logstash == None ):
+        print( "Script requires both `ufm` and `logstash` to be set" )
+        return 2
+
+    #HOST= '10.7.4.41'
+    #PORT= 10522
+    #URL='http://10.7.0.41/ufmRest/monitoring/snapshot'
     username="admin"
     password="123456"
     
     # Build the payload
-    #post_payload={}
-    #post_payload["attributes"]      = ["Infiniband_PckIn","Infiniband_PckOut","Infiniband_MBIn","Infiniband_MBOut"]
-    #post_payload["functions"]       = [ "RAW" ]
-    #post_payload["scope_object"]    = "Site"
-    #post_payload["interval"]        = 2
-    #post_payload["monitor_object"] = "Device"
-    #post_payload["objects"]         = ["Grid.default"]
     json_payload=json.dumps(POST_PAYLOAD)
     json_len=len(json_payload)
     
     # Build the request
-    request  = urllib2.Request(URL,json_payload, 
+    request  = urllib2.Request(ufm_url,json_payload, 
         {
             'Content-Type'  : 'application/json', 
             'Content-Length': json_len,
@@ -71,29 +103,28 @@ def main(args):
     
     # Make sure the socket connection can be opened
     try:
-        logstash = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        logstash.connect((HOST,PORT))
+        logstash_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        logstash_socket.connect((logstash, logstash_port))
     except socket.error, msg:
         sys.exit(1)
     
     payload=''
     # Iterate over the data and build a payload.
     for timestamp in data:
-        devices = data[timestamp]["Device"]
+        sources = data[timestamp]["Port"]
     
-        for device in devices:
-            devices[device]['type']      = 'ufm-counters'
-            devices[device]['timestamp'] = timestamp
-            devices[device]['source']    = device
-            payload += json.dumps(devices[device], indent=0, separators=(',', ':')).replace('\n','')+ '\n'
+        for source in sources:
+            sources[source]['type']      = 'ufm-counters'
+            sources[source]['timestamp'] = timestamp
+            sources[source]['source']    = source
+            payload += json.dumps(sources[source], indent=0, separators=(',', ':')).replace('\n','')+ '\n'
     
-        logstash.send(payload)
-        
+        logstash_socket.send(payload)
         #Uncomment to see what was sent.
         #print payload
         payload=''
     
-    logstash.close()
+    logstash_socket.close()
     sys.exit(0)
 
 
