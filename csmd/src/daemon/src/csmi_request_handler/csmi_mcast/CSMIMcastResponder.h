@@ -27,7 +27,7 @@
 #include "CSMIMcast.h"
 #include "CSMIMcastPrototypes.h"
 
-#define ERR_MSG_DIVIDE "---- End Remote Errors ----"
+#define ERR_MSG_DIVIDE " | "
 #define STATE_NAME "McastResponder:"
 #include "../csmi_network_message_state.h"
 
