@@ -32,9 +32,6 @@ import csmi_interface as csmi
 HCDIAG_PROPERTIES='/opt/ibm/csm/hcdiag/etc/hcdiag.properties'
 CSM_BINDIR='/opt/ibm/csm/bin'
 
-__version_info__ = ('pre-ga', '2018')
-__version__ = '-'.join(__version_info__)
-
 #------------------------------------------------------------------------------ 
 """ signal handler
 """
@@ -112,6 +109,15 @@ def parse_input_timestamp(dt):
 if __name__ == "__main__":
   # subscribe for signal
 
+  from version import __version__
+  logger = LogHandler('hcdiag_query', logging.DEBUG)
+  #logger.open_console(logging.DEBUG)
+
+  # now we can start logging!
+  logger.info('{0}, version {1}, running on {2} {3}, {4} machine.' \
+         .format( __file__, __version__, os.uname()[0], os.uname()[2], os.uname()[1].split(".")[0]))
+
+  
   parser=argparse.ArgumentParser()
   parser.add_argument('--runid', '-r',
                        type=str, nargs='+', metavar='id',help='unique udentifier of the diagnostic run. All other arguments will be ignored.')
@@ -135,15 +141,10 @@ if __name__ == "__main__":
   
   parser.add_argument('-o', '--output', 
                        type=str, metavar='file', help='store the output into a file')
+  parser.add_argument('--version', action='version', version='%(prog)s {version}'.format(version=__version__))
 
   args = parser.parse_args()
 
-  logger = LogHandler('hcdiag_query', logging.DEBUG)
-  #logger.open_console(logging.DEBUG)
-
-  # now we can start logging!
-  logger.info('{0}, version {1}, running on {2} {3}, {4} machine.' \
-         .format( __file__, __version__, os.uname()[0], os.uname()[2], os.uname()[1].split(".")[0]))
 
 
   query_string=''

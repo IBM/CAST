@@ -13,6 +13,8 @@
 #
 #================================================================================
 
+file (WRITE ${CMAKE_CURRENT_SOURCE_DIR}/version.py "__version__ = \"${VERSION}\"")
+
 file(GLOB FRAMEWORK_PROGRAM
   "hcdiag_run.py"
   "hcdiag_query.py"
@@ -29,6 +31,7 @@ file(GLOB FRAMEWORK_FILE
   "target_interface.py"
   "timeout_manager.py"
   "xcat_interface.py"
+  "version.py"
 )
 
 

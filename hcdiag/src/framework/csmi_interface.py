@@ -108,7 +108,7 @@ class Result :
 #------------------------------------------------------------------- 
 class CsmiInterface(TargetInterface):
 
-   def __init__(self, logger, installdir, usecsm, allocation_id, runid, user) :
+   def __init__(self, logger, installdir, usecsm=True, allocation_id=0, runid=0, user=None) :
       super(CsmiInterface,self).__init__(logger)
       self.runid         = runid
       self.usecsm        = usecsm

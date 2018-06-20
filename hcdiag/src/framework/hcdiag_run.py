@@ -28,8 +28,6 @@ from config_parser import TestProperties
 from log_handler import LogHandler
 import csmi_interface as csmi
 
-__version_info__ = ('pre-ga', '2018')
-__version__ = '-'.join(__version_info__)
 
 HCDIAG_PROPERTIES='/opt/ibm/csm/hcdiag/etc/hcdiag.properties'
 me='hcdiag_run'
@@ -81,6 +79,8 @@ VERBOSE_LEVEL= {
 
 
 if __name__ == "__main__":
+
+  from version import __version__
 
   parser=argparse.ArgumentParser()
   group = parser.add_mutually_exclusive_group(required=True)
