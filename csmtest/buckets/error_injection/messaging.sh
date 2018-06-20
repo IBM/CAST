@@ -54,13 +54,13 @@ check_return_flag $? "Test Case 1: Small message protocol - return code"
 check_all_output "Recieve Payload len = 100"
 check_return_flag $? "Test Case 1: Small message protocol - return code" 
 
-# Test Case 2: Truncated message protocol - return code
+# Test Case 2: Partial message protocol - return code
 ${ERROR_INJECT} -m 16777143 > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 2: Truncated message protocol - return code"
+check_return_flag $? "Test Case 2: Partial message protocol - return code"
 
-# Test Case 2: Truncated message protocol - logging
+# Test Case 2: Partial message protocol - logging
 check_all_output "Partial total_data=16777143; this part=229304" "Recieve Payload len = 16777143"
-check_return_flag $? "Test Case 2: Truncated message protocol - return code" 
+check_return_flag $? "Test Case 2: Partial message protocol - return code" 
 
 # Test Case 3: Large message protocol - return code
 ${ERROR_INJECT} -m 16777144 > ${TEMP_LOG} 2>&1
