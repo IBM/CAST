@@ -12,16 +12,22 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
+#include "csm_environmental_data.h"
 
-#include "include/csm_environmental_data.h"
-#include "include/csm_bds_keys.h"
+#include "csm_bds_keys.h"
 #include "csm_daemon_config.h"
+#include "OCCSensorData.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+
 #include <sstream>
+#include <string>
+#include <unordered_map>
 
 #include <sys/time.h>
+#include <stdint.h>
+
 
 CSM_Environmental_Data::CSM_Environmental_Data()
 {
@@ -36,7 +42,8 @@ CSM_Environmental_Data::CSM_Environmental_Data( const CSM_Environmental_Data& in
   _GPU_Double_Data( in._GPU_Double_Data ),
   _GPU_Long_Data( in._GPU_Long_Data ),
   _GPU_Double_Label_Data( in._GPU_Double_Label_Data ),
-  _GPU_Long_Label_Data( in._GPU_Long_Label_Data )
+  _GPU_Long_Label_Data( in._GPU_Long_Label_Data ),
+  _env_pt( in._env_pt )
 {
 }
 
@@ -298,7 +305,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
   return json;
 }
 
-void CSM_Environmental_Data::Set_Node_Data()
+void CSM_Environmental_Data::Collect_Node_Data()
 {
   // Set _timestamp
   char time_stamp_buffer[80];
@@ -327,6 +334,32 @@ void CSM_Environmental_Data::Set_Node_Data()
   }
 }
 
+bool CSM_Environmental_Data::Collect_Environmental_Data()
+{
+   // Generate the value map for the query.
+   std::unordered_map<std::string, int64_t> occ_map =
+   {
+      {"PROCPWRTHROT", 0},
+      {"PWRSYS"      , 0},
+      {"PWRGPU"      , 0}
+   };
+
+   // Query and check for success.
+   bool success = csm::daemon::helper::GetOCCSensorData( occ_map );
+
+   if (success)
+   {
+      // Extract values.
+      for (auto occ_itr = occ_map.begin(); occ_itr != occ_map.end(); occ_itr++)
+      {
+         LOG( csmenv, debug ) << "ENV: Read OCC data " << occ_itr->first << ": " << occ_itr->second;
+         _env_pt.put( occ_itr->first, occ_itr->second );
+      }
+   }
+
+   return success;
+}
+
 CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
 {
   _Data_Mask = in._Data_Mask;
@@ -337,6 +370,7 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environment
   _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
   _GPU_Long_Label_Data = in._GPU_Long_Label_Data;
   _CPU_Data = in._CPU_Data;
+  _env_pt = in._env_pt;
   return *this;
 }
 
@@ -365,6 +399,9 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmen
 
   if( in._Data_Mask.test( CPU_DATA_BIT ) )
     _CPU_Data = in._CPU_Data;
+  
+  if( !in._env_pt.empty() )
+    _env_pt = in._env_pt;
 
   return *this;
 }

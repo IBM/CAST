@@ -18,6 +18,8 @@
 
 #include <bitset>
 #include <string>
+#include <boost/property_tree/ptree.hpp>
+
 #include "csm_CPU_data.h"
 #include "csm_GPU_double_data.h"
 #include "csm_GPU_long_data.h"
@@ -90,7 +92,10 @@ public:
   std::string Get_Json_String();
 
   // Collects the common node level data and sets it in the object
-  void Set_Node_Data();
+  void Collect_Node_Data();
+
+  // Collects the environmental temperature and power data and sets it in the object
+  bool Collect_Environmental_Data();
 
   CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );
 
@@ -148,6 +153,7 @@ private:
   CSM_GPU_Double_Label_Data _GPU_Double_Label_Data;
   CSM_GPU_Long_Label_Data _GPU_Long_Label_Data;
 
+  boost::property_tree::ptree _env_pt;
 };
 
 #endif

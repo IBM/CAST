@@ -27,6 +27,7 @@ set(CSM_DAEMON_LIB_SRC
   connection_handling.cc
   csm_daemon_network_manager.cc
   csm_environmental_data.cc
+  csmi_request_handler/helpers/OCCSensorData.cc
   ${CSM_INVENTORY_SRC}
   ${CSM_DB_SRC}
 
@@ -134,7 +135,6 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/helpers/cgroup.cc
   csmi_request_handler/helpers/Agent.cc
   csmi_request_handler/helpers/DataAggregators.cc
-  csmi_request_handler/helpers/OCCSensorData.cc
 
   # Stateful Classes:
   csmi_request_handler/csmi_handler_context.cc
