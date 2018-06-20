@@ -117,13 +117,17 @@ class MasterProperties(DiagProperties):
       except ConfigParser.NoOptionError:
          usecsm='yes'
 
-      allocation='yes'
-      if usecsm == 'no': allocation = 'no'
-      if args and args.usecsm       : usecsm='yes'; allocation='yes'
-      if args and args.nocsm        : usecsm='no'; allocation='no'
-      if args and args.noallocation : allocation='no'
+      # allocation_id = 0 : do not want allocation
+      #                 1 : create an allocation
+      #                 N : use existent allocation
+      allocation=1
+      if usecsm == 'no': allocation = 0
+      if args and args.usecsm       : usecsm='yes'; allocation=1
+      if args and args.nocsm        : usecsm='no'; allocation=0
+      if args and args.noallocation : allocation=0
+      if args and args.allocation_id : allocation=args.allocation_id
       self.cfgparser.set(self.section, 'csm', usecsm)
-      self.cfgparser.set(self.section, 'allocation', allocation)
+      self.cfgparser.set(self.section, 'allocation_id', str(allocation))
 
 
       ddir='/opt/ibm/csm/hcdiag'
@@ -233,7 +237,6 @@ class MasterProperties(DiagProperties):
          self.cfgparser.get(self.section, 'tty_progress_interval')
       except ConfigParser.NoOptionError:
          self.cfgparser.set(self.section, 'tty_progress_interval',  2)
-
 
       return True
 
