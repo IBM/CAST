@@ -190,7 +190,7 @@ if ($rc == 0) {
       my ($max) = $l =~ /^max:\s+(\S+)/;
       my ($avg) = $l =~ /^avg:\s+(\S+)/;
       if (defined $min) {
-         print "-- node=$node: min clock frequecy read=$min, allowed=$exp_min\n";
+         print "-- node=$node: min clock frequency read=$min, allowed=$exp_min\n";
          if ($min < $exp_min) {
             push (@$errs, "$node: min clock frequency allowed: $exp_min, got: $min");
             $errcnt += 1;
@@ -198,7 +198,7 @@ if ($rc == 0) {
       }
    
       if ( defined $max) {
-        print "-- node=$node, max clock frequecy read=$max, allowed=$exp_max\n";
+        print "-- node=$node, max clock frequency read=$max, allowed=$exp_max\n";
         if ($max > $exp_max) {
            push (@$errs, "$node: max clock frequency allowed: $exp_max, got: $max");
            $errcnt += 1;
