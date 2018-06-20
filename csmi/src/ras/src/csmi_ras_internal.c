@@ -31,9 +31,9 @@ const csmi_struct_node_t csmi_ras_type_record_tree[15] = {{"threshold_period",of
 {"message",offsetof(csmi_ras_type_record_t,message),0,NULL,0xbe463eea,4}}
 ;
 
-void* cast_csmi_ras_type_record_t(void* ptr,size_t index) { 
+void* cast_csmi_ras_type_record_t(void* ptr,size_t index, char isArray) { 
     csmi_ras_type_record_t ** ptr_cast = *(csmi_ras_type_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_type_record_t= {
     15,
@@ -50,9 +50,9 @@ const csmi_struct_node_t csm_ras_event_create_input_tree[7] = {{"location_name",
 {"raw_data",offsetof(csm_ras_event_create_input_t,raw_data),0,NULL,0xf85a97e8,4}}
 ;
 
-void* cast_csm_ras_event_create_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_event_create_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_event_create_input_t ** ptr_cast = *(csm_ras_event_create_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_event_create_input_t= {
     7,
@@ -74,9 +74,9 @@ const csmi_struct_node_t csmi_ras_event_action_record_tree[12] = {{"archive_hist
 {"time_stamp",offsetof(csmi_ras_event_action_record_t,time_stamp),0,NULL,0xae3ff458,4}}
 ;
 
-void* cast_csmi_ras_event_action_record_t(void* ptr,size_t index) { 
+void* cast_csmi_ras_event_action_record_t(void* ptr,size_t index, char isArray) { 
     csmi_ras_event_action_record_t ** ptr_cast = *(csmi_ras_event_action_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_event_action_record_t= {
     12,
@@ -99,9 +99,9 @@ const csmi_struct_node_t csmi_ras_event_action_tree[13] = {{"rec_id",offsetof(cs
 {"raw_data",offsetof(csmi_ras_event_action_t,raw_data),0,NULL,0xf85a97e8,4}}
 ;
 
-void* cast_csmi_ras_event_action_t(void* ptr,size_t index) { 
+void* cast_csmi_ras_event_action_t(void* ptr,size_t index, char isArray) { 
     csmi_ras_event_action_t ** ptr_cast = *(csmi_ras_event_action_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_event_action_t= {
     13,
@@ -133,9 +133,9 @@ const csmi_struct_node_t csmi_ras_event_tree[22] = {{"processor",offsetof(csmi_r
 {"master_time_stamp",offsetof(csmi_ras_event_t,master_time_stamp),0,NULL,0xe32c0c43,4}}
 ;
 
-void* cast_csmi_ras_event_t(void* ptr,size_t index) { 
+void* cast_csmi_ras_event_t(void* ptr,size_t index, char isArray) { 
     csmi_ras_event_t ** ptr_cast = *(csmi_ras_event_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_event_t= {
     22,
@@ -148,9 +148,9 @@ const csmi_struct_node_t csmi_ras_event_vector_tree[3] = {{"num_ras_events",offs
 {"events",offsetof(csmi_ras_event_vector_t,events),offsetof(csmi_ras_event_vector_t, num_ras_events),&map_csmi_ras_event_t,0xfc089d5a,1}}
 ;
 
-void* cast_csmi_ras_event_vector_t(void* ptr,size_t index) { 
+void* cast_csmi_ras_event_vector_t(void* ptr,size_t index, char isArray) { 
     csmi_ras_event_vector_t ** ptr_cast = *(csmi_ras_event_vector_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_event_vector_t= {
     3,
@@ -182,9 +182,9 @@ const csmi_struct_node_t csm_ras_event_query_input_tree[22] = {{"order_by",offse
 {"master_time_stamp_search_end",offsetof(csm_ras_event_query_input_t,master_time_stamp_search_end),0,NULL,0x45dc3cce,4}}
 ;
 
-void* cast_csm_ras_event_query_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_event_query_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_event_query_input_t ** ptr_cast = *(csm_ras_event_query_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_event_query_input_t= {
     22,
@@ -196,9 +196,9 @@ const csmi_struct_node_t csm_ras_event_query_output_tree[2] = {{"results_count",
 {"results",offsetof(csm_ras_event_query_output_t,results),offsetof(csm_ras_event_query_output_t, results_count),&map_csmi_ras_event_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_ras_event_query_output_t(void* ptr,size_t index) { 
+void* cast_csm_ras_event_query_output_t(void* ptr,size_t index, char isArray) { 
     csm_ras_event_query_output_t ** ptr_cast = *(csm_ras_event_query_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_event_query_output_t= {
     2,
@@ -211,9 +211,9 @@ const csmi_struct_node_t csm_ras_event_query_allocation_input_tree[3] = {{"offse
 {"allocation_id",offsetof(csm_ras_event_query_allocation_input_t,allocation_id),0,NULL,0x99d3da77,40}}
 ;
 
-void* cast_csm_ras_event_query_allocation_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_event_query_allocation_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_event_query_allocation_input_t ** ptr_cast = *(csm_ras_event_query_allocation_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_event_query_allocation_input_t= {
     3,
@@ -226,9 +226,9 @@ const csmi_struct_node_t csm_ras_event_query_allocation_output_tree[3] = {{"num_
 {"events",offsetof(csm_ras_event_query_allocation_output_t,events),offsetof(csm_ras_event_query_allocation_output_t, num_events),&map_csmi_ras_event_action_t,0xfc089d5a,1}}
 ;
 
-void* cast_csm_ras_event_query_allocation_output_t(void* ptr,size_t index) { 
+void* cast_csm_ras_event_query_allocation_output_t(void* ptr,size_t index, char isArray) { 
     csm_ras_event_query_allocation_output_t ** ptr_cast = *(csm_ras_event_query_allocation_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_event_query_allocation_output_t= {
     3,
@@ -253,9 +253,9 @@ const csmi_struct_node_t csm_ras_msg_type_create_input_tree[15] = {{"threshold_p
 {"message",offsetof(csm_ras_msg_type_create_input_t,message),0,NULL,0xbe463eea,4}}
 ;
 
-void* cast_csm_ras_msg_type_create_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_create_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_create_input_t ** ptr_cast = *(csm_ras_msg_type_create_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_create_input_t= {
     15,
@@ -267,9 +267,9 @@ const csmi_struct_node_t csm_ras_msg_type_create_output_tree[2] = {{"insert_succ
 {"msg_id",offsetof(csm_ras_msg_type_create_output_t,msg_id),0,NULL,0xe7c7058,4}}
 ;
 
-void* cast_csm_ras_msg_type_create_output_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_create_output_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_create_output_t ** ptr_cast = *(csm_ras_msg_type_create_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_create_output_t= {
     2,
@@ -281,9 +281,9 @@ const csmi_struct_node_t csm_ras_msg_type_delete_input_tree[2] = {{"msg_ids_coun
 {"msg_ids",offsetof(csm_ras_msg_type_delete_input_t,msg_ids),offsetof(csm_ras_msg_type_delete_input_t, msg_ids_count),NULL,0xde0a7bcb,5}}
 ;
 
-void* cast_csm_ras_msg_type_delete_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_delete_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_delete_input_t ** ptr_cast = *(csm_ras_msg_type_delete_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_delete_input_t= {
     2,
@@ -298,9 +298,9 @@ const csmi_struct_node_t csm_ras_msg_type_delete_output_tree[5] = {{"deleted_msg
 {"deleted_msg_ids",offsetof(csm_ras_msg_type_delete_output_t,deleted_msg_ids),offsetof(csm_ras_msg_type_delete_output_t, deleted_msg_ids_count),NULL,0x9b010dc1,5}}
 ;
 
-void* cast_csm_ras_msg_type_delete_output_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_delete_output_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_delete_output_t ** ptr_cast = *(csm_ras_msg_type_delete_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_delete_output_t= {
     5,
@@ -325,9 +325,9 @@ const csmi_struct_node_t csm_ras_msg_type_update_input_tree[15] = {{"threshold_p
 {"message",offsetof(csm_ras_msg_type_update_input_t,message),0,NULL,0xbe463eea,4}}
 ;
 
-void* cast_csm_ras_msg_type_update_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_update_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_update_input_t ** ptr_cast = *(csm_ras_msg_type_update_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_update_input_t= {
     15,
@@ -339,9 +339,9 @@ const csmi_struct_node_t csm_ras_msg_type_update_output_tree[2] = {{"update_succ
 {"msg_id",offsetof(csm_ras_msg_type_update_output_t,msg_id),0,NULL,0xe7c7058,4}}
 ;
 
-void* cast_csm_ras_msg_type_update_output_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_update_output_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_update_output_t ** ptr_cast = *(csm_ras_msg_type_update_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_update_output_t= {
     2,
@@ -358,9 +358,9 @@ const csmi_struct_node_t csm_ras_msg_type_query_input_tree[7] = {{"offset",offse
 {"message",offsetof(csm_ras_msg_type_query_input_t,message),0,NULL,0xbe463eea,4}}
 ;
 
-void* cast_csm_ras_msg_type_query_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_query_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_query_input_t ** ptr_cast = *(csm_ras_msg_type_query_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_query_input_t= {
     7,
@@ -372,9 +372,9 @@ const csmi_struct_node_t csm_ras_msg_type_query_output_tree[2] = {{"results_coun
 {"results",offsetof(csm_ras_msg_type_query_output_t,results),offsetof(csm_ras_msg_type_query_output_t, results_count),&map_csmi_ras_type_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_ras_msg_type_query_output_t(void* ptr,size_t index) { 
+void* cast_csm_ras_msg_type_query_output_t(void* ptr,size_t index, char isArray) { 
     csm_ras_msg_type_query_output_t ** ptr_cast = *(csm_ras_msg_type_query_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_query_output_t= {
     2,
@@ -385,9 +385,9 @@ const csmi_struct_mapping_t map_csm_ras_msg_type_query_output_t= {
 const csmi_struct_node_t csm_ras_subscribe_input_tree[1] = {{"topic",offsetof(csm_ras_subscribe_input_t,topic),0,NULL,0x1070e304,4}}
 ;
 
-void* cast_csm_ras_subscribe_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_subscribe_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_subscribe_input_t ** ptr_cast = *(csm_ras_subscribe_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_subscribe_input_t= {
     1,
@@ -398,9 +398,9 @@ const csmi_struct_mapping_t map_csm_ras_subscribe_input_t= {
 const csmi_struct_node_t csm_ras_unsubscribe_input_tree[1] = {{"topic",offsetof(csm_ras_unsubscribe_input_t,topic),0,NULL,0x1070e304,4}}
 ;
 
-void* cast_csm_ras_unsubscribe_input_t(void* ptr,size_t index) { 
+void* cast_csm_ras_unsubscribe_input_t(void* ptr,size_t index, char isArray) { 
     csm_ras_unsubscribe_input_t ** ptr_cast = *(csm_ras_unsubscribe_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_unsubscribe_input_t= {
     1,

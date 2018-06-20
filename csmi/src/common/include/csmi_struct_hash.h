@@ -80,7 +80,7 @@ typedef struct {
 } csmi_struct_node_t;
 
 
-typedef void* (*csmi_offset_funct)(void*,size_t);
+typedef void* (*csmi_offset_funct)(void*,size_t,char);
 
 typedef void* (*csmi_malloc_funct)(size_t);
 

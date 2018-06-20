@@ -44,6 +44,7 @@
 #include "csmd/src/daemon/include/csm_connection_definition.h"
 #include "csmd/src/daemon/include/csm_daemon_role.h"
 #include "csmd/src/daemon/include/csm_tweaks.h"
+#include "csmd/src/daemon/include/bds_info.h"
 
 #ifndef DB_SCHEMA_VERSION
 #define DB_SCHEMA_VERSION "unknown"
@@ -166,6 +167,8 @@ public:
   csm::daemon::Tweaks GetTweaks() const { return _Tweaks; }
 
   DBDefinitionInfo GetDBDefinitionInfo() const { return _dbInfo; }
+
+  csm::daemon::BDS_Info GetBDS_Info() const { return _BDS_Info; }
   
 private:
   Configuration( int argc, char **argv, const RunMode *runmode );
@@ -192,6 +195,8 @@ private:
   void SetCriticalConnectionList();
 
   void SetTweaks();
+
+  void SetBDS_Info();
   
   void ConfigureDaemonTimers();
 
@@ -256,6 +261,7 @@ private:
   DBDefinitionInfo _dbInfo;
 
   csm::daemon::Tweaks _Tweaks;
+  csm::daemon::BDS_Info _BDS_Info;
   
 };
 

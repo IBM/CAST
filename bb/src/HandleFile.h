@@ -104,7 +104,7 @@ public:
 //    static int calculate_xbbServerHandleStatus(HandleFile* pHandleFile, const char* pHandleFilePath, uint64_t& pStatus);
 
     static int createLockFile(const char* pFilePath);
-    static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pBufferSize, char* pBuffer);
+    static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer);
     static int get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle);
     static int get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32_t>& pContrib, uint64_t& pHandle);
     static int get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, uint64_t& pNumberOfReportingContribs, HandleFile* &pHandleFile, ContribIdFile* &pContribIdFile, const uint64_t pHandle, const uint32_t pContribId);

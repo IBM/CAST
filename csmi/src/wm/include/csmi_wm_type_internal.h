@@ -203,6 +203,7 @@ typedef struct {
     char begin; /**< A flag indicating whether this is a begin or end payload. */
     char* user_flags; /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
     char** compute_nodes; /**< The list of nodes associated with this step. Used to populate the *csm_step_node* table of the CSM DB. Size stored in @ref num_nodes.*/
+    char* json_str; /**< A JSON string for use in transaction logging. */
 } csmi_allocation_step_mcast_context_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

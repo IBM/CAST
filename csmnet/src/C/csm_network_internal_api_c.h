@@ -16,6 +16,9 @@
 #ifndef __CSM_NETWORK_INTERNAL_API_C_H__
 #define __CSM_NETWORK_INTERNAL_API_C_H__
 
+#include "csm_network_header.h"
+#include "csm_network_msg_c.h"
+
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -26,9 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
-
-#include "csm_network_header.h"
-#include "csm_network_msg_c.h"
 
 #ifndef DGRAM_PAYLOAD_MAX
 #define DGRAM_PAYLOAD_MAX ( 65535 )
