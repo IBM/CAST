@@ -16,20 +16,15 @@
 add_subdirectory(spec/logstash/filters)
 add_subdirectory(lib/logstash/filters)
 
-set(SUBDIR Logstash/plugins/csm_ras)
+execute_process(
+    COMMAND bash  "-c" "pwd; rm -rf *.gem; gem build logstash-filter-csm_event_correlator.gemspec"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Files that should be executable when shipped
-file(GLOB INSTALL_PROGRAMS
-  "build.sh"
-)
-
-install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+set(SUBDIR logstash/plugins/csm_event_correlator)
 
 # Files that should not be executable when shipped
 file(GLOB INSTALL_FILES
-  "Gemfile"
-  "logstash-filter-csm_ras.gemspec"
-  "Rakefile"
+    "logstash-filter-csm-event-correlator-*.gem"
 )
 
 install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})

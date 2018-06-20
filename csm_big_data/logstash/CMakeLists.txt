@@ -15,7 +15,7 @@
 
 add_subdirectory(config)
 add_subdirectory(patterns)
-add_subdirectory(plugins/grok_dynamic)
+add_subdirectory(plugins/csm_event_correlator)
 
 set(SUBDIR Logstash)
 
