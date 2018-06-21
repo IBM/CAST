@@ -134,10 +134,12 @@ void processAsyncRequest(WorkID& pWorkItem)
                 {
                     l_LogAsInfo = false;
                     LOG(bb,debug) << "Start processing async request: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                    LOG(bb,debug) << "                                Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " now being processed";
                 }
                 else
                 {
                     LOG(bb,info) << "Start processing async request: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                    LOG(bb,info) << "                                Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " now being processed";
                 }
 
                 rc = 0;
@@ -240,11 +242,12 @@ void processAsyncRequest(WorkID& pWorkItem)
 
             if (l_LogAsInfo)
             {
-                LOG(bb,info) << "End processing async request...";
+                LOG(bb,info) << "End processing async request. Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " finished being processed";
+
             }
             else
             {
-                LOG(bb,debug) << "End processing async request...";
+                LOG(bb,debug) << "End processing async request. Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " finished being processed";
             }
         }
         else
@@ -2524,10 +2527,6 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
         // NOTE:  The LVKey could already exist in the case where a given job spans the failover
         //        to a backup and then back to the primary bbServer.
         rc = metadata.addLVKey(pHostName, pLVKey, pJobId, empty, pTolerateAlreadyExists);
-        if (!rc)
-        {
-            rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
-        }
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
