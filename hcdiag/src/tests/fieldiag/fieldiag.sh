@@ -52,8 +52,8 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
-export thisdir=`dirname $0`
-export NVIDIA_FIELDIAG=$thisdir/fieldiag
+export thisdir=`pwd`
+export NVIDIA_FIELDIAG=$thisdir
 export NVIDIA_MODULES="nvidia_drm nvidia_modeset nvidia_uvm nvidia nouveau"
 export FIELDIAG_MODULE="mods"
 #export LSF_DIR="/shared/lsf/10.1/linux3.10-glibc2.17-ppc64le/etc"
