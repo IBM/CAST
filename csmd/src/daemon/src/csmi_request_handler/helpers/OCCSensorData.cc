@@ -143,6 +143,12 @@ bool GetOCCSensorData(std::unordered_map<std::string,int64_t> &valueMap)
         // TODO throw exception.
         return false;
     }
+    
+    // Initialize all values in the map to 0
+    for (auto map_itr = valueMap.begin(); map_itr != valueMap.end(); map_itr++)
+    {
+        map_itr->second = 0;
+    }
 
     // Initiailize the chip for the search.
     int chipid = 0, rc = 0, bytes= 0; 
