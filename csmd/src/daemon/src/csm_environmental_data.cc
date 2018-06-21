@@ -203,12 +203,6 @@ std::string CSM_Environmental_Data::Get_Json_String()
   // Each json document has a set of common parent fields followed by fields specific to 
   // the type of environmental data being collected
   // Build the common fields first, to be used in each of the individual json documents
-  #define CSM_BDS_KEY_TYPE "type"
-  #define CSM_BDS_TYPE_GPU "csm-gpu"
-  #define CSM_BDS_TYPE_ENVIRONMENTAL "csm-environmental"
-  
-  #define CSM_BDS_KEY_SOURCE "source"
-  #define CSM_BDS_KEY_TIME_STAMP "timestamp"
   
   #define CSM_ENV_DATA_GPU_PREFIX "data"
   #define CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER "serial_number"
