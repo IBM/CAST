@@ -1003,29 +1003,34 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
 
     // First, check for any new appended HP work queue items...
     uint64_t l_NumberToProcess = checkForNewHPWorkItems();
+    HPWrkQE->dump("info", "processAllOutstandingHP_Requests(): ");
 
     // Now, process all enqueued high priority work items...
     // NOTE: \todo - Is it possible for so many async requests to be appended (and continue to be appended...)
     //               that we never process them all...  Seems unlikely...  Investigate...  @DLH
     while (!l_AllDone)
     {
-        // NOTE: Currently set to log after 1 second of not being able to process all async requests, and every 10 seconds thereafter...
-        if ((i % 20) == 2)
+        // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
+        if ((i % 20) == 10)
         {
-            LOG(bb,info) << "processAllOutstandingHP_Requests():  HPWrkQE->getNumberOfWorkItemsProcessed() = " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess = " << l_NumberToProcess;
+            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() = " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess = " << l_NumberToProcess;
         }
         if (HPWrkQE->getNumberOfWorkItemsProcessed() >= l_NumberToProcess)
         {
+            if (i)
+            {
+                LOG(bb,info) << "processAllOutstandingHP_Requests(): Completed -> HPWrkQE->getNumberOfWorkItemsProcessed() = " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess = " << l_NumberToProcess;
+            }
             l_AllDone = true;
         }
         else
         {
             unlockTransferQueue(pLVKey, "processAllOutstandingHP_Requests");
             {
-                // NOTE: Currently set to log after 1 second of not being able to process all async requests, and every 10 seconds thereafter...
-                if ((i++ % 20) == 2)
+                // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
+                if ((i++ % 20) == 10)
                 {
-                    LOG(bb,info) << ">>>>> DELAY <<<<< processAllOutstandingHP_Requests(): Processing all outstanding async requests. Delay of 500 milliseconds.";
+                    LOG(bb,info) << ">>>>> DELAY <<<<< processAllOutstandingHP_Requests(): Processing all outstanding async requests...";
                 }
                 usleep((useconds_t)500000);
             }
@@ -1180,9 +1185,9 @@ void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
 
     // Currently, for a restart transfer operation, we will wait a total
     // of twice the bbServer heartbeat before declaring a bbServer dead
-    // because the transfer definiiton is not marked as being stopped.
+    // because the transfer definition is not marked as being stopped.
     // Value stored in seconds.
-    declareServerDeadCount = (uint64_t)(l_HeartbeatTimeInterval * 2);
+    declareServerDeadCount = max((uint64_t)(l_HeartbeatTimeInterval * 2), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE);
 
     return;
 }
