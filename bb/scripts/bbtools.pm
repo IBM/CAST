@@ -314,11 +314,15 @@ sub setupBBPATH
     open(TMP, $fn);
     while($line = <TMP>)
     {
-	if($line =~ /BBPATH/)
+	if($line =~ /^BBPATH=/)
 	{
 	    chomp($line);
 	    ($key,$value) = $line =~ /(\S+)=(.*)/;
-	    $ENV{$key} = $value;
+	    if($value !~ /^\/mnt\/bb_[a-z0-9]+/)
+	    {
+		$value = "/mnt/bb_corruptedmount";
+	    }
+	    $ENV{"BBPATH"} = $value;
 	}
     }
     close(TMP);
