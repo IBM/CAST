@@ -132,33 +132,36 @@ if [ $rc -eq 0 ]; then
    fi
 fi
 
-# fieldiag sometimes does not return the correct rc, so let's also check the output files
-#
 case $rc in
    # PASS, but check for false positive
    0) 
-      logfile=`ls $OUTPUT_DIR/fieldiag_PASS_*.log 2>/dev/null`
-      if [ -n "$logfile" ]; then
-         # file exist, so we are good
-         echo "fieldiag binary PASS file saved in $OUTPUT_DIR/$logfile"
-         echo "$me test PASS, rc=0"
-         exit 0
-      fi
-      echo "fieldiag return $rc: PASS, but could not find PASS binary file in $OUTPUT_DIR"
-      echo "Maybe retest?"
-      rc=11
+      #logfile=`ls $OUTPUT_DIR/fieldiag_PASS_*.log 2>/dev/null`
+      #if [ -n "$logfile" ]; then
+      #   # file exist, so we are good
+      #   echo "fieldiag binary PASS file saved in $OUTPUT_DIR/$logfile"
+      #   echo "$me test PASS, rc=0"
+      #   exit 0
+      #fi
+      #echo "fieldiag return $rc: PASS, but could not find PASS binary file in $OUTPUT_DIR"
+      #echo "Maybe retest?"
+      #rc=11
+      echo "fieldiag return $rc: PASS"
+      echo "Machine need to be rebooted"
+      echo "$me test PASS, rc=0"
+      exit 0
       ;;
 
    # FAIL
    1) 
-      logfile=`ls $OUTPUT_DIR/fieldiag_FAIL_*.log 2>/dev/null`
-      if [ -n "$logfile" ]; then
-         # file exist, so we are good
-         echo "fieldiag binary FAIL file saved in $OUTPUT_DIR/$logfile"
-      else
-         echo "fieldiag return $rc: FAIL, but could not find FAIL binary file in $OUTPUT_DIR"
-         echo "Maybe retest?"
-      fi
+      #logfile=`ls $OUTPUT_DIR/fieldiag_FAIL_*.log 2>/dev/null`
+      #if [ -n "$logfile" ]; then
+      #   # file exist, so we are good
+      #   echo "fieldiag binary FAIL file saved in $OUTPUT_DIR/$logfile"
+      #else
+      #   echo "fieldiag return $rc: FAIL, but could not find FAIL binary file in $OUTPUT_DIR"
+      #   echo "Maybe retest?"
+      #fi       
+      echo "fieldiag return $rc: FAIL"
       ;;
 
    2) echo "fieldiag return $rc: RETEST, check message and rerun"
@@ -169,6 +172,7 @@ case $rc in
 esac
 
 
+echo "Machine need to be rebooted"
 echo "$me test FAIL, rc=$rc"
 exit $rc
 EOF
