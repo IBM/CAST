@@ -332,6 +332,7 @@ class BBTransferDef
     void incrSizeTransferred(Extent* pExtent);
     void lock();
 #if BBSERVER
+    void markAsStopped(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
     int prepareForRestart(const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pRebuiltTransferDef, const int pPass);
 #endif
     int replaceExtentVector(vector<Extent>* pNewList);
