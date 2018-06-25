@@ -335,7 +335,57 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    {
       {"PROCPWRTHROT", 0},
       {"PWRSYS"      , 0},
-      {"PWRGPU"      , 0}
+      {"PWRGPU"      , 0},
+      {"TEMPDIMM02", 0},
+      {"TEMPDIMM03", 0},
+      {"TEMPDIMM04", 0},
+      {"TEMPDIMM05", 0},
+      {"TEMPDIMM10", 0},
+      {"TEMPDIMM11", 0},
+      {"TEMPDIMM12", 0},
+      {"TEMPDIMM13", 0},
+      {"TEMPGPU0", 0},
+      {"TEMPGPU0MEM", 0},
+      {"TEMPGPU1", 0},
+      {"TEMPGPU1MEM", 0},
+      {"TEMPGPU2", 0},
+      {"TEMPGPU2MEM", 0},
+      //{"TEMPNEST", 0},
+      //{"TEMPPROCTHRMC00", 0},
+      //{"TEMPPROCTHRMC01", 0},
+      //{"TEMPPROCTHRMC02", 0},
+      //{"TEMPPROCTHRMC03", 0},
+      //{"TEMPPROCTHRMC04", 0},
+      //{"TEMPPROCTHRMC05", 0},
+      //{"TEMPPROCTHRMC06", 0},
+      //{"TEMPPROCTHRMC07", 0},
+      //{"TEMPPROCTHRMC08", 0},
+      //{"TEMPPROCTHRMC09", 0},
+      //{"TEMPPROCTHRMC10", 0},
+      //{"TEMPPROCTHRMC11", 0},
+      //{"TEMPPROCTHRMC12", 0},
+      //{"TEMPPROCTHRMC13", 0},
+      //{"TEMPPROCTHRMC14", 0},
+      //{"TEMPPROCTHRMC15", 0},
+      //{"TEMPPROCTHRMC16", 0},
+      //{"TEMPPROCTHRMC17", 0},
+      //{"TEMPPROCTHRMC18", 0},
+      //{"TEMPPROCTHRMC19", 0},
+      //{"TEMPPROCTHRMC20", 0},
+      //{"TEMPPROCTHRMC21", 0},
+      //{"TEMPPROCTHRMC22", 0},
+      //{"TEMPPROCTHRMC23", 0},
+      //{"TEMPVDD", 0}
+      
+      // Sensors not in use
+//    {"TEMPDIMM00", 0},
+//    {"TEMPDIMM01", 0},
+//    {"TEMPDIMM06", 0},
+//    {"TEMPDIMM07", 0},
+//    {"TEMPDIMM08", 0},
+//    {"TEMPDIMM09", 0},
+//    {"TEMPDIMM14", 0},
+//    {"TEMPDIMM15", 0},
    };
 
    // Query and check for success.
@@ -350,6 +400,88 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
          _env_pt.put( occ_itr->first, occ_itr->second );
       }
    }
+
+   // Sample data for energy collection json        
+   boost::property_tree::ptree energy_pt;
+   energy_pt.put( "type", "csm-energy" );
+   
+   // Node level data
+   energy_pt.put( "data.system_energy", "88888" );
+
+   // Array of processor socket level data   
+   const int MAX_CHIP(2);
+   boost::property_tree::ptree chips_pt;
+   for (int chip = 0; chip < MAX_CHIP; chip++)
+   {
+      boost::property_tree::ptree chip_pt;
+      chip_pt.put( "processor_energy", "44444" );
+      chip_pt.put( "gpu_energy", "22222" );
+      chip_pt.put( "mem_energy", "11111" );
+      chips_pt.push_back(std::make_pair("", chip_pt));
+   }   
+   energy_pt.add_child("data.processor_sockets", chips_pt);
+
+   std::ostringstream energy_oss;
+   boost::property_tree::json_parser::write_json(energy_oss, energy_pt, false);
+   LOG( csmenv, debug ) << energy_oss.str();
+
+
+
+   // Sample data for temperature collection json
+   boost::property_tree::ptree temperature_pt;
+   temperature_pt.put( "type", "csm-temperature" );
+   
+   // Node level data
+   temperature_pt.put( "data.system_temp", "23" );
+
+   // Array of processor socket level data   
+   //const int MAX_CHIP(2);
+   //boost::property_tree::ptree chips_pt;
+   chips_pt.clear();
+   for (int chip = 0; chip < MAX_CHIP; chip++)
+   {
+      boost::property_tree::ptree chip_pt;
+      chip_pt.put( "processor_temp", "23" );
+      chip_pt.put( "processor_temp_min", "20" );
+      chip_pt.put( "processor_temp_max", "27" );
+      
+      const int MAX_GPU(3);
+      boost::property_tree::ptree gpus_pt;
+      for (int gpu = 0; gpu < MAX_GPU; gpu++)
+      {
+         boost::property_tree::ptree gpu_pt;
+         gpu_pt.put( "gpu_temp", "23" );
+         gpu_pt.put( "gpu_temp_min", "20" );
+         gpu_pt.put( "gpu_temp_max", "27" );
+         gpu_pt.put( "gpu_mem_temp", "23" );
+         gpu_pt.put( "gpu_mem_temp_min", "20" );
+         gpu_pt.put( "gpu_mem_temp_max", "27" );
+
+         gpus_pt.push_back(std::make_pair("", gpu_pt));
+      }
+      chip_pt.push_back(std::make_pair("", gpus_pt));
+      
+      const int MAX_DIMM(8);
+      boost::property_tree::ptree dimms_pt;
+      for (int dimm = 0; dimm < MAX_DIMM; dimm++)
+      {
+         boost::property_tree::ptree dimm_pt;
+         dimm_pt.put( "dimm_temp", "23" );
+         dimm_pt.put( "dimm_temp_min", "20" );
+         dimm_pt.put( "dimm_temp_max", "27" );
+
+         dimms_pt.push_back(std::make_pair("", dimm_pt));
+      }
+      chip_pt.push_back(std::make_pair("", dimms_pt));
+     
+      chips_pt.push_back(std::make_pair("", chip_pt));
+   }   
+   
+   temperature_pt.add_child("data.processor_sockets", chips_pt);
+
+   std::ostringstream temperature_oss;
+   boost::property_tree::json_parser::write_json(temperature_oss, temperature_pt, false);
+   LOG( csmenv, debug ) << temperature_oss.str();
 
    return success;
 }
