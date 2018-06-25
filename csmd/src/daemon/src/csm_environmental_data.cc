@@ -266,7 +266,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
       {
         // Set the top level fields into the json
         boost::property_tree::ptree gpu_pt;
-        gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU);
+        gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU_COUNTERS);
         gpu_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
         gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
   
@@ -405,7 +405,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    
    // Node level data
    boost::property_tree::ptree node_pt;
-   node_pt.put( "type", "csm-node-env" );
+   node_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_NODE_ENV);
    
    node_pt.put( "data.system_energy", "88888" );
    node_pt.put( "data.system_temp", "23" );
@@ -421,7 +421,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    {
       boost::property_tree::ptree chip_pt;
       
-      chip_pt.put( "type", "csm-processor-socket-env" );
+      chip_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_PROCESSOR_ENV);
       chip_pt.put( "data.processor_id", std::to_string(chip) );
       chip_pt.put( "data.serial_number", "ABC123" );
       
@@ -444,7 +444,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    {
       boost::property_tree::ptree gpu_pt;
       
-      gpu_pt.put( "type", "csm-gpu-env" );
+      gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU_ENV);
       gpu_pt.put( "data.gpu_id", std::to_string(gpu) );
       gpu_pt.put( "data.serial_number", "ABC123" );
          
@@ -467,7 +467,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    {
       boost::property_tree::ptree dimm_pt;
       
-      dimm_pt.put( "type", "csm-dimm-env" );
+      dimm_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_DIMM_ENV);
       dimm_pt.put( "data.dimm_id", std::to_string(dimm) );
       dimm_pt.put( "data.serial_number", "ABC123" );
          

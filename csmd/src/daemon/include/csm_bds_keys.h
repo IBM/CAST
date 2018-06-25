@@ -21,8 +21,12 @@
 #define CSM_BDS_KEY_TYPE "type"
 
 // Known values for CSM_BDS_KEY_TYPE
-#define CSM_BDS_TYPE_GPU "csm-gpu"
-#define CSM_BDS_TYPE_ENVIRONMENTAL "csm-environmental"
+#define CSM_BDS_TYPE_GPU_COUNTERS  "csm-gpu-counters"
+
+#define CSM_BDS_TYPE_NODE_ENV      "csm-node-env"
+#define CSM_BDS_TYPE_PROCESSOR_ENV "csm-processor-env"
+#define CSM_BDS_TYPE_GPU_ENV       "csm-gpu-env"
+#define CSM_BDS_TYPE_DIMM_ENV      "csm-dimm-env"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // CSM_BDS_KEY_SOURCE - the source from which the reported data was collected 
