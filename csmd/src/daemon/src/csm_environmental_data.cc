@@ -401,87 +401,84 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       }
    }
 
-   // Sample data for energy collection json        
-   boost::property_tree::ptree energy_pt;
-   energy_pt.put( "type", "csm-energy" );
+   // Sample data for environmental data collection json        
    
    // Node level data
-   energy_pt.put( "data.system_energy", "88888" );
+   boost::property_tree::ptree node_pt;
+   node_pt.put( "type", "csm-node-env" );
+   
+   node_pt.put( "data.system_energy", "88888" );
+   node_pt.put( "data.system_temp", "23" );
+      
+   std::ostringstream node_oss;
+   boost::property_tree::json_parser::write_json(node_oss, node_pt, false);
+   LOG( csmenv, debug ) << node_oss.str();
 
-   // Array of processor socket level data   
+   // Processor socket level data
    const int MAX_CHIP(2);
-   boost::property_tree::ptree chips_pt;
+   
    for (int chip = 0; chip < MAX_CHIP; chip++)
    {
       boost::property_tree::ptree chip_pt;
-      chip_pt.put( "processor_energy", "44444" );
-      chip_pt.put( "gpu_energy", "22222" );
-      chip_pt.put( "mem_energy", "11111" );
-      chips_pt.push_back(std::make_pair("", chip_pt));
-   }   
-   energy_pt.add_child("data.processor_sockets", chips_pt);
-
-   std::ostringstream energy_oss;
-   boost::property_tree::json_parser::write_json(energy_oss, energy_pt, false);
-   LOG( csmenv, debug ) << energy_oss.str();
-
-
-
-   // Sample data for temperature collection json
-   boost::property_tree::ptree temperature_pt;
-   temperature_pt.put( "type", "csm-temperature" );
+      
+      chip_pt.put( "type", "csm-processor-socket-env" );
+      chip_pt.put( "data.processor_id", std::to_string(chip) );
+      chip_pt.put( "data.serial_number", "ABC123" );
+      
+      chip_pt.put( "data.processor_energy", "44444" );
+      chip_pt.put( "data.processor_temp", "23" );
+      chip_pt.put( "data.processor_temp_min", "20" );
+      chip_pt.put( "data.processor_temp_max", "27" );
+      //chip_pt.put( "data.gpu_energy", "22222" );
+      //chip_pt.put( "data.mem_energy", "11111" );
    
-   // Node level data
-   temperature_pt.put( "data.system_temp", "23" );
-
-   // Array of processor socket level data   
-   //const int MAX_CHIP(2);
-   //boost::property_tree::ptree chips_pt;
-   chips_pt.clear();
-   for (int chip = 0; chip < MAX_CHIP; chip++)
+      std::ostringstream chip_oss;
+      boost::property_tree::json_parser::write_json(chip_oss, chip_pt, false);
+      LOG( csmenv, debug ) << chip_oss.str();
+   }   
+   
+   // GPU level data
+   const int MAX_GPU(6);
+   
+   for (int gpu = 0; gpu < MAX_GPU; gpu++)
    {
-      boost::property_tree::ptree chip_pt;
-      chip_pt.put( "processor_temp", "23" );
-      chip_pt.put( "processor_temp_min", "20" );
-      chip_pt.put( "processor_temp_max", "27" );
+      boost::property_tree::ptree gpu_pt;
       
-      const int MAX_GPU(3);
-      boost::property_tree::ptree gpus_pt;
-      for (int gpu = 0; gpu < MAX_GPU; gpu++)
-      {
-         boost::property_tree::ptree gpu_pt;
-         gpu_pt.put( "gpu_temp", "23" );
-         gpu_pt.put( "gpu_temp_min", "20" );
-         gpu_pt.put( "gpu_temp_max", "27" );
-         gpu_pt.put( "gpu_mem_temp", "23" );
-         gpu_pt.put( "gpu_mem_temp_min", "20" );
-         gpu_pt.put( "gpu_mem_temp_max", "27" );
-
-         gpus_pt.push_back(std::make_pair("", gpu_pt));
-      }
-      chip_pt.push_back(std::make_pair("", gpus_pt));
-      
-      const int MAX_DIMM(8);
-      boost::property_tree::ptree dimms_pt;
-      for (int dimm = 0; dimm < MAX_DIMM; dimm++)
-      {
-         boost::property_tree::ptree dimm_pt;
-         dimm_pt.put( "dimm_temp", "23" );
-         dimm_pt.put( "dimm_temp_min", "20" );
-         dimm_pt.put( "dimm_temp_max", "27" );
-
-         dimms_pt.push_back(std::make_pair("", dimm_pt));
-      }
-      chip_pt.push_back(std::make_pair("", dimms_pt));
-     
-      chips_pt.push_back(std::make_pair("", chip_pt));
-   }   
+      gpu_pt.put( "type", "csm-gpu-env" );
+      gpu_pt.put( "data.gpu_id", std::to_string(gpu) );
+      gpu_pt.put( "data.serial_number", "ABC123" );
+         
+      gpu_pt.put( "data.gpu_temp", "23" );
+      gpu_pt.put( "data.gpu_temp_min", "20" );
+      gpu_pt.put( "data.gpu_temp_max", "27" );
+      gpu_pt.put( "data.gpu_mem_temp", "23" );
+      gpu_pt.put( "data.gpu_mem_temp_min", "20" );
+      gpu_pt.put( "data.gpu_mem_temp_max", "27" );
+         
+      std::ostringstream gpu_oss;
+      boost::property_tree::json_parser::write_json(gpu_oss, gpu_pt, false);
+      LOG( csmenv, debug ) << gpu_oss.str();
+   } 
    
-   temperature_pt.add_child("data.processor_sockets", chips_pt);
-
-   std::ostringstream temperature_oss;
-   boost::property_tree::json_parser::write_json(temperature_oss, temperature_pt, false);
-   LOG( csmenv, debug ) << temperature_oss.str();
+   // DIMM level data
+   const int MAX_DIMM(16);
+   
+   for (int dimm = 0; dimm < MAX_DIMM; dimm++)
+   {
+      boost::property_tree::ptree dimm_pt;
+      
+      dimm_pt.put( "type", "csm-dimm-env" );
+      dimm_pt.put( "data.dimm_id", std::to_string(dimm) );
+      dimm_pt.put( "data.serial_number", "ABC123" );
+         
+      dimm_pt.put( "data.dimm_temp", "23" );
+      dimm_pt.put( "data.dimm_temp_min", "20" );
+      dimm_pt.put( "data.dimm_temp_max", "27" );
+      
+      std::ostringstream dimm_oss;
+      boost::property_tree::json_parser::write_json(dimm_oss, dimm_pt, false);
+      LOG( csmenv, debug ) << dimm_oss.str();
+   } 
 
    return success;
 }
