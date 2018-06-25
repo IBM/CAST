@@ -13,9 +13,13 @@
 #
 #================================================================================
 
-#set(BDS_BASE_NAME csm/bigdata)
-#set(BDS_RPM_NAME csm-bds)
+set(BDS_BASE_NAME csm/bigdata)
+set(BDS_RPM_NAME csm-bds)
 
 #add_subdirectory(elasticsearch)
+add_subdirectory(logstash)
+
+
+#install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME})
 
 
