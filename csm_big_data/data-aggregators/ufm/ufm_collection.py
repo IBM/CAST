@@ -14,6 +14,30 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 #================================================================================
+
+#------------------------------PROGRAM INFORMATION------------------------------------#
+#                                                                                     #
+# ufm_collection.py -- a script to collect "counter" data from UFM and store          #
+# it in the BDS.                                                                      #
+#                                                                                     #
+# Authors:                                                                            #
+# - John Dunham - Email: jdunham@us.ibm.com                                           #
+# - Nick Buonarota - Email: nbuonar@us.ibm.com                                        #
+#                                                                                     #
+# Purpose: Simple script that is packaged with BDS. Can be run individually and       #
+# independantly when ever called upon.                                                #
+#                                                                                     #
+# Usage:                                                                              #
+# - Run the program.                                                                  #
+#   - At the moment, pass in parameters.                                              #
+#      - REQUIRED [--ufm] : This tells program where UFM is (an IP address)           #
+#      - REQUIRED [--logstash] : This tells program where logstash is (an IP address) #
+#      - OPTIONAL [--logstash-port] : This specifies the port for logstash            #
+# - Data is collected from UFM restAPI, then copied into BDS.                         #
+# - When program is finished, a record should appear in the BDS.                      #
+#                                                                                     #
+#-------------------------------------------------------------------------------------#
+
 import socket
 import json
 import sys
