@@ -976,14 +976,14 @@ void BBTransferDef::dump(const char* pSev, const char* pPrefix) {
     if (!strcmp(pSev,"debug")) {
         LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
         DUMP_TRANSDEF(debug,l_Job.str());
-        dumpExtents(pSev);
+//        dumpExtents(pSev);
         LOG(bb,debug) << "Extent Vector has " << extents.size() \
                       << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
         LOG(bb,debug) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
     } else if (!strcmp(pSev,"info")) {
         LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
         DUMP_TRANSDEF(info,l_Job.str());
-        dumpExtents(pSev);
+//        dumpExtents(pSev);
         LOG(bb,info) << "Extent Vector has " << extents.size() \
                       << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
         LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");

@@ -2405,6 +2405,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     if (l_HandleFileLocked)
     {
+        l_HandleFileLocked = false;
         l_HandleFile->close();
     }
 

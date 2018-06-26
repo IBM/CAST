@@ -69,7 +69,7 @@
         } \
         LOG(bb,SEV) << ">>>>>   End: " << keyvalues.size() << (keyvalues.size()==1 ? " keyvalue <<<<<" : " keyvalues <<<<<"); \
     } \
-    if (iomap.size()) { \
+    if (0==1 && iomap.size()) { \
         LOG(bb,SEV) << ">>>>> Start: " << iomap.size() << (iomap.size()==1 ? " I/O object <<<<<" : " I/O objects <<<<<"); \
         uint32_t i = 0; \
         for (auto& io : iomap) { \
@@ -77,7 +77,7 @@
         } \
         LOG(bb,SEV) << ">>>>>   End: " << iomap.size() << (iomap.size()==1 ? " I/O object <<<<<" : " I/O objects <<<<<"); \
     } \
-    if (sizeTransferred.size()) { \
+    if (0==1 && sizeTransferred.size()) { \
         LOG(bb,SEV) << ">>>>> Start: " << sizeTransferred.size() << (sizeTransferred.size()==1 ? " Size transferred <<<<<" : " Sizes transferred <<<<<"); \
         uint32_t i = 0; \
         for (auto& sz : sizeTransferred) { \
