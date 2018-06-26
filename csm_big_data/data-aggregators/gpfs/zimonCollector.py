@@ -22,11 +22,11 @@ import socket
 import logging.config
 logger=logging.getLogger(__name__)
 
-# Needs Cherrypy
 # Add zimon query handlers.
 sys.path.insert(0, '/usr/lpp/mmfs/lib/mmsysmon')
-from queryHandler.Query import Query
-from queryHandler.QueryHandler import QueryHandler2 as QueryHandler
+sys.path.insert(0, '/usr/lpp/mmfs/lib/mmsysmon/threshold')
+from Query import Query
+from QueryHandler import QueryHandler2 as QueryHandler
 
 # Help string.
 HELP_STR='''
