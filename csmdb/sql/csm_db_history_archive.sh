@@ -30,17 +30,25 @@ CSM Database History Archive Usage -
 EOF
 }
 
+#---------------------------------------------
 # Change to the directory housing the script.
+#---------------------------------------------
 cd $( dirname "${BASH_SOURCE[0]}" )
 
+#---------------------------------------------
 # The optstring for input.
+#---------------------------------------------
+
 optstring="ht:n:d:"
 
 TARGET_DIRECTORY="/var/log/ibm/csm/archive" # The target driectory to write the log to.
 NUM_ENTRIES=100                             # The number of entries to archive.
 DATABASE="csmdb"                            # The database to search for history tables to archive.
 
+#---------------------------------------------
 # A list of tables for processing.
+#---------------------------------------------
+
 TABLES=( csm_allocation_history csm_allocation_node_history csm_allocation_state_history \
     csm_config_history csm_db_schema_version_history csm_diag_result_history csm_diag_run_history \
     csm_dimm_history csm_gpu_history csm_hca_history csm_ib_cable_history csm_lv_history \
@@ -48,7 +56,10 @@ TABLES=( csm_allocation_history csm_allocation_node_history csm_allocation_state
     csm_ssd_history csm_ssd_wear_history csm_step_history csm_step_node_history csm_switch_history\
     csm_switch_inventory_history csm_vg_history csm_vg_ssd_history)
 
+#---------------------------------------------
 # The list of RAS tables.
+#---------------------------------------------
+
 RAS_TABLES=(csm_ras_event_action)
 
 while getopts $optstring OPTION
@@ -65,14 +76,20 @@ do
     esac
 done
 
+#---------------------------------------------
 # Iterate over History tables.
+#---------------------------------------------
+
 for table in "${TABLES[@]}"
 do
     ./csm_history_wrapper_archive_script_template.sh ${DATABASE} ${NUM_ENTRIES} ${table} ${TARGET_DIRECTORY} \
         > /dev/null 2>&1
 done
 
+#---------------------------------------------
 # Iterate over RAS tables.
+#---------------------------------------------
+
 for table in "${RAS_TABLES[@]}"
 do
     ./csm_ras_event_action_wrapper_archive_script.sh ${DATABASE} ${NUM_ENTRIES} ${table} ${TARGET_DIRECTORY} \
