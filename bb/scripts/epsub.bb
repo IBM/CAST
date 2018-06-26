@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 ###########################################################
-#     esub.bb
+#     epsub.bb
 #
 #     Copyright IBM Corporation 2017,2017. All Rights Reserved
 #
@@ -12,6 +12,38 @@
 #     restricted by GSA ADP Schedule Contract with IBM Corp.
 ###########################################################
 
+#$bbtmpdir = "/tmp";
+@pwentry   = getpwnam($ENV{"USER"});
+@pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
+$bbtmpdir  = $pwentry[7] . "/.bbtmp";
+$bbenvfile = $bbtmpdir . "/env." . $ENV{LSB_SUB_JOB_ID};
+
+sub bbfail
+{
+    my($desc) = @_;
+    print "$desc\n";
+    die $desc;
+}
+
+sub openBBENV
+{
+    system("echo $bbenvfile > /tmp/epsubfile");
+    open(BBENV, ">". $bbenvfile) || bbfail "Unable to open BB_ENVFILE file.  $!";
+    
+    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+	$atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat $bbenvfile.  $!";
+    if($mode & 0077)
+    {
+        bbfail "Permissions on $bbenvfile are too broad, the group and world fields should be zero.";
+    }
+}
+
+
+if(!-d $bbtmpdir)
+{
+    mkdir($bbtmpdir, 0700);
+}
+
 open(TMP, $ENV{LSB_SUB_PARM_FILE});
 while($line = <TMP>)
 {
@@ -22,22 +54,27 @@ while($line = <TMP>)
 close(TMP);
 
 @vars = ("all");
-@vars = split(",", $ENV{LSF_SUB4_SUB_ENV_VARS}) if(exists $ENV{LSF_SUB4_SUB_ENV_VARS});
+if(exists $ENV{LSF_SUB4_SUB_ENV_VARS})
+{
+    @vars = split(",", $ENV{LSF_SUB4_SUB_ENV_VARS});
+    push(@vars, "BBPATH="         . $ENV{"BBPATH"})         if(exists $ENV{"BBPATH"});
+    push(@vars, "BSCFS_MNT_PATH=" . $ENV{"BSCFS_MNT_PATH"}) if(exists $ENV{"BSCFS_MNT_PATH"});;
+}
 
-open(TMP, ">/tmp/epsub_env_vars." . $ENV{LSB_SUB_JOB_ID});
+openBBENV();
 foreach $var (@vars)
 {
     if($var =~ /all/)
     {
 	foreach $key (keys %ENV)
 	{
-	    print TMP "$key=$ENV{$key}\n";
+	    print BBENV "$key=$ENV{$key}\n" if(exists $ENV{$key});
 	}
     }
     else
     {
 	($key,$value) = $var =~ /(\S+?)=(\S+)/;
-	print TMP "$key=$value\n";
+	print BBENV "$key=$value\n";
     }
 }
-close(TMP);
+close(BBENV);
