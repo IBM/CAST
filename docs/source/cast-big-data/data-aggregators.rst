@@ -302,9 +302,13 @@ most of which are processed through Logstash and the CAST Event Correlator.
 GPFS
 ****
 
-.. attention:: This section is currently a work in progress.
+In order to collect counters from the GPFS file system CAST leverages the zimon utility. A python
+script interacting with this utility is provided in the `ibm-csm-bds-*.noarch.rpm`.
 
-.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
+The following document assumes that the cluster's service nodes be running the `pmcollector`
+service and any nodes requiring metrics be running `pmsensors`.
+
+
 
 To detect failures of the power hardware the following must be prepared on the management node
 of the GPFS cluster:
@@ -317,24 +321,136 @@ of the GPFS cluster:
    
    $ mmsysmoncontrol restart
 
-collector
+.. _zimon.collector:
+
+Collector
 ^^^^^^^^^
+
+:rpms: * `gpfs.gss.pmcollector.ppc64le` (Version 5.0 or greater)
+       * `gpfs.base.ppc64le`  (Version 5.0 or greater)
+:config: `/opt/IBM/zimon/ZIMonCollector.cfg`
+
+In the CAST architecture a `pmcollector` should be run on each of the service node in federated mode.
+To configure federated mode on the collector add all of the nodes configured as collectors to the
+*/opt/IBM/zimon/ZIMonCollector.cfg* this configuration should be then propagated to all of the
+collector nodes in the cluster.
+
+.. code-block:: none
+
+    peers = {
+        host = "collector1"
+        port = "9085"
+    },
+    {
+        host = "collector2"
+        port = "9085"
+    },
+    {
+        host = "collector3"
+        port = "9085"
+    }
+
+After configuring the collector start and enable the pmcollectors.
 
 .. code-block:: bash
 
     $ systemctl start pmcollector
     $ systemctl enable pmcollector
 
-.. service nodes need `gpfs.gss.pmcollector`
-
-`csm_big_data/data-aggregators/gpfs/zimon_collector.py`
-
-sensors
+Sensors
 ^^^^^^^
 
-.. `gpfs.gss.pmsensors`
+:RPMs: `gpfs.gss.pmsensors.ppc64le` (Version 5.0 or greater)
+:Config: `/opt/IBM/zimon/ZIMonSensors.cfg`
 
-.. mmchnode --perfmon -N <nodes>
+It is recommended to use the GPFS managed configuration file through use of the `mmperfmon` command.
+Before setting the node to do performance monitoring it's recommended that at least the following
+command be run:
+
+.. code-block:: bash
+
+   $ /usr/lpp/mmfs/bin/mmperfmon config generate --collectors <collectors>
+
+It's recommended to specify at least two collectors defined in the `zimon.collector`_ section of this
+document. The `pmsensor` service will attempt to distribute the load and account for failover in 
+the event of a downed collector.
+
+After generating the sensor configuration the nodes must then be set to `perfmon`:
+
+.. code-block:: bash
+
+   $ /usr/lpp/mmfs/bin/mmchnode --perfmon -N <nodes>
+
+Assuming */opt/IBM/zimon/ZIMonSensors.cfg* has been properly distributed the sensors may then
+be started on the nodes.
+
+.. code-block:: bash
+
+    $ systemctl start pmcollector
+    $ systemctl enable pmcollector
+
+Python Script
+^^^^^^^^^^^^^
+
+:CAST RPM: `ibm-csm-bds-*.noarch.rpm`
+:Script Location: `/opt/ibm/csm/bigdata/scripts/zimonCollector.py`
+:Dependencies: `gpfs.base.ppc64le`  (Version 5.0 or greater)
+
+CAST provides a script for easily querying zimon, then sending the results to Big Data Store.
+The `zimonCollector.py` python script leverages the python interface to zimon bundled in the 
+`gpfs.base` rpm. The help output for this script is duplicated below:
+
+.. code-block:: bash
+
+    A tool for extracting zimon sensor data from a gpfs collector node and shipping it in a json format.
+    to logstash. Intended to be run from a cron job.
+
+    Options:
+    Flag                              | Description < default >
+    ==================================|============================================================
+    -h, --help                        | Displays this message.
+    --collector <host>                | The hostname of the gpfs collector. <127.0.0.1>
+    --collector-port <port>           | The collector port for gpfs collector. <9084>
+    --logstash <host>                 | The logstash instance to send the JSON to. <127.0.0.1>
+    --logstash-port <port>            | The logstash port to send the JSON to. <10522>
+    --bucket-size <int>               | The size of the bucket accumulation in seconds. <60>
+    --num-buckets <int>               | The number of buckets to retrieve in the query. <10>
+    --metrics <Metric1[,Metric2,...]> | A comma separated list of zimon sensors to get metrics from.
+                                      |  <cpu_system,cpu_user,mem_active,gpfs_ns_bytes_read,
+                                      |      gpfs_ns_bytes_written,gpfs_ns_tot_queue_wait_rd,
+                                      |      gpfs_ns_tot_queue_wait_wr>
+
+CAST expects this script to be run from a service node configured for both logstash and zimon collection.
+In this release this script need only be executed on one service node in the cluster to gather sensor data.
+
+The recommended cron configuration for this script is as follows:
+
+.. code-block:: bash
+
+   */10 * * * * /opt/ibm/csm/bigdata/scripts/zimonCollector.py
+
+The output of this script is a newline delimited list of JSON designed for easy ingestion by the 
+logstash pipeline. A sample from the default script configuration is as follows:
+
+.. code-block:: javascript
+
+    {
+        "type": "zimon",
+        "source": "c650f99p06",
+        "data": {
+          "gpfs_ns_bytes_written": 0,
+          "mem_active": 1769963,
+          "cpu_system": 0.015,
+          "cpu_user": 0.004833,
+          "gpfs_ns_tot_queue_wait_rd": 0,
+          "gpfs_ns_bytes_read": 0,
+          "gpfs_ns_tot_queue_wait_wr": 0
+        },
+        "timestamp": 1529960640
+    }
+
+In the default configuration of this script records will be shipped as `JSONDataSources`_.
+
 
 UFM
 ***
