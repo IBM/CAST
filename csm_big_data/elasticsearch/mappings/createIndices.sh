@@ -1,6 +1,7 @@
+#!/bin/sh
 #================================================================================
 #
-#    csmi/src/wm/src/csmi_allocation_step_query_details.c
+#    createIndices.sh
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -12,7 +13,6 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 #================================================================================
-#!/bin/sh
 
 script_dir=$(dirname $0)
 [[ $1 = "" ]] && host=$HOSTNAME || host=$1

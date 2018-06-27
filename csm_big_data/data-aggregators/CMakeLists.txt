@@ -1,8 +1,8 @@
 #================================================================================
 #
-#    csm_big_data/Logstash/CMakeLists.txt
+#    csm_big_data/data-aggregators/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -13,21 +13,21 @@
 #
 #================================================================================
 
-set(SUBDIR Hadoop)
+set(SUBDIR data-aggregators)
+
 
 # Files that should be executable when shipped
 file(GLOB INSTALL_PROGRAMS
-    hadoop_prereqs.sh
-    hive_integration.sh
-    init_disks.sh
-    iop_install.sh
+    "gpfs/zimonCollector.py"
+    "ufm/ufm_collection.py"
+    "ufm/ufm_config.sh"
 )
 
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
 
-file(GLOB INSTALL_FILES
-  "README.rst"
-)
-
-install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+#file(GLOB INSTALL_FILES
+#  "README.rst"
+#)
+#
+#install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
 

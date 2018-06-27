@@ -3,14 +3,13 @@ Beats
 
 :Official Documentation: `Beats Reference`_
 
-A collection of 
 
 Filebeats
 ---------
 
 :Official Documentation: `Filebeats Reference`_
 
-CAST uses the ELK stack 
+.. CAST uses the ELK stack 
 
 .. code-block:: bash
 

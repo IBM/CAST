@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    csm_big_data/Logstash/plugins/csm_ec/lib/logstash/filters/CMakeLists.txt
+#    csm_big_data/castBDS.cmake
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,11 +13,9 @@
 #
 #================================================================================
 
-set(SUBDIR Logstash/plugins/csm_ras/lib/logstash/filters)
+SET( CPACK_RPM_csm-bds_PACKAGE_ARCHITECTURE "noarch" )
+set( CPACK_RPM_csm-bds_POST_INSTALL_SCRIPT_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.post.install" )
+set( CPACK_RPM_csm-bds_PRE_UNINSTALL_SCRIPT_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.pre.uninstall" )
 
-file(GLOB INSTALL_FILES
-    "csm_event_correlator.rb"
-    "multi-grok-pure.rb"
-)
-
-install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})

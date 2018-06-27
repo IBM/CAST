@@ -1,6 +1,6 @@
 # Quick Setup #
 
-CAST provides a script for creating the index templates supported by CAST. The `create_indicies.sh`
+CAST provides a script for creating the index templates supported by CAST. The `createIndices.sh`
 script is a basic script which performs CURLs against the local elasticsearch REST API. A remote
 elasticsearch node may be specified as a parameter to the script.
 
@@ -10,7 +10,7 @@ Usage on an elasticsearch node:
 
 ``` bash
 
-    $ ./create_indicies.sh
+    $ ./createIndices.sh
 ```
 
 Please note the hostname used for the elasticsearch node is the value stored in `$HOSTNAME`.

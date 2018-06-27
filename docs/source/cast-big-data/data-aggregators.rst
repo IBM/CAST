@@ -310,17 +310,6 @@ service and any nodes requiring metrics be running `pmsensors`.
 
 
 
-To detect failures of the power hardware the following must be prepared on the management node
-of the GPFS cluster:
-
-.. code-block:: bash
-   
-   $ vi /var/mmfs/mmsysmon/mmsysmonitor.conf
-        [general]
-        powerhw_enabled=True
-   
-   $ mmsysmoncontrol restart
-
 .. _zimon.collector:
 
 Collector
@@ -370,6 +359,7 @@ command be run:
 .. code-block:: bash
 
    $ /usr/lpp/mmfs/bin/mmperfmon config generate --collectors <collectors>
+   $ /usr/lpp/mmfs/bin/mmperfmon config update GPFSNode.period=0
 
 It's recommended to specify at least two collectors defined in the `zimon.collector`_ section of this
 document. The `pmsensor` service will attempt to distribute the load and account for failover in 
@@ -381,29 +371,41 @@ After generating the sensor configuration the nodes must then be set to `perfmon
 
    $ /usr/lpp/mmfs/bin/mmchnode --perfmon -N <nodes>
 
-Assuming */opt/IBM/zimon/ZIMonSensors.cfg* has been properly distributed the sensors may then
+Assuming `/opt/IBM/zimon/ZIMonSensors.cfg` has been properly distributed the sensors may then
 be started on the nodes.
 
 .. code-block:: bash
 
-    $ systemctl start pmcollector
-    $ systemctl enable pmcollector
+    $ systemctl start pmsensor
+    $ systemctl enable pmsensor
+
+.. attention:: To detect failures of the power hardware the following must be prepared on the 
+   management node of the GPFS cluster.
+
+.. code-block:: bash
+   
+   $ vi /var/mmfs/mmsysmon/mmsysmonitor.conf
+        [general]
+        powerhw_enabled=True
+   
+   $ mmsysmoncontrol restart
+
 
 Python Script
 ^^^^^^^^^^^^^
 
 :CAST RPM: `ibm-csm-bds-*.noarch.rpm`
-:Script Location: `/opt/ibm/csm/bigdata/scripts/zimonCollector.py`
+:Script Location: `/opt/ibm/csm/bigdata/data-aggregators/zimonCollector.py`
 :Dependencies: `gpfs.base.ppc64le`  (Version 5.0 or greater)
 
 CAST provides a script for easily querying zimon, then sending the results to Big Data Store.
 The `zimonCollector.py` python script leverages the python interface to zimon bundled in the 
 `gpfs.base` rpm. The help output for this script is duplicated below:
 
-.. code-block:: bash
+.. code-block:: none
 
-    A tool for extracting zimon sensor data from a gpfs collector node and shipping it in a json format.
-    to logstash. Intended to be run from a cron job.
+    A tool for extracting zimon sensor data from a gpfs collector node and shipping it in a json 
+    format to logstash. Intended to be run from a cron job.
 
     Options:
     Flag                              | Description < default >
@@ -420,6 +422,7 @@ The `zimonCollector.py` python script leverages the python interface to zimon bu
                                       |      gpfs_ns_bytes_written,gpfs_ns_tot_queue_wait_rd,
                                       |      gpfs_ns_tot_queue_wait_wr>
 
+
 CAST expects this script to be run from a service node configured for both logstash and zimon collection.
 In this release this script need only be executed on one service node in the cluster to gather sensor data.
 
@@ -427,7 +430,7 @@ The recommended cron configuration for this script is as follows:
 
 .. code-block:: bash
 
-   */10 * * * * /opt/ibm/csm/bigdata/scripts/zimonCollector.py
+   */10 * * * * /opt/ibm/csm/bigdata/data-aggregators/zimonCollector.py
 
 The output of this script is a newline delimited list of JSON designed for easy ingestion by the 
 logstash pipeline. A sample from the default script configuration is as follows:
@@ -806,7 +809,6 @@ The following transactions currently tracked by CSM are as follows:
 +-----------------+---------------------------+-------------------------------------------------------------+
 | allocation-step | <allocation_id>-<step_id> | Direct copy of `csmi_allocation_step_t`.                    |
 +-----------------+---------------------------+-------------------------------------------------------------+
-
 
 
 .. Links
