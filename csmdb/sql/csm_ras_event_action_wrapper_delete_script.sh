@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_wrapper_delete_script_template.sh
+#    csm_ras_event_action_wrapper_delete_script.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -16,7 +16,7 @@
 
 #================================================================================
 #   usage:         Delete related history table data which has been archived
-#   version:       1.1
+#   version:       1.0
 #   create:        04-10-2017
 #   last modified: 06-20-2017
 #================================================================================
@@ -58,7 +58,7 @@ line2_log="---------------------------------------------------------------------
 line3_log="---------------------------------------------------------------------------------------------------------------------------"
 
 #------------------------------------------------------------------------------------
-script_name="csm_history_wrapper_delete_script_template.sh"
+script_name="csm_ras_event_action_wrapper_delete_script.sh"
 #echo "------------------------------------------------------------------------------"
 #echo "[Script name:   ]  $script_name"
 
@@ -87,7 +87,7 @@ average="0"
         echo "${line1_out}"
         echo "[Error  ] illegal # of import arguments"
         echo "[Info   ] Data_dir is where the log file will be written"
-        echo "[Example] [./csm_history_wrapper_delete_script_template.sh] [dbname] [time_mins] [history_table_name] [/data_dir/]"
+        echo "[Example] [./csm_ras_event_action_wrapper_delete_script.sh] [dbname] [time_mins] [table_name] [/data_dir/]"
         echo "${line1_out}"
         exit 1
     fi
@@ -120,7 +120,7 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
             echo "${line1_out}"
             exit 1
         else
-            chown postgres:postgres $data_dir 2>>/dev/null
+            chown postgres:postgres $data_dir
             chmod 755 $data_dir
         fi
     elif [[ ! -d $data_dir ]]; then
@@ -151,7 +151,7 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
      echo "$LogTime ($pid) ($current_user) $1" >> $logfile
      }
 
-    LogMsg "[Start ] Deletion Process:    |  $table_name1" 
+    LogMsg "[Start ] Deletion Process:    |  $table_name1"
     LogMsg "${line2_log}"
 
 #-------------------------------------------------------------------------------
@@ -185,14 +185,14 @@ now2=$(date '+%Y-%m-%d.%H.%M.%S')
     echo   "[Info   ] Deletion process for $table_name1 has been interrupted or terminated."
     echo   "[Info   ] Please see log file for more details"
     LogMsg "[Info  ] Del process for:     |  $table_name1 has been interrupted or terminated."
-    LogMsg "[Info  ] Exiting:             |  csm_history_wrapper_delete_script_template.sh."
+    LogMsg "[Info  ] Exiting:             |  csm_ras_event_action_wrapper_delete_script.sh."
     LogMsg "${line2_log}"
     LogMsg "[End   ] Deletion Process:    |  $table_name1"
     echo   "${line1_out}"
     echo "${line3_log}" >> $logfile
 
-    filesize 
-    cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+    filesize
+    #cat ${data_dir}$tmp_logname >> ${data_dir}$logname
     wait
 
     #-----------------------------------
@@ -235,7 +235,7 @@ else
     exit 1
 fi
 
-     LogMsg "[Info  ] Script name:         |  $table_name1.wrapper_delete_script.sh"
+    LogMsg "[Info  ] Script name:         |  $table_name1.wrapper_delete_script.sh"
 
 #----------------------------------------------------------------
 # Check if database exists
@@ -253,7 +253,7 @@ fi
 #----------------------------------------------------------------
 
     if [ $db_exists == "no" ]; then
-    
+   
         echo "${line1_out}"
         echo "[Error   ] Cannot perform: $dbname database does not exist"
         echo "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
@@ -285,11 +285,11 @@ declare -A delete_array
     delete_avg_results="delete_avg_results_$count_$now.csv"
 
 #-------------------------------------------------------------------------------------------------------------------
-# This is the script that deletes the Beta 1 history tables
+# This is the script that deletes the history tables
 #-------------------------------------------------------------------------------------------------------------------
-
-./csm_history_table_delete_template.sh $dbname $interval_time $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
-    awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' | tee -a >>"${logfile}" &
+    
+./csm_ras_event_action_table_delete.sh $dbname $interval_time $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
+    awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'" $0 }' | tee -a >>"${logfile}" &
 
 runtime="$(($(date +%s%N)-$start_time))"
 sec="$((runtime/1000000000))"
@@ -372,7 +372,7 @@ echo "-------------------------------|--------------------|---------------------
 e_time=`printf " Total Time (Cleanup):         |  %02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
 
 #----------------------------------------------------------------
-# This loop combines both table name and delete count 
+# This loop combines both table name and delete count
 #----------------------------------------------------------------
 
     for ((j=0; j<${#table_name[*]}; j++));
@@ -383,19 +383,19 @@ e_time=`printf " Total Time (Cleanup):         |  %02d:%02d:%02d:%02d.%03d\n" "$
         printf '%-0s %-29s %-20s %0s\n' "" "$table" "|  $t_time" "|   $delete_count"
         LogMsg "[Info  ] Table name:          |  $table"
         LogMsg "[Info  ] Table process time:  |  $t_time"
-        LogMsg "[Info  ] Interval time:       |  $interval_time"
+        LogMsg "[Info  ] Interval time mins:  |  $interval_time"
         LogMsg "[Info  ] Actual DB Del count: |  $delete_count"
     done
 
 #----------------------------------------------------------------
-# Displays the results to the screen 
+# Displays the results to the screen
 #----------------------------------------------------------------
 
         echo "${line1_out}"
         echo " Date/Time:                    |  $now"
         echo " DB Name:                      |  $dbname"
         echo " DB User:                      |  $current_user"
-        echo " Interval Time (cmd-line):     |  $interval_time"
+        echo " Interval Time mins(cmd-line): |  $interval_time"
         LogMsg "[Info  ] Complete:            |  $table_name1 deletion process"
 
 #----------------------------------------------------------------
