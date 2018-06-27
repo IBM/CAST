@@ -23,7 +23,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/ibm/bb/sbin/bbhealth
+ExecStart=/opt/ibm/bb/scripts/bbhealth
 PIDFile=/var/run/bbhealth.pid
 KillMode=mixed
 KillSignal=SIGTERM

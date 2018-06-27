@@ -31,6 +31,8 @@ endif()
 
 install(PROGRAMS esub.bb  COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
 install(PROGRAMS epsub.bb COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
+install(PROGRAMS esub.bb  COMPONENT burstbuffer-lsf DESTINATION bb/scripts RENAME esub.bscfs)
+install(PROGRAMS epsub.bb COMPONENT burstbuffer-lsf DESTINATION bb/scripts RENAME epsub.bscfs)
 install(PROGRAMS bb_pre_exec.sh  COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
 install(PROGRAMS bb_post_exec.sh COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
 

@@ -51,27 +51,35 @@ int HandleFile::createLockFile(const char* pFilePath)
     return rc;
 }
 
-int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pBufferSize, char* pBuffer)
+int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer)
 {
     int rc = 0;
 
     string l_TransferKeys = "";
-    HandleFile::get_xbbServerHandleTransferKeys(l_TransferKeys, pJobId, pHandle);
+    pLengthOfTransferKeys = 0;
 
-    if (l_TransferKeys.length())
+    rc = HandleFile::get_xbbServerHandleTransferKeys(l_TransferKeys, pJobId, pHandle);
+
+    if (!rc)
     {
-        if (pBufferSize >= l_TransferKeys.length()+1)
+        if (pBuffer && pBufferSize)
         {
-            l_TransferKeys.copy(pBuffer, l_TransferKeys.length());
+            pBuffer[0] = '\0';
+            if (l_TransferKeys.length())
+            {
+                if (pBufferSize >= l_TransferKeys.length()+1)
+                {
+                    l_TransferKeys.copy(pBuffer, l_TransferKeys.length());
+                    pBuffer[l_TransferKeys.length()] = '\0';
+                }
+                else
+                {
+                    rc = -2;
+                }
+            }
         }
-        else
-        {
-            rc = -2;
-        }
+        pLengthOfTransferKeys = l_TransferKeys.length();
     }
-
-    pBuffer[l_TransferKeys.length()] = '\0';
-    pBufferSize = l_TransferKeys.length();
 
     return rc;
 }
@@ -379,7 +387,6 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
 int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus)
 {
     int rc = 0;
-    stringstream errorText;
 
     try
     {
@@ -409,8 +416,7 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
 
         if (rc)
         {
-            errorText << "Failure from processTransferHandleForJobStep()";
-            LOG_ERROR_TEXT_RC(errorText, rc);
+            LOG(bb,error) << "Failure from processTransferHandleForJobStep()";
         }
     }
     catch(ExceptionBailout& e) { }
@@ -792,6 +798,11 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         {
             delete l_HandleFile;
             l_HandleFile = 0;
+        }
+
+        if (rc)
+        {
+            break;
         }
     }
 

@@ -510,15 +510,19 @@ class BaseHarness(object):
       # if targetType is management, we don't do allocation
 
       # it is noallocation already
-      if self.csmi.allocation_id == 0: return 0
-
-      count=0
-      for test in self.tests:
-         if self.tconfig.get_test_attribute(test,'targettype')  == 'Compute': 
-            count+=1 
-      if count == 0 :
-         self.csmi.allocation_id=0
+      if self.csmi.allocation_id != "1": 
+         #print "returning 0"
          return 0
+      #else:
+      #   print "continue"
+      #
+      #count=0
+      #for test in self.tests:
+      #   if self.tconfig.get_test_attribute(test,'targettype')  == 'Compute': 
+      #      count+=1 
+      #if count == 0 :
+      #   self.csmi.allocation_id=0
+      #   return 0
 
       return self.csmi.create_allocation(runid, self.target.keys())
 

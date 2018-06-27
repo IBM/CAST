@@ -95,10 +95,12 @@ public:
       throw csm::network::ExceptionProtocol("Buffer State protocol failure: Buffer overflow.");
     else
     {
-      LOG( csmnet, trace ) << "Updating buffer. recvd=" << i_Skip;
       _DataLen += i_Skip;
       _BufferTail += i_Skip;
       _BufferState = Transition();
+      LOG( csmnet, trace ) << "Updating buffer. recvd=" << i_Skip
+          << " data=" << _DataLen
+          << " new state=" << _BufferState;
     }
   }
 
@@ -111,6 +113,7 @@ protected:
     _BufferHead = _BufferBase;
     _BufferTail = _BufferBase;
     _BufferState = BUFFER_EMPTY;
+    LOG( csmnet, trace ) << "Reset buffer.";
   }
 
   inline EndpointBufferStates Transition() const
@@ -166,6 +169,7 @@ protected:
         if( ProcessedData() == _DataLen )
           Reset();
         _BufferState = Transition();
+        LOG( csmnet, trace ) << "Updating buffer. new state=" << _BufferState;
         break;
       }
       case BUFFER_MSG_INVALID:

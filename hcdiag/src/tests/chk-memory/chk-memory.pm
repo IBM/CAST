@@ -105,11 +105,10 @@ my $count=0;
 ## /0/2/c                    memory     RDIMM DDR4 2666 MHz (0.4ns)
 my $newfirm=1;
 foreach my $line (split(/\n/,$rval)) {
-   #print $line,"\n";
    if ($line =~ /$STR2/ ) {
-     ++$count;
      my ($rsize) = $line =~  /^\S+\s+memory\s+(\d+)GiB RDIMM.+/;
      if ( defined $rsize ) {
+        ++$count;
         if ( $rsize != $size) {
            push(@$errs,"Bank size expected: $size, got: $rsize."); 
         }

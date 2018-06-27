@@ -976,14 +976,14 @@ void BBTransferDef::dump(const char* pSev, const char* pPrefix) {
     if (!strcmp(pSev,"debug")) {
         LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
         DUMP_TRANSDEF(debug,l_Job.str());
-        dumpExtents(pSev);
+//        dumpExtents(pSev);
         LOG(bb,debug) << "Extent Vector has " << extents.size() \
                       << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
         LOG(bb,debug) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
     } else if (!strcmp(pSev,"info")) {
         LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
         DUMP_TRANSDEF(info,l_Job.str());
-        dumpExtents(pSev);
+//        dumpExtents(pSev);
         LOG(bb,info) << "Extent Vector has " << extents.size() \
                       << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
         LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
@@ -1111,6 +1111,17 @@ void BBTransferDef::lock() {
 }
 
 #if BBSERVER
+void BBTransferDef::markAsStopped(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId)
+{
+    // Mark this transfer definition as stopped
+    setStopped(pLVKey, pHandle, pContribId);
+
+    // Mark this transfer definition as canceled
+    setCanceled(pLVKey, pHandle, pContribId);
+
+    return;
+}
+
 int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pRebuiltTransferDef, const int pPass)
 {
     int rc = 0;
@@ -1373,10 +1384,12 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     }
                 }
 
+                bool l_UnconditionalRestart = false;
                 switch (rc)
                 {
                     case 0:
                     {
+                        l_UnconditionalRestart = true;
                         LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
                                      << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
                                      << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not reponding." \
@@ -1388,34 +1401,41 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     {
                         rc = 0;
                         ContribIdFile* l_ContribIdFile = 0;
-                        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-                        l_HandleFilePath /= bfs::path(to_string(pJobId));
-                        l_HandleFilePath /= bfs::path(to_string(pJobStepId));
-                        l_HandleFilePath /= bfs::path(to_string(pHandle));
-                        int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                        switch (l_RC)
+                        if (!l_UnconditionalRestart)
                         {
-                            case 1:
+                            bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                            l_HandleFilePath /= bfs::path(to_string(pJobId));
+                            l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+                            l_HandleFilePath /= bfs::path(to_string(pHandle));
+                            int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                            switch (l_RC)
                             {
-                                // We stop any transfer definition that does not have all of its files transferred/closed -or-
-                                // has a failed transfer
-                                if ((!l_ContribIdFile->allFilesClosed()) || l_ContribIdFile->anyFilesFailed())
+                                case 1:
                                 {
-                                    l_StopDefinition = true;
+                                    // We stop any transfer definition that does not have all of its files transferred/closed -or-
+                                    // has a failed transfer
+                                    if ((!l_ContribIdFile->allFilesClosed()) || l_ContribIdFile->anyFilesFailed())
+                                    {
+                                        l_StopDefinition = true;
+                                    }
+
+                                    break;
                                 }
+                                case 0:
+                                {
+                                    LOG(bb,error) << "ContribId " << pContribId << "could not be found in the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
 
-                                break;
+                                    break;
+                                }
+                                default:
+                                {
+                                    LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
+                                }
                             }
-                            case 0:
-                            {
-                                LOG(bb,error) << "ContribId " << pContribId << "could not be found in the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
-
-                                break;
-                            }
-                            default:
-                            {
-                                LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
-                            }
+                        }
+                        else
+                        {
+                            l_StopDefinition = true;
                         }
 
                         if (l_StopDefinition)
@@ -1423,12 +1443,17 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                             rc = becomeUser(getUserId(), getGroupId());
                             if (!rc)
                             {
-                                // We mark this transfer definition as stopped
-                                setStopped(pLVKey, pHandle, pContribId);
+                                // Mark the transfer definition as stopped
+                                markAsStopped(pLVKey, pHandle, pContribId);
 
-                                // We mark this transfer definition as canceled
-                                setCanceled(pLVKey, pHandle, pContribId);
-
+                                // If an unconditional restart, in addition to marking the transfer definition
+                                // as stopped, indicate that all extents have been processed.
+                                // NOTE:  No extents were enqueued/processed for an unconditional restart so this bit
+                                //        needs to be set on here...
+                                if (l_UnconditionalRestart)
+                                {
+                                    setAllExtentsTransferred(pLVKey, pHandle, pContribId);
+                                }
                                 rc = 1;
 
                                 becomeUser(0,0);

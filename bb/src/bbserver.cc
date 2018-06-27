@@ -833,8 +833,9 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     LVKey* l_LVKey = &l_LVKeyStg;
 //    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
 
-    char l_TransferKeyBuffer[16] = {'\0'};
+    uint64_t l_LengthOfTransferKeys = 0;
     uint64_t l_TransferKeyBufferSize = 15;
+    char l_TransferKeyBuffer[16] = {'\0'};
     bool l_LockHeld = false;
 
     try
@@ -870,7 +871,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
                     }
 
                     // NOTE: No need to check the return code... The required size (without the training null terminator) is always returned...
-                    HandleFile::getTransferKeys(l_JobId, l_Handle, l_TransferKeyBufferSize, l_TransferKeyBuffer);
+                    HandleFile::getTransferKeys(l_JobId, l_Handle, l_LengthOfTransferKeys, l_TransferKeyBufferSize, l_TransferKeyBuffer);
                 }
                 else
                 {
@@ -917,7 +918,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         response->addAttribute(txp::contrib, (const char*)l_ContribArray, sizeof(uint32_t) * l_NumContrib);
         l_OverallStatus = (BBSTATUS)l_HandleFile->status;
         response->addAttribute(txp::numreportingcontribs, l_NumberOfReportingContribs);
-        response->addAttribute(txp::totalTransferKeyLength, l_TransferKeyBufferSize);
+        response->addAttribute(txp::totalTransferKeyLength, l_LengthOfTransferKeys);
         response->addAttribute(txp::totalTransferSize, l_HandleFile->totalTransferSize);
         if (l_ContribIdFile) {
             l_LocalStatus = l_HandleFile->getLocalStatus(l_NumberOfReportingContribs, l_ContribIdFile);
@@ -985,7 +986,8 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
 
     uint64_t l_JobId = 0;
     uint64_t l_Handle = 0;
-    uint64_t l_TransferKeyBufferSize = (64*1024)-1;
+    uint64_t l_LengthOfTransferKeys = (64*1024)-1;
+    uint64_t l_TransferKeyBufferSize = 0;
     uint32_t l_ContribId = 0;
     char* l_TransferKeyBuffer = 0;
 
@@ -1013,23 +1015,28 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
                     delete[] l_TransferKeyBuffer;
                     l_TransferKeyBuffer = 0;
                 }
-                // NOTE: l_TransferKeyBufferSize is returned as the length of the transfer keys WITHOUT the trailing null terminator
+                // NOTE: l_LengthOfTransferKeys is returned as the length of the transfer keys WITHOUT the trailing null terminator
                 //       However, the buffer is returned as null terminated, even if the length of the keys is zero.
-                l_TransferKeyBuffer = new char[++l_TransferKeyBufferSize];
-                rc = HandleFile::getTransferKeys(l_JobId, l_Handle, l_TransferKeyBufferSize, l_TransferKeyBuffer);
+                l_TransferKeyBufferSize = l_LengthOfTransferKeys + 1;
+                l_TransferKeyBuffer = new char[l_TransferKeyBufferSize];
+                rc = HandleFile::getTransferKeys(l_JobId, l_Handle, l_LengthOfTransferKeys, l_TransferKeyBufferSize, l_TransferKeyBuffer);
             }
 
             if (!rc)
             {
                 // Log the results
-                if (!l_TransferKeyBufferSize)
+                if (l_LengthOfTransferKeys < l_TransferKeyBufferSize)
                 {
-                    LOG(bb,info) << "msgin_gettransferkeys: jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", required buffersize " << l_TransferKeyBufferSize;
+                    LOG(bb,info) << "msgin_gettransferkeys: jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", length of keys " << l_LengthOfTransferKeys;
+                    if (l_LengthOfTransferKeys)
+                    {
+                        LOG(bb,info) << "                       keys " << l_TransferKeyBuffer;
+                    }
                 }
                 else
                 {
-                    LOG(bb,info) << "msgin_gettransferkeys: jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", required buffersize " << l_TransferKeyBufferSize \
-                                 << ", buffer " << l_TransferKeyBuffer;
+                    LOG(bb,info) << "msgin_gettransferkeys: jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", length of keys " << l_LengthOfTransferKeys \
+                                 << ", provided buffer size " << l_TransferKeyBufferSize << ", buffer " << l_TransferKeyBuffer;
                 }
             }
             else
@@ -1058,8 +1065,8 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
 
     EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
 
-    response->addAttribute(txp::buffersize, l_TransferKeyBufferSize);
-    response->addAttribute(txp::buffer, l_TransferKeyBuffer, l_TransferKeyBufferSize);
+    response->addAttribute(txp::buffersize, l_LengthOfTransferKeys);
+    response->addAttribute(txp::buffer, l_TransferKeyBuffer, l_LengthOfTransferKeys);
     addBBErrorToMsg(response);
 
     // Send the response
@@ -1136,7 +1143,6 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
                     ++l_NumHandlesReturned;
                 }
             } else {
-                rc = -1;
 	            errorText << "List of transfer handles could not be determined from the xbbserver metadata";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
@@ -1969,22 +1975,34 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 {
                                                     // Handle file not marked as stopped
                                                     rc = 1;
-                                                    if (l_HandleFile->allExtentsTransferred())
+                                                    BBSTATUS l_Status = (BBSTATUS)l_HandleFile->status;
+                                                            char l_StatusStr[64] = {'\0'};
+                                                            getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
+                                                    if (l_Status == BBFULLSUCCESS || l_Status == BBCANCELED)
                                                     {
-                                                        // All extents processed for the handle file
+                                                        // The handle status is at a final status state.  No need to restart this transfer definition.
+                                                        // NOTE:  Cannot check the 'all extents transferred' or 'all files closed' indicator
+                                                        //        because the stopped indicator is set after those indicators are set.
+                                                        //        So, we simply check for the final status values for an early exit.
+                                                        char l_StatusStr[64] = {'\0'};
+                                                        getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
                                                         if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                                         {
                                                             // This condition overrides any failure detected on bbProxy...
                                                             l_MarkFailedFromProxy = 0;
+                                                            char l_StatusStr[64] = {'\0'};
+                                                            getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
                                                             LOG(bb,info) << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
                                                                          << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                         << ", all extents for the handle file have been processed and the handle is not marked as stopped." \
-                                                                         << ". All transfers for this contributor may have already finished.  See previous messages.";
+                                                                         << ", all extents for the handle file have been processed and the final handle status was " << l_StatusStr << ".";
                                                             BAIL;
                                                         }
                                                         else
                                                         {
-                                                            // Continue to spin...
+                                                            // Continue to spin...  (Cannot get here, but we send a warning...)
+                                                            LOG(bb,warning) << "msgin_starttransfer(): Handle status for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                                                            << ", handle " << l_Handle << ", contribid " << l_ContribId << " has an inconsistent status of " \
+                                                                            << l_StatusStr << ".";
                                                         }
                                                     }
                                                     else
@@ -2387,6 +2405,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     if (l_HandleFileLocked)
     {
+        l_HandleFileLocked = false;
         l_HandleFile->close();
     }
 

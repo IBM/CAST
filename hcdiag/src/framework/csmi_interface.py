@@ -108,15 +108,15 @@ class Result :
 #------------------------------------------------------------------- 
 class CsmiInterface(TargetInterface):
 
-   def __init__(self, logger, installdir, usecsm = True, allocation='no', runid=-1, user=None ):                                                                             
+   def __init__(self, logger, installdir, usecsm=True, allocation_id=0, runid=0, user=None) :
       super(CsmiInterface,self).__init__(logger)
       self.runid         = runid
       self.usecsm        = usecsm
       self.csmidir       = installdir
       self.user          = user
-      self.allocation_id = 0                           # we don't want allocation
-      if allocation == 'yes' : self.allocation_id = 1  #  we want allocation
+      self.allocation_id = allocation_id
       self.result        = None
+      self.alloc_mine    = False
      
    
    #------------------------------------------------------------------------------ 
@@ -168,24 +168,25 @@ class CsmiInterface(TargetInterface):
    """
    #------------------------------------------------------------------------------ 
    def create_allocation(self, runid, nodes) :
-      if self.allocation_id == 0: return 0
+      print "@@ in csmi", self.allocation_id
+      if self.allocation_id == "1":  
 
+         # todo: does command line will accept xcat noderange format?
+         # for now, nodes is a list and need to convert to the api format: 
+         # space separated string
 
-      # todo: does command line will accept xcat noderange format?
-      # for now, nodes is a list and need to convert to the api format: 
-      # space separated string
-
-      snode=','.join(nodes)
-
-      cmd= '%s/csm_allocation_create -J 0 -j %s -u %s -t %s -s %s -n "%s"' %(self.csmidir, runid, self.user,  'diagnostics', 'running', snode)
-      rc, res = self.execute(cmd, 'allocation_id: ', True)                          
-      if rc:
-         self.logger.ras('hcdiag.csmi.alloc_err', 'node=%s, rc=%d' %(snode, rc), os.uname()[1].split(".")[0])
-         return DB_ERROR
-      else:
-         self.logger.info('Allocation request successful, id= {0}' .format(res[0]) )
-         self.allocation_id= res[0]
-
+         snode=','.join(nodes)
+         
+         cmd= '%s/csm_allocation_create -J 0 -j %s -u %s -t %s -s %s -n "%s"' %(self.csmidir, runid, self.user,  'diagnostics', 'running', snode)
+         rc, res = self.execute(cmd, 'allocation_id: ', True)                          
+         if rc:              
+            self.logger.ras('hcdiag.csmi.alloc_err', 'node=%s, rc=%d' %(snode, rc), os.uname()[1].split(".")[0])
+            return DB_ERROR
+         else:
+            self.logger.info('Allocation request successful, id= {0}' .format(res[0]) )
+            self.allocation_id= res[0]
+            self.alloc_mine=True
+         
       return 0
    
    
@@ -194,17 +195,19 @@ class CsmiInterface(TargetInterface):
    """
    #------------------------------------------------------------------------------ 
    def delete_allocation(self) :
-      if not self.usecsm or self.allocation_id == 0: return 0
+      #if not self.usecsm or self.allocation_id == 0: return 0
+      if not self.alloc_mine: return 0
 
       self.logger.info('Request csmd to release the allocation {0}.' .format(self.allocation_id))
       cmd= '%s/csm_allocation_delete -a %s' %(self.csmidir, self.allocation_id)
       rc= self.execute_discard_output(cmd)
       if rc:
          self.logger.error('Allocation delete request for allocation {0} failed, rc= {0}' .format(self.allocation_id, rc))
-         self.logger.ras('hcdiag.csmi.allocdel_err', 'id=%d, rc=%d' %(self.allocation_id, rc), os.uname()[1].split(".")[0])
+         self.logger.ras('hcdiag.csmi.allocdel_err', 'id=%s, rc=%d' %(self.allocation_id, rc), os.uname()[1].split(".")[0])
          return DB_ERROR
+      else:
+         self.logger.info('Allocation {0} delete request successful.' .format(self.allocation_id))
 
-      self.logger.info('Allocation {0} delete request successful.' .format(self.allocation_id))
       return 0
    
    #------------------------------------------------------------------------------ 

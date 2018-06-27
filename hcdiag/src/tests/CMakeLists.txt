@@ -13,7 +13,6 @@
 #
 #================================================================================
 
-add_subdirectory(chk-ats)
 add_subdirectory(chk-aslr)
 add_subdirectory(chk-boot-time)
 add_subdirectory(chk-cpu)
@@ -21,6 +20,7 @@ add_subdirectory(chk-cpu-count)
 add_subdirectory(chk-csm-health)
 add_subdirectory(chk-free-memory)
 add_subdirectory(chk-gpfs-mount)
+add_subdirectory(chk-gpu-ats)
 add_subdirectory(chk-hca-attributes)
 add_subdirectory(chk-idle-state)
 add_subdirectory(chk-ib-pcispeed)

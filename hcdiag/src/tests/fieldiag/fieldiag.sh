@@ -52,8 +52,8 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
-export thisdir=`dirname $0`
-export NVIDIA_FIELDIAG=$thisdir/fieldiag
+export thisdir=`pwd`
+export NVIDIA_FIELDIAG=$thisdir
 export NVIDIA_MODULES="nvidia_drm nvidia_modeset nvidia_uvm nvidia nouveau"
 export FIELDIAG_MODULE="mods"
 #export LSF_DIR="/shared/lsf/10.1/linux3.10-glibc2.17-ppc64le/etc"
@@ -132,33 +132,36 @@ if [ $rc -eq 0 ]; then
    fi
 fi
 
-# fieldiag sometimes does not return the correct rc, so let's also check the output files
-#
 case $rc in
    # PASS, but check for false positive
    0) 
-      logfile=`ls $OUTPUT_DIR/fieldiag_PASS_*.log 2>/dev/null`
-      if [ -n "$logfile" ]; then
-         # file exist, so we are good
-         echo "fieldiag binary PASS file saved in $OUTPUT_DIR/$logfile"
-         echo "$me test PASS, rc=0"
-         exit 0
-      fi
-      echo "fieldiag return $rc: PASS, but could not find PASS binary file in $OUTPUT_DIR"
-      echo "Maybe retest?"
-      rc=11
+      #logfile=`ls $OUTPUT_DIR/fieldiag_PASS_*.log 2>/dev/null`
+      #if [ -n "$logfile" ]; then
+      #   # file exist, so we are good
+      #   echo "fieldiag binary PASS file saved in $OUTPUT_DIR/$logfile"
+      #   echo "$me test PASS, rc=0"
+      #   exit 0
+      #fi
+      #echo "fieldiag return $rc: PASS, but could not find PASS binary file in $OUTPUT_DIR"
+      #echo "Maybe retest?"
+      #rc=11
+      echo "fieldiag return $rc: PASS"
+      echo "Machine need to be rebooted"
+      echo "$me test PASS, rc=0"
+      exit 0
       ;;
 
    # FAIL
    1) 
-      logfile=`ls $OUTPUT_DIR/fieldiag_FAIL_*.log 2>/dev/null`
-      if [ -n "$logfile" ]; then
-         # file exist, so we are good
-         echo "fieldiag binary FAIL file saved in $OUTPUT_DIR/$logfile"
-      else
-         echo "fieldiag return $rc: FAIL, but could not find FAIL binary file in $OUTPUT_DIR"
-         echo "Maybe retest?"
-      fi
+      #logfile=`ls $OUTPUT_DIR/fieldiag_FAIL_*.log 2>/dev/null`
+      #if [ -n "$logfile" ]; then
+      #   # file exist, so we are good
+      #   echo "fieldiag binary FAIL file saved in $OUTPUT_DIR/$logfile"
+      #else
+      #   echo "fieldiag return $rc: FAIL, but could not find FAIL binary file in $OUTPUT_DIR"
+      #   echo "Maybe retest?"
+      #fi       
+      echo "fieldiag return $rc: FAIL"
       ;;
 
    2) echo "fieldiag return $rc: RETEST, check message and rerun"
@@ -169,6 +172,7 @@ case $rc in
 esac
 
 
+echo "Machine need to be rebooted"
 echo "$me test FAIL, rc=$rc"
 exit $rc
 EOF

@@ -2466,12 +2466,13 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
+        activecontroller->gethostname(l_HostName);
+
         string l_HostNamePrt1 = hostname;
         string l_HostNamePrt2 = l_HostNamePrt1;
         if (hostname == UNDEFINED_HOSTNAME)
         {
             // If not specified, the default hostname is this compute node...
-            activecontroller->gethostname(l_HostName);
             hostname = l_HostName;
             l_HostNamePrt2 = hostname;
         }
@@ -2574,12 +2575,13 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Retrieve the data from the message
         string hostname = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
 
+        activecontroller->gethostname(l_HostName);
+
         l_HostNamePrt1 = hostname;
         l_HostNamePrt2 = l_HostNamePrt1;
         if (hostname == UNDEFINED_HOSTNAME)
         {
             // If not specified, the default hostname is this compute node...
-            activecontroller->gethostname(l_HostName);
             hostname = l_HostName;
             l_HostNamePrt2 = hostname;
         }
@@ -2721,12 +2723,13 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
+        activecontroller->gethostname(l_HostName);
+
         string l_HostNamePrt1 = hostname;
         string l_HostNamePrt2 = l_HostNamePrt1;
         if (hostname == UNDEFINED_HOSTNAME)
         {
             // If not specified, the default hostname is this compute node...
-            activecontroller->gethostname(l_HostName);
             hostname = l_HostName;
             l_HostNamePrt2 = hostname;
         }
@@ -3225,12 +3228,13 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
+        activecontroller->gethostname(l_HostName);
+
         string l_HostNamePrt1 = hostname;
         string l_HostNamePrt2 = l_HostNamePrt1;
         if (hostname == UNDEFINED_HOSTNAME)
         {
             // If not specified, the default hostname is this compute node...
-            activecontroller->gethostname(l_HostName);
             hostname = l_HostName;
             l_HostNamePrt2 = hostname;
         }
@@ -3358,12 +3362,13 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Retrieve the data from the message
         string hostname = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
 
+        activecontroller->gethostname(l_HostName);
+
         string l_HostNamePrt1 = hostname;
         string l_HostNamePrt2 = l_HostNamePrt1;
         if (hostname == UNDEFINED_HOSTNAME)
         {
             // If not specified, the default hostname is this compute node...
-            activecontroller->gethostname(l_HostName);
             hostname = l_HostName;
             l_HostNamePrt2 = hostname;
         }

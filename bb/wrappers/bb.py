@@ -233,8 +233,8 @@ def initEnv(pEnv, pMountpoints=None, pDirectories=None):
             # delay waiting for the removejobinfo to be processed
             # and possibly propagated amongst bbServers.
             # Otherwise, issue the removejobinfo operation.
-            if pEnv['contribid'] != 0:
-#            if len(pEnv['contrib']) > 1 and pEnv['contribid'] != 0:
+#            if pEnv['contribid'] != 0:
+            if len(pEnv['contrib']) > 1 and pEnv['contribid'] != 0:
                 time.sleep(DEFAULT_REMOVE_JOB_INFO_DELAY)
             else:
                 try:

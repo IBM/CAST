@@ -182,7 +182,8 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
                 //        We rely on bbProxy to prevent that from happening...
                 if ((!pTolerateAlreadyExists) && (it->second).isSuspended() && pHostName == (it->second).getHostName())
                 {
-                    errorText << "Hostname " << (it->second).getHostName() << " is currently suspended. Therefore " << *pLVKey << " cannot be added.  Registration failed with bbserver.";
+                    errorText << "Hostname " << (it->second).getHostName() << " is currently suspended. Therefore " << *pLVKey << " cannot be added.  Registration failed with bbserver." \
+                              << " Attempt to retry the create logical volume request when the connection is not suspended.";
                     LOG_ERROR_TEXT(errorText);
                     rc = 1;
                     break;
@@ -195,7 +196,11 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
     {
         LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pTagInfo2;
-        rc = update_xbbServerAddData(pJobId);
+        rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
+        if (!rc)
+        {
+            rc = update_xbbServerAddData(pJobId);
+        }
     }
     else if (rc == -2)
     {
@@ -626,6 +631,7 @@ int BBTagInfoMap2::setSuspended(const string& pHostName, const string& pCN_HostN
     int rc = 0;
     uint32_t l_NumberAlreadySet = 0;
     uint32_t l_NumberOfQueuesNotMatchingHostNameCriteria = 0;
+    uint32_t l_NumberOfQueuesNotFoundForLVKey = 0;
     uint32_t l_NumberSet = 0;
     uint32_t l_NumberFailed = 0;
 
@@ -664,6 +670,16 @@ int BBTagInfoMap2::setSuspended(const string& pHostName, const string& pCN_HostN
                 break;
             }
 
+            case -2:
+            {
+                // Work quque not found for hostname/LVKey...  Continue to the next LVKey...
+                LOG(bb,debug) << "BBTagInfoMap2::setSuspended(): Work queue for hostname " << it->second.getHostName() << ", " << it->first \
+                              << " was not found";
+                ++l_NumberOfQueuesNotFoundForLVKey;
+
+                break;
+            }
+
             default:
             {
                 // Error occurred....  It was already logged...  Continue...
@@ -685,12 +701,14 @@ int BBTagInfoMap2::setSuspended(const string& pHostName, const string& pCN_HostN
     l_Operation = (pValue ? "suspended" : "resumed");
     bberror.errdirect("out.queuesAlreadySet", l_NumberAlreadySet);
     bberror.errdirect("out.queuesSet", l_NumberSet);
+    bberror.errdirect("out.queuesNotFoundForLVKey", l_NumberOfQueuesNotFoundForLVKey);
     bberror.errdirect("out.queuesNotMatchingHostNameCriteria", l_NumberOfQueuesNotMatchingHostNameCriteria);
     bberror.errdirect("out.queuesFailed", l_NumberFailed);
     bberror.errdirect("out.operation", l_Operation);
     LOG(bb,info) << l_HostNamePrt << l_NumberSet << " work queue(s) were " << l_Operation \
-                 << ", " << l_NumberAlreadySet << " work queue(s) were already in a " << l_Operation \
-                 << " state, " << l_NumberOfQueuesNotMatchingHostNameCriteria << " work queue(s) did not match, and " \
+                 << ", " << l_NumberAlreadySet << " work queue(s) were already in a " << l_Operation << " state, "
+                 << l_NumberOfQueuesNotMatchingHostNameCriteria << " work queue(s) did not match the hostname selection criteria, " \
+                 << l_NumberOfQueuesNotFoundForLVKey << " expected work queues were not found for the LVKey, and "
                  << l_NumberFailed << " work queue(s) failed. See previous messages for additional details.";
 
     if (sameHostName(pHostName))

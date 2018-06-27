@@ -577,7 +577,15 @@ bool csm::daemon::EventManagerNetwork::EndpointSendActivity()
   }
   if( ! data_sptr->_Msg.Validate() )
   {
-    CSMLOG(csmd, error) << "BUG: Found invalid outbound message! Returning send error to handler.";
+    if( data_sptr->_Msg.GetDataLen() >= CSM_PAYLOAD_LIMIT )
+    {
+      CSMLOG(csmd, warning) << "Outbound message is too long (limit=" << CSM_PAYLOAD_LIMIT-1
+        << ") Returning send error to handler.";
+    }
+    else
+    {
+      CSMLOG(csmd, error) << "BUG: Corrupted or invalid outbound message! Returning send error to handler.";
+    }
     QueueInboundErrorEvent( data_sptr, msgContext, "Send: Invalid Message", EBADMSG );
     return true;
   }
