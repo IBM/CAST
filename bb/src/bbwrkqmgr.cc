@@ -235,9 +235,9 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
 
             if (l_NumberAdded)
             {
-                // NOTE:  Have to decrement the request file sequence number as it will always be incremented past the last file
-                //        sequence number that was processed...
-                wrkqmgr.setOffsetToNextAsyncRequest(--l_CurrentAsyncRequestFileSeqNbr, (uint64_t)l_CurrentOffsetToNextAsyncRequest);
+                // NOTE:  Set the file seqnbr/offset to that of the request file we obtained above,
+                //        as we have now enqueued everything up to this point from that request file.
+                wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
                 LOG(bb,debug) << "checkForNewHPWorkItems(): Found " << l_NumberAdded << " new async requests";
             }
         }
