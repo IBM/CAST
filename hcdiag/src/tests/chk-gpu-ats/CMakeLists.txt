@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/chk-ats/CMakeLists.txt
+#    hcdiag/src/tests/chk-gpu-ats/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,10 +13,10 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST chk-ats)
+set(HCDIAG_TEST chk-gpu-ats)
 
 file(GLOB HCDIAG_TEST_FILE
-  "chk-ats.sh"
+  "chk-gpu-ats.sh"
 )
 
 install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
