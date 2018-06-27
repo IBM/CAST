@@ -817,69 +817,84 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
-        while ((!rc) && l_Continue--)
+        if (!stageOutStarted())
         {
-            rc = wrkqmgr.setSuspended(pLVKey, pValue);
-            switch (rc)
+            while ((!rc) && l_Continue--)
             {
-                case 0:
+                rc = wrkqmgr.setSuspended(pLVKey, pValue);
+                switch (rc)
                 {
-                    if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
+                    case 0:
                     {
-                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                     << connectionName << ", " << *pLVKey << ", jobid " << jobid \
-                                     << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-                    }
-                    SET_FLAG(BBTI2_Suspended, pValue);
-                    l_Continue = 0;
-                }
-                break;
-
-                case -2:
-                {
-                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
-                    //       has 'used' the LVKey and required the work queue to be present.  For a resume request, we simply tolerate the
-                    //       situation as any work queue added later for the LVKey/CN hostname will automatically be in the resumed state.
-                    //       Otherwise, for a suspend request, we wait for a total of 2 minutes awaiting an LVKey/work queue to become present.
-                    // \todo - Not sure if this is the right duration...  @DLH
-                    if (pValue)
-                    {
-                        // Connection being suspended
-                        if (l_Continue)
+                        if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
                         {
-                            rc = 0;
-                            unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
+                            LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                         << connectionName << ", " << *pLVKey << ", jobid " << jobid \
+                                         << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                        }
+                        SET_FLAG(BBTI2_Suspended, pValue);
+                        l_Continue = 0;
+                    }
+                    break;
+
+                    case -2:
+                    {
+                        // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
+                        //       has 'used' the LVKey and required the work queue to be present.  For a resume request, we simply tolerate the
+                        //       situation as any work queue added later for the LVKey/CN hostname will automatically be in the resumed state.
+                        //       Otherwise, for a suspend request, we wait for a total of 2 minutes awaiting an LVKey/work queue to become present.
+                        // \todo - Not sure if this is the right duration...  @DLH
+                        if (pValue)
+                        {
+                            // Connection being suspended
+                            if (l_Continue)
                             {
-                                usleep((useconds_t)1000000);    // Delay 1 second
+                                rc = 0;
+                                unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
+                                {
+                                    usleep((useconds_t)1000000);    // Delay 1 second
+                                }
+                                lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
                             }
-                            lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
+                            else
+                            {
+                                rc = -1;
+                                LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                              << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
+                                              << ". Failing condition for a suspend operation.";
+                            }
                         }
                         else
                         {
-                            rc = -1;
-                            LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                          << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                          << ". Failing condition for a suspend operation.";
+                            // Connection being resumed
+                            LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                         << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
+                                         << ". Tolerated condition for a resume operation.";
+                            break;
                         }
                     }
-                    else
-                    {
-                        // Connection being resumed
-                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                     << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                     << ". Tolerated condition for a resume operation.";
+                    break;
+
+                    case 2:
                         break;
-                    }
+
+                    default:
+                        rc = -1;
+                        break;
                 }
-                break;
-
-                case 2:
-                    break;
-
-                default:
-                    rc = -1;
-                    break;
             }
+        }
+        else
+        {
+            // Stageout end processing has started.  Therefore, the ability to do anything using this LVKey
+            // will soon be, or has already, been removed.  (i.e. the local cache of data is being/or has been
+            // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
+            // Return an error message.
+            rc = -1;
+            LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                          << connectionName << ", jobid " << jobid \
+                          << ", the remove logical volume request has been run, or is currently running" \
+                          << " for " << *pLVKey << ". Suspend or resume operations are not allowed for this environment.";
         }
     }
     else
@@ -896,37 +911,53 @@ int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
 
     if ((pHostName == UNDEFINED_HOSTNAME || pHostName == hostname) && (pJobId == UNDEFINED_JOBID || pJobId == jobid))
     {
-        // NOTE: If we are using multiple transfer threads, we have to make sure that there are
-        //       no extents for this transfer definition currently in-flight on this bbServer...
-        //       If so, delay for a bit...
-        // NOTE: In the normal case, the work queue for the CN hostname on this bbServer should
-        //       be suspended, so no new extents should start processing when we release/re-acquire
-        //       the lock below...
-        uint32_t i = 0;
-        while (extentInfo.moreInFlightExtentsForTransferDefinition(pHandle, pContribId))
+        if (!stageOutStarted())
         {
-            unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+            // NOTE: If we are using multiple transfer threads, we have to make sure that there are
+            //       no extents for this transfer definition currently in-flight on this bbServer...
+            //       If so, delay for a bit...
+            // NOTE: In the normal case, the work queue for the CN hostname on this bbServer should
+            //       be suspended, so no new extents should start processing when we release/re-acquire
+            //       the lock below...
+            uint32_t i = 0;
+            while (extentInfo.moreInFlightExtentsForTransferDefinition(pHandle, pContribId))
             {
-                // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
-                if ((i++ % 40) == 4)
+                unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
                 {
-                    LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer():Waiting for in-flight queue to clear of extents for handle " << pHandle \
-                                 << ", contribid " << pContribId;
+                    // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 4)
+                    {
+                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer():Waiting for in-flight queue to clear of extents for handle " << pHandle \
+                                     << ", contribid " << pContribId;
+                    }
+                    usleep((useconds_t)250000);
                 }
-                usleep((useconds_t)250000);
+                lockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
             }
-            lockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+
+            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+
+            if (rc == 1)
+            {
+                // Transfer definition was successfully stopped...
+                //
+                // Sort the extents, moving the canceled extents to the front of
+                // the work queue so they are immediately removed...
+                cancelExtents(pLVKey, &pHandle, &pContribId);
+            }
         }
-
-        rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pJobId, pJobStepId, pHandle, pContribId);
-
-        if (rc == 1)
+        else
         {
-            // Transfer definition was successfully stopped...
-            //
-            // Sort the extents, moving the canceled extents to the front of
-            // the work queue so they are immediately removed...
-            cancelExtents(pLVKey, &pHandle, &pContribId);
+            // Stageout end processing has started.  Therefore, the ability to do anything using this LVKey
+            // will soon be, or has already, been removed.  (i.e. the local cache of data is being/or has been
+            // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
+            // Return an error message.
+            rc = -1;
+            LOG(bb,error) << "BBTagInfo2::stopTransfer(): For hostname " << pHostName << ", connection " \
+                          << connectionName << ", jobid " << pJobId << ", jobidstep " << pJobStepId \
+                          << ", handle " << pHandle << ", contribid " << pContribId \
+                          << ", the remove logical volume request has been run, or is currently running for " << *pLVKey \
+                          << ". Suspend or resume operations are not allowed for this environment.";
         }
     }
 
