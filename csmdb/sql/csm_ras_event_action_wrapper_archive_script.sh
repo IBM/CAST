@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    csm_history_wrapper_archive_script_template.sh
+#    csm_ras_event_action_wrapper_archive_script.sh
 # 
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,14 +15,14 @@
 #================================================================================
 
 #================================================================================
-#   usage:         Archive history related tables
-#   version:       1.1
-#   created:       04-10-2017
+#   usage:         Archive csm_ras_event_action table
+#   version:       1.0
+#   created:       06-01-2018
 #   last modified: 06-18-2018
 #================================================================================
 
 #----------------------------------------------------------------
-# Traps any interrupted or terminated sessions 
+# Traps any interrupted or terminated sessions
 # (see finish function below)
 #----------------------------------------------------------------
 
@@ -58,7 +58,7 @@ line2_log="---------------------------------------------------------------------
 line3_log="---------------------------------------------------------------------------------------------------------------------------"
 
 #------------------------------------------------------------------------------------
-script_name="csm_history_wrapper_archive_script_template.sh"
+script_name="csm_ras_event_action_wrapper_archive_script.sh"
 #echo "------------------------------------------------------------------------------"
 #echo "[Script name:   ]  $script_name"
 
@@ -84,11 +84,11 @@ average="0"
 #----------------------------------------------------------------
 
     if [ "$#" -ne 4 ]; then
-        echo "${line1_out}"
+        echo ${line1_out}
         echo "[Error  ] illegal # of import arguments"
         echo "[Info   ] Data_dir is where the archive files will be written"
-        echo "[Example] [./csm_history_wrapper_archive_script_template.sh] [dbname] [archive_counter] [history_table_name] [/data_dir/]"
-        echo "${line1_out}"
+        echo "[Example] [./csm_ras_event_action_wrapper_archive_script.sh] [dbname] [archive_counter] [table_name] [/data_dir/]"
+        echo ${line1_out}
         exit 1
     fi
 
@@ -104,10 +104,10 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
 # First checks if the "/" is specified at the end of the
 # directory given path. If not then it is added
 #----------------------------------------------------------------
-
+    
     if [[ "${data_dir: -1}" != "/" ]]; then
         data_dir="${data_dir}/"
-    fi
+    fi 
 
     if [[ ! -e $data_dir ]]; then
         mkdir -p $data_dir 2>>/dev/null
@@ -119,7 +119,7 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
             echo "${line1_out}"
             exit 1
         else
-            chown postgres:postgres $data_dir 2>>/dev/null
+            chown postgres:postgres $data_dir
             chmod 755 $data_dir
         fi
     elif [[ ! -d $data_dir ]]; then
@@ -145,9 +145,9 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
 # Log Message
 #-------------------------------------------------------------------------------
 
-    function LogMsg () {
+     function LogMsg () {
      LogTime=$(date '+%Y-%m-%d.%H:%M:%S')
-        echo "$LogTime ($pid) ($current_user) $1" >> $logfile 2>&1
+     echo "$LogTime ($pid) ($current_user) $1" >> $logfile 2>&1
      }
 
      LogMsg "[Start ] Archiving Process:   |  $table_name1"
@@ -163,7 +163,7 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
     echo   "[Info   ] Archiving process for $table_name1 has been interrupted or terminated."
     echo   "[Info   ] Please see log file for more details"
     LogMsg "[Info  ] Arch process for:    |  $table_name1 has been interrupted or terminated."
-    LogMsg "[Info  ] Exiting:             |  csm_history_wrapper_archive_script_template.sh."
+    LogMsg "[Info  ] Exiting:             |  csm_ras_event_action_wrapper_archive_script.sh."
     LogMsg "${line2_log}"
     LogMsg "[End   ] Archiving Process:   |  $table_name1"
     echo   "${line1_out}"
@@ -177,7 +177,7 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
     #-------------------------------------------------
     
     rm -rf ${data_dir}$tmp_logname
-
+    
     if [[ ! -f ${data_dir}${pid}_${table_name1}_archive_results* ]]; then
         rm -f ${data_dir}${pid}_${table_name1}_archive_results*
     fi
@@ -211,7 +211,7 @@ else
     exit 1
 fi
 
-    LogMsg "[Info  ] Script name:         |  csm_history_wrapper_archive_script_template.sh"
+        LogMsg "[Info  ] Script name:         |  csm_ras_event_action_wrapper_archive_script.sh"
 
 #----------------------------------------------------------------
 # Check if database exists
@@ -262,7 +262,7 @@ declare -A avg_data
 # These are the individual history tables being archived
 #----------------------------------------------------------------
 
-./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
+./csm_ras_event_action_table_archive.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
         awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' | tee -a >>"${logfile}"
 
 runtime="$(($(date +%s%N)-$start_time))"
@@ -331,13 +331,13 @@ fi
     average=$(echo "scale=6; $total / $count" | bc | awk '{printf "%.3f\n", $0}')
 
 #------------------------------------------------------------------------------------------
-# Archiving results output 
+# Archiving results output
 #------------------------------------------------------------------------------------------
 
-echo "  Table                        |       Time         |  Archive Count (DB Actual)"          
+echo "  Table                        |       Time         |  Archive Count (DB Actual)"
 echo "-------------------------------|--------------------|--------------------------------"
 
-e_time=`printf " Total Time (Cleanup):         |  %02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
+e_time=`printf " Total Time (Cleanup)          |  %02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
 
 for ((j=0; j<${#table_name[*]}; j++));
 do
@@ -375,7 +375,7 @@ min="$((runtime/1000000))"
 #----------------------------------------------------------------
 
 e_time=`printf "%02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
-printf " Total Time (Cleanup):         |  %02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"
+printf " Total Time (Cleanup)          |  %02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"
 echo "${line1_out}"
 LogMsg "[Info  ] Total Script Time:   |  $e_time"
 LogMsg "${line2_log}"

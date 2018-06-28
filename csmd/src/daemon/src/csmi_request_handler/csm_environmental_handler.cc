@@ -52,6 +52,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
   auto it = list.begin();
   try {
     CSM_Environmental_Data envData;
+    envData.Set_Node_Data();
 
     while ( it != list.end() )
     {

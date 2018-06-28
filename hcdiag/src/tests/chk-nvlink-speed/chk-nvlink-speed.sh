@@ -34,6 +34,10 @@ supported_machine
 
 if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
 echo -e "Running $me on $thishost, machine type $model.\n"          
+if [ -z $is_boston ]; then 
+   echo -e "Could not determine if the machine has GPUs by model. Continuing.."
+   is_boston=False
+fi 
 if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PASS, rc=0"; exit 0; fi 
 
 source $thisdir/../common/gpu_functions

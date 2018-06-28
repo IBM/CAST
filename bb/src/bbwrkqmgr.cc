@@ -1191,16 +1191,23 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
 {
     int rc = 0;
 
-    std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
-    if (it != wrkqs.end())
+    if (pLVKey)
     {
-        if ((pValue && (!it->second->isSuspended())) || ((!pValue) && it->second->isSuspended()))
+        std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
+        if (it != wrkqs.end())
         {
-            it->second->setSuspended(pValue);
+            if ((pValue && (!it->second->isSuspended())) || ((!pValue) && it->second->isSuspended()))
+            {
+                it->second->setSuspended(pValue);
+            }
+            else
+            {
+                rc = 2;
+            }
         }
         else
         {
-            rc = 2;
+            rc = -2;
         }
     }
     else

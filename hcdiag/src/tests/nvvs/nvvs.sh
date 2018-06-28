@@ -47,8 +47,13 @@ source $thisdir/../common/functions
 source $thisdir/../common/gpu_functions
 
 supported_machine
-if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
 echo "Running $me on `hostname -s`, machine type $model."          
+
+if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
+if [ -z $is_boston ]; then 
+   echo -e "Could not determine if the machine has GPUs by model. Continuing.."
+   is_boston=False
+fi 
 if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PASS, rc=0"; exit 0; fi 
 
 # check if machine has GPUs

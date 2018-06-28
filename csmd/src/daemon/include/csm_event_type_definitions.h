@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_event_type_definitions.h
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -31,6 +31,7 @@ enum EventType {
   EVENT_TYPE_DB_Response,
   EVENT_TYPE_NETWORK,
   EVENT_TYPE_ENVIRONMENTAL,
+  EVENT_TYPE_BDS,
   EVENT_TYPE_SENSOR_Data,
 
   EVENT_TYPE_MAX
@@ -49,6 +50,7 @@ EventTypeToString( const enum EventType aType )
     case EVENT_TYPE_DB_Response: return "EVENT_TYPE_DB_Response";
     case EVENT_TYPE_NETWORK: return "EVENT_TYPE_NETWORK";
     case EVENT_TYPE_ENVIRONMENTAL: return "EVENT_TYPE_ENVIRONMENTAL";
+    case EVENT_TYPE_BDS: return "EVENT_TYPE_BDS";
     case EVENT_TYPE_SENSOR_Data: return "charEVENT_TYPE_SENSOR_Data";
 
     case EVENT_TYPE_MAX:

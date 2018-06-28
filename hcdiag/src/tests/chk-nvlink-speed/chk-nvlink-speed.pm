@@ -23,6 +23,8 @@ use Class::Struct;
 use File::Temp qw/ tempfile tempdir /;
 use File::Basename;
 use lib dirname(__FILE__)."/../common";
+use ClustConf;
+
 
 
 sub usage {
@@ -61,7 +63,6 @@ if ( !defined $nodeCfg ) {
 }
 my $gpus=$nodeCfg->{gpu}->{pciids};
 my $speed=$nodeCfg->{gpu}->{link_speed};
-my $gpus=$nodeCfg->{gpu}->{pciids};
 my $ngpus=scalar(@$gpus);
 my $nlinks=$ngpus*6;
 
@@ -83,7 +84,6 @@ if($verbose) { print "$rval\n"; }
 my @matches = $rval =~ /($speed)/g;
 my $count = @matches;
   
-print "count is $count, nlinks= $nlinks\n";
 if ( $count != $nlinks ) {
    print "ERROR: Expected $nlinks links at $speed, got $count\n";
    print "$test test FAIL, rc=1\n";

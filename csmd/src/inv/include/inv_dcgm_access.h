@@ -145,13 +145,13 @@ private:
   bool InitializeFunctionPointers();
 
   /**
-   * Attempt to create the CSM_ALLOCATION_FIELD_GROUP in DCGM.
+   * Attempt to create a field group for CSM to use in DCGM.
    *
    * @return true if successful, false if unsuccessful. 
    */
-  bool CreateCsmAllocationFieldGroup();
+  bool CreateCsmFieldGroup(const uint32_t field_count, uint16_t fields[], char* field_group_name, dcgmFieldGrp_t* field_group_handle);
 
-  bool DeleteCsmAllocationFieldGroup();
+  bool DeleteCsmFieldGroup();
 
 
 private:
