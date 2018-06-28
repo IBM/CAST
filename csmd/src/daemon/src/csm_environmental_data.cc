@@ -43,7 +43,7 @@ CSM_Environmental_Data::CSM_Environmental_Data( const CSM_Environmental_Data& in
   _GPU_Long_Data( in._GPU_Long_Data ),
   _GPU_Double_Label_Data( in._GPU_Double_Label_Data ),
   _GPU_Long_Label_Data( in._GPU_Long_Label_Data ),
-  _env_pt( in._env_pt )
+  _data_list( in._data_list )
 {
 }
 
@@ -194,7 +194,48 @@ bool CSM_Environmental_Data::Set_Labels( const CSM_Environmental_Data& in )
 
   return true;
 }
+      
+// Helper function to copy parts of one ptree to the other
+// CopyPtSubtree(src, dst, ""); -> copy all keys in the tree recursively
+// CopyPtSubtree(src, dst, "data"); -> copy all keys under "data" in the tree recursively
+bool CopyPtSubtree(const boost::property_tree::ptree &src_pt, boost::property_tree::ptree &dst_pt, const std::string &key, int32_t count=0)
+{
+  const int32_t MAX_COUNT(200);
 
+  if (count > MAX_COUNT)
+  {
+    LOG(csmenv, warning) << "CopyPtSubtree: MAX_COUNT exceeded";
+    return false;
+  }
+
+  try
+  {
+    for (const auto &child : src_pt.get_child(key))
+    {
+      std::string fullkey = key.empty() ? child.first : key + "." + child.first; 
+      count++;
+      
+      if ( child.second.empty() )
+      {
+        //LOG( csmenv, debug ) << "CopyPtSubtree:  " << fullkey << ": " << child.second.data() << " count=" << count;
+        dst_pt.put(fullkey, child.second.data());
+      }
+      else
+      {
+        //LOG( csmenv, debug ) << "CopyPtSubtree:  " << fullkey << ": " << child.second.data() << " count=" << count;
+        CopyPtSubtree(src_pt, dst_pt, fullkey, count);
+      }
+    }      
+  } 
+  catch (...)
+  {
+    LOG( csmenv, warning ) << "CopyPtSubtree: Caught exception while attempting to copy subtree " << key;
+    return false;
+  }      
+
+  return true;
+}     
+ 
 std::string CSM_Environmental_Data::Get_Json_String()
 {
   std::string json("");
@@ -204,7 +245,6 @@ std::string CSM_Environmental_Data::Get_Json_String()
   // the type of environmental data being collected
   // Build the common fields first, to be used in each of the individual json documents
   
-  #define CSM_ENV_DATA_GPU_PREFIX "data"
   #define CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER "serial_number"
 
   // Create any GPU json documents 
@@ -270,18 +310,18 @@ std::string CSM_Environmental_Data::Get_Json_String()
         gpu_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
         gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
   
-        // Temporarily set an artifical serial_number
-        gpu_pt.put( std::string(CSM_ENV_DATA_GPU_PREFIX) + "." + CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER, std::to_string(gpu) );
+        // Temporarily set an artificial serial_number
+        gpu_pt.put( std::string(CSM_BDS_SECTION_DATA) + "." + CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER, std::to_string(gpu) );
 
         for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
         {
-          gpu_pt.put( CSM_ENV_DATA_GPU_PREFIX "." + gpu_double_labels[i], std::to_string(gpu_double_data[j]) );
+          gpu_pt.put( CSM_BDS_SECTION_DATA "." + gpu_double_labels[i], std::to_string(gpu_double_data[j]) );
           j++;
         }       
         
         for ( uint32_t x = 0; x < gpu_long_labels.size() && y < gpu_long_data.size(); x++ )
         {
-          gpu_pt.put( CSM_ENV_DATA_GPU_PREFIX "." + gpu_long_labels[x], std::to_string(gpu_long_data[y]) );
+          gpu_pt.put( CSM_BDS_SECTION_DATA "." + gpu_long_labels[x], std::to_string(gpu_long_data[y]) );
           y++;
         } 
   
@@ -293,7 +333,42 @@ std::string CSM_Environmental_Data::Get_Json_String()
       } 
     }
   }
+
+  for (auto data_itr = _data_list.begin(); data_itr != _data_list.end(); data_itr++)
+  {
+    // Set the top level fields into the json
+    const std::string EMPTY_STRING("");
+    std::string key_type = data_itr->get(CSM_BDS_KEY_TYPE, EMPTY_STRING);
+
+    if (key_type == EMPTY_STRING)
+    {
+      LOG( csmenv, error ) << "Found data item with unknown " << CSM_BDS_KEY_TYPE << " key, skipping.";
+    }
+    else
+    {    
+      boost::property_tree::ptree data_pt;
   
+      // Add the common fields to the new object
+      data_pt.put(CSM_BDS_KEY_TYPE, key_type);   
+      data_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
+      data_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);
+
+      // Recursively copy the fields in the data section to the new object 
+      bool copy_success = CopyPtSubtree(*data_itr, data_pt, CSM_BDS_SECTION_DATA);
+      if (copy_success == true)
+      {
+        std::ostringstream data_oss;
+        boost::property_tree::json_parser::write_json(data_oss, data_pt, false);
+        data_oss << std::endl;
+        json += data_oss.str();
+      }
+      else
+      {
+        LOG( csmenv, error ) << "Found data item with no data fields set, skipping.";
+      }
+    }
+  }
+ 
   //LOG( csmenv, debug ) << json;
  
   return json;
@@ -390,6 +465,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
 
    // Query and check for success.
    bool success = csm::daemon::helper::GetOCCSensorData( occ_map );
+   boost::property_tree::ptree env_pt;
 
    if (success)
    {
@@ -397,7 +473,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       for (auto occ_itr = occ_map.begin(); occ_itr != occ_map.end(); occ_itr++)
       {
          LOG( csmenv, debug ) << "ENV: Read OCC data " << occ_itr->first << ": " << occ_itr->second;
-         _env_pt.put( occ_itr->first, occ_itr->second );
+         env_pt.put( occ_itr->first, occ_itr->second );
       }
    }
 
@@ -409,11 +485,9 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    
    node_pt.put( "data.system_energy", "88888" );
    node_pt.put( "data.system_temp", "23" );
-      
-   std::ostringstream node_oss;
-   boost::property_tree::json_parser::write_json(node_oss, node_pt, false);
-   LOG( csmenv, debug ) << node_oss.str();
-
+   
+   _data_list.push_back(node_pt);
+   
    // Processor socket level data
    const int MAX_CHIP(2);
    
@@ -432,9 +506,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       //chip_pt.put( "data.gpu_energy", "22222" );
       //chip_pt.put( "data.mem_energy", "11111" );
    
-      std::ostringstream chip_oss;
-      boost::property_tree::json_parser::write_json(chip_oss, chip_pt, false);
-      LOG( csmenv, debug ) << chip_oss.str();
+      _data_list.push_back(chip_pt);
    }   
    
    // GPU level data
@@ -454,10 +526,8 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       gpu_pt.put( "data.gpu_mem_temp", "23" );
       gpu_pt.put( "data.gpu_mem_temp_min", "20" );
       gpu_pt.put( "data.gpu_mem_temp_max", "27" );
-         
-      std::ostringstream gpu_oss;
-      boost::property_tree::json_parser::write_json(gpu_oss, gpu_pt, false);
-      LOG( csmenv, debug ) << gpu_oss.str();
+      
+      _data_list.push_back(gpu_pt);
    } 
    
    // DIMM level data
@@ -475,9 +545,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       dimm_pt.put( "data.dimm_temp_min", "20" );
       dimm_pt.put( "data.dimm_temp_max", "27" );
       
-      std::ostringstream dimm_oss;
-      boost::property_tree::json_parser::write_json(dimm_oss, dimm_pt, false);
-      LOG( csmenv, debug ) << dimm_oss.str();
+      _data_list.push_back(dimm_pt);
    } 
 
    return success;
@@ -493,7 +561,7 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environment
   _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
   _GPU_Long_Label_Data = in._GPU_Long_Label_Data;
   _CPU_Data = in._CPU_Data;
-  _env_pt = in._env_pt;
+  _data_list = in._data_list;
   return *this;
 }
 
@@ -523,8 +591,8 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmen
   if( in._Data_Mask.test( CPU_DATA_BIT ) )
     _CPU_Data = in._CPU_Data;
   
-  if( !in._env_pt.empty() )
-    _env_pt = in._env_pt;
+  if( !in._data_list.empty() )
+    _data_list = in._data_list;
 
   return *this;
 }
