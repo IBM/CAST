@@ -14,6 +14,7 @@
 #================================================================================
 
 set(SUBDIR data-aggregators)
+set(CONFDIR data-aggregators/config)
 
 
 # Files that should be executable when shipped
@@ -25,9 +26,9 @@ file(GLOB INSTALL_PROGRAMS
 
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
 
-#file(GLOB INSTALL_FILES
-#  "README.rst"
-#)
-#
-#install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+file(GLOB CONFDIR
+    "filebeats/filebeat.yml"
+)
+
+install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${CONFDIR})
 
