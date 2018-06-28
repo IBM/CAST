@@ -1,7 +1,7 @@
 #!/bin/sh
 #================================================================================
 #
-#    deployLogstashConfigs.sh
+#    deployConfigs.sh
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #

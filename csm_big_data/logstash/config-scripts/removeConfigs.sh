@@ -1,7 +1,7 @@
 #!/bin/sh
 #================================================================================
 #
-#    removeLogstashConfigs.sh
+#    removeConfigs.sh
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -24,6 +24,7 @@ echoe()
     >&2 echo $@
 }
 
+# Clear any files matching the CSM example config.
 clean_dir()
 {
     cd $1

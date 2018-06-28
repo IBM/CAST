@@ -21,8 +21,8 @@ set(SUBDIR logstash)
 
 # Files that should be executable when shipped
 file(GLOB INSTALL_PROGRAMS
-  "deployLogstashConfigs.sh"
-  "removeLogstashConfigs.sh"
+  "config-scripts/deployConfigs.sh"
+  "config-scripts/removeConfigs.sh"
 )
 
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
