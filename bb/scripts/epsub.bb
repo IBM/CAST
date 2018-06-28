@@ -27,7 +27,6 @@ sub bbfail
 
 sub openBBENV
 {
-    system("echo $bbenvfile > /tmp/epsubfile");
     open(BBENV, ">". $bbenvfile) || bbfail "Unable to open BB_ENVFILE file.  $!";
     
     my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
