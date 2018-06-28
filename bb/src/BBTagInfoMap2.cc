@@ -196,7 +196,11 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
     {
         LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pTagInfo2;
-        rc = update_xbbServerAddData(pJobId);
+        rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
+        if (!rc)
+        {
+            rc = update_xbbServerAddData(pJobId);
+        }
     }
     else if (rc == -2)
     {

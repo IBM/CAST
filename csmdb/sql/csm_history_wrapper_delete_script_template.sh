@@ -18,7 +18,7 @@
 #   usage:         Delete related history table data which has been archived
 #   version:       1.1
 #   create:        04-10-2017
-#   last modified: 06-18-2017
+#   last modified: 06-20-2017
 #================================================================================
 
 #----------------------------------------------------------------
@@ -155,23 +155,45 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
     LogMsg "${line2_log}"
 
 #-------------------------------------------------------------------------------
+# Log Message File Size
+#-------------------------------------------------------------------------------
+
+function filesize () {
+touch ${data_dir}$logname
+MaxFileSize=1000000000
+now2=$(date '+%Y-%m-%d.%H.%M.%S')
+
+     cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+
+    #--------------------
+    #Get size in bytes
+    #--------------------
+    file_size=`du -b ${data_dir}$logname | tr -s '\t' ' ' | cut -d' ' -f1`
+    if [ $file_size -gt $MaxFileSize ];then
+        mv ${data_dir}$logname ${data_dir}$logname.$now2
+        touch ${data_dir}$logname
+    fi
+}
+
+#-------------------------------------------------------------------------------
 # Error Log Message
 #-------------------------------------------------------------------------------
 
-     function finish () {
+    function finish () {
 
-     echo   "${line1_out}"
-     echo   "[Info   ] Deletion process for $table_name1 has been interrupted or terminated."
-     echo   "[Info   ] Please see log file for more details"
-     LogMsg "[Info  ] Del process for:     |  $table_name1 has been interrupted or terminated."
-     LogMsg "[Info  ] Exiting:             |  csm_history_wrapper_delete_script_template.sh."
-     LogMsg "${line2_log}"
-     LogMsg "[End   ] Deletion Process:    |  $table_name1"
-     echo   "${line1_out}"
-     echo "${line3_log}" >> $logfile
+    echo   "${line1_out}"
+    echo   "[Info   ] Deletion process for $table_name1 has been interrupted or terminated."
+    echo   "[Info   ] Please see log file for more details"
+    LogMsg "[Info  ] Del process for:     |  $table_name1 has been interrupted or terminated."
+    LogMsg "[Info  ] Exiting:             |  csm_history_wrapper_delete_script_template.sh."
+    LogMsg "${line2_log}"
+    LogMsg "[End   ] Deletion Process:    |  $table_name1"
+    echo   "${line1_out}"
+    echo "${line3_log}" >> $logfile
 
-     cat ${data_dir}$tmp_logname >> ${data_dir}$logname
-     wait
+    filesize 
+    cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+    wait
 
     #-----------------------------------
     # Clean up any failed deletion runs
@@ -405,6 +427,7 @@ echo "${line3_log}" >> $logfile
 # Temp file to master log file and clean up
 #----------------------------------------------------------------
 
-cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+filesize
+#cat ${data_dir}$tmp_logname >> ${data_dir}$logname
 wait
 rm ${data_dir}$tmp_logname

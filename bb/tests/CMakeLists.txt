@@ -7,7 +7,7 @@ else(!${RPMBUILD})
 endif(${RPMBUILD})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/parms.robot.in ${CMAKE_CURRENT_BINARY_DIR}/parms.robot @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parms.robot COMPONENT burstbuffer DESTINATION bb/tests)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parms.robot COMPONENT burstbuffer-tests DESTINATION bb/tests)
 
 install(FILES api/bbApiTools.py      COMPONENT burstbuffer-tests DESTINATION bb/tests)
 install(FILES bbRobotLibrary.py      COMPONENT burstbuffer-tests DESTINATION bb/tests)

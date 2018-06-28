@@ -7,6 +7,7 @@ add_custom_command(
 add_custom_target(need_bbcfg ALL DEPENDS bb.cfg)
 
 
+if(INSTALLSETUIDTRAMPOLINE)
 add_executable(bbstagein_admin stage-admin-wrapper.c)
 target_compile_definitions(bbstagein_admin PRIVATE -DSCRIPTPATH=\"${CMAKE_INSTALL_PREFIX}/bb/scripts/stagein_admin.pl\")
 
@@ -20,6 +21,7 @@ install(TARGETS bbstagein_admin  COMPONENT burstbuffer DESTINATION bb/sbin PERMI
 # Do the install twice...  needed for setuid for some reason (cmake bug?)
 install(TARGETS bbstageout_admin  COMPONENT burstbuffer DESTINATION bb/sbin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE SETUID)
 install(TARGETS bbstageout_admin  COMPONENT burstbuffer DESTINATION bb/sbin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE SETUID)
+endif()
 
 # Only install to /usr/lib/systemd/system if building an rpm for distribution
 # Otherwise ship to the work directory for test purposes
@@ -31,6 +33,8 @@ endif()
 
 install(PROGRAMS esub.bb  COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
 install(PROGRAMS epsub.bb COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
+install(PROGRAMS esub.bb  COMPONENT burstbuffer-lsf DESTINATION bb/scripts RENAME esub.bscfs)
+install(PROGRAMS epsub.bb COMPONENT burstbuffer-lsf DESTINATION bb/scripts RENAME epsub.bscfs)
 install(PROGRAMS bb_pre_exec.sh  COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
 install(PROGRAMS bb_post_exec.sh COMPONENT burstbuffer-lsf DESTINATION bb/scripts)
 

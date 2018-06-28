@@ -18,7 +18,7 @@ bscfs access check
       Using SSD  16
       Using bscfs
       set num computes  2
-      bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/accesscheck.sh
+      bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/accesscheck.sh  0  5mins
 
 
 bscfs checkpoint write series single-node
@@ -28,7 +28,7 @@ bscfs checkpoint write series single-node
 	 Using bscfs
 	 
 	 bscfs cleanup	 
-	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --chkpnt_size 1G --chunk_size 256M --chkpnt_dir . --keep_all
+	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --chkpnt_size 1G --chunk_size 256M --chkpnt_dir . --keep_all  0  15mins
 	 
 	 bscfs cleanup
 
@@ -41,7 +41,7 @@ bscfs checkpoint write series multi-server
 	 Set num computes  2
 	 
 	 bscfs cleanup	 
-	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --chkpnt_size 1G --chunk_size 256M --chkpnt_dir . --keep_all
+	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --chkpnt_size 1G --chunk_size 256M --chkpnt_dir . --keep_all  0  30mins
 	 
 	 bscfs cleanup
 
@@ -54,9 +54,9 @@ bscfs checkpoint read series single-node
       Set num computes  1
 
       bscfs cleanup
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all
+      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all  0  30mins
       
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_read --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir .
+      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_read --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir .  0  30mins
       bscfs cleanup
 
 
@@ -68,9 +68,9 @@ bscfs checkpoint read series multi-server
       Set num computes  2
 
       bscfs cleanup
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all
+      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all  0  30mins
       
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_read --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir .
+      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_read --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir .  0  30mins
       bscfs cleanup
 
 
@@ -82,7 +82,7 @@ bscfs checkpoint write every kth checkpoint single-node
       Set num computes  1
       
       bscfs cleanup
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_combo -compute_time 40 --chkpnt_count 12 --chkpnt_start 0 --primary_interval 3 --header_size 4K --chkpnt_size 6G --stripe_size 512M --chkpnt_dir .
+      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_combo -compute_time 40 --chkpnt_count 12 --chkpnt_start 0 --primary_interval 3 --header_size 4K --chkpnt_size 6G --stripe_size 512M --chkpnt_dir .  0  30mins
       bscfs cleanup
 
 
@@ -94,5 +94,5 @@ bscfs checkpoint write every kth checkpoint multi-server
       Set num computes  2
       
       bscfs cleanup
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_combo -compute_time 40 --chkpnt_count 12 --chkpnt_start 0 --primary_interval 3 --header_size 4K --chkpnt_size 6G --stripe_size 512M --chkpnt_dir .
+      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_combo -compute_time 40 --chkpnt_count 12 --chkpnt_start 0 --primary_interval 3 --header_size 4K --chkpnt_size 6G --stripe_size 512M --chkpnt_dir .  0  30mins
       bscfs cleanup

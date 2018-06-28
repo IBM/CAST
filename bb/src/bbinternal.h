@@ -84,11 +84,12 @@ extern void flightlog_Backtrace(uint64_t key);
  | Constants
  *******************************************************************************/
 const double DEFAULT_BBSERVER_CONSOLE_TRANSFER_STATUS_TIME_INTERVAL = 5;    // in seconds
-const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 3600;   // in seconds (1 hour)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 300;    // in seconds (5 minutes)
-const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;     // in seconds
-const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;    // in seconds
-const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;       // in seconds
+const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 3600;       // in seconds (1 hour)
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 300;        // in seconds (5 minutes)
+const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;         // in seconds
+const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;        // in seconds
+const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;           // in seconds
+const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 300;    // in seconds
 
 const int CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD = 10;
 const int DO_NOT_DUMP_QUEUES_ON_VALUE = -1;
