@@ -22,9 +22,9 @@ const csmi_struct_node_t csmi_dimm_record_tree[6] = {{"node_name",offsetof(csmi_
 {"size",offsetof(csmi_dimm_record_t,size),0,NULL,0x7c9dede0,36}}
 ;
 
-void* cast_csmi_dimm_record_t(void* ptr,size_t index) { 
+void* cast_csmi_dimm_record_t(void* ptr,size_t index, char isArray) { 
     csmi_dimm_record_t ** ptr_cast = *(csmi_dimm_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_dimm_record_t= {
     6,
@@ -47,9 +47,9 @@ const csmi_struct_node_t csmi_gpu_record_tree[13] = {{"node_name",offsetof(csmi_
 {"serial_number",offsetof(csmi_gpu_record_t,serial_number),0,NULL,0xd931f68d,4}}
 ;
 
-void* cast_csmi_gpu_record_t(void* ptr,size_t index) { 
+void* cast_csmi_gpu_record_t(void* ptr,size_t index, char isArray) { 
     csmi_gpu_record_t ** ptr_cast = *(csmi_gpu_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_gpu_record_t= {
     13,
@@ -71,9 +71,9 @@ const csmi_struct_node_t csmi_hca_record_tree[12] = {{"node_name",offsetof(csmi_
 {"guid",offsetof(csmi_hca_record_t,guid),0,NULL,0x7c978a2e,4}}
 ;
 
-void* cast_csmi_hca_record_t(void* ptr,size_t index) { 
+void* cast_csmi_hca_record_t(void* ptr,size_t index, char isArray) { 
     csmi_hca_record_t ** ptr_cast = *(csmi_hca_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_hca_record_t= {
     12,
@@ -106,9 +106,9 @@ const csmi_struct_node_t csmi_ib_cable_record_tree[23] = {{"discovery_time",offs
 {"type",offsetof(csmi_ib_cable_record_t,type),0,NULL,0x7c9ebd07,4}}
 ;
 
-void* cast_csmi_ib_cable_record_t(void* ptr,size_t index) { 
+void* cast_csmi_ib_cable_record_t(void* ptr,size_t index, char isArray) { 
     csmi_ib_cable_record_t ** ptr_cast = *(csmi_ib_cable_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ib_cable_record_t= {
     23,
@@ -143,9 +143,9 @@ const csmi_struct_node_t csmi_ib_cable_history_record_tree[25] = {{"history_time
 {"type",offsetof(csmi_ib_cable_history_record_t,type),0,NULL,0x7c9ebd07,4}}
 ;
 
-void* cast_csmi_ib_cable_history_record_t(void* ptr,size_t index) { 
+void* cast_csmi_ib_cable_history_record_t(void* ptr,size_t index, char isArray) { 
     csmi_ib_cable_history_record_t ** ptr_cast = *(csmi_ib_cable_history_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ib_cable_history_record_t= {
     25,
@@ -212,9 +212,9 @@ const csmi_struct_node_t csmi_node_attributes_record_tree[57] = {{"type",offseto
 {"collection_time",offsetof(csmi_node_attributes_record_t,collection_time),0,NULL,0xd67e7d1f,4}}
 ;
 
-void* cast_csmi_node_attributes_record_t(void* ptr,size_t index) { 
+void* cast_csmi_node_attributes_record_t(void* ptr,size_t index, char isArray) { 
     csmi_node_attributes_record_t ** ptr_cast = *(csmi_node_attributes_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_attributes_record_t= {
     57,
@@ -281,9 +281,9 @@ const csmi_struct_node_t csmi_node_attributes_history_record_tree[57] = {{"type"
 {"collection_time",offsetof(csmi_node_attributes_history_record_t,collection_time),0,NULL,0xd67e7d1f,4}}
 ;
 
-void* cast_csmi_node_attributes_history_record_t(void* ptr,size_t index) { 
+void* cast_csmi_node_attributes_history_record_t(void* ptr,size_t index, char isArray) { 
     csmi_node_attributes_history_record_t ** ptr_cast = *(csmi_node_attributes_history_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_attributes_history_record_t= {
     57,
@@ -300,9 +300,9 @@ const csmi_struct_node_t csmi_node_query_state_history_record_tree[7] = {{"alter
 {"ras_rec_id",offsetof(csmi_node_query_state_history_record_t,ras_rec_id),0,NULL,0xe9402c30,4}}
 ;
 
-void* cast_csmi_node_query_state_history_record_t(void* ptr,size_t index) { 
+void* cast_csmi_node_query_state_history_record_t(void* ptr,size_t index, char isArray) { 
     csmi_node_query_state_history_record_t ** ptr_cast = *(csmi_node_query_state_history_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_query_state_history_record_t= {
     7,
@@ -321,9 +321,9 @@ const csmi_struct_node_t csmi_processor_record_tree[9] = {{"status",offsetof(csm
 {"physical_location",offsetof(csmi_processor_record_t,physical_location),0,NULL,0x63efcf7a,4}}
 ;
 
-void* cast_csmi_processor_record_t(void* ptr,size_t index) { 
+void* cast_csmi_processor_record_t(void* ptr,size_t index, char isArray) { 
     csmi_processor_record_t ** ptr_cast = *(csmi_processor_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_processor_record_t= {
     9,
@@ -358,9 +358,9 @@ const csmi_struct_node_t csmi_ssd_record_tree[25] = {{"wear_total_bytes_read",of
 {"fw_ver",offsetof(csmi_ssd_record_t,fw_ver),0,NULL,0xfe6cb44e,4}}
 ;
 
-void* cast_csmi_ssd_record_t(void* ptr,size_t index) { 
+void* cast_csmi_ssd_record_t(void* ptr,size_t index, char isArray) { 
     csmi_ssd_record_t ** ptr_cast = *(csmi_ssd_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ssd_record_t= {
     25,
@@ -414,9 +414,9 @@ const csmi_struct_node_t csmi_switch_record_tree[44] = {{"discovery_time",offset
 {"type",offsetof(csmi_switch_record_t,type),0,NULL,0x7c9ebd07,4}}
 ;
 
-void* cast_csmi_switch_record_t(void* ptr,size_t index) { 
+void* cast_csmi_switch_record_t(void* ptr,size_t index, char isArray) { 
     csmi_switch_record_t ** ptr_cast = *(csmi_switch_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_record_t= {
     44,
@@ -453,9 +453,9 @@ const csmi_struct_node_t csmi_switch_inventory_record_tree[27] = {{"name",offset
 {"serial_number",offsetof(csmi_switch_inventory_record_t,serial_number),0,NULL,0xd931f68d,4}}
 ;
 
-void* cast_csmi_switch_inventory_record_t(void* ptr,size_t index) { 
+void* cast_csmi_switch_inventory_record_t(void* ptr,size_t index, char isArray) { 
     csmi_switch_inventory_record_t ** ptr_cast = *(csmi_switch_inventory_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_inventory_record_t= {
     27,
@@ -507,9 +507,9 @@ const csmi_struct_node_t csmi_switch_ports_record_tree[42] = {{"description",off
 {"tier",offsetof(csmi_switch_ports_record_t,tier),0,NULL,0x7c9e7799,4}}
 ;
 
-void* cast_csmi_switch_ports_record_t(void* ptr,size_t index) { 
+void* cast_csmi_switch_ports_record_t(void* ptr,size_t index, char isArray) { 
     csmi_switch_ports_record_t ** ptr_cast = *(csmi_switch_ports_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_ports_record_t= {
     42,
@@ -525,9 +525,9 @@ const csmi_struct_node_t csmi_switch_details_tree[6] = {{"switch_data",offsetof(
 {"ports_count",offsetof(csmi_switch_details_t,ports_count),0,NULL,0x6b0e80c5,24}}
 ;
 
-void* cast_csmi_switch_details_t(void* ptr,size_t index) { 
+void* cast_csmi_switch_details_t(void* ptr,size_t index, char isArray) { 
     csmi_switch_details_t ** ptr_cast = *(csmi_switch_details_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_details_t= {
     6,
@@ -586,9 +586,9 @@ const csmi_struct_node_t csmi_switch_history_record_tree[49] = {{"history_time",
 {"archive_history_time",offsetof(csmi_switch_history_record_t,archive_history_time),0,NULL,0x9e88b9e6,4}}
 ;
 
-void* cast_csmi_switch_history_record_t(void* ptr,size_t index) { 
+void* cast_csmi_switch_history_record_t(void* ptr,size_t index, char isArray) { 
     csmi_switch_history_record_t ** ptr_cast = *(csmi_switch_history_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_history_record_t= {
     49,
@@ -599,9 +599,9 @@ const csmi_struct_mapping_t map_csmi_switch_history_record_t= {
 const csmi_struct_node_t csmi_node_env_data_tree[1] = {{"field_01",offsetof(csmi_node_env_data_t,field_01),0,NULL,0x2404d529,68}}
 ;
 
-void* cast_csmi_node_env_data_t(void* ptr,size_t index) { 
+void* cast_csmi_node_env_data_t(void* ptr,size_t index, char isArray) { 
     csmi_node_env_data_t ** ptr_cast = *(csmi_node_env_data_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_env_data_t= {
     1,
@@ -612,9 +612,9 @@ const csmi_struct_mapping_t map_csmi_node_env_data_t= {
 const csmi_struct_node_t csmi_switch_env_data_tree[1] = {{"field_01",offsetof(csmi_switch_env_data_t,field_01),0,NULL,0x2404d529,68}}
 ;
 
-void* cast_csmi_switch_env_data_t(void* ptr,size_t index) { 
+void* cast_csmi_switch_env_data_t(void* ptr,size_t index, char isArray) { 
     csmi_switch_env_data_t ** ptr_cast = *(csmi_switch_env_data_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_env_data_t= {
     1,
@@ -625,9 +625,9 @@ const csmi_struct_mapping_t map_csmi_switch_env_data_t= {
 const csmi_struct_node_t csmi_fabric_topology_tree[1] = {{"field_01",offsetof(csmi_fabric_topology_t,field_01),0,NULL,0x2404d529,68}}
 ;
 
-void* cast_csmi_fabric_topology_t(void* ptr,size_t index) { 
+void* cast_csmi_fabric_topology_t(void* ptr,size_t index, char isArray) { 
     csmi_fabric_topology_t ** ptr_cast = *(csmi_fabric_topology_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_fabric_topology_t= {
     1,
@@ -651,9 +651,9 @@ const csmi_struct_node_t csmi_node_details_tree[14] = {{"dimms_count",offsetof(c
 {"ssds",offsetof(csmi_node_details_t,ssds),offsetof(csmi_node_details_t, ssds_count),&map_csmi_ssd_record_t,0x7c9e15a2,1}}
 ;
 
-void* cast_csmi_node_details_t(void* ptr,size_t index) { 
+void* cast_csmi_node_details_t(void* ptr,size_t index, char isArray) { 
     csmi_node_details_t ** ptr_cast = *(csmi_node_details_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_details_t= {
     14,
@@ -678,9 +678,9 @@ const csmi_struct_node_t csmi_cluster_query_state_record_tree[15] = {{"node_name
 {"allocs",offsetof(csmi_cluster_query_state_record_t,allocs),offsetof(csmi_cluster_query_state_record_t, num_allocs),NULL,0xf202de83,1}}
 ;
 
-void* cast_csmi_cluster_query_state_record_t(void* ptr,size_t index) { 
+void* cast_csmi_cluster_query_state_record_t(void* ptr,size_t index, char isArray) { 
     csmi_cluster_query_state_record_t ** ptr_cast = *(csmi_cluster_query_state_record_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t= {
     15,
@@ -693,9 +693,9 @@ const csmi_struct_node_t csm_ib_cable_inventory_collection_input_tree[3] = {{"in
 {"inventory",offsetof(csm_ib_cable_inventory_collection_input_t,inventory),offsetof(csm_ib_cable_inventory_collection_input_t, inventory_count),&map_csmi_ib_cable_record_t,0xac696ff3,1}}
 ;
 
-void* cast_csm_ib_cable_inventory_collection_input_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_inventory_collection_input_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_inventory_collection_input_t ** ptr_cast = *(csm_ib_cable_inventory_collection_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_input_t= {
     3,
@@ -707,9 +707,9 @@ const csmi_struct_node_t csm_ib_cable_inventory_collection_output_tree[2] = {{"i
 {"update_count",offsetof(csm_ib_cable_inventory_collection_output_t,update_count),0,NULL,0x191a1ab0,36}}
 ;
 
-void* cast_csm_ib_cable_inventory_collection_output_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_inventory_collection_output_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_inventory_collection_output_t ** ptr_cast = *(csm_ib_cable_inventory_collection_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_output_t= {
     2,
@@ -726,9 +726,9 @@ const csmi_struct_node_t csm_ib_cable_query_input_tree[7] = {{"offset",offsetof(
 {"serial_numbers",offsetof(csm_ib_cable_query_input_t,serial_numbers),offsetof(csm_ib_cable_query_input_t, serial_numbers_count),NULL,0xff70c8a0,5}}
 ;
 
-void* cast_csm_ib_cable_query_input_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_query_input_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_query_input_t ** ptr_cast = *(csm_ib_cable_query_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_query_input_t= {
     7,
@@ -740,9 +740,9 @@ const csmi_struct_node_t csm_ib_cable_query_output_tree[2] = {{"results_count",o
 {"results",offsetof(csm_ib_cable_query_output_t,results),offsetof(csm_ib_cable_query_output_t, results_count),&map_csmi_ib_cable_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_ib_cable_query_output_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_query_output_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_query_output_t ** ptr_cast = *(csm_ib_cable_query_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_query_output_t= {
     2,
@@ -755,9 +755,9 @@ const csmi_struct_node_t csm_ib_cable_query_history_input_tree[3] = {{"offset",o
 {"serial_number",offsetof(csm_ib_cable_query_history_input_t,serial_number),0,NULL,0xd931f68d,4}}
 ;
 
-void* cast_csm_ib_cable_query_history_input_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_query_history_input_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_query_history_input_t ** ptr_cast = *(csm_ib_cable_query_history_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_query_history_input_t= {
     3,
@@ -769,9 +769,9 @@ const csmi_struct_node_t csm_ib_cable_query_history_output_tree[2] = {{"results_
 {"results",offsetof(csm_ib_cable_query_history_output_t,results),offsetof(csm_ib_cable_query_history_output_t, results_count),&map_csmi_ib_cable_history_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_ib_cable_query_history_output_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_query_history_output_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_query_history_output_t ** ptr_cast = *(csm_ib_cable_query_history_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_query_history_output_t= {
     2,
@@ -792,9 +792,9 @@ const csmi_struct_node_t csm_ib_cable_update_input_tree[11] = {{"comment",offset
 {"port_s2",offsetof(csm_ib_cable_update_input_t,port_s2),0,NULL,0xbc76f82e,4}}
 ;
 
-void* cast_csm_ib_cable_update_input_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_update_input_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_update_input_t ** ptr_cast = *(csm_ib_cable_update_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_update_input_t= {
     11,
@@ -806,9 +806,9 @@ const csmi_struct_node_t csm_ib_cable_update_output_tree[2] = {{"failure_count",
 {"failure_ib_cables",offsetof(csm_ib_cable_update_output_t,failure_ib_cables),offsetof(csm_ib_cable_update_output_t, failure_count),NULL,0x78fd5dc0,5}}
 ;
 
-void* cast_csm_ib_cable_update_output_t(void* ptr,size_t index) { 
+void* cast_csm_ib_cable_update_output_t(void* ptr,size_t index, char isArray) { 
     csm_ib_cable_update_output_t ** ptr_cast = *(csm_ib_cable_update_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_update_output_t= {
     2,
@@ -829,9 +829,9 @@ const csmi_struct_node_t csm_node_attributes_query_input_tree[11] = {{"offset",o
 {"state",offsetof(csm_node_attributes_query_input_t,state),csmi_node_state_t_MAX,&csmi_node_state_t_strs,0x10614a06,8}}
 ;
 
-void* cast_csm_node_attributes_query_input_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_query_input_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_query_input_t ** ptr_cast = *(csm_node_attributes_query_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_query_input_t= {
     11,
@@ -843,9 +843,9 @@ const csmi_struct_node_t csm_node_attributes_query_output_tree[2] = {{"results_c
 {"results",offsetof(csm_node_attributes_query_output_t,results),offsetof(csm_node_attributes_query_output_t, results_count),&map_csmi_node_attributes_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_node_attributes_query_output_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_query_output_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_query_output_t ** ptr_cast = *(csm_node_attributes_query_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_query_output_t= {
     2,
@@ -856,9 +856,9 @@ const csmi_struct_mapping_t map_csm_node_attributes_query_output_t= {
 const csmi_struct_node_t csm_node_attributes_query_details_input_tree[1] = {{"node_name",offsetof(csm_node_attributes_query_details_input_t,node_name),0,NULL,0x746e3e2b,4}}
 ;
 
-void* cast_csm_node_attributes_query_details_input_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_query_details_input_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_query_details_input_t ** ptr_cast = *(csm_node_attributes_query_details_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_query_details_input_t= {
     1,
@@ -870,9 +870,9 @@ const csmi_struct_node_t csm_node_attributes_query_details_output_tree[2] = {{"r
 {"result",offsetof(csm_node_attributes_query_details_output_t,result),offsetof(csm_node_attributes_query_details_output_t, result_count),&map_csmi_node_details_t,0x192fd704,1}}
 ;
 
-void* cast_csm_node_attributes_query_details_output_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_query_details_output_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_query_details_output_t ** ptr_cast = *(csm_node_attributes_query_details_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_query_details_output_t= {
     2,
@@ -888,9 +888,9 @@ const csmi_struct_node_t csm_node_attributes_query_history_input_tree[6] = {{"of
 {"order_by",offsetof(csm_node_attributes_query_history_input_t,order_by),0,NULL,0x245553bb,68}}
 ;
 
-void* cast_csm_node_attributes_query_history_input_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_query_history_input_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_query_history_input_t ** ptr_cast = *(csm_node_attributes_query_history_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_query_history_input_t= {
     6,
@@ -902,9 +902,9 @@ const csmi_struct_node_t csm_node_attributes_query_history_output_tree[2] = {{"r
 {"results",offsetof(csm_node_attributes_query_history_output_t,results),offsetof(csm_node_attributes_query_history_output_t, results_count),&map_csmi_node_attributes_history_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_node_attributes_query_history_output_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_query_history_output_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_query_history_output_t ** ptr_cast = *(csm_node_attributes_query_history_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_query_history_output_t= {
     2,
@@ -920,9 +920,9 @@ const csmi_struct_node_t csm_node_query_state_history_input_tree[6] = {{"offset"
 {"order_by",offsetof(csm_node_query_state_history_input_t,order_by),0,NULL,0x245553bb,68}}
 ;
 
-void* cast_csm_node_query_state_history_input_t(void* ptr,size_t index) { 
+void* cast_csm_node_query_state_history_input_t(void* ptr,size_t index, char isArray) { 
     csm_node_query_state_history_input_t ** ptr_cast = *(csm_node_query_state_history_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_query_state_history_input_t= {
     6,
@@ -935,9 +935,9 @@ const csmi_struct_node_t csm_node_query_state_history_output_tree[3] = {{"node_n
 {"results_count",offsetof(csm_node_query_state_history_output_t,results_count),0,NULL,0x8261013f,24}}
 ;
 
-void* cast_csm_node_query_state_history_output_t(void* ptr,size_t index) { 
+void* cast_csm_node_query_state_history_output_t(void* ptr,size_t index, char isArray) { 
     csm_node_query_state_history_output_t ** ptr_cast = *(csm_node_query_state_history_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_query_state_history_output_t= {
     3,
@@ -962,9 +962,9 @@ const csmi_struct_node_t csm_node_attributes_update_input_tree[15] = {{"comment"
 {"feature_4",offsetof(csm_node_attributes_update_input_t,feature_4),0,NULL,0xd3976c24,4}}
 ;
 
-void* cast_csm_node_attributes_update_input_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_update_input_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_update_input_t ** ptr_cast = *(csm_node_attributes_update_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_update_input_t= {
     15,
@@ -977,9 +977,9 @@ const csmi_struct_node_t csm_node_attributes_update_output_tree[3] = {{"failure_
 {"failure_node_names",offsetof(csm_node_attributes_update_output_t,failure_node_names),offsetof(csm_node_attributes_update_output_t, failure_count),NULL,0xca9637a5,5}}
 ;
 
-void* cast_csm_node_attributes_update_output_t(void* ptr,size_t index) { 
+void* cast_csm_node_attributes_update_output_t(void* ptr,size_t index, char isArray) { 
     csm_node_attributes_update_output_t ** ptr_cast = *(csm_node_attributes_update_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_attributes_update_output_t= {
     3,
@@ -991,9 +991,9 @@ const csmi_struct_node_t csm_node_delete_input_tree[2] = {{"node_names_count",of
 {"node_names",offsetof(csm_node_delete_input_t,node_names),offsetof(csm_node_delete_input_t, node_names_count),NULL,0x23603fe,5}}
 ;
 
-void* cast_csm_node_delete_input_t(void* ptr,size_t index) { 
+void* cast_csm_node_delete_input_t(void* ptr,size_t index, char isArray) { 
     csm_node_delete_input_t ** ptr_cast = *(csm_node_delete_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_delete_input_t= {
     2,
@@ -1006,9 +1006,9 @@ const csmi_struct_node_t csm_node_delete_output_tree[3] = {{"failure_count",offs
 {"failure_node_names",offsetof(csm_node_delete_output_t,failure_node_names),offsetof(csm_node_delete_output_t, failure_count),NULL,0xca9637a5,5}}
 ;
 
-void* cast_csm_node_delete_output_t(void* ptr,size_t index) { 
+void* cast_csm_node_delete_output_t(void* ptr,size_t index, char isArray) { 
     csm_node_delete_output_t ** ptr_cast = *(csm_node_delete_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_delete_output_t= {
     3,
@@ -1029,9 +1029,9 @@ const csmi_struct_node_t csm_switch_attributes_query_input_tree[11] = {{"limit",
 {"serial_number",offsetof(csm_switch_attributes_query_input_t,serial_number),0,NULL,0xd931f68d,4}}
 ;
 
-void* cast_csm_switch_attributes_query_input_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_query_input_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_query_input_t ** ptr_cast = *(csm_switch_attributes_query_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_input_t= {
     11,
@@ -1043,9 +1043,9 @@ const csmi_struct_node_t csm_switch_attributes_query_output_tree[2] = {{"results
 {"results",offsetof(csm_switch_attributes_query_output_t,results),offsetof(csm_switch_attributes_query_output_t, results_count),&map_csmi_switch_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_switch_attributes_query_output_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_query_output_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_query_output_t ** ptr_cast = *(csm_switch_attributes_query_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_output_t= {
     2,
@@ -1056,9 +1056,9 @@ const csmi_struct_mapping_t map_csm_switch_attributes_query_output_t= {
 const csmi_struct_node_t csm_switch_attributes_query_details_input_tree[1] = {{"switch_name",offsetof(csm_switch_attributes_query_details_input_t,switch_name),0,NULL,0x482a8e77,4}}
 ;
 
-void* cast_csm_switch_attributes_query_details_input_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_query_details_input_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_query_details_input_t ** ptr_cast = *(csm_switch_attributes_query_details_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_details_input_t= {
     1,
@@ -1070,9 +1070,9 @@ const csmi_struct_node_t csm_switch_attributes_query_details_output_tree[2] = {{
 {"result",offsetof(csm_switch_attributes_query_details_output_t,result),offsetof(csm_switch_attributes_query_details_output_t, result_count),&map_csmi_switch_details_t,0x192fd704,1}}
 ;
 
-void* cast_csm_switch_attributes_query_details_output_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_query_details_output_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_query_details_output_t ** ptr_cast = *(csm_switch_attributes_query_details_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_details_output_t= {
     2,
@@ -1085,9 +1085,9 @@ const csmi_struct_node_t csm_switch_attributes_query_history_input_tree[3] = {{"
 {"switch_name",offsetof(csm_switch_attributes_query_history_input_t,switch_name),0,NULL,0x482a8e77,4}}
 ;
 
-void* cast_csm_switch_attributes_query_history_input_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_query_history_input_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_query_history_input_t ** ptr_cast = *(csm_switch_attributes_query_history_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_history_input_t= {
     3,
@@ -1099,9 +1099,9 @@ const csmi_struct_node_t csm_switch_attributes_query_history_output_tree[2] = {{
 {"results",offsetof(csm_switch_attributes_query_history_output_t,results),offsetof(csm_switch_attributes_query_history_output_t, results_count),&map_csmi_switch_history_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_switch_attributes_query_history_output_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_query_history_output_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_query_history_output_t ** ptr_cast = *(csm_switch_attributes_query_history_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_history_output_t= {
     2,
@@ -1121,9 +1121,9 @@ const csmi_struct_node_t csm_switch_attributes_update_input_tree[10] = {{"physic
 {"switch_names",offsetof(csm_switch_attributes_update_input_t,switch_names),offsetof(csm_switch_attributes_update_input_t, switch_names_count),NULL,0x4d7c5dca,5}}
 ;
 
-void* cast_csm_switch_attributes_update_input_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_update_input_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_update_input_t ** ptr_cast = *(csm_switch_attributes_update_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_update_input_t= {
     10,
@@ -1136,9 +1136,9 @@ const csmi_struct_node_t csm_switch_attributes_update_output_tree[3] = {{"failur
 {"failure_switches",offsetof(csm_switch_attributes_update_output_t,failure_switches),offsetof(csm_switch_attributes_update_output_t, failure_count),NULL,0xbe921c96,5}}
 ;
 
-void* cast_csm_switch_attributes_update_output_t(void* ptr,size_t index) { 
+void* cast_csm_switch_attributes_update_output_t(void* ptr,size_t index, char isArray) { 
     csm_switch_attributes_update_output_t ** ptr_cast = *(csm_switch_attributes_update_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_update_output_t= {
     3,
@@ -1151,9 +1151,9 @@ const csmi_struct_node_t csm_switch_inventory_collection_input_tree[3] = {{"inve
 {"inventory",offsetof(csm_switch_inventory_collection_input_t,inventory),offsetof(csm_switch_inventory_collection_input_t, inventory_count),&map_csmi_switch_details_t,0xac696ff3,1}}
 ;
 
-void* cast_csm_switch_inventory_collection_input_t(void* ptr,size_t index) { 
+void* cast_csm_switch_inventory_collection_input_t(void* ptr,size_t index, char isArray) { 
     csm_switch_inventory_collection_input_t ** ptr_cast = *(csm_switch_inventory_collection_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_inventory_collection_input_t= {
     3,
@@ -1164,9 +1164,9 @@ const csmi_struct_mapping_t map_csm_switch_inventory_collection_input_t= {
 const csmi_struct_node_t csm_switch_inventory_collection_output_tree[1] = {{"TBD",offsetof(csm_switch_inventory_collection_output_t,TBD),0,NULL,0xb8820ff,68}}
 ;
 
-void* cast_csm_switch_inventory_collection_output_t(void* ptr,size_t index) { 
+void* cast_csm_switch_inventory_collection_output_t(void* ptr,size_t index, char isArray) { 
     csm_switch_inventory_collection_output_t ** ptr_cast = *(csm_switch_inventory_collection_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_inventory_collection_output_t= {
     1,
@@ -1179,9 +1179,9 @@ const csmi_struct_node_t csm_switch_children_inventory_collection_input_tree[3] 
 {"inventory",offsetof(csm_switch_children_inventory_collection_input_t,inventory),offsetof(csm_switch_children_inventory_collection_input_t, inventory_count),&map_csmi_switch_details_t,0xac696ff3,1}}
 ;
 
-void* cast_csm_switch_children_inventory_collection_input_t(void* ptr,size_t index) { 
+void* cast_csm_switch_children_inventory_collection_input_t(void* ptr,size_t index, char isArray) { 
     csm_switch_children_inventory_collection_input_t ** ptr_cast = *(csm_switch_children_inventory_collection_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_input_t= {
     3,
@@ -1192,9 +1192,9 @@ const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_input_t
 const csmi_struct_node_t csm_switch_children_inventory_collection_output_tree[1] = {{"TBD",offsetof(csm_switch_children_inventory_collection_output_t,TBD),0,NULL,0xb8820ff,68}}
 ;
 
-void* cast_csm_switch_children_inventory_collection_output_t(void* ptr,size_t index) { 
+void* cast_csm_switch_children_inventory_collection_output_t(void* ptr,size_t index, char isArray) { 
     csm_switch_children_inventory_collection_output_t ** ptr_cast = *(csm_switch_children_inventory_collection_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_children_inventory_collection_output_t= {
     1,
@@ -1211,9 +1211,9 @@ const csmi_struct_node_t csm_cluster_query_state_input_tree[7] = {{"offset",offs
 {"type",offsetof(csm_cluster_query_state_input_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8}}
 ;
 
-void* cast_csm_cluster_query_state_input_t(void* ptr,size_t index) { 
+void* cast_csm_cluster_query_state_input_t(void* ptr,size_t index, char isArray) { 
     csm_cluster_query_state_input_t ** ptr_cast = *(csm_cluster_query_state_input_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_cluster_query_state_input_t= {
     7,
@@ -1225,9 +1225,9 @@ const csmi_struct_node_t csm_cluster_query_state_output_tree[2] = {{"results_cou
 {"results",offsetof(csm_cluster_query_state_output_t,results),offsetof(csm_cluster_query_state_output_t, results_count),&map_csmi_cluster_query_state_record_t,0x3f2ab7f7,1}}
 ;
 
-void* cast_csm_cluster_query_state_output_t(void* ptr,size_t index) { 
+void* cast_csm_cluster_query_state_output_t(void* ptr,size_t index, char isArray) { 
     csm_cluster_query_state_output_t ** ptr_cast = *(csm_cluster_query_state_output_t***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_cluster_query_state_output_t= {
     2,

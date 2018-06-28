@@ -396,9 +396,9 @@ TREE
 #void* cast_${struct_name}(void* ptr,size_t index) { return ((${struct_name}**)*(${struct_name}**)ptr)[index];}
 #FUNCT
     $cast_funct = << "FUNCT";
-void* cast_${struct_name}(void* ptr,size_t index) { 
+void* cast_${struct_name}(void* ptr,size_t index, char isArray) { 
     ${struct_name} ** ptr_cast = *(${struct_name}***)ptr;
-    return ptr_cast ? ptr_cast[index] : NULL;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 FUNCT
 #void* malloc_${struct_name}(size_t num) {

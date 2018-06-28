@@ -19,7 +19,13 @@
 #include <string.h>
 #include <errno.h>
 #include <stddef.h>
-#include <csm_network_header.h>
+#include <unistd.h>
+#include <malloc.h>
+#include <sys/socket.h>
+
+#include "csm_network_header.h"
+
+
 
 #define CSM_MIN_ERROR_CODE_LEN 8   // max number of digits when error codes are turned into string
 
@@ -59,10 +65,18 @@
 
 #define CSM_LOG_RAW_MSG_LIMIT ( 512 )
 
+
 /** @def CSM_UNIX_CREDENTIAL_LENGTH
- * @bried shortcut for size of credentials in control msg
+ * @brief shortcut for size of credentials in control msg
  */
-#define CSM_UNIX_CREDENTIAL_LENGTH ( CMSG_SPACE( sizeof( struct ucred ) ) )
+#define CSM_UNIX_CREDENTIAL_LENGTH ( CMSG_SPACE( sizeof( uint64_t[3] ) ) )
+
+
+/** @def CSM_PAYLOAD_LIMIT
+ * @brief defines the length of a msg payload reduced by header and other overhead
+ */
+#define CSM_PAYLOAD_LIMIT ( DGRAM_PAYLOAD_MAX - sizeof( csm_network_header_t ) - CSM_UNIX_CREDENTIAL_LENGTH )
+
 
 /** @brief calculates the header checksum over header and data
  *
@@ -138,7 +152,7 @@ int csm_header_validate( csm_network_header_t const *aHeader )
 //  valid &= (aHeader->_MessageID != 0); // messageID = 0 causes the network stack to generate a new one
   valid &= (aHeader->_Flags == ( aHeader->_Flags & CSM_HEADER_FLAGS_MASK ) );
 
-  valid &= ( aHeader->_DataLen < DGRAM_PAYLOAD_MAX - sizeof( csm_network_header_t ) );
+  valid &= ( aHeader->_DataLen < CSM_PAYLOAD_LIMIT );
   valid &= (aHeader->_CheckSum != 0 );
   valid &= (( aHeader->_UserID != CSM_CREDENTIAL_ID_UNKNOWN ) && ( aHeader->_GroupID != CSM_CREDENTIAL_ID_UNKNOWN ));
   // ...

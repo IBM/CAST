@@ -817,11 +817,6 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
-        // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this
-        //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
-        //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
-        //       for an LVKey.
-        // \todo - Not sure if this is the right duration...  @DLH
         while ((!rc) && l_Continue--)
         {
             rc = wrkqmgr.setSuspended(pLVKey, pValue);
@@ -842,25 +837,38 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
 
                 case -2:
                 {
-                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this
-                    //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
-                    //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
-                    //       for an LVKey.
+                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
+                    //       has 'used' the LVKey and required the work queue to be present.  For a resume request, we simply tolerate the
+                    //       situation as any work queue added later for the LVKey/CN hostname will automatically be in the resumed state.
+                    //       Otherwise, for a suspend request, we wait for a total of 2 minutes awaiting an LVKey/work queue to become present.
                     // \todo - Not sure if this is the right duration...  @DLH
-                    if (l_Continue)
+                    if (pValue)
                     {
-                        rc = 0;
-                        unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
+                        // Connection being suspended
+                        if (l_Continue)
                         {
-                            usleep((useconds_t)1000000);    // Delay 1 second
+                            rc = 0;
+                            unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
+                            {
+                                usleep((useconds_t)1000000);    // Delay 1 second
+                            }
+                            lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
                         }
-                        lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
+                        else
+                        {
+                            rc = -1;
+                            LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                          << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
+                                          << ". Failing condition for a suspend operation.";
+                        }
                     }
                     else
                     {
-                        rc = -1;
-                        LOG(bb,error) << "Failure when trying to set suspended value of " << pValue \
-                                      << " for " << *pLVKey;
+                        // Connection being resumed
+                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                     << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
+                                     << ". Tolerated condition for a resume operation.";
+                        break;
                     }
                 }
                 break;

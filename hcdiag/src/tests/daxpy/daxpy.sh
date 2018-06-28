@@ -28,7 +28,7 @@ fi
 # spectrum mpi install
 S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/daxpy
 # clean up os caches as root 1: yes, 0: no
-CLEANUP_OS_CACHES=1
+CLEANUP_OS_CACHES=0
 
 readonly me=${0##*/}
 thishost=`hostname -s`

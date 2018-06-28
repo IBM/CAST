@@ -14,6 +14,49 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 #================================================================================
+
+#------------------------------PROGRAM INFORMATION-------------------------------------#
+#                                                                                      #
+# ufm_collection.py -- a script to collect "counter" data from UFM and store           #
+# it in the BDS.                                                                       #
+#                                                                                      #
+# Authors/Contact:                                                                     #
+# - John Dunham - Email: jdunham@us.ibm.com                                            #
+# - Nick Buonarota - Email: nbuonar@us.ibm.com                                         #
+#                                                                                      #
+# Purpose: Simple script that is packaged with BDS. Can be run individually and        #
+# independantly when ever called upon.                                                 #
+#                                                                                      #
+# Usage:                                                                               #
+# - Run the program.                                                                   #
+#   - pass in parameters.                                                              #
+#      - REQUIRED [--ufm] : This tells program where UFM is (an IP address)            #
+#      - REQUIRED [--logstash] : This tells program where logstash is (an IP address)  #
+#      - OPTIONAL [--logstash-port] : This specifies the port for logstash             #
+#      - OPTIONAL [--ufm_restAPI_args-attributes] : attributes for ufm restAPI         #
+#        - CSV                                                                         #
+#          Example:                                                                    #
+#            - Value1                                                                  #
+#            - Value1,Value2                                                           #
+#      - OPTIONAL [--ufm_restAPI_args-functions] : functions for ufm restAPI           #
+#        - CSV                                                                         #
+#      - OPTIONAL [--ufm_restAPI_args-scope_object] : scope_object for ufm restAPI     #
+#        - single string                                                               #
+#      - OPTIONAL [--ufm_restAPI_args-interval] : interval for ufm restAPI             #
+#        - int                                                                         #
+#      - OPTIONAL [--ufm_restAPI_args-monitor_object] : monitor_object for ufm restAPI #
+#        - single string                                                               #
+#      - OPTIONAL [--ufm_restAPI_args-objects] : objects for ufm restAPI               #
+#        - CSV                                                                         #
+#      FOR ALL ufm_restAPI related arguments:                                          #
+#        - see ufm restAPI for documentation                                           #
+#        - json format                                                                 #
+#        - program provides default value if no user provides                          #
+# - Data is collected from UFM restAPI, then copied into BDS.                          #
+# - When program is finished, a record should appear in the BDS.                       #
+#                                                                                      #
+#--------------------------------------------------------------------------------------#
+
 import socket
 import json
 import sys
@@ -22,24 +65,35 @@ import getopt
 from urllib import urlencode
 import urllib2
 
+# Defaults for ufm restAPI - overridden by user options if provided.
 ''' The default payload for requests.'''
 POST_PAYLOAD= {
-    "attributes"    : [ "Infiniband_MBOut", "Infiniband_MBOutRate", "Infiniband_MBIn",
-        "Infiniband_MBInRate", "Infiniband_PckOut","Infiniband_PckOutRate","Infiniband_PckIn",
-        "Infiniband_PckInRate","Infiniband_RcvErrors","Infiniband_RcvErrors_Delta",
-        "Infiniband_XmtDiscards","Infiniband_XmtDiscards_Delta","Infiniband_SymbolErrors",
-        "Infiniband_SymbolErrors_Delta","Infiniband_LinkRecovers", "Infiniband_LinkRecovers_Delta",
-        "Infiniband_LinkDowned","Infiniband_LinkDowned_Delta","Infiniband_LinkIntegrityErrors",
-
-        "Infiniband_LinkIntegrityErrors_Delta","Infiniband_RcvRemotePhysErrors",
-        "Infiniband_RcvRemotePhysErrors_Delta","Infiniband_XmtConstraintErrors",
-        "Infiniband_XmtConstraintErrors_Delta","Infiniband_RcvConstraintErrors",
-        "Infiniband_RcvConstraintErrors_Delta","Infiniband_ExcBufOverrunErrors",
-        "Infiniband_ExcBufOverrunErrors_Delta","Infiniband_RcvSwRelayErrors",
-        "Infiniband_RcvSwRelayErrors_Delta","Infiniband_VL15Dropped",
-
-        "Infiniband_VL15Dropped_Delta","Infiniband_XmitWait","Infiniband_CumulativeErrors",
-        "Infiniband_CBW","Infiniband_Normalized_MBOut","Infiniband_Normalized_CBW",
+    "attributes"    : [ 
+        "Infiniband_MBOut", 
+        "Infiniband_MBOutRate", 
+        "Infiniband_MBIn",
+        "Infiniband_MBInRate", 
+        "Infiniband_PckOut",
+        "Infiniband_PckOutRate",
+        "Infiniband_PckIn",
+        "Infiniband_PckInRate",
+        "Infiniband_RcvErrors",
+        "Infiniband_XmtDiscards",
+        "Infiniband_SymbolErrors",
+        "Infiniband_LinkRecovers",
+        "Infiniband_LinkDowned",
+        "Infiniband_LinkIntegrityErrors",
+        "Infiniband_RcvRemotePhysErrors",
+        "Infiniband_XmtConstraintErrors",
+        "Infiniband_RcvConstraintErrors",
+        "Infiniband_ExcBufOverrunErrors",
+        "Infiniband_RcvSwRelayErrors",
+        "Infiniband_VL15Dropped",
+        "Infiniband_XmitWait",
+        "Infiniband_CumulativeErrors",
+        "Infiniband_CBW",
+        "Infiniband_Normalized_MBOut",
+        "Infiniband_Normalized_CBW",
         "Infiniband_NormalizedXW" ],
     "functions"     : [ "RAW" ],
     "scope_object"  : "Site",
@@ -52,10 +106,21 @@ POST_PAYLOAD= {
 SNAPSHOT_URL = 'http://%s/ufmRest/monitoring/snapshot'
 
 SHORT_OPTS=[]
-LONG_OPTS=["ufm=", "logstash=", "logstash-port="]
+LONG_OPTS=[
+"ufm=", 
+"logstash=", 
+"logstash-port=", 
+"ufm_restAPI_args-attributes=",
+"ufm_restAPI_args-functions=",
+"ufm_restAPI_args-scope_object=",
+"ufm_restAPI_args-interval=",
+"ufm_restAPI_args-monitor_object=",
+"ufm_restAPI_args-objects="
+]
 
 def main(args):
     
+    # Variables to hold the user options
     ufm_url=None
     logstash=None
     logstash_port=10522
@@ -74,6 +139,18 @@ def main(args):
             logstash=a
         elif o in ("--logstash-port"):
             logstash_port=a
+        elif o in ("--ufm_restAPI_args-attributes"):
+            POST_PAYLOAD["attributes"]=a.split(',')
+        elif o in ("--ufm_restAPI_args-functions"):
+            POST_PAYLOAD["functions"]=a.split(',')
+        elif o in ("--ufm_restAPI_args-scope_object"):
+            POST_PAYLOAD["scope_object"]=a
+        elif o in ("--ufm_restAPI_args-interval"):
+            POST_PAYLOAD["interval"]=a
+        elif o in ("--ufm_restAPI_args-monitor_object"):
+            POST_PAYLOAD["monitor_object"]=a
+        elif o in ("--ufm_restAPI_args-objects"):
+            POST_PAYLOAD["objects"]=a.split(',')
     
     if ( ufm_url == None or logstash == None ):
         print( "Script requires both `ufm` and `logstash` to be set" )

@@ -356,8 +356,16 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
         LOG(csmd, debug) << "dcgmFieldGroupCreate was successful";
     }
 
+    // Create DCGM Field Groups used internally by CSM
     // Create the DCGM Field Group used for collecting data during allocation create and delete
-    CreateCsmAllocationFieldGroup();
+    bool success(false);
+    success = CreateCsmFieldGroup(CSM_ALLOCATION_FIELD_COUNT, CSM_ALLOCATION_FIELDS, CSM_ALLOCATION_FIELD_GROUP, &csm_allocation_field_group_handle);
+    if (success == false)
+    {
+        dcgm_init_flag = false;
+        dcgm_used_flag = false;
+        return;
+    }
 
     // watcher, necessary for the manual update, at this moment update fields every 1000 secs (1000000000 us), keep them for 10 secs, and only 1 sample per field
     // watcher, necessary for the manual update, at this moment update fields every   60 secs (  60000000 us), keep them for 45 secs, and only 1 sample per field
@@ -1035,31 +1043,28 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
    return true;
 }
 
- 
-bool csm::daemon::INV_DCGM_ACCESS::CreateCsmAllocationFieldGroup()
+bool csm::daemon::INV_DCGM_ACCESS::CreateCsmFieldGroup(const uint32_t field_count, uint16_t fields[], char* field_group_name,
+   dcgmFieldGrp_t* field_group_handle)
 {
    // Check for successful initialization
 
-   LOG(csmenv, debug) << "CSM_ALLOCATION_FIELD_COUNT=" << CSM_ALLOCATION_FIELD_COUNT;
+   LOG(csmenv, debug) << field_group_name << " field_count=" << field_count;
 
    dcgmReturn_t rc(DCGM_ST_OK);
-   rc = (*dcgmFieldGroupCreate_ptr)(dcgm_handle, CSM_ALLOCATION_FIELD_COUNT, CSM_ALLOCATION_FIELDS, CSM_ALLOCATION_FIELD_GROUP, 
-                                    &csm_allocation_field_group_handle);
+   rc = (*dcgmFieldGroupCreate_ptr)(dcgm_handle, field_count, fields, field_group_name, field_group_handle);
    if (rc != DCGM_ST_OK)
    {
       LOG(csmenv, error) << "Error: dcgmFieldGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
-      //dcgm_init_flag = false;
-      //dcgm_used_flag = false;
       return false;
    }
    else 
    {
-      LOG(csmenv, debug) << "dcgmFieldGroupCreate was successful, csm_allocation_field_group_handle=" << csm_allocation_field_group_handle;
+      LOG(csmenv, debug) << "dcgmFieldGroupCreate was successful, " << field_group_name << " field_group_handle=" << field_group_handle;
       return true;
    }
 }
 
-bool csm::daemon::INV_DCGM_ACCESS::DeleteCsmAllocationFieldGroup()
+bool csm::daemon::INV_DCGM_ACCESS::DeleteCsmFieldGroup()
 {
    return true;
 }
