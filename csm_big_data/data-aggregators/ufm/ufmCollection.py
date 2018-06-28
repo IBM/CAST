@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    ufm_collection.py
+#    ufmCollection.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -17,7 +17,7 @@
 
 #------------------------------PROGRAM INFORMATION-------------------------------------#
 #                                                                                      #
-# ufm_collection.py -- a script to collect "counter" data from UFM and store           #
+# ufmCollection.py -- a script to collect "counter" data from UFM and store           #
 # it in the BDS.                                                                       #
 #                                                                                      #
 # Authors/Contact:                                                                     #
@@ -105,8 +105,9 @@ POST_PAYLOAD= {
 ''' The snapshot uri.'''
 SNAPSHOT_URL = 'http://%s/ufmRest/monitoring/snapshot'
 
-SHORT_OPTS=[]
+SHORT_OPTS="h"
 LONG_OPTS=[
+"help",
 "ufm=", 
 "logstash=", 
 "logstash-port=", 
@@ -117,6 +118,37 @@ LONG_OPTS=[
 "ufm_restAPI_args-monitor_object=",
 "ufm_restAPI_args-objects="
 ]
+
+USAGE = '''
+ Purpose: Simple script that is packaged with BDS. Can be run individually and        
+ independantly when ever called upon.                                                 
+                                                                                      
+ Usage:                                                                               
+ - Run the program.                                                                   
+   - pass in parameters.                                                              
+      - REQUIRED [--ufm] : This tells program where UFM is (an IP address)            
+      - REQUIRED [--logstash] : This tells program where logstash is (an IP address)  
+      - OPTIONAL [--logstash-port] : This specifies the port for logstash             
+      - OPTIONAL [--ufm_restAPI_args-attributes] : attributes for ufm restAPI         
+        - CSV                                                                         
+          Example:                                                                    
+            - Value1                                                                  
+            - Value1,Value2                                                           
+      - OPTIONAL [--ufm_restAPI_args-functions] : functions for ufm restAPI           
+        - CSV                                                                         
+      - OPTIONAL [--ufm_restAPI_args-scope_object] : scope_object for ufm restAPI     
+        - single string                                                               
+      - OPTIONAL [--ufm_restAPI_args-interval] : interval for ufm restAPI             
+        - int                                                                         
+      - OPTIONAL [--ufm_restAPI_args-monitor_object] : monitor_object for ufm restAPI 
+        - single string                                                               
+      - OPTIONAL [--ufm_restAPI_args-objects] : objects for ufm restAPI               
+        - CSV                                                                         
+      FOR ALL ufm_restAPI related arguments:                                          
+        - see ufm restAPI for documentation                                           
+        - json format                                                                 
+        - program provides default value if no user provides                          
+'''
 
 def main(args):
     
@@ -130,10 +162,14 @@ def main(args):
         opts, optargs = getopt.getopt(args[1:], SHORT_OPTS, LONG_OPTS)
     except getopt.GetoptError as err:
         print("Invalid option detected: %s", err)
+        print(USAGE)
         return 1
     
     for o,a in opts:
-        if o in ("--ufm"):
+        if o in ("-h", "--help"):
+            print(USAGE)
+            return 1
+        elif o in ("--ufm"):
             ufm_url= SNAPSHOT_URL % a
         elif o in ("--logstash"):
             logstash=a
@@ -191,7 +227,7 @@ def main(args):
         sources = data[timestamp]["Port"]
     
         for source in sources:
-            sources[source]['type']      = 'ufm-counters'
+            sources[source]['type']      = 'counters-ufm'
             sources[source]['timestamp'] = timestamp
             sources[source]['source']    = source
             payload += json.dumps(sources[source], indent=0, separators=(',', ':')).replace('\n','')+ '\n'

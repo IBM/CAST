@@ -458,9 +458,66 @@ In the default configuration of this script records will be shipped as `JSONData
 UFM
 ***
 
-.. attention:: This section is currently a work in progress.
+:CAST RPM: `ibm-csm-bds-*.noarch.rpm`
+:Script Location: `/opt/ibm/csm/bigdata/data-aggregators/ufmCollector.py`
 
-.. note:: The CAST team is currently in the process of reviewing the aggregation methodology.
+CAST provides a python script to gather UFM counter data. The script is intended to be run
+from either a service node running logstash or the UFM node as a cron job. A description of 
+the script from the help functionality is reproduced below:
+
+.. code-block:: none
+
+ Purpose: Simple script that is packaged with BDS. Can be run individually and
+ independantly when ever called upon.
+
+ Usage:
+ - Run the program.
+   - pass in parameters.
+      - REQUIRED [--ufm] : This tells program where UFM is (an IP address)
+      - REQUIRED [--logstash] : This tells program where logstash is (an IP address)
+      - OPTIONAL [--logstash-port] : This specifies the port for logstash
+      - OPTIONAL [--ufm_restAPI_args-attributes] : attributes for ufm restAPI
+        - CSV
+          Example:
+            - Value1
+            - Value1,Value2
+      - OPTIONAL [--ufm_restAPI_args-functions] : functions for ufm restAPI
+        - CSV
+      - OPTIONAL [--ufm_restAPI_args-scope_object] : scope_object for ufm restAPI
+        - single string
+      - OPTIONAL [--ufm_restAPI_args-interval] : interval for ufm restAPI
+        - int
+      - OPTIONAL [--ufm_restAPI_args-monitor_object] : monitor_object for ufm restAPI
+        - single string
+      - OPTIONAL [--ufm_restAPI_args-objects] : objects for ufm restAPI
+        - CSV
+      FOR ALL ufm_restAPI related arguments:
+        - see ufm restAPI for documentation
+        - json format
+        - program provides default value if no user provides
+
+
+The recommended cron configuration for this script is as follows:
+
+.. code-block:: bash
+
+   */10 * * * * /opt/ibm/csm/bigdata/data-aggregators/ufmCollector.py
+
+The output of this script is a newline delimited list of JSON designed for easy ingestion by the 
+logstash pipeline. A sample from the default script configuration is as follows:
+
+.. code-block:: javascript
+
+    {
+        "type": "counters-ufm",
+        "source": "port2",
+        "statistics": {
+           ... 
+        },
+        "timestamp": 1529960640
+    }
+
+In the default configuration of this script records will be shipped as `JSONDataSources`_.
 
 .. _JSONDataSources:
 

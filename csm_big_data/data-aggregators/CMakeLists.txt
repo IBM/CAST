@@ -19,8 +19,8 @@ set(SUBDIR data-aggregators)
 # Files that should be executable when shipped
 file(GLOB INSTALL_PROGRAMS
     "gpfs/zimonCollector.py"
-    "ufm/ufm_collection.py"
-    "ufm/ufm_config.sh"
+    "ufm/ufmCollection.py"
+    "ufm/ufmConfig.sh"
 )
 
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
