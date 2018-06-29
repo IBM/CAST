@@ -411,6 +411,14 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    {
       "PWRSYS",
    };   
+   
+   const std::list<std::string> chip_sensors =
+   {
+      "PWRPROC",
+      "PWRGPU",
+      "PWRMEM",
+      "TEMPNEST"
+   };   
  
    const std::list<std::string> dimm_sensors =
    {
@@ -427,8 +435,11 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    // Generate the value map for the query.
    std::unordered_map<std::string, csm::daemon::helper::CsmOCCSensorRecord> request_map =
    {
-      {"PWRSYS"      , {0,0,0,0}},
-      {"PWRGPU"      , {0,0,0,0}},
+      {"PWRSYS",       {0,0,0,0}},
+      {"PWRPROC",      {0,0,0,0}},
+      {"PWRGPU",       {0,0,0,0}},
+      {"PWRMEM",       {0,0,0,0}},
+      {"TEMPNEST",     {0,0,0,0}},
       {"TEMPDIMM02",   {0,0,0,0}},
       {"TEMPDIMM03",   {0,0,0,0}},
       {"TEMPDIMM04",   {0,0,0,0}},
@@ -442,8 +453,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       {"TEMPGPU1",     {0,0,0,0}},
       {"TEMPGPU1MEM",  {0,0,0,0}},
       {"TEMPGPU2",     {0,0,0,0}},
-      {"TEMPGPU2MEM",  {0,0,0,0}},
-      //{"TEMPNEST",   {0,0,0,0}},
+      {"TEMPGPU2MEM",  {0,0,0,0}}
       //{"TEMPPROCTHRMC00", {0,0,0,0}},
       //{"TEMPPROCTHRMC01", {0,0,0,0}},
       //{"TEMPPROCTHRMC02", {0,0,0,0}},
@@ -517,8 +527,62 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
                _data_list.push_back(node_pt);
             }
          }     
+         
+         // Processor socket level data
+         boost::property_tree::ptree chip_pt;
+         chip_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_PROCESSOR_ENV);
+         bool has_chip_data(false);        
 
-         // Dimm data 
+         // lambda used to insert chip id data as the first elements in data when a sensor match occurs 
+         auto check_and_insert_chip_id_fields = [&]()
+         {
+            if (!has_chip_data)
+            {
+               has_chip_data = true;
+               chip_pt.put( "data.processor_id", std::to_string(chip) );
+               //chip_pt.put( "data.serial_number", "ABC123" );
+            }
+         };
+
+         for (auto chip_itr = chip_sensors.begin(); chip_itr != chip_sensors.end(); chip_itr++)
+         {
+            auto occ_itr = current_values[chip].find(*chip_itr);
+            if (occ_itr != current_values[chip].end())
+            {
+               if (*chip_itr == "PWRPROC")
+               {
+                  check_and_insert_chip_id_fields();
+                  //chip_pt.put( "data.processor_power", std::to_string(occ_itr->second.sample) );
+                  chip_pt.put( "data.processor_energy", std::to_string(occ_itr->second.accumulator) );
+               }
+               else if (*chip_itr == "PWRGPU")
+               {
+                  check_and_insert_chip_id_fields();
+                  //chip_pt.put( "data.gpu_power", std::to_string(occ_itr->second.sample) );
+                  chip_pt.put( "data.gpu_energy", std::to_string(occ_itr->second.accumulator) );
+               }
+               else if (*chip_itr == "PWRMEM")
+               {
+                  check_and_insert_chip_id_fields();
+                  //chip_pt.put( "data.memory_power", std::to_string(occ_itr->second.sample) );
+                  chip_pt.put( "data.memory_energy", std::to_string(occ_itr->second.accumulator) );
+               }
+               else if (*chip_itr == "TEMPNEST")
+               {
+                  check_and_insert_chip_id_fields();
+                  chip_pt.put( "data.processor_temp", std::to_string(occ_itr->second.sample) );
+                  chip_pt.put( "data.processor_temp_min", std::to_string(occ_itr->second.csm_min) );
+                  chip_pt.put( "data.processor_temp_max", std::to_string(occ_itr->second.csm_max) );
+               }
+            }
+         }
+
+         if (has_chip_data)
+         {
+            _data_list.push_back(chip_pt);
+         }
+         
+         // Dimm level data 
          for (auto dimm_itr = dimm_sensors.begin(); dimm_itr != dimm_sensors.end(); dimm_itr++)
          {
             boost::property_tree::ptree dimm_pt;
@@ -550,27 +614,6 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       }
    }
 
-   // Processor socket level data
-   const int MAX_CHIP(2);
-   
-   for (int chip = 0; chip < MAX_CHIP; chip++)
-   {
-      boost::property_tree::ptree chip_pt;
-      
-      chip_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_PROCESSOR_ENV);
-      chip_pt.put( "data.processor_id", std::to_string(chip) );
-      chip_pt.put( "data.serial_number", "ABC123" );
-      
-      chip_pt.put( "data.processor_energy", "44444" );
-      chip_pt.put( "data.processor_temp", "23" );
-      chip_pt.put( "data.processor_temp_min", "20" );
-      chip_pt.put( "data.processor_temp_max", "27" );
-      //chip_pt.put( "data.gpu_energy", "22222" );
-      //chip_pt.put( "data.mem_energy", "11111" );
-   
-      _data_list.push_back(chip_pt);
-   }   
-   
    // GPU level data
    const int MAX_GPU(6);
    
