@@ -493,34 +493,30 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
 
       for (uint32_t chip = 0; chip < current_values.size(); chip++)
       {
-         // Node level data
+         // Node level data (full system sensors are associated with chip 0 by OCC)
          if (chip == 0)
          {
-            bool found_node_value(false);
+            boost::property_tree::ptree node_pt;
+            node_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_NODE_ENV);
 
             for (auto node_itr = node_sensors.begin(); node_itr != node_sensors.end(); node_itr++)
             {
-               boost::property_tree::ptree node_pt;
-               node_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_NODE_ENV);
-               
                auto occ_itr = current_values[chip].find(*node_itr);
                if (occ_itr != current_values[chip].end())
                {
-                  found_node_value = true;
-
                   if (*node_itr == "PWRSYS")
-                  { 
+                  {
                      //node_pt.put( "data.system_power", std::to_string(occ_itr->second.sample) );
                      node_pt.put( "data.system_energy", std::to_string(occ_itr->second.accumulator) );
                   }
                }
-   
-               if (found_node_value)
-               {
-                  _data_list.push_back(node_pt);
-               }
             }
-         }         
+
+            if (node_pt.count("data") > 0)
+            {
+               _data_list.push_back(node_pt);
+            }
+         }     
 
          // Dimm data 
          for (auto dimm_itr = dimm_sensors.begin(); dimm_itr != dimm_sensors.end(); dimm_itr++)
@@ -554,9 +550,6 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       }
    }
 
-   // Sample data for environmental data collection json        
-   
-   
    // Processor socket level data
    const int MAX_CHIP(2);
    
