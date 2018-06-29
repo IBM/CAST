@@ -257,11 +257,13 @@ class WRKQMGR
         declareServerDeadCount(0),
         numberOfWorkQueueItemsProcessed(0),
         lastDumpedNumberOfWorkQueueItemsProcessed(0),
-        offsetToNextAsyncRequest(0)
+        offsetToNextAsyncRequest(0),
+        lastOffsetProcessed(0)
         {
             lastQueueProcessed = LVKey();
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
+            outOfOrderOffsets = vector<uint64_t>();
             lockPinned = 0;
             checkForCanceledExtents = 0;
             transferQueueLocked = 0;
@@ -302,6 +304,11 @@ class WRKQMGR
     }
 
     // Inlined non-static methods
+
+    inline int crossingAsyncFileBoundary(const uint64_t pOffset)
+    {
+        return (pOffset > MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 1 : 0);
+    }
 
     inline int delayMessageSent()
     {
@@ -394,6 +401,32 @@ class WRKQMGR
 
         return;
     }
+
+    inline void incrementNumberOfHP_WorkItemsProcessed(const uint64_t pOffset)
+    {
+        HPWrkQE->incrementNumberOfWorkItemsProcessed();
+        lastOffsetProcessed = pOffset;
+
+        return;
+    };
+
+    inline void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
+    {
+        if (pWrkQE != HPWrkQE)
+        {
+            // Not the high priority work queue.
+            // Simply, increment the number of work items processed.
+            pWrkQE->incrementNumberOfWorkItemsProcessed();
+        }
+        else
+        {
+            // For the high priority work queue, we have to manage
+            // how work items are recorded as being complete.
+            manageWorkItemsProcessed(pWorkItem);
+        }
+
+        return;
+    };
 
     inline int inThrottleMode()
     {
@@ -517,6 +550,7 @@ class WRKQMGR
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
     void loadBuckets();
     void lock(const LVKey* pLVKey, const char* pMethod);
+    void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const int pMaintenanceOption=NO_MAINTENANCE);
     void pinLock(const LVKey* pLVKey, const char* pMethod);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
@@ -558,10 +592,12 @@ class WRKQMGR
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;
+    volatile uint64_t   lastOffsetProcessed;
     LVKey               lastQueueProcessed;
 
     map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;
+    vector<uint64_t>    outOfOrderOffsets;
   private:
     int                 lockPinned;
     int                 checkForCanceledExtents;
