@@ -49,12 +49,12 @@ if [ "$run_level" -eq  "4" ] || [ "$run_level" -eq  "5" ]; then
      # Single Precision
      sdir="${sdir}/${thishost}_s"
      ddir="${ddir}/${thishost}_s"
-     args="-r 3 -j --statspath ${sdir} --debugLogFile ${ddir}/dcgm_log -v -d 5" 
+     args="-r 3 -j --statspath ${sdir} --debugLogFile ${ddir}/dcgm.debug -v -d 5" 
   else
      #Double Precision
      sdir="${sdir}/${thishost}_d"
      ddir="${ddir}/${thishost}_d"
-     args="-r diagnostic --parameters Diagnostic.use_doubles=True --statspath ${sdir} --debugLogFile ${ddir}/dcgm.log -v -d 5"
+     args="-r diagnostic --parameters Diagnostic.use_doubles=True --statspath ${sdir} --debugLogFile ${ddir}/dcgm.debug -v -d 5"
   fi
   mkdir -p $sdir
   if [ $? -ne 0 ]; then "ERROR: can't not create $sdir directory."; echo "$me test FAIL, rc=1"; exit 1; fi  
