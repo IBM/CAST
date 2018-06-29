@@ -133,13 +133,15 @@ void processAsyncRequest(WorkID& pWorkItem)
                 if (strstr(l_Cmd, "heartbeat"))
                 {
                     l_LogAsInfo = false;
-                    LOG(bb,debug) << "Start processing async request: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                    LOG(bb,debug) << "                                Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " now being processed";
+                    LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                  << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
                 else
                 {
-                    LOG(bb,info) << "Start processing async request: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                    LOG(bb,info) << "                                Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " now being processed";
+                    LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                 << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
 
                 rc = 0;
@@ -170,7 +172,7 @@ void processAsyncRequest(WorkID& pWorkItem)
                         LOG(bb,error) << "Invalid data indicating type of cancel operation from request data " << l_Request.getData() << " to this bbServer";
                     }
 
-                    // NOTE: The rc value could be retunred as position indicating a non-error...
+                    // NOTE: The rc value could be returned as position indicating a non-error...
                     if (rc < 0)
                     {
                         LOG(bb,error) << "Failure when attempting to propagate cancel operation " << l_Request.getData() << " to this bbServer, rc=" << rc;
@@ -242,12 +244,13 @@ void processAsyncRequest(WorkID& pWorkItem)
 
             if (l_LogAsInfo)
             {
-                LOG(bb,info) << "End processing async request. Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " finished being processed";
-
+                LOG(bb,info) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                             << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
             }
             else
             {
-                LOG(bb,debug) << "End processing async request. Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " finished being processed";
+                LOG(bb,debug) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                              << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
             }
         }
         else
@@ -1563,7 +1566,7 @@ void* transferWorker(void* ptr)
                             // Process the async request
                             processAsyncRequest(l_WorkItem);
                         }
-                        l_WrkQE->incrementNumberOfWorkItemsProcessed();
+                        wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
                     }
                     else
                     {
