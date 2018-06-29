@@ -419,6 +419,13 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       "PWRMEM",
       "TEMPNEST"
    };   
+   
+   const std::list<std::list<std::string>> gpu_sensors =
+   {
+      { "TEMPGPU0", "TEMPGPU0MEM" }, // GPU 0
+      { "TEMPGPU1", "TEMPGPU1MEM" }, // GPU 1
+      { "TEMPGPU2", "TEMPGPU2MEM" }  // GPU 2
+   };   
  
    const std::list<std::string> dimm_sensors =
    {
@@ -440,6 +447,12 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       {"PWRGPU",       {0,0,0,0}},
       {"PWRMEM",       {0,0,0,0}},
       {"TEMPNEST",     {0,0,0,0}},
+      {"TEMPGPU0",     {0,0,0,0}},
+      {"TEMPGPU0MEM",  {0,0,0,0}},
+      {"TEMPGPU1",     {0,0,0,0}},
+      {"TEMPGPU1MEM",  {0,0,0,0}},
+      {"TEMPGPU2",     {0,0,0,0}},
+      {"TEMPGPU2MEM",  {0,0,0,0}},
       {"TEMPDIMM02",   {0,0,0,0}},
       {"TEMPDIMM03",   {0,0,0,0}},
       {"TEMPDIMM04",   {0,0,0,0}},
@@ -447,48 +460,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       {"TEMPDIMM10",   {0,0,0,0}},
       {"TEMPDIMM11",   {0,0,0,0}},
       {"TEMPDIMM12",   {0,0,0,0}},
-      {"TEMPDIMM13",   {0,0,0,0}},
-      {"TEMPGPU0",     {0,0,0,0}},
-      {"TEMPGPU0MEM",  {0,0,0,0}},
-      {"TEMPGPU1",     {0,0,0,0}},
-      {"TEMPGPU1MEM",  {0,0,0,0}},
-      {"TEMPGPU2",     {0,0,0,0}},
-      {"TEMPGPU2MEM",  {0,0,0,0}}
-      //{"TEMPPROCTHRMC00", {0,0,0,0}},
-      //{"TEMPPROCTHRMC01", {0,0,0,0}},
-      //{"TEMPPROCTHRMC02", {0,0,0,0}},
-      //{"TEMPPROCTHRMC03", {0,0,0,0}},
-      //{"TEMPPROCTHRMC04", {0,0,0,0}},
-      //{"TEMPPROCTHRMC05", {0,0,0,0}},
-      //{"TEMPPROCTHRMC06", {0,0,0,0}},
-      //{"TEMPPROCTHRMC07", {0,0,0,0}},
-      //{"TEMPPROCTHRMC08", {0,0,0,0}},
-      //{"TEMPPROCTHRMC09", {0,0,0,0}},
-      //{"TEMPPROCTHRMC10", {0,0,0,0}},
-      //{"TEMPPROCTHRMC11", {0,0,0,0}},
-      //{"TEMPPROCTHRMC12", {0,0,0,0}},
-      //{"TEMPPROCTHRMC13", {0,0,0,0}},
-      //{"TEMPPROCTHRMC14", {0,0,0,0}},
-      //{"TEMPPROCTHRMC15", {0,0,0,0}},
-      //{"TEMPPROCTHRMC16", {0,0,0,0}},
-      //{"TEMPPROCTHRMC17", {0,0,0,0}},
-      //{"TEMPPROCTHRMC18", {0,0,0,0}},
-      //{"TEMPPROCTHRMC19", {0,0,0,0}},
-      //{"TEMPPROCTHRMC20", {0,0,0,0}},
-      //{"TEMPPROCTHRMC21", {0,0,0,0}},
-      //{"TEMPPROCTHRMC22", {0,0,0,0}},
-      //{"TEMPPROCTHRMC23", {0,0,0,0}},
-      //{"TEMPVDD", {0,0,0,0}}
-      
-      // Sensors not in use
-//    {"TEMPDIMM00", {0,0,0,0}},
-//    {"TEMPDIMM01", {0,0,0,0}},
-//    {"TEMPDIMM06", {0,0,0,0}},
-//    {"TEMPDIMM07", {0,0,0,0}},
-//    {"TEMPDIMM08", {0,0,0,0}},
-//    {"TEMPDIMM09", {0,0,0,0}},
-//    {"TEMPDIMM14", {0,0,0,0}},
-//    {"TEMPDIMM15", {0,0,0,0}},
+      {"TEMPDIMM13",   {0,0,0,0}}
    };
 
    // Query and check for success.
@@ -499,6 +471,7 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
 
    if (success)
    {
+      uint8_t gpu_id(0);
       uint8_t dimm_id(0);
 
       for (uint32_t chip = 0; chip < current_values.size(); chip++)
@@ -581,7 +554,55 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
          {
             _data_list.push_back(chip_pt);
          }
-         
+        
+         // GPU level data
+         for (auto gpu_itr = gpu_sensors.begin(); gpu_itr != gpu_sensors.end(); gpu_itr++)
+         {
+            boost::property_tree::ptree gpu_pt;
+            gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU_ENV);
+            bool has_gpu_data(false);        
+
+            // lambda used to insert gpu id data as the first elements in data when a sensor match occurs 
+            auto check_and_insert_gpu_id_fields = [&]()
+            {
+               if (!has_gpu_data)
+               {
+                  has_gpu_data = true;
+                  gpu_pt.put( "data.gpu_id", std::to_string(gpu_id) );
+                  //gpu_pt.put( "data.serial_number", "ABC123" );
+               }
+            };
+
+            for (auto sensor_itr = gpu_itr->begin(); sensor_itr != gpu_itr->end(); sensor_itr++)
+            {
+               auto occ_itr = current_values[chip].find(*sensor_itr);
+               if (occ_itr != current_values[chip].end())
+               {
+                  if ( (*sensor_itr == "TEMPGPU0") || (*sensor_itr == "TEMPGPU1") || (*sensor_itr == "TEMPGPU2") ) 
+                  {
+                     check_and_insert_gpu_id_fields();
+                     gpu_pt.put( "data.gpu_temp", std::to_string(occ_itr->second.sample) );
+                     gpu_pt.put( "data.gpu_temp_min", std::to_string(occ_itr->second.csm_min) );
+                     gpu_pt.put( "data.gpu_temp_max", std::to_string(occ_itr->second.csm_max) );
+                  }
+                  else if ( (*sensor_itr == "TEMPGPU0MEM") || (*sensor_itr == "TEMPGPU1MEM") || (*sensor_itr == "TEMPGPU2MEM") ) 
+                  {
+                     check_and_insert_gpu_id_fields();
+                     gpu_pt.put( "data.gpu_mem_temp", std::to_string(occ_itr->second.sample) );
+                     gpu_pt.put( "data.gpu_mem_temp_min", std::to_string(occ_itr->second.csm_min) );
+                     gpu_pt.put( "data.gpu_mem_temp_max", std::to_string(occ_itr->second.csm_max) );
+                  }
+               }
+            }
+      
+            if (has_gpu_data)
+            {
+               _data_list.push_back(gpu_pt);
+            }
+            
+            gpu_id++;
+         }
+ 
          // Dimm level data 
          for (auto dimm_itr = dimm_sensors.begin(); dimm_itr != dimm_sensors.end(); dimm_itr++)
          {
@@ -614,27 +635,6 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       }
    }
 
-   // GPU level data
-   const int MAX_GPU(6);
-   
-   for (int gpu = 0; gpu < MAX_GPU; gpu++)
-   {
-      boost::property_tree::ptree gpu_pt;
-      
-      gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU_ENV);
-      gpu_pt.put( "data.gpu_id", std::to_string(gpu) );
-      gpu_pt.put( "data.serial_number", "ABC123" );
-         
-      gpu_pt.put( "data.gpu_temp", "23" );
-      gpu_pt.put( "data.gpu_temp_min", "20" );
-      gpu_pt.put( "data.gpu_temp_max", "27" );
-      gpu_pt.put( "data.gpu_mem_temp", "23" );
-      gpu_pt.put( "data.gpu_mem_temp_min", "20" );
-      gpu_pt.put( "data.gpu_mem_temp_max", "27" );
-      
-      _data_list.push_back(gpu_pt);
-   } 
-   
    LOG(csmenv, debug) << "Finish Collect_Environmental_Data()";
 
    return success;
