@@ -26,7 +26,9 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 fi
 
 # spectrum mpi install
-S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu
+MPI_ROOT=/opt/ibm/spectrum_mpi
+S_BINDIR=$MPI_ROOT/healthcheck/dgemm_gpu
+#S_BINDIR=$MPI_ROOT/healthcheck/mpirun_scripts/dgemm_gpu
 
 readonly me=${0##*/}
 thishost=`hostname -s`
@@ -75,12 +77,16 @@ mkdir $tmpdir
 output_dir=$tmpdir
 eye_catcher="PERFORMANCE SUCCESS:"
 
+
 # check if we need jsmd
 need_jsmd=`grep -c "jsrun " $S_BINDIR/run.dgemm_gpu`
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
+   export PATH=$MPI_ROOT/bin:$MPI_ROOT/jsm_pmix/bin:$PATH
+   export CSM_ALLOCATION_ID=5
+   export JSM_DISABLE_CSM="92E1FD45-1251-40EE-9B04-93628E03EB46"
    # check if we there is jsm daemon running
-   run_flag=""
+   run_flag="-g $ngpus"
    is_running=`/usr/bin/pgrep jsmd`
    if [ -z "$is_running" ]; then 
       # not running, need to create a host.file, just with the hostname
@@ -90,7 +96,7 @@ if [ "$need_jsmd" -ne "0" ]; then
       echo "hostfile $hostfile content is:"
       cat $hostfile
       stopd=1
-      run_flag="-c"
+      run_flag=" -c"
    fi
    cmd="cd $S_BINDIR; ./run.dgemm_gpu $run_flag -d $tmpdir >$tmpout 2>&1"
 else
@@ -101,25 +107,11 @@ else
    cmd="cd $S_BINDIR; ./run.dgemm_gpu -f $hostfile -d $tmpdir >$tmpout 2>&1"
 fi
 
-# enable GPU persistence mode
-# it set param with the indexes
-# ----------------------------------------------
-#set_gpu_pm 1
-#rc=$ret
-#if [ "$rc" -ne "0" ]; then echo echo "$me test FAIL, rc=$rc"; exit $rc; fi
-#indexes="$param"
-
-#read_gpu_basics 
-
 echo -e "\nRunning: $cmd.\n"          
 eval $cmd
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
-
-# set gpu persistence mode back to what it was
-# ---------------------------------------------
-#restore_gpu_pm 0 "$indexes"
 
 
 echo -e "\n================================================================"
