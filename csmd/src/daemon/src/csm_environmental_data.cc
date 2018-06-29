@@ -406,6 +406,18 @@ void CSM_Environmental_Data::Collect_Node_Data()
 bool CSM_Environmental_Data::Collect_Environmental_Data()
 {
    LOG(csmenv, debug) << "Start Collect_Environmental_Data()";
+      
+    const std::list<std::string> dimm_sensors =
+    {
+      "TEMPDIMM02",
+      "TEMPDIMM03",
+      "TEMPDIMM04",
+      "TEMPDIMM05",
+      "TEMPDIMM10",
+      "TEMPDIMM11",
+      "TEMPDIMM12",
+      "TEMPDIMM13"
+    };
    
    // Generate the value map for the query.
    std::unordered_map<std::string, csm::daemon::helper::CsmOCCSensorRecord> request_map =
@@ -472,18 +484,39 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
 
    if (success)
    {
-      // Extract values.
+      uint8_t dimm_id(0);
 
       for (uint32_t chip = 0; chip < current_values.size(); chip++)
       {
-         for (auto current_itr = current_values[chip].begin(); current_itr != current_values[chip].end(); current_itr++)
+         // Handle dimm elements
+         for (auto dimm_itr = dimm_sensors.begin(); dimm_itr != dimm_sensors.end(); dimm_itr++)
          {
-            LOG(csmenv, debug) << "ENV: Read OCC data " << current_itr->first << ": current: " << current_itr->second.sample
-               << " min: " << current_itr->second.csm_min << " max: " << current_itr->second.csm_max
-               << " accumulator: " << current_itr->second.accumulator;
+            boost::property_tree::ptree dimm_pt;
+      
+            dimm_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_DIMM_ENV);
+            dimm_pt.put( "data.dimm_id", std::to_string(dimm_id) );
+            //dimm_pt.put( "data.serial_number", "ABC123" );
+         
+            auto occ_itr = current_values[chip].find(*dimm_itr);
+            if (occ_itr != current_values[chip].end())
+            {
+               dimm_pt.put( "data.dimm_temp", std::to_string(occ_itr->second.sample) );
+               dimm_pt.put( "data.dimm_temp_min", std::to_string(occ_itr->second.csm_min) );
+               dimm_pt.put( "data.dimm_temp_max", std::to_string(occ_itr->second.csm_max) );
+            }      
 
-            env_pt.put(current_itr->first, current_itr->second.sample);
-         }
+            _data_list.push_back(dimm_pt);
+            dimm_id++;
+         }        
+         
+         //for (auto current_itr = current_values[chip].begin(); current_itr != current_values[chip].end(); current_itr++)
+         //{
+         //   LOG(csmenv, debug) << "ENV: Read OCC data " << current_itr->first << ": current: " << current_itr->second.sample
+         //      << " min: " << current_itr->second.csm_min << " max: " << current_itr->second.csm_max
+         //      << " accumulator: " << current_itr->second.accumulator;
+
+         //   env_pt.put(current_itr->first, current_itr->second.sample);
+         //}
       }
    }
 
@@ -538,24 +571,6 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       gpu_pt.put( "data.gpu_mem_temp_max", "27" );
       
       _data_list.push_back(gpu_pt);
-   } 
-   
-   // DIMM level data
-   const int MAX_DIMM(16);
-   
-   for (int dimm = 0; dimm < MAX_DIMM; dimm++)
-   {
-      boost::property_tree::ptree dimm_pt;
-      
-      dimm_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_DIMM_ENV);
-      dimm_pt.put( "data.dimm_id", std::to_string(dimm) );
-      dimm_pt.put( "data.serial_number", "ABC123" );
-         
-      dimm_pt.put( "data.dimm_temp", "23" );
-      dimm_pt.put( "data.dimm_temp_min", "20" );
-      dimm_pt.put( "data.dimm_temp_max", "27" );
-      
-      _data_list.push_back(dimm_pt);
    } 
    
    LOG(csmenv, debug) << "Finish Collect_Environmental_Data()";
