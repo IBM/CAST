@@ -217,19 +217,19 @@ bool CopyPtSubtree(const boost::property_tree::ptree &src_pt, boost::property_tr
       
       if ( child.second.empty() )
       {
-        //LOG( csmenv, debug ) << "CopyPtSubtree:  " << fullkey << ": " << child.second.data() << " count=" << count;
+        //LOG(csmenv, debug) << "CopyPtSubtree:  " << fullkey << ": " << child.second.data() << " count=" << count;
         dst_pt.put(fullkey, child.second.data());
       }
       else
       {
-        //LOG( csmenv, debug ) << "CopyPtSubtree:  " << fullkey << ": " << child.second.data() << " count=" << count;
+        //LOG(csmenv, debug) << "CopyPtSubtree:  " << fullkey << ": " << child.second.data() << " count=" << count;
         CopyPtSubtree(src_pt, dst_pt, fullkey, count);
       }
     }      
   } 
   catch (...)
   {
-    LOG( csmenv, warning ) << "CopyPtSubtree: Caught exception while attempting to copy subtree " << key;
+    LOG(csmenv, warning) << "CopyPtSubtree: Caught exception while attempting to copy subtree " << key;
     return false;
   }      
 
@@ -342,7 +342,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
 
     if (key_type == EMPTY_STRING)
     {
-      LOG( csmenv, error ) << "Found data item with unknown " << CSM_BDS_KEY_TYPE << " key, skipping.";
+      LOG(csmenv, error) << "Found data item with unknown " << CSM_BDS_KEY_TYPE << " key, skipping.";
     }
     else
     {    
@@ -364,7 +364,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
       }
       else
       {
-        LOG( csmenv, error ) << "Found data item with no data fields set, skipping.";
+        LOG(csmenv, error) << "Found data item with no data fields set, skipping.";
       }
     }
   }
@@ -405,75 +405,85 @@ void CSM_Environmental_Data::Collect_Node_Data()
 
 bool CSM_Environmental_Data::Collect_Environmental_Data()
 {
+   LOG(csmenv, debug) << "Start Collect_Environmental_Data()";
+   
    // Generate the value map for the query.
-   std::unordered_map<std::string, int64_t> occ_map =
+   std::unordered_map<std::string, csm::daemon::helper::CsmOCCSensorRecord> request_map =
    {
-      {"PROCPWRTHROT", 0},
-      {"PWRSYS"      , 0},
-      {"PWRGPU"      , 0},
-      {"TEMPDIMM02", 0},
-      {"TEMPDIMM03", 0},
-      {"TEMPDIMM04", 0},
-      {"TEMPDIMM05", 0},
-      {"TEMPDIMM10", 0},
-      {"TEMPDIMM11", 0},
-      {"TEMPDIMM12", 0},
-      {"TEMPDIMM13", 0},
-      {"TEMPGPU0", 0},
-      {"TEMPGPU0MEM", 0},
-      {"TEMPGPU1", 0},
-      {"TEMPGPU1MEM", 0},
-      {"TEMPGPU2", 0},
-      {"TEMPGPU2MEM", 0},
-      //{"TEMPNEST", 0},
-      //{"TEMPPROCTHRMC00", 0},
-      //{"TEMPPROCTHRMC01", 0},
-      //{"TEMPPROCTHRMC02", 0},
-      //{"TEMPPROCTHRMC03", 0},
-      //{"TEMPPROCTHRMC04", 0},
-      //{"TEMPPROCTHRMC05", 0},
-      //{"TEMPPROCTHRMC06", 0},
-      //{"TEMPPROCTHRMC07", 0},
-      //{"TEMPPROCTHRMC08", 0},
-      //{"TEMPPROCTHRMC09", 0},
-      //{"TEMPPROCTHRMC10", 0},
-      //{"TEMPPROCTHRMC11", 0},
-      //{"TEMPPROCTHRMC12", 0},
-      //{"TEMPPROCTHRMC13", 0},
-      //{"TEMPPROCTHRMC14", 0},
-      //{"TEMPPROCTHRMC15", 0},
-      //{"TEMPPROCTHRMC16", 0},
-      //{"TEMPPROCTHRMC17", 0},
-      //{"TEMPPROCTHRMC18", 0},
-      //{"TEMPPROCTHRMC19", 0},
-      //{"TEMPPROCTHRMC20", 0},
-      //{"TEMPPROCTHRMC21", 0},
-      //{"TEMPPROCTHRMC22", 0},
-      //{"TEMPPROCTHRMC23", 0},
-      //{"TEMPVDD", 0}
+      {"PWRSYS"      , {0,0,0,0}},
+      {"PWRGPU"      , {0,0,0,0}},
+      {"TEMPDIMM02",   {0,0,0,0}},
+      {"TEMPDIMM03",   {0,0,0,0}},
+      {"TEMPDIMM04",   {0,0,0,0}},
+      {"TEMPDIMM05",   {0,0,0,0}},
+      {"TEMPDIMM10",   {0,0,0,0}},
+      {"TEMPDIMM11",   {0,0,0,0}},
+      {"TEMPDIMM12",   {0,0,0,0}},
+      {"TEMPDIMM13",   {0,0,0,0}},
+      {"TEMPGPU0",     {0,0,0,0}},
+      {"TEMPGPU0MEM",  {0,0,0,0}},
+      {"TEMPGPU1",     {0,0,0,0}},
+      {"TEMPGPU1MEM",  {0,0,0,0}},
+      {"TEMPGPU2",     {0,0,0,0}},
+      {"TEMPGPU2MEM",  {0,0,0,0}},
+      //{"TEMPNEST",   {0,0,0,0}},
+      //{"TEMPPROCTHRMC00", {0,0,0,0}},
+      //{"TEMPPROCTHRMC01", {0,0,0,0}},
+      //{"TEMPPROCTHRMC02", {0,0,0,0}},
+      //{"TEMPPROCTHRMC03", {0,0,0,0}},
+      //{"TEMPPROCTHRMC04", {0,0,0,0}},
+      //{"TEMPPROCTHRMC05", {0,0,0,0}},
+      //{"TEMPPROCTHRMC06", {0,0,0,0}},
+      //{"TEMPPROCTHRMC07", {0,0,0,0}},
+      //{"TEMPPROCTHRMC08", {0,0,0,0}},
+      //{"TEMPPROCTHRMC09", {0,0,0,0}},
+      //{"TEMPPROCTHRMC10", {0,0,0,0}},
+      //{"TEMPPROCTHRMC11", {0,0,0,0}},
+      //{"TEMPPROCTHRMC12", {0,0,0,0}},
+      //{"TEMPPROCTHRMC13", {0,0,0,0}},
+      //{"TEMPPROCTHRMC14", {0,0,0,0}},
+      //{"TEMPPROCTHRMC15", {0,0,0,0}},
+      //{"TEMPPROCTHRMC16", {0,0,0,0}},
+      //{"TEMPPROCTHRMC17", {0,0,0,0}},
+      //{"TEMPPROCTHRMC18", {0,0,0,0}},
+      //{"TEMPPROCTHRMC19", {0,0,0,0}},
+      //{"TEMPPROCTHRMC20", {0,0,0,0}},
+      //{"TEMPPROCTHRMC21", {0,0,0,0}},
+      //{"TEMPPROCTHRMC22", {0,0,0,0}},
+      //{"TEMPPROCTHRMC23", {0,0,0,0}},
+      //{"TEMPVDD", {0,0,0,0}}
       
       // Sensors not in use
-//    {"TEMPDIMM00", 0},
-//    {"TEMPDIMM01", 0},
-//    {"TEMPDIMM06", 0},
-//    {"TEMPDIMM07", 0},
-//    {"TEMPDIMM08", 0},
-//    {"TEMPDIMM09", 0},
-//    {"TEMPDIMM14", 0},
-//    {"TEMPDIMM15", 0},
+//    {"TEMPDIMM00", {0,0,0,0}},
+//    {"TEMPDIMM01", {0,0,0,0}},
+//    {"TEMPDIMM06", {0,0,0,0}},
+//    {"TEMPDIMM07", {0,0,0,0}},
+//    {"TEMPDIMM08", {0,0,0,0}},
+//    {"TEMPDIMM09", {0,0,0,0}},
+//    {"TEMPDIMM14", {0,0,0,0}},
+//    {"TEMPDIMM15", {0,0,0,0}},
    };
 
    // Query and check for success.
-   bool success = csm::daemon::helper::GetOCCSensorData( occ_map );
+   std::vector<std::unordered_map<std::string, csm::daemon::helper::CsmOCCSensorRecord>> current_values;
+   
+   bool success = csm::daemon::helper::GetExtendedOCCSensorData(request_map, current_values);
    boost::property_tree::ptree env_pt;
 
    if (success)
    {
       // Extract values.
-      for (auto occ_itr = occ_map.begin(); occ_itr != occ_map.end(); occ_itr++)
+
+      for (uint32_t chip = 0; chip < current_values.size(); chip++)
       {
-         LOG( csmenv, debug ) << "ENV: Read OCC data " << occ_itr->first << ": " << occ_itr->second;
-         env_pt.put( occ_itr->first, occ_itr->second );
+         for (auto current_itr = current_values[chip].begin(); current_itr != current_values[chip].end(); current_itr++)
+         {
+            LOG(csmenv, debug) << "ENV: Read OCC data " << current_itr->first << ": current: " << current_itr->second.sample
+               << " min: " << current_itr->second.csm_min << " max: " << current_itr->second.csm_max
+               << " accumulator: " << current_itr->second.accumulator;
+
+            env_pt.put(current_itr->first, current_itr->second.sample);
+         }
       }
    }
 
@@ -547,6 +557,8 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       
       _data_list.push_back(dimm_pt);
    } 
+   
+   LOG(csmenv, debug) << "Finish Collect_Environmental_Data()";
 
    return success;
 }
