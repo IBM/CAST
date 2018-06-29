@@ -26,9 +26,8 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 fi
 
 # spectrum mpi install
-MPI_ROOT=/opt/ibm/spectrum_mpi
-S_BINDIR=$MPI_ROOT/healthcheck/dgemm_gpu
-#S_BINDIR=$MPI_ROOT/healthcheck/mpirun_scripts/dgemm_gpu
+S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu
+#S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/mpirun_scripts/dgemm_gpu
 
 readonly me=${0##*/}
 thishost=`hostname -s`
@@ -82,9 +81,6 @@ eye_catcher="PERFORMANCE SUCCESS:"
 need_jsmd=`grep -c "jsrun " $S_BINDIR/run.dgemm_gpu`
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
-   export PATH=$MPI_ROOT/bin:$MPI_ROOT/jsm_pmix/bin:$PATH
-   export CSM_ALLOCATION_ID=5
-   export JSM_DISABLE_CSM="92E1FD45-1251-40EE-9B04-93628E03EB46"
    # check if we there is jsm daemon running
    run_flag="-g $ngpus"
    is_running=`/usr/bin/pgrep jsmd`
@@ -96,9 +92,9 @@ if [ "$need_jsmd" -ne "0" ]; then
       echo "hostfile $hostfile content is:"
       cat $hostfile
       stopd=1
-      run_flag=" -c"
+      run_flag="${run_flag} -c"
    fi
-   cmd="cd $S_BINDIR; ./run.dgemm_gpu $run_flag -d $tmpdir >$tmpout 2>&1"
+   cmd="cd $S_BINDIR; ./run.dgemm_gpu ${run_flag} -d $tmpdir >$tmpout 2>&1"
 else
    # need to create a host.file, hostname slots="
    echo "$thishost slots=1" > $hostfile
@@ -106,6 +102,7 @@ else
    cat $hostfile
    cmd="cd $S_BINDIR; ./run.dgemm_gpu -f $hostfile -d $tmpdir >$tmpout 2>&1"
 fi
+
 
 echo -e "\nRunning: $cmd.\n"          
 eval $cmd

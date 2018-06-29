@@ -29,7 +29,7 @@ fi
 
 # spectrum mpi install
 S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm
-#DISABLE_GPU_PM=1
+#S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/mpirun_scripts/dgemm
 
 
 readonly me=${0##*/}
@@ -72,6 +72,9 @@ hostfile=/tmp/host.list$$
 need_jsmd=`grep -c "jsrun" $S_BINDIR/run.dgemm`
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
+   #export PATH=$MPI_ROOT/bin:$MPI_ROOT/jsm_pmix/bin:$PATH
+   #export CSM_ALLOCATION_ID=5
+   #export JSM_DISABLE_CSM="92E1FD45-1251-40EE-9B04-93628E03EB46"
    # check if we there is jsm daemon running
    run_flag=""
    is_running=`/usr/bin/pgrep jsmd`
@@ -95,27 +98,11 @@ else
 fi
 
 
-# disable GPU persistence mode, it creates noise
-# it set param with the indexes
-# ----------------------------------------------
-#if [ $DISABLE_GPU_PM -eq 1 ]; then 
-#  source $thisdir/../common/gpu_functions
-#  has_gpus
-#  setpm=$ngpus
-#  if [ "$setpm" -ne "0" ]; then set_gpu_pm 0; fi
-#fi
-
 echo -e "\nRunning: $cmd"
 eval $cmd
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
-
-# set gpu persistence mode back to what it was
-# ---------------------------------------------
-#if [ $DISABLE_GPU_PM -eq 1 ]; then 
-#   if [ "$setpm" -ne "0" ]; then restore_gpu_pm 1 "$param"; fi
-#fi
 
 echo -e "\n================================================================"
 echo -e "\nPrinting dgemm raw output file(s) in $output_dir"
