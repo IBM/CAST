@@ -173,7 +173,7 @@ node_info:
     rvitals: wspoon_dd2
     ncpus: 176
     memory: 
-      total: 602
+      total: 606
       banks: 16
       bank_size:  32
     clock: 
@@ -239,7 +239,7 @@ node_info:
     rvitals: wspoon_dd2
     ncpus: 176
     memory: 
-      total: 572
+      total: 606
       banks: 16
       bank_size:  32
     clock: 
