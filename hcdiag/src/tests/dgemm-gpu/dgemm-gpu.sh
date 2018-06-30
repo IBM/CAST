@@ -55,12 +55,14 @@ nsuccess=$((ngpus+1))
 if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi 
 if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
 
-trap 'rm -rf /tmp/$$*' EXIT
-trap 'rm -f /tmp/host.list$$' EXIT
 
-
+eye_catcher="PERFORMANCE SUCCESS:"
 tmpdir=/tmp/$$
 tmpout=/tmp/$$.out
+hostfile=/tmp/host.list$$
+
+trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
+
 
 
 # It is the dgemm_gpu version that comes with spectrum mpi
@@ -71,10 +73,8 @@ if [ ! -x $S_BINDIR/run.dgemm_gpu ]; then
    exit 1
 fi
 
-hostfile=/tmp/host.list$$
 mkdir $tmpdir
 output_dir=$tmpdir
-eye_catcher="PERFORMANCE SUCCESS:"
 
 
 # check if we need jsmd

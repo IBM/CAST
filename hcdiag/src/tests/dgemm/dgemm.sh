@@ -43,12 +43,13 @@ if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi
 
 echo "Running $me on $thishost, machine type $model."          
 
-trap 'rm -rf /tmp/$$*' EXIT
-trap 'rm -f /tmp/host.list$$' EXIT
 
-
+eye_catcher="PERFORMANCE SUCCESS:"
 tmpdir=/tmp/$$
 tmpout=/tmp/$$.out
+hostfile=/tmp/host.list$$
+
+trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
 
 read_basics 
 slots=$core_present
@@ -64,17 +65,12 @@ fi
 
 mkdir $tmpdir
 output_dir=$tmpdir
-eye_catcher="PERFORMANCE SUCCESS:"
-hostfile=/tmp/host.list$$
 
 
 # check if we are in jsm land
 need_jsmd=`grep -c "jsrun" $S_BINDIR/run.dgemm`
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
-   #export PATH=$MPI_ROOT/bin:$MPI_ROOT/jsm_pmix/bin:$PATH
-   #export CSM_ALLOCATION_ID=5
-   #export JSM_DISABLE_CSM="92E1FD45-1251-40EE-9B04-93628E03EB46"
    # check if we there is jsm daemon running
    run_flag=""
    is_running=`/usr/bin/pgrep jsmd`
