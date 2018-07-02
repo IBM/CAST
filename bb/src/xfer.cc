@@ -2968,16 +2968,26 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_Temp.pop();
                             l_Key = l_WorkId.getLVKey();
                             l_WorkItemTagInfo2 = metadata.getTagInfo2(&l_Key);
-                            if (l_WorkItemTagInfo2->getJobId() == l_JobId) {
-                                l_Temp2.push(l_WorkId);
-                            } else {
-                                LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
-                                if (!l_Temp.size())
-                                {
-                                    // Validate work queue on last add...
-                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
+                            if (l_WorkItemTagInfo2)
+                            {
+                                if (l_WorkItemTagInfo2->getJobId() == l_JobId) {
+                                    l_Temp2.push(l_WorkId);
+                                } else {
+                                    LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
+                                    if (!l_Temp.size())
+                                    {
+                                        // Validate work queue on last add...
+                                        l_ValidateOption = VALIDATE_WORK_QUEUE;
+                                    }
+                                    l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                 }
-                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
+                            }
+                            else
+                            {
+                                // Not sure how we could get here...  Do not set rc...  Plow ahead...
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey \
+                                                << ". " << l_Key << " could not be found in the metadata when reloading the work queue with unrelated work items.";
+                                l_WorkId.dump("info", "Failure when reloading work queue ");
                             }
                         }
 
@@ -3013,8 +3023,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             }
                             else
                             {
-                                // Do not set rc...  Plow ahead...
-                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be tramsferred for " << l_Key;
+                                // Not sure how we could get here...  Do not set rc...  Plow ahead...
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey \
+                                                << ". " << l_Key << " could not be found in the metadata when attempting to process the related work items.";
+                                l_WorkId.dump("info", "Failure when processing work items to remove ");
                             }
                         }
                     }

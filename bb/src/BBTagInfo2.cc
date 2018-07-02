@@ -742,7 +742,6 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
         // Send the message
         int rc = sendMessage(pConnectionName,l_Complete);
         if (rc) LOG(bb,info) << "sendMessage rc="<<rc<<" @ func="<<__func__<<":"<<__LINE__;
-        delete l_Complete;
 
         // Determine if this status update for the handle should be appended to the async file
         // to be consumed by other bbServers
@@ -778,6 +777,8 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
             }
         }
     }
+
+    delete l_Complete;
 
     return;
 }
