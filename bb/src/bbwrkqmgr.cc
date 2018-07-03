@@ -1296,7 +1296,14 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
         {
             if ((pValue && (!it->second->isSuspended())) || ((!pValue) && it->second->isSuspended()))
             {
-                it->second->setSuspended(pValue);
+                if (it->second)
+                {
+                    it->second->setSuspended(pValue);
+                }
+                else
+                {
+                    rc = -2;
+                }
             }
             else
             {
