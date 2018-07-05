@@ -42,7 +42,7 @@ class WorkID;
  *******************************************************************************/
 const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;    // In seconds
 //const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 5;     // In seconds
-const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 1 * 1024 * 1024;
+const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;
 //const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 65536;
 const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0;
@@ -261,6 +261,7 @@ class WRKQMGR
         lastOffsetProcessed(0)
         {
             lastQueueProcessed = LVKey();
+            lastQueueWithEntries = LVKey();
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
@@ -497,6 +498,18 @@ class WRKQMGR
         return;
     }
 
+    inline void setLastQueueWithEntries(LVKey pLVKey)
+    {
+        if (lastQueueWithEntries != pLVKey)
+        {
+            LOG(bb,debug) << "WRKQMGR::setLastQueueWithEntries(): lastQueueWithEntries changing from = " << lastQueueWithEntries << " to " << pLVKey;
+        }
+
+        lastQueueWithEntries = pLVKey;
+
+        return;
+    }
+
     inline void setNumberOfAllowedSkippedDumpRequests(const uint32_t pValue)
     {
         numberOfAllowedSkippedDumpRequests = pValue;
@@ -594,6 +607,7 @@ class WRKQMGR
     volatile uint64_t   offsetToNextAsyncRequest;
     volatile uint64_t   lastOffsetProcessed;
     LVKey               lastQueueProcessed;
+    LVKey               lastQueueWithEntries;
 
     map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;
