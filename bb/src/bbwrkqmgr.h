@@ -42,7 +42,7 @@ class WorkID;
  *******************************************************************************/
 const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;    // In seconds
 //const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 5;     // In seconds
-const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 1 * 1024 * 1024;
+const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;
 //const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 65536;
 const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0;
