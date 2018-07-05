@@ -261,6 +261,7 @@ class WRKQMGR
         lastOffsetProcessed(0)
         {
             lastQueueProcessed = LVKey();
+            lastQueueWithEntries = LVKey();
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
@@ -497,6 +498,18 @@ class WRKQMGR
         return;
     }
 
+    inline void setLastQueueWithEntries(LVKey pLVKey)
+    {
+        if (lastQueueWithEntries != pLVKey)
+        {
+            LOG(bb,debug) << "WRKQMGR::setLastQueueWithEntries(): lastQueueWithEntries changing from = " << lastQueueWithEntries << " to " << pLVKey;
+        }
+
+        lastQueueWithEntries = pLVKey;
+
+        return;
+    }
+
     inline void setNumberOfAllowedSkippedDumpRequests(const uint32_t pValue)
     {
         numberOfAllowedSkippedDumpRequests = pValue;
@@ -594,6 +607,7 @@ class WRKQMGR
     volatile uint64_t   offsetToNextAsyncRequest;
     volatile uint64_t   lastOffsetProcessed;
     LVKey               lastQueueProcessed;
+    LVKey               lastQueueWithEntries;
 
     map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;

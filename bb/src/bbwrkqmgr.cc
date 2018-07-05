@@ -387,8 +387,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                    LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                    LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
 //                    LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" \
-                                  << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                    LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                    LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                  << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
                                   << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
                     if (outOfOrderOffsets.size())
                     {
@@ -410,8 +411,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                    LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                    LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
 //                    LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" \
-                                 << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                    LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                    LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                 << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
                                  << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
                     if (outOfOrderOffsets.size())
                     {
@@ -690,6 +692,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         if (wrkqs.size() > 1)
         {
             // We have one or more workqueues...
+            bool l_SelectNext = false;
+            if (lastQueueProcessed == lastQueueWithEntries)
+            {
+                // Last queue processed is the last in the map with entries.
+                // Therefore, return the next possible workqueue as it is the
+                // next in the round robin order.
+                l_SelectNext = true;
+            }
+
             if (wrkqs.begin()->second != HPWrkQE)
             {
                 // Not the HP workqueue...
@@ -703,10 +714,10 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                     l_WrkQE = wrkqs.begin()->second;
                     l_BucketValue = wrkqs.begin()->second->getBucket();
 
-                    // If the last queue processed is the last in the map and this queue (the first queue in the map)
-                    // has a non-negative bucket value, return this queue now as it is the next in round robin order.
-                    if (*(wrkqs.rbegin()->second->getLVKey()) == lastQueueProcessed && l_BucketValue >= 0)
+                    if (l_SelectNext && l_BucketValue >= 0)
                     {
+                        // Return this queue now as it is the next in round robin order
+//                        LOG(bb,info) << "WRKQMGR::getWrkQE(): First non-negative bucket workqueue returned";
                         l_Continue = false;
                     }
                 }
@@ -714,7 +725,6 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 
             if (l_Continue)
             {
-                bool l_SelectNext = false;
                 for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
                 {
                     bool l_Switch = false;
@@ -764,18 +774,14 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                                 l_BucketValue = qe->second->getBucket();
                             }
 
-                            if (l_SelectNext)
+                            // Return this queue now as it is the next in round robin order
+                            if (l_SelectNext && qe->second->getBucket() >= 0)
                             {
-                                // We are to return the 'next' workqueue that is not throttling -or- has a positive bucket value
-                                if (qe->second->getRate() == 0 || qe->second->getBucket() > 0)
-                                {
-                                    // Non-throttling workqueue or positive bucket value (throttling).
-                                    // Switch to this workqueue and return it...
-                                    l_LVKey = qe->first;
-                                    l_WrkQE = qe->second;
-//                                    LOG(bb,info) << "WRKQMGR::getWrkQE(): l_SelectNextContinue = true, non-immediate next workqueue returned";
-                                    break;
-                                }
+                                // Switch to this workqueue and return it...
+                                l_LVKey = qe->first;
+                                l_WrkQE = qe->second;
+//                                LOG(bb,info) << "WRKQMGR::getWrkQE(): l_Continue = true, first non-negative bucket workqueue returned";
+                                break;
                             }
                         }
                     }
@@ -783,7 +789,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                     if ((!l_SelectNext) && qe->first == lastQueueProcessed)
                     {
                         // Just found the entry we last returned.  Return the next workqueue that has a positive bucket value...
-//                        LOG(bb,info) << "WRKQMGR::getWrkQE(): l_SelectNext = true";
+//                        LOG(bb,debug) << "WRKQMGR::getWrkQE(): l_SelectNext = true";
                         l_SelectNext = true;
                     }
                 }
@@ -798,7 +804,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 {
                     // WRKQMGR::getWrkQE(): No extents left on any workqueue
                     rc = -1;
-//                    LOG(bb,info) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
+//                    LOG(bb,debug) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
                 }
             }
         }
@@ -806,7 +812,33 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         {
             // WRKQMGR::getWrkQE(): No workqueue entries exist
             rc = -1;
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+//            LOG(bb,debug) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+        }
+
+        if (!rc)
+        {
+            if (pWrkQE)
+            {
+                for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); qe++)
+                {
+                    if (qe->second->getWrkQ_Size() && qe->second->getBucket() >= 0)
+                    {
+                        // Update the last work with entries
+                        setLastQueueWithEntries(qe->first);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Update the last work with entries as NONE
+                setLastQueueWithEntries(LVKey());
+            }
+        }
+        else
+        {
+            // Update the last work with entries as NONE
+            setLastQueueWithEntries(LVKey());
         }
     }
     else
