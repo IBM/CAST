@@ -168,7 +168,6 @@ class CsmiInterface(TargetInterface):
    """
    #------------------------------------------------------------------------------ 
    def create_allocation(self, runid, nodes) :
-      print "@@ in csmi", self.allocation_id
       if self.allocation_id == "1":  
 
          # todo: does command line will accept xcat noderange format?
