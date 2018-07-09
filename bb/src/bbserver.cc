@@ -691,7 +691,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
         switchIds(msg);
 
-        //  NOTE:  We set up to wait 30 seconds for the necessary LVKey to appear if we can't find
+        //  NOTE:  We set up to wait 2 minutes for the necessary LVKey to appear if we can't find
         //         it right away and the handle is not in the cross-bbServer metadata.
         //         This closes the window during activate server between the activation
         //         of the connection to the new server and the registering of any LVKeys

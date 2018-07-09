@@ -100,6 +100,9 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                     rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                     if (!rc)
                                     {
+#if 0
+                                        // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case because we want to include
+                                        //       transfer definitions with files that are not all closed or have failed.
                                         switch (pTransferDefs.flags)
                                         {
                                             case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
@@ -120,6 +123,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                 break;
                                             }
                                         }
+#endif
                                     }
                                     else
                                     {
@@ -141,6 +145,9 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                             {
                                                 if ((pTransferDefs.hostname == UNDEFINED_HOSTNAME) || (l_LVUuidFile.hostname == pTransferDefs.hostname))
                                                 {
+#if 0
+                                                    // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case because we want to include
+                                                    //       transfer definitions with files that are not all closed or have failed.
                                                     // Hostname of interest...
                                                     switch (pTransferDefs.flags)
                                                     {
@@ -162,6 +169,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                             break;
                                                         }
                                                     }
+#endif
                                                 }
                                                 else
                                                 {
@@ -203,13 +211,12 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                                 {
                                                                     // If we are only interested in obtaining transfer definitions with unfinished files
                                                                     // then check to see if all the extents have been transferred for this contributor...
-                                                                    if ((ce->second).allExtentsTransferred())
+                                                                    if ((ce->second).notRestartable())
                                                                     {
                                                                         l_Continue = false;
                                                                     }
                                                                     break;
                                                                 }
-
                                                                 case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
                                                                 {
                                                                     // If we are only interested in obtaining transfer definitions with stopped files
