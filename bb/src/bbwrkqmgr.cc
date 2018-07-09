@@ -1138,7 +1138,9 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
         // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
         if ((i % 20) == 10)
         {
-            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() = " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess = " << l_NumberToProcess;
+            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess " << l_NumberToProcess \
+                         << ", Async Seq# " << asyncRequestFileSeqNbr << ", LstOff 0x" << hex << uppercase << setfill('0') << lastOffsetProcessed \
+                         << ", NxtOff 0x" << hex << uppercase << setfill('0') << offsetToNextAsyncRequest << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
         }
         if (HPWrkQE->getNumberOfWorkItemsProcessed() >= l_NumberToProcess)
         {
