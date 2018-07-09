@@ -29,7 +29,7 @@ fi
 
 # spectrum mpi install
 S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm
-#DISABLE_GPU_PM=1
+#S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/mpirun_scripts/dgemm
 
 
 readonly me=${0##*/}
@@ -43,12 +43,13 @@ if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi
 
 echo "Running $me on $thishost, machine type $model."          
 
-trap 'rm -rf /tmp/$$*' EXIT
-trap 'rm -f /tmp/host.list$$' EXIT
 
-
+eye_catcher="PERFORMANCE SUCCESS:"
 tmpdir=/tmp/$$
 tmpout=/tmp/$$.out
+hostfile=/tmp/host.list$$
+
+trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
 
 read_basics 
 slots=$core_present
@@ -64,8 +65,6 @@ fi
 
 mkdir $tmpdir
 output_dir=$tmpdir
-eye_catcher="PERFORMANCE SUCCESS:"
-hostfile=/tmp/host.list$$
 
 
 # check if we are in jsm land
@@ -95,27 +94,11 @@ else
 fi
 
 
-# disable GPU persistence mode, it creates noise
-# it set param with the indexes
-# ----------------------------------------------
-#if [ $DISABLE_GPU_PM -eq 1 ]; then 
-#  source $thisdir/../common/gpu_functions
-#  has_gpus
-#  setpm=$ngpus
-#  if [ "$setpm" -ne "0" ]; then set_gpu_pm 0; fi
-#fi
-
 echo -e "\nRunning: $cmd"
 eval $cmd
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
-
-# set gpu persistence mode back to what it was
-# ---------------------------------------------
-#if [ $DISABLE_GPU_PM -eq 1 ]; then 
-#   if [ "$setpm" -ne "0" ]; then restore_gpu_pm 1 "$param"; fi
-#fi
 
 echo -e "\n================================================================"
 echo -e "\nPrinting dgemm raw output file(s) in $output_dir"

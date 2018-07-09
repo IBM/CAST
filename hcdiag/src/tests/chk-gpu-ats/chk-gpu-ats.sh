@@ -28,12 +28,12 @@ model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
 # desired ATS is disabled
-desired_gpu-ats=0
+desired_ats=0
 if [ $# -gt 0 ]; then 
    case $1 in  
       0)  
       ;;
-      1) desired_gpu-ats=$1
+      1) desired_ats=$1
       ;;
       *) echo "Invalid value for ATS. Posible values are: 0, 1"
          echo "$me test FAIL, rc=1"
@@ -45,12 +45,12 @@ fi
 
 if [ -r /sys/module/nvidia_uvm/parameters/uvm8_ats_mode ]; then
    ats=`cat /sys/module/nvidia_uvm/parameters/uvm8_ats_mode`
-   if [ "$ats" -eq "$desired_gpu-ats" ]; then
-     echo "ATS is set to $desired_gpu-ats."
+   if [ "$ats" -eq "$desired_ats" ]; then
+     echo "ATS is set to $desired_ats."
      echo "$me test PASS, rc=0"
      exit 0
    else
-     echo "ATS value expected: $desired_gpu-ats, got: $ats."
+     echo "ATS value expected: $desired_ats, got: $ats."
      echo "$me test FAIL, rc=1"
      exit 1
    fi

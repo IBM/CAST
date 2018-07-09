@@ -1500,7 +1500,8 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
         uint64_t l_Rate = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::rate))->getData();
         LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
-        LOG(bb,info) << "msgin_setthrottlerate: Local pConnectionName = " << pConnectionName << ", LV Uuid = " << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()) << ", rate = " << l_Rate;
+        LOG(bb,info) << "msgin_setthrottlerate: Local Connection Name " << pConnectionName << ", LV Uuid " \
+                     << (char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()) << ", rate " << l_Rate;
 
         switchIds(msg);
 

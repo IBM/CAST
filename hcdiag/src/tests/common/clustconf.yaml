@@ -1,13 +1,17 @@
-# configuration information about the onie/edgecore/mellanox cumulus switches.
-onie_switches: 
-  - nodename: c699tor00
-    srcdir: /install/custom/switch/c699tor00
-    files: 
-      - /etc/network/interfaces.d/xCAT.intf
-  - nodename: c699tor.*
-    srcdir: /install/custom/switch/c699tor01
-    files: 
-      - /etc/network/interfaces.d/xCAT.intf
+#================================================================================
+#
+#    hcdiag/src/tests/common/CMakeLists.txt
+#
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
 
 # node specific information, make it work like a 
 # bash case statement.
@@ -23,7 +27,7 @@ node_info:
       bank_size:  32
     clock:   
       max: 3.50
-      min: 3.11
+      min: 2.0
     firmware: 
       name: "unknown version"
       versions:
@@ -62,7 +66,7 @@ node_info:
       bank_size:  32
     clock:   
       max: 3.50
-      min: 3.11
+      min: 2.0
     firmware:
       name: 1742FxRev8
       versions:
@@ -118,7 +122,7 @@ node_info:
       bank_size:  32
     clock:   
       max: 3.50
-      min: 3.11
+      min: 2.0
     firmware:
       name: 1742FxRev8
       versions:
@@ -169,12 +173,12 @@ node_info:
     rvitals: wspoon_dd2
     ncpus: 176
     memory: 
-      total: 602
+      total: 606
       banks: 16
       bank_size:  32
     clock: 
       max: 3.50
-      min: 3.11
+      min: 2.0
     firmware:
       name: 1742FxRev8
       versions:
@@ -235,12 +239,12 @@ node_info:
     rvitals: wspoon_dd2
     ncpus: 176
     memory: 
-      total: 572
+      total: 606
       banks: 16
       bank_size:  32
     clock: 
       max: 3.50
-      min: 3.11
+      min: 2.0
     firmware:
       name: 1742FxRev8
       versions:
