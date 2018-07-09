@@ -28,8 +28,6 @@ from config_parser import TestProperties
 from log_handler import LogHandler
 import csmi_interface as csmi
 
-__version_info__ = ('pre-ga', '2018')
-__version__ = '-'.join(__version_info__)
 
 HCDIAG_PROPERTIES='/opt/ibm/csm/hcdiag/etc/hcdiag.properties'
 me='hcdiag_run'
@@ -82,9 +80,12 @@ VERBOSE_LEVEL= {
 
 if __name__ == "__main__":
 
+  from version import __version__
+
   parser=argparse.ArgumentParser()
   group = parser.add_mutually_exclusive_group(required=True)
   group2 = parser.add_mutually_exclusive_group(required=False)
+  group3 = parser.add_mutually_exclusive_group(required=False)
 
   group.add_argument('--test', 
                       type=str, nargs='+', metavar='t', help='test to run')
@@ -101,10 +102,12 @@ if __name__ == "__main__":
                        action="store_true", help='do not use csm')
   group2.add_argument('--usecsm', 
                        action="store_true", help='use csm')
-  parser.add_argument('--noallocation', 
+  group3.add_argument('--noallocation', 
                        action="store_true", help='do not allocate the target nodes')
+  group3.add_argument('--allocation_id', 
+                       type=int, metavar='allocation_id', help='allocation_id that reserves the taget')
   parser.add_argument('--fanout', '-f', 
-                       type=int, metavar='fanout_value',  help='maximum number of concurrent remote shell command processes')
+                       type=int, metavar='fanout_value', help='maximum number of concurrent remote shell command processes')
   parser.add_argument('--diagproperties', 
                        type=str, metavar='filename', help='diag properties file')
   parser.add_argument('--testproperties', 
@@ -158,8 +161,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
   else: # Node mode
-     if mconfig['allocation'] == 'yes':
-        print me, ': error: when running in Node mode, allocation cannot be requested. Use --noallocation option.'
+     if mconfig['allocation_id'] == '1':
+        print me, ': error: when running in Node mode, allocation cannot be requested. Use --noallocation option, or pass an existent allocation_id.'
         sys.exit(1)
      if args.fanout != None:
         print me, ': running in Node mode, --fanout will be innored.'
@@ -194,7 +197,7 @@ if __name__ == "__main__":
 
   
   thisuser = getpass.getuser() 
-  csmii = csmi.CsmiInterface(logger, csmidir, usecsm, mconfig['allocation'],  runid, thisuser )
+  csmii = csmi.CsmiInterface(logger, csmidir, usecsm, mconfig['allocation_id'], runid, thisuser)
 
   logger.set_csmi(csmii)
   if mgmt_mode:

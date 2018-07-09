@@ -25,6 +25,8 @@ require AutoLoader;
              bpost
              cmd
              setupUserEnvironment
+             getBBENVName
+             bbfail
 );
 
 $VERSION = '0.01';
@@ -196,6 +198,13 @@ if(exists $ENV{"BSCFS_MNT_PATH"})
     &setupBSCFS();
 }
 
+sub bbfail
+{
+    my($desc) = @_;
+    bpost($desc);
+    exit($::BADNONRECOVEXITRC);
+}
+
 sub untaint
 {
     my($data) = @_;
@@ -205,7 +214,7 @@ sub untaint
     }
     else
     {
-	die "Bad data in '$data'";
+	bbfail "Bad data in '$data'";
     }
 }
 
@@ -308,35 +317,67 @@ sub setupBSCFS
     defaultenv("BSCFS_MNT_PATH", "local_path", "/bscfs");
 }
 
+sub getBBENVName
+{
+    #$bbtmpdir = "/tmp";
+    my @pwentry   = getpwnam($ENV{"USER"});
+    @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
+    my $bbtmpdir  = @pwentry[7] . "/.bbtmp";
+    $bbenvfile = $bbtmpdir . "/env.$::JOBID";
+    return $bbenvfile;
+}
+
+sub openBBENV
+{
+    my $bbenvfile = getBBENVName();
+    print "BBENV:  $bbenvfile\n";
+    open(BBENV, $bbenvfile) || bbfail "Unable to open BB_ENVFILE file.  $!";
+    
+    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+        $atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat BB_ENVFILE.  $!";
+    if($mode & 0077)
+    {
+	bbfail "Permissions on BB_ENVFILE are too broad, the group and world fields should be zero.";
+    }
+}
+
 sub setupBBPATH
 {
-    my $fn = "/tmp/epsub_env_vars." . $::JOBID;
-    open(TMP, $fn);
-    while($line = <TMP>)
+    openBBENV();
+    while($line = <BBENV>)
     {
-	if($line =~ /BBPATH/)
+	if($line =~ /^BBPATH=/)
 	{
 	    chomp($line);
 	    ($key,$value) = $line =~ /(\S+)=(.*)/;
-	    $ENV{$key} = $value;
+	    if($value !~ /^\/mnt\/bb_[a-z0-9]+/)
+	    {
+	        bbfail "BBPATH appears to be corrupted or tainted.";
+	    }
+	    $ENV{"BBPATH"} = $value;
+	}
+	if($line =~ /^LSB_SUB_ADDITIONAL=/)
+	{
+	    chomp($line);
+	    ($key,$value) = $line =~ /(\S+)=(.*)/;
+	    $ENV{"LSB_SUB_ADDITIONAL"} = $value;
 	}
     }
-    close(TMP);
+    close(BBENV);
     $::BBPATH = $ENV{"BBPATH"};
 }
 
 sub setupUserEnvironment
 {
     $ENV{"PATH"} = $ENV{"PATH_PRESERVE"};
-    my $fn = "/tmp/epsub_env_vars." . $::JOBID;
-    open(TMP, $fn);
-    while($line = <TMP>)
+    openBBENV();
+    while($line = <BBENV>)
     {
 	chomp($line);
         ($key,$value) = $line =~ /(\S+)=(.*)/;
 	$ENV{$key} = $value;
     }
-    close(TMP);
+    close(BBENV);
 }
 
 1;

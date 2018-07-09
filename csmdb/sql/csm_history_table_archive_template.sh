@@ -81,6 +81,7 @@ swap_file="$cur_path/.$table_name.archive.$now.swp"
 archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_END
             \set AUTOCOMMIT off
             \set ON_ERROR_ROLLBACK on
+            \set ON_ERROR_STOP TRUE
             BEGIN;
             --DROP TABLE IF EXISTS temp_$table_name;
             CREATE TEMP TABLE temp_$table_name

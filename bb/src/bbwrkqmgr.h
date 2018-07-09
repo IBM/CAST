@@ -260,7 +260,8 @@ class WRKQMGR
         offsetToNextAsyncRequest(0)
         {
             lastQueueProcessed = LVKey();
-            std::pair<string, Uuid>("",Uuid());
+            wrkqs = map<LVKey, WRKQE*>();
+            heartbeatData = map<string, HeartbeatEntry>();
             lockPinned = 0;
             checkForCanceledExtents = 0;
             transferQueueLocked = 0;
@@ -269,9 +270,7 @@ class WRKQMGR
     /**
      * \brief Destructor
      */
-    virtual ~WRKQMGR() {
-
-    };
+    virtual ~WRKQMGR() {};
 
     // Static data
 

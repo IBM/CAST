@@ -73,6 +73,8 @@ ${FVT_PATH}/buckets/error_injection/ib_inventory.sh
 check_return $?
 ${FVT_PATH}/buckets/error_injection/switch_inventory.sh
 check_return $?
+${FVT_PATH}/buckets/error_injection/messaging.sh
+check_return $?
 #${FVT_PATH}/buckets/timing/allocation.sh
 #check_return $?
 #${FVT_PATH}/buckets/basic/hcdiag.sh

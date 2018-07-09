@@ -4,6 +4,7 @@ filebeat.inputs:
   paths:
     - /var/log/ibm/csm/csm_transaction.log
   tags: ["transaction"]
+
 - type: log 
   enabled: true
   paths:

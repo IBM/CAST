@@ -45,16 +45,16 @@ bbcmd("$TARGET_ALL mkdir --path=$BSCFS_BB_PATH");
 
 if ("$BSCFS_STGIN_LISTFILE" ne "") {
     if (! open($IN_LIST, '<', $BSCFS_STGIN_LISTFILE)) {
-	die "Could not open input list_file $BSCFS_STGIN_LISTFILE\n";
+	bbfail "Could not open input list_file $BSCFS_STGIN_LISTFILE\n";
     }
 
     if (! open($OUT_LIST, '>', $PRE_INSTALL_LIST)) {
-	die "Could not open output list_file $PRE_INSTALL_LIST\n";
+	bbfail "Could not open output list_file $PRE_INSTALL_LIST\n";
     }
 
     $PRESTAGE_TDEF = "$BSCFS_WORK_PATH/$JOBID/prestage_tdef";
     if (! open($TDEF, '>', $PRESTAGE_TDEF)) {
-	die "Could not open transfer definition file $PRESTAGE_TDEF\n";
+	bbfail "Could not open transfer definition file $PRESTAGE_TDEF\n";
     }
 
     $BUNDLE_ID = 1;
