@@ -59,7 +59,7 @@ public:
     // check if the port is valid
     errno = 0;
     int pn = strtoimax( port.c_str(), nullptr, 10 );
-    if(( errno == ERANGE ) || ( pn == INTMAX_MAX ) || ( pn <= 0 ) || ( pn > 65535 ))
+    if(( errno == ERANGE ) || ( pn == INT_MAX ) || ( pn <= 0 ) || ( pn > 65535 ))
       throw csm::daemon::Exception("Invalid port found while initializing BDS_info");
 
     _Port = port;
