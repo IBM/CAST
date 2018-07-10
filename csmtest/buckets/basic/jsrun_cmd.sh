@@ -68,11 +68,23 @@ check_return_exit $? 0 "Test Case 2: /tmp/jsrun_test exists on ${SINGLE_COMPUTE}
 check_all_output "CSM_ALLOCATION_ID=${allocation_id}" "CSM_JSM_ARGS" "cpuset:/allocation_${allocation_id}"
 check_return_flag $? "Test Case 2: Validating jsrun_test file output"
 
-# Clean Up allocation
+# Clean up allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Clean up allocation"
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
 check_return_exit $? 4 "Validating no active allocations"
+
+# Clean up test script
+xdsh ${SINGLE_COMPUTE} "rm -f /tmp/jsrun_cmd_test_script.sh" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Clean up test script"
+xdsh ${SINGLE_COMPUTE} "cat /tmp/jsrun_cmd_test_script.sh" > ${TEMP_LOG} 2>&1
+check_return_exit $? 1 "Validating no test script on ${SINGLE_COMPUTE}"
+
+# Clean up output file
+xdsh ${SINGLE_COMPUTE} "rm -f /tmp/jsrun_test" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Clean up output file"
+xdsh ${SINGLE_COMPUTE} "cat /tmp/jsrun_test" > ${TEMP_LOG} 2>&1
+check_return_exit $? 1 "Validating no output file on ${SINGLE_COMPUTE}"
 
 rm -f ${TEMP_LOG}
 echo "------------------------------------------------------------" >> ${LOG}
