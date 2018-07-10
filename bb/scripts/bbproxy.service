@@ -22,6 +22,7 @@ After=network.target
 
 
 [Service]
+UMask=0027
 Type=simple
 ExecStart=/opt/ibm/bb/sbin/bbProxy --config /etc/ibm/bb.cfg
 PIDFile=/var/run/bbproxy.pid
