@@ -30,7 +30,7 @@ IF(FUSE_FOUND)
         add_executable(fuse_getattr fuse_getattr.cc)
         target_link_libraries(fuse_getattr -lfuse)
         target_compile_definitions(fuse_getattr PRIVATE -D_FILE_OFFSET_BITS=64)
-        install(TARGETS fuse_getattr COMPONENT burstbuffer DESTINATION bscfs/tests)
+        install(TARGETS fuse_getattr COMPONENT burstbuffer-tests DESTINATION bscfs/tests)
 
         include_directories("${CMAKE_SOURCE_DIR}/bb/src")
 

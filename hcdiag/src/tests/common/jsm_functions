@@ -13,14 +13,8 @@
 # 
 #=============================================================================
 export MPI_ROOT=/opt/ibm/spectrum_mpi/
-export OPAL_PREFIX=${MPI_ROOT}
-export OPAL_LIBDIR=${MPI_ROOT}/lib
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${MPI_ROOT}/lib/:${MPI_ROOT}/jsm_pmix/lib:${MPI_ROOT}/lib/pami_port
-export IBM_INTERNAL_DISABLE_CSM=92E1FD45-1251-40EE-9B04-93628E03EB46
-export OMPI_MCA_pml=pami
-export OMPI_MCA_osc=pami
-export OMPI_LD_LIBRARY_PATH_PREPEND_DISTRO=${MPI_ROOT}/lib:${MPI_ROOT}/lib/pami_port
-export PATH=$PATH:${MPI_ROOT}/jsm_pmix/bin
+export JSM_DISABLE_CSM="92E1FD45-1251-40EE-9B04-93628E03EB46"
+export PATH=$MPI_ROOT/bin:$MPI_ROOT/jsm_pmix/bin:$PATH
 export CSM_ALLOCATION_ID=1 
 
 # ====================================================================================

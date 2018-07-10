@@ -368,15 +368,18 @@ def BB_GetThrottleRate(pMountpoint):
 
     l_NormalRCs = BB_GetThrottleRateError(BBError(Exception())).getNormalRCs()
     l_ToleratedErrorRCs = BB_GetThrottleRateError(BBError(Exception())).getToleratedErrorRCs()
-    rc = l_ToleratedErrorRCs[0]
 
     print "%sBB_GetThrottleRate issued for mountpoint %s" % (os.linesep, pMountpoint)
-    while (rc not in l_NormalRCs and rc in l_ToleratedErrorRCs):
+    while (True):
         rc = bb.api.BB_GetThrottleRate(l_Mountpoint, byref(l_Rate))
-        if (rc not in (l_NormalRCs + l_ToleratedErrorRCs)):
-            raise BB_GetThrottleRateError(rc)
+        if (rc in (l_NormalRCs + l_ToleratedErrorRCs)):
+            if (rc in l_ToleratedErrorRCs):
+                print "Retrieving the throttle rate for mountpoint %s cannot be completed at this time.  Operation will be retried again in 10 seconds." % (pMountpoint)
+                time.sleep(10)
+            else:
+                break
         else:
-            time.sleep(10)
+            raise BB_GetThrottleRateError(rc)
 
     bb.printLastErrorDetailsSummary()
     print "Throttle rate for mountpoint %s is %d bytes/sec" % (pMountpoint, l_Rate.value)
