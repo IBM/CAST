@@ -146,7 +146,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         if (strstr(pRequest.data, "heartbeat"))
         {
-            LOG(bb,debug) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            LOG(bb,info ) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
         }
         else
         {
@@ -207,9 +207,7 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
             getOffsetToNextAsyncRequest(l_CurrentAsyncRequestFileSeqNbr, l_CurrentOffsetToNextAsyncRequest);
             while (l_CurrentAsyncRequestFileSeqNbr <= l_AsyncRequestFileSeqNbr)
             {
-                // NOTE: If we set the offset target to MAXIMUM_ASYNC_REQUEST_FILE_SIZE, we have to add 1 to it so that we process the last async request
-                //       in that file.  Otherwise, we don't add 1 because that is the offset to the next async request to be inserted.
-                l_TargetOffsetToNextAsyncRequest = (l_CurrentAsyncRequestFileSeqNbr < l_AsyncRequestFileSeqNbr ? MAXIMUM_ASYNC_REQUEST_FILE_SIZE+1 : (uint64_t)l_OffsetToNextAsyncRequest);
+                l_TargetOffsetToNextAsyncRequest = (l_CurrentAsyncRequestFileSeqNbr < l_AsyncRequestFileSeqNbr ? MAXIMUM_ASYNC_REQUEST_FILE_SIZE : (uint64_t)l_OffsetToNextAsyncRequest);
                 if (!l_FirstFile)
                 {
                     // We crossed the boundary to a new async request file...  Start at offset zero...
@@ -610,7 +608,14 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
   	becomeUser(0, 0);
 
-    int l_SeqNbr = 0;
+    // Default is to open the currrent async request file
+    int l_SeqNbr = asyncRequestFileSeqNbr;
+    if (pWorkItem.getTag() >= offsetToNextAsyncRequest)
+    {
+        // We need to open the prior async request file...
+        l_SeqNbr -= 1;
+    }
+
     FILE* fd = openAsyncRequestFile("rb", l_SeqNbr);
     if (fd != NULL)
     {
@@ -1009,6 +1014,7 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                 {
                     l_TargetOffset = 0;
                 }
+                LOG(bb,debug) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
                 for (auto it=outOfOrderOffsets.begin(); it!=outOfOrderOffsets.end(); ++it) {
                     if (*it == l_TargetOffset)
                     {
@@ -1036,7 +1042,6 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
 {
     FILE* l_FilePtr = 0;
     char* l_AsyncRequestFileNamePtr = 0;
-    pSeqNbr = 0;
 
     int rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, pMaintenanceOption);
     if ((!rc) && l_AsyncRequestFileNamePtr)
@@ -1138,7 +1143,9 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
         // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
         if ((i % 20) == 10)
         {
-            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() = " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess = " << l_NumberToProcess;
+            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess " << l_NumberToProcess \
+                         << ", Async Seq# " << asyncRequestFileSeqNbr << ", LstOff 0x" << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed \
+                         << ", NxtOff 0x" << setw(8) << offsetToNextAsyncRequest << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
         }
         if (HPWrkQE->getNumberOfWorkItemsProcessed() >= l_NumberToProcess)
         {
@@ -1537,7 +1544,8 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
             if(bfs::is_directory(asyncfile)) continue;
 
             int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
-            if (l_Count == 1 && l_CurrentSeqNbr > l_SeqNbr)
+            // NOTE: If pSeqNbr is passed in, that is the file we want to open...
+            if (l_Count == 1 && ((pSeqNbr && pSeqNbr == l_CurrentSeqNbr) || ((!pSeqNbr) && l_CurrentSeqNbr > l_SeqNbr)))
             {
                 l_SeqNbr = l_CurrentSeqNbr;
                 strCpy(pAsyncRequestFileName, asyncfile.path().c_str(), PATH_MAX+1);
@@ -1583,6 +1591,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 }
                 // Fall through...
 
+                case START_BBSERVER:
                 case FULL_MAINTENANCE:
                 {
                     // Unconditionally perform a chown to root:root for the cross-bbserver metatdata root directory.
@@ -1631,21 +1640,26 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     {
                         if (l_AsyncRequestFileSeqNbr > 0 && l_OffsetToNextAsyncRequest >= 0)
                         {
-                            wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
-                            LOG(bb,info) << "WRKQMGR: Current async request file = " << pAsyncRequestFileName << ", offsetToNextAsyncRequest = " << hex << uppercase << setfill('0') << setw(8) \
-                                         << l_OffsetToNextAsyncRequest << setfill(' ') << nouppercase << dec;
-                            if (l_OffsetToNextAsyncRequest)
+                            if (pMaintenanceOption == START_BBSERVER)
                             {
-                                // Set the last offset processed to one entry less than the next offset set above.
-                                lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
+                                wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                                if (l_OffsetToNextAsyncRequest)
+                                {
+                                    // Set the last offset processed to one entry less than the next offset set above.
+                                    lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
+                                }
+                                else
+                                {
+                                    // Set the last offset processed to the maximum async request file size.
+                                    // NOTE: This will cause the first expected target offset to be zero in method
+                                    //       manageWorkItemsProcessed().
+                                    lastOffsetProcessed = MAXIMUM_ASYNC_REQUEST_FILE_SIZE;
+                                }
                             }
-                            else
-                            {
-                                // Set the last offset processed to the maximum async request file size.
-                                // NOTE: This will cause the first expected target offset to be zero in method
-                                //       manageWorkItemsProcessed().
-                                lastOffsetProcessed = MAXIMUM_ASYNC_REQUEST_FILE_SIZE;
-                            }
+                            LOG(bb,info) << "WRKQMGR: Current async request file " << pAsyncRequestFileName \
+                                         << hex << uppercase << setfill('0') << ", LstOff 0x" << setw(8) << lastOffsetProcessed \
+                                         << ", NxtOff 0x" << setw(8) << l_OffsetToNextAsyncRequest \
+                                         << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
                         }
                         else
                         {

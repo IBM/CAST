@@ -43,13 +43,14 @@ class WorkID;
 const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;    // In seconds
 //const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 5;     // In seconds
 const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;
-//const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 65536;
+//const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 32 * 1024;
 const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0;
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;
 const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 0;
 const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 0.0;
-const int CREATE_NEW_FILE = 3;
+const int CREATE_NEW_FILE = 4;
+const int START_BBSERVER = 3;
 const int FULL_MAINTENANCE = 2;
 const int MINIMAL_MAINTENANCE = 1;
 const int NO_MAINTENANCE = 0;
@@ -308,7 +309,7 @@ class WRKQMGR
 
     inline int crossingAsyncFileBoundary(const uint64_t pOffset)
     {
-        return (pOffset > MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 1 : 0);
+        return (pOffset < MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 0 : 1);
     }
 
     inline int delayMessageSent()
@@ -497,6 +498,7 @@ class WRKQMGR
 
         return;
     }
+
 
     inline void setLastQueueWithEntries(LVKey pLVKey)
     {
