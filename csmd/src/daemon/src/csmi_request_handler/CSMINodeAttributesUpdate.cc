@@ -53,22 +53,27 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 	}
 
 	int paramCount = 0;
+	bool comment_NULL = false;
 	
 	std::string stmt = "WITH updated AS ( UPDATE csm_node SET update_time = 'now',";
 	
 	if(input->comment[0] != '\0')
 	{
-		//check for special keywords that begin with '!'
-		if(input->comment[0] == '!')
+		//check for special keywords that begin with '#'
+		if(input->comment[0] == '#')
 		{
 			//a special CSM API keyword was found
 			//go through all keywords
 			// which keyword? -- too bad I can't use a switch statement
-			if(strncmp ("!_NULL_!", input->comment, 8) == 0)
+			if(strncmp ("#CSM_NULL", input->comment, 9) == 0)
 			{
-				//Special keyword "!_NULL_!" was found.
+				//Special keyword "#CSM_NULL" was found.
 				//this means reset Database field to NULL
-				add_param_sql( stmt, "NULL",   ++paramCount, "comment=$",   "::text,")
+				//add_param_sql( stmt, "NULL",   ++paramCount, "comment=$",   "::text,")
+				stmt.append("comment = NULL,");
+				//paramCount++;
+				comment_NULL = true;
+				
 			}else{
 				//final default case
 				
@@ -96,7 +101,7 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 		++paramCount,"physical_u_location=$", "::text,")
 	
 	// Verify the payload.
-	if ( paramCount >  0 )
+	if ( paramCount >  0 || comment_NULL == true)
 	{
 		// Remove the last comma.
 		stmt.back()= ' ';
@@ -122,7 +127,14 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 		"WHERE updated.node_name IS NULL");
 
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
-	if( input->comment[0] ) dbReq->AddTextParam(input->comment);
+	if( input->comment[0] ) 
+	{
+		//make sure its false, otherwise we added it above. 
+		if(comment_NULL == false)
+		{
+			dbReq->AddTextParam(input->comment);
+		}
+	}
 	if( input->feature_1[0] ) dbReq->AddTextParam(input->feature_1); 
 	if( input->feature_2[0] ) dbReq->AddTextParam(input->feature_2);
 	if( input->feature_3[0] ) dbReq->AddTextParam(input->feature_3);
