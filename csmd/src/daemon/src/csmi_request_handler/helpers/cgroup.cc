@@ -46,6 +46,7 @@
 #define _CGROUP_TASK "/tasks"
 #define _TASK_KILL SIGKILL
 #define _KILL_ATTEMPTS 5
+#define _SLEEP_FACTOR 1 // Number of seconds multiplied by kill attempt -1, clamped to zero.
 
 ///< File helpers
 #define _DIR_DELIM "/"
@@ -692,10 +693,17 @@ void CGroup::DeleteCGroup(
         // If any tasks are left at the end throw an exception.
         int killAttempts = -1;
         int tasksFound   = 0;
+        int sleepAmount   = 0;
         do
         {
+            // Compute the sleep time 
+            sleepAmount   = _SLEEP_FACTOR * killAttempts;
             tasksFound = KillTasks( groupPath );
-            killAttempts++;            
+            killAttempts++;
+
+            // When the sleep amount is greater than zero it might be necessary to sleep a little.
+            if (sleepAmount > 0 ) sleep(sleepAmount);
+            
         }
         while ( tasksFound > 0 && killAttempts < _KILL_ATTEMPTS);
 

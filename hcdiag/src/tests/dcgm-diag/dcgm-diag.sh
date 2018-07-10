@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash      
 
 #================================================================================
 #   
@@ -24,18 +24,47 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
+
+# todo: if the console log for all tests changes to json, we need to change the parsing
+#
 export DCGM_DAEMON=/usr/bin/nv-hostengine
 export DCGM_CMD=/usr/bin/dcgmi
+
+RUN_LEVELS=(1 2 3 4 5)
+run_level=3
+if [[ $# -gt 0 ]]; then run_level=$1; fi
+valid=$(echo ${RUN_LEVELS[@]} | grep -o $run_level | wc -w)
 
 me=$(basename $0) 
 thishost=`hostname -s`
 
-RUN_LEVEL=3
-if [[ $# -gt 0 ]]; then RUN_LEVEL=$1; fi
+if [ $valid -eq 0 ]; then echo "Invalid run_level $run_level, valid values are: ${RUN_LEVELS[@]} "  ; exit -1; fi 
+if [ "$run_level" -eq  "4" ] || [ "$run_level" -eq  "5" ]; then
+  sdir=/tmp                                             
+  ddir=/tmp
+  if [[ $# -gt 1 ]]; then sdir=$2; fi
+  if [[ $# -gt 2 ]]; then ddir=$3; fi
 
-# nvidia diagnostic has to run as root
-# ====================================
-#sudo -E bash <<"EOF"
+  if [ "$run_level" -eq  "4" ]; then
+     # Single Precision
+     sdir="${sdir}/${thishost}_s"
+     ddir="${ddir}/${thishost}_s"
+     args="-r 3 -j --statspath ${sdir} --debugLogFile ${ddir}/dcgm.debug -v -d 5" 
+  else
+     #Double Precision
+     sdir="${sdir}/${thishost}_d"
+     ddir="${ddir}/${thishost}_d"
+     args="-r diagnostic --parameters Diagnostic.use_doubles=True --statspath ${sdir} --debugLogFile ${ddir}/dcgm.debug -v -d 5"
+  fi
+  mkdir -p $sdir
+  if [ $? -ne 0 ]; then "ERROR: can't not create $sdir directory."; echo "$me test FAIL, rc=1"; exit 1; fi  
+  mkdir -p $ddir
+  if [ $? -ne 0 ]; then "ERROR: can't not create $ddir directory."; echo "$me test FAIL, rc=1"; exit 1; fi  
+
+else
+  args="-r $run_level"
+fi
+
 
 thisdir=`dirname $0`
 source $thisdir/../common/functions
@@ -60,12 +89,6 @@ if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi
 
 trap 'rm -f /tmp/$$' EXIT
 
-# check if argument is valid
-# ==========================
-run_levels=(1 2 3)
-valid=$(echo ${run_levels[@]} | grep -o $RUN_LEVEL | wc -w)
-if [ $valid -eq 0 ]; then echo "Invalid RUN_LEVEL $RUN_LEVEL, valid values are: ${run_levels[@]} "  ; exit -1; fi 
-
 FAIL="Fail"
 
 
@@ -81,12 +104,6 @@ start_dcgm
 dcgm_running=$is_dcgm_running
 
 
-# Enable Persistent Mode, we always save/restore persistent mode
-# param has the indexes that were modified
-# ==============================================================
-#set_gpu_pm 1
-#indexes="$param"
-
 $DCGM_CMD --version
 
 read_gpu_basics 0
@@ -96,8 +113,8 @@ read_gpu_basics 0
 echo -e "\nIssuing command $DCGM_CMD discovery -l" 
 $DCGM_CMD discovery -l 
          
-echo -e "\nIssuing command $DCGM_CMD diag -r $RUN_LEVEL"
-$DCGM_CMD diag -r $RUN_LEVEL | tee /tmp/$$
+echo -e "\nIssuing command $DCGM_CMD diag ${args}"
+$DCGM_CMD diag ${args} | tee /tmp/$$
 rc=$?
 
 
@@ -112,7 +129,8 @@ drc=0
 if [ "$rc" -ne "0" ]; then
    echo "Error running $DGM_CMD diag command,  rc= $rc."
 else
-   if egrep -i -q 'Killed|Error' /tmp/$$; then
+   #if egrep -i -q 'Killed|Error' /tmp/$$; then
+   if egrep -i -q 'Killed|^Error' /tmp/$$; then
       drc=255
    fi
    if grep -q $FAIL /tmp/$$; then
@@ -122,10 +140,6 @@ else
    fi
 fi
 
-
-#  restoring the Persistence Mode
-#  ==============================
-#restore_gpu_pm 0 "$indexes"
 
 #  Exit code
 #  =========

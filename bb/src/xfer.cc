@@ -133,13 +133,15 @@ void processAsyncRequest(WorkID& pWorkItem)
                 if (strstr(l_Cmd, "heartbeat"))
                 {
                     l_LogAsInfo = false;
-                    LOG(bb,debug) << "Start processing async request: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                    LOG(bb,debug) << "                                Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " now being processed";
+                    LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                  << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
                 else
                 {
-                    LOG(bb,info) << "Start processing async request: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                    LOG(bb,info) << "                                Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " now being processed";
+                    LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                 << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
 
                 rc = 0;
@@ -170,7 +172,7 @@ void processAsyncRequest(WorkID& pWorkItem)
                         LOG(bb,error) << "Invalid data indicating type of cancel operation from request data " << l_Request.getData() << " to this bbServer";
                     }
 
-                    // NOTE: The rc value could be retunred as position indicating a non-error...
+                    // NOTE: The rc value could be returned as position indicating a non-error...
                     if (rc < 0)
                     {
                         LOG(bb,error) << "Failure when attempting to propagate cancel operation " << l_Request.getData() << " to this bbServer, rc=" << rc;
@@ -242,12 +244,13 @@ void processAsyncRequest(WorkID& pWorkItem)
 
             if (l_LogAsInfo)
             {
-                LOG(bb,info) << "End processing async request. Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " finished being processed";
-
+                LOG(bb,info) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                             << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
             }
             else
             {
-                LOG(bb,debug) << "End processing async request. Work item number " << HPWrkQE->getNumberOfWorkItemsProcessed() << " finished being processed";
+                LOG(bb,debug) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                              << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
             }
         }
         else
@@ -1563,7 +1566,7 @@ void* transferWorker(void* ptr)
                             // Process the async request
                             processAsyncRequest(l_WorkItem);
                         }
-                        l_WrkQE->incrementNumberOfWorkItemsProcessed();
+                        wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
                     }
                     else
                     {
@@ -2677,6 +2680,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
+    stringstream errorText;
     int l_Continue = 120;
 
     lockTransferQueue(pLVKey, "getThrottleRate");
@@ -2688,22 +2692,34 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
         //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
         //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
         //       for an LVKey.
-        // \todo - Not sure if this is the right duration...  @DLH
-        while ((!rc) && --l_Continue)
+        while ((!rc) && l_Continue--)
         {
             rc = wrkqmgr.getThrottleRate(pLVKey, pRate);
-            if (rc == -2)
+            if (rc)
             {
-                rc = 0;
-#ifndef __clang_analyzer__
-                l_LockHeld = false;
-#endif
-                unlockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
+                if (rc == -2)
                 {
-                    usleep((useconds_t)1000000);    // Delay 1 second
+                    rc = 0;
+#ifndef __clang_analyzer__
+                    l_LockHeld = false;
+#endif
+                    unlockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
+                    {
+                        usleep((useconds_t)1000000);    // Delay 1 second
+                    }
+                    lockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
+                    l_LockHeld = true;
                 }
-                lockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
-                l_LockHeld = true;
+                else
+                {
+                    rc = -1;
+                    errorText << "Failure when trying to get throttle rate for " << pLVKey;
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
+            }
+            else
+            {
+                l_Continue = 0;
             }
         }
     }
@@ -2810,6 +2826,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
+    stringstream errorText;
     int l_Continue = 120;
 
     lockTransferQueue(pLVKey, "setThrottleRate");
@@ -2822,21 +2839,34 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
         //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
         //       for an LVKey.
         // \todo - Not sure if this is the right duration...  @DLH
-        while ((!rc) && --l_Continue)
+        while ((!rc) && l_Continue--)
         {
             rc = wrkqmgr.setThrottleRate(pLVKey, pRate);
-            if (rc == -2)
+            if (rc)
             {
-                rc = 0;
-#ifndef __clang_analyzer__
-                l_LockHeld = false;
-#endif
-                unlockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
+                if (rc == -2)
                 {
-                    usleep((useconds_t)1000000);    // Delay 1 second
+                    rc = 0;
+#ifndef __clang_analyzer__
+                    l_LockHeld = false;
+#endif
+                    unlockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
+                    {
+                        usleep((useconds_t)1000000);    // Delay 1 second
+                    }
+                    lockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
+                    l_LockHeld = true;
                 }
-                lockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
-                l_LockHeld = true;
+                else
+                {
+                    rc = -1;
+                    errorText << "Failure when trying to set throttle rate for " << pLVKey;
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
+            }
+            else
+            {
+                l_Continue = 0;
             }
         }
     }

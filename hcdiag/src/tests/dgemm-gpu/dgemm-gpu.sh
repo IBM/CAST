@@ -27,6 +27,7 @@ fi
 
 # spectrum mpi install
 S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu
+#S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/mpirun_scripts/dgemm_gpu
 
 readonly me=${0##*/}
 thishost=`hostname -s`
@@ -54,12 +55,14 @@ nsuccess=$((ngpus+1))
 if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi 
 if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
 
-trap 'rm -rf /tmp/$$*' EXIT
-trap 'rm -f /tmp/host.list$$' EXIT
 
-
+eye_catcher="PERFORMANCE SUCCESS:"
 tmpdir=/tmp/$$
 tmpout=/tmp/$$.out
+hostfile=/tmp/host.list$$
+
+trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
+
 
 
 # It is the dgemm_gpu version that comes with spectrum mpi
@@ -70,17 +73,16 @@ if [ ! -x $S_BINDIR/run.dgemm_gpu ]; then
    exit 1
 fi
 
-hostfile=/tmp/host.list$$
 mkdir $tmpdir
 output_dir=$tmpdir
-eye_catcher="PERFORMANCE SUCCESS:"
+
 
 # check if we need jsmd
 need_jsmd=`grep -c "jsrun " $S_BINDIR/run.dgemm_gpu`
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
    # check if we there is jsm daemon running
-   run_flag=""
+   run_flag="-g $ngpus"
    is_running=`/usr/bin/pgrep jsmd`
    if [ -z "$is_running" ]; then 
       # not running, need to create a host.file, just with the hostname
@@ -90,9 +92,9 @@ if [ "$need_jsmd" -ne "0" ]; then
       echo "hostfile $hostfile content is:"
       cat $hostfile
       stopd=1
-      run_flag="-c"
+      run_flag="${run_flag} -c"
    fi
-   cmd="cd $S_BINDIR; ./run.dgemm_gpu $run_flag -d $tmpdir >$tmpout 2>&1"
+   cmd="cd $S_BINDIR; ./run.dgemm_gpu ${run_flag} -d $tmpdir >$tmpout 2>&1"
 else
    # need to create a host.file, hostname slots="
    echo "$thishost slots=1" > $hostfile
@@ -101,25 +103,12 @@ else
    cmd="cd $S_BINDIR; ./run.dgemm_gpu -f $hostfile -d $tmpdir >$tmpout 2>&1"
 fi
 
-# enable GPU persistence mode
-# it set param with the indexes
-# ----------------------------------------------
-#set_gpu_pm 1
-#rc=$ret
-#if [ "$rc" -ne "0" ]; then echo echo "$me test FAIL, rc=$rc"; exit $rc; fi
-#indexes="$param"
-
-#read_gpu_basics 
 
 echo -e "\nRunning: $cmd.\n"          
 eval $cmd
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
-
-# set gpu persistence mode back to what it was
-# ---------------------------------------------
-#restore_gpu_pm 0 "$indexes"
 
 
 echo -e "\n================================================================"

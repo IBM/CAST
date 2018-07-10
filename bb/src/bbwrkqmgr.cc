@@ -360,6 +360,23 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
             if (l_DumpIt)
             {
+                stringstream l_OffsetStr;
+                if (outOfOrderOffsets.size())
+                {
+                    // Build an output stream for the out of order async request offsets...
+                    l_OffsetStr << "(";
+                    size_t l_NumberOfOffsets = outOfOrderOffsets.size();
+                    for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                    {
+                        if (i!=l_NumberOfOffsets-1) {
+                            l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
+                        } else {
+                            l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                        }
+                    }
+                    l_OffsetStr << ")";
+                }
+
                 if (!strcmp(pSev,"debug")) {
                     LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
 //                    LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
@@ -370,8 +387,14 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                    LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                    LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
 //                    LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  SeqNbr: " << asyncRequestFileSeqNbr << " Offset: 0x" \
-                                  << hex << uppercase << setfill('0') << setw(8) <<offsetToNextAsyncRequest << setfill(' ') << nouppercase << dec;
+                    LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                    LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                  << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                  << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                    if (outOfOrderOffsets.size())
+                    {
+                        LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                    }
                     LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
                     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
                     {
@@ -388,8 +411,14 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                    LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                    LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
 //                    LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  SeqNbr: " << asyncRequestFileSeqNbr << "  Offset: 0x" \
-                                 << hex << uppercase << setfill('0') << setw(8) << offsetToNextAsyncRequest << setfill(' ') << nouppercase << dec;
+                    LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                    LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                 << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                 << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                    if (outOfOrderOffsets.size())
+                    {
+                        LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                    }
                     LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
                     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
                     {
@@ -663,6 +692,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         if (wrkqs.size() > 1)
         {
             // We have one or more workqueues...
+            bool l_SelectNext = false;
+            if (lastQueueProcessed == lastQueueWithEntries)
+            {
+                // Last queue processed is the last in the map with entries.
+                // Therefore, return the next possible workqueue as it is the
+                // next in the round robin order.
+                l_SelectNext = true;
+            }
+
             if (wrkqs.begin()->second != HPWrkQE)
             {
                 // Not the HP workqueue...
@@ -676,10 +714,10 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                     l_WrkQE = wrkqs.begin()->second;
                     l_BucketValue = wrkqs.begin()->second->getBucket();
 
-                    // If the last queue processed is the last in the map and this queue (the first queue in the map)
-                    // has a non-negative bucket value, return this queue now as it is the next in round robin order.
-                    if (*(wrkqs.rbegin()->second->getLVKey()) == lastQueueProcessed && l_BucketValue >= 0)
+                    if (l_SelectNext && l_BucketValue >= 0)
                     {
+                        // Return this queue now as it is the next in round robin order
+//                        LOG(bb,info) << "WRKQMGR::getWrkQE(): First non-negative bucket workqueue returned";
                         l_Continue = false;
                     }
                 }
@@ -687,7 +725,6 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 
             if (l_Continue)
             {
-                bool l_SelectNext = false;
                 for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
                 {
                     bool l_Switch = false;
@@ -737,18 +774,14 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                                 l_BucketValue = qe->second->getBucket();
                             }
 
-                            if (l_SelectNext)
+                            // Return this queue now as it is the next in round robin order
+                            if (l_SelectNext && qe->second->getBucket() >= 0)
                             {
-                                // We are to return the 'next' workqueue that is not throttling -or- has a positive bucket value
-                                if (qe->second->getRate() == 0 || qe->second->getBucket() > 0)
-                                {
-                                    // Non-throttling workqueue or positive bucket value (throttling).
-                                    // Switch to this workqueue and return it...
-                                    l_LVKey = qe->first;
-                                    l_WrkQE = qe->second;
-//                                    LOG(bb,info) << "WRKQMGR::getWrkQE(): l_SelectNextContinue = true, non-immediate next workqueue returned";
-                                    break;
-                                }
+                                // Switch to this workqueue and return it...
+                                l_LVKey = qe->first;
+                                l_WrkQE = qe->second;
+//                                LOG(bb,info) << "WRKQMGR::getWrkQE(): l_Continue = true, first non-negative bucket workqueue returned";
+                                break;
                             }
                         }
                     }
@@ -756,7 +789,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                     if ((!l_SelectNext) && qe->first == lastQueueProcessed)
                     {
                         // Just found the entry we last returned.  Return the next workqueue that has a positive bucket value...
-//                        LOG(bb,info) << "WRKQMGR::getWrkQE(): l_SelectNext = true";
+//                        LOG(bb,debug) << "WRKQMGR::getWrkQE(): l_SelectNext = true";
                         l_SelectNext = true;
                     }
                 }
@@ -771,7 +804,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 {
                     // WRKQMGR::getWrkQE(): No extents left on any workqueue
                     rc = -1;
-//                    LOG(bb,info) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
+//                    LOG(bb,debug) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
                 }
             }
         }
@@ -779,7 +812,33 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         {
             // WRKQMGR::getWrkQE(): No workqueue entries exist
             rc = -1;
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+//            LOG(bb,debug) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+        }
+
+        if (!rc)
+        {
+            if (pWrkQE)
+            {
+                for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); qe++)
+                {
+                    if (qe->second->getWrkQ_Size() && qe->second->getBucket() >= 0)
+                    {
+                        // Update the last work with entries
+                        setLastQueueWithEntries(qe->first);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Update the last work with entries as NONE
+                setLastQueueWithEntries(LVKey());
+            }
+        }
+        else
+        {
+            // Update the last work with entries as NONE
+            setLastQueueWithEntries(LVKey());
         }
     }
     else
@@ -907,6 +966,72 @@ void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
     return;
 }
 
+void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
+{
+    // NOTE: This must be for the HPWrkQ.
+    // NOTE: The ordering for processing of async requests is NOT guaranteed.
+    //       This is because high priority work items are dispatched to multiple
+    //       threads and there is no guarantee as to the order of their finish.
+    //       Command requests can ensure that all prior high priority requests are
+    //       completed before processing for their request starts by invoking the
+    //       processAllOutstandingHP_Requests() method.
+    //       Therefore, the purpose of this routine is to only record that a given
+    //       work item (high priorty request) is complete if all prior work items
+    //       are also complete. This processing enforces the promise given by the
+    //       processAllOutstandingHP_Requests() method.
+    // NOTE: The processing below only works if we assume that the number of
+    //       outstanding out of order async requests does not exceed tne number
+    //       of async requests that can be contained within a given async request
+    //       file.  Otherwise, we would have a duplicate offset in the outOfOrderOffsets
+    //       vector.
+    //
+    // Determine the next offset to be marked as complete
+    uint64_t l_TargetOffset = lastOffsetProcessed + sizeof(AsyncRequest);
+    if (crossingAsyncFileBoundary(l_TargetOffset))
+    {
+        // New async request file...  Offset will be zero
+        l_TargetOffset = 0;
+    }
+    if (l_TargetOffset == pWorkItem.getTag())
+    {
+        // The work item just finished is for the next offset
+        incrementNumberOfHP_WorkItemsProcessed(l_TargetOffset);
+
+        // Now see if any work items that came out of order should also be marked as complete
+        bool l_AllDone = false;
+        while (!l_AllDone)
+        {
+            l_AllDone = true;
+            if (outOfOrderOffsets.size())
+            {
+                l_TargetOffset = lastOffsetProcessed + sizeof(AsyncRequest);
+                if (crossingAsyncFileBoundary(l_TargetOffset))
+                {
+                    l_TargetOffset = 0;
+                }
+                for (auto it=outOfOrderOffsets.begin(); it!=outOfOrderOffsets.end(); ++it) {
+                    if (*it == l_TargetOffset)
+                    {
+                        l_AllDone = false;
+                        outOfOrderOffsets.erase(it);
+                        incrementNumberOfHP_WorkItemsProcessed(l_TargetOffset);
+                        LOG(bb,info) << "manageWorkItemsProcessed(): Offset 0x" << hex << uppercase << setfill('0') << l_TargetOffset << setfill(' ') << nouppercase << dec << " removed from the outOfOrderOffsets vector";
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // Work item completed out of order...  Keep it for later processing...
+        outOfOrderOffsets.push_back(pWorkItem.getTag());
+        LOG(bb,info) << "manageWorkItemsProcessed(): Offset 0x" << hex << uppercase << setfill('0') << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " pushed onto the outOfOrderOffsets vector";
+    }
+
+    return;
+}
+
 FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const int pMaintenanceOption)
 {
     FILE* l_FilePtr = 0;
@@ -925,7 +1050,7 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
             {
                 // Append mode...  Check the file size...
                 uint64_t l_Offset = (int64_t)ftell(l_FilePtr);
-                if (l_Offset > MAXIMUM_ASYNC_REQUEST_FILE_SIZE)
+                if (crossingAsyncFileBoundary(l_Offset))
                 {
                     // Time for a new async request file...
                     delete [] l_AsyncRequestFileNamePtr;
@@ -1203,7 +1328,14 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
         {
             if ((pValue && (!it->second->isSuspended())) || ((!pValue) && it->second->isSuspended()))
             {
-                it->second->setSuspended(pValue);
+                if (it->second)
+                {
+                    it->second->setSuspended(pValue);
+                }
+                else
+                {
+                    rc = -2;
+                }
             }
             else
             {
@@ -1499,9 +1631,21 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     {
                         if (l_AsyncRequestFileSeqNbr > 0 && l_OffsetToNextAsyncRequest >= 0)
                         {
-                            wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, (uint64_t)l_OffsetToNextAsyncRequest);
+                            wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
                             LOG(bb,info) << "WRKQMGR: Current async request file = " << pAsyncRequestFileName << ", offsetToNextAsyncRequest = " << hex << uppercase << setfill('0') << setw(8) \
                                          << l_OffsetToNextAsyncRequest << setfill(' ') << nouppercase << dec;
+                            if (l_OffsetToNextAsyncRequest)
+                            {
+                                // Set the last offset processed to one entry less than the next offset set above.
+                                lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
+                            }
+                            else
+                            {
+                                // Set the last offset processed to the maximum async request file size.
+                                // NOTE: This will cause the first expected target offset to be zero in method
+                                //       manageWorkItemsProcessed().
+                                lastOffsetProcessed = MAXIMUM_ASYNC_REQUEST_FILE_SIZE;
+                            }
                         }
                         else
                         {
