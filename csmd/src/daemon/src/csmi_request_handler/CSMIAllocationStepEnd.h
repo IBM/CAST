@@ -27,6 +27,17 @@ class CSMIAllocationStepEnd : public CSMIStatefulDB {
 public:
 	CSMIAllocationStepEnd(csm::daemon::HandlerOptions& options);
 
+    virtual bool CompareDataForPrivateCheck(
+        const std::vector<csm::db::DBTuple *>& tuples,
+        const csm::network::Message &msg,
+        csm::daemon::EventContextHandlerState_sptr ctx) final;
+    
+    virtual bool RetrieveDataForPrivateCheck(
+        const std::string& arguments,
+        const uint32_t len,
+        csm::db::DBReqContent **dbPayload,
+        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+
     virtual bool CreatePayload(
         const std::string& arguments,
         const uint32_t len,
