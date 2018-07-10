@@ -75,7 +75,7 @@ sub phase1()
     failureCleanAndExit() if(bbgetrc($result) != 0);
     
     print "Changing mode for mount point $BBPATH\n";
-    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0755");
+    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
     failureCleanAndExit() if(bbgetrc($result) != 0);
     
     print "Creating logical volume $BBPATH with size $BB_SSD_MIN\n";
@@ -88,7 +88,7 @@ sub phase1()
     failureCleanAndExit() if(bbgetrc($result) != 0);
     
     print "Changing mode for logical volume $BBPATH\n";
-    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0755");
+    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
     failureCleanAndExit() if(bbgetrc($result) != 0);
 }
 
