@@ -29,3 +29,6 @@ set(CPACK_RPM_burstbuffer-tools_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOP
 
 # Burstbuffer needs to run a post-install script
 set(CPACK_RPM_burstbuffer_POST_INSTALL_SCRIPT_FILE  ${CMAKE_SOURCE_DIR}/bb/scripts/postinstall.sh PARENT_SCOPE)
+
+# Burstbuffer needs to run a pre-uninstall script
+set(CPACK_RPM_burstbuffer_PRE_UNINSTALL_SCRIPT_FILE ${CMAKE_SOURCE_DIR}/bb/scripts/preuninstall.sh PARENT_SCOPE)
