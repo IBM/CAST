@@ -52,7 +52,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
   auto it = list.begin();
   try {
     CSM_Environmental_Data envData;
-    envData.Set_Node_Data();
+    envData.Collect_Node_Data();
 
     while ( it != list.end() )
     {
@@ -72,7 +72,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
             dlopen_flag = false;
             dcgm_init_flag = true;
 
-            LOG(csmenv, debug) << "GPU environmental collection calling INV_DCGM_ACCESS::GetInstance()";
+            LOG(csmenv, debug) << "Collecting GPU data.";
 
             // checking if dcgm is installed
             dcgm_installed_flag = csm::daemon::INV_DCGM_ACCESS::GetInstance()->GetDCGMInstalledFlag();
@@ -138,9 +138,16 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
           }
           case csm::daemon::CPU:
           {
+            LOG(csmenv, debug) << "Collecting CPU data.";
             CSM_CPU_Data CPU_Data;
             CPU_Data.DummyReadCPU();
             envData.Set_Data( CPU_Data );
+            break;
+          }
+          case csm::daemon::ENVIRONMENTAL:
+          {
+            LOG(csmenv, debug) << "Collecting node environmental data.";
+            envData.Collect_Environmental_Data();
             break;
           }
           case csm::daemon::NETWORK:

@@ -30,6 +30,7 @@
 #define OCC_SENSOR_DATA_BLOCK_OFFSET 0x00580000
 #define OCC_SENSOR_DATA_BLOCK_SIZE   0x00025800
 
+#include  <vector>
 #include  <unordered_map>
 namespace csm {
 namespace daemon {
@@ -70,6 +71,8 @@ enum sensor_struct_type {
 enum sensor_attr {
     SENSOR_SAMPLE,
     SENSOR_ACCUMULATOR,
+    SENSOR_CSM_MIN,
+    SENSOR_CSM_MAX
 };
 
 /** @brief A collection of noteworthy sensor ids.
@@ -167,6 +170,27 @@ struct occ_sensor_counter {
  *  @return True if sensors could be read.
  */
 bool GetOCCSensorData(std::unordered_map<std::string,int64_t> &valueMap);
+
+struct CsmOCCSensorRecord
+{
+    int64_t sample;            ///< Latest sample of this sensor.
+    int64_t csm_min;           ///< Minimum value since last reset request by CSM (CORAL).
+    int64_t csm_max;           ///< Maximum value since last reset request by CSM (CORAL).
+    int64_t accumulator;       ///< Accumulator for this sensor.
+};
+
+/** 
+ *  @brief Queries all of the detected sensor blocks for the key values in the @p inMap.
+ *  Stores the sample, csm_min, csm_max, and accumulator values for the sensors in the outValues, if applicable. 
+ *  Values are reported on a per chip basis without accumulating values across chips.
+ *  Node level values are reported as part of chip index 0 in the output data.
+ *  Values are only populated into the csm_min, csm_max, and accumulator for sensors that support them. 
+ *  
+ *  @param[in] inMap The value map containing the requested list of sensors.
+ *  @param[out] outValues A vector of maps, indexed by chip, containing the current values for the sensor. 
+ */
+bool GetExtendedOCCSensorData( std::unordered_map<std::string,CsmOCCSensorRecord> &inMap, 
+    std::vector<std::unordered_map<std::string,CsmOCCSensorRecord>> &outValues);
 
 } // helper
 } // daemon
