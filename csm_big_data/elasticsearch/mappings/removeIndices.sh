@@ -1,6 +1,7 @@
+#!/bin/sh
 #================================================================================
 #
-#    csm_big_data/CMakeLists.txt
+#    removeIndices.sh
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,16 +14,21 @@
 #
 #================================================================================
 
-set(BDS_BASE_NAME csm/bigdata)
-set(BDS_RPM_NAME csm-bds)
+# Get the script directory for moving the templates.
+script_dir=$(dirname $0)
+[[ $1 = "" ]] && host=$HOSTNAME || host=$1
 
-add_subdirectory(elasticsearch)
-add_subdirectory(logstash)
-add_subdirectory(data-aggregators)
+TEMPLATES="${script_dir}/templates"
+target="${host}:9200"
 
-set(SCRIPTDIR scripts)
+# Iterate over the templates specified by CAST and remove them from the elasticsearch templates.
+for template in ${TEMPLATES}/*json
+do
+    name=$(basename $template)
+    name=${name/.json}
+    
+    curl -X DELETE "${target}/_template/${name}?pretty" >/dev/null 2>&1
+done
 
-
-#install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME})
 
 

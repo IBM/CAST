@@ -20,7 +20,6 @@
 # the new directory must be added to the CMAKE_INSTALL_RPATH in scripts/setupRPATH.cmake
 
 # Change the CSM rpms that do not contain compiled binaries to noarch
-SET(CPACK_RPM_csm-bds_PACKAGE_ARCHITECTURE "noarch")
 SET(CPACK_RPM_csm-db_PACKAGE_ARCHITECTURE "noarch")
 SET(CPACK_RPM_csm-hcdiag_PACKAGE_ARCHITECTURE "noarch")
 

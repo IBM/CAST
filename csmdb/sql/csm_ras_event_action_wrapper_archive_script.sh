@@ -190,6 +190,7 @@ now2=$(date '+%Y-%m-%d.%H.%M.%S')
     echo   "${line1_out}"
     echo "${line3_log}" >> $logfile
 
+
     filesize
     cat ${data_dir}$tmp_logname >> ${data_dir}$logname
     wait

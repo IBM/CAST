@@ -1,0 +1,3 @@
+/opt/ibm/csm/bigdata/logstash/removeConfigs.sh
+/opt/ibm/csm/bigdata/elasticsearch/removeConfigs.sh
+

@@ -205,11 +205,14 @@ git repository.
 
    $ yum install -y ruby  
    $ cd csm_big_data/Logstash/plugins/csm_event_correlator
-   $ gem build logstash-filter-csm_event_correlator.gemspec
+   $ gem build logstash-filter-csm_event_correlator.gemspec # Requires network connection.
+   $ /usr/share/logstash/bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
 
 .. TODO: Rename csm_event_correlator to cast_event_correlator.
 
-After the plugin has been built it may then be installed with the steps described in 
+.. attention:: In future iterations of the CAST rpm this gem will be packed in the bds RPM. 
+
+After the plugin has been built it may then be configured with the steps described in 
 :ref:`csm-event-correlator-config`
 
 
@@ -221,3 +224,4 @@ After the plugin has been built it may then be installed with the steps describe
 .. _elasticsearch plugin: https://www.elastic.co/guide/en/logstash/current/plugins-outputs-elasticsearch.html
 .. _CSM Event Correlator plugin: https://github.com/IBM/CAST/blob/master/csm_big_data/Logstash/plugins/csm_event_correlator/doc/index.asciidoc
 .. _Logstash settings file: https://www.elastic.co/guide/en/logstash/current/logstash-settings-file.html
+.. _filebeats: https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-getting-started.html
