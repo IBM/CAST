@@ -2754,7 +2754,7 @@ int bb_main(std::string who)
         // Check for the existence of the file used to communicate high-priority async requests between instances of bbServers
         char* l_AsyncRequestFileNamePtr = 0;
         int l_SeqNbr = 0;
-        rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, FULL_MAINTENANCE);
+        rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, START_BBSERVER);
         if (l_AsyncRequestFileNamePtr)
         {
             delete [] l_AsyncRequestFileNamePtr;
