@@ -15,6 +15,7 @@
 #FLOOR=$(realpath $(dirname $0)/../..)
 FLOOR=/opt/ibm/
 export FLOOR
+umask 0027
 
 # exit on any script failure
 set -eo pipefail

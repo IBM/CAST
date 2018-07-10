@@ -14,6 +14,7 @@
 
 FLOOR=/opt/ibm
 export FLOOR
+umask 0027
 
 if [ "$BSCFS_MNT_PATH" != "" ]; then
     $FLOOR/bb/scripts/BSCFS_stop | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stageout.log
