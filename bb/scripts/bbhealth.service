@@ -22,6 +22,7 @@ After=network.target
 
 
 [Service]
+UMask=0027
 Type=simple
 ExecStart=/opt/ibm/bb/scripts/bbhealth
 PIDFile=/var/run/bbhealth.pid
