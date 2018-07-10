@@ -302,13 +302,11 @@ cast-environmental-node
 .. note:: The CAST team is currently in the process of reviewing the inband aggregation of the node
     environmental data.
 
-cast-csmdb
-^^^^^^^^^^
+cast-db
+^^^^^^^
 
-.. attention:: This section is currently a work in progress
-
-:alias: cast-csmdb
-:shards: 1
+:shards: 1  
+   *This has not been verified at this time.*
 :replication: 1
 
 
@@ -320,12 +318,18 @@ The mapping shared between the indices is as follows:
 +---------------+--------+----------------------------------------------------------------+
 | Field         | Type   | Description                                                    |
 +===============+========+================================================================+
-| @timestamp    | *date* | When console event occured.                                    | 
+| @timestamp    | *date* | When archival event occured.                                   | 
 +---------------+--------+----------------------------------------------------------------+
-| tags          | *text* | Tags containing additional metadata about the console log.     |
+| tags          | *text* | Tags about the archived data.                                  |
 +---------------+--------+----------------------------------------------------------------+
-| _table        | *text* | The originating table, drives index assignment.                |
+| type          | *text* | The originating table, drives index assignment.                |
 +---------------+--------+----------------------------------------------------------------+
+| data          | *doc*  | The mapping of table columns, contents differ for each table.  |
++---------------+--------+----------------------------------------------------------------+
+
+
+.. attention:: These indicies will match CSM database history tables, contents not replicated for
+    brevity.
 
 .. note:: The indices will have the following name format `cast-%{type}-%{+YYYY.MM.dd}`.
 

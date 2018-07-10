@@ -1,6 +1,6 @@
 #================================================================================
-#    
-#    csm_big_data/logstash/patterns/CMakeLists.txt
+#
+#    csm_big_data/data-aggregators/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,12 +13,22 @@
 #
 #================================================================================
 
-set(SUBDIR logstash/patterns/)
+set(SUBDIR data-aggregators)
+set(CONFDIR data-aggregators/config)
 
-file(GLOB INSTALL_FILES
-    ibm_grok.conf
-    mellanox_grok.conf
-    events.yml
+
+# Files that should be executable when shipped
+file(GLOB INSTALL_PROGRAMS
+    "gpfs/zimonCollector.py"
+    "ufm/ufmCollection.py"
+    "ufm/ufmConfig.sh"
 )
 
-install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+
+file(GLOB CONFDIR
+    "filebeats/filebeat.yml"
+)
+
+install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${CONFDIR})
+

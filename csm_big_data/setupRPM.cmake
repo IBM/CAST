@@ -1,8 +1,8 @@
 #================================================================================
-#   
-#    csm_big_data/Logstash/config/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#    csm_big_data/castBDS.cmake
+#
+#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -13,11 +13,9 @@
 #
 #================================================================================
 
-set(SUBDIR logstash/config)
-
-file(GLOB INSTALL_FILES
-  "logstash.conf"
-)
-
-install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+SET( CPACK_RPM_csm-bds_PACKAGE_ARCHITECTURE "noarch" )
+set( CPACK_RPM_csm-bds_POST_INSTALL_SCRIPT_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.post.install" )
+set( CPACK_RPM_csm-bds_PRE_UNINSTALL_SCRIPT_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.pre.uninstall" )
 

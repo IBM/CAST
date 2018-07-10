@@ -179,6 +179,7 @@ endforeach(LVL)
 
 # csmd RPM packaging customization
 include (csmd/setupRPM.cmake)
+include (csm_big_data/setupRPM.cmake)
 
 include (scripts/setupDoxygen.cmake)
 include (scripts/setupTargets.cmake)
