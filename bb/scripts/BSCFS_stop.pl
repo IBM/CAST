@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 ###########################################################
-#     BSCFS_start
+#     BSCFS_stop
 #
 #     Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -42,9 +42,13 @@ $::BPOSTMBOX = 122;
 
 foreach $HOST (@HOSTLIST_ARRAY)
 {
-    bpost("Unmounting BSCFS on host $HOST");
-    cmd("ssh $HOST \" fusermount -u $ENV{BSCFS_MNT_PATH} \" 2>&1");
+    bpost("Unmounting BSCFS on host $HOST " . $ENV{BSCFS_MNT_PATH});
+    cmd("ssh $HOST \" fusermount -u $ENV{BSCFS_MNT_PATH}; killall -9 bscfsAgent \" 2>&1");
 }
+sleep(5);
 unlink($PRE_INSTALL_LIST);
+bpost("Removed $PRE_INSTALL_LIST");
 
 system("rm -r $ENV{BSCFS_WORK_PATH}");
+bpost("Removed " . $ENV{BSCFS_WORK_PATH});
+exit(0);
