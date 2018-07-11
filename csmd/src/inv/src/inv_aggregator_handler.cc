@@ -152,7 +152,7 @@ void INV_AGGREGATOR_HANDLER::CheckReplyFromMaster(const csm::daemon::CoreEvent &
   }
   else
   {
-    LOG(csmd, info) << "INV_AGGREGATOR_HANDLER::CheckReplyFromMaster(): Got a reply from Master";
+    LOG(csmd, debug) << "INV_AGGREGATOR_HANDLER::CheckReplyFromMaster(): Got a reply from Master";
   }
 
   return;
@@ -239,7 +239,7 @@ void INV_AGGREGATOR_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std:
           SendInventory( nInfo->_LastInventory,
                          CreateContext((void *)this, 0),
                          postEventList);
-          LOG(csmd, info) << "INV_AGGREGATOR_HANDLER: Sending a new node inventory to Master";
+          LOG(csmd, info) << "INV_AGGREGATOR_HANDLER: Sending a new node inventory (" << nInfo->_NodeID << ") to Master";
         }
         else
         {
@@ -305,7 +305,7 @@ void INV_AGGREGATOR_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std:
             SendInventory( content._Msg,
                            CreateContext((void *)this, 0),
                            postEventList);
-            LOG(csmd, info) << "INV_AGGREGATOR_HANDLER: Sending a new node inventory to Master";
+            LOG(csmd, info) << "INV_AGGREGATOR_HANDLER: Sending a new node inventory (" << nInfo->_NodeID << ") to Master";
           }
           else
             nInfo->EnableSendInventory();
