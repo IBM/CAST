@@ -57,36 +57,39 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 	
 	std::string stmt = "WITH updated AS ( UPDATE csm_node SET update_time = 'now',";
 	
+	//helper for keyword compare.
+	int keyword_returnCode = 0;
+	int keyword_compareCode = 0;
+	
 	if(input->comment[0] != '\0')
 	{
-		//check for special keywords that begin with '#'
-		if(input->comment[0] == '#')
+		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->comment, &keyword_compareCode);
+		
+		if(keyword_returnCode > 0)
 		{
-			//a special CSM API keyword was found
-			//go through all keywords
-			// which keyword? -- too bad I can't use a switch statement
-			if(strncmp ("#CSM_NULL", input->comment, 9) == 0)
-			{
-				//Special keyword "#CSM_NULL" was found.
-				//this means reset Database field to NULL
-				//add_param_sql( stmt, "NULL",   ++paramCount, "comment=$",   "::text,")
-				stmt.append("comment = NULL,");
-				//paramCount++;
-				comment_NULL = true;
-				
-			}else{
-				//final default case
-				
-				//unknown keyword
-				//treat as normal value? -- well that's what i'll do for now
-				add_param_sql( stmt, input->comment[0],   ++paramCount, "comment=$",   "::text,")
-			}
-		}else{
-			//no special keywords were found. treat as normal value.
-			add_param_sql( stmt, input->comment[0],   ++paramCount, "comment=$",   "::text,")
+			LOG(csmapi, warning) << STATE_NAME ":CreatePayload: CSM_KEYWORD_Compare returned with error code: " << keyword_returnCode;
 		}
-	}
-	
+		
+		switch(keyword_compareCode)
+		{
+			case 2:
+				//keyword "#CSM_NULL" was found.
+				//this means reset Database field to NULL
+				stmt.append("comment = NULL,");
+				comment_NULL = true;
+				break;
+			case 0:
+				//no match found
+				//for now same behavior so fall through
+			case 1:
+				//keyword found, but no match
+				//for now same behavior so fall through
+			default:
+				//set DB field to whatever user passed in.
+				add_param_sql( stmt, input->comment[0],   ++paramCount, "comment=$",   "::text,")
+				break;
+		}
+	}	
 	
 	add_param_sql( stmt, input->feature_1[0], ++paramCount, "feature_1=$", "::text,")
 	add_param_sql( stmt, input->feature_2[0], ++paramCount, "feature_2=$", "::text,")
