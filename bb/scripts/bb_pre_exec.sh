@@ -29,7 +29,3 @@ export PATH_PRESERVE=$PATH
 $FLOOR/bb/scripts/stagein_admin.pl 1 | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stagein.log
 su $LSF_STAGE_USER -p -c "$FLOOR/bb/scripts/stagein_admin.pl 2" | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stagein.log
 $FLOOR/bb/scripts/stagein_admin.pl 3 | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stagein.log
-
-if [ "$BSCFS_MNT_PATH" != "" ]; then
-    $FLOOR/bb/scripts/BSCFS_start | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stagein.log
-fi
