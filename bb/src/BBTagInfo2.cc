@@ -74,7 +74,7 @@ int BBTagInfo2::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
+void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
@@ -82,6 +82,30 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
 
     // Indicate that next findWork() needs to look for canceled extents
     wrkqmgr.setCheckForCanceledExtents(1);
+
+    // If we are to perform remove operations for target PFS files, do so now...
+    if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
+    {
+        // Wait for the canceled extents to be processed
+        while (1)
+        {
+            if (wrkqmgr.getCheckForCanceledExtents())
+            {
+                unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                {
+                    usleep((useconds_t)1000000);    // Delay 1 second
+                }
+                lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Remove the target files
+        removeTargetFiles(pLVKey, *pHandle, *pContribId);
+    }
 
     return;
 }
@@ -795,7 +819,7 @@ void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pH
     return;
 }
 
-void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle)
+void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption)
 {
     if (jobid == pJobId)
     {
@@ -804,7 +828,7 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(pLVKey, &pHandle, &l_ContribId);
+        cancelExtents(pLVKey, &pHandle, &l_ContribId, pRemoveOption);
     }
 
     return;
@@ -943,7 +967,7 @@ int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
                 //
                 // Sort the extents, moving the canceled extents to the front of
                 // the work queue so they are immediately removed...
-                cancelExtents(pLVKey, &pHandle, &pContribId);
+                cancelExtents(pLVKey, &pHandle, &pContribId, DO_NOT_REMOVE_TARGET_PFS_FILES);
             }
         }
         else

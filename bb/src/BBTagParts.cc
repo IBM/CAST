@@ -198,7 +198,7 @@ int BBTagParts::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentI
 void BBTagParts::removeTargetFiles(const LVKey* pLVKey, const uint32_t pContribId)
 {
     for (auto it = tagParts.begin(); it != tagParts.end(); ++it) {
-        if (it->first == pContribId) {
+        if (pContribId == UNDEFINED_CONTRIBID || it->first == pContribId) {
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
             l_TransferDef->removeTargetFiles(pLVKey);
         }

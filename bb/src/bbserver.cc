@@ -336,29 +336,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId);
-
-                            // Wait for the canceled extents to be processed
-                            while (1)
-                            {
-                                if (wrkqmgr.getCheckForCanceledExtents())
-                                {
-                                    l_LockHeld = false;
-                                    unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for the canceled extents to be processed");
-                                    {
-                                        usleep((useconds_t)1000000);    // Delay 1 second
-                                    }
-                                    lockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for the canceled extents to be processed");
-                                    l_LockHeld = true;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
-                            // Remove the target files
-                            l_TagInfo2->removeTargetFiles(l_LVKey, l_Handle, l_ContribId);
+                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -386,7 +364,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         //  Cancel the transfer for the entire handle
                         string l_HostName;
                         activecontroller->gethostname(l_HostName);
-                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle);
+                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
                     }
                     else
                     {

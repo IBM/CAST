@@ -160,7 +160,7 @@ void processAsyncRequest(WorkID& pWorkItem)
                     {
                         // This was a direct cancel request from a given compute node to the bbServer servicing
                         // that CN at the request's hostname.  That request is now being propagated to all other bbServers...
-                        rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle);
+                        rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
                     }
                     else if (strstr(l_Str1, "stoprequest"))
                     {
@@ -184,11 +184,11 @@ void processAsyncRequest(WorkID& pWorkItem)
                 {
                     // Process the handle status request...
                     // NOTE:  We send the completion message here because some other bbServer has updated the
-                    //        status for the handle.  This is the mechinism for notify changes to other bbServers
-                    //        that have already finished processing a handle.  However, if a bbServer still has
-                    //        extents on a work queue for the handle in question, a status change will be sent here
-                    //        and also might be sent again when this bbServer processes that last extent for the handle.
-                    //        This is probably only in the status case of BBFAILED.
+                    //        status for the handle.  This is the mechanism used to notify handle status changes
+                    //        to other bbServers that have already finished processing a handle.  However,
+                    //        if a bbServer still has extents on a work queue for the handle in question, a status
+                    //        change will be sent here and also might be sent again when this bbServer processes
+                    //        that last extent for the handle.  This is probably only in the status case of BBFAILED.
                     BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
                     metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
                     wrkqmgr.updateHeartbeatData(l_Request.getHostName());
@@ -268,7 +268,7 @@ void processAsyncRequest(WorkID& pWorkItem)
     return;
 }
 
-int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -277,7 +277,7 @@ int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, cons
 
     try
     {
-        metadata.setCanceled(pJobId, pJobStepId, pHandle);
+        metadata.setCanceled(pJobId, pJobStepId, pHandle, pRemoveOption);
 
         // Determine if this cancel request should be appended to the async file
         // to be consumed by other bbServers
@@ -318,26 +318,6 @@ int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, cons
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-
-    // Wait for the canceled extents to be processed
-    while (1)
-    {
-        if (wrkqmgr.getCheckForCanceledExtents())
-        {
-            unlockTransferQueue((LVKey*)0, "cancelTransferForHandle - Waiting for the canceled extents to be processed");
-            {
-                usleep((useconds_t)1000000);    // Delay 1 second
-            }
-            lockTransferQueue((LVKey*)0, "cancelTransferForHandle - Waiting for the canceled extents to be processed");
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    // Remove the target files
-    // TBD...
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;

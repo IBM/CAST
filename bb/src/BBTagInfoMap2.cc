@@ -616,11 +616,11 @@ void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, co
     return;
 }
 
-void BBTagInfoMap2::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+void BBTagInfoMap2::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
 {
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
     {
-        it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle);
+        it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle, pRemoveOption);
     }
 
     return;
