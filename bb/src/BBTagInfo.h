@@ -174,6 +174,13 @@ class BBTagInfo
         return transferHandle;
     }
 
+    inline void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId) {
+        if (pHandle == transferHandle)
+        {
+            return parts.removeTargetFiles(pLVKey, pContribId);
+        }
+    }
+
     inline void removeTransferDef(const uint32_t pContribId) {
         return parts.removeTransferDef(pContribId);
     }

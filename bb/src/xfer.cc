@@ -319,6 +319,26 @@ int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, cons
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
+    // Wait for the canceled extents to be processed
+    while (1)
+    {
+        if (wrkqmgr.getCheckForCanceledExtents())
+        {
+            unlockTransferQueue((LVKey*)0, "cancelTransferForHandle - Waiting for the canceled extents to be processed");
+            {
+                usleep((useconds_t)1000000);    // Delay 1 second
+            }
+            lockTransferQueue((LVKey*)0, "cancelTransferForHandle - Waiting for the canceled extents to be processed");
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    // Remove the target files
+    // TBD...
+
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }

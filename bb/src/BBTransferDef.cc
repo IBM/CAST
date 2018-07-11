@@ -865,7 +865,7 @@ void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSo
 {
     for (size_t i=0; i<files.size(); i=i+2)
     {
-        Extent* l_ExtentPtr = pExtentInfo->getAnyExtent(transferHandle, contribid, (uint32_t)i);
+        Extent* l_ExtentPtr = pExtentInfo->getAnySourceExtent(transferHandle, contribid, (uint32_t)i);
         if (l_ExtentPtr)
         {
             extents.push_back(Extent(l_ExtentPtr->getSourceIndex(), l_ExtentPtr->getTargetIndex(), (l_ExtentPtr->getFlags() & BB_AddFilesFlagsMask)));
@@ -877,7 +877,7 @@ void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSo
         else
         {
             pSourceTransferDef->dump("info", "Retrieve and no extents in work queue for this definition");
-            l_ExtentPtr = pSourceTransferDef->getAnyExtent((uint32_t)i);
+            l_ExtentPtr = pSourceTransferDef->getAnySourceExtent((uint32_t)i);
             if (l_ExtentPtr)
             {
                 extents.push_back(Extent(l_ExtentPtr->getSourceIndex(), l_ExtentPtr->getTargetIndex(), (l_ExtentPtr->getFlags() & BB_AddFilesFlagsMask)));
@@ -1000,13 +1000,29 @@ void BBTransferDef::dump(const char* pSev, const char* pPrefix) {
 }
 
 #if BBSERVER
-Extent* BBTransferDef::getAnyExtent(const uint32_t pSourceIndex)
+Extent* BBTransferDef::getAnySourceExtent(const uint32_t pSourceIndex)
 {
     Extent* l_Extent = 0;
 
     for (size_t i=0; i<extents.size(); ++i)
     {
         if (pSourceIndex == extents[i].getSourceIndex())
+        {
+            l_Extent = &extents[i];
+            break;
+        }
+    }
+
+    return l_Extent;
+}
+
+Extent* BBTransferDef::getAnyTargetExtent(const uint32_t pTargetIndex)
+{
+    Extent* l_Extent = 0;
+
+    for (size_t i=0; i<extents.size(); ++i)
+    {
+        if (pTargetIndex == extents[i].getTargetIndex())
         {
             l_Extent = &extents[i];
             break;
@@ -1166,6 +1182,56 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     }
 
     return rc;
+}
+
+void BBTransferDef::removeFile(const char* pFileName)
+{
+    int rc = 0;
+
+    try
+    {
+        LOG(bb,debug) << "removeFile(): Attempting to remove file " << pFileName << " as part of the cancel operation issued for handle " \
+                      << transferHandle << ", contribid " << contribid;
+        rc = remove(pFileName);
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to remove target file " << pFileName;
+    }
+
+    if (!rc)
+    {
+        LOG(bb,info) << "Target file " << pFileName << " successfully removed as part of the cancel operation issued for handle " \
+                     << transferHandle << ", contribid " << contribid;
+    }
+    else
+    {
+        LOG(bb,error) << "Target file " << pFileName << " could not be removed as part of the cancel operation issued for handle " \
+                     << transferHandle << ", contribid " << contribid;
+    }
+
+    return;
+}
+
+void BBTransferDef::removeTargetFiles(const LVKey* pLVKey)
+{
+    Extent* l_ExtentPtr = 0;
+    for(size_t i=1; i<files.size(); i=i+2)
+    {
+        l_ExtentPtr = getAnyTargetExtent((uint32_t)i);
+        if (l_ExtentPtr)
+        {
+            uint64_t l_Flags = l_ExtentPtr->getFlags();
+            if (l_Flags & BBI_TargetPFS || l_Flags & BBI_TargetPFSPFS)
+            {
+                removeFile((char*)files[i].c_str());
+            }
+        }
+    }
+
+    return;
 }
 #endif
 

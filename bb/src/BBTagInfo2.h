@@ -205,6 +205,10 @@ class BBTagInfo2
         return extentInfo.removeExtent(pExtent);
     }
 
+    inline void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId) {
+        tagInfoMap.removeTargetFiles(pLVKey, pHandle, pContribId);
+    }
+
     inline void resetMinTrimAnchorExtent() {
         return extentInfo.resetMinTrimAnchorExtent();
     }
