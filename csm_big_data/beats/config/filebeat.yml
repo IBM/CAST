@@ -18,7 +18,7 @@ filebeat.config.modules:
 name: "master"
 
 setup.kibana:
-  host: "60.7.4.30:5601"
+  host: "<kibana_host>:5601"
 
 output.logstash:
-  hosts: ["10.7.4.41:10523"]
+  hosts: ["<logstash_server>:10523"]
