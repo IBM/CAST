@@ -320,7 +320,7 @@ sub setupBSCFS
 sub getBBENVName
 {
     #$bbtmpdir = "/tmp";
-    my @pwentry   = getpwnam($ENV{"USER"});
+    my @pwentry   = getpwuid($<);
     @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
     my $bbtmpdir  = @pwentry[7] . "/.bbtmp";
     $bbenvfile = $bbtmpdir . "/env.$::JOBID";
