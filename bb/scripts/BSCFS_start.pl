@@ -39,7 +39,11 @@ use bbtools;
 
 $::BPOSTMBOX = 120;
 
-system("mkdir $ENV{BSCFS_WORK_PATH}") if(!-e $ENV{BSCFS_WORK_PATH});
+if(!-e $ENV{BSCFS_WORK_PATH})
+{
+    mkdir($ENV{BSCFS_WORK_PATH}, 0700) || bbfail "Failure to create BSCFS_WORK_PATH";
+}
+
 $PRE_INSTALL_OPTION="";
 $PRE_INSTALL_OPTION = "--pre_install_list $PRE_INSTALL_LIST" if(-r $PRE_INSTALL_LIST);
 
@@ -49,7 +53,6 @@ foreach $HOST (@HOSTLIST_ARRAY)
 {
     bpost("Starting BSCFS on $HOST");
     
-    $mk  = "mkdir $BSCFS_BB_PATH";
     $env = "LSB_JOBID=$JOBID";
     
     my @args = ();
@@ -67,6 +70,6 @@ foreach $HOST (@HOSTLIST_ARRAY)
     push(@args, "--cleanup_list $CLEANUP_LIST.$NODE");
     push(@args, $PRE_INSTALL_OPTION);
     $cmd = join(" ", @args);
-    cmd("ssh $HOST \" $mk; $env $cmd \" 2>&1");
+    cmd("ssh $HOST \" $env $cmd \" 2>&1");
     $NODE++;
 }
