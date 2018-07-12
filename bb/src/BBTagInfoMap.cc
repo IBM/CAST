@@ -246,6 +246,16 @@ int BBTagInfoMap::isUniqueHandle(uint64_t pHandle)
 
 }
 
+void BBTagInfoMap::removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId)
+{
+    for(auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it)
+    {
+        it->second.removeTargetFiles(pLVKey, pHandle, pContribId);
+    }
+
+    return;
+}
+
 void BBTagInfoMap::removeTransferDef(const BBTagID& pTagId, const uint32_t pContribId)
 {
     BBTagParts* l_TagParts = getParts(pTagId);

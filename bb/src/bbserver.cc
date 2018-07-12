@@ -336,7 +336,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId);
+                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -364,7 +364,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         //  Cancel the transfer for the entire handle
                         string l_HostName;
                         activecontroller->gethostname(l_HostName);
-                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle);
+                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
                     }
                     else
                     {

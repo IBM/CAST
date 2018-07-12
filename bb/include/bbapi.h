@@ -76,8 +76,8 @@ extern int BB_TerminateLibrary();
  *  specified by the caller.
  *  The last error details are _thread local_.  Each thread has its separate and distinct copy of a "last error" string.
  *  A thread invoking a burst buffer API will get a different "last error" string than another thread invoking burst buffer APIs.
- *  
- *  
+ *
+ *
  *
  *  Only details from the last bbAPI call performed on that software thread are returned.  If the process
  *  is multi-threaded, the error information is tracked separately between the threads.
@@ -246,7 +246,7 @@ extern int BB_StartTransfer(BBTransferDef_t* transfer, BBTransferHandle_t handle
  *  The BB_CancelTransfer routine cancels an existing asynchronous file transfers specified by
  *  the transfer handle. When the call returns, the transfer has been stopped or an error has
  *  occurred.  As part of the cancel, any parts of the files that have been transferred will
- *  have been deleted from the target location.
+ *  have been deleted from the PFS target location.
  *
  *  \param[in] handle   Transfer handle from BB_StartTransfer.  All transfers matching the tag will be canceled.
  *  \param[in] scope    Specifies the scope of the cancel.  (See BBCANCELSCOPE for possible values.)
