@@ -54,7 +54,7 @@ sub failureCleanAndExit()
 }
 
 @STGIN = ();
-push(@STGIN, "$bbtools::FLOOR/bb/scripts/stagein_user_bscfs.pl") if(exists $ENV{"BSCFS_MNT_PATH"});
+push(@STGIN, "$bbtools::FLOOR/bb/scripts/stagein_user_bscfs.pl") if($ENV{"LSB_SUB_ADDITIONAL"} =~ /bscfs/);
 push(@STGIN, $BB_STGIN_SCRIPT) if($BB_STGIN_SCRIPT ne "");
 
 phase1() if($ARGV[0] == 1);
@@ -75,7 +75,7 @@ sub phase1()
     failureCleanAndExit() if(bbgetrc($result) != 0);
     
     print "Changing mode for mount point $BBPATH\n";
-    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0755");
+    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
     failureCleanAndExit() if(bbgetrc($result) != 0);
     
     print "Creating logical volume $BBPATH with size $BB_SSD_MIN\n";
@@ -88,7 +88,7 @@ sub phase1()
     failureCleanAndExit() if(bbgetrc($result) != 0);
     
     print "Changing mode for logical volume $BBPATH\n";
-    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0755");
+    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
     failureCleanAndExit() if(bbgetrc($result) != 0);
 }
 
@@ -99,7 +99,7 @@ sub phase2
     foreach $bbscript (@STGIN)
     {
 	bpost("BB: Calling user stage-in script: $bbscript");
-	$rc = cmd("$bbscript");
+	$rc = cmd("$bbscript 2>&1");
 	bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX+1);
 	failureCleanAndExit() if($rc != 0);
     }
