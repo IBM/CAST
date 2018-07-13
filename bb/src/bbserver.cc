@@ -2734,6 +2734,7 @@ int bb_main(std::string who)
         }
 
         LOG(bb,always) << "Maximum number of file descriptors set to " << l_Limits.rlim_cur;
+        wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
         ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
         wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
