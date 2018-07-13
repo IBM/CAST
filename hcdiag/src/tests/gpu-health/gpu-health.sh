@@ -31,7 +31,7 @@ fi
 thisdir=`dirname $0`
 GPU_HEALTH=$thisdir/gpu-health
 
-EXPECTED_NVLINK_XFER_SPEED=38    # GB/s
+EXPECTED_NVLINK_XFER_SPEED=32    # GB/s
 EXPECTED_GPU_MEM_BANDWITH=800    # GB/s
 EXPECTED_DGEMM_FLOPS=7           # TFlofs
 if [ $# -gt 0 ]; then EXPECTED_NVLINK_XFER_SPEED=$1; fi
