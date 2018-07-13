@@ -2,6 +2,7 @@
 # =====================================
 /opt/ibm/csm/bigdata/logstash/deployConfigs.sh
 /opt/ibm/csm/bigdata/elasticsearch/deployConfigs.sh
+/opt/ibm/csm/bigdata/beats/deployConfigs.sh
 
 
 # =====================================

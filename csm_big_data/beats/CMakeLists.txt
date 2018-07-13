@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    csm_big_data/elasticsearch/CMakeLists.txt
+#    csm_big_data/beats/CMakeLists.txt
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,26 +13,17 @@
 #
 #================================================================================
 
-set(SUBDIR elasticsearch)
-set(CONFDIR elasticsearch/config)
-set(TEMPLATESDIR elasticsearch/templates)
+set(SUBDIR beats)
+set(CONFDIR beats/config)
 
 file(GLOB INSTALL_PROGRAMS
-    "mappings/createIndices.sh" 
-    "mappings/removeIndices.sh"
     "config-scripts/deployConfigs.sh"
     "config-scripts/removeConfigs.sh"
 )
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
 
 file(GLOB CONFIG
-    "config/elasticsearch.yml"
-    "config/jvm.options"
+    "config/filebeat.yml"
 )
 install(FILES ${CONFIG} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${CONFDIR})
-
-file(GLOB TEMPLATES
-    "mappings/templates/*json"
-)
-install(FILES ${TEMPLATES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${TEMPLATESDIR})
 

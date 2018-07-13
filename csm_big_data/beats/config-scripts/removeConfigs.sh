@@ -39,20 +39,21 @@ FILEBEATS_TARGET="/etc/filebeats/"
 # Script
 # ==================
 # Determine if the elasticsearch service is installed on the node.
-service filebeats status >/dev/null 2>&1
+service filebeat status >/dev/null 2>&1
 filebeats_status=$?
 
 if [ ${filebeats_status} == 4 ]
 then
-    echoe "Elasticsearch was not detected."
+    echoe "Filebeats was not detected."
 else
     diff -s "${FILEBEATS_TARGET}filebeats.yml" "${RPM_CONF_SRC}filebeats.yml"
     if [ $? == 0 ]
     then
         rm -f "${FILEBEATS_TARGET}filebeats.yml"
         mv -f "${FILEBEATS_TARGET}filebeats.yml.bak" "${FILEBEATS_TARGET}filebeats.yml"
+    fi
+    # Restart filebeats
+    service filebeat restart >/dev/null 2>&1
 fi
 
-# Restart filebeats
-service filebeats restart >/dev/null 2>&1
 

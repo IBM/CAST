@@ -25,10 +25,6 @@ echoe()
 }
 
 
-config_filebeats()
-{
-}
-
 # ==================
 # Constants
 # ==================
@@ -38,24 +34,25 @@ RPM_SRC="/opt/ibm/csm/bigdata/beats/"
 RPM_CONF_SRC="${RPM_SRC}config/"
 
 # The target directory for the filebeat config files.
-FILEBEATS_TARGET="/etc/filebeats/"
+FILEBEATS_TARGET="/etc/filebeat/"
 
 # ==================
 # Script
 # ==================
 # Determine if the elasticsearch service is installed on the node.
-service filebeats status >/dev/null 2>&1
+service filebeat status >/dev/null 2>&1
 filebeats_status=$?
 
 if [ ${filebeats_status} == 4 ]
 then
-    echoe "Elasticsearch was not detected"
+    echoe "Filebeats was not detected"
 else
     cd "${RPM_SRC}config/"
     mv -f  "${FILEBEATS_TARGET}filebeat.yml" "${FILEBEATS_TARGET}filebeat.yml.bak"
     cp "${RPM_CONF_SRC}filebeat.yml" "${FILEBEATS_TARGET}filebeat.yml"
+    # Restart filebeats
+    service filebeat restart >/dev/null 2>&1
 fi
 
-# Restart filebeats
-service filebeats restart >/dev/null 2>&1
+
 
