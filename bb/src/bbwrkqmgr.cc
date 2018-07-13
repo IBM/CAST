@@ -328,114 +328,119 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
 }
 
 void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOption) {
-    const char* l_PostfixOverride = " (Number of Skipped Dumps Exceeded)";
-    char* l_PostfixStr = const_cast<char*>(pPostfix);
-
-    if (allowDump)
+    // NOTE: We early exit based on the logging level because we don't want to 'reset'
+    //       dump counters, etc. if the logging facility filters out an entry.
+    if (pSev == loggingLevel)
     {
-        if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
+        const char* l_PostfixOverride = " (Number of Skipped Dumps Exceeded)";
+        char* l_PostfixStr = const_cast<char*>(pPostfix);
+
+        if (allowDump)
         {
-            bool l_DumpIt = false;
-            if (pDumpOption != DUMP_UNCONDITIONALLY)
+            if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
             {
-                if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                bool l_DumpIt = false;
+                if (pDumpOption != DUMP_UNCONDITIONALLY)
                 {
-                    l_DumpIt = true;
+                    if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                    {
+                        l_DumpIt = true;
+                    }
+                    else
+                    {
+                        if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests >= numberOfAllowedSkippedDumpRequests)
+                        {
+                            l_DumpIt = true;
+                            l_PostfixStr = const_cast<char*>(l_PostfixOverride);
+                        }
+                    }
                 }
                 else
                 {
-                    if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests > numberOfAllowedSkippedDumpRequests)
-                    {
-                        l_DumpIt = true;
-                        l_PostfixStr = const_cast<char*>(l_PostfixOverride);
-                    }
+                    l_DumpIt = true;
                 }
-            }
-            else
-            {
-                l_DumpIt = true;
-            }
 
-            if (l_DumpIt)
-            {
-                stringstream l_OffsetStr;
-                if (outOfOrderOffsets.size())
+                if (l_DumpIt)
                 {
-                    // Build an output stream for the out of order async request offsets...
-                    l_OffsetStr << "(";
-                    size_t l_NumberOfOffsets = outOfOrderOffsets.size();
-                    for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                    stringstream l_OffsetStr;
+                    if (outOfOrderOffsets.size())
                     {
-                        if (i!=l_NumberOfOffsets-1) {
-                            l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
-                        } else {
-                            l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                        // Build an output stream for the out of order async request offsets...
+                        l_OffsetStr << "(";
+                        size_t l_NumberOfOffsets = outOfOrderOffsets.size();
+                        for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                        {
+                            if (i!=l_NumberOfOffsets-1) {
+                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
+                            } else {
+                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                            }
                         }
+                        l_OffsetStr << ")";
                     }
-                    l_OffsetStr << ")";
-                }
 
-                if (!strcmp(pSev,"debug")) {
-                    LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                    LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                    LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                  << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-//                    LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                    LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                    LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                    LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
-//                    LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                    LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                  << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                  << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
-                    if (outOfOrderOffsets.size())
-                    {
-                        LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                    if (!strcmp(pSev,"debug")) {
+                        LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                      << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+//                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                        LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
+//                        LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                        LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                        LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                      << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                      << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                        if (outOfOrderOffsets.size())
+                        {
+                            LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                        }
+                        LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
+                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                        {
+                            qe->second->dump(pSev, "          ");
+                        }
+                        LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                    } else if (!strcmp(pSev,"info")) {
+                        LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                     << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+//                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                        LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                        LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
+//                        LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                        LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                        LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                     << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                     << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                        if (outOfOrderOffsets.size())
+                        {
+                            LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                        }
+                        LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
+                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                        {
+                            qe->second->dump(pSev, "          ");
+                        }
+                        LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
-                    LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-                    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
-                    {
-                        qe->second->dump(pSev, "          ");
-                    }
-                    LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                } else if (!strcmp(pSev,"info")) {
-                    LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                    LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                    LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                 << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-//                    LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                    LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                    LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                    LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
-//                    LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                    LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                 << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                 << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
-                    if (outOfOrderOffsets.size())
-                    {
-                        LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
-                    }
-                    LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
-                    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
-                    {
-                        qe->second->dump(pSev, "          ");
-                    }
-                    LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                }
-                lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
-                numberOfSkippedDumpRequests = 0;
+                    lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
+                    numberOfSkippedDumpRequests = 0;
 
-                // NOTE:  Only reset the dumpTimerCount if we actually dumped the work queue manager.
-                //        Then, if no transfer activity for a while, we will dump the work queue manager
-                //        the next time the throttle timer pops.
-                dumpTimerCount = 0;
-            }
-            else
-            {
-                // Not dumped...
-                ++numberOfSkippedDumpRequests;
+                    // NOTE:  Only reset the dumpTimerCount if we actually dumped the work queue manager.
+                    //        Then, if no transfer activity for a while, we will dump the work queue manager
+                    //        the next time the throttle timer pops.
+                    dumpTimerCount = 0;
+                }
+                else
+                {
+                    // Not dumped...
+                    ++numberOfSkippedDumpRequests;
+                }
             }
         }
     }

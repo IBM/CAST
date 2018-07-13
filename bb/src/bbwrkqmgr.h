@@ -40,15 +40,15 @@ class WorkID;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;    // In seconds
-//const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 5;     // In seconds
-const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;
+const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;   // In seconds, default 5 minutes
+const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;  // Default 16M
 //const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 32 * 1024;
-const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;
-const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0;
-const int DEFAULT_DUMP_MGR_ON_DELAY = 0;
-const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 0;
-const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 0.0;
+const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wrkqmgr
+const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
+const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
+const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 12;    // Default, if no activity, dump every hour
+const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 300.0;    // In seconds, default is to dump wrkqmgr every 5 minutes
+
 const int CREATE_NEW_FILE = 4;
 const int START_BBSERVER = 3;
 const int FULL_MAINTENANCE = 2;
@@ -263,6 +263,7 @@ class WRKQMGR
         {
             lastQueueProcessed = LVKey();
             lastQueueWithEntries = LVKey();
+            loggingLevel = "";
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
@@ -368,6 +369,11 @@ class WRKQMGR
     inline uint64_t getNumberOfWorkQueueItemsProcessed()
     {
         return numberOfWorkQueueItemsProcessed;
+    }
+
+    inline string getServerLoggingLevel()
+    {
+        return loggingLevel;
     }
 
     inline size_t getSizeOfAllWorkQueues()
@@ -484,13 +490,6 @@ class WRKQMGR
         return;
     }
 
-    inline void setDumpTimerPoppedCount(const int pValue)
-    {
-        dumpTimerPoppedCount = pValue;
-
-        return;
-    }
-
     inline void setLastQueueProcessed(LVKey* pLVKey)
     {
         LOG(bb,debug) << "WRKQMGR::setLastQueueProcessed(): lastQueueProcessed changing from = " << lastQueueProcessed << " to " << *pLVKey;
@@ -523,6 +522,13 @@ class WRKQMGR
     {
         asyncRequestFileSeqNbr = pSeqNbr;
         offsetToNextAsyncRequest = pOffset;
+
+        return;
+    }
+
+    inline void setServerLoggingLevel(const string pValue)
+    {
+        loggingLevel = pValue;
 
         return;
     }
@@ -610,6 +616,7 @@ class WRKQMGR
     volatile uint64_t   lastOffsetProcessed;
     LVKey               lastQueueProcessed;
     LVKey               lastQueueWithEntries;
+    string              loggingLevel;
 
     map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;
