@@ -1,4 +1,4 @@
-/opt/ibm/csm/bigdata/logstash/removeConfigs.sh
-/opt/ibm/csm/bigdata/elasticsearch/removeConfigs.sh
-/opt/ibm/csm/bigdata/beats/removeConfigs.sh
+#/opt/ibm/csm/bigdata/logstash/removeConfigs.sh
+#/opt/ibm/csm/bigdata/elasticsearch/removeConfigs.sh
+#/opt/ibm/csm/bigdata/beats/removeConfigs.sh
 

@@ -20,7 +20,7 @@
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-                    "system_energy"    : {"type": "long"},
+                    "system_energy"    : {"type": "number"}
                 }
             }
         }

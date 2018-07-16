@@ -1,5 +1,5 @@
 {
-    "index_patterns" : ["cast-csm-node-env*"],
+    "index_patterns" : ["cast-csm-dimm-env*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -8,7 +8,7 @@
         }
     }, 
     "aliases" : {
-        "cast-csm-node-env" : {}
+        "cast-csm-dimm-env" : {}
     },
     "mappings": {
         "_doc" : {
@@ -20,13 +20,10 @@
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-                    "processor_id"      : {"type": "number"},
-                    "processor_energy"  : {"type": "number"},
-                    "gpu_energy"        : {"type": "number"},
-                    "memory_energy"     : {"type": "number"},
-                    "processor_temp"    : {"type": "number"},
-                    "processor_temp_min": {"type": "number"},
-                    "processor_temp_max": {"type": "number"}
+                    "dimm_id"      : {"type": "number"},
+                    "dimm_temp"    : {"type": "number"},
+                    "dimm_temp_min": {"type": "number"},
+                    "dimm_temp_max": {"type": "number"}
                 }
             }
         }
