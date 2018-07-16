@@ -1433,6 +1433,10 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 //       so that the stop processing is properly performed.
                 //
                 //       We spin for up to a 2 minutes...
+                //
+                //       NOTE: Our invoker currently has the handle file locked, so another
+                //             bbServer attempting to lock the file may have RAS events indicating
+                //             that the handle file cannot be locked...
                 string l_ConnectionName = string();
                 int l_Attempts = 120;
                 while (!rc && l_Attempts--)
