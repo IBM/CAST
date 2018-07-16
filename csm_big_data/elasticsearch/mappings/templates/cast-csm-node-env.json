@@ -20,13 +20,16 @@
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-                    "processor_id"      : {"type": "number"},
-                    "processor_energy"  : {"type": "number"},
-                    "gpu_energy"        : {"type": "number"},
-                    "memory_energy"     : {"type": "number"},
-                    "processor_temp"    : {"type": "number"},
-                    "processor_temp_min": {"type": "number"},
-                    "processor_temp_max": {"type": "number"}
+		            "type" : "nested",
+                    "properties" : {
+                        "processor_id"      : {"type": "long"},
+                        "processor_energy"  : {"type": "long"},
+                        "gpu_energy"        : {"type": "long"},
+                        "memory_energy"     : {"type": "long"},
+                        "processor_temp"    : {"type": "long"},
+                        "processor_temp_min": {"type": "long"},
+                        "processor_temp_max": {"type": "long"}
+                    }
                 }
             }
         }

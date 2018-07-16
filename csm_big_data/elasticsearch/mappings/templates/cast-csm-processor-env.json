@@ -20,7 +20,10 @@
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-                    "system_energy"    : {"type": "number"}
+		            "type" : "nested",
+                    "properties" : {
+                        "system_energy"    : {"type": "long"}
+                    }
                 }
             }
         }

@@ -20,13 +20,16 @@
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-                    "gpu_id"           : {"type": "number"},
-                    "gpu_mem_temp"     : {"type": "number"},
-                    "gpu_mem_temp_max" : {"type": "number"},
-                    "gpu_mem_temp_min" : {"type": "number"},
-                    "gpu_temp"         : {"type": "number"},
-                    "gpu_temp_max"     : {"type": "number"},
-                    "gpu_temp_min"     : {"type": "number"}
+		            "type" : "nested",
+                    "properties" : {
+                        "gpu_id"           : {"type": "long"},
+                        "gpu_mem_temp"     : {"type": "long"},
+                        "gpu_mem_temp_max" : {"type": "long"},
+                        "gpu_mem_temp_min" : {"type": "long"},
+                        "gpu_temp"         : {"type": "long"},
+                        "gpu_temp_max"     : {"type": "long"},
+                        "gpu_temp_min"     : {"type": "long"}
+                    }
                 }
             }
         }

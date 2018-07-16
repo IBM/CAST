@@ -20,10 +20,13 @@
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-                    "dimm_id"      : {"type": "number"},
-                    "dimm_temp"    : {"type": "number"},
-                    "dimm_temp_min": {"type": "number"},
-                    "dimm_temp_max": {"type": "number"}
+                    "type" : "nested",
+                    "properties" : {
+                        "dimm_id"      : {"type": "long"},
+                        "dimm_temp"    : {"type": "long"},
+                        "dimm_temp_min": {"type": "long"},
+                        "dimm_temp_max": {"type": "long"}
+                    }
                 }
             }
         }
