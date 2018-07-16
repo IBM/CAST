@@ -1,0 +1,34 @@
+{
+    "index_patterns" : ["cast-csm-node-env*"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    }, 
+    "aliases" : {
+        "cast-csm-node-env" : {}
+    },
+    "mappings": {
+        "_doc" : {
+            "properties" : {
+                "@version"   : { "type" : "text" },
+                "@timestamp" : { "type" : "date" },
+                "timestamp " : { "type" : "date" },
+                "tags"       : { "type" : "text" },
+                "type"       : { "type" : "text" } ,
+                "source"     : { "type" : "text" },
+                "data": {
+                    "processor_id"      : {"type": "long"},
+                    "processor_energy"  : {"type": "long"},
+                    "gpu_energy"        : {"type": "long"},
+                    "memory_energy"     : {"type": "long"},
+                    "processor_temp"    : {"type": "double"},
+                    "processor_temp_min": {"type": "double"},
+                    "processor_temp_max": {"type": "double"}
+                }
+            }
+        }
+    }
+}
