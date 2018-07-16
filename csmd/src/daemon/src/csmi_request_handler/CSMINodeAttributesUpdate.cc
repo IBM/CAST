@@ -52,8 +52,15 @@ bool CSMINodeAttributesUpdate::CreatePayload(
         return false;
 	}
 
+	//parameter based helper variables.
 	int paramCount = 0;
+	bool atLeastOneParameter = false;
+	//parameters for attributes that we will allow the user to reset to NULL in CSM DB. 
 	bool comment_NULL = false;
+	bool feature_1_NULL = false;
+	bool feature_2_NULL = false;
+	bool feature_3_NULL = false;
+	bool feature_4_NULL = false;
 	
 	std::string stmt = "WITH updated AS ( UPDATE csm_node SET update_time = 'now',";
 	
@@ -77,6 +84,7 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 				//this means reset Database field to NULL
 				stmt.append("comment = NULL,");
 				comment_NULL = true;
+				atLeastOneParameter = true;
 				break;
 			case 0:
 				//no match found
@@ -91,6 +99,10 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 		}
 	}	
 	
+	//reset helpers back to 0
+	keyword_returnCode = 0;
+	keyword_compareCode = 0;
+	
 	add_param_sql( stmt, input->feature_1[0], ++paramCount, "feature_1=$", "::text,")
 	add_param_sql( stmt, input->feature_2[0], ++paramCount, "feature_2=$", "::text,")
 	add_param_sql( stmt, input->feature_3[0], ++paramCount, "feature_3=$", "::text,")
@@ -102,9 +114,14 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 		++paramCount,"physical_frame_location=$", "::text,")
 	add_param_sql( stmt, input->physical_u_location[0], 
 		++paramCount,"physical_u_location=$", "::text,")
+		
+	if(paramCount > 0)
+	{
+		atLeastOneParameter = true;
+	}
 	
 	// Verify the payload.
-	if ( paramCount >  0 || comment_NULL == true)
+	if ( atLeastOneParameter )
 	{
 		// Remove the last comma.
 		stmt.back()= ' ';
