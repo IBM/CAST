@@ -68,21 +68,21 @@ node_info:
       max: 3.50
       min: 2.0
     firmware:
-      name: 1742FxRev8
+      name: 1742FxRev10
       versions:
-        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
-        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
-        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
-        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
-        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
-        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
-        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
-        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
-        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
-        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
-        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.179 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-4d6dfdd-p2fc8b56'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-20c1829'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-p3acb43b'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: op-build-v2.0.3-308-ge0ef930'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-pc15aad2'
+        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.5'
 
     gpu:
       pciids:
@@ -124,21 +124,21 @@ node_info:
       max: 3.50
       min: 2.0
     firmware:
-      name: 1742FxRev8
+      name: 1742FxRev10
       versions:
-        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
-        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
-        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
-        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
-        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
-        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
-        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
-        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
-        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
-        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
-        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.179 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-4d6dfdd-p2fc8b56'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-20c1829'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-p3acb43b'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: op-build-v2.0.3-308-ge0ef930'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-pc15aad2'
+        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.5'
 
     gpu:
       pciids:
@@ -169,6 +169,9 @@ node_info:
       celsius_high: "35.0"
       celsius_low: "14.0"
 
+#
+# 6 gpus
+#
   - case: (c699c0([0-5]+[0-9]))
     rvitals: wspoon_dd2
     ncpus: 176
@@ -180,21 +183,21 @@ node_info:
       max: 3.50
       min: 2.0
     firmware:
-      name: 1742FxRev8
+      name: 1742FxRev10
       versions:
-        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
-        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
-        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
-        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
-        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
-        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
-        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
-        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
-        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
-        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
-        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.179 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-4d6dfdd-p2fc8b56'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-20c1829'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-p3acb43b'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: op-build-v2.0.3-308-ge0ef930'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-pc15aad2'
+        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.5'
 
     gpu:
       pciids:
@@ -226,79 +229,81 @@ node_info:
         - gpfs.base: 5.0.1
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
         - datacenter: 1.4.2-1
-        - cuda: 9-2-9.2.88
-        - smpi: 10.02.00.02rtm0
+        - cuda: 9-2-9.2.148-1 
+        - ibm_smpi: 10.02.00.04rtm0
     nvme:
       vendor: "Samsung"
       firmware_rev: "MN12MN12"
     temp:
       celsius_high: "35.0"
       celsius_low: "14.0"
-
-  - case: c699c0([6-9]+[0-9])|c699c1([0-9]+[0-9])|c699c2([0-5]+[0-9])
-    rvitals: wspoon_dd2
-    ncpus: 176
-    memory: 
-      total: 606
-      banks: 16
-      bank_size:  32
-    clock: 
-      max: 3.50
-      min: 2.0
-    firmware:
-      name: 1742FxRev8
-      versions:
-        - ' BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
-        - ' HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.165 (Active)*'
-        - ' HOST Firmware Product: -- additional info: buildroot-2017.11-5-g65679be'
-        - ' HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v3'
-        - ' HOST Firmware Product: -- additional info: hostboot-9d62416'
-        - ' HOST Firmware Product: -- additional info: hostboot-binaries-b92f116'
-        - ' HOST Firmware Product: -- additional info: linux-4.14.24-openpower1-p267680f'
-        - ' HOST Firmware Product: -- additional info: machine-xml-94a137f'
-        - ' HOST Firmware Product: -- additional info: occ-f0a00db'
-        - ' HOST Firmware Product: -- additional info: op-build-v1.21.2-260-g6e101fa-dirty'
-        - ' HOST Firmware Product: -- additional info: petitboot-v1.6.6-p78800f9'
-        - ' HOST Firmware Product: -- additional info: sbe-0fd0f5b'
-        - ' HOST Firmware Product: -- additional info: skiboot-v6.0.1-pc487db9'
-
-    gpu:
-      pciids:
-        - '0004:04:00.0'
-        - '0004:05:00.0'
-        - '0035:03:00.0'
-        - '0035:04:00.0'
-      device: "Tesla V100-SXM2-16GB"
-      vbios: "88.00.13.00.02"
-      clocks_applications_gr: 1530
-      clocks_applications_mem: 877
-      persistence_mode: Enabled
-      link_speed : 25
-    ib:
-      slot_rx: "00(03|33):01:00.(0|1)"
-      board_id: "IBM0000000002"
-      firmware: "16.22.8030"
-    os:
-      name: "Red Hat Enterprise Linux Server"
-      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
-    kernel:
-      release: "4.14.0-49.8.1.el7a.ppc64le"
-
-    software:
-        - ibm-csm: 1.1.1-163
-        - gpfs.base: 5.0.1
-        - lm_sensors: 3.4.0-4.20160601gitf9185e5
-        - datacenter: 1.4.2-1
-        - cuda: 9-2-9.2.88
-        - smpi: 10.02.00.02rtm0
-    nvme:
-      vendor: "Samsung"
-      firmware_rev: "MN12MN12"
-    temp:
-      celsius_high: "35.0"
-      celsius_low: "14.0"
-
-
+#
+#  4 gpus
+#
+#  - case: c699c0([6-9]+[0-9])|c699c1([0-9]+[0-9])|c699c2([0-5]+[0-9])
+#    rvitals: wspoon_dd2
+#    ncpus: 176
+#    memory: 
+#      total: 606
+#      banks: 16
+#      bank_size:  32
+#    clock: 
+#      max: 3.50
+#      min: 2.0
+#    firmware:
+#      name: 1742FxRev8
+#      versions:
+#        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+#        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.179 (Active)*'
+#        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+#        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+#        - 'HOST Firmware Product: -- additional info: hostboot-4d6dfdd-p2fc8b56'
+#        - 'HOST Firmware Product: -- additional info: hostboot-binaries-20c1829'
+#        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-p3acb43b'
+#        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+#        - 'HOST Firmware Product: -- additional info: occ-f796766'
+#        - 'HOST Firmware Product: -- additional info: op-build-v2.0.3-308-ge0ef930'
+#        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-pc15aad2'
+#        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+#        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.5'
+#
+#    gpu:
+#      pciids:
+#        - '0004:04:00.0'
+#        - '0004:05:00.0'
+#        - '0035:03:00.0'
+#        - '0035:04:00.0'
+#      device: "Tesla V100-SXM2-16GB"
+#      vbios: "88.00.13.00.02"
+#      clocks_applications_gr: 1530
+#      clocks_applications_mem: 877
+#      persistence_mode: Enabled
+#      link_speed : 25
+#    ib:
+#      slot_rx: "00(03|33):01:00.(0|1)"
+#      board_id: "IBM0000000002"
+#      firmware: "16.22.8030"
+#    os:
+#      name: "Red Hat Enterprise Linux Server"
+#      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
+#    kernel:
+#      release: "4.14.0-49.8.1.el7a.ppc64le"
+#
+#    software:
+#        - ibm-csm: 1.1.1-163
+#        - gpfs.base: 5.0.1
+#        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+#        - datacenter: 1.4.2-1
+#        - cuda: 9-2-9.2.148-1 
+#        - ibm_smpi: 10.02.00.04rtm0
+#    nvme:
+#      vendor: "Samsung"
+#      firmware_rev: "MN12MN12"
+#    temp:
+#      celsius_high: "35.0"
+#      celsius_low: "14.0"
+#
+#
 #
 # map of cpu part numbers to ws dd version and cpu flavor.
 #
