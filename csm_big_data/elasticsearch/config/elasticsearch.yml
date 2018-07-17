@@ -7,5 +7,6 @@ http.port: 9200
 discovery.zen.ping.unicast.hosts: cast.elasticsearch.nodes
 discovery.zen.minimum_master_nodes: MIN-NODES
 gateway.recover_after_nodes: REC-NODES
+xpack.ml.enabled: false
 #bootstrap.system_call_filter: false
 
