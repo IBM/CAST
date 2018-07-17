@@ -87,7 +87,7 @@ def main(args):
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
-        
+
     # TODO make this code more fault tolerant
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
 
@@ -108,6 +108,9 @@ def main(args):
     else:
         end_time="*"
     timerange='''@timestamp:[{0} TO {1}]'''.format(start_time, end_time)
+
+    print("Start time: " + start_time)
+    print("End time  : " + end_time)
 
 
 
