@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/CSMINodeAttributesUpdate.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -68,6 +68,7 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 	int keyword_returnCode = 0;
 	int keyword_compareCode = 0;
 	
+	//check to see if we have to do anything for comment. 
 	if(input->comment[0] != '\0')
 	{
 		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->comment, &keyword_compareCode);
@@ -103,10 +104,147 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 	keyword_returnCode = 0;
 	keyword_compareCode = 0;
 	
-	add_param_sql( stmt, input->feature_1[0], ++paramCount, "feature_1=$", "::text,")
-	add_param_sql( stmt, input->feature_2[0], ++paramCount, "feature_2=$", "::text,")
-	add_param_sql( stmt, input->feature_3[0], ++paramCount, "feature_3=$", "::text,")
-	add_param_sql( stmt, input->feature_4[0], ++paramCount, "feature_4=$", "::text,")
+	//check to see if we have to do anything for feature_1. 
+	if(input->feature_1[0] != '\0')
+	{
+		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->feature_1, &keyword_compareCode);
+		
+		if(keyword_returnCode > 0)
+		{
+			LOG(csmapi, warning) << STATE_NAME ":CreatePayload: CSM_KEYWORD_Compare returned with error code: " << keyword_returnCode;
+		}
+		
+		switch(keyword_compareCode)
+		{
+			case 2:
+				//keyword "#CSM_NULL" was found.
+				//this means reset Database field to NULL
+				stmt.append("feature_1 = NULL,");
+				feature_1_NULL = true;
+				atLeastOneParameter = true;
+				break;
+			case 0:
+				//no match found
+				//for now same behavior so fall through
+			case 1:
+				//keyword found, but no match
+				//for now same behavior so fall through
+			default:
+				//set DB field to whatever user passed in.
+				add_param_sql( stmt, input->feature_1[0], ++paramCount, "feature_1=$", "::text,")
+				break;
+		}
+	}	
+	
+	//reset helpers back to 0
+	keyword_returnCode = 0;
+	keyword_compareCode = 0;
+	
+	//check to see if we have to do anything for feature_2. 
+	if(input->feature_2[0] != '\0')
+	{
+		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->feature_2, &keyword_compareCode);
+		
+		if(keyword_returnCode > 0)
+		{
+			LOG(csmapi, warning) << STATE_NAME ":CreatePayload: CSM_KEYWORD_Compare returned with error code: " << keyword_returnCode;
+		}
+		
+		switch(keyword_compareCode)
+		{
+			case 2:
+				//keyword "#CSM_NULL" was found.
+				//this means reset Database field to NULL
+				stmt.append("feature_2 = NULL,");
+				feature_2_NULL = true;
+				atLeastOneParameter = true;
+				break;
+			case 0:
+				//no match found
+				//for now same behavior so fall through
+			case 1:
+				//keyword found, but no match
+				//for now same behavior so fall through
+			default:
+				//set DB field to whatever user passed in.
+				add_param_sql( stmt, input->feature_2[0], ++paramCount, "feature_2=$", "::text,")
+				break;
+		}
+	}
+	
+	//reset helpers back to 0
+	keyword_returnCode = 0;
+	keyword_compareCode = 0;
+	
+	//check to see if we have to do anything for feature_3. 
+	if(input->feature_3[0] != '\0')
+	{
+		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->feature_3, &keyword_compareCode);
+		
+		if(keyword_returnCode > 0)
+		{
+			LOG(csmapi, warning) << STATE_NAME ":CreatePayload: CSM_KEYWORD_Compare returned with error code: " << keyword_returnCode;
+		}
+		
+		switch(keyword_compareCode)
+		{
+			case 2:
+				//keyword "#CSM_NULL" was found.
+				//this means reset Database field to NULL
+				stmt.append("feature_3 = NULL,");
+				feature_3_NULL = true;
+				atLeastOneParameter = true;
+				break;
+			case 0:
+				//no match found
+				//for now same behavior so fall through
+			case 1:
+				//keyword found, but no match
+				//for now same behavior so fall through
+			default:
+				//set DB field to whatever user passed in.
+				add_param_sql( stmt, input->feature_3[0], ++paramCount, "feature_3=$", "::text,")
+				break;
+		}
+	}
+	
+	//reset helpers back to 0
+	keyword_returnCode = 0;
+	keyword_compareCode = 0;
+	
+	//check to see if we have to do anything for feature_4. 
+	if(input->feature_4[0] != '\0')
+	{
+		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->feature_4, &keyword_compareCode);
+		
+		if(keyword_returnCode > 0)
+		{
+			LOG(csmapi, warning) << STATE_NAME ":CreatePayload: CSM_KEYWORD_Compare returned with error code: " << keyword_returnCode;
+		}
+		
+		switch(keyword_compareCode)
+		{
+			case 2:
+				//keyword "#CSM_NULL" was found.
+				//this means reset Database field to NULL
+				stmt.append("feature_4 = NULL,");
+				feature_4_NULL = true;
+				atLeastOneParameter = true;
+				break;
+			case 0:
+				//no match found
+				//for now same behavior so fall through
+			case 1:
+				//keyword found, but no match
+				//for now same behavior so fall through
+			default:
+				//set DB field to whatever user passed in.
+				add_param_sql( stmt, input->feature_4[0], ++paramCount, "feature_4=$", "::text,")
+				break;
+		}
+	}
+	
+	
 	add_param_sql( stmt, input->state > CSM_NODE_NO_DEF  && input->state < csm_enum_max(csmi_node_state_t), 
 		++paramCount, "state=$", "::compute_node_states,")
 
@@ -155,10 +293,38 @@ bool CSMINodeAttributesUpdate::CreatePayload(
 			dbReq->AddTextParam(input->comment);
 		}
 	}
-	if( input->feature_1[0] ) dbReq->AddTextParam(input->feature_1); 
-	if( input->feature_2[0] ) dbReq->AddTextParam(input->feature_2);
-	if( input->feature_3[0] ) dbReq->AddTextParam(input->feature_3);
-	if( input->feature_4[0] ) dbReq->AddTextParam(input->feature_4);
+	if( input->feature_1[0] ) 
+	{
+		//make sure its false, otherwise we added it above. 
+		if(feature_1_NULL == false)
+		{
+			dbReq->AddTextParam(input->feature_1);
+		}
+	}
+	if( input->feature_2[0] ) 
+	{
+		//make sure its false, otherwise we added it above. 
+		if(feature_2_NULL == false)
+		{
+			dbReq->AddTextParam(input->feature_2);
+		}
+	}
+	if( input->feature_3[0] ) 
+	{
+		//make sure its false, otherwise we added it above. 
+		if(feature_3_NULL == false)
+		{
+			dbReq->AddTextParam(input->feature_3);
+		}
+	}
+	if( input->feature_4[0] ) 
+	{
+		//make sure its false, otherwise we added it above. 
+		if(feature_4_NULL == false)
+		{
+			dbReq->AddTextParam(input->feature_4);
+		}
+	}
 	if( input->state && input->state < csm_enum_max(csmi_node_state_t) )
 		dbReq->AddTextParam( csm_get_string_from_enum(csmi_node_state_t, input->state));
 
