@@ -547,7 +547,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t serial_numbers_count; /**< Number of serial numbers to update, size of @ref serial_numbers.*/
     char** serial_numbers; /**< List of ib cable serial numbers to update, size defined by @ref serial_numbers_count.*/
-    char* comment; /**< Comment can be generated for this field. */
+    char* comment; /**< Comment can be generated for this field. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
     char* guid_s1; /**< guid: side 1 of the cable. */
     char* guid_s2; /**< guid: side 2 of the cable. */
     char* port_s1; /**< port: side 1 of the cable. */
@@ -734,7 +734,7 @@ typedef struct {
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t switch_names_count; /**< Number of switch records to update, size of @ref switch_names. */
-    char* comment; /**< System administrator comment field for this switch. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database.*/
+    char* comment; /**< System administrator comment field for this switch. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Can be reset to NULL in CSM DB via \"#CSM_NULL\".*/
     char* physical_frame_location; /**< the frame where the switch is located. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. */
     char* physical_u_location; /**< the u number in the frame where the switch is located. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. */
     char* state; /**< Deprecated after CSM_VERSION_0_4_1. Update the 'state' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Valid Values: (active, error, missing, soft failure, service )*/

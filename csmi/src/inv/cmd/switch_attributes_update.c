@@ -63,7 +63,7 @@ void help(){
 	puts("    csm_switch_attributes_update can have 3 optional arguments and requires at least 1");
 	puts("    Argument                      | Example value        | Description  ");                                                 
 	puts("    ------------------------------|----------------------|--------------");
-	puts("    -c, --comment                 | \"My awesome comment\" | (STRING) Comment field for system administrators.");
+	puts("    -c, --comment                 | \"My awesome comment\" | (STRING) Comment field for system administrators. Can be reset to NULL in CSM DB via \"#CSM_NULL\".");
 	puts("    -f, --physical_frame_location | \"X12,Y24\"            | (STRING) Physical frame number where the switch is located.");
 	puts("    -u, --physical_u_location     | \"U02\"                | (STRING) Physical u location (position in the frame) where the switch is located.");
 	puts("                                  |                      | ");
