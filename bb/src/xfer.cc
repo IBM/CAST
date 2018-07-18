@@ -548,7 +548,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
                                  << ". Waiting for all extents to finish being processed on the prior bbServer" \
                                  << " and the transfer definition to be marked as stopped. Delay of 1 second before retry. " \
-                                 << l_Continue << " seconds remain before the original bbServer is declared dead.";
+                                 << l_Continue << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
                     if (pOrigTransferDef)
                     {
                         // The prior bbServer is this same bbServer...
