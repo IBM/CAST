@@ -2355,9 +2355,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             l_TransferPtr->cleanUpIOMap();
         }
 
-        if (rc < 0)
+        if (rc != 1)
         {
-            if (rc == -1)
+            if (rc != -2)
             {
                 // Mark the transfer definition and the handle failed if this is the second pass -or-
                 // we got far enough along to insert this transfer definition into the local metadata
@@ -2369,8 +2369,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         }
         else
         {
-            // Positive rc...
-            // Send rc=-2 back to bbProxy as a possible tolerated exception...
+            // Transfer definition is not to be restarted
+            // Send rc=-2 back to bbProxy as a tolerated exception...
             // NOTE:  Shouldn't be possible to have a positive rc
             //        and l_MarkFailedFromProxy still be set on at this
             //        point in the code...  @DLH
