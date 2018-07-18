@@ -99,7 +99,7 @@ node_info:
     ib:
       slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
-      firmware: "16.22.8030"
+      firmware: "16.22.8036"
     nvme:
       vendor: "Samsung"
       firmware_rev: "MN12MN12"
@@ -155,7 +155,7 @@ node_info:
     ib:
       slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
-      firmware: "16.22.8030"
+      firmware: "16.22.8036"
 
     os:
       name: "Red Hat Enterprise Linux Server"
@@ -216,7 +216,7 @@ node_info:
     ib:
       slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
-      firmware: "16.22.8030"
+      firmware: "16.22.8036"
 
     os:
       name: "Red Hat Enterprise Linux Server"
