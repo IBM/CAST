@@ -63,6 +63,7 @@ else:
     print "python api_statistics.py <Start Date YYYY-MM-DD> <Start Time HH:MM:SS>"
     print "python api_statistics.py <Start Date YYYY-MM-DD> <Start Time HH:MM:SS> <End Date YYYY-MM-DD> <End Time HH:MM:SS>"
 print "Search from:  %s to %s" % (str(start_datetime), str(end_datetime))
+
 #---------- Get all the log files within this directory and its subdirectories ---------
 directory = "." # Starts with current api_statistics.py directory location
 file_list = list()

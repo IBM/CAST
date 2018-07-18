@@ -37,7 +37,6 @@ def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime):
 # [AGG]2018-05-31 15:42:32.083870       csmd::info     | AGG-MTC: Expecting 1 responses. Setting timeout to 58000 milliseconds.
 
     for line in opened_file :
-        # print 'Outputting line: ' + line
         if '|' in line:
             Log_Line = LO.Log(line)
             if Log_Line.DateTime >= start_datetime and Log_Line.DateTime <= end_datetime:   # Looking for only start and end time of Api call
@@ -88,5 +87,4 @@ def calculate_statistics(filename, Api_Statistics):
 
 def Pre_Process(filename):
     p1 = Popen(shlex.split("grep \'AGG-MTC\' " + filename ), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-    # p2 = Popen(split("grep -v \'Allocation\'"), stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
     return p1.split('\n')
