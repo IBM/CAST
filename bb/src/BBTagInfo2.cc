@@ -837,75 +837,52 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
 int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue)
 {
     int rc = 0;
-    int l_Continue = 120;
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
         if (!stageOutStarted())
         {
-            while ((!rc) && l_Continue--)
+            rc = wrkqmgr.setSuspended(pLVKey, pValue);
+            switch (rc)
             {
-                rc = wrkqmgr.setSuspended(pLVKey, pValue);
-                switch (rc)
+                case 0:
                 {
-                    case 0:
+                    if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
                     {
-                        if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
-                        {
-                            LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                         << connectionName << ", " << *pLVKey << ", jobid " << jobid \
-                                         << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-                        }
-                        SET_FLAG(BBTI2_Suspended, pValue);
-                        l_Continue = 0;
+                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                     << connectionName << ", " << *pLVKey << ", jobid " << jobid \
+                                     << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
                     }
-                    break;
-
-                    case -2:
-                    {
-                        // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
-                        //       has 'used' the LVKey and required the work queue to be present.  For a resume request, we simply tolerate the
-                        //       situation as any work queue added later for the LVKey/CN hostname will automatically be in the resumed state.
-                        //       Otherwise, for a suspend request, we wait for a total of 2 minutes awaiting an LVKey/work queue to become present.
-                        // \todo - Not sure if this is the right duration...  @DLH
-                        if (pValue)
-                        {
-                            // Connection being suspended
-                            if (l_Continue)
-                            {
-                                rc = 0;
-                                unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
-                                {
-                                    usleep((useconds_t)1000000);    // Delay 1 second
-                                }
-                                lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
-                            }
-                            else
-                            {
-                                rc = -1;
-                                LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                              << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                              << ". Failing condition for a suspend operation.";
-                            }
-                        }
-                        else
-                        {
-                            // Connection being resumed
-                            LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                         << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                         << ". Tolerated condition for a resume operation.";
-                            break;
-                        }
-                    }
-                    break;
-
-                    case 2:
-                        break;
-
-                    default:
-                        rc = -1;
-                        break;
+                    SET_FLAG(BBTI2_Suspended, pValue);
                 }
+                break;
+
+                case -2:
+                {
+                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
+                    //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
+                    string l_Temp = "resume";
+                    if (pValue)
+                    {
+                        // Connection being suspended
+                        l_Temp = "suspend";
+                    }
+                    LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                 << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
+                                 << ". Tolerated condition for a " << l_Temp << " operation.";
+                }
+                break;
+
+                case 2:
+                    break;
+
+                default:
+                    LOG(bb,info) << "BBTagInfo2::setSuspended(): Unexpected return code " << rc \
+                                 << " received for hostname " << pHostName << ", connection " \
+                                 << connectionName << ", jobid " << jobid << ", " << *pLVKey \
+                                 << " when attempting the suspend or resume operation on the work queue.";
+                    rc = -1;
+                    break;
             }
         }
         else
