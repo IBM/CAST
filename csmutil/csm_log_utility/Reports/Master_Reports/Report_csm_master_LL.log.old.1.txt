@@ -1,0 +1,296 @@
+Error: Api ID collision: [71184047];
+Start Api: 2018-06-04 13:38:49.597559 csmapi::info | [71184047]; csm_allocation_step_begin start
+End   Api: 2018-06-04 12:54:41.547059 csmapi::info | [71184047]; csm_allocation_step_begin start
+
+Error: Api ID collision: [71184048];
+Start Api: 2018-06-04 13:40:44.600440 csmapi::info | [71184048]; csm_allocation_step_end start
+End   Api: 2018-06-04 12:56:36.338521 csmapi::info | [71184048]; csm_allocation_step_end start
+
+Error: Api ID collision: [1293863746];
+Start Api: 2018-06-04 14:50:16.460936 csmapi::info | [1293863746]; csm_allocation_step_begin start
+End   Api: 2018-06-04 13:38:49.348899 csmapi::info | [1293863746]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1293863747];
+Start Api: 2018-06-04 14:52:15.623824 csmapi::info | [1293863747]; csm_allocation_step_end start
+End   Api: 2018-06-04 13:40:43.960651 csmapi::info | [1293863747]; csm_allocation_step_end start
+
+Error: Api ID collision: [167088970];
+Start Api: 2018-06-04 15:04:22.157787 csmapi::info | [167088970]; csm_allocation_step_begin start
+End   Api: 2018-06-04 14:31:33.671557 csmapi::info | [167088970]; csm_allocation_step_begin start
+
+Error: Api ID collision: [167088971];
+Start Api: 2018-06-04 15:06:23.713361 csmapi::info | [167088971]; csm_allocation_step_end start
+End   Api: 2018-06-04 14:33:28.360153 csmapi::info | [167088971]; csm_allocation_step_end start
+
+Error: Api ID collision: [1929114245];
+Start Api: 2018-06-04 15:14:26.006704 csmapi::info | [1929114245]; csm_allocation_delete start
+End   Api: 2018-06-04 15:14:20.006934 csmapi::info | [1929114245]; csm_allocation_delete start
+
+Error: Api ID collision: [1929114245];
+Start Api: 2018-06-04 15:14:27.502636 csmapi::info | [1929114245]; csm_allocation_delete end
+End   Api: 2018-06-04 15:14:33.434226 csmapi::info | [1929114245]; csm_allocation_delete end
+
+Error: Api ID collision: [363617746];
+Start Api: 2018-06-04 15:26:48.344635 csmapi::info | [363617746]; csm_allocation_step_begin start
+End   Api: 2018-06-04 12:54:40.594467 csmapi::info | [363617746]; csm_allocation_step_begin start
+
+Error: Api ID collision: [302899497];
+Start Api: 2018-06-04 15:26:51.497852 csmapi::info | [302899497]; csm_allocation_step_begin start
+End   Api: 2018-06-04 14:50:16.495527 csmapi::info | [302899497]; csm_allocation_step_begin start
+
+Error: Api ID collision: [363617747];
+Start Api: 2018-06-04 15:28:49.214704 csmapi::info | [363617747]; csm_allocation_step_end start
+End   Api: 2018-06-04 12:56:35.697966 csmapi::info | [363617747]; csm_allocation_step_end start
+
+Error: Api ID collision: [302899498];
+Start Api: 2018-06-04 15:28:54.234204 csmapi::info | [302899498]; csm_allocation_step_end start
+End   Api: 2018-06-04 14:52:15.687672 csmapi::info | [302899498]; csm_allocation_step_end start
+
+Error: Api ID collision: [1165127189];
+Start Api: 2018-06-04 15:30:54.699245 csmapi::info | [1165127189]; csm_allocation_query start
+End   Api: 2018-06-04 15:30:53.911562 csmapi::info | [1165127189]; csm_allocation_create start
+
+Error: Api ID collision: [1165127189];
+Start Api: 2018-06-04 15:30:54.703560 csmapi::info | [1165127189]; csm_allocation_query end
+End   Api: 2018-06-04 15:30:55.120453 csmapi::info | [1165127189]; csm_allocation_create end
+
+Error: Api ID collision: [2068583749];
+Start Api: 2018-06-04 15:33:45.757943 csmapi::info | [2068583749]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:04:23.029777 csmapi::info | [2068583749]; csm_allocation_step_begin start
+
+Error: Api ID collision: [2068583750];
+Start Api: 2018-06-04 15:35:42.071032 csmapi::info | [2068583750]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:06:24.966314 csmapi::info | [2068583750]; csm_allocation_step_end start
+
+Error: Api ID collision: [855074123];
+Start Api: 2018-06-04 15:36:40.005665 csmapi::info | [855074123]; csm_allocation_delete start
+End   Api: 2018-06-04 15:36:33.005339 csmapi::info | [855074123]; csm_allocation_delete start
+
+Error: Api ID collision: [855074123];
+Start Api: 2018-06-04 15:36:40.779410 csmapi::info | [855074123]; csm_allocation_delete end
+End   Api: 2018-06-04 15:36:47.664546 csmapi::info | [855074123]; csm_allocation_delete end
+
+Error: Api ID collision: [1430368129];
+Start Api: 2018-06-04 15:53:18.642339 csmapi::info | [1430368129]; csm_allocation_step_begin start
+End   Api: 2018-06-04 14:50:19.684359 csmapi::info | [1430368129]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1430368130];
+Start Api: 2018-06-04 15:55:17.712557 csmapi::info | [1430368130]; csm_allocation_step_end start
+End   Api: 2018-06-04 14:52:14.937184 csmapi::info | [1430368130]; csm_allocation_step_end start
+
+Error: Api ID collision: [890999498];
+Start Api: 2018-06-04 16:08:31.675356 csmapi::info | [890999498]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:52:24.137565 csmapi::info | [890999498]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1988228966];
+Start Api: 2018-06-04 16:08:38.300999 csmapi::info | [1988228966]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:04:21.898631 csmapi::info | [1988228966]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1548965968];
+Start Api: 2018-06-04 16:09:04.111239 csmapi::info | [1548965968]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:53:13.764457 csmapi::info | [1548965968]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1699052509];
+Start Api: 2018-06-04 16:09:13.594444 csmapi::info | [1699052509]; csm_allocation_step_begin start
+End   Api: 2018-06-04 16:08:38.294461 csmapi::info | [1699052509]; csm_allocation_step_begin start
+
+Error: Api ID collision: [22291312];
+Start Api: 2018-06-04 16:09:48.958644 csmapi::info | [22291312]; csm_allocation_create start
+End   Api: 2018-06-04 16:09:48.957754 csmapi::info | [22291312]; csm_allocation_create start
+
+Error: Api ID collision: [22291312];
+Start Api: 2018-06-04 16:09:49.630267 csmapi::info | [22291312]; csm_allocation_create end
+End   Api: 2018-06-04 16:09:49.647341 csmapi::info | [22291312]; csm_allocation_create end
+
+Error: Api ID collision: [890999499];
+Start Api: 2018-06-04 16:10:27.261484 csmapi::info | [890999499]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:54:19.674998 csmapi::info | [890999499]; csm_allocation_step_end start
+
+Error: Api ID collision: [1988228967];
+Start Api: 2018-06-04 16:10:35.734533 csmapi::info | [1988228967]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:06:17.177599 csmapi::info | [1988228967]; csm_allocation_step_end start
+
+Error: Api ID collision: [1548965969];
+Start Api: 2018-06-04 16:11:01.031178 csmapi::info | [1548965969]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:55:09.364510 csmapi::info | [1548965969]; csm_allocation_step_end start
+
+Error: Api ID collision: [1699052510];
+Start Api: 2018-06-04 16:11:09.276734 csmapi::info | [1699052510]; csm_allocation_step_end start
+End   Api: 2018-06-04 16:10:34.589634 csmapi::info | [1699052510]; csm_allocation_step_end start
+
+Error: Api ID collision: [458610961];
+Start Api: 2018-06-04 16:11:57.478593 csmapi::info | [458610961]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:04:21.873613 csmapi::info | [458610961]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1326080384];
+Start Api: 2018-06-04 16:11:59.414010 csmapi::info | [1326080384]; csm_allocation_step_begin start
+End   Api: 2018-06-04 13:19:07.007354 csmapi::info | [1326080384]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1507871618];
+Start Api: 2018-06-04 16:12:00.077939 csmapi::info | [1507871618]; csm_allocation_step_begin start
+End   Api: 2018-06-04 13:20:00.438413 csmapi::info | [1507871618]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1689462353];
+Start Api: 2018-06-04 16:14:11.010819 csmapi::info | [1689462353]; csm_allocation_delete start
+End   Api: 2018-06-04 16:14:04.010765 csmapi::info | [1689462353]; csm_allocation_delete start
+
+Error: Api ID collision: [1689462353];
+Start Api: 2018-06-04 16:14:11.686463 csmapi::info | [1689462353]; csm_allocation_delete end
+End   Api: 2018-06-04 16:14:18.712030 csmapi::info | [1689462353]; csm_allocation_delete end
+
+Error: Api ID collision: [848910296];
+Start Api: 2018-06-04 16:18:09.855547 csmapi::info | [848910296]; csm_allocation_step_begin start
+End   Api: 2018-06-04 12:47:14.586492 csmapi::info | [848910296]; csm_allocation_step_begin start
+
+Error: Api ID collision: [945516253];
+Start Api: 2018-06-04 16:23:38.412889 csmapi::info | [945516253]; csm_allocation_step_begin start
+End   Api: 2018-06-04 16:08:31.688276 csmapi::info | [945516253]; csm_allocation_step_begin start
+
+Error: Api ID collision: [945516254];
+Start Api: 2018-06-04 16:25:32.514826 csmapi::info | [945516254]; csm_allocation_step_end start
+End   Api: 2018-06-04 16:10:26.702770 csmapi::info | [945516254]; csm_allocation_step_end start
+
+Error: Api ID collision: [723577429];
+Start Api: 2018-06-04 16:26:34.167410 csmapi::info | [723577429]; csm_allocation_query_active_all start
+End   Api: 2018-06-04 16:13:58.756702 csmapi::info | [723577429]; csm_allocation_step_end start
+
+Error: Api ID collision: [1769962812];
+Start Api: 2018-06-04 16:26:39.499814 csmapi::info | [1769962812]; csm_allocation_step_begin start
+End   Api: 2018-06-04 14:50:06.318308 csmapi::info | [1769962812]; csm_allocation_step_begin start
+
+Error: Api ID collision: [269808346];
+Start Api: 2018-06-04 16:26:43.056461 csmapi::info | [269808346]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:04:21.833421 csmapi::info | [269808346]; csm_allocation_step_begin start
+
+Error: Api ID collision: [945670015];
+Start Api: 2018-06-04 16:26:43.062343 csmapi::info | [945670015]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:33:48.938558 csmapi::info | [945670015]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1769962813];
+Start Api: 2018-06-04 16:28:37.670846 csmapi::info | [1769962813]; csm_allocation_step_end start
+End   Api: 2018-06-04 14:52:01.035645 csmapi::info | [1769962813]; csm_allocation_step_end start
+
+Error: Api ID collision: [269808347];
+Start Api: 2018-06-04 16:28:40.487305 csmapi::info | [269808347]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:06:18.271620 csmapi::info | [269808347]; csm_allocation_step_end start
+
+Error: Api ID collision: [945670016];
+Start Api: 2018-06-04 16:28:40.667516 csmapi::info | [945670016]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:35:47.699417 csmapi::info | [945670016]; csm_allocation_step_end start
+
+Error: Api ID collision: [2044290577];
+Start Api: 2018-06-04 16:43:15.009814 csmapi::info | [2044290577]; csm_allocation_delete start
+End   Api: 2018-06-04 16:43:11.009394 csmapi::info | [2044290577]; csm_allocation_delete start
+
+Error: Api ID collision: [2044290577];
+Start Api: 2018-06-04 16:43:18.911763 csmapi::info | [2044290577]; csm_allocation_delete end
+End   Api: 2018-06-04 16:43:22.636244 csmapi::info | [2044290577]; csm_allocation_delete end
+
+Error: Api ID collision: [120516117];
+Start Api: 2018-06-04 18:49:10.005706 csmapi::info | [120516117]; csm_allocation_delete start
+End   Api: 2018-06-04 18:49:04.006331 csmapi::info | [120516117]; csm_allocation_delete start
+
+Error: Api ID collision: [120516117];
+Start Api: 2018-06-04 18:49:12.663477 csmapi::info | [120516117]; csm_allocation_delete end
+End   Api: 2018-06-04 18:49:18.288695 csmapi::info | [120516117]; csm_allocation_delete end
+
+Error: Api ID collision: [1631817428];
+Start Api: 2018-06-04 20:18:48.366122 csmapi::info | [1631817428]; csm_node_attributes_query start
+End   Api: 2018-06-04 16:13:57.946164 csmapi::info | [1631817428]; csm_allocation_step_end start
+
+Error: Api ID collision: [341075068];
+Start Api: 2018-06-04 20:30:57.414307 csmapi::info | [341075068]; csm_allocation_step_begin start
+End   Api: 2018-06-04 16:23:38.353120 csmapi::info | [341075068]; csm_allocation_step_begin start
+
+Error: Api ID collision: [341075069];
+Start Api: 2018-06-04 20:35:48.390972 csmapi::info | [341075069]; csm_allocation_step_end start
+End   Api: 2018-06-04 16:25:32.648213 csmapi::info | [341075069]; csm_allocation_step_end start
+
+Error: Api ID collision: [346166119];
+Start Api: 2018-06-04 23:12:11.471844 csmapi::info | [346166119]; csm_allocation_step_begin start
+End   Api: 2018-06-04 18:12:55.482726 csmapi::info | [346166119]; csm_allocation_step_begin start
+
+Error: Api ID collision: [346166120];
+Start Api: 2018-06-04 23:16:38.750675 csmapi::info | [346166120]; csm_allocation_step_end start
+End   Api: 2018-06-04 18:18:50.596367 csmapi::info | [346166120]; csm_allocation_step_end start
+
+Error: Api ID collision: [346166121];
+Start Api: 2018-06-04 23:16:38.862164 csmapi::info | [346166121]; csm_allocation_step_begin start
+End   Api: 2018-06-04 18:18:50.717631 csmapi::info | [346166121]; csm_allocation_step_begin start
+
+Error: Api ID collision: [346166122];
+Start Api: 2018-06-04 23:22:33.556218 csmapi::info | [346166122]; csm_allocation_step_end start
+End   Api: 2018-06-04 18:28:02.777945 csmapi::info | [346166122]; csm_allocation_step_end start
+
+Error: Api ID collision: [252551862];
+Start Api: 2018-06-05 00:18:22.492681 csmapi::info | [252551862]; csm_node_resources_query_all start
+End   Api: 2018-06-04 16:13:58.498408 csmapi::info | [252551862]; csm_allocation_step_end start
+
+Error: Api ID collision: [1799393333];
+Start Api: 2018-06-05 01:31:16.004124 csmapi::info | [1799393333]; csm_allocation_delete start
+End   Api: 2018-06-05 01:31:10.003812 csmapi::info | [1799393333]; csm_allocation_delete start
+
+Error: Api ID collision: [1799393333];
+Start Api: 2018-06-05 01:31:25.814116 csmapi::info | [1799393333]; csm_allocation_delete end
+End   Api: 2018-06-05 01:31:27.358849 csmapi::info | [1799393333]; csm_allocation_delete end
+
+Error: Api ID collision: [1157501887];
+Start Api: 2018-06-05 03:02:44.235889 csmapi::info | [1157501887]; csm_allocation_create start
+End   Api: 2018-06-04 16:13:56.825357 csmapi::info | [1157501887]; csm_allocation_step_end start
+
+Error: Api ID collision: [1947586919];
+Start Api: 2018-06-05 04:26:52.165827 csmapi::info | [1947586919]; csm_allocation_step_begin start
+End   Api: 2018-06-04 15:26:47.252993 csmapi::info | [1947586919]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1947586920];
+Start Api: 2018-06-05 04:31:52.372922 csmapi::info | [1947586920]; csm_allocation_step_end start
+End   Api: 2018-06-04 15:28:55.765775 csmapi::info | [1947586920]; csm_allocation_step_end start
+
+Error: Api ID collision: [1567300250];
+Start Api: 2018-06-05 05:58:48.980711 csmapi::info | [1567300250]; csm_allocation_step_begin start
+End   Api: 2018-06-04 12:54:40.971574 csmapi::info | [1567300250]; csm_allocation_step_begin start
+
+Error: Api ID collision: [1567300251];
+Start Api: 2018-06-05 06:08:40.211609 csmapi::info | [1567300251]; csm_allocation_step_end start
+End   Api: 2018-06-04 12:56:40.155935 csmapi::info | [1567300251]; csm_allocation_step_end start
+
+Error: Api ID collision: [409421537];
+Start Api: 2018-06-05 08:03:20.011045 csmapi::info | [409421537]; csm_allocation_query_active_all start
+End   Api: 2018-06-05 03:26:17.481659 csmapi::info | [409421537]; csm_allocation_step_begin start
+
+Error: Api ID collision: [718551459];
+Start Api: 2018-06-05 08:04:32.393513 csmapi::info | [718551459]; csm_allocation_step_begin start
+End   Api: 2018-06-04 16:08:38.277795 csmapi::info | [718551459]; csm_allocation_step_begin start
+
+Error: Api ID collision: [718551460];
+Start Api: 2018-06-05 08:09:28.446528 csmapi::info | [718551460]; csm_allocation_step_end start
+End   Api: 2018-06-04 16:10:35.664551 csmapi::info | [718551460]; csm_allocation_step_end start
+
+Error: Api ID collision: [252551862];
+Start Api: 2018-06-05 09:44:45.458365 csmapi::info | [252551862]; csm_allocation_query start
+End   Api: 2018-06-05 00:18:22.613690 csmapi::info | [252551862]; csm_node_resources_query_all end
+
+Error: Api ID collision: [202656264];
+Start Api: 2018-06-05 20:50:33.784227 csmapi::info | [202656264]; csm_allocation_query_active_all start
+End   Api: 2018-06-04 16:13:58.378210 csmapi::info | [202656264]; csm_allocation_step_end start
+
+Error: Api ID collision: [2002998270];
+Start Api: 2018-06-06 03:13:18.646932 csmapi::info | [2002998270]; csm_node_resources_query_all start
+End   Api: 2018-06-04 16:13:57.883584 csmapi::info | [2002998270]; csm_allocation_step_end start
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++Master Log++++++++++++++++++++++++++++++++++++++++++++++++++++
+----------------------------------------Logs/Master/csm_master_LL.log.old.1----------------------------------------
+Api Function                                       Frequency   Mean      Median    Min       Max       Std     
+
+csm_node_attributes_query                                3505  0.016042  0.001228  0.000448  0.723103  0.038147
+csm_allocation_query                                     8190  0.009196  0.004611  0.001339  0.707035  0.037510
+csm_node_attributes_update                               4954  0.012769  0.002253  0.000828  2.991216  0.079873
+csm_allocation_update_state                               501  0.023896  0.002006  0.000690  0.418407  0.064980
+csm_node_query_state_history                               17  0.011912  0.003703  0.002097  0.075319  0.023086
+csm_node_resources_query_all                            12801  0.110874  0.099486  0.085270  5.637532  0.063156
+csm_allocation_query_details                             8210  0.097918  0.097579  0.000152  7.437932  0.103734
+csm_allocation_delete                                    8401  9.290405  7.689164  0.000811  154.238377  12.030750
+csm_allocation_create                                   10086  0.841637  0.664714  0.007232  118.430265  4.052602
+csm_allocation_query_active_all                         11171  0.031116  0.011876  0.000649  0.616175  0.064501
+Total Calls:  67836
+Total Errors: 70

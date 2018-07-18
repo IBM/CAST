@@ -1,0 +1,33 @@
+Error: Api ID collision: [1278924039];
+Start Api: 2018-06-07 20:15:03.561136 csmapi::info | [1278924039]; csm_allocation_create start
+End   Api: 2018-06-07 20:15:03.560956 csmapi::info | [1278924039]; csm_allocation_create start
+
+Error: Api ID collision: [1278924039];
+Start Api: 2018-06-07 20:15:04.292361 csmapi::info | [1278924039]; csm_allocation_create end
+End   Api: 2018-06-07 20:15:04.333139 csmapi::info | [1278924039]; csm_allocation_create end
+
+Error: Api ID collision: [1458487613];
+Start Api: 2018-06-08 10:21:15.645648 csmapi::info | [1458487613]; csm_node_attributes_update start
+End   Api: 2018-06-08 10:21:15.645065 csmapi::info | [1458487613]; csm_node_attributes_query start
+
+Error: Api ID collision: [1458487613];
+Start Api: 2018-06-08 10:21:15.645905 csmapi::info | [1458487613]; csm_node_attributes_query end
+End   Api: 2018-06-08 10:21:15.647028 csmapi::info | [1458487613]; csm_node_attributes_update end
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++Master Log++++++++++++++++++++++++++++++++++++++++++++++++++++
+-------------------------------------------Logs/Master/csm_master_LL.log-------------------------------------------
+Api Function                                       Frequency   Mean      Median    Min       Max       Std     
+
+csm_node_attributes_query                                4546  0.003030  0.000734  0.000408  0.153448  0.013768
+csm_allocation_query                                      529  0.002901  0.002421  0.001201  0.027395  0.002393
+csm_ras_event_query                                         2  0.025983  0.025983  0.003448  0.048518  0.022535
+csm_node_attributes_update                               8403  0.003979  0.001363  0.000839  0.333506  0.017186
+csm_node_attributes_query_history                           1  0.002436  0.002436  0.002436  0.002436  0.000000
+csm_node_query_state_history                               20  0.002042  0.002040  0.001128  0.003179  0.000595
+csm_node_resources_query_all                              894  0.098450  0.092928  0.082642  0.385478  0.019369
+csm_allocation_create                                     609  1.328494  0.711111  0.006083  118.279953  8.428363
+csm_allocation_delete                                     533  12.531701  8.145864  0.000497  150.680867  22.890749
+csm_allocation_query_details                              525  0.015080  0.006232  0.002995  0.064763  0.015325
+csm_allocation_query_active_all                           659  0.009181  0.005778  0.000860  0.434352  0.032032
+Total Calls:  16721
+Total Errors: 4

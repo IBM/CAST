@@ -1,0 +1,8 @@
+++++++++++++++++++++++++++++++++++++++++++++++++++++Utility Log++++++++++++++++++++++++++++++++++++++++++++++++++++
+-----------------------------------------Logs/Utility/csm_utility.log_lsf1-----------------------------------------
+Api Function                                       Frequency   Mean      Median    Min       Max       Std     
+
+CSM_CMD_node_resources_query_all                         5556  0.158856  0.148996  0.118010  0.826956  0.035728
+CSM_CMD_node_attributes_query                               1  0.002266  0.002266  0.002266  0.002266  0.000000
+Total Calls:  5557
+Total Errors: 0

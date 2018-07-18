@@ -1,0 +1,7 @@
++++++++++++++++++++++++++++++++++++++++++++++++++++++Master Log++++++++++++++++++++++++++++++++++++++++++++++++++++
+----------------------------------------Logs/Master/csm_master_OR.log.old.5----------------------------------------
+Api Function                                       Frequency   Mean      Median    Min       Max       Std     
+
+csm_node_attributes_query                                  10  0.002479  0.002291  0.001016  0.004582  0.001099
+Total Calls:  10
+Total Errors: 0

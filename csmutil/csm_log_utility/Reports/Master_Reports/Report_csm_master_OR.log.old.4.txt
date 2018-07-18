@@ -1,0 +1,136 @@
+Error: Api ID collision: [74379106];
+Start Api: 2018-05-09 12:41:31.592962 csmapi::info | [74379106]; csm_node_attributes_update start
+End   Api: 2018-05-09 12:41:31.592367 csmapi::info | [74379106]; csm_node_attributes_update start
+
+Error: Api ID collision: [74379106];
+Start Api: 2018-05-09 12:41:31.593262 csmapi::info | [74379106]; csm_node_attributes_update end
+End   Api: 2018-05-09 12:41:31.593866 csmapi::info | [74379106]; csm_node_attributes_update end
+
+Error: Api ID collision: [170852490];
+Start Api: 2018-05-09 19:26:10.169883 csmapi::info | [170852490]; csm_node_attributes_update start
+End   Api: 2018-05-09 19:26:10.164839 csmapi::info | [170852490]; csm_node_attributes_update start
+
+Error: Api ID collision: [170852490];
+Start Api: 2018-05-09 19:26:10.171104 csmapi::info | [170852490]; csm_node_attributes_update end
+End   Api: 2018-05-09 19:26:10.171485 csmapi::info | [170852490]; csm_node_attributes_update end
+
+Error: Api ID collision: [1220642684];
+Start Api: 2018-05-10 11:53:42.221373 csmapi::info | [1220642684]; csm_node_resources_query start
+End   Api: 2018-05-10 11:53:42.220422 csmapi::info | [1220642684]; csm_allocation_query_details start
+
+Error: Api ID collision: [1220642684];
+Start Api: 2018-05-10 11:53:42.224179 csmapi::info | [1220642684]; csm_node_resources_query end
+End   Api: 2018-05-10 11:53:42.261364 csmapi::info | [1220642684]; csm_allocation_query_details end
+
+Error: Api ID collision: [1545706203];
+Start Api: 2018-05-11 22:22:15.154027 csmapi::info | [1545706203]; csm_node_attributes_update start
+End   Api: 2018-05-11 22:22:15.153524 csmapi::info | [1545706203]; csm_node_attributes_update start
+
+Error: Api ID collision: [1545706203];
+Start Api: 2018-05-11 22:22:15.156548 csmapi::info | [1545706203]; csm_node_attributes_update end
+End   Api: 2018-05-11 22:22:15.157339 csmapi::info | [1545706203]; csm_node_attributes_update end
+
+Error: Api ID collision: [976577978];
+Start Api: 2018-05-11 22:22:15.242393 csmapi::info | [976577978]; csm_node_attributes_update start
+End   Api: 2018-05-11 22:22:15.241994 csmapi::info | [976577978]; csm_node_attributes_update start
+
+Error: Api ID collision: [976577978];
+Start Api: 2018-05-11 22:22:15.245734 csmapi::info | [976577978]; csm_node_attributes_update end
+End   Api: 2018-05-11 22:22:15.245845 csmapi::info | [976577978]; csm_node_attributes_update end
+
+Error: Api ID collision: [1102855374];
+Start Api: 2018-05-13 02:35:26.232817 csmapi::info | [1102855374]; csm_node_attributes_update start
+End   Api: 2018-05-13 02:35:26.228117 csmapi::info | [1102855374]; csm_node_attributes_update start
+
+Error: Api ID collision: [1102855374];
+Start Api: 2018-05-13 02:35:26.253206 csmapi::info | [1102855374]; csm_node_attributes_update end
+End   Api: 2018-05-13 02:35:26.260361 csmapi::info | [1102855374]; csm_node_attributes_update end
+
+Error: Api ID collision: [1665659960];
+Start Api: 2018-05-15 09:23:14.873361 csmapi::info | [1665659960]; csm_node_attributes_update start
+End   Api: 2018-05-15 09:23:14.872246 csmapi::info | [1665659960]; csm_node_attributes_update start
+
+Error: Api ID collision: [1665659960];
+Start Api: 2018-05-15 09:23:14.873830 csmapi::info | [1665659960]; csm_node_attributes_update end
+End   Api: 2018-05-15 09:23:14.875259 csmapi::info | [1665659960]; csm_node_attributes_update end
+
+Error: Api ID collision: [1704713194];
+Start Api: 2018-05-15 22:29:33.631303 csmapi::info | [1704713194]; csm_node_attributes_update start
+End   Api: 2018-05-15 22:29:33.605236 csmapi::info | [1704713194]; csm_node_attributes_update start
+
+Error: Api ID collision: [1704713194];
+Start Api: 2018-05-15 22:29:33.658282 csmapi::info | [1704713194]; csm_node_attributes_update end
+End   Api: 2018-05-15 22:29:33.686064 csmapi::info | [1704713194]; csm_node_attributes_update end
+
+Error: Api ID collision: [576506628];
+Start Api: 2018-05-15 22:29:39.445266 csmapi::info | [576506628]; csm_node_attributes_update start
+End   Api: 2018-05-15 22:29:39.439366 csmapi::info | [576506628]; csm_node_attributes_update start
+
+Error: Api ID collision: [1379477743];
+Start Api: 2018-05-15 22:29:39.445331 csmapi::info | [1379477743]; csm_node_attributes_update start
+End   Api: 2018-05-15 22:29:39.442818 csmapi::info | [1379477743]; csm_node_attributes_update start
+
+Error: Api ID collision: [576506628];
+Start Api: 2018-05-15 22:29:39.454382 csmapi::info | [576506628]; csm_node_attributes_update end
+End   Api: 2018-05-15 22:29:39.461213 csmapi::info | [576506628]; csm_node_attributes_update end
+
+Error: Api ID collision: [1379477743];
+Start Api: 2018-05-15 22:29:39.458669 csmapi::info | [1379477743]; csm_node_attributes_update end
+End   Api: 2018-05-15 22:29:39.462633 csmapi::info | [1379477743]; csm_node_attributes_update end
+
+Error: Api ID collision: [1967172780];
+Start Api: 2018-05-15 22:44:04.317089 csmapi::info | [1967172780]; csm_node_attributes_update start
+End   Api: 2018-05-15 22:44:04.316785 csmapi::info | [1967172780]; csm_node_attributes_update start
+
+Error: Api ID collision: [1967172780];
+Start Api: 2018-05-15 22:44:04.317778 csmapi::info | [1967172780]; csm_node_attributes_update end
+End   Api: 2018-05-15 22:44:04.318083 csmapi::info | [1967172780]; csm_node_attributes_update end
+
+Error: Api ID collision: [2074509457];
+Start Api: 2018-05-15 23:37:03.422678 csmapi::info | [2074509457]; csm_node_attributes_query start
+End   Api: 2018-05-10 12:17:21.006590 csmapi::info | [2074509457]; csm_allocation_step_begin start
+
+Error: Api ID collision: [148638251];
+Start Api: 2018-05-16 08:00:00.500899 csmapi::info | [148638251]; csm_node_attributes_update start
+End   Api: 2018-05-16 08:00:00.498923 csmapi::info | [148638251]; csm_node_attributes_update start
+
+Error: Api ID collision: [148638251];
+Start Api: 2018-05-16 08:00:00.501217 csmapi::info | [148638251]; csm_node_attributes_update end
+End   Api: 2018-05-16 08:00:00.503537 csmapi::info | [148638251]; csm_node_attributes_update end
+
+Error: Api ID collision: [1192811513];
+Start Api: 2018-05-16 08:00:00.517849 csmapi::info | [1192811513]; csm_node_attributes_update start
+End   Api: 2018-05-16 08:00:00.517607 csmapi::info | [1192811513]; csm_node_attributes_update start
+
+Error: Api ID collision: [1192811513];
+Start Api: 2018-05-16 08:00:00.519766 csmapi::info | [1192811513]; csm_node_attributes_update end
+End   Api: 2018-05-16 08:00:00.519915 csmapi::info | [1192811513]; csm_node_attributes_update end
+
+Error: Api ID collision: [1388876140];
+Start Api: 2018-05-16 20:38:06.803344 csmapi::info | [1388876140]; csm_node_attributes_query start
+End   Api: 2018-05-15 10:55:32.779103 csmapi::info | [1388876140]; csm_allocation_step_end start
+
+Error: Api ID collision: [1706620213];
+Start Api: 2018-05-18 22:35:46.761102 csmapi::info | [1706620213]; csm_node_attributes_query start
+End   Api: 2018-05-16 15:20:33.888619 csmapi::info | [1706620213]; csm_allocation_step_end start
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++Master Log++++++++++++++++++++++++++++++++++++++++++++++++++++
+----------------------------------------Logs/Master/csm_master_OR.log.old.4----------------------------------------
+Api Function                                       Frequency   Mean      Median    Min       Max       Std     
+
+csm_node_resources_query                               133032  0.002406  0.002423  0.001062  0.056643  0.000765
+csm_node_attributes_query                              709139  0.000918  0.000849  0.000389  0.267321  0.000651
+csm_allocation_query                                     2148  0.007845  0.003839  0.001483  0.532678  0.026157
+csm_ras_event_query                                         1  0.048808  0.048808  0.048808  0.048808  0.000000
+csm_node_attributes_update                             114957  0.003061  0.001453  0.000666  0.191109  0.009592
+csm_allocation_update_state                                80  0.002652  0.001874  0.000962  0.037323  0.004214
+csm_node_attributes_query_history                           3  0.010831  0.003604  0.002474  0.026414  0.011029
+csm_ras_msg_type_query                                      2  0.096117  0.096117  0.000973  0.191261  0.095144
+csm_node_query_state_history                                4  0.002048  0.001761  0.001485  0.003186  0.000673
+csm_allocation_query_active_all                          9134  0.009194  0.008939  0.000685  1.751063  0.018989
+csm_allocation_create                                    2945  10.323225  15.895437  0.005592  119.352051  9.677783
+csm_allocation_delete                                    3064  15.473395  17.527467  0.000407  61.327989  14.064870
+csm_allocation_query_details                             2121  0.200508  0.112413  0.003971  18.806343  0.603694
+csm_node_resources_query_all                            10355  0.145360  0.134828  0.002140  1.279338  0.040361
+Total Calls:  986985
+Total Errors: 29

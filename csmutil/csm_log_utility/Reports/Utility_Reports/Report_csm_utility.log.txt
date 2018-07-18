@@ -1,0 +1,18 @@
+++++++++++++++++++++++++++++++++++++++++++++++++++++Utility Log++++++++++++++++++++++++++++++++++++++++++++++++++++
+--------------------------------------------Logs/Utility/csm_utility.log-------------------------------------------
+Api Function                                       Frequency   Mean      Median    Min       Max       Std     
+
+CSM_CMD_node_resources_query_all                       100004  0.332370  0.331879  0.324843  0.379121  0.003022
+CSM_CMD_allocation_query_details                           10  0.382357  0.383626  0.335625  0.446877  0.030383
+CSM_CMD_allocation_update_state                             2  7.959372  7.959372  7.444989  8.473755  0.514383
+CSM_CMD_allocation_delete                              100003  0.082210  0.074374  0.062062  11.406086  0.058850
+CSM_CMD_allocation_step_query_active_all                   10  0.001888  0.001867  0.001554  0.002423  0.000261
+CSM_CMD_allocation_create                              100004  0.111314  0.106973  0.071798  7.888029  0.058110
+CSM_CMD_allocation_step_end                                10  0.228185  0.227149  0.218830  0.248126  0.008488
+CSM_CMD_allocation_step_begin                              10  0.592482  0.590753  0.570111  0.623048  0.018525
+CSM_CMD_allocation_step_query                              10  0.004387  0.004445  0.003570  0.005016  0.000440
+CSM_CMD_allocation_query                                    1  0.221062  0.221062  0.221062  0.221062  0.000000
+CSM_CMD_allocation_query_active_all                        32  0.006887  0.002804  0.002069  0.061458  0.013156
+CSM_CMD_allocation_step_query_details                      10  0.085717  0.084979  0.020225  0.148745  0.040987
+Total Calls:  300106
+Total Errors: 0
