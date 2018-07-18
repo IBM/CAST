@@ -62,6 +62,17 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
         {
           case csm::daemon::GPU:
           {
+            LOG(csmenv, debug) << "Collecting GPU data.";
+            bool gpu_success(false);            
+            std::list<boost::property_tree::ptree> gpu_data_pt_list;
+
+            gpu_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->CollectGpuData(gpu_data_pt_list);
+            if (gpu_success)
+            {
+               envData.AddDataItems(gpu_data_pt_list);
+            }
+
+#ifdef REMOVED
             // local variables
             bool dcgm_installed_flag;
             bool dlopen_flag;
@@ -132,8 +143,8 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
               envData.Set_Data( GPU_Long_Data );
               //envData.Set_Data( GPU_Double_Label_Data );
               //envData.Set_Data( GPU_Long_Label_Data );
-
             }
+#endif
             break;
           }
           case csm::daemon::CPU:

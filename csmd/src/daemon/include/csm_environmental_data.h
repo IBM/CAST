@@ -100,6 +100,10 @@ public:
   // Collects the environmental temperature and power data and sets it in the object
   bool Collect_Environmental_Data();
 
+  void AddDataItems(const std::list<boost::property_tree::ptree> &data_pt_list);
+
+  void AddDataItem(const boost::property_tree::ptree &data_pt);
+
   CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );
 
   // operator to only update the items that are present in the input

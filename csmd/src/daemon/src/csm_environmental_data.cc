@@ -640,6 +640,16 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
    return success;
 }
 
+void CSM_Environmental_Data::AddDataItems(const std::list<boost::property_tree::ptree> &data_pt_list)
+{
+   _data_list.insert(_data_list.end(), data_pt_list.begin(), data_pt_list.end());
+}
+
+void CSM_Environmental_Data::AddDataItem(const boost::property_tree::ptree &data_pt)
+{
+   _data_list.push_back(data_pt);
+}
+
 CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
 {
   _Data_Mask = in._Data_Mask;
@@ -688,5 +698,5 @@ CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmen
 
 bool CSM_Environmental_Data::HasData() const
 {
-  return _Data_Mask.any();
+  return (_Data_Mask.any() || !_data_list.empty());
 }
