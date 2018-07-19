@@ -357,30 +357,30 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                 rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
                 if (rc >= 0)
                 {
+                    // Contribid file successfully loaded
                     // NOTE: We process the contribid file first to see if this contributor
                     //       is restartable.  If not, we early exit without having to wait
                     //       for the handle to be marked as stopped.  In the case where a contributor
                     //       is not restartable, the handle may never transition to being stopped.
                     //       Otherwise, we then wait for the contributor/handle to be
                     //       marked as stopped.
+                    //
                     // Process the contribid file
                     if (rc == 1 && l_ContribIdFile)
                     {
-                        // Contribid file successfully loaded
-                        if (!l_ContribIdFile->stopped())
+                        if (l_ContribIdFile->allExtentsTransferred())
                         {
-                            // Transfer definition is not marked as stopped...
-                            if (l_ContribIdFile->allExtentsTransferred())
+                            // All extents have been processed...
+                            if (!l_ContribIdFile->stopped())
                             {
-                                // All extents have been processed...
+                                // Contribid is not marked as stopped
                                 if (l_ContribIdFile->allFilesClosed())
                                 {
                                     // All files are marked as closed (but, some could have failed...)
                                     if (l_ContribIdFile->notRestartable())
                                     {
-                                        // All extents have been processed, all files closed, with no failed files.
-                                        // The transfer definition is not marked as stopped, therefore, no need to restart this
-                                        // transfer definition.
+                                        // All extents have been processed, all files closed, no failed files -or- canceled and
+                                        // not marked as stopped.  Therefore, no need to restart this transfer definition.
                                         rc = 0;
                                         l_Continue = 0;
                                         LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << pContribId \
@@ -462,31 +462,32 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                             }
                             else
                             {
-                                // Not all previously enqueued extents have been processed
-                                rc = 0;     //  Assume that we will keep spinning...
-                                if (!l_Continue)
+                                // Contribid is marked as stopped
+                                // First ensure that the handle is also marked as stopped...
+                                if (!l_HandleFile->stopped())
                                 {
-                                    //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
-                                    rc = -2;
+                                    rc = 0;     //  Assume that we will keep spinning...
+                                    if (!l_Continue)
+                                    {
+                                        //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                        rc = -2;
+                                    }
+                                }
+                                else
+                                {
+                                    // Transfer definition and handle are both  stopped and all previously enqueued extents have been processed.
+                                    // Will exit both loops...  rc is already 1
                                 }
                             }
                         }
                         else
                         {
-                            // First ensure that the handle is marked as stopped...
-                            if (!l_HandleFile->stopped())
+                            // Not all previously enqueued extents have been processed
+                            rc = 0;     //  Assume that we will keep spinning...
+                            if (!l_Continue)
                             {
-                                rc = 0;     //  Assume that we will keep spinning...
-                                if (!l_Continue)
-                                {
-                                    //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
-                                    rc = -2;
-                                }
-                            }
-                            else
-                            {
-                                // Transfer definition and handle are both  stopped and all previously enqueued extents have been processed.
-                                // Will exit both loops...  rc is already 1
+                                //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                rc = -2;
                             }
                         }
                     }
