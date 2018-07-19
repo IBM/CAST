@@ -31,16 +31,16 @@ fi
 thisdir=`dirname $0`
 GPU_HEALTH=$thisdir/gpu-health
 
-EXPECTED_NVLINK_XFER_SPEED=32    # GB/s
-EXPECTED_GPU_MEM_BANDWITH=800    # GB/s
-EXPECTED_DGEMM_FLOPS=7           # TFlofs
+EXPECTED_NVLINK_XFER_SPEED=65      # GB/s
+EXPECTED_GPU_MEM_BANDWITH=800      # GB/s
+EXPECTED_DGEMM_FLOPS=6.7           # TFlops
 if [ $# -gt 0 ]; then EXPECTED_NVLINK_XFER_SPEED=$1; fi
 if [ $# -gt 1 ]; then EXPECTED_GPU_MEM_BANDWITH=$2; fi
 if [ $# -gt 2 ]; then EXPECTED_DGEMM_FLOPS=$3; fi
 
-# around 39 GB/sec for nvlink transfer to devices in the same socket ... 
+# around 65 GB/sec for nvlink transfer to devices in the same socket ... 
 # around 800 GB/sec for bandwidth, 
-# around 7 TFlops dgemm 
+# around 10.5 TFlops dgemm 
 # checks gpu memory bw, gpu dgemm flops, nvlink transfer speeds 
 
 
@@ -79,18 +79,34 @@ if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PAS
 has_gpus
 rc=$ret
 if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi 
-if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
+if ([ "$ngpus" -ne "4" ] && [ "$ngpus" -ne "6" ]) ; then echo -e "Unsupported number of gpus: $ngpus\n. $me test FAIL, rc=1"; exit 1; fi 
 
 export OMP_NUM_THREADS=1
 #export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
 n=${#eyecatcher[@]}
 err=0
 
+output_lines=$(($ngpus/2))
 # check devices on socket 0 and 1
 for socket in 0 88; do
    i=0
+   if [ "$socket" -eq "0" ]; then
+      if [ "$ngpus" -eq "4" ]; then
+         export CUDA_VISIBLE_DEVICES=0,1
+      else
+         export CUDA_VISIBLE_DEVICES=0,1,2
+      fi
+      cmd="numactl -N 0 --membind 0 $GPU_HEALTH 1>/tmp/$$ 2>&1"
+   else
+      if [ "$ngpus" -eq "4" ]; then
+         export CUDA_VISIBLE_DEVICES=2,3
+      else
+         export CUDA_VISIBLE_DEVICES=3,4,5
+      fi
+      cmd="numactl -N 8 --membind 8 $GPU_HEALTH 1>/tmp/$$ 2>&1"
+   fi
    export GOMP_CPU_AFFINITY="$socket"
-   $GPU_HEALTH 1>/tmp/$$ 2>&1
+   eval ${cmd}
    rc=$?
    echo -e "\nUsing GOMP_CPU_AFFINITY=$GOMP_CPU_AFFINITY"
    cat /tmp/$$
@@ -102,8 +118,9 @@ for socket in 0 88; do
          while read -r line; do
             aline=($line)
             value=${aline[${pos[$i]}]}
-            ivalue=${value%.*}
-            if [ $ivalue -lt ${EXPECTED_VALUE[$i]} ]; then
+            #ivalue=${value%.*}
+            # if [ $ivalue -lt ${EXPECTED_VALUE[$i]} ]; then
+            if (( $(echo "$value < ${EXPECTED_VALUE[$i]}" | bc -l) )); then
                echo "Checking GPU $counter: ${eyecatcher[$i]}"
                echo -e "ERROR, expecting: ${EXPECTED_VALUE[$i]} ${unit[$i]}, got: $value ${unit[$i]}."
                let err+=1
@@ -112,7 +129,7 @@ for socket in 0 88; do
             fi   
             let counter+=1
          done < <(grep "${eyecatcher[$i]}" /tmp/$$)
-         if [  $counter -ne $ngpus ]; then
+         if [  $counter -ne $output_lines ]; then
             echo "ERROR: not enough lines with: ${eyecatcher[$i]}."
             err+=1
          fi
