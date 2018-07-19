@@ -24,7 +24,7 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 
 fi
 
-EXPECTED_IB_BANDWITH="22000.00"
+EXPECTED_IB_BANDWITH="21250.00"
 if [ $# -gt 0 ]; then EXPECTED_IB_BANDWITH=$1; fi
 
 readonly me=${0##*/}
