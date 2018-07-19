@@ -23,12 +23,6 @@
 #include <boost/serialization/list.hpp>
 #include <boost/property_tree/ptree_serialization.hpp>
 
-#include "csm_CPU_data.h"
-#include "csm_GPU_double_data.h"
-#include "csm_GPU_long_data.h"
-#include "csm_GPU_double_labels.h"
-#include "csm_GPU_long_labels.h"
-
 class CSM_Environmental_Data
 {
 
@@ -59,38 +53,7 @@ public:
 
   ~CSM_Environmental_Data();
 
-  void Get_GPU_Double_DCGM_Field_Values_And_Set_Bit();
-  void Get_GPU_Long_DCGM_Field_Values_And_Set_Bit();
-
-  void Get_GPU_Double_DCGM_Field_String_Identifiers_And_Set_Bit();
-  void Get_GPU_Long_DCGM_Field_String_Identifiers_And_Set_Bit();
-
-  void Print_GPU_Double_DCGM_Field_Values();
-  void Print_GPU_Long_DCGM_Field_Values();
-
-  void Print_GPU_Double_DCGM_Field_String_Identifiers();
-  void Print_GPU_Long_DCGM_Field_String_Identifiers();
-
   void Print();
-
-  CSM_CPU_Data& Return_CPU_Data_Object();
-
-  CSM_GPU_Double_Data& Return_GPU_Double_Data_Object();
-  CSM_GPU_Long_Data& Return_GPU_Long_Data_Object();
-  CSM_GPU_Double_Label_Data& Return_GPU_Double_Label_Data_Object();
-  CSM_GPU_Long_Label_Data& Return_GPU_Long_Label_Data_Object();
-
-  void Set_Data( const CSM_GPU_Double_Data& GPU_Double_Data_To_Copy );
-
-  void Set_Data( const CSM_GPU_Long_Data& GPU_Long_Data_To_Copy );
-
-  void Set_Data( const CSM_GPU_Double_Label_Data& GPU_Double_Label_Data_To_Copy );
-
-  void Set_Data( const CSM_GPU_Long_Label_Data& GPU_Long_Label_Data_To_Copy );
-
-  void Set_Data( const CSM_CPU_Data& CPU_data_to_copy );
-
-  bool Set_Labels( const CSM_Environmental_Data& in );
 
   std::string Get_Json_String();
 
@@ -124,6 +87,7 @@ private:
      archive & _source_node;
      archive & _timestamp;
 
+#ifdef REMOVED
      // update from the string for the deserialization path
      _Data_Mask = std::bitset<MAX_DATA_BIT>( dmString );
 
@@ -142,6 +106,7 @@ private:
 
      if( _Data_Mask.test( CPU_DATA_BIT ) )
         archive & _CPU_Data;
+#endif
 
      archive & _data_list;
   }
@@ -153,14 +118,6 @@ private:
   // Node level data common to all elements 
   std::string _source_node;
   std::string _timestamp;
-
-  CSM_CPU_Data _CPU_Data;
-
-  CSM_GPU_Double_Data _GPU_Double_Data;
-  CSM_GPU_Long_Data _GPU_Long_Data;
-  
-  CSM_GPU_Double_Label_Data _GPU_Double_Label_Data;
-  CSM_GPU_Long_Label_Data _GPU_Long_Label_Data;
 
   // List of property trees containing the collected data from the different configured buckets
   std::list<boost::property_tree::ptree> _data_list;
