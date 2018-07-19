@@ -277,6 +277,77 @@ ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
 check_return_exit $? 4 "Test Case 5: Checking allocation deleted"
 
 echo "Section D COMPLETED!" >> ${LOG}
+
+echo "------------------------------------------------------------" >> ${LOG}
+# Section E - Creating an allocation on a node with an active staging-out allocation
+echo "Section E BEGIN" >> ${LOG}
+
+# Test Case 1: Create first allocation
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 1: Create first allocation"
+
+# Grab & Store Allocation ID from csm_allocation_create.log
+allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 2: Update first allocation to staging-out
+${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: Update first allocation to staging-out"
+
+# Test Case 3: Create second allocation at staging-in
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} -s "staging-in" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 3: Create second allocation at staging-in"
+
+# Grab & Store Allocation ID from csm_allocation_create.log
+second_allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 3: Validate 2 allocations active and in correct state with query
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_all_output "num_allocations: 2" "allocation_id: ${allocation_id}" "allocation_id: ${second_allocation_id}" "staging-in" "staging-out"
+check_return_flag $? "Validate 2 allocations active and in correct state with query"
+
+# Test Case 4: Update second allocation to running
+${CSM_PATH}/csm_allocation_update_state -a ${second_allocation_id} -s "running" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 4: Update second allocation to running"
+
+# Test Case 4: Validate 2 allocations active and in correct state with query
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_all_output "num_allocations: 2" "allocation_id: ${allocation_id}" "allocation_id: ${second_allocation_id}" "running" "staging-out"
+check_return_flag $? "Test Case 4: Validate 2 allocations active and in correct state with query"
+
+# Test Case 5: Update second allocation to staging-out
+${CSM_PATH}/csm_allocation_update_state -a ${second_allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 5: Update second allocation to staging-out"
+
+# Test Case 6: Create a third allocation at running
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 6: Create a third allocation at running"
+
+# Grab & Store Allocation ID from csm_allocation_create.log
+third_allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 6: Validate 3 allocations active and in correct state with query
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_all_output "num_allocations: 3" "allocation_id: ${allocation_id}" "allocation_id: ${second_allocation_id}" "allocation_id: ${third_allocation_id}" "running" "staging-out"
+check_return_flag $? "Test Case 6: Validate 3 allocations active and in correct state with query" 
+
+# Test Case 7: Update third allocation to staging-out
+${CSM_PATH}/csm_allocation_update_state -a ${third_allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 7: Update third allocation to staging-out"
+
+# Clean up allocations
+${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Clean up Allocation ${allocation_id}"
+
+${CSM_PATH}/csm_allocation_delete -a ${second_allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Clean up Allocation ${second_allocation_id}"
+
+${CSM_PATH}/csm_allocation_delete -a ${third_allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Clean up Allocation ${third_allocation_id}"
+
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 4 "Section E - All allocations cleaned up"
+
+echo "Section E COMPLETED!" >> ${LOG}
 rm -f ${TEMP_LOG}
 
 echo "------------------------------------------------------------" >> ${LOG}
