@@ -29,17 +29,20 @@
 #include <stdint.h>
 
 
-CSM_Environmental_Data::CSM_Environmental_Data()
+CSM_Environmental_Data::CSM_Environmental_Data() :
+  _version(CSM_ENVIRONMENTAL_DATA_V1),
+  _archive_mask(),
+  _source_node(),
+  _timestamp(),
+  _data_list()
 {
-  _Data_Mask.reset();
-}
-  
-CSM_Environmental_Data::CSM_Environmental_Data( const CSM_Environmental_Data& in ) : 
-  _Data_Mask( in._Data_Mask ),
-  _source_node( in._source_node ),
-  _timestamp ( in._timestamp ),
-  _data_list( in._data_list )
-{
+   // For version 1, serialize these fields:
+   if (_version == CSM_ENVIRONMENTAL_DATA_V1)
+   {
+      _archive_mask.set(SOURCE_NODE_BIT);
+      _archive_mask.set(TIMESTAMP_BIT);
+      _archive_mask.set(DATA_LIST_BIT);
+   }
 }
 
 CSM_Environmental_Data::~CSM_Environmental_Data()
@@ -48,7 +51,7 @@ CSM_Environmental_Data::~CSM_Environmental_Data()
 
 void CSM_Environmental_Data::Print()
 {
-  LOG( csmenv, debug ) << " ENVDATA: BitSet:" << _Data_Mask.to_string();
+  LOG( csmenv, debug ) << " ENVDATA: BitSet:" << _archive_mask.to_string();
 }
 
 // Helper function to copy parts of one ptree to the other
@@ -413,32 +416,6 @@ void CSM_Environmental_Data::AddDataItems(const std::list<boost::property_tree::
 void CSM_Environmental_Data::AddDataItem(const boost::property_tree::ptree &data_pt)
 {
    _data_list.push_back(data_pt);
-}
-
-CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
-{
-  _Data_Mask = in._Data_Mask;
-  _source_node = in._source_node;
-  _timestamp = in._timestamp;
-  _data_list = in._data_list;
-  return *this;
-}
-
-// operator to only update the items that are present in the input
-CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmental_Data& in )
-{
-  _Data_Mask |= in._Data_Mask;
-  
-  if( !in._source_node.empty() )
-    _source_node = in._source_node;
-  
-  if( !in._timestamp.empty() )
-    _timestamp = in._timestamp;
-
-  if( !in._data_list.empty() )
-    _data_list = in._data_list;
-
-  return *this;
 }
 
 bool CSM_Environmental_Data::HasData() const

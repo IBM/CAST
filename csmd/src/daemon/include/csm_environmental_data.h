@@ -26,31 +26,10 @@
 class CSM_Environmental_Data
 {
 
-  typedef enum
-  {
-
-    CPU_DATA_BIT,
-    CPU_LABEL_BIT,
-
-    GPU_DOUBLE_DATA_BIT,
-    GPU_LONG_DATA_BIT,
-
-    GPU_DOUBLE_LABEL_BIT,
-    GPU_LONG_LABEL_BIT,
-
-    SSD_DATA_BIT,
-    SSD_LABEL_BIT,
-
-    MAX_DATA_BIT
-
-  } BitDefinitions;
-
 public:
 
   CSM_Environmental_Data();
   
-  CSM_Environmental_Data( const CSM_Environmental_Data& in );
-
   ~CSM_Environmental_Data();
 
   void Print();
@@ -67,11 +46,6 @@ public:
 
   void AddDataItem(const boost::property_tree::ptree &data_pt);
 
-  CSM_Environmental_Data& operator=( const CSM_Environmental_Data& in );
-
-  // operator to only update the items that are present in the input
-  CSM_Environmental_Data& operator|=( const CSM_Environmental_Data& in );
-
   bool HasData() const;
 
 private:
@@ -80,40 +54,45 @@ private:
   template <class Archive>
   void serialize(Archive &archive, const unsigned int version)
   {
-     // serialize the bitset as a sting
-     std::string dmString = _Data_Mask.to_string();
-     archive & dmString;
+     archive & _version;
 
-     archive & _source_node;
-     archive & _timestamp;
-
-#ifdef REMOVED
-     // update from the string for the deserialization path
-     _Data_Mask = std::bitset<MAX_DATA_BIT>( dmString );
+     // serialize the _archive_mask as a uint32_t
+     uint32_t bitmask = _archive_mask.to_ulong();
+     archive & bitmask;
+     _archive_mask = std::bitset<MAX_ARCHIVE_BIT>(bitmask);
 
      // check and archive the content
-     if( _Data_Mask.test( GPU_DOUBLE_DATA_BIT ) )
-        archive & _GPU_Double_Data;
+     if ( _archive_mask.test(SOURCE_NODE_BIT) )
+        archive & _source_node;
 
-     if( _Data_Mask.test( GPU_LONG_DATA_BIT ) )
-        archive & _GPU_Long_Data;
+     if ( _archive_mask.test(TIMESTAMP_BIT) )
+        archive & _timestamp;
 
-     if( _Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) )
-        archive & _GPU_Double_Label_Data;
-
-     if( _Data_Mask.test( GPU_LONG_LABEL_BIT ) )
-        archive & _GPU_Long_Label_Data;
-
-     if( _Data_Mask.test( CPU_DATA_BIT ) )
-        archive & _CPU_Data;
-#endif
-
-     archive & _data_list;
+     if ( _archive_mask.test(DATA_LIST_BIT) )
+        archive & _data_list;
   }
 
- private:
+private:
+  
+  // Used for controlling serialization and compatibility between daemon versions 
+  enum CsmEnvironmentalDataVersion : int8_t
+  {
+    CSM_ENVIRONMENTAL_DATA_V1 = 1
+  };
+ 
+  enum ArchiveBits
+  {
+    SOURCE_NODE_BIT,
+    TIMESTAMP_BIT,
+    DATA_LIST_BIT,
+    MAX_ARCHIVE_BIT = 32
+  };
 
-  std::bitset<MAX_DATA_BIT> _Data_Mask;
+  // Private data members
+  
+  // Used for message serialization only
+  CsmEnvironmentalDataVersion _version;
+  std::bitset<MAX_ARCHIVE_BIT> _archive_mask;
 
   // Node level data common to all elements 
   std::string _source_node;
