@@ -92,7 +92,7 @@ bool CopyPtSubtree(const boost::property_tree::ptree &src_pt, boost::property_tr
   return true;
 }     
  
-std::string CSM_Environmental_Data::Get_Json_String()
+std::string CSM_Environmental_Data::GetJsonString()
 {
   std::string json("");
 
@@ -139,7 +139,7 @@ std::string CSM_Environmental_Data::Get_Json_String()
   return json;
 }
 
-void CSM_Environmental_Data::Collect_Node_Data()
+void CSM_Environmental_Data::CollectNodeData()
 {
   // Set _timestamp
   char time_stamp_buffer[80];
@@ -168,7 +168,7 @@ void CSM_Environmental_Data::Collect_Node_Data()
   }
 }
 
-bool CSM_Environmental_Data::Collect_Environmental_Data()
+bool CSM_Environmental_Data::CollectEnvironmentalData()
 {
    LOG(csmenv, debug) << "Start Collect_Environmental_Data()";
    

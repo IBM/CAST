@@ -52,7 +52,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
   auto it = list.begin();
   try {
     CSM_Environmental_Data envData;
-    envData.Collect_Node_Data();
+    envData.CollectNodeData();
 
     while ( it != list.end() )
     {
@@ -82,7 +82,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
           case csm::daemon::ENVIRONMENTAL:
           {
             LOG(csmenv, debug) << "Collecting node environmental data.";
-            envData.Collect_Environmental_Data();
+            envData.CollectEnvironmentalData();
             break;
           }
           case csm::daemon::NETWORK:

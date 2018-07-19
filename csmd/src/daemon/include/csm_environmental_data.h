@@ -55,13 +55,13 @@ public:
 
   void Print();
 
-  std::string Get_Json_String();
+  std::string GetJsonString();
 
   // Collects the common node level data and sets it in the object
-  void Collect_Node_Data();
+  void CollectNodeData();
 
   // Collects the environmental temperature and power data and sets it in the object
-  bool Collect_Environmental_Data();
+  bool CollectEnvironmentalData();
 
   void AddDataItems(const std::list<boost::property_tree::ptree> &data_pt_list);
 
