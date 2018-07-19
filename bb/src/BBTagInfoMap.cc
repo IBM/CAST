@@ -379,39 +379,51 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                 l_JobStepDirectoryAlreadyExists = true;
             }
 
+            // Create the handle directory
             LOG(bb,info) << "xbbServer: Handle " << pTagInfo.getTransferHandle() << " is not already registered.  It will be added.";
             bfs::create_directories(handle);
 
-            if (!l_JobStepDirectoryAlreadyExists)
+            // Archive a file for this handle...
+            // NOTE: We want the creation of the directory and the handle file as close together as possible.
+            //       The handle file is 'assumed' to exist if the directory exists...
+            HandleFile* l_HandleFile = 0;
+            rc = HandleFile::saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pTag, pTagInfo, pTagInfo.getTransferHandle());
+
+            if (!rc)
             {
-                // Perform a chmod to 0770 for the jobstepid directory.
-                // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
+                if (!l_JobStepDirectoryAlreadyExists)
+                {
+                    // Perform a chmod to 0770 for the jobstepid directory.
+
+                     // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
+                    //        contained in this tree is controlled there.
+                    rc = chmod(jobstepid.c_str(), 0770);
+                    if (rc)
+                    {
+                        stringstream errorText;
+                        errorText << "chmod failed";
+                        bberror << err("error.path", jobstepid.c_str());
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                    }
+                }
+
+                // Unconditionally perform a chmod to 0770 for the handle directory.
+                // NOTE:  This is done for completeness, as all access is via the grandparent directory (jobid) and access to the files
                 //        contained in this tree is controlled there.
-                rc = chmod(jobstepid.c_str(), 0770);
+                rc = chmod(handle.c_str(), 0770);
                 if (rc)
                 {
                     stringstream errorText;
                     errorText << "chmod failed";
-                    bberror << err("error.path", jobstepid.c_str());
+                    bberror << err("error.path", handle.c_str());
                     LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                 }
             }
-
-            // Unconditionally perform a chmod to 0770 for the handle directory.
-            // NOTE:  This is done for completeness, as all access is via the grandparent directory (jobid) and access to the files
-            //        contained in this tree is controlled there.
-            rc = chmod(handle.c_str(), 0770);
-            if (rc)
+            else
             {
-                stringstream errorText;
-                errorText << "chmod failed";
-                bberror << err("error.path", handle.c_str());
-                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                // Back out the creation of the handle directory
+                bfs::remove(handle);
             }
-
-            // Archive a file for this handle...
-            HandleFile* l_HandleFile = 0;
-            rc = HandleFile::saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pTag, pTagInfo, pTagInfo.getTransferHandle());
         }
         else
         {
