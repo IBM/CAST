@@ -28,12 +28,12 @@ model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
 # desired ATS is disabled
-desired_ats=0
+desired_ats=1
 if [ $# -gt 0 ]; then 
    case $1 in  
-      0)  
+      0) desired_ats=$1
       ;;
-      1) desired_ats=$1
+      1) 
       ;;
       *) echo "Invalid value for ATS. Posible values are: 0, 1"
          echo "$me test FAIL, rc=1"
