@@ -854,7 +854,7 @@ csm::daemon::ConnectionHandling_compute::PrimaryDown()
   // if this was the last redundant connection, shut down the dependent listeners too
   if( _RunModeRef->Get() == csm::daemon::RUN_MODE::DISCONNECTED )
   {
-    CSMLOG( csmd, info ) << "All aggregator connections own. Removing dependent listeners.";
+    CSMLOG( csmd, info ) << "All aggregator connections down. Removing dependent listeners.";
     rc = TakeDependentDown( 2 ); // don't attempt to shut down secondary connection
   }
   else
