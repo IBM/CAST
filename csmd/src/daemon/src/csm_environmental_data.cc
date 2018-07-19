@@ -51,7 +51,8 @@ CSM_Environmental_Data::~CSM_Environmental_Data()
 
 void CSM_Environmental_Data::Print()
 {
-  LOG( csmenv, debug ) << " ENVDATA: BitSet:" << _archive_mask.to_string();
+   LOG(csmenv, debug) << "ENVDATA: version: " << _version << " archive_mask: " << _archive_mask.to_string();
+   LOG(csmenv, debug) << GetJsonString(); 
 }
 
 // Helper function to copy parts of one ptree to the other
@@ -137,7 +138,7 @@ std::string CSM_Environmental_Data::GetJsonString()
     }
   }
  
-  //LOG( csmenv, debug ) << json;
+  //LOG(csmenv, debug) << json;
  
   return json;
 }
@@ -167,13 +168,13 @@ void CSM_Environmental_Data::CollectNodeData()
   }
   catch (csm::daemon::Exception &e)
   {
-    LOG(csmd, error) << "Caught exception when trying GetHostname()";
+    LOG(csmenv, error) << "Caught exception when trying GetHostname()";
   }
 }
 
 bool CSM_Environmental_Data::CollectEnvironmentalData()
 {
-   LOG(csmenv, debug) << "Start Collect_Environmental_Data()";
+   LOG(csmenv, debug) << "Start CollectEnvironmentalData()";
    
    const std::list<std::string> node_sensors =
    {
@@ -403,7 +404,7 @@ bool CSM_Environmental_Data::CollectEnvironmentalData()
       }
    }
 
-   LOG(csmenv, debug) << "Finish Collect_Environmental_Data()";
+   LOG(csmenv, debug) << "Finish CollectEnvironmentalData()";
 
    return success;
 }
