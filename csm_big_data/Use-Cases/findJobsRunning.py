@@ -78,6 +78,9 @@ def main(args):
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
 
+    tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
+    print(tr_data["data.allocation_id"])
+
 
 
 if __name__ == "__main__":
