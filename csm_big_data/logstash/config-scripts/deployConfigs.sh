@@ -51,8 +51,8 @@ fi
 service logstash stop >/dev/null 2>&1
 
 # Copy the configuration to the local configuration.
-cp -r "${RPM_SRC}config/" "${LOGSTASH_TARGET}conf.d"
-cp -r "${RPM_SRC}patterns/" "${LOGSTASH_TARGET}patterns"
+cp -r ${RPM_SRC}config/* "${LOGSTASH_TARGET}conf.d"
+cp -r ${RPM_SRC}patterns/* "${LOGSTASH_TARGET}patterns"
 chown -R logstash:logstash ${LOGSTASH_TARGET}
 
 echoe "Installing csm-event-correlator"

@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    csm_big_data/data-aggregators/CMakeLists.txt
+#    csm_big_data/config-scripts/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,15 +13,13 @@
 #
 #================================================================================
 
-set(SUBDIR data-aggregators)
+set(SUBDIR config-scripts)
 set(CONFDIR data-aggregators/config)
 
 
 # Files that should be executable when shipped
 file(GLOB INSTALL_PROGRAMS
-    "gpfs/zimonCollector.py"
-    "ufm/ufmCollection.py"
-    "ufm/ufmConfig.sh"
+    "modifyConfig.py"
 )
 
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})

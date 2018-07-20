@@ -1,8 +1,8 @@
 #================================================================================
 #
-#    csm_big_data/data-aggregators/CMakeLists.txt
+#    csm_big_data/beats/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -13,17 +13,17 @@
 #
 #================================================================================
 
-set(SUBDIR data-aggregators)
-set(CONFDIR data-aggregators/config)
+set(SUBDIR beats)
+set(CONFDIR beats/config)
 
-
-# Files that should be executable when shipped
 file(GLOB INSTALL_PROGRAMS
-    "gpfs/zimonCollector.py"
-    "ufm/ufmCollection.py"
-    "ufm/ufmConfig.sh"
+    "config-scripts/deployConfigs.sh"
+    "config-scripts/removeConfigs.sh"
 )
-
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
 
+file(GLOB CONFIG
+    "config/filebeat.yml"
+)
+install(FILES ${CONFIG} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${CONFDIR})
 

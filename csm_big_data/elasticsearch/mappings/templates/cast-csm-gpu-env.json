@@ -1,0 +1,37 @@
+{
+    "index_patterns" : ["cast-csm-gpu-env*"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    }, 
+    "aliases" : {
+        "cast-csm-gpu-env" : {}
+    },
+    "mappings": {
+        "_doc" : {
+            "properties" : {
+                "@version"   : { "type" : "text" },
+                "@timestamp" : { "type" : "date" },
+                "timestamp " : { "type" : "date" },
+                "tags"       : { "type" : "text" },
+                "type"       : { "type" : "text" } ,
+                "source"     : { "type" : "text" },
+                "data": {
+		            "type" : "nested",
+                    "properties" : {
+                        "gpu_id"           : {"type": "long"},
+                        "gpu_mem_temp"     : {"type": "long"},
+                        "gpu_mem_temp_max" : {"type": "long"},
+                        "gpu_mem_temp_min" : {"type": "long"},
+                        "gpu_temp"         : {"type": "long"},
+                        "gpu_temp_max"     : {"type": "long"},
+                        "gpu_temp_min"     : {"type": "long"}
+                    }
+                }
+            }
+        }
+    }
+}
