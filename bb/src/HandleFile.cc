@@ -669,39 +669,58 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
         }
         break;
 
+        case LOCK_HANDLEFILE_WITH_TEST_FIRST:
+        {
+            rc = testForLock(l_ArchivePath);
+            while (rc == 1)
+            {
+                usleep((useconds_t)1000000);    // Delay 1 second
+                rc = testForLock(l_ArchivePath);
+            }
+            if (!rc)
+            {
+                fd = lock(l_ArchivePath);
+            }
+        }
+        break;
+
         default:
             break;
     }
 
-    if (pLockOption == DO_NOT_LOCK_HANDLEFILE || pLockOption == TEST_FOR_HANDLEFILE_LOCK || (pLockOption == LOCK_HANDLEFILE && fd >= 0))
+    if (!rc)
     {
-        rc = loadHandleFile(pHandleFile, l_ArchivePathWithName);
-        if (!rc)
+        if (pLockOption == DO_NOT_LOCK_HANDLEFILE || pLockOption == TEST_FOR_HANDLEFILE_LOCK ||
+            (pLockOption == LOCK_HANDLEFILE && fd >= 0) || (pLockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST && fd >= 0))
         {
-            pHandleFileName = l_ArchivePathWithName;
-            switch (pLockOption)
+            rc = loadHandleFile(pHandleFile, l_ArchivePathWithName);
+            if (!rc)
             {
-                case LOCK_HANDLEFILE:
+                pHandleFileName = l_ArchivePathWithName;
+                switch (pLockOption)
                 {
-                    pHandleFile->lockfd = fd;
-                }
-                break;
-
-                default:
+                    case LOCK_HANDLEFILE:
+                    {
+                        pHandleFile->lockfd = fd;
+                    }
                     break;
+
+                    default:
+                        break;
+                }
+            }
+            else
+            {
+                delete[] l_ArchivePathWithName;
+                l_ArchivePathWithName = 0;
             }
         }
         else
         {
             delete[] l_ArchivePathWithName;
             l_ArchivePathWithName = 0;
+            rc = -1;
         }
-    }
-    else
-    {
-        delete[] l_ArchivePathWithName;
-        l_ArchivePathWithName = 0;
-        rc = -1;
     }
 
     if (rc && fd >= 0)
@@ -896,7 +915,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     return rc;
 }
 
-void HandleFile::testForLock(const char* pFilePath)
+int HandleFile::testForLock(const char* pFilePath)
 {
     int rc = -2;
     int fd = -1;
@@ -929,13 +948,14 @@ void HandleFile::testForLock(const char* pFilePath)
         {
             if (l_LockOptions.l_type == F_UNLCK)
             {
-                bberror << err("out.handlefilelocked", "true");
-                LOG(bb,debug) << ">>>>> Handle file " << l_LockFile << " is locked exclusive for writing";
+//                bberror << err("out.handlefilelocked", "false");
+                LOG(bb,debug) << ">>>>> Handle file " << l_LockFile << " is NOT locked exclusive for writing";
             }
             else
             {
-                bberror << err("out.handlefilelocked", "false");
-                LOG(bb,debug) << ">>>>> Handle file " << l_LockFile << " is NOT locked exclusive for writing";
+                rc = 1;
+//                bberror << err("out.handlefilelocked", "true");
+                LOG(bb,debug) << ">>>>> Handle file " << l_LockFile << " is locked exclusive for writing";
             }
         }
         break;
@@ -948,17 +968,14 @@ void HandleFile::testForLock(const char* pFilePath)
         }
         break;
 
-        case -1:
+        default:
         {
+            rc = -1;
             bberror << err("out.handlefilelocked", "Could not test");
             errorText << "Could not test for exclusive lock on handle file " << l_LockFile << ", errno=" << errno << ":" << strerror(errno);
             LOG_ERROR_TEXT_ERRNO(errorText, errno);
         }
         break;
-
-        default:
-            // Should never get here...
-            break;
     }
 
     if (fd >= 0)
@@ -967,7 +984,7 @@ void HandleFile::testForLock(const char* pFilePath)
         ::close(fd);
     }
 
-    return;
+    return rc;
 }
 
 void HandleFile::unlock(const int pFd)

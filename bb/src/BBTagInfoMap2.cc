@@ -86,7 +86,6 @@ int BBTagInfoMap2::update_xbbServerAddData(const uint64_t pJobId)
 
 int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
     int rc = 0;
-    stringstream errorText;
 
     try
     {
@@ -101,9 +100,7 @@ int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
         else
         {
             rc = -2;
-            errorText << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
-            LOG(bb,info) << errorText.str();
-            bberror << err("error.text", errorText.str()) << errloc(rc);
+            LOG(bb,info) << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
         }
     }
     catch(ExceptionBailout& e) { }
@@ -111,8 +108,13 @@ int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
     {
         // NOTE: There is a window between checking for the job above and subsequently removing
         //       the job.  This is the most likely exception...  Return -2...
+        //       Also, if a script sends a RemoveJobInfo command to each CN, it is a big race condition
+        //       as to which bbServer actually removes the job from the cross bbServer metadata and
+        //       which servers 'may' take an exception trying to concurrently remove the data.
+        //       Simply log this as an info...
         rc = -2;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG(bb,info) << "JobId " << pJobId << " was not found in the cross-bbServer metadata (via exception)";
+        // LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     return rc;

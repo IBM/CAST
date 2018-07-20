@@ -1227,7 +1227,7 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
             else
             {
                 pWrkQE->dump("debug", "Start: Current work item -> ");
-                if (dumpOnRemoveWorkItem && (l_WrkQ != HPWrkQE->getWrkQ()))
+                if (dumpOnRemoveWorkItem && (pWrkQE != HPWrkQE))
                 {
                     dump("debug", " Work Queue Mgr (Debug)", DUMP_ALWAYS);
                 }
@@ -1240,8 +1240,12 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
         // Update the last processed work queue in the manager
         setLastQueueProcessed(pWrkQE->getLVKey());
 
-        // Increment number of work items processed
-        incrementNumberOfWorkItemsProcessed();
+        // If work item is not for the HP work queue, increment number of work items processed.
+        // NOTE: We don't want to trigger the timer interval dump based solely on async requests.
+        if (pWrkQE != HPWrkQE)
+        {
+            incrementNumberOfWorkItemsProcessed();
+        }
     }
     else
     {
