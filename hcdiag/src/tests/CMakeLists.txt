@@ -87,3 +87,9 @@ add_subdirectory(rvitals)
 add_subdirectory(swhealth)
 add_subdirectory(test-simple)
 #add_subdirectory(test_2)
+
+
+file(GLOB HCDIAG_README_FILE
+  "README"
+)
+install(FILES ${HCDIAG_README_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests)
