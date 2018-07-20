@@ -67,7 +67,7 @@ def main(args):
     should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
     match_clause= '{{"match":{{"{0}":{1}}}}}'
     tr_query = should_query.format(
-    	match_clause.format("@timestamp", args.timestamp))
+    	match_clause.format("timestamp", args.timestamp))
 
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
