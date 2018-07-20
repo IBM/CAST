@@ -25,7 +25,8 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 
 fi
 
-# NOTE: the binary for this test is distributed as samples.
+# NOTE: we distribute only the source code of the gpu-health test,
+#       under /opt/ibm/csm/hcdiag/samples/gpu-health.
 #       Binary is expected to be in this directory. 
 #       Otherwise, update the binary location below.
 thisdir=`dirname $0`
@@ -82,7 +83,6 @@ if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi
 if ([ "$ngpus" -ne "4" ] && [ "$ngpus" -ne "6" ]) ; then echo -e "Unsupported number of gpus: $ngpus\n. $me test FAIL, rc=1"; exit 1; fi 
 
 export OMP_NUM_THREADS=1
-#export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
 n=${#eyecatcher[@]}
 err=0
 
