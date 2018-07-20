@@ -67,7 +67,7 @@ void help() {
 	puts("    -r, --raw_data      | \"errcode=42 This node attempted to compute the answer to the ultimate question of life, the universe, and everything.\"  | (STRING) The raw data for this RAS event.");
 	puts("                        |                              | Default Value: NULL empty/blank string");
 	puts("    -t, --time_stamp    | \"1999-01-15 12:34:56.123456\" | (STRING) A time stamp to use with this RAS event.");
-	puts("                        |                              | Default Value: The current time of the database, ie: 'now'");
+	puts("                        |                              | Default Value: The current time of the backend master node. ");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -152,23 +152,6 @@ int main(int argc, char *argv[])
                 USAGE();
 				return CSMERR_INVALID_PARAM;
         }
-    }
-	
-	//ToDo: Remove this. Use database 'now' on back end if no field supplied?
-    if (time_stamp == NULL) 
-    {
-        time_stamp = strdup("now");
-        /*
-        time_t rawtime;
-        struct tm *info;
-
-        time( &rawtime );
-
-        info = localtime( &rawtime );
-
-        strftime(ftime,80,"%Y-%m-%dT%H:%M:%S %z", info);
-        time_stamp = strdup(ftime);// If this is not duped it becomes hard to free.
-        */
     }
 	
 	/*Handle command line args*/
