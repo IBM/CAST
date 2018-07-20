@@ -87,7 +87,6 @@ int BBTagInfoMap2::update_xbbServerAddData(const uint64_t pJobId)
 int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
     int rc = 0;
 
-    // NOTE: Any failures during the removal of a job are NOT reflected in bberror
     try
     {
         bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));

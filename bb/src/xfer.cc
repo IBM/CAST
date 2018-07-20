@@ -351,7 +351,10 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         {
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
             //       bbServer that is marking the handle/contribid file as 'stopped'
-            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+            // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
+            //       not generate RAS messages indicating that we are blocked waiting on the handle file lock.
+            //       When stopping the transfer definition, processing may have to hold the lock for an extended period.
+            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE_WITH_TEST_FIRST);
             if (!rc)
             {
                 rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);

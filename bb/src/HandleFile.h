@@ -117,7 +117,7 @@ public:
     static int processTransferHandleForJobStep(vector<uint64_t>& pHandles, const char* pDataStoreName, const BBSTATUS pMatchStatus);
     static int saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pTag, BBTagInfo& pTagInfo, const uint64_t pHandle);
     static int saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
-    static void testForLock(const char* pFile);
+    static int testForLock(const char* pFile);
     static void unlock(const int pFd);
     static int update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
