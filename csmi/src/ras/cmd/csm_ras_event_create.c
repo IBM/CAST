@@ -67,7 +67,7 @@ void help() {
 	puts("    -r, --raw_data      | \"errcode=42 This node attempted to compute the answer to the ultimate question of life, the universe, and everything.\"  | (STRING) The raw data for this RAS event.");
 	puts("                        |                              | Default Value: NULL empty/blank string");
 	puts("    -t, --time_stamp    | \"1999-01-15 12:34:56.123456\" | (STRING) A time stamp to use with this RAS event.");
-	puts("                        |                              | Default Value: The current time of the backend master node. ");
+	puts("                        |                              | Default Value: The current time of the backend master daemon/management node. ");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
