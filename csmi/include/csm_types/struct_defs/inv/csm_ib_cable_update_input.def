@@ -53,10 +53,10 @@ CSMI_VERSION_START(CSM_VERSION_0_4_1)
 CSMI_STRUCT_MEMBER(uint32_t, serial_numbers_count, BASIC    ,                     ,    0, ) /**< Number of serial numbers to update, size of @ref serial_numbers.*/
 CSMI_STRUCT_MEMBER(char**  , serial_numbers      , ARRAY_STR, serial_numbers_count, NULL, ) /**< List of ib cable serial numbers to update, size defined by @ref serial_numbers_count.*/
 CSMI_STRUCT_MEMBER(char*   , comment             , STRING   ,                     , NULL, ) /**< Comment can be generated for this field. */
-CSMI_STRUCT_MEMBER(char*   , guid_s1             , STRING   ,                     , NULL, ) /**< guid: side 1 of the cable. */
-CSMI_STRUCT_MEMBER(char*   , guid_s2             , STRING   ,                     , NULL, ) /**< guid: side 2 of the cable. */
-CSMI_STRUCT_MEMBER(char*   , port_s1             , STRING   ,                     , NULL, ) /**< port: side 1 of the cable. */
-CSMI_STRUCT_MEMBER(char*   , port_s2             , STRING   ,                     , NULL, ) /**< port: side 2 of the cable. */
+CSMI_STRUCT_MEMBER(char*   , guid_s1             , STRING   ,                     , NULL, ) /**< guid: side 1 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
+CSMI_STRUCT_MEMBER(char*   , guid_s2             , STRING   ,                     , NULL, ) /**< guid: side 2 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
+CSMI_STRUCT_MEMBER(char*   , port_s1             , STRING   ,                     , NULL, ) /**< port: side 1 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
+CSMI_STRUCT_MEMBER(char*   , port_s2             , STRING   ,                     , NULL, ) /**< port: side 2 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
 
 CSMI_VERSION_END(09612ca7b40f710bc696cef501f7a336)
 #undef CSMI_VERSION_START

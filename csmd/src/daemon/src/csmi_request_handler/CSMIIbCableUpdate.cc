@@ -54,10 +54,6 @@ bool CSMIIbCableUpdate::CreatePayload(
 	std::string stmt = "WITH updated AS ( UPDATE csm_ib_cable SET ";
     
     add_param_sql( stmt, input->comment[0], ++SQLparameterCount, "comment=$",   "::text,")
-    add_param_sql( stmt, input->guid_s1[0], ++SQLparameterCount, "guid_s1=$",   "::text,")
-    add_param_sql( stmt, input->guid_s2[0], ++SQLparameterCount, "guid_s2=$",   "::text,")
-    add_param_sql( stmt, input->port_s1[0], ++SQLparameterCount, "port_s1=$",   "::text,")
-    add_param_sql( stmt, input->port_s2[0], ++SQLparameterCount, "port_s2=$",   "::text,")
     
     // Verify the payload.
     if ( SQLparameterCount >  0 )
@@ -87,10 +83,6 @@ bool CSMIIbCableUpdate::CreatePayload(
 	
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount);
 	if(input->comment[0] != '\0'){ dbReq->AddTextParam(input->comment);}
-	if(input->guid_s1[0] != '\0'){ dbReq->AddTextParam(input->guid_s1);}
-	if(input->guid_s2[0] != '\0'){ dbReq->AddTextParam(input->guid_s2);}
-	if(input->port_s1[0] != '\0'){ dbReq->AddTextParam(input->port_s1);}
-	if(input->port_s2[0] != '\0'){ dbReq->AddTextParam(input->port_s2);}
 	dbReq->AddTextArrayParam(input->serial_numbers, input->serial_numbers_count);
 	
 	*dbPayload = dbReq;

@@ -60,14 +60,10 @@ void help(){
 	puts("                         |                 | ");
 	puts("  OPTIONAL:");
 	puts("    csm_ib_cable_update can have 5 optional arguments and requires at least 1");
-	puts("    Argument      | Example value     | Description  ");                                                 
-	puts("    --------------|-------------------|--------------");
-	puts("    -c, --comment | \"my comment\"    | (STRING) Comment can be generated for this field.");
-	puts("    -g, --guid_s1 | \"dfaa9291-28e6\" | (STRING) guid: side 1 of the cable.");
-	puts("    -G, --guid_s2 | \"df565c4e-1abd\" | (STRING) guid: side 2 of the cable.");
-	puts("    -p, --port_s1 | \"port 1A\"       | (STRING) port: side 1 of the cable.");
-	puts("    -P, --port_s2 | \"port 1B\"       | (STRING) port: side 2 of the cable.");
-	puts("                  |               | ");
+	puts("    Argument      | Example value  | Description  ");                                                 
+	puts("    --------------|----------------|--------------");
+	puts("    -c, --comment | \"my comment\"   | (STRING) Comment can be generated for this field.");
+	puts("                  |                | ");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -85,10 +81,6 @@ struct option longopts[] = {
 	//api arguments
 	{"serial_numbers", required_argument, 0, 's'},
 	{"comment",        required_argument, 0, 'c'},
-	{"guid_s1",        required_argument, 0, 'g'},
-	{"guid_s2",        required_argument, 0, 'G'},
-	{"port_s1",        required_argument, 0, 'p'},
-	{"port_s2",        required_argument, 0, 'P'},
 	{0,0,0,0}
 };
 
@@ -120,7 +112,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:c:g:G:p:P:s:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:c:s:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -130,26 +122,6 @@ int main(int argc, char *argv[])
 				break;
 			case 'c':
 				input->comment = optarg && optarg[0] ? strdup(optarg): strdup(" ");
-				optionalParameterCounter++;
-				break;
-			case 'g':
-                csm_optarg_test( "-g, --guid_s1", optarg, USAGE );
-				input->guid_s1 = strdup(optarg);
-				optionalParameterCounter++;
-				break;
-			case 'G':
-                csm_optarg_test( "-G, --guid_s2", optarg, USAGE );
-				input->guid_s2 = strdup(optarg);
-				optionalParameterCounter++;
-				break;
-			case 'p':
-                csm_optarg_test( "-p, --port_s1", optarg, USAGE );
-				input->port_s1 = strdup(optarg);
-				optionalParameterCounter++;
-				break;
-			case 'P':
-                csm_optarg_test( "-P, --port_s2", optarg, USAGE );
-				input->port_s2 = strdup(optarg);
 				optionalParameterCounter++;
 				break;
 			case 's':
@@ -205,10 +177,6 @@ int main(int argc, char *argv[])
 		csmutil_logging(debug, "      serial_numbers[%i]: %s", i, input->serial_numbers[i]);
 	}
 	csmutil_logging(debug, "    comment:              %s", input->comment);
-	csmutil_logging(debug, "    guid_s1:              %s", input->guid_s1);
-	csmutil_logging(debug, "    guid_s2:              %s", input->guid_s2);
-	csmutil_logging(debug, "    port_s1:              %s", input->port_s1);
-	csmutil_logging(debug, "    port_s2:              %s", input->port_s2);
 	csmutil_logging(debug, "  value of output:        %p", output);
 	csmutil_logging(debug, "  address of output:      %p", &output);
 	
