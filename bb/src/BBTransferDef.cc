@@ -1167,8 +1167,9 @@ void BBTransferDef::removeFile(const char* pFileName)
     }
     else
     {
-        LOG(bb,error) << "Target file " << pFileName << " could not be removed as part of the cancel operation issued for handle " \
-                     << transferHandle << ", contribid " << contribid;
+        LOG(bb,warning) << "Target file " << pFileName << " could not be removed as part of the cancel operation issued for handle " \
+                        << transferHandle << ", contribid " << contribid \
+                        << ", errno " << errno << " (" << strerror(errno) << ")";
     }
 
     return;
