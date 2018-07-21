@@ -1,6 +1,6 @@
 #================================================================================
 #    
-#    csm_big_data/Logstash/patterns/mellanox_event_log/CMakeLists.txt
+#    csm_big_data/logstash/patterns/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,7 +13,7 @@
 #
 #================================================================================
 
-set(SUBDIR Logstash/patterns/)
+set(SUBDIR logstash/patterns/)
 
 file(GLOB INSTALL_FILES
     ibm_grok.conf

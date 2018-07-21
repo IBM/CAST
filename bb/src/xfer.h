@@ -54,7 +54,7 @@ typedef enum TOLERATE_ALREADY_EXISTS_OPTION TOLERATE_ALREADY_EXISTS_OPTION;
  *******************************************************************************/
 extern int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
 
-extern int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
+extern int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption);
 
 extern int changeServer(const std::string& pConnectionName, const LVKey* pLVKey);
 

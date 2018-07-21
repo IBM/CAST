@@ -325,7 +325,8 @@ class BBTransferDef
     void dumpExtents(const char* pSev, const char* pPrefix=0) const;
     void dump(const char* pSev, const char* pPrefix=0);
 #if BBSERVER
-    Extent* getAnyExtent(const uint32_t pSourceIndex);
+    Extent* getAnySourceExtent(const uint32_t pSourceIndex);
+    Extent* getAnyTargetExtent(const uint32_t pTargetIndex);
     BBFILESTATUS getFileStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo);
 #endif
     BBSTATUS getStatus();
@@ -334,6 +335,8 @@ class BBTransferDef
 #if BBSERVER
     void markAsStopped(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
     int prepareForRestart(const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pRebuiltTransferDef, const int pPass);
+    void removeFile(const char* pFileName);
+    void removeTargetFiles(const LVKey* pLVKey);
 #endif
     int replaceExtentVector(vector<Extent>* pNewList);
     int replaceExtentVector(BBTransferDef* pTransferDef);
@@ -342,6 +345,7 @@ class BBTransferDef
 #if BBSERVER
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
+    void setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setFailed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);

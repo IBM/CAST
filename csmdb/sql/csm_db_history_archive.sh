@@ -30,6 +30,7 @@ CSM Database History Archive Usage -
 EOF
 }
 
+
 #---------------------------------------------
 # Change to the directory housing the script.
 #---------------------------------------------
@@ -45,6 +46,7 @@ TARGET_DIRECTORY="/var/log/ibm/csm/archive" # The target driectory to write the 
 NUM_ENTRIES=100                             # The number of entries to archive.
 DATABASE="csmdb"                            # The database to search for history tables to archive.
 
+
 #---------------------------------------------
 # A list of tables for processing.
 #---------------------------------------------
@@ -55,6 +57,7 @@ TABLES=( csm_allocation_history csm_allocation_node_history csm_allocation_state
     csm_lv_update_history csm_node_history csm_node_state_history csm_processor_socket_history \
     csm_ssd_history csm_ssd_wear_history csm_step_history csm_step_node_history csm_switch_history\
     csm_switch_inventory_history csm_vg_history csm_vg_ssd_history)
+
 
 #---------------------------------------------
 # The list of RAS tables.
@@ -75,6 +78,7 @@ do
             DATABASE=${OPTARG};;
     esac
 done
+
 
 #---------------------------------------------
 # Iterate over History tables.

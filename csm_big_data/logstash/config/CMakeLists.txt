@@ -13,7 +13,7 @@
 #
 #================================================================================
 
-set(SUBDIR Logstash/config)
+set(SUBDIR logstash/config)
 
 file(GLOB INSTALL_FILES
   "logstash.conf"

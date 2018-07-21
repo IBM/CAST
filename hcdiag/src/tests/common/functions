@@ -102,7 +102,7 @@ function has_disk()
 # ====================================================================================
 function supported_machine() 
 {
-   model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
+   model=$(grep model /proc/cpuinfo|awk '{print substr($3,1,8)}')
    ret=0
    if [[ "${model}" =~ [0]+  ]]; then echo "WARN: $model. Invalid machine model, continuing."; return; fi
 

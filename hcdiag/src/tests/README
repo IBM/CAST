@@ -13,31 +13,111 @@
 # 
 #=============================================================================
 
-daxpy
-   Please refer to README.daxpy in the healthcheck install dir.
 
+
+Tests that requires sudo privileges to run
+Run in Node and Management mode
+==========================================
+chk-cpu
+chk-ib-pcispeed    
+chk-mlnx-pci
+chk-mlxlink-pci
+dgemm-gpu        
+   *** does require sudo by default to set nvidia clock, as recommended by 
+   *** /opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu/README.dgemm_gpu
+   *** if LOCK_CLOCK=0, no setting will be perfomed, so no sudo is required
+fieldiag
+hxecache
+hxecpu
+hxecpu_pass2
+hxediag_eth
+hxediag_ib
+hxeewm_pass2
+hxefabricbus_pass2
+hxefpu64
+hxefpu64_pass2
+hxemem64
+hxemem64_pass2
+hxenvidia
+hxenvidia_pass2
+hxerng_pass2
+hxesctu_pass2
+hxestorage_sd
+hxestorage_sd_pass2
+hxestorage_nvme
+hxestorage_nvme_pass2
+mmhealth
+chk-memory
+chk-nvme
+compdiag
+ibcredit
+lnklwls
+lnkqual
+
+
+Tests that does NOT requires sudo privileges to run
+Run in Node and Management mode
+===================================================
+chk-aslr
+chk-cpu-count
+chk-idle-state
+chk-free-memory
+chk-gpfs-mount
+chk-gpu-ats
+chk-hca-attributes
+chk-ib-node
+chk-kworker
+chk-load-average
+chk-load-cpu
+chk-load-mem
+chk-nfs-mount
+chk-nvidia-clocks
+chk-nvidia-smi
+chk-nvlink-speed
+chk-nvidia-vbios
+chk-nvlink-speed
+chk-nvme-mount
+chk-os
+chk-power
+chk-process
+chk-smt
+chk-sw-level
+chk-sys-firmware-local
+chk-temp
+chk-zombies
+daxpy   
+   *** does not required sudo by default. If CLEANUP_OS_CACHE=1, 
+   *** then sudo is required, in order to be able to write to sysfs 
+dcgm-diag
+dcgm-diag-double
+dcgm-diag-single
+dcgm-health
 dgemm
-   Please refer to README.dggemm in the healthcheck install dir.
-
+gpfsperf
+gpu-health
+ipoib
 jlink
-   Please refer to README.jlink in the healthcheck install dir.
+nvvs
+p2pBandwidthLatencyTest
+swhealth
+test-simple
 
-dcgm-diag: nvidia dcgm based diag test
-   It requires an argument, that is the level of the diagnostic. Valid values are:
-   1 - Quick System Validation (~ seconds)  
-   2 - Extended System Validation (~ 2 minutes)  
-   3 - System HW Diagnostics ( ~ 15 minutes)       
 
-test_simple
-   A very simple hello test, one file.
-   If the test is not in a shared filesystem, the Framework should execute 
-   without copying the file to remote node(s)
-             xdsh -e
 
-test_2
-   A very simple test, but requires 2 files and an argument.
-   If the test is not in a shared filesystem, the Framework will copy both 
-   files to the remote node(s) and execute.
-   The argument N is the input to the test_2.sh, a test that counts from 1 
-   to N. If N is set to a higher number, the timeout should be adjusted.
-
+The following tests run ONLY in Management mode
+User has to be able to run xcat commands
+===================================================
+chk-boot-time
+chk-csm-health
+chk-led
+chk-noping          
+    *** this requires sudo
+chk-sys-firmware
+    *** same functionality as chk-sys-fimware-local
+gpudirect
+hcatest
+ibverbs
+nsdperf
+ppping
+rpower
+rvitals

@@ -1,0 +1,24 @@
+filebeat.prospectors:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/ibm/csm/csm_transaction.log
+  tags: ["transaction"]
+
+- type: log 
+  enabled: true
+  paths:
+    - "/var/log/ibm/csm/archive/*.json"
+  tags: ["archive"]
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+name: "master"
+
+setup.kibana:
+  host: _KIBANA_HOST_PORT_
+
+output.logstash:
+  hosts: [ _LOGSTASH_IP_PORT_LIST_ ]

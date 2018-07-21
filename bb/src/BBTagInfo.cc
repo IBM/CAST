@@ -453,7 +453,7 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
                         LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo::prepareForRestart: Attempting to restart a transfer definition for jobid " << pJob.getJobId() \
                                      << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
                                      << ". Waiting for the handle to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
-                                     << " seconds remain before the original bbServer is declared dead.";
+                                     << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
                     }
                     unlockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
                     {

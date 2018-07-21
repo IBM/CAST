@@ -64,6 +64,19 @@ hostfile=/tmp/host.list$$
 trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
 
 
+## first, we need to lock the  clock  
+## please read /opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu/README.dgemm_gpu
+
+LOCK_CLOCK=1
+if [ $# -gt 0 ]; then 
+  if ( [ "$1" -ne "0" ] && [ "$1" -ne "1" ]); then echo -e "Invalid argument: $1\n$me test FAIL, rc=$1"; exit 1; fi 
+  LOCK_CLOCK=$1
+fi
+
+if [ "$LOCK_CLOCK" -eq "1" ]; then
+   echo "Issuing 'sudo /usr/bin/nvidia-smi -ac 877,1342'"
+   sudo /usr/bin/nvidia-smi -ac 877,1342 
+fi
 
 # It is the dgemm_gpu version that comes with spectrum mpi
 #------------------------------------------------------      
@@ -109,6 +122,11 @@ eval $cmd
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
+
+if [ "$LOCK_CLOCK" -eq "1" ]; then
+   echo "Issuing 'sudo /usr/bin/nvidia-smi -rac'"
+   sudo /usr/bin/nvidia-smi -rac
+fi
 
 
 echo -e "\n================================================================"

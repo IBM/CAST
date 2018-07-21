@@ -38,6 +38,8 @@ class Extent;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
+const int DO_NOT_REMOVE_TARGET_PFS_FILES = 0;
+const int REMOVE_TARGET_PFS_FILES = 1;
 
 /*******************************************************************************
  | Classes
@@ -74,7 +76,7 @@ class BBTagInfo2
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
     int allContribsReported(const uint64_t pHandle, const BBTagID& pTagId);
     int allExtentsTransferred(const BBTagID& pTagId);
-    void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId);
+    void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption=DO_NOT_REMOVE_TARGET_PFS_FILES);
     void changeServer();
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
@@ -90,7 +92,7 @@ class BBTagInfo2
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
-    void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle);
+    void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId);
     void updateAllContribsReported(const LVKey* pLVKey);
@@ -203,6 +205,10 @@ class BBTagInfo2
 
     inline void removeExtent(const Extent* pExtent) {
         return extentInfo.removeExtent(pExtent);
+    }
+
+    inline void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId) {
+        tagInfoMap.removeTargetFiles(pLVKey, pHandle, pContribId);
     }
 
     inline void resetMinTrimAnchorExtent() {
