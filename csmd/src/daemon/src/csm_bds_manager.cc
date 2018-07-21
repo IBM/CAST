@@ -69,7 +69,7 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
       }
       else
       {
-        CSMLOG( csmd, info ) << "Error sending to BDS: " << content;
+        CSMLOG( csmd, warning ) << "Failed sending to BDS: " << content.substr(0, 50 ) << ( content.length() > 49 ? "..." : "" );
       }
     }
   }
