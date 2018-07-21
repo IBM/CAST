@@ -12,11 +12,31 @@
 #     restricted by GSA ADP Schedule Contract with IBM Corp.
 ###########################################################
 
-#$bbtmpdir = "/tmp";
-@pwentry   = getpwnam($ENV{"USER"});
-@pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
-$bbtmpdir  = $pwentry[7] . "/.bbtmp";
-$bbenvfile = $bbtmpdir . "/env." . $ENV{LSB_SUB_JOB_ID};
+use JSON;
+
+sub getBBENVDir
+{
+    my $bbenvdir = "/tmp";
+    eval
+    {
+        $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
+	    $json = decode_json($jsondata);
+        $bbenvdir = $json->{"bb"}{"envdir"};
+    };
+    
+    if($bbenvdir eq "")
+    {
+        my @pwentry   = getpwuid($<);
+        @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
+        $bbenvdir  = @pwentry[7] . "/.bbtmp";
+    }
+    return $bbenvdir;
+}
+
+sub getBBENVName
+{    
+    return &getBBENVDir() . "/env." . $ENV{"LSB_SUB_JOB_ID"};
+}
 
 sub bbfail
 {
@@ -27,7 +47,8 @@ sub bbfail
 
 sub openBBENV
 {
-    open(BBENV, ">". $bbenvfile) || bbfail "Unable to open BB_ENVFILE file.  $!";
+    my $bbenvfile = &getBBENVName();
+    open(BBENV, ">". $bbenvfile) || bbfail "Unable to open BB_ENVFILE file ($bbenvfile).  $!";
     
     my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
 	$atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat $bbenvfile.  $!";
@@ -37,10 +58,9 @@ sub openBBENV
     }
 }
 
-
-if(!-d $bbtmpdir)
+if(!-d &getBBENVDir())
 {
-    mkdir($bbtmpdir, 0700);
+    mkdir(&getBBENVDir(), 0700);
 }
 
 open(TMP, $ENV{LSB_SUB_PARM_FILE});

@@ -16,6 +16,7 @@ boost*
 .config
 SETUP.sh
 work
+.vscode
 
 #robot files
 log.html
