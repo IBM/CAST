@@ -1918,7 +1918,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                             // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
                                             //       not generate RAS messages indicating that we are blocked waiting on the handle file lock.
                                             //       When stopping the transfer definition, processing may have to hold the lock for an extended period.
-                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE_WITH_TEST_FIRST);
+                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE);
                                             if (!rc)
                                             {
                                                 l_HandleFileLocked = true;
