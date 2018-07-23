@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:         run ./csm_db_script.sh <----- to create the csm_db with triggers
---   version:       4.3.86
+--   version:       4.3.87
 --   create:        06-22-2016
---   last modified: 06-14-2018
+--   last modified: 07-18-2018
 --   change log:
+--     4.3.87 - fn_csm_ib_cable_inventory_collection. fix defect. duplicated port info. 
 --     4.3.86 - Added fields to fn_csm_step_begin and fn_csm_step_end, fn_csm_allocation_node_sharing_status for diagnostics
 --     4.3.85 - Added fields to fn_csm_allocation_history_dump, fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     4.3.84 - fn_csm_allocation_node_sharing_status - Improved the node sharing test to account for failed allocation transitions.
@@ -3756,7 +3757,7 @@ BEGIN
         ELSE
             INSERT INTO csm_ib_cable
             (serial_number     , discovery_time, collection_time, comment     ,  guid_s1     , guid_s2     , identifier     , length     , name     , part_number     , port_s1     , port_s2     , revision     , severity     , type     , width     ) VALUES
-            (i_serial_number[i], now()         , now()          , i_comment[i],  i_guid_s1[i], i_guid_s2[i], i_identifier[i], i_length[i], i_name[i], i_part_number[i], i_port_s2[i], i_port_s2[i], i_revision[i], i_severity[i], i_type[i], i_width[i]);
+            (i_serial_number[i], now()         , now()          , i_comment[i],  i_guid_s1[i], i_guid_s2[i], i_identifier[i], i_length[i], i_name[i], i_part_number[i], i_port_s1[i], i_port_s2[i], i_revision[i], i_severity[i], i_type[i], i_width[i]);
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;

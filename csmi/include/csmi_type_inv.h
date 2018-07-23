@@ -547,7 +547,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t serial_numbers_count; /**< Number of serial numbers to update, size of @ref serial_numbers.*/
     char** serial_numbers; /**< List of ib cable serial numbers to update, size defined by @ref serial_numbers_count.*/
-    char* comment; /**< Comment can be generated for this field. */
+    char* comment; /**< Comment can be generated for this field. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
     char* guid_s1; /**< guid: side 1 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
     char* guid_s2; /**< guid: side 2 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
     char* port_s1; /**< port: side 1 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
@@ -644,11 +644,11 @@ typedef struct {
     uint32_t node_names_count; /**< The number of nodes to update, size of @ref node_names. */
     csmi_node_state_t state; /**< State of the node, see @ref csmi_node_state_t for details. */
     csm_bool ready; /**< Deprecated after CSM_VERSION_0_4_1. Query the 'ready' field in the database. API will ignore @ref CSM_UNDEF_BOOL for this field.  Valid values: 0,1,2. API checks for invalid values and fails if invalid values are passed. Database description: Is the node ready for workload manager? ('y' or 'n') */
-    char* comment; /**< Update the 'comment' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Comment field for system administrators.*/
-    char* feature_1; /**< Update the 'feature_1' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
-    char* feature_2; /**< Update the 'feature_2' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
-    char* feature_3; /**< Update the 'feature_3' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
-    char* feature_4; /**< Update the 'feature_4' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use */
+    char* comment; /**< Update the 'comment' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Comment field for system administrators. Can be reset to NULL in CSM DB via \"#CSM_NULL\".*/
+    char* feature_1; /**< Update the 'feature_1' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
+    char* feature_2; /**< Update the 'feature_2' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
+    char* feature_3; /**< Update the 'feature_3' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
+    char* feature_4; /**< Update the 'feature_4' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Reserved field for future use. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
     char* physical_frame_location; /**< Update the 'physical_frame_location' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Physical frame number where the node is located */
     char* physical_u_location; /**< Update the 'physical_u_location' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Database description: Physical u location (position in the frame) where the node is located */
     char** node_names; /**< Identifies which nodes will be updated. Must contain at least one node_name. If left NULL, then API will exit early. Size defined by @ref node_names_count. */
@@ -734,7 +734,7 @@ typedef struct {
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t switch_names_count; /**< Number of switch records to update, size of @ref switch_names. */
-    char* comment; /**< System administrator comment field for this switch. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database.*/
+    char* comment; /**< System administrator comment field for this switch. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Can be reset to NULL in CSM DB via \"#CSM_NULL\".*/
     char* physical_frame_location; /**< the frame where the switch is located. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. */
     char* physical_u_location; /**< the u number in the frame where the switch is located. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. */
     char* state; /**< Deprecated after CSM_VERSION_0_4_1. Update the 'state' field in the database. API will ignore NULL values for this field. if this field is left as NULL, then the API will keep the current value that is in the database. Valid Values: (active, error, missing, soft failure, service )*/

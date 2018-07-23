@@ -20,6 +20,8 @@
 #ifndef __CSMI_NODE_ATTRIBUTES_UPDATE_H__
 #define __CSMI_NODE_ATTRIBUTES_UPDATE_H__
 
+/*CORAL includes*/
+#include "utilities/include/string_tools.h"
 #include "csmi_stateful_db.h"
 
 class CSMINodeAttributesUpdate : public CSMIStatefulDB {
