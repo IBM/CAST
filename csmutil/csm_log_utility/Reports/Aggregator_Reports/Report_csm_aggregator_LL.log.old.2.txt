@@ -1,6 +1,0 @@
-+++++++++++++++++++++++++++++++++++++++++++++++++++Aggregator Log++++++++++++++++++++++++++++++++++++++++++++++++++
-------------------------------------Logs/Aggregator/csm_aggregator_LL.log.old.2------------------------------------
-Api Function                                       Frequency   Mean      Median    Min       Max       Std     
-
-Total Calls:  0
-Total Errors: 0

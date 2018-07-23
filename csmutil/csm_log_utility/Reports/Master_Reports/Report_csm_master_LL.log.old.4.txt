@@ -1,6 +1,0 @@
-+++++++++++++++++++++++++++++++++++++++++++++++++++++Master Log++++++++++++++++++++++++++++++++++++++++++++++++++++
-----------------------------------------Logs/Master/csm_master_LL.log.old.4----------------------------------------
-Api Function                                       Frequency   Mean      Median    Min       Max       Std     
-
-Total Calls:  0
-Total Errors: 0

@@ -1,9 +1,0 @@
-++++++++++++++++++++++++++++++++++++++++++++++++++++Compute Log++++++++++++++++++++++++++++++++++++++++++++++++++++
---------------------------------------------Logs/Compute/csm_compute.log-------------------------------------------
-Api Function                                       Frequency   Mean      Median    Min       Max       Std     
-
-csm_allocation_create                                     135  0.034418  0.034265  0.033516  0.040191  0.000754
-csm_allocation_delete                                     135  0.033960  0.033664  0.032932  0.061317  0.002474
-csm_allocation_update_state                                 2  0.066175  0.066175  0.040102  0.092249  0.026073
-Total Calls:  272
-Total Errors: 0
