@@ -46,7 +46,7 @@ void help(){
 	puts("  csm_switch_attributes_update ARGUMENTS [OPTIONS]");
 	puts("  csm_switch_attributes_update -s switch_names [-c comment] [-f physical_frame_location] [-u physical_u_location] [-h] [-v verbose_level]");
 	puts("");
-	puts("SUMMARY: Used to query the 'csm_switch_history' table of the CSM database.");
+	puts("SUMMARY: Used to update the 'csm_switch' table of the CSM database.");
 	puts("");
 	puts("EXIT STATUS:");
 	puts("  0  if OK,");

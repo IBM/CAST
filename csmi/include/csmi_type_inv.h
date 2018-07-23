@@ -548,10 +548,10 @@ typedef struct {
     uint32_t serial_numbers_count; /**< Number of serial numbers to update, size of @ref serial_numbers.*/
     char** serial_numbers; /**< List of ib cable serial numbers to update, size defined by @ref serial_numbers_count.*/
     char* comment; /**< Comment can be generated for this field. Can be reset to NULL in CSM DB via \"#CSM_NULL\". */
-    char* guid_s1; /**< guid: side 1 of the cable. */
-    char* guid_s2; /**< guid: side 2 of the cable. */
-    char* port_s1; /**< port: side 1 of the cable. */
-    char* port_s2; /**< port: side 2 of the cable. */
+    char* guid_s1; /**< guid: side 1 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
+    char* guid_s2; /**< guid: side 2 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
+    char* port_s1; /**< port: side 1 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
+    char* port_s2; /**< port: side 2 of the cable. - Deprecated as of CSM_VERSION_1_2_0 */
 } csm_ib_cable_update_input_t;
 /**
  * @brief A wrapper for the output of @ref csm_ib_cable_update.

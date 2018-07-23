@@ -94,12 +94,6 @@ bool CSMIIbCableUpdate::CreatePayload(
 		}
 	}
     
-	
-    add_param_sql( stmt, input->guid_s1[0], ++SQLparameterCount, "guid_s1=$",   "::text,")
-    add_param_sql( stmt, input->guid_s2[0], ++SQLparameterCount, "guid_s2=$",   "::text,")
-    add_param_sql( stmt, input->port_s1[0], ++SQLparameterCount, "port_s1=$",   "::text,")
-    add_param_sql( stmt, input->port_s2[0], ++SQLparameterCount, "port_s2=$",   "::text,")
-    
 	if(SQLparameterCount > 0)
 	{
 		atLeastOneParameter = true;
@@ -140,10 +134,6 @@ bool CSMIIbCableUpdate::CreatePayload(
 			dbReq->AddTextParam(input->comment);
 		}
 	}
-	if(input->guid_s1[0] != '\0'){ dbReq->AddTextParam(input->guid_s1);}
-	if(input->guid_s2[0] != '\0'){ dbReq->AddTextParam(input->guid_s2);}
-	if(input->port_s1[0] != '\0'){ dbReq->AddTextParam(input->port_s1);}
-	if(input->port_s2[0] != '\0'){ dbReq->AddTextParam(input->port_s2);}
 	dbReq->AddTextArrayParam(input->serial_numbers, input->serial_numbers_count);
 	
 	*dbPayload = dbReq;
