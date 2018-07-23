@@ -89,7 +89,7 @@ int64_t ReadSensor(struct occ_sensor_data_header *hb, uint32_t offset, int attr)
     }
 }
 
-unsigned long read_counter(struct occ_sensor_data_header *hb, uint32_t offset)
+int64_t read_counter(struct occ_sensor_data_header *hb, uint32_t offset)
 {
     struct occ_sensor_counter *sping, *spong;
     struct occ_sensor_counter *sensor = NULL;
@@ -254,14 +254,13 @@ void SeekExtendedSensors(const char *buffer, const std::unordered_map<std::strin
         uint32_t offset = be32toh(sensorNames[i].reading_offset);
         uint32_t freq = be32toh(sensorNames[i].freq); 
 
-        // Only full sensors are currently supported
-        if (sensorNames[i].structure_type == OCC_SENSOR_READING_FULL)
-        {
-            // Read the sensor if it was found in the value map.
-            freq = TO_FP(freq);
+        // Read the sensor if it was found in the value map.
+        freq = TO_FP(freq);
 
-            auto searchResult = inMap.find(sensorNames[i].name);
-            if ( searchResult != inMap.end() )
+        auto searchResult = inMap.find(sensorNames[i].name);
+        if ( searchResult != inMap.end() )
+        {
+            if (sensorNames[i].structure_type == OCC_SENSOR_READING_FULL)
             {
                 // Adjust the accumulator value based on the frequency, but guard against division by zero 
                 int64_t accumulator = ReadSensor(dataHeader, offset, SENSOR_ACCUMULATOR);
@@ -282,6 +281,19 @@ void SeekExtendedSensors(const char *buffer, const std::unordered_map<std::strin
                         ReadSensor(dataHeader, offset, SENSOR_CSM_MIN),
                         ReadSensor(dataHeader, offset, SENSOR_CSM_MAX),
                         accumulator
+                    }
+                });
+            }
+            else if (sensorNames[i].structure_type == OCC_SENSOR_READING_COUNTER)
+            {
+                outMap.insert
+                ({ 
+                    searchResult->first,
+                    { 
+                        0, 
+                        0,
+                        0,
+                        read_counter(dataHeader, offset)
                     }
                 });
             }
