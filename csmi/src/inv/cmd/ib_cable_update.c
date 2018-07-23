@@ -62,7 +62,7 @@ void help(){
 	puts("    csm_ib_cable_update can have 1 optional arguments and requires at least 1");
 	puts("    Argument      | Example value  | Description  ");                                                 
 	puts("    --------------|----------------|--------------");
-	puts("    -c, --comment | \"my comment\"   | (STRING) Comment can be generated for this field.");
+	puts("    -c, --comment | \"my comment\"   | (STRING) Comment can be generated for this field. Can be reset to NULL in CSM DB via \"#CSM_NULL\".");
 	puts("                  |                | ");
 	puts("");
 	puts("GENERAL OPTIONS:");
