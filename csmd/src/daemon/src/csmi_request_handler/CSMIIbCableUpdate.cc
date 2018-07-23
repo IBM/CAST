@@ -94,8 +94,6 @@ bool CSMIIbCableUpdate::CreatePayload(
 		}
 	}
     
-    add_param_sql( stmt, input->comment[0], ++SQLparameterCount, "comment=$",   "::text,")
-    
 	if(SQLparameterCount > 0)
 	{
 		atLeastOneParameter = true;
