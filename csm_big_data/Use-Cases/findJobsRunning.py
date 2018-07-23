@@ -29,13 +29,6 @@ def main(args):
 	# Specify the arguments.
     parser = argparse.ArgumentParser(
         description='''A tool for finding keywords during the run time of a job.''')
-    
-    # parser.add_argument( '-a', '--allocationid', metavar='int', dest='allocation_id', default=-1,
-    #     help='The allocation ID of the job.')
-    # parser.add_argument( '-j', '--jobid', metavar='int', dest='job_id', default=-1,
-    #     help='The job ID of the job.')
-    # parser.add_argument( '-s', '--jobidsecondary', metavar='int', dest='job_id_secondary', default=0,
-    #     help='The secondary job ID of the job (default : 0).')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
     # Need to check if this is valid
