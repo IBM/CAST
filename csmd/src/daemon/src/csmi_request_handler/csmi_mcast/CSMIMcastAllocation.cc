@@ -182,6 +182,8 @@ bool ParseResponseDelete(
                     allocation->energy[hostIdx]     = allocPayload->energy;
                     allocation->cpu_usage[hostIdx]  = allocPayload->cpu_usage;
                     allocation->memory_max[hostIdx] = allocPayload->memory_max;
+                    allocation->power_cap_hit[hostIdx]  = allocPayload->pc_hit;
+                    allocation->gpu_energy[hostIdx]     = allocPayload->gpu_energy;
                 }
             }
 

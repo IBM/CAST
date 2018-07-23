@@ -205,20 +205,62 @@ bool GetGPFSUsage(int64_t &gpfs_read, int64_t &gpfs_write)
 bool GetOCCAccounting(int64_t &energy, int64_t &power_cap_hit, int64_t &gpu_energy)
 {
     // Generate the value map for the query.
-    std::unordered_map<std::string, int64_t> valueMap = {
-        {"PROCPWRTHROT", 0},
-        {"PWRSYS"      , 0},
-        {"PWRGPU"      , 0}
+    std::unordered_map<std::string, csm::daemon::helper::CsmOCCSensorRecord> requested_keys =
+    {
+        {"PROCPWRTHROT", {0,0,0,0}},
+        {"PWRSYS"      , {0,0,0,0}},
+        {"PWRGPU"      , {0,0,0,0}}
     };
-    
+  
+    energy = 0;
+    power_cap_hit = 0;
+    gpu_energy = 0;
+ 
     // Query and check for success.
-    bool success = GetOCCSensorData( valueMap );
+    std::vector<std::unordered_map<std::string, csm::daemon::helper::CsmOCCSensorRecord>> current_values;
 
-    // Extract values.
-    power_cap_hit = valueMap["PROCPWRTHROT"];
-    energy        = valueMap["PWRSYS"];
-    gpu_energy    = valueMap["PWRGPU"];
+    bool success = csm::daemon::helper::GetExtendedOCCSensorData(requested_keys, current_values);
+    if ( success )
+    {
+        // Iterate through data returned for each processor chip and each requested field
+        for ( uint32_t chip = 0; chip < current_values.size(); chip++ )
+        {
+            for ( auto key_itr = requested_keys.begin(); key_itr != requested_keys.end(); key_itr++ )
+            {
+                auto value_itr = current_values[chip].find(key_itr->first);
+                if ( value_itr != current_values[chip].end() )
+                {
+                    LOG(csmapi, trace) << "GetOCCAccounting read " << key_itr->first << " = " << value_itr->second.accumulator << " for chip " << chip;
+                    
+                    if (key_itr->first == "PWRSYS")
+                    {
+                        energy += value_itr->second.accumulator;
+                    }
+                    else if (key_itr->first == "PWRGPU")
+                    {
+                        gpu_energy += value_itr->second.accumulator;
+                    }
+                    else if (key_itr->first == "PROCPWRTHROT")
+                    {
+                        power_cap_hit += value_itr->second.accumulator;
+                    }
+                } 
+                else
+                {
+                    // System level fields like PWRSYS are only returned for chip 0
+                    if ( ( chip == 0 && key_itr->first == "PWRSYS" ) ||
+                         key_itr->first != "PWRSYS" )
+                    {
+                        LOG(csmapi, warning) << " Unable to read OCC field: " << key_itr->first << " for chip " << chip;
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
 
+    LOG(csmapi, trace) << "GetOCCAccounting energy = " << energy << ", power_cap_hit = " << power_cap_hit << ", gpu_energy = " << gpu_energy;
+    
     return success;
 }
 
