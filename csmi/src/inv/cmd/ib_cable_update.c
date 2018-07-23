@@ -2,7 +2,7 @@
 
     csmi/src/inv/cmd/ib_cable_update.c
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -62,7 +62,7 @@ void help(){
 	puts("    csm_ib_cable_update can have 5 optional arguments and requires at least 1");
 	puts("    Argument      | Example value     | Description  ");                                                 
 	puts("    --------------|-------------------|--------------");
-	puts("    -c, --comment | \"my comment\"    | (STRING) Comment can be generated for this field.");
+	puts("    -c, --comment | \"my comment\"    | (STRING) Comment can be generated for this field. Can be reset to NULL in CSM DB via \"#CSM_NULL\".");
 	puts("    -g, --guid_s1 | \"dfaa9291-28e6\" | (STRING) guid: side 1 of the cable.");
 	puts("    -G, --guid_s2 | \"df565c4e-1abd\" | (STRING) guid: side 2 of the cable.");
 	puts("    -p, --port_s1 | \"port 1A\"       | (STRING) port: side 1 of the cable.");
