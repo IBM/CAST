@@ -2,8 +2,8 @@ cmake_minimum_required (VERSION 3.2.0)
 project (ibm)
 
 set(BUILDID_RELEASE    1)
-set(BUILDID_CUMULFIXID 1)
-set(BUILDID_EFIXID     2)
+set(BUILDID_CUMULFIXID 2)
+set(BUILDID_EFIXID     0)
 
 execute_process(
   COMMAND git rev-list --count HEAD
@@ -179,6 +179,7 @@ endforeach(LVL)
 
 # csmd RPM packaging customization
 include (csmd/setupRPM.cmake)
+include (csm_big_data/setupRPM.cmake)
 
 include (scripts/setupDoxygen.cmake)
 include (scripts/setupTargets.cmake)

@@ -169,6 +169,10 @@ public:
         RETURN_FLAG(BBTD_All_Extents_Transferred);
     }
 
+    inline int canceled() {
+        RETURN_FLAG(BBTD_Canceled);
+    }
+
     inline int extentsAreEnqueued() {
         RETURN_FLAG(BBTD_Extents_Enqueued);
     }
@@ -336,7 +340,8 @@ public:
 
     inline int notRestartable()
     {
-        return allExtentsTransferred() && allFilesClosed() && (!anyFilesFailed());
+        // Not restartable if finished normally or canceled
+        return ((allExtentsTransferred() && allFilesClosed() && (!anyFilesFailed())) || (canceled() && (!stopped())));
     }
 
     int copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const string& pTransferKeys);

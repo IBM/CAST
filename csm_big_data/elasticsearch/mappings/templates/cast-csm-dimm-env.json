@@ -1,0 +1,34 @@
+{
+    "index_patterns" : ["cast-csm-dimm-env*"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    }, 
+    "aliases" : {
+        "cast-csm-dimm-env" : {}
+    },
+    "mappings": {
+        "_doc" : {
+            "properties" : {
+                "@version"   : { "type" : "text" },
+                "@timestamp" : { "type" : "date" },
+                "timestamp " : { "type" : "date" },
+                "tags"       : { "type" : "text" },
+                "type"       : { "type" : "text" } ,
+                "source"     : { "type" : "text" },
+                "data": {
+                    "type" : "nested",
+                    "properties" : {
+                        "dimm_id"      : {"type": "long"},
+                        "dimm_temp"    : {"type": "long"},
+                        "dimm_temp_min": {"type": "long"},
+                        "dimm_temp_max": {"type": "long"}
+                    }
+                }
+            }
+        }
+    }
+}

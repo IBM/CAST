@@ -94,6 +94,80 @@ CSMIAllocationStepBegin::CSMIAllocationStepBegin( csm::daemon::HandlerOptions& o
             FINAL));                        // Final State
 }
 
+bool CSMIAllocationStepBegin::RetrieveDataForPrivateCheck(   
+    const std::string& arguments,
+    const uint32_t len,
+    csm::db::DBReqContent **dbPayload,
+    csm::daemon::EventContextHandlerState_sptr ctx )
+{
+    LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
+    
+    // Unpack the buffer.
+    csmi_allocation_step_t* input = nullptr;
+    
+    if( csm_deserialize_struct(csmi_allocation_step_t, &input, arguments.c_str(), len) == 0 )
+    {
+        const int paramCount = 1;
+        std::string paramStmt = "SELECT user_id "
+                "FROM csm_allocation "
+                "WHERE allocation_id= $1::bigint";
+
+        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( paramStmt, paramCount );
+        dbReq->AddNumericParam<int64_t>(input->allocation_id);
+        
+        *dbPayload = dbReq;
+        csm_free_struct_ptr(csmi_allocation_step_t, input);
+    }
+    else
+    {
+        LOG( csmapi, error ) << STATE_NAME ":RetrieveDataForPrivateCheck: Deserialization failed";
+        LOG( csmapi, trace  ) << STATE_NAME ":RetrieveDataForPrivateCheck: Exit";
+
+        ctx->SetErrorCode( CSMERR_MSG_UNPACK_ERROR);
+        ctx->SetErrorMessage("Unable to build the private check query, "
+            "struct could not be deserialized");
+        return false;
+    }
+
+    return true;
+}        
+
+bool CSMIAllocationStepBegin::CompareDataForPrivateCheck(
+        const std::vector<csm::db::DBTuple *>& tuples,
+        const csm::network::Message &msg,
+        csm::daemon::EventContextHandlerState_sptr ctx)
+{
+    LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
+    bool success = false;
+
+    if ( tuples.size() == 1 )
+    {
+        uint32_t userID = strtoul(tuples[0]->data[0], nullptr, 10);
+        success = (userID == msg.GetUserID());
+
+        // If the success failed report it.
+        if (success)
+        {
+            ctx->SetErrorMessage("");
+        }
+        else
+        {
+            std::string error = "Allocation is owned by user id ";
+            error.append(std::to_string(userID)).append(", user id ");
+            error.append(std::to_string(msg.GetUserID())).append(" does not have permission to delete;");
+            ctx->AppendErrorMessage(error);
+        }
+    }
+    else
+    {
+        ctx->SetErrorCode(CSMERR_DB_ERROR);
+        ctx->AppendErrorMessage("Database check failed for user id " + std::to_string(msg.GetUserID()    ) + ";" );
+    }
+
+    LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Exit";
+    return success;
+}
+
 bool CSMIAllocationStepBegin::CreatePayload(
         const std::string& arguments,
         const uint32_t len,

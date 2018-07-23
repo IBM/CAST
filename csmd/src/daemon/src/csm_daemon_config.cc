@@ -210,7 +210,8 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
   SetTweaks();
 
   // set up potential BDS access
-  SetBDS_Info();
+  if( _Role == CSM_DAEMON_ROLE_AGGREGATOR )
+    SetBDS_Info();
 
   // set up the jitter configuration
   ConfigureDaemonTimers();
@@ -851,17 +852,29 @@ void Configuration::CreateThreadPool()
   
   csm::network::Address_sptr Configuration::AddConnectionDefinitionComputeClient( const int i_PrioA, const int i_PrioB )
   {
-    if(( GetValueInConfig("csm.net.aggregatorA.host").empty() ) || GetValueInConfig("csm.net.aggregatorB.host").empty())
+    std::string aggA_host = GetValueInConfig("csm.net.aggregatorA.host");
+    if( HostNameValidate( aggA_host ) != HOST_CONFIG_VALID )
     {
-      CSMLOG( csmd, error ) << "Config file has incomplete aggregator configuration.";
-      throw csm::daemon::Exception("Incomplete aggregator configuration. csm.net.aggregator<A|B>.host missing.");
+      CSMLOG( csmd, error ) << "Config file has incomplete aggregatorA configuration (" << aggA_host << ")";
+      throw csm::daemon::Exception("Incomplete aggregator configuration. csm.net.aggregatorA.host missing or invalid.");
     }
 
     bool singleAggMode = false;
-    if( GetValueInConfig("csm.net.aggregatorB.host") == std::string( "__AGGREGATOR_B__" ) )
+    std::string aggB_host = GetValueInConfig("csm.net.aggregatorB.host");
+    switch( HostNameValidate( aggB_host ) )
     {
-      LOG( csmd, warning ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
-      singleAggMode = true;
+      case HOST_CONFIG_NONE:
+        LOG( csmd, info ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
+        singleAggMode = true;
+        break;
+      case HOST_CONFIG_INVALID:
+        LOG( csmd, warning ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
+        singleAggMode = true;
+        break;
+      case HOST_CONFIG_VALID:
+      default:
+        break;
+
     }
 
     csm::network::SSLFilesCollection files;
@@ -1056,7 +1069,7 @@ void Configuration::CreateThreadPool()
   }
   
   void
-  csm::daemon::Configuration::SetTweaks()
+  Configuration::SetTweaks()
   {
     bool enabled = false;
     std::string uint_val = GetValueInConfig( std::string("csm.tuning.netmgr_poll_loops") );
@@ -1086,10 +1099,25 @@ void Configuration::CreateThreadPool()
       LOG( csmd, info ) << "CSMD Tuning enabled: " << _Tweaks;
   }
 
+  HostNameConfigState_t
+  Configuration::HostNameValidate( std::string host_val )
+  {
+    if(( host_val.empty() ) || ( host_val.compare( CONFIGURATION_HOSTNAME_NONE ) == 0 ))
+      return HOST_CONFIG_NONE;
+
+    // todo: could be improved by excluding more invalid characters
+    if(( host_val.find(' ') != std::string::npos ) ||
+        ( host_val.find('_') != std::string::npos ))
+      return HOST_CONFIG_INVALID;
+
+    return HOST_CONFIG_VALID;
+  }
+
   void
   Configuration::SetBDS_Info()
   {
     bool enabled = true;
+    bool inactive = false;
     if( _Role != CSM_DAEMON_ROLE_AGGREGATOR )
     {
       LOG( csmd, warning ) << "BDS Info/Connection from " << _Role << " is not supported.";
@@ -1097,8 +1125,17 @@ void Configuration::CreateThreadPool()
     }
 
     std::string host_val = GetValueInConfig( std::string("csm.bds.host") );
-    if( host_val.empty() )
-      enabled = false;
+    switch( HostNameValidate( host_val ) )
+    {
+      case HOST_CONFIG_VALID:
+        break;
+      case HOST_CONFIG_NONE:
+        inactive = true;
+      case HOST_CONFIG_INVALID:
+        enabled = false;
+      default:
+        break;
+    }
 
     std::string port_val = GetValueInConfig( std::string("csm.bds.port") );
     if( port_val.empty() )
@@ -1110,7 +1147,17 @@ void Configuration::CreateThreadPool()
       LOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
     }
     else
-      LOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made.";
+    {
+      if( inactive )
+      {
+        LOG( csmd, info ) << "BDS access disabled by configuration.";
+      }
+      else
+      {
+        LOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made. ("
+          << host_val << ":" << port_val << ")";
+      }
+    }
   }
 
 }  // namespace daemon

@@ -18,7 +18,6 @@
 #include "csmd/src/daemon/src/csmi_request_handler/csmi_base.h"
 #include "csmnet/src/CPP/csm_network_msg_cpp.h"
 #include "csmnet/src/CPP/address.h"
-#include "csmd/src/daemon/include/csm_environmental_data.h"
 
 #include <map>
 
@@ -48,12 +47,8 @@ private:
   
   virtual void CreateInventoryMsg( const csm::daemon::CoreEvent &aEvent );
 
-  virtual bool CreateEnvDataLabels( const csm::daemon::CoreEvent &aEvent,
-                                    csm::network::Message &oLabelMsg );
-
   int _MsgId;
 
-  CSM_Environmental_Data _Environmental_Data;
   csm::daemon::EventContext_sptr _SystemEventContext;
 
 };

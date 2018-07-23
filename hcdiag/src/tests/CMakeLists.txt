@@ -23,6 +23,7 @@ add_subdirectory(chk-gpfs-mount)
 add_subdirectory(chk-gpu-ats)
 add_subdirectory(chk-hca-attributes)
 add_subdirectory(chk-idle-state)
+add_subdirectory(chk-ib-node)
 add_subdirectory(chk-ib-pcispeed)
 add_subdirectory(chk-kworker)
 add_subdirectory(chk-led)
@@ -86,3 +87,9 @@ add_subdirectory(rvitals)
 add_subdirectory(swhealth)
 add_subdirectory(test-simple)
 #add_subdirectory(test_2)
+
+
+file(GLOB HCDIAG_README_FILE
+  "README"
+)
+install(FILES ${HCDIAG_README_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests)

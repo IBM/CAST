@@ -38,9 +38,8 @@ void CSMI_AGG_MTC_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::v
       if( reqEvent != nullptr )
       {
         csm::network::MessageAndAddress msgAddr = reqEvent->GetContent();
-        CSMLOG( mtccomp, warning ) << "Request timeout detected. cmd="
-          << csm::network::cmd_to_string( msgAddr._Msg.GetCommandType() )
-          << " msgId=" << msgAddr._Msg.GetMessageID();
+        CSMLOG( mtccomp, warning ) << "[" << msgAddr._Msg.GetReservedID() << "] "
+          << csm::network::cmd_to_string( msgAddr._Msg.GetCommandType() ) << ": Request timeout detected ";
         postEventList.push_back( CreateErrorEvent(ETIMEDOUT, "Request timeout detected.", msgAddr ));
         return;
       }
@@ -88,7 +87,9 @@ void CSMI_AGG_MTC_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::v
         postEventList.push_back( CreateNetworkEvent( inMsg, _AbstractMaster ) );
 
         const int timeout = csm_get_client_timeout( inMsg.GetCommandType() ) - 1000;
-        CSMLOG( mtccomp, debug ) << "Setting timeout to " << timeout << " milliseconds.";
+        CSMLOG( mtccomp, debug ) << "[" << inMsg.GetReservedID() << "] "
+            << csm::network::cmd_to_string( inMsg.GetCommandType() )
+            << "Setting timeout to " << timeout << " milliseconds.";
 
         postEventList.push_back( CreateTimerEvent(timeout, context, 1 ) );
         context->SetAuxiliaryId( 1 );
@@ -172,8 +173,10 @@ void CSMI_AGG_MTC_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::v
         if( responses > 0 )
         {
           const int timeout = csm_get_agg_timeout( inMsg.GetCommandType());
-          CSMLOG( mtccomp, info ) << "Expecting " << responses <<
-            " responses. Setting timeout to " << timeout << " milliseconds.";
+          CSMLOG( mtccomp, info ) << "[" << inMsg.GetReservedID() << "] "
+              << csm::network::cmd_to_string( inMsg.GetCommandType() )
+              << " Expecting " << responses
+              << " responses. Setting timeout to " << timeout << " milliseconds.";
 
           postEventList.push_back( CreateTimerEvent(timeout, context, responses-1 ) );
           context->SetAuxiliaryId( responses );

@@ -336,7 +336,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId);
+                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -364,7 +364,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         //  Cancel the transfer for the entire handle
                         string l_HostName;
                         activecontroller->gethostname(l_HostName);
-                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle);
+                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
                     }
                     else
                     {
@@ -691,7 +691,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
         switchIds(msg);
 
-        //  NOTE:  We set up to wait 30 seconds for the necessary LVKey to appear if we can't find
+        //  NOTE:  We set up to wait 2 minutes for the necessary LVKey to appear if we can't find
         //         it right away and the handle is not in the cross-bbServer metadata.
         //         This closes the window during activate server between the activation
         //         of the connection to the new server and the registering of any LVKeys
@@ -1915,6 +1915,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         {
                                             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
                                             //       bbServer that is marking the handle/contribid file as 'stopped'
+                                            // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
+                                            //       not generate RAS messages indicating that we are blocked waiting on the handle file lock.
+                                            //       When stopping the transfer definition, processing may have to hold the lock for an extended period.
                                             rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE);
                                             if (!rc)
                                             {
@@ -2024,7 +2027,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                         LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
                                                                      << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
                                                                      << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
-                                                                     << " seconds remain before the original bbServer is declared dead.";
+                                                                     << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
                                                     }
                                                     unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
                                                     {
@@ -2355,9 +2358,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             l_TransferPtr->cleanUpIOMap();
         }
 
-        if (rc < 0)
+        if (rc != 1)
         {
-            if (rc == -1)
+            if (rc != -2)
             {
                 // Mark the transfer definition and the handle failed if this is the second pass -or-
                 // we got far enough along to insert this transfer definition into the local metadata
@@ -2369,8 +2372,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         }
         else
         {
-            // Positive rc...
-            // Send rc=-2 back to bbProxy as a possible tolerated exception...
+            // Transfer definition is not to be restarted
+            // Send rc=-2 back to bbProxy as a tolerated exception...
             // NOTE:  Shouldn't be possible to have a positive rc
             //        and l_MarkFailedFromProxy still be set on at this
             //        point in the code...  @DLH
@@ -2734,6 +2737,7 @@ int bb_main(std::string who)
         }
 
         LOG(bb,always) << "Maximum number of file descriptors set to " << l_Limits.rlim_cur;
+        wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
         ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
         wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
@@ -2754,7 +2758,7 @@ int bb_main(std::string who)
         // Check for the existence of the file used to communicate high-priority async requests between instances of bbServers
         char* l_AsyncRequestFileNamePtr = 0;
         int l_SeqNbr = 0;
-        rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, FULL_MAINTENANCE);
+        rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, START_BBSERVER);
         if (l_AsyncRequestFileNamePtr)
         {
             delete [] l_AsyncRequestFileNamePtr;

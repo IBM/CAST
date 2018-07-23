@@ -464,7 +464,7 @@ csm::daemon::DaemonState::UpdateEnvironmentalData( const csm::network::Address_s
     return false;
   }
 
-  _NodeStateMap[ key ]._EnvData |= data;
+  _NodeStateMap[ key ]._EnvData = data;
 
   CSMLOG( csmd, debug ) << "UpdateEnvironmentalData: completed update " << addr->Dump();
   //_NodeStateMap[ key ]._EnvData.Print();

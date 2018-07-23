@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/bucket_item_type_definitions.h
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -17,3 +17,4 @@ bucket_item(CPU)
 bucket_item(GPU)
 bucket_item(NETWORK)
 bucket_item(DEFAULT)
+bucket_item(ENVIRONMENTAL)

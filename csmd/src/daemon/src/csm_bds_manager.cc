@@ -90,7 +90,8 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   _Thread = new boost::thread( BDSManagerMain, this );
   _IdleRetryBackOff.SetThread( _Thread );
 
-  Connect();
+  if( BDSActive() )
+    Connect();
   Unfreeze();
 
 }
@@ -102,11 +103,12 @@ csm::daemon::EventManagerBDS::Connect()
   memset( &hints, 0, sizeof( struct addrinfo ) );
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
+  int tmp_errno = 0;
 
-  if( getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist ) != 0 )
+  if( (tmp_errno = getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist )) != 0 )
   {
     CSMLOG( csmd, warning ) << "Unable to collect address info for " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort()
-        << " error: " << strerror( errno );
+        << " error: " << gai_strerror( tmp_errno );
     return false;
   }
 

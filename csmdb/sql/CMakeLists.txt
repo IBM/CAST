@@ -35,6 +35,7 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_history_archive.sh"
   "csm_db_history_delete.sh"
 )
+
 # Files that should not be executable when shipped
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME})
 

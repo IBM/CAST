@@ -17,6 +17,11 @@
 #ifndef CSMD_SRC_INV_INCLUDE_INV_DCGM_ACCESS_H_
 #define CSMD_SRC_INV_INCLUDE_INV_DCGM_ACCESS_H_
 
+#include <string>
+#include <vector>
+#include <list>
+#include <boost/property_tree/ptree.hpp>
+
 /////////////////////////////////////////////////////////////////////////////////
 ////// DCGM support is enabled
 /////////////////////////////////////////////////////////////////////////////////
@@ -25,9 +30,8 @@
 #include "dcgm_agent.h"
 #include "dcgm_fields.h"
 #include "dcgm_structs.h"
+
 #include <dlfcn.h>
-#include <string>
-#include <vector>
 
 using std::string;
 using std::vector;
@@ -132,6 +136,13 @@ public:
    */
   bool ReadAllocationFields();
 
+  /**
+   * Read the GPU metrics that are included in the GPU data collection bucket and add them to the gpu_data_pt_list object.
+   *
+   * @return true if successful, false if unsuccessful. 
+   */
+  bool CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list);
+
 private:
   INV_DCGM_ACCESS();
   //static int objectCount;
@@ -152,7 +163,13 @@ private:
   bool CreateCsmFieldGroup(const uint32_t field_count, uint16_t fields[], char* field_group_name, dcgmFieldGrp_t* field_group_handle);
 
   bool DeleteCsmFieldGroup();
-
+  
+  /**
+   * Attempt to read the field names for all fields in a field group. 
+   *
+   * @return true if successful, false if unsuccessful. 
+   */
+  bool ReadFieldNames(const uint32_t field_count, uint16_t fields[], std::vector<std::string> &field_names);
 
 private:
 
@@ -216,6 +233,9 @@ private:
   // DCGM GPU Field Group Fields
   static uint16_t CSM_ALLOCATION_FIELDS[];
   static const uint32_t CSM_ALLOCATION_FIELD_COUNT; 
+ 
+  static uint16_t CSM_ENVIRONMENTAL_FIELDS[];
+  static const uint32_t CSM_ENVIRONMENTAL_FIELD_COUNT; 
 
   // DCGM Handles, persisted across multiple calls to DCGM
   dcgmGpuGrp_t gpugrp; // handle to the group of gpus
@@ -223,6 +243,11 @@ private:
   dcgmFieldGrp_t double_fields_grp;                    // handle to the double group of fields
   dcgmFieldGrp_t int64_fields_grp;                     // handle to the int64 group of fields
   dcgmFieldGrp_t csm_allocation_field_group_handle;    // handle to the CSM_ALLOCATION_FIELD_GROUP
+  dcgmFieldGrp_t csm_environmental_field_group_handle; // handle to the CSM_ENVIRONMENTAL_FIELD_GROUP
+ 
+  // Names of the fields associated with the field groups 
+  std::vector<std::string> csm_allocation_field_names; 
+  std::vector<std::string> csm_environmental_field_names; 
 
   // other variables
   long long updateFreq; // update frequency in us for the DCGM fields
@@ -259,9 +284,6 @@ private:
 
 #ifndef DCGM
 
-#include <vector>
-#include <string>
-
 namespace csm {
 namespace daemon {
 
@@ -282,6 +304,9 @@ public:
   void Get_Double_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_double_dcgm_field_strings ); // transfer the double dcgm field string identifiers to the input vector
   void Get_Long_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_int64_dcgm_fields ); // transfer the i64 dcgm field string identifiers to the input vector
   ~INV_DCGM_ACCESS();
+  
+  bool ReadAllocationFields();
+  bool CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list);
 
 private:
   INV_DCGM_ACCESS();

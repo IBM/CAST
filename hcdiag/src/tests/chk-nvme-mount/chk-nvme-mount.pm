@@ -57,7 +57,7 @@ my $node = `hostname -s`;
 $node =~ s/\R//g;
 
 my $tempdir = tempdir( CLEANUP => 1 );
-my $cmd = "sudo df -h $mountPoint 2>$tempdir/stderr | sed 1d  | sort";
+my $cmd = "df -h $mountPoint 2>$tempdir/stderr | sed 1d  | sort";
 if ($verbose) {print "command: $cmd\n";}
 
 my $rval = `$cmd`;

@@ -2,7 +2,7 @@
 #
 #    csmd/csmd.cmake
 #
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,9 +15,11 @@
 set(CSMD_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/csmd/include
   ${CMAKE_SOURCE_DIR}/csmd/src/daemon
+  ${CMAKE_SOURCE_DIR}/csmd/src/daemon/include
   ${CMAKE_SOURCE_DIR}/csmd/src/db
   ${CMAKE_SOURCE_DIR}/csmd/src/ras
   ${CMAKE_SOURCE_DIR}/csmd/src/inv/include
+  ${CMAKE_SOURCE_DIR}/csmd/src/daemon/src/csmi_request_handler/helpers
 )
 
 
