@@ -43,9 +43,9 @@ void help(){
 	puts("_____CSM_IB_CABLE_UPDATE_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_ib_cable_update ARGUMENTS [OPTIONS]");
-	puts("  csm_ib_cable_update [-c comment] [-g guid_s1] [-G guid_s2] [-p port_s1] [-P port_s2] [-s serial_numbers] [-h] [-v verbose_level]");
+	puts("  csm_ib_cable_update [-c comment] [-s serial_numbers] [-h] [-v verbose_level]");
 	puts("");
-	puts("SUMMARY: Used to query the 'csm_switch_history' table of the CSM database.");
+	puts("SUMMARY: Used to update the 'csm_ib_cable' table of the CSM database.");
 	puts("");
 	puts("EXIT STATUS:");
 	puts("  0  if OK,");
@@ -59,7 +59,7 @@ void help(){
 	puts("    -s, --serial_numbers | \"abc123,xyz789\" | (STRING) This is a csv field of valid serial numbers. Identifies which ib cables will be updated.");
 	puts("                         |                 | ");
 	puts("  OPTIONAL:");
-	puts("    csm_ib_cable_update can have 5 optional arguments and requires at least 1");
+	puts("    csm_ib_cable_update can have 1 optional arguments and requires at least 1");
 	puts("    Argument      | Example value  | Description  ");                                                 
 	puts("    --------------|----------------|--------------");
 	puts("    -c, --comment | \"my comment\"   | (STRING) Comment can be generated for this field.");
