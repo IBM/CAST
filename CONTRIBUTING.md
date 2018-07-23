@@ -49,8 +49,8 @@ The following are the minimum recommended levels of software for a build machine
    To find more options for building, run `build help`
 
 
-* The default install directory is CAST/work
-* The default build directory is CAST/.build 
+* The default install directory is `CAST/work`
+* The default build directory is `CAST/.build`
 
 # How to contribute to the project
 
