@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:         run ./csm_db_script.sh <----- to create the csm_db with triggers
---   version:       4.3.87
+--   version:       4.3.88
 --   create:        06-22-2016
---   last modified: 07-18-2018
+--   last modified: 07-24-2018
 --   change log:
+--     4.3.88 - fn_csm_db_chema_version_history_dump. fix defect on UPDATE trigger. 
 --     4.3.87 - fn_csm_ib_cable_inventory_collection. fix defect. duplicated port info. 
 --     4.3.86 - Added fields to fn_csm_step_begin and fn_csm_step_end, fn_csm_allocation_node_sharing_status for diagnostics
 --     4.3.85 - Added fields to fn_csm_allocation_history_dump, fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
@@ -4786,9 +4787,9 @@ CREATE FUNCTION fn_csm_db_schema_version_history_dump()
             comment)
         VALUES(
             now(),
-            NEW.version,
-            NEW.create_time,
-            NEW.comment);
+            OLD.version,
+            OLD.create_time,
+            OLD.comment);
         RETURN NEW;
     END IF;
 -- RETURN NULL;
