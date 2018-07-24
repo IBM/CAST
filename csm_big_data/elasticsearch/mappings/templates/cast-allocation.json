@@ -1,0 +1,32 @@
+{
+    "index_patterns" : ["cast-allocation"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 5,
+            "number_of_replicas" : 1
+        }
+    }, 
+    "mappings": {
+        "_doc" : {
+            "properties" :
+            {
+                "data": {
+		            "type" : "nested",
+                    "properties" : {
+                        "begin_time" : { "type" : "date" },
+                        "job_submit_time": { "type" : "date" },
+                        "running-start-timestamp" : { "type" : "date" },
+                        "history" : {
+                            "type" : "nested",
+                            "properties" : {
+                                "end_time" : { "type" : "date" },
+                                "running-end-timestamp" : { "type" : "date" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
