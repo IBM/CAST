@@ -66,19 +66,23 @@ def main(args):
     
     # Time from milliseconds to date format
     tm_stmp = datetime.fromtimestamp(int(args.timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_before - datetime.fromtimestamp((int(args.timestamp)-86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_before = datetime.fromtimestamp((int(args.timestamp)-86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
     day_after = datetime.fromtimestamp((int(args.timestamp)+86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
     print("Timestamp: " + tm_stmp)   
     print("Day Before: " + day_before)
     print("Day After: " + day_after)
 
-    time_query = '{{"query": {{"range" : {{"begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}'.format(day_before, day_after)
+    db = str(int(args.timestamp)-86400000)
+    da = str(int(args.timestamp)+86400000)
+
+    time_query = '{{"query": {{"range" : {{"data": {{ "begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}}}'.format(db,da)
     print(time_query)
     
 #    Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
-        body=tr_query
+        #body=tr_query
+        body=time_query
     )
     total_hits = tr_res["hits"]["total"]
 
