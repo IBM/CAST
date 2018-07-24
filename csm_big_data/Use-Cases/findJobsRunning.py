@@ -65,9 +65,17 @@ def main(args):
     print(tr_query)
     
     # Time from milliseconds to date format
-    print("Timestamp: " + datetime.fromtimestamp(int(args.timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))   
-    print("Day Before: " + datetime.fromtimestamp((int(args.timestamp)-86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))
-# Execute the query on the cast-allocation index.
+    tm_stmp = datetime.fromtimestamp(int(args.timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_before - datetime.fromtimestamp((int(args.timestamp)-86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_after = datetime.fromtimestamp((int(args.timestamp)+86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    print("Timestamp: " + tm_stmp)   
+    print("Day Before: " + day_before)
+    print("Day After: " + day_after)
+
+    time_query = '{{"query": {{"range" : {{"begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}'.format(day_before, day_after)
+    print(time_query)
+    
+#    Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
         body=tr_query
