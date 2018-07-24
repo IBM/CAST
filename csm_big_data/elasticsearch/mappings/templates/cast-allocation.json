@@ -14,14 +14,13 @@
                 "data": {
 		            "type" : "nested",
                     "properties" : {
-                        "begin_time" : { "type" : "date" },
-                        "job_submit_time": { "type" : "date" },
-                        "running-start-timestamp" : { "type" : "date" },
+                        "begin_time" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
+                        "running-start-timestamp" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
                         "history" : {
                             "type" : "nested",
                             "properties" : {
-                                "end_time" : { "type" : "date" },
-                                "running-end-timestamp" : { "type" : "date" }
+                                "end_time" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
+                                "running-end-timestamp" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" }
                             }
                         }
                     }
