@@ -59,6 +59,7 @@ def main(args):
     # Build the query to get jobs with timestamp.
     should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
     match_clause= '{{"match":{{"{0}":"{1}"}}}}'
+    filter_clause = '{{"filter":{{ "range": {{ "data": {{ "begin_time": {{ "gte" : "{0}","lte" : "{1}"}}}}}}}}}}'
     tr_query = should_query.format(
     	match_clause.format("@timestamp", args.timestamp))
     
@@ -75,9 +76,10 @@ def main(args):
     db = str(int(args.timestamp)-86400000)
     da = str(int(args.timestamp)+86400000)
 
-    time_query = '{{"query": {{"range" : {{"data": {{ "begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}}}'.format(db,da)
+    #time_query = '{{"query": {{"range" : {{"data": {{ "begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}}}'.format(db,da)
+
+    time_query = should_query.format(filter_clause.format(day_before, day_after))
     print(time_query)
-    
 #    Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
