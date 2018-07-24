@@ -84,7 +84,15 @@ def main(args):
     tr_res = es.search(
         index="cast-allocation",
         #body=tr_query
-        body=time_query
+        body={
+          'query': { 
+            'bool': { 
+              'must': [
+                { 'range': { 'data': {'begin_time:' { 'gte': day_before, 'lte': day_after }}}}
+              ]
+            }
+          }
+        }
     )
     total_hits = tr_res["hits"]["total"]
 
