@@ -271,7 +271,7 @@ fi
     #===============================
     # Checks the current connections
     #===============================
-    connections_count=`psql -t -U $csmdb_user -c "select count(*) from pg_stat_activity WHERE datname='$dbname';"`
+    connections_count=`psql -t -U $db_username -c "select count(*) from pg_stat_activity WHERE datname='$dbname';"`
     #--------------------------------------------------------------------------------------------------------------
     if [ $connections_count -gt 0 ]; then
         LogMsg "[Error   ] $dbname will not be dropped because of existing connection(s) to the database."
