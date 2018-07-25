@@ -85,20 +85,23 @@ def main(args):
         index="cast-allocation",
         #body=tr_query
         #body=time_query
-		body={
-			'query':{
-				'match_all' :{}
-			}
-		}
-        #body={
-        #  'query': { 
-            #'range' : {
-			#	'data.begin_time': {
-			#		'gte' : "2018-07-17 15:28:36",
-			#		'lte' : "2018-07-17 15:28:43",
-			#		'relation' : "within"
-			#	}
-			#}
+		
+        body={
+            'query': { 
+            'range' : {
+				'data.begin_time': {
+					'gte' : "2018-07-25 10:10:25.000000",
+					'lte' : "2018-07-25 11:25:25.000000",
+					'relation' : "within"
+				}
+			},
+            'range' : {
+                'data.history.end_time':{
+                    'gte' : "2018-07-25 10:10:25.000000",
+                    'lte' : "2018-07-25 11:25:25.000000",
+                    'relation' : "within"
+                }
+            }
 			#'range' : {
 				#'@timestamp' : {
 					#'gte' : 1531855716000,
@@ -108,56 +111,78 @@ def main(args):
 					#'relation' : "within"
 				#}
 			#}
-			#'match_all': {},
+			# 'match_all': {},
 			#'wildcard' : {'data.begin_time': '*'}
 			#'bool': { 
             #  'should': [
             #   {'match':{ 'data.begin_time': "*"}}
             #  ],
                
-			#  'filter': [
-            #   {'range':{ 'data.begin_time': {'gte': "2018-07-17 15:28:41.315178" }}}
-            # ]
+			 # 'filter': [
+    #            {'range':{ 'data.begin_time': {'gte': "2018-07-25 11:19:25.627297" }}}
+    #          ]
             #}
-          #}
-        #}
+            }
+        }
         
     )
     total_hits = tr_res["hits"]["total"]
 
-    print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
+    print("----------Got {0} Hit(s) for jobs beginning and ending between {1} and {2}----------".format(total_hits,day_before,day_after))
 
     # If ES is down, uncomment to use this method to find all jobs running
-    query_results_extraction(tr_res, day_before, day_after)
+    query_results_extraction( es, day_before, day_after)
 
     #print(tr_res["hits"]["hits"])
-    # tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
+    for data in tr_res["hits"]["hits"]:
+        tr_data = data["_source"]["data"]
+        print("allocation_id: {0}".format(tr_data["allocation_id"]) )
+        print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
+        print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
+        print("\tbegin_time: " + tr_data["begin_time"])
+        print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
 
     
 
-def query_results_extraction(tr_res, day_before, day_after):
+def query_results_extraction(es, day_before, day_after):
+
+    tr_res = es.search(
+        index="cast-allocation",
+        body={
+            'query':{
+                'match_all' :{}
+            }
+        }
+    )
 
     print ("\n----------Checking for Jobs from {0} to {1}----------".format(day_before, day_after))
     for data in tr_res["hits"]["hits"]:
         tr_data = data["_source"]["data"]
         
-        print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
+        
         # If a history is present end_time is end_time, otherwise it's now.
         start_time = datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
         if "history" in tr_data:
             end_time   = datetime.strptime(tr_data["history"]["end_time"], '%Y-%m-%d %H:%M:%S.%f')
+            print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
+            print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
+            print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
             print("\tbegin_time: "  + str(start_time))
-            print("\tend_time:   " + str(end_time))
-            if start_time > datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f') and end_time < datetime.strptime(day_after, '%Y-%m-%d %H:%M:%S.%f'):
-                print("\t\tWithin time range")
-            else:
-                print("\t\tNot within time range\n")
+            print("\tend_time:   " + str(end_time) + '\n')
+
+            # if start_time > datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f') and end_time < datetime.strptime(day_after, '%Y-%m-%d %H:%M:%S.%f'):
+            #     print("\t\tWithin time range")
+            # else:
+            #     print("\t\tNot within time range\n")
             
-        else:
-            end_time = '*'
-            print("\tbegin_time: "  + str(start_time))
-            print("\tend_time:   " + str(end_time))
-            print("\t\tNot within time range\n")
+        # else:
+        #     end_time = '*'
+        #     print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
+        #     print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
+        #      print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
+        #     print("\tbegin_time: "  + str(start_time))
+        #     print("\tend_time:   " + str(end_time))
+        #     print("\t\tNot within time range\n")
         
         
         
