@@ -133,10 +133,10 @@ def main(args):
         tr_data = data["_source"]["data"]
         
 
-        start_time='"{0}Z"'.format(tr_data["begin_time"])
+        start_time='"{0}"'.format(tr_data["begin_time"])
         # If a history is present end_time is end_time, otherwise it's now.
         if "history" in tr_data:
-            end_time='"{0}Z"'.format(tr_data["history"]["end_time"])
+            end_time='"{0}"'.format(tr_data["history"]["end_time"])
         else:
             end_time="*"
         print("begin_time: "  + start_time)
