@@ -126,10 +126,11 @@ def main(args):
     total_hits = tr_res["hits"]["total"]
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
-    print(tr_res["hits"]["hits"])
+    #print(tr_res["hits"]["hits"])
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
-    print(tr_data["begin_time"])
-    print(tr_data["history"]["end_time"])
+    #print(tr_data)
+    print("begin_time: "  + tr_data["begin_time"])
+    #print(tr_data["history"]["end_time"])
 
 
 if __name__ == "__main__":
