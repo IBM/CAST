@@ -59,7 +59,7 @@ def main(args):
     # Build the query to get jobs with timestamp.
     should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
     match_clause= '{{"match":{{"{0}":"{1}"}}}}'
-    filter_clause = '{{"filter":{{ "range": {{ "data": {{ "begin_time": {{ "gte" : "{0}","lte" : "{1}"}}}}}}}}}}'
+    filter_clause = '{{"filter":{{ "range": {{  "data.begin_time": {{ "gte" : "{0}","lte" : "{1}"}}}}}}}}'
     tr_query = should_query.format(
     	match_clause.format("@timestamp", args.timestamp))
     
@@ -84,20 +84,43 @@ def main(args):
     tr_res = es.search(
         index="cast-allocation",
         #body=tr_query
+        #body=time_query
+		
         body={
           'query': { 
-            'bool': { 
-              'must': [
-                { 'range': { 'data': {'begin_time:' { 'gte': day_before, 'lte': day_after }}}}
-              ]
-            }
+            #'range' : {
+			#	'data.begin_time': {
+			#		'gte' : "2018-07-17 15:28:36",
+			#		'lte' : "2018-07-17 15:28:43",
+			#		'relation' : "within"
+			#	}
+			#}
+			'range' : {
+				'@timestamp' : {
+					'gte' : 1531855716000,
+					'lte' : 1531855723000,
+					'relation' : "within"
+				}
+			}
+			#'match_all': {},
+			#'wildcard' : {'data.begin_time': '*'}
+			#'bool': { 
+            #  'should': [
+            #   {'match':{ 'data.begin_time': "*"}}
+            #  ],
+               
+			#  'filter': [
+            #   {'range':{ 'data.begin_time': {'gte': "2018-07-17 15:28:41.315178" }}}
+            # ]
+            #}
           }
         }
+        
     )
     total_hits = tr_res["hits"]["total"]
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
-
+    print(tr_res["hits"]["hits"])
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
     print(tr_data["begin_time"])
     print(tr_data["history"]["end_time"])
