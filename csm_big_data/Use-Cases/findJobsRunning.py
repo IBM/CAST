@@ -131,7 +131,17 @@ def main(args):
 
     for data in tr_res["hits"]["hits"]:
         tr_data = data["_source"]["data"]
-        print("begin_time: "  + tr_data["begin_time"])
+        
+
+        start_time='"{0}Z"'.format(tr_data["begin_time"])
+        # If a history is present end_time is end_time, otherwise it's now.
+        if "history" in tr_data:
+            end_time='"{0}Z"'.format(tr_data["history"]["end_time"])
+        else:
+            end_time="*"
+        print("begin_time: "  + start_time)
+        print("end_time:   " + end_time)
+
 
 
 if __name__ == "__main__":
