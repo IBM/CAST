@@ -1,5 +1,5 @@
 {
-    "index_patterns" : ["cast-allocation"],
+    "index_patterns" : ["cast-allocation-*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -9,23 +9,8 @@
     }, 
     "mappings": {
         "_doc" : {
-            "properties" :
-            {
-                "data": {
-		            "type" : "nested",
-                    "properties" : {
-                        "begin_time" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
-                        "running-start-timestamp" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
-                        "history" : {
-                            "type" : "nested",
-                            "properties" : {
-                                "end_time" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
-                                "running-end-timestamp" : { "type" : "date", "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+	    "dynamic_date_formats" : 
+		[ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"]
+	}
     }
 }
