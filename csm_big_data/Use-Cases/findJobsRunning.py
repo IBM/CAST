@@ -73,8 +73,8 @@ def main(args):
     print("Day Before: " + day_before)
     print("Day After: " + day_after)
 
-    db = str(int(args.timestamp)-86400000)
-    da = str(int(args.timestamp)+86400000)
+    db = (int(args.timestamp)-86400000)
+    da = (int(args.timestamp)+86400000)
 
     #time_query = '{{"query": {{"range" : {{"data": {{ "begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}}}'.format(db,da)
 
@@ -85,9 +85,13 @@ def main(args):
         index="cast-allocation",
         #body=tr_query
         #body=time_query
-		
-        body={
-          'query': { 
+		body={
+			'query':{
+				'match_all' :{}
+			}
+		}
+        #body={
+        #  'query': { 
             #'range' : {
 			#	'data.begin_time': {
 			#		'gte' : "2018-07-17 15:28:36",
@@ -95,13 +99,15 @@ def main(args):
 			#		'relation' : "within"
 			#	}
 			#}
-			'range' : {
-				'@timestamp' : {
-					'gte' : 1531855716000,
-					'lte' : 1531855723000,
-					'relation' : "within"
-				}
-			}
+			#'range' : {
+				#'@timestamp' : {
+					#'gte' : 1531855716000,
+					#'lte' : 1531855723000,
+					#'gte' : db,
+					#'lte' : da,
+					#'relation' : "within"
+				#}
+			#}
 			#'match_all': {},
 			#'wildcard' : {'data.begin_time': '*'}
 			#'bool': { 
@@ -113,8 +119,8 @@ def main(args):
             #   {'range':{ 'data.begin_time': {'gte': "2018-07-17 15:28:41.315178" }}}
             # ]
             #}
-          }
-        }
+          #}
+        #}
         
     )
     total_hits = tr_res["hits"]["total"]
