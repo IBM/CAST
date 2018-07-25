@@ -142,6 +142,9 @@ def main(args):
         print("begin_time: "  + start_time)
         print("end_time:   " + end_time)
 
+        if start_time > day_before:
+            print("Within time range")
+
 
 
 if __name__ == "__main__":
