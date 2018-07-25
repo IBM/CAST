@@ -126,27 +126,41 @@ def main(args):
     total_hits = tr_res["hits"]["total"]
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
+
+    # If ES is down, uncomment to use this method to find all jobs running
+    query_results_extraction(tr_res, day_before, day_after)
+
     #print(tr_res["hits"]["hits"])
     # tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
 
+    
+
+def query_results_extraction(tr_res, day_before, day_after):
+
+    print ("\n----------Checking for Jobs from {0} to {1}----------".format(day_before, day_after))
     for data in tr_res["hits"]["hits"]:
         tr_data = data["_source"]["data"]
         
-
-        start_time='"{0}"'.format(tr_data["begin_time"])
+        print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
         # If a history is present end_time is end_time, otherwise it's now.
+        start_time = datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
         if "history" in tr_data:
-            end_time='"{0}"'.format(tr_data["history"]["end_time"])
+            end_time   = datetime.strptime(tr_data["history"]["end_time"], '%Y-%m-%d %H:%M:%S.%f')
+            print("\tbegin_time: "  + str(start_time))
+            print("\tend_time:   " + str(end_time))
+            if start_time > datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f') and end_time < datetime.strptime(day_after, '%Y-%m-%d %H:%M:%S.%f'):
+                print("\t\tWithin time range")
+            else:
+                print("\t\tNot within time range\n")
+            
         else:
-            end_time="*"
-        print("begin_time: "  + start_time)
-        print("end_time:   " + end_time)
+            end_time = '*'
+            print("\tbegin_time: "  + str(start_time))
+            print("\tend_time:   " + str(end_time))
+            print("\t\tNot within time range\n")
         
-        start = datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
-        if start > datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f'):
-            print("Within time range")
-
-
+        
+        
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
