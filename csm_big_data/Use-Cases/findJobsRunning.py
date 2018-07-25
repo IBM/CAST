@@ -142,7 +142,7 @@ def main(args):
         print("begin_time: "  + start_time)
         print("end_time:   " + end_time)
         
-        start = datetime.strptime(r_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
+        start = datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
         if start > day_before:
             print("Within time range")
 
