@@ -37,18 +37,18 @@ sub output
     
     if($setupSyslog == 0)
     {
-	openlog("bbactivate", "ndelay,pid", "local0");
-	$setupSyslog = 1;
+        openlog("bbactivate", "ndelay,pid", "local0");
+        $setupSyslog = 1;
     }
     if(!defined $level)
     {
-	$level = LOG_INFO;
+        $level = LOG_INFO;
     }
     
     foreach $line (split("\n", $out))
     {
-	print "$outputprefix$line\n";
-	syslog($level, $line);
+        print "$outputprefix$line\n";
+        syslog($level, $line);
     }
 }
 
@@ -62,7 +62,7 @@ sub cmd
     alarm($timeout);
     eval
     {
-	$rc = `$cmd 2>&1`;
+        $rc = `$cmd 2>&1`;
     };
     alarm(0);
 
@@ -73,15 +73,15 @@ sub cmd
     
     if(($? != 0) || ($@ =~ /alarm timeout/i))
     {
-	if($ignoreFailure)
-	{
-	    output("Command '$cmd' had exit status $?");
-	}
-	else
-	{
-	    output("Command '$cmd' failed.  Aborting $0", LOG_ERR);
-	    exit(4);
-	}
+        if($ignoreFailure)
+        {
+            output("Command '$cmd' had exit status $?");
+        }
+        else
+        {
+            output("Command '$cmd' failed.  Aborting $0", LOG_ERR);
+            exit(4);
+        }
     }
     return $rc;
 }
@@ -123,6 +123,7 @@ getNodeName();
 if($CFG{"bbServer"})
 {
     makeServerConfigFile();
+    filterLVM();
     startServer();
 }
 else
@@ -419,4 +420,29 @@ sub isNVMeTargetOffloadCapable
     $p2p_processor_found = 1 if($proc =~ /POWER9/);
     
     return $p2p_processor_found;
+}
+
+sub filterLVM
+{
+    my $nvmelistout = cmd("nvme list");      # "nvme list -o json" doesn't work well
+
+    # Scan for "real" nvme devices, ignore NVMe over Fabrics connections that may have duplicate volume groups
+    my $adddevices = "";
+    foreach $line (split("\n", $nvmelistout))
+    {
+        my ($dev, $remainder) = $line =~ /(\S+)\s+(.*)/;
+        $adddevices .= "\"a|$dev|\", "         if(($dev =~ /\/dev/)&&($remainder !~ /Linux/));
+    }
+
+    # If admin has already modified the global_filter from default, don't undo their changes.
+    my $lvmetc = cat("/etc/lvm/lvm.conf");
+    my $search  = '# global_filter = \[ \"a\|.*\/\|\" \]';  # RHEL7 default
+    my $replace = 'global_filter = [ ' . $adddevices . '"r|/dev/nvme*n*|" ]';
+    $lvmetc =~ s/$search/$replace/oe;
+    open(TMP, ">/etc/lvm/lvm.conf");
+    print TMP $lvmetc;
+    close(TMP);
+
+    # Tell LVM to redo its volume cache incase its tainted.
+    cmd("vgscan --cache");
 }

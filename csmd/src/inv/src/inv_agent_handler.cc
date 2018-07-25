@@ -36,7 +36,6 @@ void INV_AGENT_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::vect
       do nothing but the above init
    if connectEvent:
       send inventory
-      send labels
    if networkEvent
       process as a response
    */
@@ -64,11 +63,6 @@ void INV_AGENT_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::vect
       csm::daemon::SystemContent sysContent = dynamic_cast<const csm::daemon::SystemEvent *>( &aEvent)->GetContent();
       LOG( csmd, info ) << "INV_AGENT_HANDLER: CONNECT event. Re-/sending node inventory to: " << sysContent.GetAddr()->Dump();
       postEventList.push_back( CreateNetworkEvent( GetDaemonState()->GetLocalInventory(), sysContent.GetAddr(), nullptr ) );
-
-      // create and send the labels
-      csm::network::Message LabelMsg;
-      if( CreateEnvDataLabels(aEvent, LabelMsg ) )
-        postEventList.push_back( CreateNetworkEvent( LabelMsg, sysContent.GetAddr(), nullptr ) );
     }
   }
   else if ( aEvent.GetEventType() == csm::daemon::EVENT_TYPE_NETWORK)
@@ -182,22 +176,3 @@ void INV_AGENT_HANDLER::CreateInventoryMsg( const csm::daemon::CoreEvent &aEvent
 
   LOG(csmd, trace) << "Exit " << __PRETTY_FUNCTION__; 
 }
-
-bool INV_AGENT_HANDLER::CreateEnvDataLabels( const csm::daemon::CoreEvent &aEvent,
-                                             csm::network::Message &oLabelMsg )
-{
-  if ( csm::daemon::INV_DCGM_ACCESS::GetInstance()->GetDCGMUsedFlag() )
-  {
-    _Environmental_Data.Get_GPU_Double_DCGM_Field_String_Identifiers_And_Set_Bit();
-    _Environmental_Data.Get_GPU_Long_DCGM_Field_String_Identifiers_And_Set_Bit();
-
-    LOG( csmd, debug ) << "INV_AGENT_HANDLER: Sending Labels for Environmental Data:" << CSMI_BASE::ConvertToBytes<CSM_Environmental_Data>( _Environmental_Data );
-
-    oLabelMsg.Init(CSM_environmental_data, 0, CSM_PRIORITY_DEFAULT,
-                   0, 3253, 1351, geteuid(), getegid(),
-                   std::string( CSMI_BASE::ConvertToBytes<CSM_Environmental_Data>( _Environmental_Data ) ) );
-    return true;
-  }
-  return false;
-}
-

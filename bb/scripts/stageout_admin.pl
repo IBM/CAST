@@ -104,13 +104,21 @@ sub phase3
 
 sub phase4
 {
-    $jobstatus = cmd("bjobs -o stat -noheader $::JOBID");
+    my $jobstatuscmd = $ENV{"LSF_BINDIR"} . "/bjobs -o stat -noheader $::JOBID";
+    print "Command: $jobstatuscmd\n";
+    my $jobstatus = `$jobstatuscmd`;
+    chomp($jobstatus);
+    bpost("BB: Job status=$jobstatus.  Allocation ID=" . $ENV{"CSM_ALLOCATION_ID"} . 
+        "  Stagein Status=" . $ENV{"LSF_STAGE_IN_STATUS"} . 
+        "  JobExit=" . $ENV{"LSB_JOBEXIT_STAT"} . 
+        "  Stage Status=" . $ENV{"LSF_STAGE_JOB_STATUS"});
+
     if(($jobstatus =~ /DONE/) ||
-       ($jobstatus =~ /EXIT/) ||
-       (exists $ENV{"CSM_ALLOCATION_ID"}))
+       ($jobstatus =~ /EXIT/))
     {
-	my $bbenvfile = getBBENVName();
-	unlink($bbenvfile);
+    	my $bbenvfile = getBBENVName();
+        bpost("BB: Removing envfile $bbenvfile.  Status=$jobstatus. Allocation ID=" . $ENV{"CSM_ALLOCATION_ID"});
+        unlink($bbenvfile);
     }
     
     bpost("BB: Removing logical volume $BBPATH and metadata");
@@ -126,8 +134,8 @@ sub phase4
     $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
     if($numfailed > 0)
     {
-	bpost("BB: Transfer(s) marked in BBFAILED state");
-	$exitstatus = 1;
+        bpost("BB: Transfer(s) marked in BBFAILED state");
+        $exitstatus = 1;
     }
     
     print "Removing job metadata\n";
@@ -135,11 +143,11 @@ sub phase4
     
     if($exitstatus == 0)
     {
-	bpost("BB: stage-out admin script completed");
+        bpost("BB: stage-out admin script completed");
     }
     else
     {
-	bpost("BB: stage-out admin script failed with exit status $exitstatus");
+        bpost("BB: stage-out admin script failed with exit status $exitstatus");
     }
     print "*** Exiting admin stage-out script ***\n";
 }

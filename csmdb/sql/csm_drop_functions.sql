@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:         ./csm_db_script.sh <----- -f (force) will drop all functions in DB
---   version:       04.27
+--   version:       04.28
 --   create:        06-13-2016
---   last modified: 06-11-2018
+--   last modified: 07-24-2018
 --   change log: 
+--     07.24 -  fn_csm_allocation_delete_start and cleaned up some other data types.
 --     04.27 -  added fields to fn_csm_step_begin and fn_csm_step_end.
 --     04.26 -  added fields to fn_csm_allocation_history_dump,fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     04.25 -  added in fn_csm_allocation_delete_start and cleaned up some other data types
@@ -43,7 +44,6 @@ BEGIN;
 -- The triggers will be dropped automatically when the automated script is executed.
 -- (If the table is dropped, so is the triggers)
 ------------------------------------------------------------------------------------------------
-
 -- DROP TRIGGER IF EXISTS tr_csm_allocation_history_dump ON csm_allocation;
 -- DROP TRIGGER IF EXISTS tr_csm_allocation_node_state_change ON C11;
 -- DROP TRIGGER IF EXISTS tr_csm_allocation_state_change ON csm_allocation;
@@ -120,6 +120,8 @@ DROP FUNCTION IF EXISTS fn_csm_db_schema_version_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],text[],text[],text[],text[],boolean[],text[],text[],text[],int[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],int[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]);
-DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(IN i_allocation_id bigint,IN i_primary_job_id bigint, IN i_secondary_job_id integer,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text);
+DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text) CASCADE;
+
+--DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(IN i_allocation_id bigint,IN i_primary_job_id bigint, IN i_secondary_job_id integer,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text);
 
 COMMIT;

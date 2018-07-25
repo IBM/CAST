@@ -2,7 +2,7 @@
 
     utilities/include/string_tools.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -18,6 +18,10 @@
 *   Nick Buonarota (nbuonar@us.ibm.com)
 *
 */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //C includes
 #include <string.h>
@@ -56,3 +60,28 @@ int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* 
 *   4 ERROR: myString is NULL. Can not parse NULL string.
 */
 int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount);
+
+/*
+* Author: Nick Buonarota
+* Last Edited: July 11, 2018
+* Summary: This function takes in a string and compares it to CSM KEYWORDS.
+* Parameters:
+*   char*   myString:   The string to compare.
+*   int*    compareCode: The result of the comparison.
+*
+* compareCode values
+*   0 no match
+*   1 keyword detected but no known match
+*   2 #CSM_NULL
+*
+* Returns: int 
+*   0 Success
+*   1 ERROR: Generic error. Default.
+*   2 ERROR: myString is NULL. Can not parse NULL string.
+*   3 ERROR: reached end of program without returning valid data
+*/
+int CAST_stringTools_CSM_KEYWORD_Compare(char* myString, int* compareCode);
+
+#ifdef __cplusplus
+}
+#endif
