@@ -362,39 +362,32 @@ sub configureVolumeGroup
     my $bbvgname = $cfgfile->{"bb"}{"proxy"}{"volumegroup"};
     
     cmd("vgscan --cache");
-    eval
+    my $vgdata = cmd("vgdisplay $bbvgname", 1);
+    if($vgdata !~ /VG Name/)
     {
-	$vgdata = cmd("vgdisplay $vgname");
-    };
-    if($vgdata eq "")
-    {
-	cmd("vgcreate -y $vgname /dev/nvme0n1");
+        cmd("vgcreate -y $bbvgname /dev/nvme0n1");
     }
     
     setprefix("Removing stale LVs: ");
-    my $lvdata = cmd("lvs --reportformat json $vgname");
+    my $lvdata = cmd("lvs --reportformat json $bbvgname");
     my $json = decode_json($lvdata);
     
     foreach $rep (@{ $json->{"report"} })
     {
-	foreach $lv (@{ $rep->{"lv"} })
-	{
-	    my $lvname = $lv->{"lv_name"};
-	    my $vgname = $lv->{"vg_name"};
-	    if($vgname eq $bbvgname)
-	    {
-		my $ismounted = "";
-		eval
-		{
-		    $ismounted = cmd("grep '/dev/mapper/$vgname-$lvname ' /proc/mounts", 1);
-		};
-		output("Mounted $vgname-$lvname at: $ismounted");
-		if($ismounted !~ /\S/)
-		{
-		    cmd("lvremove -f /dev/$vgname/$lvname");
-		}
-	    }
-	}
+        foreach $lv (@{ $rep->{"lv"} })
+        {
+            my $lvname = $lv->{"lv_name"};
+            my $vgname = $lv->{"vg_name"};
+            if($vgname eq $bbvgname)
+            {
+                my $ismounted = cmd("grep '/dev/mapper/$vgname-$lvname ' /proc/mounts", 1);
+                output("Mounted $vgname-$lvname at: $ismounted");
+                if($ismounted !~ /\S/)
+                {
+                    cmd("lvremove -f /dev/$vgname/$lvname");
+                }
+            }
+        }
     }
 }
 
