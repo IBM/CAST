@@ -31,9 +31,10 @@ def main(args):
         description='''A tool for finding keywords during the run time of a job.''')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    # Need to check if this is valid
     parser.add_argument( '-T', '--time', metavar='timestamp', dest='timestamp', default=None,
-        help='A list of keywords to search for in the Big Data Store (default : *).')
+        help='The timestamp to search for jobs in YYYY-MM-DD HH:MM:SS.f format')
+    parser.add_argument( '-d', '--days', metavar='days', dest='days', default=1,
+        help='The days before and after the timestamp to include in the range')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to ')
 
@@ -55,73 +56,34 @@ def main(args):
         sniff_on_connection_fail=True,
         sniffer_timeout=60
     )
-
-    # Build the query to get jobs with timestamp.
-    should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
-    match_clause= '{{"match":{{"{0}":"{1}"}}}}'
-    filter_clause = '{{"filter":{{ "range": {{  "data.begin_time": {{ "gte" : "{0}","lte" : "{1}"}}}}}}}}'
-    tr_query = should_query.format(
-    	match_clause.format("@timestamp", args.timestamp))
     
-    print(tr_query)
-    
-    # Time from milliseconds to date format
-    tm_stmp = datetime.fromtimestamp(int(args.timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_before = datetime.fromtimestamp((int(args.timestamp)-86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_after = datetime.fromtimestamp((int(args.timestamp)+86400000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    print("Timestamp: " + tm_stmp)   
-    print("Day Before: " + day_before)
-    print("Day After: " + day_after)
+    # Convert user input into milliseconds
+    timestamp = int(datetime.strptime(args.timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime('%s'))*1000
 
-    db = (int(args.timestamp)-86400000)
-    da = (int(args.timestamp)+86400000)
+    # Time from milliseconds to date format to get the range
+    tm_stmp = datetime.fromtimestamp(int(timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_before = datetime.fromtimestamp((int(timestamp)-(int(args.days)*86400000))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_after = datetime.fromtimestamp((int(timestamp)+(int(args.days)*86400000))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
 
-    #time_query = '{{"query": {{"range" : {{"data": {{ "begin_time" : {{ "gte" : "{0}","lte" : "{1}","relation" : "within" }}}}}}}}}}'.format(db,da)
-
-    time_query = should_query.format(filter_clause.format(day_before, day_after))
-    print(time_query)
-#    Execute the query on the cast-allocation index.
+    # Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
-        #body=tr_query
-        #body=time_query
-		
         body={
             'query': { 
-            'range' : {
-				'data.begin_time': {
-					'gte' : "2018-07-25 10:10:25.000000",
-					'lte' : "2018-07-25 11:25:25.000000",
-					'relation' : "within"
-				}
-			},
-            'range' : {
-                'data.history.end_time':{
-                    'gte' : "2018-07-25 10:10:25.000000",
-                    'lte' : "2018-07-25 11:25:25.000000",
-                    'relation' : "within"
+                'range' : {
+    				'data.begin_time': {
+    					'gte' : day_before, 
+    					'lte' : day_after, 
+    					'relation' : "within"
+    				}
+    			},
+                'range' : {
+                    'data.history.end_time':{
+                        'gte' : day_before,
+                        'lte' : day_after, 
+                        'relation' : "within"
+                    }
                 }
-            }
-			#'range' : {
-				#'@timestamp' : {
-					#'gte' : 1531855716000,
-					#'lte' : 1531855723000,
-					#'gte' : db,
-					#'lte' : da,
-					#'relation' : "within"
-				#}
-			#}
-			# 'match_all': {},
-			#'wildcard' : {'data.begin_time': '*'}
-			#'bool': { 
-            #  'should': [
-            #   {'match':{ 'data.begin_time': "*"}}
-            #  ],
-               
-			 # 'filter': [
-    #            {'range':{ 'data.begin_time': {'gte': "2018-07-25 11:19:25.627297" }}}
-    #          ]
-            #}
             }
         }
         
@@ -131,7 +93,7 @@ def main(args):
     print("----------Got {0} Hit(s) for jobs beginning and ending between {1} and {2}----------".format(total_hits,day_before,day_after))
 
     # If ES is down, uncomment to use this method to find all jobs running
-    query_results_extraction( es, day_before, day_after)
+    # query_results_extraction( es, day_before, day_after)
 
     #print(tr_res["hits"]["hits"])
     for data in tr_res["hits"]["hits"]:
@@ -143,7 +105,6 @@ def main(args):
         print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
 
     
-
 def query_results_extraction(es, day_before, day_after):
 
     tr_res = es.search(
@@ -169,38 +130,6 @@ def query_results_extraction(es, day_before, day_after):
             print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
             print("\tbegin_time: "  + str(start_time))
             print("\tend_time:   " + str(end_time) + '\n')
-
-            # if start_time > datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f') and end_time < datetime.strptime(day_after, '%Y-%m-%d %H:%M:%S.%f'):
-            #     print("\t\tWithin time range")
-            # else:
-            #     print("\t\tNot within time range\n")
-            
-        # else:
-        #     end_time = '*'
-        #     print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
-        #     print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
-        #      print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
-        #     print("\tbegin_time: "  + str(start_time))
-        #     print("\tend_time:   " + str(end_time))
-        #     print("\t\tNot within time range\n")
         
-        
-        
-
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
