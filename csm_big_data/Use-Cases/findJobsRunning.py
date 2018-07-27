@@ -69,6 +69,8 @@ def main(args):
     tr_res = es.search(
         index="cast-allocation",
         body={
+            'size': 5000,
+            'from' : 0,
             'query': { 
                 'range' : {
     				'data.begin_time': {
@@ -110,6 +112,8 @@ def query_results_extraction(es, day_before, day_after):
     tr_res = es.search(
         index="cast-allocation",
         body={
+            'size' : 5000,
+            'from' : 0,
             'query':{
                 'match_all' :{}
             }
@@ -120,16 +124,18 @@ def query_results_extraction(es, day_before, day_after):
     for data in tr_res["hits"]["hits"]:
         tr_data = data["_source"]["data"]
         
-        
+        day_before   = datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f')
+        day_after   = datetime.strptime(day_after, '%Y-%m-%d %H:%M:%S.%f')
         # If a history is present end_time is end_time, otherwise it's now.
         start_time = datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
-        if "history" in tr_data:
+        if start_time > day_before and start_time < day_after and "history" in tr_data:
             end_time   = datetime.strptime(tr_data["history"]["end_time"], '%Y-%m-%d %H:%M:%S.%f')
-            print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
-            print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
-            print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
-            print("\tbegin_time: "  + str(start_time))
-            print("\tend_time:   " + str(end_time) + '\n')
+            if end_time < day_before and end_time < day_after:
+                print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
+                print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
+                print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
+                print("\tbegin_time: "  + str(start_time))
+                print("\tend_time:   " + str(end_time) + '\n')
         
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
