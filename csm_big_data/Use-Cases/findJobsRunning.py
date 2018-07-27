@@ -35,6 +35,8 @@ def main(args):
         help='The timestamp to search for jobs in YYYY-MM-DD HH:MM:SS.f format')
     parser.add_argument( '-d', '--days', metavar='days', dest='days', default=1,
         help='The days before and after the timestamp to include in the range')
+    parser.add_argument( '-s', '--size', metavar='size', dest='size', default=500,
+        help='The number of results to be returned')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to ')
 
@@ -69,7 +71,7 @@ def main(args):
     tr_res = es.search(
         index="cast-allocation",
         body={
-            'size': 5000,
+            'size': args.size,
             'from' : 0,
             'query': { 
                 'range' : {
@@ -112,7 +114,7 @@ def query_results_extraction(es, day_before, day_after):
     tr_res = es.search(
         index="cast-allocation",
         body={
-            'size' : 5000,
+            'size' : args.size,
             'from' : 0,
             'query':{
                 'match_all' :{}
