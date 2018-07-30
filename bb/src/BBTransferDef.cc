@@ -1388,6 +1388,10 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
     int rc = 0;
     stringstream errorText;
 
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    bool l_HandleFileLocked = false;
+
     bool l_StopDefinition = false;
 
     if (job.getJobStepId() == pJobStepId)
@@ -1397,38 +1401,71 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             if (!canceled())
             {
                 // NOTE: We may have to spin for a while waiting for the extents to be
-                //       enqueued on the work queue.  This is the case where we are in
+                //       enqueued on the work queue.  This is the case where we are
                 //       performing a start transfer for this definition but it hasn't
                 //       completed the processing performed by the second volley from
                 //       bbProxy.  We have to make sure that the extents are first enqueued
                 //       so that the stop processing is properly performed.
                 //
-                //       We spin for up to a 2 minutes...
-                //
-                //       NOTE: Our invoker currently has the handle file locked, so another
-                //             bbServer attempting to lock the file may have RAS events indicating
-                //             that the handle file cannot be locked...
+                //       We spin for up to 2 minutes...
                 string l_ConnectionName = string();
                 int l_Attempts = 120;
                 while (!rc && l_Attempts--)
                 {
-                    rc = extentsAreEnqueued();
+                    // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer checking for
+                    //       the extents to be enqueued and another thread/bbServer enqueuing those extents.
+                    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
                     if (!rc)
                     {
-                        unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                        l_HandleFileLocked = true;
+                        rc = extentsAreEnqueued();
+                        if (!rc)
                         {
-                            usleep((useconds_t)1000000);    // Delay 1 second
-                        }
-                        lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                            // Release the handle file
+                            l_HandleFileLocked = false;
+                            l_HandleFile->close();
 
-                        // Check to make sure the job still exists after releasing/re-acquiring the lock
-                        // NOTE: The connection name is optional, and is potentially different for every
-                        //       transfer definition that is being stopped from the retrieve transfer archive.
-                        if (!jobStillExists(l_ConnectionName, pLVKey, (BBTagInfo2*)0, (BBTagInfo*)0, pJobId, pContribId))
-                        {
-                            rc = -1;
-                            l_Attempts = 0;
+                            unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                            {
+                                usleep((useconds_t)1000000);    // Delay 1 second
+                            }
+                            lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+
+                            // Check to make sure the job still exists after releasing/re-acquiring the lock
+                            // NOTE: The connection name is optional, and is potentially different for every
+                            //       transfer definition that is being stopped from the retrieve transfer archive.
+                            if (!jobStillExists(l_ConnectionName, pLVKey, (BBTagInfo2*)0, (BBTagInfo*)0, pJobId, pContribId))
+                            {
+                                rc = -1;
+                                l_Attempts = 0;
+                            }
                         }
+                    }
+                    else
+                    {
+                        // Handle file could not be locked
+                        rc = -1;
+                        l_Attempts = 0;
+                        LOG(bb,error) << "Could not lock the handle file for " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                                      << " when attempting to determine if all extents had been enqueued during stop transfer processing";
+                    }
+
+                    if (l_HandleFileLocked)
+                    {
+                        // Release the handle file
+                        l_HandleFileLocked = false;
+                        l_HandleFile->close();
+                    }
+                    if (l_HandleFileName)
+                    {
+                        delete[] l_HandleFileName;
+                        l_HandleFileName = 0;
+                    }
+
+                    if (l_HandleFile)
+                    {
+                        delete l_HandleFile;
+                        l_HandleFile = 0;
                     }
                 }
 
@@ -1537,7 +1574,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     default:
                     {
                         // rc already -1
-                        errorText << "Job no longer exists for the transfer definition associated with host " << pHostName \
+                        errorText << "Job no longer exists or the handle file could not be locked for the transfer definition associated with host " << pHostName \
                                   << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
                                   << ".  Stop transfer request ignored.";
                         LOG_ERROR_TEXT_RC(errorText, rc);

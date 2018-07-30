@@ -413,7 +413,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                                 rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
                                                 if (!rc)
                                                 {
-                                                    // Indicate to restart this transfer defintion as it is now marked as stopped
+                                                    // Indicate to restart this transfer definition as it is now marked as stopped
                                                     rc = 1;
                                                     LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
                                                                  << "Transfer definition marked as stopped for jobid " << pJobId \
@@ -421,7 +421,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                                 }
                                                 else
                                                 {
-                                                    // Indicate to not restart this transfer defintion
+                                                    // Indicate to not restart this transfer definition
                                                     rc = 0;
                                                     l_Continue = 0;
                                                     LOG(bb,error) << "contribIdStopped():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
@@ -430,7 +430,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                             }
                                             else
                                             {
-                                                // Indicate to not restart this transfer defintion
+                                                // Indicate to not restart this transfer definition
                                                 rc = 0;
                                                 l_Continue = 0;
                                                 LOG(bb,error) << "contribIdStopped():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
