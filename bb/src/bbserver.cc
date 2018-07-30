@@ -1715,7 +1715,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         while (rc && l_Attempts--)
                         {
                             rc = wrkqmgr.getWrkQE(&l_LVKey2, l_WrkQE);
-                            if (rc)
+                            if (rc || (!l_WrkQE))
                             {
                                 unlockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
                                 {
