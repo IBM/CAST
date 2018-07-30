@@ -31,3 +31,6 @@ report.html
 
 #CSM test config
 csm_test.cfg
+
+#Mac files
+*.DS_Store

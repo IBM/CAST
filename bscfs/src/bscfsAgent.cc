@@ -16,6 +16,7 @@
 
 #include <pthread.h>
 #include <fuse/fuse_opt.h>
+#include <exception>
 #include "logging.h"
 #include "util.h"
 #include "bscfsInternals.h"
@@ -316,9 +317,9 @@ int main (int argc, char **argv)
     try {
 	fl = config.get("bb.bscfsagent.flightlog", "none");
     }
-    catch(int e)
+    catch(std::exception& e)
     {
-	LOG(bscfsagent,error) << "Exception getting flightlog config: " << e;
+	LOG(bscfsagent,error) << "Exception getting flightlog config: " << e.what();
 	exit(-1);
     }
     int rc = FL_CreateAll(fl.c_str());

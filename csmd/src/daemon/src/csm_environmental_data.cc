@@ -29,172 +29,32 @@
 #include <stdint.h>
 
 
-CSM_Environmental_Data::CSM_Environmental_Data()
+CSM_Environmental_Data::CSM_Environmental_Data() :
+  _version(CSM_ENVIRONMENTAL_DATA_V1),
+  _archive_mask(),
+  _source_node(),
+  _timestamp(),
+  _data_list()
 {
-  _Data_Mask.reset();
-}
-  
-CSM_Environmental_Data::CSM_Environmental_Data( const CSM_Environmental_Data& in ) : 
-  _Data_Mask( in._Data_Mask ),
-  _source_node( in._source_node ),
-  _timestamp ( in._timestamp ),
-  _CPU_Data( in._CPU_Data ),
-  _GPU_Double_Data( in._GPU_Double_Data ),
-  _GPU_Long_Data( in._GPU_Long_Data ),
-  _GPU_Double_Label_Data( in._GPU_Double_Label_Data ),
-  _GPU_Long_Label_Data( in._GPU_Long_Label_Data ),
-  _data_list( in._data_list )
-{
+   // For version 1, serialize these fields:
+   if (_version == CSM_ENVIRONMENTAL_DATA_V1)
+   {
+      _archive_mask.set(SOURCE_NODE_BIT);
+      _archive_mask.set(TIMESTAMP_BIT);
+      _archive_mask.set(DATA_LIST_BIT);
+   }
 }
 
 CSM_Environmental_Data::~CSM_Environmental_Data()
 {
 }
 
-void CSM_Environmental_Data::Get_GPU_Double_DCGM_Field_Values_And_Set_Bit() 
-{ 
-  _GPU_Double_Data.Get_Double_DCGM_Field_Values();
-  _Data_Mask.set( GPU_DOUBLE_DATA_BIT ); 
-}
-
-void CSM_Environmental_Data::Get_GPU_Long_DCGM_Field_Values_And_Set_Bit() 
-{
-  _GPU_Long_Data.Get_Long_DCGM_Field_Values();
-  _Data_Mask.set( GPU_LONG_DATA_BIT );
-}
-
-void CSM_Environmental_Data::Get_GPU_Double_DCGM_Field_String_Identifiers_And_Set_Bit()
-{ 
-  _GPU_Double_Label_Data.Get_Double_DCGM_Field_String_Identifiers();
-  _Data_Mask.set( GPU_DOUBLE_LABEL_BIT ); 
-}
-
-void CSM_Environmental_Data::Get_GPU_Long_DCGM_Field_String_Identifiers_And_Set_Bit()
-{
-  _GPU_Long_Label_Data.Get_Long_DCGM_Field_String_Identifiers();
-  _Data_Mask.set( GPU_LONG_LABEL_BIT );
-}
-
-void CSM_Environmental_Data::Print_GPU_Double_DCGM_Field_Values()
-{
-  _GPU_Double_Data.Print_Double_DCGM_Field_Values();
-}
-
-void CSM_Environmental_Data::Print_GPU_Long_DCGM_Field_Values()
-{
-  _GPU_Long_Data.Print_Long_DCGM_Field_Values();
-}
-
-void CSM_Environmental_Data::Print_GPU_Double_DCGM_Field_String_Identifiers()
-{
-  _GPU_Double_Label_Data.Print_Double_DCGM_Field_String_Identifiers();
-}
-
-void CSM_Environmental_Data::Print_GPU_Long_DCGM_Field_String_Identifiers()
-{
-  _GPU_Long_Label_Data.Print_Long_DCGM_Field_String_Identifiers();
-}
-
 void CSM_Environmental_Data::Print()
 {
-  LOG( csmenv, debug ) << " ENVDATA: BitSet:" << _Data_Mask.to_string();
-
-  if( _Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) ){ Print_GPU_Double_DCGM_Field_String_Identifiers(); }
-  if( _Data_Mask.test( GPU_DOUBLE_DATA_BIT ) ){ Print_GPU_Double_DCGM_Field_Values(); }
-
-  if( _Data_Mask.test( GPU_LONG_LABEL_BIT ) ){ Print_GPU_Long_DCGM_Field_String_Identifiers(); }
-  if( _Data_Mask.test( GPU_LONG_DATA_BIT ) ){ Print_GPU_Long_DCGM_Field_Values(); }
-
-  /*
-  if( _Data_Mask.test( CPU_DATA_BIT ) ){ LOG( csmd, debug ) << "       DummyInt = " << _CPUData._DummyTestInt; }
-  */
+   LOG(csmenv, debug) << "ENVDATA: version: " << _version << " archive_mask: " << _archive_mask.to_string();
+   LOG(csmenv, debug) << GetJsonString(); 
 }
 
-CSM_CPU_Data& CSM_Environmental_Data::Return_CPU_Data_Object()
-{ 
-  return (this->_CPU_Data);
-}
-
-CSM_GPU_Double_Data& CSM_Environmental_Data::Return_GPU_Double_Data_Object()
-{
-  return (this->_GPU_Double_Data);
-}
-
-CSM_GPU_Long_Data& CSM_Environmental_Data::Return_GPU_Long_Data_Object()
-{ 
-  return (this->_GPU_Long_Data); 
-}
-
-CSM_GPU_Double_Label_Data& CSM_Environmental_Data::Return_GPU_Double_Label_Data_Object()
-{ 
-  return (this->_GPU_Double_Label_Data);
-}
-
-CSM_GPU_Long_Label_Data& CSM_Environmental_Data::Return_GPU_Long_Label_Data_Object()
-{
-  return (this->_GPU_Long_Label_Data);
-}
-
-void CSM_Environmental_Data::Set_Data( const CSM_GPU_Double_Data& GPU_Double_Data_To_Copy )
-{
-  _GPU_Double_Data = GPU_Double_Data_To_Copy;
-  _Data_Mask.set( GPU_DOUBLE_DATA_BIT );
-}
-
-void CSM_Environmental_Data::Set_Data( const CSM_GPU_Long_Data& GPU_Long_Data_To_Copy )
-{
-  _GPU_Long_Data = GPU_Long_Data_To_Copy;
-  _Data_Mask.set( GPU_LONG_DATA_BIT );
-}
-
-void CSM_Environmental_Data::Set_Data( const CSM_GPU_Double_Label_Data& GPU_Double_Label_Data_To_Copy )
-{
-  _GPU_Double_Label_Data = GPU_Double_Label_Data_To_Copy;
-  _Data_Mask.set( GPU_DOUBLE_LABEL_BIT );
-}
-
-void CSM_Environmental_Data::Set_Data( const CSM_GPU_Long_Label_Data& GPU_Long_Label_Data_To_Copy )
-{
-  _GPU_Long_Label_Data = GPU_Long_Label_Data_To_Copy;
-  _Data_Mask.set( GPU_LONG_LABEL_BIT );
-}
-
-void CSM_Environmental_Data::Set_Data( const CSM_CPU_Data& CPU_data_to_copy )
-{
-  _CPU_Data = CPU_data_to_copy;
-  _Data_Mask.set( CPU_DATA_BIT );
-}
-
-bool CSM_Environmental_Data::Set_Labels( const CSM_Environmental_Data& in )
-{
-  // Attempt to copy associated labels from in to this object for any data that is set in this object
-  if( _Data_Mask.test( GPU_DOUBLE_DATA_BIT ) )
-  {
-    if( in._Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) )
-    {
-      Set_Data( in._GPU_Double_Label_Data );
-    }
-    else
-    {
-      return false;
-    }
-  }
-  
-  if( _Data_Mask.test( GPU_LONG_DATA_BIT ) )
-  {
-    if( in._Data_Mask.test( GPU_LONG_LABEL_BIT ) )
-    {
-      Set_Data( in._GPU_Long_Label_Data );
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-  return true;
-}
-      
 // Helper function to copy parts of one ptree to the other
 // CopyPtSubtree(src, dst, ""); -> copy all keys in the tree recursively
 // CopyPtSubtree(src, dst, "data"); -> copy all keys under "data" in the tree recursively
@@ -236,104 +96,13 @@ bool CopyPtSubtree(const boost::property_tree::ptree &src_pt, boost::property_tr
   return true;
 }     
  
-std::string CSM_Environmental_Data::Get_Json_String()
+std::string CSM_Environmental_Data::GetJsonString()
 {
   std::string json("");
 
   // This function will return a series of json documents in a single string
   // Each json document has a set of common parent fields followed by fields specific to 
   // the type of environmental data being collected
-  // Build the common fields first, to be used in each of the individual json documents
-  
-  #define CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER "serial_number"
-
-  // Create any GPU json documents 
-  if ( _Data_Mask.test(GPU_DOUBLE_DATA_BIT) || _Data_Mask.test(GPU_LONG_DATA_BIT) )
-  {
-    std::vector<double> gpu_double_data;
-    std::vector<std::string> gpu_double_labels;
-    
-    std::vector<long> gpu_long_data;
-    std::vector<std::string> gpu_long_labels;
-    
-    if ( _Data_Mask.test(GPU_DOUBLE_DATA_BIT) )
-    {
-      gpu_double_data = _GPU_Double_Data.Return_Double_DCGM_Vector();
-      gpu_double_labels = _GPU_Double_Label_Data.Return_Double_DCGM_Field_String_Identifiers();
-    }  
-    
-    if ( _Data_Mask.test(GPU_LONG_DATA_BIT) )
-    {
-      gpu_long_data = _GPU_Long_Data.Return_Long_DCGM_Vector();
-      gpu_long_labels = _GPU_Long_Label_Data.Return_Long_DCGM_Field_String_Identifiers();
-    }
-
-    // Data for each GPU has to be created from pieces stored in four different areas
-    // Do one big consistency check here before proceeding
-    // For both double data and long data, we should have N times as many entries in the data vector as the label vector
-    // where N is the number of GPUs on the node. We then need to reassemble the data into N json documents, one for each GPU.
-    // We need to make sure that both the long data and double data both contains data for an equal number of GPUs.
-    // We also need to support the case where there may only be long data or only double data.
-    uint32_t gpu_double_count(0);
-    uint32_t gpu_long_count(0);
-    
-    if ( (gpu_double_labels.size() > 0) && (gpu_double_data.size() % gpu_double_labels.size() == 0) )
-    {
-      gpu_double_count = (gpu_double_data.size() / gpu_double_labels.size());
-    }
-    
-    if ( (gpu_long_labels.size() > 0) && (gpu_long_data.size() % gpu_long_labels.size() == 0) )
-    {
-      gpu_long_count = (gpu_long_data.size() / gpu_long_labels.size());
-    }
-
-    if ( ( gpu_double_count == 0 && gpu_long_count == 0 ) ||
-         ( gpu_double_count > 0 && gpu_long_count > 0 && gpu_double_count != gpu_long_count ) ) 
-    {
-        LOG(csmenv, error) << "Inconsistent GPU data detected: gpu_double_data.size() = " << gpu_double_data.size() 
-                           << ", gpu_double_labels.size() = " << gpu_double_labels.size()
-                           << ", gpu_long_data.size() = " << gpu_long_data.size()
-                           << ", gpu_long_labels.size() = " << gpu_long_labels.size();
-    } 
-    else
-    {
-      uint32_t gpu_count(gpu_long_count); 
-
-      uint32_t j(0);  // index into gpu_double_data vector
-      uint32_t y(0);  // index into gpu_long_data vector
-      
-      for (uint32_t gpu = 0; gpu < gpu_count; gpu++)
-      {
-        // Set the top level fields into the json
-        boost::property_tree::ptree gpu_pt;
-        gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU_COUNTERS);
-        gpu_pt.put(CSM_BDS_KEY_SOURCE, _source_node);   
-        gpu_pt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);   
-  
-        // Temporarily set an artificial serial_number
-        gpu_pt.put( std::string(CSM_BDS_SECTION_DATA) + "." + CSM_ENV_DATA_GPU_KEY_SERIAL_NUMBER, std::to_string(gpu) );
-
-        for ( uint32_t i = 0; i < gpu_double_labels.size() && j < gpu_double_data.size(); i++ )
-        {
-          gpu_pt.put( CSM_BDS_SECTION_DATA "." + gpu_double_labels[i], std::to_string(gpu_double_data[j]) );
-          j++;
-        }       
-        
-        for ( uint32_t x = 0; x < gpu_long_labels.size() && y < gpu_long_data.size(); x++ )
-        {
-          gpu_pt.put( CSM_BDS_SECTION_DATA "." + gpu_long_labels[x], std::to_string(gpu_long_data[y]) );
-          y++;
-        } 
-  
-        // Generate the json for this GPU and add it to overall json string
-        std::ostringstream gpu_oss;
-        boost::property_tree::json_parser::write_json(gpu_oss, gpu_pt, false);
-        gpu_oss << std::endl;
-        json += gpu_oss.str();
-      } 
-    }
-  }
-
   for (auto data_itr = _data_list.begin(); data_itr != _data_list.end(); data_itr++)
   {
     // Set the top level fields into the json
@@ -369,12 +138,12 @@ std::string CSM_Environmental_Data::Get_Json_String()
     }
   }
  
-  //LOG( csmenv, debug ) << json;
+  //LOG(csmenv, debug) << json;
  
   return json;
 }
 
-void CSM_Environmental_Data::Collect_Node_Data()
+void CSM_Environmental_Data::CollectNodeData()
 {
   // Set _timestamp
   char time_stamp_buffer[80];
@@ -399,13 +168,13 @@ void CSM_Environmental_Data::Collect_Node_Data()
   }
   catch (csm::daemon::Exception &e)
   {
-    LOG(csmd, error) << "Caught exception when trying GetHostname()";
+    LOG(csmenv, error) << "Caught exception when trying GetHostname()";
   }
 }
 
-bool CSM_Environmental_Data::Collect_Environmental_Data()
+bool CSM_Environmental_Data::CollectEnvironmentalData()
 {
-   LOG(csmenv, debug) << "Start Collect_Environmental_Data()";
+   LOG(csmenv, debug) << "Start CollectEnvironmentalData()";
    
    const std::list<std::string> node_sensors =
    {
@@ -635,58 +404,22 @@ bool CSM_Environmental_Data::Collect_Environmental_Data()
       }
    }
 
-   LOG(csmenv, debug) << "Finish Collect_Environmental_Data()";
+   LOG(csmenv, debug) << "Finish CollectEnvironmentalData()";
 
    return success;
 }
 
-CSM_Environmental_Data& CSM_Environmental_Data::operator=( const CSM_Environmental_Data& in )
+void CSM_Environmental_Data::AddDataItems(const std::list<boost::property_tree::ptree> &data_pt_list)
 {
-  _Data_Mask = in._Data_Mask;
-  _source_node = in._source_node;
-  _timestamp = in._timestamp;
-  _GPU_Double_Data = in._GPU_Double_Data;
-  _GPU_Long_Data = in._GPU_Long_Data;
-  _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
-  _GPU_Long_Label_Data = in._GPU_Long_Label_Data;
-  _CPU_Data = in._CPU_Data;
-  _data_list = in._data_list;
-  return *this;
+   _data_list.insert(_data_list.end(), data_pt_list.begin(), data_pt_list.end());
 }
 
-// operator to only update the items that are present in the input
-CSM_Environmental_Data& CSM_Environmental_Data::operator|=( const CSM_Environmental_Data& in )
+void CSM_Environmental_Data::AddDataItem(const boost::property_tree::ptree &data_pt)
 {
-  _Data_Mask |= in._Data_Mask;
-  
-  if( !in._source_node.empty() )
-    _source_node = in._source_node;
-  
-  if( !in._timestamp.empty() )
-    _timestamp = in._timestamp;
-
-  if( in._Data_Mask.test( GPU_DOUBLE_DATA_BIT ) )
-    _GPU_Double_Data = in._GPU_Double_Data;
-
-  if( in._Data_Mask.test( GPU_LONG_DATA_BIT ) )
-    _GPU_Long_Data = in._GPU_Long_Data;
-
-  if( in._Data_Mask.test( GPU_DOUBLE_LABEL_BIT ) )
-    _GPU_Double_Label_Data = in._GPU_Double_Label_Data;
-
-  if( in._Data_Mask.test( GPU_LONG_LABEL_BIT ) )
-    _GPU_Long_Label_Data = in._GPU_Long_Label_Data;
-
-  if( in._Data_Mask.test( CPU_DATA_BIT ) )
-    _CPU_Data = in._CPU_Data;
-  
-  if( !in._data_list.empty() )
-    _data_list = in._data_list;
-
-  return *this;
+   _data_list.push_back(data_pt);
 }
 
 bool CSM_Environmental_Data::HasData() const
 {
-  return _Data_Mask.any();
+  return !_data_list.empty();
 }

@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/CSMIIbCableUpdate.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -48,19 +48,59 @@ bool CSMIIbCableUpdate::CreatePayload(
 		ctx->AppendErrorMessage("CreatePayload: csm_deserialize_struct failed...");
 		return false;
 	}
-
+	
+	//parameter based helper variables.
 	int SQLparameterCount = 0;
+	bool atLeastOneParameter = false;
+	//parameters for attributes that we will allow the user to reset to NULL in CSM DB. 
+	bool comment_NULL = false;
 
+	//Begining of the SQL statement. 
 	std::string stmt = "WITH updated AS ( UPDATE csm_ib_cable SET ";
+	
+	//helper for keyword compare.
+	int keyword_returnCode = 0;
+	int keyword_compareCode = 0;
+	
+	//check to see if we have to do anything for comment. 
+	if(input->comment[0] != '\0')
+	{
+		keyword_returnCode = CAST_stringTools_CSM_KEYWORD_Compare(input->comment, &keyword_compareCode);
+		
+		if(keyword_returnCode > 0)
+		{
+			LOG(csmapi, warning) << STATE_NAME ":CreatePayload: CSM_KEYWORD_Compare returned with error code: " << keyword_returnCode;
+		}
+		
+		switch(keyword_compareCode)
+		{
+			case 2:
+				//keyword "#CSM_NULL" was found.
+				//this means reset Database field to NULL
+				stmt.append("comment = NULL,");
+				comment_NULL = true;
+				atLeastOneParameter = true;
+				break;
+			case 0:
+				//no match found
+				//for now same behavior so fall through
+			case 1:
+				//keyword found, but no match
+				//for now same behavior so fall through
+			default:
+				//set DB field to whatever user passed in.
+				add_param_sql( stmt, input->comment[0],   ++SQLparameterCount, "comment=$",   "::text,")
+				break;
+		}
+	}
     
-    add_param_sql( stmt, input->comment[0], ++SQLparameterCount, "comment=$",   "::text,")
-    add_param_sql( stmt, input->guid_s1[0], ++SQLparameterCount, "guid_s1=$",   "::text,")
-    add_param_sql( stmt, input->guid_s2[0], ++SQLparameterCount, "guid_s2=$",   "::text,")
-    add_param_sql( stmt, input->port_s1[0], ++SQLparameterCount, "port_s1=$",   "::text,")
-    add_param_sql( stmt, input->port_s2[0], ++SQLparameterCount, "port_s2=$",   "::text,")
-    
+	if(SQLparameterCount > 0)
+	{
+		atLeastOneParameter = true;
+	}
+	
     // Verify the payload.
-    if ( SQLparameterCount >  0 )
+	if ( atLeastOneParameter )
     {
         // Remove the last comma.
         stmt.back()= ' ';
@@ -86,18 +126,21 @@ bool CSMIIbCableUpdate::CreatePayload(
         "WHERE updated.serial_number IS NULL");
 	
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount);
-	if(input->comment[0] != '\0'){ dbReq->AddTextParam(input->comment);}
-	if(input->guid_s1[0] != '\0'){ dbReq->AddTextParam(input->guid_s1);}
-	if(input->guid_s2[0] != '\0'){ dbReq->AddTextParam(input->guid_s2);}
-	if(input->port_s1[0] != '\0'){ dbReq->AddTextParam(input->port_s1);}
-	if(input->port_s2[0] != '\0'){ dbReq->AddTextParam(input->port_s2);}
+	if( input->comment[0] ) 
+	{
+		//make sure its false, otherwise we added it above. 
+		if(comment_NULL == false)
+		{
+			dbReq->AddTextParam(input->comment);
+		}
+	}
 	dbReq->AddTextArrayParam(input->serial_numbers, input->serial_numbers_count);
 	
 	*dbPayload = dbReq;
 
 	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 
-	LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Parameterized SQL: " << stmt;
+	LOG(csmapi, debug) << STATE_NAME ":CreatePayload: Parameterized SQL: " << stmt;
          
     LOG( csmapi, trace ) << STATE_NAME ":CreatePayload: Exit";
          

@@ -669,6 +669,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
         }
         break;
 
+        // NOTE: The following option is not currently used as
+        //       it isn't clear this technique works with GPFS.
+
         case LOCK_HANDLEFILE_WITH_TEST_FIRST:
         {
             rc = testForLock(l_ArchivePath);

@@ -73,11 +73,6 @@ private:
 
   CSM_Environmental_Data * Environmental_data;
 
-  CSM_GPU_Double_Data GPU_Double_Data;
-  CSM_GPU_Long_Data GPU_Long_Data;
-  CSM_GPU_Double_Label_Data GPU_Double_Label_Data;
-  CSM_GPU_Long_Label_Data GPU_Long_Label_Data;
-
 };
 
 class CSM_ENVIRONMENTAL_UTILITY : public CSM_ENVIRONMENTAL

@@ -112,6 +112,10 @@ node_info:
       pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
     kernel:
       release: "4.14.0-49.10.1.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
 
   - case: (c699login\d+|c699wrk\d+)
     rvitals: wspoon_dd2

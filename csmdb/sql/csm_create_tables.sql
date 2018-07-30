@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:         run ./csm_db_script.sh <----- to create the csm_db with tables
---   version:       15.0   <-------- GA release version
+--   version:       15.1   <-------- GA release version
 --   create:        12-14-2015
---   last modified: 04-12-2018
+--   last modified: 07-24-2018
 --   change log:    
+--   15.1   GA release version - upgrade
 --   15.0   GA release version
 --   14.25  csm_node + history table included: discovered_ssds
 --   14.24  csm_node + history table included: discovered_dimms
