@@ -27,6 +27,7 @@
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 namespace bfs = boost::filesystem;
+namespace bs  = boost::system;
 
 #include <linux/magic.h>
 #include <sys/mount.h>
@@ -579,31 +580,14 @@ int doResizeLogicalVolume(const char* pVolumeGroupName, const char* pDevName, co
 }
 #include <sys/mount.h>
 
-int lsofRunCmd( const char* pDirectory) {
+int lsofRunCmd( const char* pDirectory) 
+{
     ENTRY(__FILE__,__FUNCTION__);
     int rc = 0;
 
-    char l_Options[64] = {'\0'};
-    snprintf(l_Options, sizeof(l_Options), " ");
-
-    struct stat statinfo;
-    rc = stat(pDirectory, &statinfo);
-
-    if (!rc) {
-        char l_Cmd[1024] = {'\0'};
-        snprintf(l_Cmd, sizeof(l_Cmd), "lsof %s %s 2>&1;", l_Options, pDirectory);
-
-        int i = 0;
-        std::string lsof;
-        for (auto& l_Line : runCommand(l_Cmd)) {
-            if (l_Line.size() > 1) {
-                lsof = "lsof.";
-                lsof+=to_string(i);
-                bberror << err(lsof.c_str(),l_Line);
-                i++;
-                LOG(bb,info) << "lsof: "<<l_Line;
-            }
-        }
+    for (auto& l_Line : runCommand("lsof | grep /mnt")) 
+    {
+        LOG(bb,info) << "lsof: " << l_Line;
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -2170,21 +2154,12 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         // Local cp processing...
                         if (pPerformOperation)
                         {
-                            string cmd;
-                            cmd = "cp " + srcfile_ptr->getfn() + " " + dstfile_ptr->getfn();
-                            //                LOG(bb,info) << "Performing local copy: " << cmd;
-                            //                system(cmd.c_str());
-
-                            // \todo NOTE: Need to code for cancel case...  @DLH
                             BBFILESTATUS l_FileStatus = BBFILE_SUCCESS;
-                            for (auto& l_Line : runCommand(cmd)) {
-                                // No expected output...
-                                if (l_Line.size() > 1) {
-                                    LOG(bb,error) << l_Line;
-                                } else {
-                                    LOG(bb,error) << std::hex << std::uppercase << setfill('0') << "One byte rc from cp: 0x" << setw(2) << l_Line[0] << setfill(' ') << std::nouppercase << std::dec;
-                                }
-                                // Any output is currently treated as a failure...
+
+                            bs::error_code err;
+                            bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), err);
+                            if (err.value())
+                            {
                                 l_FileStatus = BBFILE_FAILED;
                             }
 
