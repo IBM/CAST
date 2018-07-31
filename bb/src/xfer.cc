@@ -29,6 +29,10 @@
 
 using namespace std;
 
+#include <boost/filesystem.hpp>
+namespace bfs = boost::filesystem;
+namespace bs  = boost::system;
+
 #include "bbapi.h"
 #include "bbinternal.h"
 #include "bbio_regular.h"
@@ -788,19 +792,13 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
     }
     else if(pExtent->flags & BBI_TargetPFSPFS)
     {
-        string cmd;
-        cmd = "cp " + pTransferDef->files[pExtent->sourceindex] + " " + pTransferDef->files[pExtent->targetindex];
-
-        // \todo NOTE: Currently, no way to get to the stopped or canceled legs...  @DLH
         BBSTATUS l_Status = BBFULLSUCCESS;
-        for (auto&l_Line : runCommand(cmd)) {
-            // No expected output...
-            if (l_Line.size() > 1) {
-                LOG(bb,error) << l_Line;
-            } else {
-                LOG(bb,error) << std::hex << std::uppercase << setfill('0') << "One byte rc from cp: 0x" << setw(2) << l_Line[0] << setfill(' ') << std::nouppercase << std::dec;
-            }
-            // Any output is currently treated as a failure...
+
+        bs::error_code err;
+        bfs::copy_file(bfs::path(pTransferDef->files[pExtent->sourceindex]), bfs::path(pTransferDef->files[pExtent->targetindex]), err);
+
+        if (err.value())
+        {
             l_Status = BBFAILED;
         }
 
