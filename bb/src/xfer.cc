@@ -2425,10 +2425,12 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         }
                                         else
                                         {
-                                            // Inconsistency with metadata....
+                                            // Work queue not found....
                                             rc = -1;
-                                            errorText << "queueTransfer(): Could not find work queue when attempting to schedule additional extents to transfer";
+                                            errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                                      << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
                                             LOG_ERROR_TEXT_RC(errorText, rc);
+                                            wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                         }
 
                                         if (!rc)

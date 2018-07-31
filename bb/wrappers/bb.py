@@ -30,6 +30,7 @@ import threading
 from copy import deepcopy
 
 from bbapi import *
+from bbapiAdmin import BB_GetServerByName
 from bbapiAdminProcs import *
 from bbapiTest import *
 from datetime import datetime
@@ -46,9 +47,9 @@ NO_CONTRIBID = 999999999
 
 
 DO_NOT_PRINT_VALUE = False
-DEFAULT_REMOVE_JOB_INFO_DELAY = 30
+DEFAULT_REMOVE_JOB_INFO_DELAY = 60
 # DEFAULT_GET_TRANSFERINFO_DELAY = 5
-DEFAULT_GET_TRANSFERINFO_DELAY = 1
+DEFAULT_GET_TRANSFERINFO_DELAY = 1.5
 # DEFAULT_WAIT_FOR_COMPLETION_ATTEMPTS = 360  # 30 minutes
 DEFAULT_WAIT_FOR_COMPLETION_ATTEMPTS = 1440  # 2 hours
 
@@ -172,6 +173,30 @@ def createRandomFile(pEnv, pFile, pSize):
         runCmd("%s %s" % (l_CreateFilePgm, pFile))
 
     return
+
+def flushWaiters(pActiveServer):
+    # Flush the waiters for the input active server
+
+    l_StartingValue = 2
+
+    if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", False)) == 0):
+        l_Continue = l_StartingValue - 1;
+    else:
+        l_Continue = l_StartingValue
+    l_Attempts = 1
+
+    while (l_Continue > 0):
+        time.sleep(0.05)
+        l_PrintOption = False;
+        if (l_Attempts % 200 == 0):
+            l_PrintOption = True
+        if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", l_PrintOption)) == 0):
+            l_Continue -= 1;
+        else:
+            l_Continue = l_StartingValue
+        l_Attempts += 1
+
+    return;
 
 def getContribId(pPrintValue=DO_NOT_PRINT_VALUE):
     return Coral_GetVar('contribid', pPrintValue)
