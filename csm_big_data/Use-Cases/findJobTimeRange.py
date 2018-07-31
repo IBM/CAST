@@ -64,7 +64,7 @@ def main(args):
     )
 
     # Build the query to get the time range.
-    should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
+    should_query='{{"query":{{"bool":{{"must":[{0}]}}}}}}'
     match_clause= '{{"match":{{"{0}":{1}}}}}'
 
     if args.allocation_id > 0 :
@@ -83,6 +83,9 @@ def main(args):
     )
     total_hits = tr_res["hits"]["total"]
 
+    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
+    # print(tr_res["hits"]["hits"][1]["_source"]["data"]["primary_job_id"])
+
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
@@ -90,7 +93,7 @@ def main(args):
 
     # TODO make this code more fault tolerant
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
-
+    print(tr_data)
     # ---------------------------------------------------------------------------------------------
     
     # Build the hostnames string:

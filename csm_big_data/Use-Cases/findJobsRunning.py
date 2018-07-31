@@ -80,14 +80,14 @@ def main(args):
     					'lte' : day_after, 
     					'relation' : "within"
     				}
-    			},
-                'range' : {
-                    'data.history.end_time':{
-                        'gte' : day_before,
-                        'lte' : day_after, 
-                        'relation' : "within"
-                    }
-                }
+    			}#,
+                # 'range' : {
+                #     'data.history.end_time':{
+                #         'gte' : day_before,
+                #         'lte' : day_after, 
+                #         'relation' : "within"
+                #     }
+                # }
             }
         }
         
@@ -106,8 +106,10 @@ def main(args):
         print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
         print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
         print("\tbegin_time: " + tr_data["begin_time"])
-        print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
-
+        if "history" in tr_data:
+		    print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
+        else :
+            print("\tend_time: *\n")
     
 def query_results_extraction(es, day_before, day_after):
 
