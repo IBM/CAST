@@ -580,12 +580,12 @@ int doResizeLogicalVolume(const char* pVolumeGroupName, const char* pDevName, co
 }
 #include <sys/mount.h>
 
-int lsofRunCmd( const char* pDirectory) 
+int lsofRunCmd( const char* pDirectory)
 {
     ENTRY(__FILE__,__FUNCTION__);
     int rc = 0;
 
-    for (auto& l_Line : runCommand("lsof | grep /mnt")) 
+    for (auto& l_Line : runCommand("lsof | grep /mnt"))
     {
         LOG(bb,info) << "lsof: " << l_Line;
     }
@@ -2157,7 +2157,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             BBFILESTATUS l_FileStatus = BBFILE_SUCCESS;
 
                             bs::error_code err;
-                            bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), err);
+                            bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), bfs::copy_option::overwrite_if_exists, err);
                             if (err.value())
                             {
                                 l_FileStatus = BBFILE_FAILED;
