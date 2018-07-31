@@ -623,7 +623,7 @@ class WRKQMGR
     vector<uint64_t>    outOfOrderOffsets;
   private:
     int                 lockPinned;
-    int                 checkForCanceledExtents;
+    volatile int        checkForCanceledExtents;
     pthread_t           transferQueueLocked;
 };
 

@@ -2398,46 +2398,39 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     if (!rc)
                                     {
                                         WRKQE* l_WrkQE = 0;
-                                        if (!wrkqmgr.getWrkQE(pLVKey, l_WrkQE))
+                                        rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                        if ((!rc) && l_WrkQE)
                                         {
-                                            if (l_WrkQE)
+                                            l_WrkQE->dump("debug", "Before pushing work onto this queue ");
+                                            bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
+                                            for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
                                             {
-                                                l_WrkQE->dump("debug", "Before pushing work onto this queue ");
-                                                bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
-                                                for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
+                                                LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
+                                                // Queue a WorkID object for every extent to the work queue
+                                                WorkID l_WorkId(*pLVKey, l_TagId);
+                                                if (i+1 == (l_TransferDef->extents).size())
                                                 {
-                                                    LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
-                                                    // Queue a WorkID object for every extent to the work queue
-                                                    WorkID l_WorkId(*pLVKey, l_TagId);
-                                                    if (i+1 == (l_TransferDef->extents).size())
-                                                    {
-                                                        // Validate work queue on last add...
-                                                        l_ValidateOption = VALIDATE_WORK_QUEUE;
-                                                    }
-                                                    l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
+                                                    // Validate work queue on last add...
+                                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
                                                 }
-                                                l_WrkQE->dump("info", "After pushing work onto this queue ");
-
-                                                // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
-                                                if ((l_TransferDef->extents).size())
-                                                {
-                                                    l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
-                                                }
+                                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                             }
-                                            else
+                                            l_WrkQE->dump("info", "After pushing work onto this queue ");
+
+                                            // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
+                                            if ((l_TransferDef->extents).size())
                                             {
-                                                // Inconsistency with metadata....
-                                                rc = -1;
-                                                errorText << "queueTransfer(): Work queue entry was not returned from work queue manager when attempting to schedule additional extents to transfer";
-                                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                                l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
                                             }
                                         }
                                         else
                                         {
-                                            // Inconsistency with metadata....
+                                            // Work queue not found....
                                             rc = -1;
-                                            errorText << "queueTransfer(): Could not find work queue when attempting to schedule additional extents to transfer";
+                                            errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                                      << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
                                             LOG_ERROR_TEXT_RC(errorText, rc);
+                                            wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                         }
 
                                         if (!rc)
@@ -2989,7 +2982,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     // Extents still left to be transferred...
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
 
-                    if (!wrkqmgr.getWrkQE(pLVKey, l_WrkQE))
+                    int rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                    if ((!rc2) && l_WrkQE)
                     {
                         l_WrkQ = l_WrkQE->getWrkQ();
                         WorkID l_WorkId;
