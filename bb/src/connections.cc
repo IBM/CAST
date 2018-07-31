@@ -27,6 +27,7 @@
 #if BBPROXY
 #include "bbproxy_flightlog.h"
 #include "bbproxyConn2bbserver.h"
+#include "identity.h"
 #elif BBSERVER
 #include "bbserver_flightlog.h"
 #include "identity.h"
@@ -1516,7 +1517,7 @@ void* workerThread(void* ptr)
 
         while(1)
         {
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
         	becomeUser(0,0);
 #endif
             pthread_mutex_lock(&threadFreePool_mutex);
