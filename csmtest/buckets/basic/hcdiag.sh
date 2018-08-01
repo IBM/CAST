@@ -27,7 +27,8 @@ fi
 
 # Local Variables
 LOG=${LOG_PATH}/buckets/basic/hcdiag.log
-TEMP_LOG=${LOG_PATH}/buckets/basic/hcdiag.log
+TEMP_LOG=${LOG_PATH}/buckets/basic/hcdiag_temp.log
+FLAG_LOG=${LOG_PATH}/buckets/basic/hcdiag_flags.log
 HC_DIAG_PATH=/opt/ibm/csm/hcdiag
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
@@ -43,17 +44,23 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
+# Copy included test.properties over to active test.properties
+echo "y" | cp ${FVT_PATH}/include/hcdiag/test.properties ${HC_DIAG_PATH}/etc/
+
 # Test Case 1: ppping
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test ppping --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
 check_return_flag $? "Test Case 1: ppping"
 
-# Test Case 2: chk-cpu
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-cpu --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 2: chk-cpu"
+# Get run id from temp log
+run_id=`grep "run id" ${TEMP_LOG} | awk -F' ' '{print $6}' | awk -F',' '{print $1}'`
 
-# Test Case 3: chk-cpu-count
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-cpu-count --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 3: chk-cpu-count"
+# Test Case 2: csm_diag_run_query
+${CSM_PATH}/csm_diag_run_query -r ${run_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: csm_diag_run_query"
+
+# Test Case 3: csm_diag_run_query_details
+${CSM_PATH}/csm_diag_run_query_details -r ${run_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 3: csm_diag_run_query_details"
 
 # Test Case 4: chk-csm-health
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-csm-health --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
@@ -65,7 +72,7 @@ check_return_flag $? "Test Case 5: chk-free-memory"
 
 # Test Case 6: chk-led
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-led --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 2: chk-cpu"
+check_return_flag $? "Test Case 6: chk-led"
 
 # Test Case 7: chk-boot-time
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-boot-time --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
@@ -75,84 +82,53 @@ check_return_flag $? "Test Case 7: chk-boot-time"
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-noping --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
 check_return_flag $? "Test Case 8: chk-noping"
 
-# Test Case 9: chk-sys-firmware
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-sys-firmware --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 9: chk-sys-firmware"
-
-# Test Case 10: rpower
+# Test Case 9: rpower
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test rpower --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 10: rpower"
+check_return_flag $? "Test Case 9: rpower"
 
-# Test Case 11: rvitals
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test rvitals --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 11: rvitals"
-
-# Test Case 12: fieldiag
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test fieldiag --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 12: fieldiag"
-
-# Test Case 13: chk-memory
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-memory --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 13: chk-memory"
-
-# Test Case 14: chk-cpu
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-aslr --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 14: chk-aslr"
-
-# Test Case 15: chk-load-average
+# Test Case 10: chk-load-average
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-load-average --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 2: chk-load-average"
+check_return_flag $? "Test Case 10: chk-load-average"
 
-# Test Case 16: chk-load-cpu
+# Test Case 11: chk-load-cpu
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-load-cpu --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 16: chk-load-cpu"
+check_return_flag $? "Test Case 11: chk-load-cpu"
 
-# Test Case 17: chk-load-mem
+# Test Case 12: chk-load-mem
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-load-mem --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 17: chk-load-mem"
+check_return_flag $? "Test Case 12: chk-load-mem"
 
-# Test Case 18: chk-nfs-mount
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-nfs-mount --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 18: chk-nfs-mount"
-
-# Test Case 19: chk-os
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-os --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 19: chk-os"
-
-# Test Case 20: chk-power
+# Test Case 13: chk-power
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-power --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 20: chk-power"
+check_return_flag $? "Test Case 13: chk-power"
 
-# Test Case 21: chk-process
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-process --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 21: chk-process"
-
-# Test Case 22: chk-smt
+# Test Case 14: chk-smt
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-smt --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 22: chk-smt"
+check_return_flag $? "Test Case 14: chk-smt"
 
-# Test Case 23: chk-sw-level
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-sw-level --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 23: chk-sw-level"
-
-# Test Case 24: chk-temp
+# Test Case 15: chk-temp
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-temp --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 24: chk-temp"
+check_return_flag $? "Test Case 15: chk-temp"
 
-# Test Case 25: chk-zombies
+# Test Case 16: chk-zombies
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-zombies --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 25: chk-zombies"
+check_return_flag $? "Test Case 16: chk-zombies"
 
-# Test Case 26: test-simple
+# Test Case 17: test-simple
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test test-simple --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 26: test-simple"
+check_return_flag $? "Test Case 17: test-simple"
+
+# Test Case 18: chk-process
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-process --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 18: chk-process"
+
+# Test Case 19: chk-nfs-mount
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-nfs-mount --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 19: chk-nfs-mount"
 
 rm -f ${TEMP_LOG}
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "                hcdiag Bucket COMPLETED" >> ${LOG}
-echo "------------------------------------------------------------" >> ${LOG}
-echo "Additional Flags:" >> ${LOG}
-echo -e "${FLAGS}" >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 exit 0
