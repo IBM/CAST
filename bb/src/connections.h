@@ -55,7 +55,6 @@ class ResponseDescriptor
     char attr[sizeof(txp::Attr_uint64)];
     std::string connName;
     ResponseDescriptor() : reply(NULL), msgid( txp::Id(0)) {sem_init(&semaphore,0,0); }
-    ~ResponseDescriptor(){sem_destroy(&semaphore)}
     txp::Id msgid;
     int sempost() {return sem_post(&semaphore);}
     int semwait() {return sem_wait(&semaphore);}
