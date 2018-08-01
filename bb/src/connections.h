@@ -50,11 +50,17 @@ typedef enum CONNECTION_SUSPEND_OPTION CONNECTION_SUSPEND_OPTION;
 class ResponseDescriptor
 {
   public:
-    sem_t     semaphore;
+    
     volatile txp::Msg* reply;
     char attr[sizeof(txp::Attr_uint64)];
     std::string connName;
-    ResponseDescriptor() : reply(NULL) { }
+    ResponseDescriptor() : reply(NULL), msgid( txp::Id(0)) {sem_init(&semaphore,0,0); }
+    ~ResponseDescriptor(){sem_destroy(&semaphore)}
+    txp::Id msgid;
+    int sempost() {return sem_post(&semaphore);}
+    int semwait() {return sem_wait(&semaphore);}
+private:
+    sem_t     semaphore;
 };
 
 
