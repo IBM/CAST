@@ -2541,7 +2541,7 @@ void startTransferThreads()
     return;
 }
 
-int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -2553,7 +2553,7 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
         BBTagInfo2 empty(pConnectionName, pHostName, pJobId);
         // NOTE:  The LVKey could already exist in the case where a given job spans the failover
         //        to a backup and then back to the primary bbServer.
-        rc = metadata.addLVKey(pHostName, pLVKey, pJobId, empty, pTolerateAlreadyExists);
+        rc = metadata.addLVKey(pHostName, pMsg, pLVKey, pJobId, empty, pTolerateAlreadyExists);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -3217,3 +3217,25 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+
+void switchIdsToMountPoint(txp::Msg* pMsg)
+{
+    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData();
+    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData();
+
+    int rc = becomeUser(l_Owner, l_Group);
+    if (!rc)
+    {
+        bberror << err("in.misc.mntptuid", l_Owner) << err("in.misc.mntptgid", l_Group);
+    }
+    else
+    {
+        stringstream errorText;
+        errorText << "becomeUser failed";
+    	bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+

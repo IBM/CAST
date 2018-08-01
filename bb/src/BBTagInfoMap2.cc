@@ -14,6 +14,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range.hpp>
 
+#include <identity.h>
+
 #include "bberror.h"
 #include "bbinternal.h"
 #include "bbwrkqmgr.h"
@@ -29,7 +31,7 @@ namespace bfs = boost::filesystem;
 // BBTagInfoMap2 - Static members
 //
 
-int BBTagInfoMap2::update_xbbServerAddData(const uint64_t pJobId)
+int BBTagInfoMap2::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId)
 {
     int rc = 0;
     stringstream errorText;
@@ -54,13 +56,34 @@ int BBTagInfoMap2::update_xbbServerAddData(const uint64_t pJobId)
             }
             else
             {
+                // Switch to root:root
+                // NOTE:  Must do this so we can insert into the cross bbserver
+                //        metadata directory, which has permissions of 755.
+                becomeUser(0,0);
+
+                // Create the jobid directory
                 bfs::create_directories(job);
+
+                // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
+                rc = chown(job.string().c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
+                                                 (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
+                if (rc)
+                {
+                    bfs::remove_all(job);
+                    errorText << "chown failed for the jobid directory";
+                    bberror << err("error.path", job.string());
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                }
+
+                // Switch back to the correct uid:gid
+                switchIdsToMountPoint(pMsg);
+
                 // Unconditionally perform a chmod to 0770 for the jobid directory.
                 // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
                 rc = chmod(job.c_str(), 0770);
                 if (rc)
                 {
-                    errorText << "chmod failed";
+                    errorText << "chmod failed for the jobid directory";
                     bberror << err("error.path", job.c_str());
                     LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                 }
@@ -137,7 +160,7 @@ void BBTagInfoMap2::accumulateTotalLocalContributorInfo(const uint64_t pHandle, 
     return;
 }
 
-int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int BBTagInfoMap2::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     int rc = 0;
     stringstream errorText;
@@ -201,7 +224,7 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, const LVKey* pLVKey, const 
         rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
         if (!rc)
         {
-            rc = update_xbbServerAddData(pJobId);
+            rc = update_xbbServerAddData(pMsg, pJobId);
         }
     }
     else if (rc == -2)
