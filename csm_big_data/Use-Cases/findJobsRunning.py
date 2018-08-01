@@ -35,6 +35,8 @@ def main(args):
         help='The timestamp to search for jobs in YYYY-MM-DD HH:MM:SS.f format')
     parser.add_argument( '-d', '--days', metavar='days', dest='days', default=1,
         help='The days before and after the timestamp to include in the range')
+    parser.add_argument( '-hr', '--hours', metavar='hours', dest='hours', default=0,
+        help='The hours before and after the timestamp to include in the range')
     parser.add_argument( '-s', '--size', metavar='size', dest='size', default=500,
         help='The number of results to be returned')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
@@ -64,8 +66,8 @@ def main(args):
 
     # Time from milliseconds to date format to get the range
     tm_stmp = datetime.fromtimestamp(int(timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_before = datetime.fromtimestamp((int(timestamp)-(int(args.days)*86400000))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_after = datetime.fromtimestamp((int(timestamp)+(int(args.days)*86400000))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_before = datetime.fromtimestamp((int(timestamp)-(int(args.days)*86400000) + int(args.hours)*3600000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_after  = datetime.fromtimestamp((int(timestamp)+(int(args.days)*86400000 + int(args.hours)*3600000))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
 
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
@@ -80,7 +82,7 @@ def main(args):
     					'lte' : day_after, 
     					'relation' : "within"
     				}
-    			}#,
+    			},
                 # 'range' : {
                 #     'data.history.end_time':{
                 #         'gte' : day_before,
@@ -96,7 +98,7 @@ def main(args):
 
     print("----------Got {0} Hit(s) for jobs beginning and ending between {1} and {2}----------".format(total_hits,day_before,day_after))
 
-    # If ES is down, uncomment to use this method to find all jobs running
+    # If DB format is incorrect, uncomment to use this method to find all jobs running
     # query_results_extraction( es, day_before, day_after)
 
     #print(tr_res["hits"]["hits"])
@@ -106,10 +108,8 @@ def main(args):
         print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
         print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
         print("\tbegin_time: " + tr_data["begin_time"])
-        if "history" in tr_data:
-		    print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
-        else :
-            print("\tend_time: *\n")
+        print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
+
     
 def query_results_extraction(es, day_before, day_after):
 
