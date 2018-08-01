@@ -177,7 +177,7 @@ def createRandomFile(pEnv, pFile, pSize):
 def flushWaiters(pActiveServer):
     # Flush the waiters for the input active server
 
-    l_StartingValue = 2
+    l_StartingValue = 5
 
     if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", False)) == 0):
         l_Continue = l_StartingValue - 1;
