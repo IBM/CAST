@@ -2548,7 +2548,7 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
 
     ResponseDescriptor reply;
     txp::Msg* msgserver = 0;
-    std::string l_ConnectionName=DEFAULT_SERVER_ALIAS;
+    std::string l_ConnectionName;
 
     try
     {
@@ -2617,8 +2617,11 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
 
                     // Send the message to bbserver
                     // First sendMessage uses DEFAULT_SERVER_ALIAS and then the real name after
+                    if (l_ConnectionName.empty())
+                    {
+                        l_ConnectionName = connectionNameFromAlias();
+                    }
                     rc=sendMessage2bbserver(l_ConnectionName, msgserver, reply);
-                    l_ConnectionName=reply.connName;    //  Next volley uses the name placed in reply which should be the real connection name
                     delete msgserver;
                     msgserver=NULL;
                     if (rc)
