@@ -4,13 +4,14 @@ import { FilterBarQueryFilterProvider } from 'ui/filter_bar/query_filter';
 import { timefilter } from 'ui/timefilter';
 
 var module = require('ui/modules').get('kibana/cast_search',['kibana']);
-module.controller('elSearch', function($scope, es, Private, timefilter){
+module.controller('castSearch', function($rootScope, $scope, es, Private, timefilter){
   //  var filterManager = Private(FilterManagerProvider);
     const queryFilter = Private(FilterBarQueryFilterProvider);
     const elastic = es;
     const tf = timefilter;
+    const rootScope = $rootScope;
     queryFilter.removeAll();
-
+    
     $scope.search = function(job) {
 
         var query = '{ "query" : { "bool" : { "should" : [ { "match": { "data.allocation_id" : ' + 
@@ -22,18 +23,8 @@ module.controller('elSearch', function($scope, es, Private, timefilter){
         }).then(function(body){
             // TODO this section will trigger the filter (draft 1)
             var hits = body.hits.hits;
-            /*
-            var hitCount = body.hits.total;
-            var allocations = []
-            for (var i in body.hits.hits) {
-                console.log(hits[i]);
-                var allocation =  {};
-                allocation = hits[i]._source.data
-                
-                allocations[i] = allocation;
-            }
-            */
-
+            rootScope.$broadcast('allocationsFound', hits);
+        
             var allocation = hits[0]._source;
             
             // Build the filter.
