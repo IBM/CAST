@@ -858,13 +858,14 @@ int waitReply(ResponseDescriptor& reply, txp::Msg*& response_msg)
         replyWaiters[reply.connName].erase(&reply);
     }
     pthread_mutex_unlock(&replyWaitersLock);
-
+    
+    response_msg = (txp::Msg*)reply.reply;
+    
     if(reply.reply == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
         return -1;
     }
-    response_msg = (txp::Msg*)reply.reply;
 
     return 0;
 }
@@ -878,14 +879,19 @@ int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
     pthread_mutex_unlock(&replyWaitersLock);
 
     reply.semwait();
+    
+    pthread_mutex_lock(&replyWaitersLock);
+    {
+        response_msg = (txp::Msg*)reply.reply;
+        reply.reply =NULL; //lose the message reference to response_msg
+    }
+    pthread_mutex_unlock(&replyWaitersLock);
 
-    if(reply.reply == NULL)
+    if(response_msg == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
         return -1;
     }
-    response_msg = (txp::Msg*)reply.reply;
-    reply.reply =NULL; //lose the message reference to response_msg
 
     return 0;
 }
