@@ -252,12 +252,11 @@ def RestartTransfers(pEnv):
                 bb.flushWaiters(l_ActiveServer)
                 BB_SetServer("activate", l_NewServer)
 
-                BB_Suspend(l_HostName)
-                l_ResumeCN_Host = True
-            else:
-                bb.flushWaiters(l_ActiveServer)
-                BB_Suspend(l_HostName)
-                l_ResumeCN_Host = True
+            # NOTE: Try to let start transfers to complete their second volley
+            #       before suspending the connection(s)
+            bb.flushWaiters(l_ActiveServer)
+            BB_Suspend(l_HostName)
+            l_ResumeCN_Host = True
 
             # NOTE: We do not want to close the connection to the previouly active server until we have
             #       stopped any transfers that may still be running on that server
@@ -276,7 +275,7 @@ def RestartTransfers(pEnv):
                 # Now, close the connection to the previously active bbServer
                 try:
                     # First, make sure we have no waiters...
-                    bb.flushWaiters(l_ActiveServer)
+ #                   bb.flushWaiters(l_ActiveServer)
 
                     # Close the connection to the 'old' server
                     BB_CloseServer(l_ActiveServer)
