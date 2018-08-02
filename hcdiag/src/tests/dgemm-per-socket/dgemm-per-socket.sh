@@ -70,7 +70,7 @@ read_basics
 #------------------------------------------------------      
 if [ ! -x $S_BINDIR/dgemm ]; then 
    echo "Can not find the dgemm installation."          
-   echo "$me test FAIL, rc=$rc"
+   echo "$me test FAIL, rc=1"
    exit 1
 fi
 
