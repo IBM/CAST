@@ -13,7 +13,6 @@ import {
 
 
 export class CastControl extends Component {
-
     render(){
         return (
             <div>

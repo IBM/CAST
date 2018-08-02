@@ -15,12 +15,7 @@ import {
   EuiFlexItem,
 } from '@elastic/eui';
 
-
-
-
 export default class CastTextField extends Component {
-
-    
 
     render() {
         return (
