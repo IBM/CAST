@@ -303,7 +303,7 @@ sub setupBSCFS
             $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
             $json = decode_json($jsondata);
         };
-        $ENV{BSCFS_WORK_PATH} = $json->{"bb"}{"bscfsagent"}{"workpath"} . "/$::JOBID";
+        $ENV{BSCFS_WORK_PATH} = $json->{"bb"}{"bscfsagent"}{"workpath"} . "/$::JOBID." . $ENV{"BBHASH"};
     }
     
     $::BSCFS_BB_PATH    = $ENV{BBPATH} . "/.bscfs";
