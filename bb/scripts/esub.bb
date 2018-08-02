@@ -14,6 +14,7 @@
 
 JOBHASH=$(env | md5sum -t | cut -d ' ' -f 1)
 echo BBPATH=/mnt/bb_$JOBHASH >> $LSB_SUB_MODIFY_ENVFILE
+echo BBHASH=$JOBHASH >> $LSB_SUB_MODIFY_ENVFILE
 
 if [[ $LSB_SUB_ADDITIONAL == *"bscfs"* ]]; then
     echo BSCFS_MNT_PATH=/bscfs >> $LSB_SUB_MODIFY_ENVFILE
