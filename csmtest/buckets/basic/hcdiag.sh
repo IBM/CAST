@@ -44,8 +44,11 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
-# Copy included test.properties over to active test.properties
+# Copy included test.properties and clustconf.yaml over to active test.properties
 echo "y" | cp ${FVT_PATH}/include/hcdiag/test.properties ${HC_DIAG_PATH}/etc/
+xdcp ${COMPUTE_NODE} ${FVT_PATH}/include/hcdiag/test,properties ${HC_DIAG_PATH}/etc/
+echo "y" | cp ${FVT_PATH}/include/hcdiag/clustconf.yaml ${HC_DIAG_PATH}/etc/
+xdcp ${COMPUTE_NODES} ${FVT_PATH}/include/hcdiag/clustconf.yaml ${HC_DIAG_PATH}/etc/
 
 # Test Case 1: ppping
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test ppping --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
@@ -125,6 +128,34 @@ check_return_flag $? "Test Case 18: chk-process"
 # Test Case 19: chk-nfs-mount
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-nfs-mount --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
 check_return_flag $? "Test Case 19: chk-nfs-mount"
+
+# Test Case 20: chk-cpu
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-cpu --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 20: chk-cpu"
+
+# Test Case 21: chk-cpu-count
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-cpu-count --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 21: chk-cpu-count"
+
+# Test Case 22: chk-sys-firmware
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-sys-firmware --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 22: chk-sys-firmware"
+
+# Test Case 23: chk-memory
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-memory --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 23: chk-memory"
+
+# Test Case 24: chk-aslr
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-aslr --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 24: chk-aslr"
+
+# Test Case 25: chk-os
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-os --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 25: chk-os"
+
+# Test Case 26: chk-temp
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-temp --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 26: chk-temp"
 
 rm -f ${TEMP_LOG}
 
