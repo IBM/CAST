@@ -91,7 +91,7 @@ if [ -z "$is_running" ]; then
 fi
 
 for socket in 0 1; do
-   cmd="${MPI_ROOT}/jsm_pmix/bin/jsrun -R ${env} --rs_per_host 22 --env PINNER_SOCKET=$socket ${thisdir}/pinner.py ${S_BINDIR}/dgemm $MATRIX_MEMORY $NUM_ITERATIONS >>${tmpout} 2>>${tmperr}"
+   cmd="${MPI_ROOT}/jsm_pmix/bin/jsrun -R ${ENV} --rs_per_host 22 --env PINNER_SOCKET=$socket ${thisdir}/pinner.py ${S_BINDIR}/dgemm $MATRIX_MEMORY $NUM_ITERATIONS >>${tmpout} 2>>${tmperr}"
    echo -e "\nRunning on socket $socket: $cmd"
    eval $cmd 
    rc=$?
@@ -104,7 +104,7 @@ if [ -s ${tmperr} ]; then
     cat ${tmperr}
 fi     
 
-cout=0
+count=0
 if [ -s $tmpout ]; then
    if [ $print_raw_file -eq 1 ]; then cat $tmpout; fi
    echo -e "\n"
@@ -134,12 +134,12 @@ fi
 
 
 
-if [ $ret -eq 0 ]; then 
-   if [ $count -eq 2 ]; then 
+if [ "$ret" -eq "0" ]; then 
+   if [ "$count" -eq "2" ]; then 
       echo "$me test PASS, rc=$ret" 
       exit 0
    else 
-      echo "(ERROR): Count not find two results"
+      echo "(ERROR): Could not find two results"
       rc=1 
    fi
 fi
