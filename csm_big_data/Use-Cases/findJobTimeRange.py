@@ -38,9 +38,6 @@ def main(args):
         help='The secondary job ID of the job (default : 0).')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    # Probably don't need this
-    # parser.add_argument( '-k', '--keywords', metavar='key', dest='keywords', nargs='*', default=['*'],
-    #     help='A list of keywords to search for in the Big Data Store (default : *).')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to ')
 
@@ -84,7 +81,6 @@ def main(args):
     total_hits = tr_res["hits"]["total"]
 
     print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
-    # print(tr_res["hits"]["hits"][1]["_source"]["data"]["primary_job_id"])
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
     if total_hits != 1:
