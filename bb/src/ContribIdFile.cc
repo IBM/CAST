@@ -450,21 +450,27 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                 //       BBTD_All_Files_Closed bit, the close may have still failed and the transfer
                 //       definition is now marked as failed.  In that case, we want to make sure that
                 //       is reflected in the handle status.
-                if (pValue) {
+                if (pValue)
+                {
                     if ((pFlags & BBTD_All_Extents_Transferred) || (l_ContribIdFlags & BBTD_All_Extents_Transferred) ||
-                        (pFlags & BBTD_All_Files_Closed) || (l_ContribIdFlags & BBTD_All_Files_Closed)) {
-                        if (pFlags & BBTD_All_Extents_Transferred) {
+                        (pFlags & BBTD_All_Files_Closed) || (l_ContribIdFlags & BBTD_All_Files_Closed))
+                    {
+                        if (pFlags & BBTD_All_Extents_Transferred)
+                        {
                             l_UpdateSize = true;
                         }
-                        if (l_ContribIdFlags & BBTD_Stopped) {
+                        if (l_ContribIdFlags & BBTD_Stopped || pFlags & BBTD_Stopped)
+                        {
                             SET_FLAG_VAR(l_Flags, l_Flags, BBTD_Stopped, pValue);
                             l_UpdateSize = false;
                         }
-                        if (l_ContribIdFlags & BBTD_Failed) {
+                        if (l_ContribIdFlags & BBTD_Failed || pFlags & BBTD_Failed)
+                        {
                             SET_FLAG_VAR(l_Flags, l_Flags, BBTD_Failed, pValue);
                             l_UpdateSize = false;
                         }
-                        if (l_ContribIdFlags & BBTD_Canceled) {
+                        if (l_ContribIdFlags & BBTD_Canceled || pFlags & BBTD_Canceled)
+                        {
                             SET_FLAG_VAR(l_Flags, l_Flags, BBTD_Canceled, pValue);
                             l_UpdateSize = false;
                         }
