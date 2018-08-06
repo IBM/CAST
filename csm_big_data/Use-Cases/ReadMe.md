@@ -74,6 +74,33 @@
                         A list of hostnames to filter the results to
 ```
 
+## Use Case 4
+
+**Script Name**: findJobsRunning.py
+
+**Description**: `A tool for finding jobs running at the specified time.`
+
+1. Queries `cast-allocation` for any jobs that contained the specified time in their run time.
+2. Display the `allocation id`, `job id`, and `secondary job id` of any running jobs.
+
+**Arguments**:
+```
+-h, --help            show this help message and exit
+  -t hostname:port, --target hostname:port
+                        An Elasticsearch server to be queried. This defaults
+                        to the contents of environment variable
+                        "CAST_ELASTIC".
+  -T timestamp, --time 
+                         The time which should be searched for running jobs.
+  -d days, --days 
+                         The days before and after the timestamp to include in the range.    
+  -hr hours, --hours 
+                         The hours before and after the timestamp to include in the range.
+  -s size, --size 
+                         The number of results to be returned.                         
+  -H [host [host ...]], --hostnames [host [host ...]]
+                        A list of hostnames to filter the results to
+```
 
 
 
