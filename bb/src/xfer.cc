@@ -790,6 +790,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
             ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
         }
     }
+
     else if(pExtent->flags & BBI_TargetPFSPFS)
     {
         BBSTATUS l_Status = BBFULLSUCCESS;
@@ -800,63 +801,38 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         if (err.value())
         {
             l_Status = BBFAILED;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
         }
 
-        uint64_t l_FileStatus = 0;
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
-            case BBSTOPPED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Stopped;
-                LOG(bb,info) << "PFS copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
             case BBFAILED:
                 pExtent->len = 0;
-                l_FileStatus |= BBTD_Failed;
                 LOG(bb,info) << "PFS copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
             case BBCANCELED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Canceled;
-                LOG(bb,info) << "PFS copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
+            case BBSTOPPED:
             default:
                 // Not possible...
                 break;
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
+
     else if(pExtent->flags & BBI_TargetSSDSSD)
     {
-        uint64_t l_FileStatus = 0;
-        if (pExtent->flags & BBTD_Stopped)
+        if (pExtent->flags & BBTD_Failed)
         {
-            l_FileStatus |= BBTD_Stopped;
-            LOG(bb,info) << "Local compute node SSD copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Failed)
-        {
-            l_FileStatus |= BBTD_Failed;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
             LOG(bb,info) << "Local compute node SSD copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Canceled)
-        {
-            l_FileStatus |= BBTD_Canceled;
-            LOG(bb,info) << "Local compute node SSD copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
         else
@@ -866,7 +842,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {
