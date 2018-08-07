@@ -66,8 +66,8 @@ def main(args):
 
     # Time from milliseconds to date format to get the range
     tm_stmp = datetime.fromtimestamp(int(timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_before = datetime.fromtimestamp((int(timestamp)-(int(args.days)*86400000) + int(args.hours)*3600000)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_after  = datetime.fromtimestamp((int(timestamp)+(int(args.days)*86400000 + int(args.hours)*3600000))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_before = datetime.fromtimestamp((int(timestamp)-((int(args.days)*86400000) + (int(args.hours)*3600000)))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+    day_after  = datetime.fromtimestamp((int(timestamp)+((int(args.days)*86400000) + (int(args.hours)*3600000)))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
 
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
