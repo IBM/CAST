@@ -77,6 +77,7 @@ def calculate_statistics(filename, Api_Statistics):
     print ("Utility Log").center(print_padding, '+')
     print filename[2:].center(print_padding, '-')
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
+    # print Api_Statistics.keys()
     total_calls = 0
     stats = ("Utility Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     for key in Api_Statistics.keys():
