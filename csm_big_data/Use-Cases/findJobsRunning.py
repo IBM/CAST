@@ -83,6 +83,7 @@ def main(args):
     					'relation' : "within"
     				}
     			},
+                # Uncomment below to include a specific range
                 # 'range' : {
                 #     'data.history.end_time':{
                 #         'gte' : day_before,
@@ -101,7 +102,6 @@ def main(args):
     # If DB format is incorrect, uncomment to use this method to find all jobs running
     # query_results_extraction( es, day_before, day_after)
 
-    #print(tr_res["hits"]["hits"])
     for data in tr_res["hits"]["hits"]:
         tr_data = data["_source"]["data"]
         print("allocation_id: {0}".format(tr_data["allocation_id"]) )
