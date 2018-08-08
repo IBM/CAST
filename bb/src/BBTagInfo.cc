@@ -711,39 +711,16 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const st
 {
     int rc = 0;
 
-    HandleFile* l_HandleFile = 0;
-    char* l_HandleFileName = 0;
 
     if (pHandle == transferHandle)
     {
-        // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer and another
-        //       bbServer that is waiting for the handle/contribid file to be marked as 'stopped'
-        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
-        if (!rc)
+        rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+        if (rc == 1)
         {
-            rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
-            if (rc == 1)
-            {
-                int l_Value = 1;
-                // Set the stopped indicator in the local metadata...
-                setStopped(pLVKey, pJobId, pJobStepId, pHandle, l_Value);
-            }
-            // Release the handle file
-            l_HandleFile->close();
+            int l_Value = 1;
+            // Set the stopped indicator in the local metadata...
+            setStopped(pLVKey, pJobId, pJobStepId, pHandle, l_Value);
         }
-    }
-
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
-    if (l_HandleFile)
-    {
-        // The lock on the handle file was already released by the close above
-        delete l_HandleFile;
-        l_HandleFile = 0;
     }
 
     return rc;

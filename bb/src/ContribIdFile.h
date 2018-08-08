@@ -340,8 +340,8 @@ public:
 
     inline int notRestartable()
     {
-        // Not restartable if finished normally or canceled
-        return ((allExtentsTransferred() && allFilesClosed() && (!anyFilesFailed())) || (canceled() && (!stopped())));
+        // Not restartable if no files in transfer definition -or- finished normally -or- canceled
+        return ((files.size() == 0) || (allExtentsTransferred() && allFilesClosed() && (!anyFilesFailed())) || (canceled() && (!stopped())));
     }
 
     int copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const string& pTransferKeys);

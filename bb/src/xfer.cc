@@ -29,6 +29,10 @@
 
 using namespace std;
 
+#include <boost/filesystem.hpp>
+namespace bfs = boost::filesystem;
+namespace bs  = boost::system;
+
 #include "bbapi.h"
 #include "bbinternal.h"
 #include "bbio_regular.h"
@@ -413,7 +417,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                                 rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
                                                 if (!rc)
                                                 {
-                                                    // Indicate to restart this transfer defintion as it is now marked as stopped
+                                                    // Indicate to restart this transfer definition as it is now marked as stopped
                                                     rc = 1;
                                                     LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
                                                                  << "Transfer definition marked as stopped for jobid " << pJobId \
@@ -421,7 +425,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                                 }
                                                 else
                                                 {
-                                                    // Indicate to not restart this transfer defintion
+                                                    // Indicate to not restart this transfer definition
                                                     rc = 0;
                                                     l_Continue = 0;
                                                     LOG(bb,error) << "contribIdStopped():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
@@ -430,7 +434,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                             }
                                             else
                                             {
-                                                // Indicate to not restart this transfer defintion
+                                                // Indicate to not restart this transfer definition
                                                 rc = 0;
                                                 l_Continue = 0;
                                                 LOG(bb,error) << "contribIdStopped():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
@@ -786,79 +790,49 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
             ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
         }
     }
+
     else if(pExtent->flags & BBI_TargetPFSPFS)
     {
-        string cmd;
-        cmd = "cp " + pTransferDef->files[pExtent->sourceindex] + " " + pTransferDef->files[pExtent->targetindex];
-
-        // \todo NOTE: Currently, no way to get to the stopped or canceled legs...  @DLH
         BBSTATUS l_Status = BBFULLSUCCESS;
-        for (auto&l_Line : runCommand(cmd)) {
-            // No expected output...
-            if (l_Line.size() > 1) {
-                LOG(bb,error) << l_Line;
-            } else {
-                LOG(bb,error) << std::hex << std::uppercase << setfill('0') << "One byte rc from cp: 0x" << setw(2) << l_Line[0] << setfill(' ') << std::nouppercase << std::dec;
-            }
-            // Any output is currently treated as a failure...
+
+        bs::error_code err;
+        bfs::copy_file(bfs::path(pTransferDef->files[pExtent->sourceindex]), bfs::path(pTransferDef->files[pExtent->targetindex]), bfs::copy_option::overwrite_if_exists, err);
+
+        if (err.value())
+        {
             l_Status = BBFAILED;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
         }
 
-        uint64_t l_FileStatus = 0;
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
-            case BBSTOPPED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Stopped;
-                LOG(bb,info) << "PFS copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
             case BBFAILED:
                 pExtent->len = 0;
-                l_FileStatus |= BBTD_Failed;
                 LOG(bb,info) << "PFS copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
             case BBCANCELED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Canceled;
-                LOG(bb,info) << "PFS copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
+            case BBSTOPPED:
             default:
                 // Not possible...
                 break;
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
+
     else if(pExtent->flags & BBI_TargetSSDSSD)
     {
-        uint64_t l_FileStatus = 0;
-        if (pExtent->flags & BBTD_Stopped)
+        if (pExtent->flags & BBTD_Failed)
         {
-            l_FileStatus |= BBTD_Stopped;
-            LOG(bb,info) << "Local compute node SSD copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Failed)
-        {
-            l_FileStatus |= BBTD_Failed;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
             LOG(bb,info) << "Local compute node SSD copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Canceled)
-        {
-            l_FileStatus |= BBTD_Canceled;
-            LOG(bb,info) << "Local compute node SSD copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
         else
@@ -868,7 +842,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {
@@ -2400,46 +2374,39 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     if (!rc)
                                     {
                                         WRKQE* l_WrkQE = 0;
-                                        if (!wrkqmgr.getWrkQE(pLVKey, l_WrkQE))
+                                        rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                        if ((!rc) && l_WrkQE)
                                         {
-                                            if (l_WrkQE)
+                                            l_WrkQE->dump("debug", "Before pushing work onto this queue ");
+                                            bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
+                                            for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
                                             {
-                                                l_WrkQE->dump("debug", "Before pushing work onto this queue ");
-                                                bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
-                                                for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
+                                                LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
+                                                // Queue a WorkID object for every extent to the work queue
+                                                WorkID l_WorkId(*pLVKey, l_TagId);
+                                                if (i+1 == (l_TransferDef->extents).size())
                                                 {
-                                                    LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
-                                                    // Queue a WorkID object for every extent to the work queue
-                                                    WorkID l_WorkId(*pLVKey, l_TagId);
-                                                    if (i+1 == (l_TransferDef->extents).size())
-                                                    {
-                                                        // Validate work queue on last add...
-                                                        l_ValidateOption = VALIDATE_WORK_QUEUE;
-                                                    }
-                                                    l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
+                                                    // Validate work queue on last add...
+                                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
                                                 }
-                                                l_WrkQE->dump("info", "After pushing work onto this queue ");
-
-                                                // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
-                                                if ((l_TransferDef->extents).size())
-                                                {
-                                                    l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
-                                                }
+                                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                             }
-                                            else
+                                            l_WrkQE->dump("info", "After pushing work onto this queue ");
+
+                                            // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
+                                            if ((l_TransferDef->extents).size())
                                             {
-                                                // Inconsistency with metadata....
-                                                rc = -1;
-                                                errorText << "queueTransfer(): Work queue entry was not returned from work queue manager when attempting to schedule additional extents to transfer";
-                                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                                l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
                                             }
                                         }
                                         else
                                         {
-                                            // Inconsistency with metadata....
+                                            // Work queue not found....
                                             rc = -1;
-                                            errorText << "queueTransfer(): Could not find work queue when attempting to schedule additional extents to transfer";
+                                            errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                                      << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
                                             LOG_ERROR_TEXT_RC(errorText, rc);
+                                            wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                         }
 
                                         if (!rc)
@@ -2550,7 +2517,7 @@ void startTransferThreads()
     return;
 }
 
-int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -2562,7 +2529,7 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
         BBTagInfo2 empty(pConnectionName, pHostName, pJobId);
         // NOTE:  The LVKey could already exist in the case where a given job spans the failover
         //        to a backup and then back to the primary bbServer.
-        rc = metadata.addLVKey(pHostName, pLVKey, pJobId, empty, pTolerateAlreadyExists);
+        rc = metadata.addLVKey(pHostName, pMsg, pLVKey, pJobId, empty, pTolerateAlreadyExists);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -2991,7 +2958,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     // Extents still left to be transferred...
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
 
-                    if (!wrkqmgr.getWrkQE(pLVKey, l_WrkQE))
+                    int rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                    if ((!rc2) && l_WrkQE)
                     {
                         l_WrkQ = l_WrkQE->getWrkQ();
                         WorkID l_WorkId;
@@ -3225,3 +3193,25 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+
+void switchIdsToMountPoint(txp::Msg* pMsg)
+{
+    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData();
+    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData();
+
+    int rc = becomeUser(l_Owner, l_Group);
+    if (!rc)
+    {
+        bberror << err("in.misc.mntptuid", l_Owner) << err("in.misc.mntptgid", l_Group);
+    }
+    else
+    {
+        stringstream errorText;
+        errorText << "becomeUser failed";
+    	bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+

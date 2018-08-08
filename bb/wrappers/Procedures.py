@@ -63,6 +63,38 @@ def GetHandle(pEnv):
 
     return rc
 
+def GetWaitForReplyCount(pEnv):
+    rc = 0
+
+    try:
+        bb.initEnv(pEnv)
+
+        l_Attempts = 0
+        l_Continue = 1
+        l_PrevServer = None
+        l_PrevValue = None
+        l_PrintOption = False;
+        while (l_Continue > 0):
+            l_ActiveServer = BB_GetServer("active", False)
+            if (l_ActiveServer != ""):
+                if (l_Attempts % 120 == 0):
+                    l_PrintOption = True
+                l_Value = int(BB_GetServerByName(l_ActiveServer, "waitforreplycount", l_PrintOption))
+                time.sleep(0.25)
+
+            l_PrintOption = False
+            if (l_PrevServer != l_ActiveServer or l_PrevValue != l_Value):
+                l_PrintOption = True
+                l_PrevServer = l_ActiveServer
+                l_PrevValue = l_Value
+                l_Attempts = 0
+            l_Attempts += 1
+    except BBError as error:
+        error.handleError()
+        rc = error.rc
+
+    return rc
+
 def ListHandles(pEnv):
     rc = 0
 
@@ -189,9 +221,6 @@ def RestartTransfers(pEnv):
 
         l_ActiveServer = BB_GetServer("active")
         if (l_ActiveServer != ""):
-            BB_Suspend(l_HostName)
-            l_ResumeCN_Host = True
-
             if (pEnv["IO_FAILOVER"]):
                 # New ESS, set up that environment
                 l_PrimaryServer = BB_GetServer("primary")
@@ -205,12 +234,6 @@ def RestartTransfers(pEnv):
                 if (l_NewServer.upper() in ("NONE",)):
                     raise BBError(rc=-1, text="There is no definied backup for this bbServer")
 
-                try:
-                    BB_OpenServer(l_NewServer)
-                except BBError as error:
-                    if not error.handleError():
-                        raise
-
                 '''
                 # Don't do this as it causes a window...  'activate' makes the swap atomically between the two servers...
                 try:
@@ -221,10 +244,19 @@ def RestartTransfers(pEnv):
                 '''
 
                 try:
-                    BB_SetServer("activate", l_NewServer)
+                    BB_OpenServer(l_NewServer)
                 except BBError as error:
                     if not error.handleError():
                         raise
+
+                bb.flushWaiters(l_ActiveServer)
+                BB_SetServer("activate", l_NewServer)
+
+            # NOTE: Try to let start transfers to complete their second volley
+            #       before suspending the connection(s)
+            bb.flushWaiters(l_ActiveServer)
+            BB_Suspend(l_HostName)
+            l_ResumeCN_Host = True
 
             # NOTE: We do not want to close the connection to the previouly active server until we have
             #       stopped any transfers that may still be running on that server
@@ -243,8 +275,8 @@ def RestartTransfers(pEnv):
                 # Now, close the connection to the previously active bbServer
                 try:
                     # First, make sure we have no waiters...
-                    while (int(BB_GetServerByName(l_ActiveServer, "waitforreplycount")) != 0):
-                        time.sleep(1)
+ #                   bb.flushWaiters(l_ActiveServer)
+
                     # Close the connection to the 'old' server
                     BB_CloseServer(l_ActiveServer)
                 except BBError as error:

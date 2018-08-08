@@ -103,7 +103,14 @@ print "\nscaling_governor:\n"; print `cat /sys/devices/system/cpu/cpu*/cpufreq/s
 print "\nscaling_max_freq:\n"; print `cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_max_freq | sort -u`;
 print "\nscaling_min_freq:\n"; print `cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_min_freq | sort -u`;
 print "\n"; print `/usr/sbin/ppc64_cpu --subcores-per-core`;
-print "\n"; print `sudo /usr/sbin/ppc64_cpu --dscr`;
+
+
+my $rval= `sudo -v`;
+my $sudo = $?;
+
+if ($sudo == 0) { print "\n"; print `sudo /usr/sbin/ppc64_cpu --dscr`;}
+else { print "\n(WARNING) Can not get DSCR information. User does not have sudo privilege";} 
+
 print "\n`/usr/bin/numactl --hardware' output: \n"; print `/usr/bin/numactl --hardware`;
 
 print "\n";
@@ -115,7 +122,7 @@ my $tempdir = tempdir( CLEANUP => 1 );
 if ($rc == 0) {
    my $cmd = "/usr/bin/lscpu | grep ^'CPU(s)'  2>$tempdir/stderr | sort";
    if ($verbose) {print "\ncommand: $cmd\n";}
-   my $rval = `$cmd`;
+   $rval = `$cmd`;
    $rc=$?;
 
    if ($verbose) {print "output: $rval";}
@@ -170,39 +177,56 @@ if ($rc == 0) {
    # =====================
    # check cpu frequency
    # =====================
+
    $cmd = "sudo /usr/sbin/ppc64_cpu --frequency -t 1";
+   if ($sudo != 0) { $cmd = "grep clock /proc/cpuinfo | sort -u"; print "\n(WARNING) Checking cpu clock frequency with /proc/cpuinfo. User does not have sudo privilege.";  }
+
    if ($verbose) { print "\ncommand: $cmd\n";}
    $rval = `$cmd`;
-   $rc=$?;
-   
    if ($verbose) {print "output: $rval";}
+   
+
    foreach my $l (split(/\n/,`cat $tempdir/stderr`)) { chomp $l; print "(WARN) $l\n"; }
    
    # parse all values here...
    if (length($rval) == 0) { push(@$errs,"Found No command output: "); } 
    
    foreach my $l (split(/\n/,$rval)) {
-      # looking for a lines like:
-      # min:    3.507 GHz (cpu 72)
-      # max:    3.507 GHz (cpu 2)
-      # avg:    3.507 GHz
-      my ($min) = $l =~ /^min:\s+(\S+)/;
-      my ($max) = $l =~ /^max:\s+(\S+)/;
-      my ($avg) = $l =~ /^avg:\s+(\S+)/;
-      if (defined $min) {
-         print "-- node=$node, min clock frequency read=$min, allowed=$exp_min\n";
-         if ($min < $exp_min) {
-            push (@$errs, "$node: min clock frequency allowed: $exp_min, got: $min");
-            $errcnt += 1;
+      if ($sudo == 0) {
+         # looking for a lines like:
+         # min:    3.507 GHz (cpu 72)
+         # max:    3.507 GHz (cpu 2)
+         # avg:    3.507 GHz
+         my ($min) = $l =~ /^min:\s+(\S+)/;
+         my ($max) = $l =~ /^max:\s+(\S+)/;
+         my ($avg) = $l =~ /^avg:\s+(\S+)/;
+         if (defined $min) {
+            print "-- node=$node, min clock frequency read=$min, allowed=$exp_min\n";
+            if ($min < $exp_min) {
+               push (@$errs, "$node: min clock frequency allowed: $exp_min, got: $min");
+               $errcnt += 1;
+            }
+         }
+         if ( defined $max) {
+            print "-- node=$node, max clock frequency read=$max, allowed=$exp_max\n";
+            if ($max > $exp_max) {
+               push (@$errs, "$node: max clock frequency allowed: $exp_max, got: $max");
+               $errcnt += 1;
+            }
          }
       }
-   
-      if ( defined $max) {
-        print "-- node=$node, max clock frequency read=$max, allowed=$exp_max\n";
-        if ($max > $exp_max) {
-           push (@$errs, "$node: max clock frequency allowed: $exp_max, got: $max");
-           $errcnt += 1;
-        }
+      ## not sudo 
+      else {
+         my ($clock) = $l =~ /^clock\s+:\s+(\S+)MHz/;
+         $clock=$clock/1000;
+         if ($clock < $exp_min) {
+            push (@$errs, "$node: min clock frequency allowed: $exp_min, got: $clock");
+            $errcnt += 1;
+         }
+         if ($clock > $exp_max) {
+            push (@$errs, "$node: max clock frequency allowed: $exp_max, got: $clock");
+            $errcnt += 1;
+         }
       }
    }
 }   
