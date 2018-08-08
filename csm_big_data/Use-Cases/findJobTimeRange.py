@@ -28,7 +28,7 @@ def main(args):
 
     # Specify the arguments.
     parser = argparse.ArgumentParser(
-        description='''A tool for finding keywords during the run time of a job.''')
+        description='''A tool for finding when a job was running through the big data store.''')
     
     parser.add_argument( '-a', '--allocationid', metavar='int', dest='allocation_id', default=-1,
         help='The allocation ID of the job.')

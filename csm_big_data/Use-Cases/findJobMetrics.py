@@ -27,7 +27,7 @@ def main(args):
 
     # Specify the arguments.
     parser = argparse.ArgumentParser(
-        description='''A tool for finding keywords during the run time of a job.''')
+        description='''A tool for finding metrics about the nodes participating in the supplied job id.''')
     
     parser.add_argument( '-a', '--allocationid', metavar='int', dest='allocation_id', default=-1,
         help='The allocation ID of the job.')
@@ -79,22 +79,65 @@ def main(args):
     )
     total_hits = tr_res["hits"]["total"]
 
-    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
-
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
+    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
+
     # TODO make this code more fault tolerant
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
     # ---------------------------------------------------------------------------------------------
     
+    # tr_data["compute_nodes"].append('c650f08p21')
+
     # Print out Nodes Used
     for nodes in tr_data["compute_nodes"]:
         print(nodes)
 
 
+
+    ed_res = es.search(
+        index='cast-zimon-*',
+        body={
+            'query':{
+                'range' : {
+                    'timestamp': {
+                        'gte' : tr_data["begin_time"], 
+                        'lte' : tr_data["history"]["end_time"], 
+                        'relation' : "within"
+                    }
+                }
+                # 'bool':{
+                #     'should': {
+                #         'match':{
+                #             'terms':{
+                #                 'source': tr_data["compute_nodes"],
+                #                 'minimum_should_match': 1
+                #             }
+                #         }
+                #     }
+                # }
+                # 'terms':{
+                #     'source': tr_data["compute_nodes"],
+                #     'minimum_should_match': 1
+                # }
+                
+                # "match_all": {}
+            },
+            # 'filter':{
+            #     'terms':{
+            #         'source': 'c650f08p21'
+            #     }
+            # }
+        }
+        
+    )
+
+    # print(ed_res["hits"]["hits"][0]["_source"]["source"])
+    print(ed_res["hits"]["total"])
+    print(ed_res["hits"]["hits"][0])
 
 
 

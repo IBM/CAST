@@ -28,7 +28,7 @@ def main(args):
 
 	# Specify the arguments.
     parser = argparse.ArgumentParser(
-        description='''A tool for finding keywords during the run time of a job.''')
+        description='''A tool for finding jobs running at the specified time.''')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
     parser.add_argument( '-T', '--time', metavar='timestamp', dest='timestamp', default=None,

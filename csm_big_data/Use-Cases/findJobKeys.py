@@ -83,8 +83,6 @@ def main(args):
     )
     total_hits = tr_res["hits"]["total"]
 
-    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
-    print(tr_res["hits"]["hits"][1]["_source"]["data"]["primary_job_id"])
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
     if total_hits != 1:
