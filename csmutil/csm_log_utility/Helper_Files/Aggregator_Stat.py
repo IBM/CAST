@@ -37,7 +37,6 @@ def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime):
 # [AGG]2018-05-31 15:42:32.083870       csmd::info     | AGG-MTC: Expecting 1 responses. Setting timeout to 58000 milliseconds.
 
     for line in opened_file :
-        print 'Outputting line: ' + line
         if '|' in line:
             Log_Line = LO.Log(line)
             if Log_Line.DateTime >= start_datetime and Log_Line.DateTime <= end_datetime:   # Looking for only start and end time of Api call
@@ -64,9 +63,14 @@ def collision_error(Api_Id, start_api, end_api):
 def calculate_statistics(filename, Api_Statistics):
     print ("Aggregator Log").center(print_padding, '+')
     print filename[2:].center(print_padding, '-')
+    file_opened = open(filename, 'r')
+    file_lines = file_opened.readlines()
+    file_start = file_lines[0].split("csm")[0][5:].strip()
+    file_end   = file_lines[-1].split("csm")[0][5:].strip()
+    file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     total_calls = 0
-    stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
+    stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') +'\n' + file_time + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     if not Api_Statistics['responses']:
         pass
     else:
