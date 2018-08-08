@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    findJobKeys.py
+#    findJobsrunning.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #

@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    findJobKeys.py
+#    findJobTimeRange.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -89,7 +89,6 @@ def main(args):
 
     # TODO make this code more fault tolerant
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
-    print(tr_data)
     # ---------------------------------------------------------------------------------------------
     
     # Build the hostnames string:
