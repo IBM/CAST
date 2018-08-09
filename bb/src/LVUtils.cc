@@ -2181,12 +2181,6 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len;
                                     break;
 
-                                case BBFILE_STOPPED:
-                                    e.flags |= BBTD_Stopped;
-                                    LOG(bb,info) << "Local copy stopped for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                    << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex;
-                                    break;
-
                                 case BBFILE_FAILED:
                                     e.flags |= BBTD_Failed;
                                     LOG(bb,info) << "Local copy failed for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
@@ -2194,11 +2188,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     break;
 
                                 case BBFILE_CANCELED:
-                                    e.flags |= BBTD_Canceled;
-                                    LOG(bb,info) << "Local copy canceled for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                    << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex;
-                                    break;
-
+                                case BBFILE_STOPPED:
                                 default:
                                     // Not possible...
                                     break;

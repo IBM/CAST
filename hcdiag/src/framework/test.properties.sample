@@ -335,6 +335,15 @@ timeout      = 2000
 targetType   = Compute
 #args        = 1
 
+[tests.dgemm-per-socket]
+description = measure CPU performance per socket.
+executable  = /opt/ibm/csm/hcdiag/tests/dgemm-per-socket/dgemm-per-socket.sh
+group       = cpu
+timeout     = 800
+targetType  = Compute
+#              performance in Gflops 
+#args        = 450
+
 # strong recomend to run on the node, just invoking this script
 # NOTE: NVIDIA distributes the fieldiag binary and the source code for the
 #       kernel module. The files should be copied to /opt/ibm/csm/hcdiag/tests/fieldiag 

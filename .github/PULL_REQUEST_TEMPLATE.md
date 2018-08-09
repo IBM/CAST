@@ -19,9 +19,6 @@ _How does this change address the problem?_
 
 1. Think about what you want to test.
 2. Test it.
-3. ???
-4. Profit!
 
 ## Screenshots
 
-![Replace me!](https://media.giphy.com/media/111ebonMs90YLu/giphy.gif)
