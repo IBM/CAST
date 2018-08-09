@@ -98,17 +98,17 @@ def main(args):
 
 
 
-    ed_res = es.search(
-        index='cast-zimon-*',
-        body={
-            'query':{
-                'range' : {
-                    'timestamp': {
-                        'gte' : tr_data["begin_time"], 
-                        'lte' : tr_data["history"]["end_time"], 
-                        'relation' : "within"
-                    }
-                }
+    # ed_res = es.search(
+    #     index='cast-zimon-*',
+    #     body={
+    #         'query':{
+    #             'range' : {
+    #                 'timestamp': {
+    #                     'gte' : tr_data["begin_time"], 
+    #                     'lte' : tr_data["history"]["end_time"], 
+    #                     'relation' : "within"
+                #     }
+                # }
                 # 'bool':{
                 #     'should': {
                 #         'match':{
@@ -125,19 +125,19 @@ def main(args):
                 # }
                 
                 # "match_all": {}
-            },
+            # },
             # 'filter':{
             #     'terms':{
             #         'source': 'c650f08p21'
             #     }
             # }
-        }
+    #     }
         
-    )
+    # )
 
     # print(ed_res["hits"]["hits"][0]["_source"]["source"])
-    print(ed_res["hits"]["total"])
-    print(ed_res["hits"]["hits"][0])
+    # print(ed_res["hits"]["total"])
+    # print(ed_res["hits"]["hits"][0])
 
 
 
