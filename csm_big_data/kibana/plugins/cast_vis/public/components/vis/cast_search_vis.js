@@ -67,10 +67,11 @@ export class CastSearchVis extends Component {
     handleSearchBarFilter(filter, searchId)
     {
         this.props.scope.API.queryFilter.removeFilter(this.filter);
-
+        filter.label = "CAST Search Filter";
         filter.meta = {
             disabled: false,
-            negate: false
+            negate: false,
+            alias : "CAST Search Filter"
         }
 
         this.filter = filter;
@@ -79,18 +80,12 @@ export class CastSearchVis extends Component {
 
     handleResultsRender(resultsMap )
     {
-        console.log(resultsMap);
         if (resultsMap)
         {
             this._resultComp.updateResults(resultsMap, false);
         }
     }
 
-
-    componentDidMount()
-    {
-        console.log(this._resultComp);
-    }
 
     renderSearches() {
         // This function will rebuild the search components.

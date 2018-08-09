@@ -44,7 +44,9 @@ export class JobComponent extends Component
            { "data.primary_job_id" :  this.props.search.primary_job_id } },
           { match : 
            { "data.secondary_job_id" :  this.props.search.secondary_job_id } }
-        ] } }  ;
+          ] ,
+          "minimum_should_match" : 2
+        } }  ;
 
         this.props.onSearch(query, this.props.search, this.handleResponse);
     }

@@ -18,7 +18,6 @@ EuiButton,
   EuiRange,
   EuiSwitch,
   EuiBasicTable,
-
 } from '@elastic/eui';
 
 
