@@ -96,48 +96,51 @@ def main(args):
     for nodes in tr_data["compute_nodes"]:
         print(nodes)
 
+    begin_time = tr_data["begin_time"]
+    end_time = tr_data["history"]["end_time"]
+
+    print(begin_time)
+    print(end_time)
+
+    # TODO make sure which index to query
+    # Check if querying the terms is OR or AND currently
+    ed_res = es.search(
+        index='*',#'cast-zimon-*',
+        body=
+        {
+            'query':{
+                'bool' :{
+                    'must':{
+                        'match_all': {}
+                    },
+                    'must':{
+                        'range' : {
+                            '@timestampe': {
+                                'gte' : begin_time, 
+                                'lte' : end_time, 
+                                'relation' : "within"
+                            }
+                        }
+                    },
+                    'filter':{
+                        'terms':{
+                            'source':tr_data["compute_nodes"]
+                        }
+                    }
+                },
+
+            }
+        }
 
 
-    # ed_res = es.search(
-    #     index='cast-zimon-*',
-    #     body={
-    #         'query':{
-    #             'range' : {
-    #                 'timestamp': {
-    #                     'gte' : tr_data["begin_time"], 
-    #                     'lte' : tr_data["history"]["end_time"], 
-    #                     'relation' : "within"
-                #     }
-                # }
-                # 'bool':{
-                #     'should': {
-                #         'match':{
-                #             'terms':{
-                #                 'source': tr_data["compute_nodes"],
-                #                 'minimum_should_match': 1
-                #             }
-                #         }
-                #     }
-                # }
-                # 'terms':{
-                #     'source': tr_data["compute_nodes"],
-                #     'minimum_should_match': 1
-                # }
-                
-                # "match_all": {}
-            # },
-            # 'filter':{
-            #     'terms':{
-            #         'source': 'c650f08p21'
-            #     }
-            # }
-    #     }
-        
-    # )
+
+                    
+
+    )
 
     # print(ed_res["hits"]["hits"][0]["_source"]["source"])
-    # print(ed_res["hits"]["total"])
-    # print(ed_res["hits"]["hits"][0])
+    print("Hits: " + str(ed_res["hits"]["total"]) +"\n")
+    print(ed_res["hits"])
 
 
 
