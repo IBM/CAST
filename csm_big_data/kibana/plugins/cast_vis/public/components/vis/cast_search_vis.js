@@ -79,6 +79,7 @@ export class CastSearchVis extends Component {
 
     handleResultsRender(resultsMap )
     {
+        console.log(resultsMap);
         if (resultsMap)
         {
             this._resultComp.updateResults(resultsMap, false);

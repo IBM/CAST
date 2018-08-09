@@ -80,9 +80,9 @@ export class JobComponent extends Component
             });
             this.props.renderResults(results);
         }
-        else
+        else if ( hits.total > 0 )
         {
-            this.responseObject = results;
+            this.responseObject = hits.hits;
             this.setState({ isModalVisible: true });
         }
 
@@ -98,7 +98,15 @@ export class JobComponent extends Component
     }
     
     handleCollisionModal(resolution) {
-        console.log(resolution);
+        if (resolution)
+        {
+            this.handleResponse({ 
+                hits: {
+                    hits: [ resolution ],
+                    total : 1
+                }
+            });
+        }
         this.setState({ isModalVisible: false });
     }
 
@@ -110,7 +118,7 @@ export class JobComponent extends Component
                 <CollisionModal
                     onClose={this.handleCollisionModal}
                     responseObj={this.responseObject}
-                    collisionfilter={["data.allocation_id", "data.start_time", "data.state"]}
+                    collisionFilter={["data.allocation_id", "data.user_name", "data.begin_time", "data.history.end_time",  "data.state"]}
                 />
             );
         }
@@ -122,6 +130,7 @@ export class JobComponent extends Component
                 label={this.props.search.type}
                 >
                 <EuiFieldNumber
+                    label="Primary Job ID"
                     placeholder={this.props.search.primary_job_id}
                     onChange={this.handlePrimaryChange}
                     name="primary-job-id"/>
@@ -129,6 +138,7 @@ export class JobComponent extends Component
             </EuiFormRow>
              <EuiFormRow>
                 <EuiFieldNumber
+                    label="Secondary Job ID"
                     placeholder={this.props.search.secondary_job_id}
                     onChange={this.handleSecondaryChange}
                     name="secondary-job-id"/>

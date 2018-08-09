@@ -3,13 +3,19 @@ export const DefaultSearchMappings = new Object({
         displayText : 'Allocation ID',
         indexPattern : 'cast-allocation',
         displayFields: [
+            "data.allocation_id",
+            "data.primary_job_id",
+            "data.secondary_job_id",
             "data.begin_time",
             "data.history.end_time",
             "data.num_nodes",
             "data.queue",
             "data.job_type",
             "data.job_name",
-            "data.comment"
+            "data.comment",
+            "data.user_name",
+            "data.state",
+            "data.account"
         ]
 
     },
@@ -17,13 +23,19 @@ export const DefaultSearchMappings = new Object({
         displayText : 'Job ID',
         indexPattern : 'cast-allocation',
         displayFields: [
+            "data.allocation_id",
+            "data.primary_job_id",
+            "data.secondary_job_id",
             "data.begin_time",
             "data.history.end_time",
             "data.num_nodes",
             "data.queue",
             "data.job_type",
             "data.job_name",
-            "data.comment"
+            "data.comment",
+            "data.user_name",
+            "data.state",
+            "data.account"
         ]
     },
     'custom' : {
@@ -66,11 +78,3 @@ export const getTitle = (searchParams, searchIndex) => {
 }
 
 
-export const allocationIdSearch = () => {
-    const allocation = newSearch("allocation-id");
-    allocation.indexPattern = 'cast-allocation';
-    allocation.displayFields=[
-    ];
-    
-    return allocation;
-};

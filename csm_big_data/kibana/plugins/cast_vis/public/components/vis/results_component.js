@@ -13,8 +13,6 @@ export class ResultsComponent extends Component
     constructor(props){
         super(props);
         
-        this.isMultipleOptions=false;
-
         this.state = {
             columns : [
                 { field : "x", name: 'Attribute', truncateText: false, sortable: true },

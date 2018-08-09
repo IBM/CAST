@@ -89,6 +89,7 @@ export class AllocationComponent extends Component
             label={this.props.search.type}
             >
                 <EuiFieldNumber
+                    label="Allocation ID"
                     placeholder={this.props.search.allocation_id}
                     onChange={this.handleAllocationChange}
                     name="allocation-id"/>
