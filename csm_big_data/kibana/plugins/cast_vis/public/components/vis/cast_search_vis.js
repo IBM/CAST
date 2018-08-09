@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { uiModules } from 'ui/modules';
 import { AllocationComponent } from './allocation_component';
+import { JobComponent } from './job_component';
 import { ResultsComponent } from './results_component';
 
 import {
@@ -18,6 +19,8 @@ export class CastSearchVis extends Component {
 
         this.activeFilter={};
         this._resultComp={};
+
+        this.resultsId  =  Date.now();
 
 
         this.handleSearch = this.handleSearch.bind(this);
@@ -38,7 +41,7 @@ export class CastSearchVis extends Component {
     }
     
     async handleSearch(query, search, callback) {
-        const indexPattern = await this.props.scope.API.indexPatterns.get(this.props.defaultIndex);
+        const indexPattern = await this.props.scope.API.indexPatterns.get(search.indexPatternId);
         const searchSource = new this.props.scope.API.SearchSource()
                 .inherits(false)
                 .set('index', indexPattern)
@@ -76,7 +79,10 @@ export class CastSearchVis extends Component {
 
     handleResultsRender(resultsMap )
     {
-        this._resultComp.updateResults(resultsMap, false);
+        if (resultsMap)
+        {
+            this._resultComp.updateResults(resultsMap, false);
+        }
     }
 
 
@@ -87,10 +93,8 @@ export class CastSearchVis extends Component {
 
     renderSearches() {
         // This function will rebuild the search components.
-
         return this.props.searches.map((search, index) => {
             let searchComponent =( <EuiFlexItem> </EuiFlexItem>);
-            console.log(search.type);
             switch (search.type) {
                 case 'allocation-id':
                     searchComponent = (
@@ -105,6 +109,16 @@ export class CastSearchVis extends Component {
                     );
                     break;
                 case 'job-id':
+                    searchComponent = (
+                        <JobComponent
+                           search={search}
+                           searchIndex={index}
+                           onSearch={this.handleSearch}
+                           handleFilter={this.handleSearchBarFilter}
+                           renderResults={this.handleResultsRender}
+                           handleTimeRange={this.handleSetTimeRange}
+                        />
+                    );
                     break;
                 case 'custom':
                     break;
@@ -117,11 +131,6 @@ export class CastSearchVis extends Component {
                   style={{ minWidth:'250px'}}
                   >
                     {searchComponent}
-
-                    <ResultsComponent
-                        ref={(child) => { this._resultComp = child; }}
-                        style="overflow-y: scroll;"
-                    />
                 </EuiFlexItem>
                 );
 
@@ -130,11 +139,18 @@ export class CastSearchVis extends Component {
     
     render() {
         this._resultComp={};
-
         return (
             <div className="castSearchVis">
             <EuiFlexGroup wrap>
                 {this.renderSearches()}
+
+                <EuiFlexItem 
+                    key={this.resultsId}
+                    style={{ minWidth:'250px'}}>
+                    <ResultsComponent
+                        ref={(child) => { this._resultComp = child; }}
+                    />
+                </EuiFlexItem>
             </EuiFlexGroup>
             </div>
         );
@@ -144,7 +160,6 @@ export class CastSearchVis extends Component {
 CastSearchVis.propTypes = {
     scope: PropTypes.object.isRequired,
     searches: PropTypes.array.isRequired,
-    defaultIndex: PropTypes.string.isRequired
 }
 
 export function CastSearchVisWrapper(props) {

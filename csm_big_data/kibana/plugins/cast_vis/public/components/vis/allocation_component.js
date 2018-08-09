@@ -2,7 +2,7 @@
 
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-
+import _ from "lodash";
 
 import {
     EuiFieldNumber,
@@ -22,6 +22,9 @@ export class AllocationComponent extends Component
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleAllocationChange = this.handleAllocationChange.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
+
+
+        //this.
     }
 
     handleSubmit()
@@ -42,8 +45,7 @@ export class AllocationComponent extends Component
 
         if (hits.total === 1)
         {
-            console.log(hits);
-            const allocation = hits.hits[0]._source;
+            const allocation = _.get( hits, "hits[0]._source");
             const filter = {
                 query : {
                  multi_match : {
@@ -57,7 +59,19 @@ export class AllocationComponent extends Component
             };
             this.props.handleTimeRange(allocation.data.begin_time, allocation.data.history.end_time);
             this.props.handleFilter(filter, this.props.search.id);
-            this.props.renderResults(allocation.data);
+            console.log(allocation.data);
+            console.log(this.props.search.displayFields);
+            console.log(_.get( allocation, this.props.search.displayFields));
+            console.log(this.props.search);
+            var results = {}
+            this.props.search.displayFields.map( (key) => {
+                const value = _.get(allocation, key, false);
+                if ( value )
+                {
+                    results[key] = value;
+                }
+            });
+            this.props.renderResults(results);
         }
 
         // TODO fail.

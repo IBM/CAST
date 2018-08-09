@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { addSearch, newSearch, removeSearch} from '../../search_utils';
+import { DefaultSearchMappings, addSearch, newSearch, removeSearch} from '../../search_utils';
 
 import {CastSearchEditor} from './cast_search_editor.js';
 
@@ -17,37 +17,24 @@ import {
 } from '@elastic/eui';
 
 export class CastControlsTab  extends Component {
-    state = {
-        type: 'allocation-id',
-        indexID: ''
-    }
     
     constructor(props){
         super(props);
 
-        this.getIndexPatterns("cast-allocation").then( 
-            (savedObjects) => {
-                
-                for (var idx in savedObjects)
-                {
-                    if(savedObjects[idx].attributes.title === "cast-allocation")
-                    {
-                        return this.setVisParam('defaultIndex', savedObjects[idx].id);
-                    }
-                }
+        this.searchOptions = [];
+        for (var key in DefaultSearchMappings) {
+            this.searchOptions.push({
+                value : key,
+                text  : DefaultSearchMappings[key].displayText
             });
+        }
+
+        this.state = {
+            type: this.searchOptions[0].value
+        }
     }
-
-
-    initIndices = async () => {
-        const patterns = await this.getIndexPatterns("cast-allocation");    
-        console.log(patterns);
-
-    }
-
 
     /**
-     *
      * @param {string} search A search string containing the index pattern to search for.
      *
      * @returns {array} An array of saved objjects containing the index patterns.
@@ -60,13 +47,11 @@ export class CastControlsTab  extends Component {
             search_fields: ['title'],
             perPage: 100
         });
-        console.log("it worked");
-        console.log(resp);
         return resp.savedObjects;
     }
 
     getIndexPattern = async (indexPatternId) => {
-        return await this.props.scope.vis.API.indexPatterns.get(indexPatternID);
+        return await this.props.scope.vis.API.indexPatterns.get(indexPatternId);
     }
 
     // Copied from control tabs
@@ -76,17 +61,17 @@ export class CastControlsTab  extends Component {
         this.props.stageEditorParams(params);
     }
 
-    changeIndexPattern = (event) => {
-        console.log(event.value);
-        //this.props.handleIndexPatternChange(this.props.controlIndex, event);
-    }
-
     handleAddSearch = () => {
         this.setVisParam('searches', addSearch( this.props.scope.vis.params.searches, newSearch(this.state.type)));
     }
 
     handleRemoveSearch = (searchIndex) => {
         this.setVisParam('searches', removeSearch( this.props.scope.vis.params.searches, searchIndex));
+    }
+
+    handleSearchUpdate = (searchIndex, searchParams)=> {
+        this.props.scope.vis.params.searches[searchIndex] = searchParams;
+        this.setVisParam('searches', this.props.scope.vis.params.searches);
     }
     
     renderSearches() {
@@ -97,6 +82,9 @@ export class CastControlsTab  extends Component {
                     onRemove={this.handleRemoveSearch}
                     searchIndex={searchIndex}
                     searchParams={searchParams}
+                    handleSearchUpdate={this.handleSearchUpdate}
+                    getIndexPatterns={this.getIndexPatterns}
+                    getIndexPattern={this.getIndexPattern}
                 />
                 );
         });
@@ -112,11 +100,7 @@ export class CastControlsTab  extends Component {
                <EuiFlexItem>
                 <EuiFormRow id="searchTypeSelector">
                  <EuiSelect
-                   options={[
-                    { value: 'allocation-id', text: 'Allocation ID' },
-                    { value: 'job-id', text: 'Job ID' },
-                    { value: 'custom', text: 'Custom Search' },
-                    ]}
+                   options={this.searchOptions}
                    value={this.state.type}
                    onChange={evt => this.setState({ type: evt.target.value })}
                    aria-label="Select search type"

@@ -5,6 +5,7 @@ import React, { Component } from 'react';
 import {
     EuiFlexItem,
       EuiInMemoryTable,
+      EuiBasicTable,
 } from '@elastic/eui';
 
 export class ResultsComponent extends Component
@@ -20,13 +21,11 @@ export class ResultsComponent extends Component
                 { field : "y", name: 'Value', truncateText: false, sortable: false}],
             items   : [],
         }
-
     }
     
     updateResults(resultsMap, isMultiple){
-        this.setState( { items : Object.keys(resultsMap).map( key => ({x : key, y : resultsMap[key] }))});
+        this.setState( prevState => ({ items : Object.keys(resultsMap).map( key => ({x : key, y : resultsMap[key] }))}));
     }
-
 
     render(){
         return (

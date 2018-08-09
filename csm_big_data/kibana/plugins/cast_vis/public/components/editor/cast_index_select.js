@@ -17,14 +17,15 @@ export class CastIndexSelect extends Component
 
     // Load the options list from the index patterns.
     loadOptions(input, callback) {
-        this.props.getIndexPatterns(input).then((indexPatterns) =>{
-         const options = indexPatterns.map((obj) => {
-          return {
-           label: obj.attributes.title,
-           value: obj.id
-          };
-         });
-         callback(null, {options:options});
+        this.props.getIndexPatterns(input + "*").then((savedObjects) => {
+            const idxList = savedObjects.map( (obj) => {
+                return {
+                     label: obj.attributes.title,
+                     value: obj.id
+                 };
+             });
+
+            callback(null, {options:idxList});
         });
     }
 
@@ -33,17 +34,16 @@ export class CastIndexSelect extends Component
         return (
             <EuiFormRow
                 id={cId}
-                label="Index"
+                label="Index Pattern"
             >
               <Select.Async
                 className="index-pattern-react-select"
                 placeholder="Select index..."
-                value={this.props.value}
-                defaultValue={this.props.defaultValue}
-                resetValue={this.props.defaultValue}
                 loadOptions={this.loadOptions}
+                value={this.props.value}
+                resetValue={''}
                 onChange={this.props.onChange} 
-                inputProps={{ id:cId }}
+                inputProps={{ id : cId }}
               />
             </EuiFormRow>
         ); 
@@ -53,7 +53,7 @@ export class CastIndexSelect extends Component
 CastIndexSelect.propTypes = {
     value: PropTypes.string,
     onChange: PropTypes.func.isRequired,
-    controlIndex: PropTypes.number.isRequired,
     getIndexPatterns: PropTypes.func.isRequired,
+    controlIndex: PropTypes.number.isRequired,
     defaultValue: PropTypes.string
 }

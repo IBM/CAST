@@ -1,6 +1,9 @@
+
+
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-
+import _ from "lodash";
+import CollisionModal from './collision_modal';
 
 import {
     EuiFieldNumber,
@@ -18,11 +21,18 @@ export class JobComponent extends Component
         super(props);
         this.props.search.primary_job_id = 0;
         this.props.search.secondary_job_id = 0;
-
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handlePrimaryChange = this.handlePrimaryChange.bind(this);
         this.handleSecondaryChange = this.handleSecondaryChange.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
+        this.handleCollisionModal = this.handleCollisionModal.bind(this);
+
+
+        this.state = {
+            showCollisionModal: false
+        };
+
+        this.responseObject={}
     }
 
     handleSubmit()
@@ -31,7 +41,8 @@ export class JobComponent extends Component
         bool : { 
          should : [ 
           { match : 
-           { "data.primary_job_id" :  this.props.search.primary_job_id } }
+           { "data.primary_job_id" :  this.props.search.primary_job_id } },
+          { match : 
            { "data.secondary_job_id" :  this.props.search.secondary_job_id } }
         ] } }  ;
 
@@ -44,8 +55,7 @@ export class JobComponent extends Component
 
         if (hits.total === 1)
         {
-            console.log(hits);
-            const allocation = hits.hits[0]._source;
+            const allocation = _.get( hits, "hits[0]._source");
             const filter = {
                 query : {
                  multi_match : {
@@ -59,9 +69,22 @@ export class JobComponent extends Component
             };
             this.props.handleTimeRange(allocation.data.begin_time, allocation.data.history.end_time);
             this.props.handleFilter(filter, this.props.search.id);
-            this.props.renderResults(allocation.data);
+
+            var results = {}
+            this.props.search.displayFields.map( (key) => {
+                const value = _.get(allocation, key, false);
+                if ( value )
+                {
+                    results[key] = value;
+                }
+            });
+            this.props.renderResults(results);
         }
-        console.log("multiple records were detected!");
+        else
+        {
+            this.responseObject = results;
+            this.setState({ isModalVisible: true });
+        }
 
         // TODO fail.
     }
@@ -73,22 +96,42 @@ export class JobComponent extends Component
     handleSecondaryChange(event) {
         this.props.search.secondary_job_id = event.target.value;
     }
+    
+    handleCollisionModal(resolution) {
+        console.log(resolution);
+        this.setState({ isModalVisible: false });
+    }
 
     render() {
+        let modal;
+        if (this.state.isModalVisible)
+        {
+            modal = (
+                <CollisionModal
+                    onClose={this.handleCollisionModal}
+                    responseObj={this.responseObject}
+                    collisionfilter={["data.allocation_id", "data.start_time", "data.state"]}
+                />
+            );
+        }
         return (
+           <div>
            <EuiFlexItem grow={false}>
-           <EuiFormRow
-            id={this.props.search.id}
-            label={this.props.search.type}
-            >
+             <EuiFormRow
+                id={this.props.search.id}
+                label={this.props.search.type}
+                >
                 <EuiFieldNumber
                     placeholder={this.props.search.primary_job_id}
                     onChange={this.handlePrimaryChange}
-                    name="Primary Job ID"/>
+                    name="primary-job-id"/>
+
+            </EuiFormRow>
+             <EuiFormRow>
                 <EuiFieldNumber
                     placeholder={this.props.search.secondary_job_id}
                     onChange={this.handleSecondaryChange}
-                    name="Secondary Job ID"/>
+                    name="secondary-job-id"/>
             </EuiFormRow>
 
              <EuiFormRow>
@@ -98,8 +141,13 @@ export class JobComponent extends Component
               </EuiButton>
              </EuiFormRow>
             </EuiFlexItem>
+
+            {modal}
+            </div>
         );
+        
     }
+
 }
 
 JobComponent.propTypes = {
