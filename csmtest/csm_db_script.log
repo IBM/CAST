@@ -1,0 +1,264 @@
+2018-08-10 15:10:27 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:10:27 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:10:27 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:10:27 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:10:27 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:10:27 (root) [Info    ] User response: y
+2018-08-10 15:10:27 (root) [Complete] csmdb database deleted
+2018-08-10 15:10:27 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:10:27 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:10:27 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:10:27 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:10:28 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:10:28 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:10:28 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:10:28 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:10:28 (root) [Complete] csmdb database created.
+2018-08-10 15:10:32 (root) [Complete] csmdb database tables created.
+2018-08-10 15:10:32 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:10:32 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:10:32 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:10:32 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:10:32 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:12:38 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:12:38 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:12:38 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:12:38 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:12:38 (root) [Info    ] fvttestdb database does not exist.
+2018-08-10 15:12:38 (root) [Info    ] fvttestdb database creation process begin.
+2018-08-10 15:12:38 (root) [Info    ] fvttestdb database user: csmdb already exists
+2018-08-10 15:12:42 (root) [Complete] fvttestdb database created.
+2018-08-10 15:12:46 (root) [Complete] fvttestdb database tables created.
+2018-08-10 15:12:46 (root) [Complete] fvttestdb database functions and triggers created.
+2018-08-10 15:12:46 (root) [Info    ] fvttestdb skipping data load process
+2018-08-10 15:12:46 (root) [Complete] fvttestdb initialized csm_db_schema_version data
+2018-08-10 15:12:46 (root) [Info    ] fvttestdb DB schema version (16.0)
+2018-08-10 15:12:46 (root) [End     ] fvttestdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:12:46 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:12:46 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:12:46 (root) [Info    ] DB Names:  xcatdb | csmdb | fvttestdb
+2018-08-10 15:12:46 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:12:46 (root) [Info    ] fvttestdb database drop process begin.
+2018-08-10 15:12:46 (root) [Info    ] User response: y
+2018-08-10 15:12:46 (root) [Complete] fvttestdb database deleted
+2018-08-10 15:12:46 (root) [End     ] fvttestdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:14:53 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:14:53 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:14:53 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:14:53 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:14:53 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:14:53 (root) [Info    ] User response: y
+2018-08-10 15:14:53 (root) [Complete] csmdb database deleted
+2018-08-10 15:14:53 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:14:53 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:14:53 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:14:53 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:14:53 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:14:53 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:14:53 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:14:53 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:14:54 (root) [Complete] csmdb database created.
+2018-08-10 15:14:58 (root) [Complete] csmdb database tables created.
+2018-08-10 15:14:58 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:14:58 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:14:58 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:14:58 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:14:58 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:15:51 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:15:51 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:15:51 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:15:51 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:15:51 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:15:51 (root) [Info    ] User response: y
+2018-08-10 15:15:51 (root) [Complete] csmdb database deleted
+2018-08-10 15:15:51 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:15:51 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:15:51 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:15:51 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:15:51 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:15:51 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:15:51 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:15:51 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:15:52 (root) [Complete] csmdb database created.
+2018-08-10 15:15:56 (root) [Complete] csmdb database tables created.
+2018-08-10 15:15:56 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:15:56 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:15:56 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:15:56 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:15:56 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:16:14 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:16:14 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:16:14 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:16:14 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:16:14 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:16:14 (root) [Info    ] User response: y
+2018-08-10 15:16:14 (root) [Complete] csmdb database deleted
+2018-08-10 15:16:14 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:16:14 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:16:14 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:16:14 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:16:14 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:16:14 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:16:14 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:16:14 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:16:16 (root) [Complete] csmdb database created.
+2018-08-10 15:16:19 (root) [Complete] csmdb database tables created.
+2018-08-10 15:16:19 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:16:19 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:16:19 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:16:20 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:16:20 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:17:07 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:17:07 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:17:07 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:17:07 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:17:07 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:17:07 (root) [Info    ] User response: y
+2018-08-10 15:17:07 (root) [Complete] csmdb database deleted
+2018-08-10 15:17:07 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:17:07 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:17:07 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:17:07 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:17:07 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:17:07 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:17:07 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:17:07 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:17:08 (root) [Complete] csmdb database created.
+2018-08-10 15:17:12 (root) [Complete] csmdb database tables created.
+2018-08-10 15:17:12 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:17:12 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:17:12 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:17:12 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:17:12 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:17:31 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:17:31 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:17:31 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:17:31 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:17:31 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:17:31 (root) [Info    ] User response: y
+2018-08-10 15:17:32 (root) [Complete] csmdb database deleted
+2018-08-10 15:17:32 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:17:32 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:17:32 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:17:32 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:17:32 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:17:32 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:17:32 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:17:32 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:17:33 (root) [Complete] csmdb database created.
+2018-08-10 15:17:36 (root) [Complete] csmdb database tables created.
+2018-08-10 15:17:37 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:17:37 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:17:37 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:17:37 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:17:37 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:18:00 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:18:00 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:18:00 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:18:00 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:18:00 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:18:00 (root) [Info    ] User response: y
+2018-08-10 15:18:00 (root) [Complete] csmdb database deleted
+2018-08-10 15:18:00 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:18:00 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:18:00 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:18:00 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:18:01 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:18:01 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:18:01 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:18:01 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:18:02 (root) [Complete] csmdb database created.
+2018-08-10 15:18:05 (root) [Complete] csmdb database tables created.
+2018-08-10 15:18:05 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:18:05 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:18:05 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:18:05 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:18:05 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:18:29 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:18:28 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:18:28 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:18:29 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:18:29 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:18:29 (root) [Info    ] User response: y
+2018-08-10 15:18:29 (root) [Complete] csmdb database deleted
+2018-08-10 15:18:29 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:18:29 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:18:29 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:18:29 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:18:29 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:18:29 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:18:29 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:18:29 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:18:31 (root) [Complete] csmdb database created.
+2018-08-10 15:18:34 (root) [Complete] csmdb database tables created.
+2018-08-10 15:18:34 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:18:34 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:18:34 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:18:34 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:18:34 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:19:34 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:19:34 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:19:34 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:19:34 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:19:34 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:19:34 (root) [Info    ] User response: y
+2018-08-10 15:19:35 (root) [Complete] csmdb database deleted
+2018-08-10 15:19:35 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:19:35 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:19:35 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:19:35 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:19:35 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:19:35 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:19:35 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:19:35 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:19:36 (root) [Complete] csmdb database created.
+2018-08-10 15:19:39 (root) [Complete] csmdb database tables created.
+2018-08-10 15:19:39 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:19:39 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:19:39 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:19:39 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:19:39 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:20:58 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:20:58 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:20:58 (root) [Info    ] DB Names:  xcatdb | csmdb
+2018-08-10 15:20:58 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:20:58 (root) [Info    ] csmdb database drop process begin.
+2018-08-10 15:20:58 (root) [Info    ] User response: y
+2018-08-10 15:21:00 (root) [Complete] csmdb database deleted
+2018-08-10 15:21:00 (root) [End     ] csmdb database drop process end.
+-----------------------------------------------------------------------------------------------------------------------------------
+2018-08-10 15:21:00 (root) [Start   ] Welcome to CSM database automation script.
+2018-08-10 15:21:00 (root) [Info    ] DB Names:  template1 | template0 | postgres |
+2018-08-10 15:21:00 (root) [Info    ] DB Names:  xcatdb
+2018-08-10 15:21:00 (root) [Info    ] PostgreSQL is installed
+2018-08-10 15:21:00 (root) [Info    ] csmdb database does not exist.
+2018-08-10 15:21:00 (root) [Info    ] csmdb database creation process begin.
+2018-08-10 15:21:00 (root) [Info    ] csmdb database user: csmdb already exists
+2018-08-10 15:21:01 (root) [Complete] csmdb database created.
+2018-08-10 15:21:05 (root) [Complete] csmdb database tables created.
+2018-08-10 15:21:05 (root) [Complete] csmdb database functions and triggers created.
+2018-08-10 15:21:05 (root) [Complete] csmdb table data loaded successfully into csm_db_schema_version
+2018-08-10 15:21:05 (root) [Complete] csmdb table data loaded successfully into csm_ras_type
+2018-08-10 15:21:05 (root) [Info    ] csmdb DB schema version (16.0)
+2018-08-10 15:21:05 (root) [End     ] csmdb database creation process end.
+-----------------------------------------------------------------------------------------------------------------------------------

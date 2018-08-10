@@ -40,8 +40,10 @@ db_username="postgres"
 csmdb_user="csmdb"
 now1=$(date '+%Y-%m-%d %H:%M:%S')
 version_comp="csm_create_tables.sql"
-#version_comp_2=`awk -F ',' ' NR==18 {print substr($0,25,6)}' $cur_path/$version_comp`
 version_comp_2=`grep current_version $cur_path/$version_comp | awk '{print $3}'`
+trigger_version="csm_create_triggers.sql"
+trigger_version_2=`grep current_version $cur_path/$trigger_version | awk '{print $3}'`
+
 migration_db_version="16.0"
 csm_db_schema_csv="csm_db_schema_version_data.csv"
 csm_db_schema_version_comp=`awk -F ',' ' NR==2 {print substr($0,0,4)}' $cur_path/$csm_db_schema_csv`
@@ -195,13 +197,15 @@ fi
 # to date.
 #----------------------------------------------------------
 
-if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] || [[ $(bc <<< "$version < 15.0") -eq 1 ]]; then
+if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] || [[ $(bc <<< "$version < 15.0") -eq 1 ]] || [[ $(bc <<< "$migration_db_version == $trigger_version_2") -eq 0 ]]; then
     echo "[Error   ] Cannot perform action because the $version_comp is not compatible."
     LogMsg "[Error   ] Cannot perform action because the $version_comp is not compatible."
     echo "[Info    ] $dbname current_schema_version is running: $version"
     LogMsg "[Info    ] $dbname current_schema_version is running: $version"
     echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) 15.0 - $migration_db_version"
     LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) 15.0 - $migration_db_version"
+    echo "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
+    LogMsg "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
     echo "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) 15.0 - $migration_db_version"
     LogMsg "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) 15.0 - $migration_db_version"
     echo "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
