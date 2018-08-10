@@ -91,56 +91,70 @@ def main(args):
     # ---------------------------------------------------------------------------------------------
     
     # tr_data["compute_nodes"].append('c650f08p21')
-
+    # nodes_to_query
     # Print out Nodes Used
+    node_list = list()
+    node_list.append('c650f08p21')
     for nodes in tr_data["compute_nodes"]:
-        print(nodes)
+        node_list.append(str(nodes))
 
-    begin_time = tr_data["begin_time"]
-    end_time = tr_data["history"]["end_time"]
+    print(node_list)
+
+    begin_time = tr_data["begin_time"][:10]+'T'+tr_data["begin_time"][11:]+'Z'
+    end_time = tr_data["history"]["end_time"][:10]+'T'+tr_data["history"]["end_time"][11:]+'Z'
 
     print(begin_time)
     print(end_time)
+    timerange='''@timestamp:[{0} TO {1}]'''.format(begin_time, end_time)
+    nodes = 'source: {0}'.format(" ".join(node_list))
+    env_query="{0} AND {1}".format(nodes, timerange)
+    print env_query
+    ed_res =es.search(
+        index='cast-zimon-*',
+        q=env_query
+    )
 
     # TODO make sure which index to query
     # Check if querying the terms is OR or AND currently
-    ed_res = es.search(
-        index='*',#'cast-zimon-*',
-        body=
-        {
-            'query':{
-                'bool' :{
-                    'must':{
-                        'match_all': {}
-                    },
-                    'must':{
-                        'range' : {
-                            '@timestampe': {
-                                'gte' : begin_time, 
-                                'lte' : end_time, 
-                                'relation' : "within"
-                            }
-                        }
-                    },
-                    'filter':{
-                        'terms':{
-                            'source':tr_data["compute_nodes"]
-                        }
-                    }
-                },
+    # ed_res = es.search(
+    #     index='*',#'cast-zimon-*',
+    #     body=
+    #     {
+    #         'size': 10000,
+    #         'from' : 0,
+    #         'query':{
+    #             'bool' :{
+    #                 'must':{
+    #                     'match_all': {}
+    #                 },
+    #                 'should':{
+    #                     'range' : {
+    #                         '_source.@timestamp': {
+    #                             'gte' : '2018-08-03T10:21:41.08686Z',#begin_time, 
+    #                             'lte' : '2018-08-03T14:33:17.249406Z',#end_time, 
+    #                             'relation' : "within"
+    #                         }
+    #                     }
+    #                 },
+    #                 'filter':{
+    #                     'terms':{
+    #                         'source':tr_data["compute_nodes"]
+    #                     }
+    #                 }
+    #             },
 
-            }
-        }
+    #         }
+    #     }
+    # )
 
-
-
-                    
-
-    )
-
-    # print(ed_res["hits"]["hits"][0]["_source"]["source"])
+    # print(ed_res["hits"]["hits"][0]["_source"]["@timestamp"])
     print("Hits: " + str(ed_res["hits"]["total"]) +"\n")
-    print(ed_res["hits"])
+    # print(ed_res["hits"])
+
+    for tmstmp in ed_res["hits"]["hits"]:
+        print(tmstmp["_source"]["@timestamp"])
+        print('\tMem_Active: '+ str(tmstmp["_source"]["data"]["mem_active"]))
+        print('\tCPU_User: '+ str(tmstmp["_source"]["data"]["cpu_user"])+"\n")
 
 
 
