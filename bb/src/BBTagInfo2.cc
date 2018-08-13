@@ -669,7 +669,7 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
 
         try
         {
-            rc = sendMsgAndWaitForNonDataReply(pConnectionName, l_Complete);
+            rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
         }
         catch(exception& e)
         {
