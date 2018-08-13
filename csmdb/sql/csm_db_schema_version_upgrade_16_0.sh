@@ -19,7 +19,7 @@
 #   current_version:    01.1
 #   migration_version:  16.0 # <--------example version after the DB upgrade
 #   create:             08-08-2018
-#   last modified:      08-11-2018
+#   last modified:      08-13-2018
 #================================================================================
 #set -x
 export PGOPTIONS='--client-min-messages=warning'
@@ -389,7 +389,9 @@ DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],tex
 DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]) CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]) CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text) CASCADE;
+THE_END`    
 
+db_query_3=`psql -q -t -U $csmdb_user -d $dbname << THE_END
 \i csm_create_triggers.sql
 
 ALTER TABLE csm_processor_socket DROP CONSTRAINT csm_processor_socket_pkey;
@@ -409,7 +411,7 @@ UPDATE csm_db_schema_version
 SET
 version = '16.0',
 create_time = 'now()'
-where 16.0 > 15.1;
+where 16.0 > 15.0;
 THE_END`    
 
         if [ $? -eq 0  ]; then
