@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    findJobTimeRange.py
+#    findJobMetrics.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -21,14 +21,13 @@ import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 
-
 TARGET_ENV='CAST_ELASTIC'
 
 def main(args):
 
     # Specify the arguments.
     parser = argparse.ArgumentParser(
-        description='''A tool for finding when a job was running through the big data store.''')
+        description='''A tool for finding metrics about the nodes participating in the supplied job id.''')
     
     parser.add_argument( '-a', '--allocationid', metavar='int', dest='allocation_id', default=-1,
         help='The allocation ID of the job.')
@@ -80,65 +79,82 @@ def main(args):
     )
     total_hits = tr_res["hits"]["total"]
 
-    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
-
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
+    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
+
     # TODO make this code more fault tolerant
     tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
     # ---------------------------------------------------------------------------------------------
     
-    # Build the hostnames string:
-    if args.hosts is None: 
-        args.hosts = tr_data["compute_nodes"]
-    hostnames="hostname:({0})".format(" OR ".join(args.hosts))
-    
-    # ---------------------------------------------------------------------------------------------
+    # tr_data["compute_nodes"].append('c650f08p21')
+    # nodes_to_query
+    # Print out Nodes Used
+    node_list = list()
+    node_list.append('c650f08p21')
+    for nodes in tr_data["compute_nodes"]:
+        node_list.append(str(nodes))
 
-    # Determine the timerange:
-    start_time='"{0}Z"'.format(tr_data["begin_time"])
-    # If a history is present end_time is end_time, otherwise it's now.
-    if "history" in tr_data:
-        end_time='"{0}Z"'.format(tr_data["history"]["end_time"])
-    else:
-        end_time="*"
-    timerange='''@timestamp:[{0} TO {1}]'''.format(start_time, end_time)
+    print(node_list)
 
-    print("Start time: " + start_time)
-    print("End time  : " + end_time)
+    begin_time = tr_data["begin_time"][:10]+'T'+tr_data["begin_time"][11:]+'Z'
+    end_time = tr_data["history"]["end_time"][:10]+'T'+tr_data["history"]["end_time"][11:]+'Z'
 
+    print(begin_time)
+    print(end_time)
+    timerange='''@timestamp:[{0} TO {1}]'''.format(begin_time, end_time)
+    nodes = 'source: {0}'.format(" ".join(node_list))
+    env_query="{0} AND {1}".format(nodes, timerange)
+    print env_query
+    ed_res =es.search(
+        index='cast-zimon-*',
+        q=env_query
+    )
 
+    # TODO make sure which index to query
+    # Check if querying the terms is OR or AND currently
+    # ed_res = es.search(
+    #     index='*',#'cast-zimon-*',
+    #     body=
+    #     {
+    #         'size': 10000,
+    #         'from' : 0,
+    #         'query':{
+    #             'bool' :{
+    #                 'must':{
+    #                     'match_all': {}
+    #                 },
+    #                 'should':{
+    #                     'range' : {
+    #                         '_source.@timestamp': {
+    #                             'gte' : '2018-08-03T10:21:41.08686Z',#begin_time, 
+    #                             'lte' : '2018-08-03T14:33:17.249406Z',#end_time, 
+    #                             'relation' : "within"
+    #                         }
+    #                     }
+    #                 },
+    #                 'filter':{
+    #                     'terms':{
+    #                         'source':tr_data["compute_nodes"]
+    #                     }
+    #                 }
+    #             },
 
+    #         }
+    #     }
+    # )
 
+    # print(ed_res["hits"]["hits"][0]["_source"]["@timestamp"])
+    print("Hits: " + str(ed_res["hits"]["total"]) +"\n")
+    # print(ed_res["hits"])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    for tmstmp in ed_res["hits"]["hits"]:
+        print(tmstmp["_source"]["@timestamp"])
+        print('\tMem_Active: '+ str(tmstmp["_source"]["data"]["mem_active"]))
+        print('\tCPU_User: '+ str(tmstmp["_source"]["data"]["cpu_user"])+"\n")
 
 
 

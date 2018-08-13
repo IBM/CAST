@@ -83,6 +83,7 @@ def main(args):
     )
     total_hits = tr_res["hits"]["total"]
 
+
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
