@@ -702,7 +702,7 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
 
             if((iter != name2connections.end()) && (iter->second != NULL ))
             {
-                
+
                 txp::Connex* cnx = iter->second;
                 std::string realName = cnx->getConnectName();
 
@@ -788,7 +788,7 @@ int sendMessage2bbserver(const string& name, txp::Msg* msg, ResponseDescriptor& 
     return sendMessage(name, msg, reply, true);
 }
 
-int sendMsgAndWaitForNonDataReply(const std::string& pConnectionName, txp::Msg* &pMsg)
+int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &pMsg)
 {
     int rc = 0;
     ResponseDescriptor reply;
@@ -803,6 +803,12 @@ int sendMsgAndWaitForNonDataReply(const std::string& pConnectionName, txp::Msg* 
         // Wait for the response
         txp::Msg* l_ReplyMsg = 0;
         rc = waitReply(reply, l_ReplyMsg);
+        txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
+        if (l_Attribute)
+        {
+            rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
+        }
+
         delete l_ReplyMsg;
     }
 
@@ -858,9 +864,9 @@ int waitReply(ResponseDescriptor& reply, txp::Msg*& response_msg)
         replyWaiters[reply.connName].erase(&reply);
     }
     pthread_mutex_unlock(&replyWaitersLock);
-    
+
     response_msg = (txp::Msg*)reply.reply;
-    
+
     if(reply.reply == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
@@ -879,7 +885,7 @@ int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
     pthread_mutex_unlock(&replyWaitersLock);
 
     reply.semwait();
-    
+
     pthread_mutex_lock(&replyWaitersLock);
     {
         response_msg = (txp::Msg*)reply.reply;
