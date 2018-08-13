@@ -178,12 +178,12 @@ version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db
 
 
 #----------------------------------------------------------
-# Checks the files and compares to db schema versioin table
+# Checks the files and compares to db schema version table
 # If they all match then it will display
 # currently running db schema version: $version"
 #----------------------------------------------------------
 
-if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] && [[ $(bc <<< "$migration_db_version == $version_comp_2") -eq 1 ]]; then
+if [[ $(bc <<< "$version == $migration_db_version") -eq 1 ]]; then
 echo "[Info    ] $dbname is currently running db schema version: $version"
 LogMsg "[Info    ] $dbname is currently running db schema version: $version"
 echo "-------------------------------------------------------------------------------------------------"
@@ -198,8 +198,10 @@ fi
 #----------------------------------------------------------
 
 if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] || [[ $(bc <<< "$version < 15.0") -eq 1 ]] || [[ $(bc <<< "$migration_db_version == $trigger_version_2") -eq 0 ]]; then
-    echo "[Error   ] Cannot perform action because the $version_comp is not compatible."
-    LogMsg "[Error   ] Cannot perform action because the $version_comp is not compatible."
+    echo "[Error   ] Cannot perform action because not compatible."
+    echo "[Info    ] Required DB schema version 15.0, 15.1 or appropriate files in directory"
+    LogMsg "[Error   ] Cannot perform action because not compatible."
+    LogMsg "[Info    ] Required DB schema version 15.0, 15.1 or appropriate files in directory"
     echo "[Info    ] $dbname current_schema_version is running: $version"
     LogMsg "[Info    ] $dbname current_schema_version is running: $version"
     echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
