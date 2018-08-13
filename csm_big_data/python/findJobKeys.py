@@ -15,12 +15,12 @@
 #
 #================================================================================
 
+
 import argparse
 import sys
 import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
-
 
 TARGET_ENV='CAST_ELASTIC'
 
@@ -64,17 +64,18 @@ def main(args):
     )
 
     # Build the query to get the time range.
-    should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
-    match_clause= '{{"match":{{"{0}":{1}}}}}'
+    should_query='{{"query":{{"bool":{{ "should":[{0}] {1} }} }} }}'
+    match_clause= '{{"match":{{"{0}":{1} }} }}'
 
     if args.allocation_id > 0 :
         tr_query = should_query.format(
-            match_clause.format("data.allocation_id", args.allocation_id))
+            match_clause.format("data.allocation_id", args.allocation_id), "")
     else : 
         tr_query = should_query.format(
             "{0},{1}".format(
                 match_clause.format("data.primary_job_id", args.job_id ),
-                match_clause.format("data.secondary_job_id", args.job_id_secondary )))
+                match_clause.format("data.secondary_job_id", args.job_id_secondary )), 
+            "\"minimum_should_match\" : 2" )
             
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
