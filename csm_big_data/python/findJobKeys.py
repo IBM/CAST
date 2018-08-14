@@ -150,21 +150,21 @@ def main(args):
     )
 
     # Print the count table.
-    print("Got %d keyword hits." % key_res['hits']['total'])
+    print("Got %d keyword hits." % key_res.get('hits',{"total":0})['total'])
     
+    aggregations= key_res.get("aggregations", [])
     max_width=6
     for key in args.keywords:
-        max_width=max( max_width, len(key)
+        max_width=max( max_width, len(key))
 
-    aggregations = key_res["aggregations"]
-    print('keyword | count')
+    print('{0: >{1}} | count'.format("keyword", max_width))
     for aggrgation in aggregations:
         print('{0: >{1}} | {2}'.format(aggregation,max_width, aggregations[aggregation]["doc_count"]))
 
 
     # Verbosely print the hits
     if args.verbose:
-        hits=key_res['hits']["hits"]
+        hits=key_res.get('hits', {"hits":[]})["hits"]
         print("Select Logs:")
         for hit in hits:
             print("{timestamp} {hostname} | {message}".format(hit))
