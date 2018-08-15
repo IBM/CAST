@@ -27,6 +27,9 @@ import json
 
 TARGET_ENV='CAST_ELASTIC'
 
+def deep_get( obj, *keys):
+    return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
+
 def main(args):
 
     # Specify the arguments.
@@ -45,6 +48,8 @@ def main(args):
         help='A list of keywords to search for in the Big Data Store (default : .*).')
     parser.add_argument( '-v', '--verbose', action='store_true',
         help='Displays any logs that matched the keyword search.' )
+    parser.add_argument( '--size', metavar='size', dest='size', default=30,
+        help='The number of results to be returned. (default=30)')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to ')
 
@@ -87,7 +92,8 @@ def main(args):
         index="cast-allocation",
         body=tr_query
     )
-    total_hits = tr_res["hits"]["total"]
+
+    total_hits = deep_get(tr_res, "hits","total")
 
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
@@ -96,7 +102,8 @@ def main(args):
         return 3
 
     # TODO make this code more fault tolerant
-    tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
+    hits = deep_get(tr_res, "hits", "hits")
+    tr_data = hits[0]["_source"]["data"]
 
     # ---------------------------------------------------------------------------------------------
     # TODO Add utility script to do this.
@@ -115,34 +122,48 @@ def main(args):
     date_format= '%Y-%m-%d %H:%M:%S.%f'
     print_format='%Y-%m-%d %H:%M:%S:%f'
     search_format='"yyyy-MM-dd HH:mm:ss:SSS"'
+
     # Determine the timerange:
     start_time=datetime.strptime(tr_data["begin_time"], date_format)
     start_time='"{0}"'.format(start_time.strftime(print_format)[:-3])
+
     # If a history is present end_time is end_time, otherwise it's now.
     if "history" in tr_data:
         end_time=datetime.strptime(tr_data["history"]["end_time"], date_format)
-        end_time='"{0}"'.format(end_time.strftime(print_format)[:-3])
+        end_time_clause=',"lte": "{0}"'.format(end_time.strftime(print_format)[:-3])
+
     else:
-        end_time="now"
-    timerange='''"range": {{ "@timestamp": {{ "gte": {0}, "lte": {1}, "format" : {2} }} }}'''\
-        .format(start_time, end_time, search_format)
+        end_time='"now"'
+        end_time_clause=""
+    timerange='''"range": {{ "@timestamp": {{ "gte": {0} {1}, "format" : {2} }} }}'''\
+        .format(start_time, end_time_clause, search_format)
     
     # ---------------------------------------------------------------------------------------------
 
     # Build the message query.
     keywords=[]
+    should_keywords=[]
     for key in args.keywords:
-        filter='"filter" : {{ "regexp" : {{ "message" : "{0}" }} }}'.format(key)
+        should='{{ "regexp" : {{ "message" : "{0}" }} }}'.format(key)
+        filter='"filter" : {0}'.format(should)
         keywords.append('"{0}" : {{ {1} }}'.format(key,filter))
+        should_keywords.append(should)
+
+        
+
     message=",".join(keywords)
-    aggregation='"aggs" : {{ "total_count" : {{ "global" : {{}} }}, {0}  }}'.format(message)
+    message_should=",".join(should_keywords)
+    aggregation='"aggs" : {{ {0} }}'.format(message)
 
     # ---------------------------------------------------------------------------------------------
 
+    exists='{ "exists" : { "field" : "message" } }'
+
     # Submit the query
-    query_filter='"must": [ {{ {0} }}, {{ {1} }} ]'.format(timerange, hostnames)
-    source_filter='"_source" : [ "timestamp", "message", "hostname"]'
-    keyword_query='{{ "query" :{{ "bool": {{ {0}  }} }}, {1}, {2} }}'.format(query_filter, aggregation, source_filter)
+    should_clause='"should": [ {0} ], "minimum_should_match": 1'.format(message_should)
+    query_filter='"must": [ {{ {0} }}, {{ {1} }}, {2} ]'.format(timerange, hostnames, exists)
+    source_filter='"_source" : [ "timestamp", "message", "hostname"], "size":{0}'.format(args.size)
+    keyword_query='{{ "query" :{{ "bool": {{ {0}, {3} }} }}, {1}, {2} }}'.format(query_filter, aggregation, source_filter, should_clause)
 
     key_res = es.search(
         index="_all",
@@ -150,24 +171,28 @@ def main(args):
     )
 
     # Print the count table.
-    print("Got %d keyword hits." % key_res.get('hits',{"total":0})['total'])
+    total=key_res.get('hits',{"total":0})['total']
+    print("Got {0} keyword hits:\n".format( total ))
     
-    aggregations= key_res.get("aggregations", [])
-    max_width=6
+    aggregations= key_res["aggregations"]
+
+    max_width=7
     for key in args.keywords:
         max_width=max( max_width, len(key))
 
-    print('{0: >{1}} | count'.format("keyword", max_width))
-    for aggrgation in aggregations:
-        print('{0: >{1}} | {2}'.format(aggregation,max_width, aggregations[aggregation]["doc_count"]))
+    print('{0: >{1}} | Count'.format("Keyword", max_width))
+    for agg in aggregations:
+        print('{0: >{1}} | {2}'.format(agg,max_width, aggregations[agg]["doc_count"]))
 
+    print(" ")
 
     # Verbosely print the hits
     if args.verbose:
         hits=key_res.get('hits', {"hits":[]})["hits"]
-        print("Select Logs:")
+        print("Displaying {0} of {1} logs:".format(len(hits), total))
         for hit in hits:
-            print("{timestamp} {hostname} | {message}".format(hit))
+            source = hit["_source"]
+            print("{0} {1} | {2}".format(source["timestamp"], source["hostname"], source["message"]))
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
