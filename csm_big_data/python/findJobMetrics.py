@@ -20,8 +20,12 @@ import sys
 import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
+from datetime import datetime
 
 TARGET_ENV='CAST_ELASTIC'
+
+def deep_get( obj, *keys):
+    return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
 
 def main(args):
 
@@ -38,7 +42,12 @@ def main(args):
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
-        help='A list of hostnames to filter the results to ')
+        help='A list of hostnames to filter the results to.')
+    parser.add_argument( '-f', '--fields', metavar='field', dest='fields', nargs='*', default=None,
+        help='A list of fields to retrieve metrics for.')
+    parser.add_argument( '-i', '--index', metavar='index', dest='index', default='_all', 
+        help='The index to query for metrics records.')
+    
 
     args = parser.parse_args()
 
@@ -60,103 +69,107 @@ def main(args):
     )
 
     # Build the query to get the time range.
-    should_query='{{"query":{{"bool":{{"must":[{0}]}}}}}}'
-    match_clause= '{{"match":{{"{0}":{1}}}}}'
+    should_query='{{ "query": {{ "bool": {{ "should":[{0}] {1} }} }} }}'
+    match_clause= '{{ "match":{{ "{0}": {1} }} }}'
 
     if args.allocation_id > 0 :
         tr_query = should_query.format(
-            match_clause.format("data.allocation_id", args.allocation_id))
+            match_clause.format("data.allocation_id", args.allocation_id), "")
     else : 
         tr_query = should_query.format(
             "{0},{1}".format(
                 match_clause.format("data.primary_job_id", args.job_id ),
-                match_clause.format("data.secondary_job_id", args.job_id_secondary )))
+                match_clause.format("data.secondary_job_id", args.job_id_secondary )),
+            ',"minimum_should_match" : 2' )
 
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
         body=tr_query
     )
-    total_hits = tr_res["hits"]["total"]
 
-    print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
+    total_hits = deep_get(tr_res, "hits","total")
+
+    print("Got {0} Hit(s) for specified job:".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
-    print(tr_res["hits"]["hits"][0]["_source"]["data"]["primary_job_id"])
+    hits=deep_get(tr_res, "hits", "hits")
+    allocation=deep_get(hits[0], "_source", "data")
 
-    # TODO make this code more fault tolerant
-    tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
     # ---------------------------------------------------------------------------------------------
+    date_format= '%Y-%m-%d %H:%M:%S.%f'
+    print_format='%Y-%m-%d %H:%M:%S:%f'
+    search_format='"yyyy-MM-dd HH:mm:ss:SSS"'
     
-    # tr_data["compute_nodes"].append('c650f08p21')
-    # nodes_to_query
-    # Print out Nodes Used
-    node_list = list()
-    node_list.append('c650f08p21')
-    for nodes in tr_data["compute_nodes"]:
-        node_list.append(str(nodes))
+    start_time=datetime.strptime(allocation["begin_time"], date_format)
+    start_time='"{0}"'.format(start_time.strftime(print_format)[:-3])
+    
+    if "history" in allocation:
+        end_time=datetime.strptime(allocation["history"]["end_time"], date_format)
+        end_time_clause=',"lte": "{0}"'.format(end_time.strftime(print_format)[:-3])
+    else:
+        end_time="now"
+        end_time_clause=""
 
-    print(node_list)
+    timerange='''"range": {{ "@timestamp": {{ "gte": {0} {1}, "format" : {2} }} }}'''\
+        .format(start_time, end_time_clause, search_format)
 
-    begin_time = tr_data["begin_time"][:10]+'T'+tr_data["begin_time"][11:]+'Z'
-    end_time = tr_data["history"]["end_time"][:10]+'T'+tr_data["history"]["end_time"][11:]+'Z'
+    
+    # ---------------------------------------------------------------------------------------------
 
-    print(begin_time)
-    print(end_time)
-    timerange='''@timestamp:[{0} TO {1}]'''.format(begin_time, end_time)
-    nodes = 'source: {0}'.format(" ".join(node_list))
-    env_query="{0} AND {1}".format(nodes, timerange)
-    print env_query
-    ed_res =es.search(
-        index='cast-zimon-*',
-        q=env_query
+    # Build the hostnames string:
+    if args.hosts is None:
+        args.hosts = allocation["compute_nodes"]
+    
+    hostnames='''"multi_match" : {{ "query" : "{0}", "type" : "best_fields", "fields" : [ "hostname", "source" ], "tie_breaker" : 0.3, "minimum_should_match" : 1 }}'''
+    hostnames = hostnames.format(" ".join(args.hosts))
+
+    # ---------------------------------------------------------------------------------------------
+    # Matrix stats are very interesting..
+    #aggregation='"aggs": {{ "statistics" : {{ "matrix_stats" :{{ "fields" :  {0}  }} }} }}'.format(
+    #    args.fields).replace("'",'"')
+
+    stats=[]
+    for field in args.fields:
+        stats.append('"{0}_stat" : {{ "extended_stats" : {{ "field": "{0}" }} }}'.format(field))
+    aggregation='"aggs": {{ {0} }}'.format(",".join(stats))
+
+
+    query_filter='"must": [ {{ {0} }}, {{ {1} }} ]'.format(timerange, hostnames)
+
+
+    query='{{ "query" :{{ "bool": {{ {0} }} }}, {1}, "size": {2} }}'.format(query_filter, aggregation, 0)
+    
+
+    key_res = es.search(  
+        index=args.index, # TODO This should be replaced.
+        body=query
     )
 
-    # TODO make sure which index to query
-    # Check if querying the terms is OR or AND currently
-    # ed_res = es.search(
-    #     index='*',#'cast-zimon-*',
-    #     body=
-    #     {
-    #         'size': 10000,
-    #         'from' : 0,
-    #         'query':{
-    #             'bool' :{
-    #                 'must':{
-    #                     'match_all': {}
-    #                 },
-    #                 'should':{
-    #                     'range' : {
-    #                         '_source.@timestamp': {
-    #                             'gte' : '2018-08-03T10:21:41.08686Z',#begin_time, 
-    #                             'lte' : '2018-08-03T14:33:17.249406Z',#end_time, 
-    #                             'relation' : "within"
-    #                         }
-    #                     }
-    #                 },
-    #                 'filter':{
-    #                     'terms':{
-    #                         'source':tr_data["compute_nodes"]
-    #                     }
-    #                 }
-    #             },
+    if args.allocation_id > 0 :
+        print("\n\nMetric Analysis for Allocation ID {0} :\n".format(args.allocation_id))
+    else : 
+        print("\n\nMetric Analysis for Job ID {0} - {1} :\n".format(args.job_id, args.job_id_secondary))
+    
 
-    #         }
-    #     }
-    # )
+    # Print the table.
+    aggs=deep_get(key_res, "aggregations")
+    
+    max_width=len("Field")
+    for agg in aggs:
+        max_width=max(max_width, len(agg))
+    
+    print("{0:>{1}} | {2: >10} | {3: >10} | {4: >10} | {5: >10} | Count".format(
+        "Field", max_width, "Min", "Max", "Average", "Std Dev"))
 
-    # print(ed_res["hits"]["hits"][0]["_source"]["@timestamp"])
-    print("Hits: " + str(ed_res["hits"]["total"]) +"\n")
-    # print(ed_res["hits"])
+    print_fmt="{0: >{1}} | {2:10.3f} | {3:10.3f} | {4:10.3f} | {5:10.3f} | {6}"
+    for agg in aggs:
+        print(print_fmt.format(agg, max_width, aggs[agg]["min"], aggs[agg]["max"],
+            aggs[agg]["avg"], aggs[agg]["std_deviation"], aggs[agg]["count"]))
 
-    for tmstmp in ed_res["hits"]["hits"]:
-        print(tmstmp["_source"]["@timestamp"])
-        print('\tMem_Active: '+ str(tmstmp["_source"]["data"]["mem_active"]))
-        print('\tCPU_User: '+ str(tmstmp["_source"]["data"]["cpu_user"])+"\n")
-
-
+    return 0
 
 
 if __name__ == "__main__":
