@@ -30,6 +30,12 @@ xcat_cmd    = yes
 timeout     = 10
 #args        = -v
 
+## chk-capi-enable
+[tests.chk-capi-enable]
+description = check if capi is enabled on the node
+executable  = /opt/ibm/csm/hcdiag/tests/chk-capi-enable/chk-capi-enable.sh
+timeout     = 10
+
 ## chk-cpu
 [tests.chk-cpu]
 description = Check number of cpus, cpu frequence, cores present=cores online on the node
@@ -335,6 +341,15 @@ timeout      = 2000
 targetType   = Compute
 #args        = 1
 
+[tests.dgemm-per-socket]
+description = measure CPU performance per socket.
+executable  = /opt/ibm/csm/hcdiag/tests/dgemm-per-socket/dgemm-per-socket.sh
+group       = cpu
+timeout     = 800
+targetType  = Compute
+#              performance in Gflops 
+#args        = 450
+
 # strong recomend to run on the node, just invoking this script
 # NOTE: NVIDIA distributes the fieldiag binary and the source code for the
 #       kernel module. The files should be copied to /opt/ibm/csm/hcdiag/tests/fieldiag 
@@ -364,8 +379,8 @@ timeout     = 25000
 description = checks gpu memory bw, gpu dgemm flops, nvlink transfer speeds 
 executable  = /opt/ibm/csm/hcdiag/tests/gpu-health/gpu-health.sh
 group       = gpu
-#args        = 40 800 7
-args        = 65 800 7
+#args        = 40 800 6.7
+args        = 65 800 6.7
 timeout     = 10000
 
 [tests.gpudirect]
@@ -623,7 +638,7 @@ args        = 3
 
 ## Invokes p2pBandwidthLatencyTest, from cuda samples
 [tests.p2pBandwidthLatencyTest]
-description = parallel ping from nodes to other nodes in the cluster
+description = NVIDIA GPU bandwidth test
 executable  = /opt/ibm/csm/hcdiag/tests/p2pBandwidthLatencyTest/p2pBandwidthLatencyTest.sh
 timeout     = 200
 group       = gpu

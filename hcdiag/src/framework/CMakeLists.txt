@@ -36,7 +36,7 @@ file(GLOB FRAMEWORK_FILE
 
 
 file(GLOB HCDIAG_PROPERTIES
-  "test.properties"
+  "test.properties.sample"
   "hcdiag.properties"
 )
 
