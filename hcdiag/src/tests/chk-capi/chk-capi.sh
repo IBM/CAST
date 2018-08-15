@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #================================================================================
 #   
 #    hcdiag/src/tests/chk-capi-enable/chk-capi-enable.sh
@@ -23,53 +24,138 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
-## mst commands requires sudo
-export me=$(basename $0) 
-export thisdir=`dirname $0`
-export thishost=`hostname -s`
+verbose=false
+VERSION=0.1
+
+usage()
+{
+cat << EOF
+
+        Description: Checks if CAPI is enabled for a specified Mellanox ConnectX-5 adapter
+        
+        Usage: `basename $0` [options]
+        
+        Required arguments: 
+
+              -d|--device <pci id from lspci>
+              ex. 0003:01:00.0
+
+        Optional arguments:
+
+              [-l|--list]        List Mellanox adapters in system
+              [-a|--all]         Run on all Mellanox devices in system
+              [-h|--help]        This help screen
+              [-v|--verbose]     Additional output for debug
+              [-V|--version]     Display script version
+                
+EOF
+}
+
+list()
+{
+   echo
+   lspci -nnd 15b3:
+   echo
+   
+}
+
+gather()
+{
+   devices=$(lspci | grep nox | cut -f1 -d" " | xargs)
+}
+
+me=$(basename $0) 
+thisdir=`dirname $0`
+thishost=`hostname -s`
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 
 echo "Running $me on $thishost, machine type $model."          
+
+# Collect input arguments
+while [ ! -z "$1" ]
+do
+   case "$1" in
+      -d | --device)
+          devices="$2" 
+          shift 2
+         ;;
+      -l | --list)
+         list
+         shift
+         exit 0
+         ;;
+      -a | --all)
+         gather
+         shift
+         ;;
+      -h | --help)
+         usage
+         shift
+         exit 0
+         ;;
+      -v | --verbose)
+         verbose=true
+         shift
+         ;;
+      -V | --version)
+         echo $me version $VERSION
+         shift
+         exit 0
+         ;;
+      *)
+      usage
+         shift
+         exit 1
+         ;;
+   esac
+done
+
+
+if [[ "x" == "x$devices" ]]; then
+      usage
+      echo "ERROR: No device specified/found. Aborting."
+      echo "$me test FAIL, rc=1"
+      exit 1
+fi
+
 sudo -v
 rc=$?
 if [ $rc -ne 0 ]; then echo -e "$me test FAIL, rc=$rc"; exit $rc; fi  
 
-sudo -E bash <<"EOF"
+for device in $devices; do
+   $verbose && echo "Verbose mode enabled, displaying adapter NVRAM config:"
+   $verbose && mlxconfig -d $device -e q
+   error=0
 
-MST_CMD=/usr/bin/mst
-
-if [ ! -x $MST_CMD ]; then echo -e "(ERROR): command $MST_CMD not found.\n$me test FAIL, rc=1"; exit 1; fi  
-        
-$MST_CMD start
-
-rc=0
-for x in `ls /dev/mst/*`; do
-   echo -e "\nChecking device: $x"
-   if (( $(mlxconfig -d $x q ADVANCED_PCI_SETTINGS | grep "ADVANCED_PCI_SETTINGS" | grep False | wc -l) != "0" )); then
-      echo "(ERROR) Checking ADVANCED_PCI_SETTINGS parameter: CAPI NOT ENABLED"
-      rc=1
+   if (( $(mlxconfig -d $device q ADVANCED_PCI_SETTINGS | grep "ADVANCED_PCI_SETTINGS" | grep False | wc -l) != "0" )); then
+      echo "ERROR: ADVANCED_PCI_SETTINGS NOT ENABLED for $device on $thishost."
+      error=1
    fi
-   if (( $(mlxconfig -d $x q IBM_CAPI_EN | grep "IBM_CAPI_EN" | egrep 'False|Device doesn' | wc -l) != "0")); then
-      echo "(ERROR) Checking IBM_CAPI_EN parameter: CAPI NOT ENABLED."
-      rc=1
+   mlxconfig -d $device q IBM_CAPI_EN &> /dev/null
+   if (( $? != "0" )); then
+      echo "ERROR: IBM_CAPI_EN NOT ENABLED for $device on $thishost."
+      error=1
    fi
-   if (( $(mlxconfig -d $x q IBM_TUNNELED_ATOMIC_EN | grep "IBM_TUNNELED_ATOMIC_EN" | egrep 'False|Device doesn' | wc -l) != "0")); then
-      echo "(ERROR) Checking IBM_TUNNELED_ATOMIC_EN parameter: CAPI NOT ENABLED."
-      rc=1
+   if (( $(mlxconfig -d $device q IBM_CAPI_EN | grep "IBM_CAPI_EN" | grep False | wc -l) != "0")); then
+      echo "ERROR: IBM_CAPI_EN NOT ENABLED for $device on $thishost."
+      error=1
    fi
-   if (( $(mlxconfig -d $x q IBM_AS_NOTIFY_EN | grep "IBM_AS_NOTIFY_EN" | egrep 'False|Device doesn' | wc -l) != "0")); then
-      echo "(ERROR) Checking IBM_AS_NOTIFY_EN parameter:  CAPI NOT ENABLED."
+   if (( $(mlxconfig -d $device q IBM_TUNNELED_ATOMIC_EN | grep "IBM_TUNNELED_ATOMIC_EN" | grep False | wc -l) != "0")); then
+      echo "ERROR: IBM_TUNNELED_ATOMIC_EN NOT ENABLED for $device on $thishost."
+      error=1
+   fi
+   if (( $(mlxconfig -d $device q IBM_AS_NOTIFY_EN | grep "IBM_AS_NOTIFY_EN" | grep False | wc -l) != "0")); then
+      echo "ERROR: IBM_AS_NOTIFY_EN NOT ENABLED for $device on $thishost."
+      error=1
+   fi 
+   if [[ $error == 0 ]]; then
+      echo "SUCCESS: CAPI enabled for device $device on $thishost." 
+   else 
       rc=1
    fi
 done
 
+if [[ $rc != 0 ]]; then echo -e "$me test FAIL, rc=$rc"; exit $rc; fi  
 
-
-if [ $rc -ne 0 ]; then echo -e "\n$me test FAIL, rc=$rc"; exit $rc; fi  
-
-echo -e "\nSUCCESS: CAPI enabled for $thishost."
-echo -e "\n$me test PASS, rc=0"  
+echo "$me test PASS, rc=0"  
 exit 0
-
-
-EOF

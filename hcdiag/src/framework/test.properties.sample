@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-                   # remove when Python 3
 #================================================================================
 #   
-#    hcdiag/src/framework/test.properties
+#    hcdiag/src/framework/test.properties.sample
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -30,11 +30,12 @@ xcat_cmd    = yes
 timeout     = 10
 #args        = -v
 
-## chk-capi-enable
-[tests.chk-capi-enable]
+## chk-capi
+[tests.chk-capi]
 description = check if capi is enabled on the node
-executable  = /opt/ibm/csm/hcdiag/tests/chk-capi-enable/chk-capi-enable.sh
+executable  = /opt/ibm/csm/hcdiag/tests/chk-capi/chk-capi.sh
 timeout     = 10
+args        = -a
 
 ## chk-cpu
 [tests.chk-cpu]
