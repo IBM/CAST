@@ -30,6 +30,12 @@ xcat_cmd    = yes
 timeout     = 10
 #args        = -v
 
+## chk-capi-enable
+[tests.chk-capi-enable]
+description = check if capi is enabled on the node
+executable  = /opt/ibm/csm/hcdiag/tests/chk-capi-enable/chk-capi-enable.sh
+timeout     = 10
+
 ## chk-cpu
 [tests.chk-cpu]
 description = Check number of cpus, cpu frequence, cores present=cores online on the node
