@@ -21,8 +21,12 @@ import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 from datetime import datetime
+import re
 
 TARGET_ENV='CAST_ELASTIC'
+
+def deep_get( obj, *keys):
+    return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
 
 def main(args):
 
@@ -31,14 +35,12 @@ def main(args):
         description='''A tool for finding jobs running at the specified time.''')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    parser.add_argument( '-T', '--time', metavar='timestamp', dest='timestamp', default=None,
-        help='The timestamp to search for jobs in YYYY-MM-DD HH:MM:SS.f format')
-    parser.add_argument( '-d', '--days', metavar='days', dest='days', default=1,
-        help='The days before and after the timestamp to include in the range')
+    parser.add_argument( '-T', '--time', metavar='YYYY-MM-DD HH:MM:SS', dest='timestamp', default="now",
+        help='A timestamp representing a point in time to search for all running CSM Jobs. HH, MM, SS are optional, if not set they will be initialized to 0. (default=now)')
     parser.add_argument( '-hr', '--hours', metavar='hours', dest='hours', default=0,
         help='The hours before and after the timestamp to include in the range')
-    parser.add_argument( '-s', '--size', metavar='size', dest='size', default=500,
-        help='The number of results to be returned')
+    parser.add_argument( '-s', '--size', metavar='size', dest='size', default=1000,
+        help='The number of results to be returned. (default=1000)')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to ')
 
@@ -53,93 +55,76 @@ def main(args):
             print("Missing target, '%s' was not set." % TARGET_ENV)
             return 2
 
-    # Open a connection to the elastic cluster, if this fails is wrong on the server.
+    # Parse the user's date.
+    date_format='(\d{4})-(\d{1,2})-(\d{1,2})[ \.]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
+    date_print_format='%Y-%m-%d %H:%M:%S'
+    date_search_format='"yyyy-MM-dd HH:mm:ss"'
+
+    target_date=args.timestamp
+    time_search=re.search(date_format, target_date)
+
+    # Build the target timestamp and verify validity.
+    if time_search : 
+        (year,month,day,hour,minute,second) = time_search.groups()
+        date = datetime( year=int(year), month=int(month), day=int(day), 
+            hour=int(hour if hour else  0), 
+            minute=int(minute if minute else 0), 
+            second=int(second if second else 0) )
+
+        target_date=datetime.strftime(date, date_print_format)
+
+    elif target_date == "now":
+        target_date=datetime.strftime(datetime.now(), date_print_format)
+    else:
+        parser.print_help()
+        print("Invalid timestamp: {0}".format(target_date))
+        return 2
+
+    
+    # Build the search clauses. 
+    range_filter='''{{ "range": {{ "{0}" : {{ "lte": "{2}" , "format": {3} }} }} }}, 
+{{ "range": {{ "{1}" : {{ "gte": "{2}" , "format": {3} }} }} }}'''.format(
+        "data.begin_time", "data.history.end_time", target_date, date_search_format)
+    end_missing='''{{ "exists" : {{ "field" : "{0}" }} }}'''.format("data.history.end_time")
+    source_filter='"_source" : [ "data.allocation_id", "data.primary_job_id", "data.secondary_job_id", "data.begin_time", "data.history.end_time"]'
+    meta='"size":{0}, {1}'.format(args.size, source_filter)
+
+    
+    query='{{ "query": {{ "bool": {{ "should" : [{0}, {{ "bool": {{ "must_not":{1} }} }} ], "minimum_should_match":2}} }}, {2} }}'.format(range_filter, end_missing, meta)
+
+    # Open a connection to the elastic cluster.
     es = Elasticsearch(
         args.target, 
         sniff_on_start=True,
         sniff_on_connection_fail=True,
         sniffer_timeout=60
     )
-    
-    # Convert user input into milliseconds
-    timestamp = int(datetime.strptime(args.timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime('%s'))*1000
-
-    # Time from milliseconds to date format to get the range
-    tm_stmp = datetime.fromtimestamp(int(timestamp)/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_before = datetime.fromtimestamp((int(timestamp)-((int(args.days)*86400000) + (int(args.hours)*3600000)))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-    day_after  = datetime.fromtimestamp((int(timestamp)+((int(args.days)*86400000) + (int(args.hours)*3600000)))/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
 
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
-        body={
-            'size': args.size,
-            'from' : 0,
-            'query': { 
-                'range' : {
-    				'data.begin_time': {
-    					'gte' : day_before, 
-    					'lte' : day_after, 
-    					'relation' : "within"
-    				}
-    			},
-                # Uncomment below to include a specific range
-                # 'range' : {
-                #     'data.history.end_time':{
-                #         'gte' : day_before,
-                #         'lte' : day_after, 
-                #         'relation' : "within"
-                #     }
-                # }
-            }
-        }
-        
-    )
-    total_hits = tr_res["hits"]["total"]
-
-    print("----------Got {0} Hit(s) for jobs beginning and ending between {1} and {2}----------".format(total_hits,day_before,day_after))
-
-    # If DB format is incorrect, uncomment to use this method to find all jobs running
-    # query_results_extraction( es, day_before, day_after)
-
-    for data in tr_res["hits"]["hits"]:
-        tr_data = data["_source"]["data"]
-        print("allocation_id: {0}".format(tr_data["allocation_id"]) )
-        print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
-        print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
-        print("\tbegin_time: " + tr_data["begin_time"])
-        print("\tend_time:   " + tr_data["history"]["end_time"] +"\n")
-
-    
-def query_results_extraction(es, day_before, day_after):
-
-    tr_res = es.search(
-        index="cast-allocation",
-        body={
-            'size' : args.size,
-            'from' : 0,
-            'query':{
-                'match_all' :{}
-            }
-        }
+        body=query
     )
 
-    print ("\n----------Checking for Jobs from {0} to {1}----------".format(day_before, day_after))
-    for data in tr_res["hits"]["hits"]:
-        tr_data = data["_source"]["data"]
+    # Get Hit Data
+    hits          = deep_get(tr_res, "hits", "hits")
+    total_hits    = deep_get(tr_res, "hits","total")
+    hits_displayed= len(hits)
+
+    print("Search found {0} jobs running at '{2}', displaying {1} jobs:\n".format(total_hits, len(hits), target_date)) 
+
+    # Display the results of the search.
+    if hits_displayed > 0:
+        print_fmt="{0: >13} | {1: >12} | {2: <14} | {3: <26} | {4: <26}"
+        print(print_fmt.format("Allocation ID", "Prim. Job ID", "Second. Job ID", "Begin Time", "End Time"))
+        for hit in hits:
+            data=deep_get(hit, "_source", "data")
+            if data:
+                print(print_fmt.format(
+                    data.get("allocation_id"), data.get("primary_job_id"), data.get("secondary_job_id"),
+                    data.get("begin_time"), deep_get(data, "history","end_time")))
         
-        day_before   = datetime.strptime(day_before, '%Y-%m-%d %H:%M:%S.%f')
-        day_after   = datetime.strptime(day_after, '%Y-%m-%d %H:%M:%S.%f')
-        # If a history is present end_time is end_time, otherwise it's now.
-        start_time = datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
-        if start_time > day_before and start_time < day_after and "history" in tr_data:
-            end_time   = datetime.strptime(tr_data["history"]["end_time"], '%Y-%m-%d %H:%M:%S.%f')
-            if end_time < day_before and end_time < day_after:
-                print ("allocation_id: {0}".format(tr_data["allocation_id"]) )
-                print("primary_job_id: {0}".format(tr_data["primary_job_id"]))
-                print("secondary_job_id: {0}".format(tr_data["secondary_job_id"]))
-                print("\tbegin_time: "  + str(start_time))
-                print("\tend_time:   " + str(end_time) + '\n')
-        
+    return 0
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

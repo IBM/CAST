@@ -116,7 +116,7 @@ def main(args):
     print_format='%Y-%m-%d %H:%M:%S:%f'
     search_format='"yyyy-MM-dd HH:mm:ss:SSS"'
     # Determine the timerange:
-    start_time=datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
+    start_time=datetime.strptime(tr_data["begin_time"], date_format)
     start_time='"{0}"'.format(start_time.strftime(print_format)[:-3])
     # If a history is present end_time is end_time, otherwise it's now.
     if "history" in tr_data:
@@ -168,8 +168,6 @@ def main(args):
         print("Select Logs:")
         for hit in hits:
             print("{timestamp} {hostname} | {message}".format(hit))
-
-
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
