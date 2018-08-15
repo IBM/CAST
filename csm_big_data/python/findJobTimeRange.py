@@ -100,7 +100,7 @@ def main(args):
         tr_data = deep_get( hits[0], "_source", "data")
 
         date_format= '%Y-%m-%d %H:%M:%S.%f'
-        print_format='%Y-%m-%d %H:%M:%S:%f'
+        print_format='%Y-%m-%d.%H:%M:%S:%f'
         search_format='"yyyy-MM-dd HH:mm:ss:SSS"'
 
         start_time=datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
@@ -112,8 +112,10 @@ def main(args):
             end_time='{0}'.format(end_time.strftime(print_format)[:-3])
         else:
             end_time="Still Running"
-
-        print( "Start Time: {0} \n  End Time: {1}".format(start_time, end_time))
+        
+        print( "\nAllocation ID: {0}".format(tr_data["allocation_id"]))
+        print( "Job ID: {0} - {1}".format(tr_data["primary_job_id"], tr_data["secondary_job_id"]))
+        print( "Start Time: {0} \n  End Time: {1}\n".format(start_time, end_time))
     
     # ---------------------------------------------------------------------------------------------
 

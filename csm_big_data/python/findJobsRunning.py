@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    findJobsrunning.py
+#    findJobsRunning.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -37,12 +37,10 @@ def main(args):
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
     parser.add_argument( '-T', '--time', metavar='YYYY-MM-DD HH:MM:SS', dest='timestamp', default="now",
         help='A timestamp representing a point in time to search for all running CSM Jobs. HH, MM, SS are optional, if not set they will be initialized to 0. (default=now)')
-    parser.add_argument( '-hr', '--hours', metavar='hours', dest='hours', default=0,
-        help='The hours before and after the timestamp to include in the range')
     parser.add_argument( '-s', '--size', metavar='size', dest='size', default=1000,
         help='The number of results to be returned. (default=1000)')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
-        help='A list of hostnames to filter the results to ')
+        help='A list of hostnames to filter the results to.')
 
     args = parser.parse_args()
 
@@ -56,7 +54,7 @@ def main(args):
             return 2
 
     # Parse the user's date.
-    date_format='(\d{4})-(\d{1,2})-(\d{1,2})[ \.]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
+    date_format='(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
     date_print_format='%Y-%m-%d %H:%M:%S'
     date_search_format='"yyyy-MM-dd HH:mm:ss"'
 
@@ -85,12 +83,18 @@ def main(args):
     range_filter='''{{ "range": {{ "{0}" : {{ "lte": "{2}" , "format": {3} }} }} }}, 
 {{ "range": {{ "{1}" : {{ "gte": "{2}" , "format": {3} }} }} }}'''.format(
         "data.begin_time", "data.history.end_time", target_date, date_search_format)
+
     end_missing='''{{ "exists" : {{ "field" : "{0}" }} }}'''.format("data.history.end_time")
+
     source_filter='"_source" : [ "data.allocation_id", "data.primary_job_id", "data.secondary_job_id", "data.begin_time", "data.history.end_time"]'
     meta='"size":{0}, {1}'.format(args.size, source_filter)
 
-    
-    query='{{ "query": {{ "bool": {{ "should" : [{0}, {{ "bool": {{ "must_not":{1} }} }} ], "minimum_should_match":2}} }}, {2} }}'.format(range_filter, end_missing, meta)
+    if args.hosts:
+        hosts='"must":{{ "match" : {{ "data.compute_nodes" : {{ "query" : "{0}" }} }} }},'.format(" ".join(args.hosts))
+    else:
+        hosts=""
+
+    query='{{ "query": {{ "bool": {{  {3} "should" : [{0}, {{ "bool": {{ "must_not":{1} }} }} ], "minimum_should_match":2}} }}, {2} }}'.format(range_filter, end_missing, meta, hosts)
 
     # Open a connection to the elastic cluster.
     es = Elasticsearch(
@@ -124,6 +128,7 @@ def main(args):
                     data.get("allocation_id"), data.get("primary_job_id"), data.get("secondary_job_id"),
                     data.get("begin_time"), deep_get(data, "history","end_time")))
         
+
     return 0
 
 if __name__ == "__main__":
