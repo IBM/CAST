@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-capi/chk-capi.sh
+#    hcdiag/src/tests/chk-capi-enable/chk-capi-enable.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
