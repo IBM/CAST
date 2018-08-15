@@ -35,7 +35,12 @@ rc=$?
 if [ $rc -ne 0 ]; then echo -e "$me test FAIL, rc=$rc"; exit $rc; fi  
 
 sudo -E bash <<"EOF"
-mst start
+
+MST_CMD=/usr/bin/mst
+
+if [ ! -x $MST_CMD ]; then echo -e "(ERROR): command $MST_CMD not found.\n$me test FAIL, rc=1"; exit 1; fi  
+        
+$MST_CMD start
 
 rc=0
 for x in `ls /dev/mst/*`; do
