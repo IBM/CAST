@@ -109,21 +109,21 @@ function supported_machine()
    c=$(echo "${SUPPORTED_MODELS[@]}" | grep -o $model |wc -w)  
    if [ "$c" -ne "1" ]; then echo "Machine type $model not supported." ; ret=1; return; fi
    
-   is_witherspoon=False
-   is_garrison=False
-   is_firestone=False
-   is_boston=False
+   is_witherspoon=false
+   is_garrison=false
+   is_firestone=false
+   is_boston=false
    c=$(echo "${WITHERSPOON[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_witherspoon=True; return; fi
+   if [ "$c" -eq "1" ]; then is_witherspoon=true; return; fi
 
    c=$(echo "${BOSTON[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_boston=True; return; fi
+   if [ "$c" -eq "1" ]; then is_boston=true; return; fi
 
    c=$(echo "${GARRISON[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_garrison=True; return; fi
+   if [ "$c" -eq "1" ]; then is_garrison=true; return; fi
 
    c=$(echo "${FIRESTONE[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_firestone=True; return; fi
+   if [ "$c" -eq "1" ]; then is_firestone=true; return; fi
 
    return
 }
