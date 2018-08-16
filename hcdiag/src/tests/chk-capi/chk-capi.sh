@@ -2,7 +2,7 @@
 
 #================================================================================
 #   
-#    hcdiag/src/tests/chk-capi-enable/chk-capi-enable.sh
+#    hcdiag/src/tests/chk-capi/chk-capi.sh
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
