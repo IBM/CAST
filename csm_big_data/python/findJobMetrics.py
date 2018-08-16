@@ -156,19 +156,21 @@ def main(args):
 
     # Print the table.
     aggs=deep_get(key_res, "aggregations")
-    
-    max_width=len("Field")
-    for agg in aggs:
-        max_width=max(max_width, len(agg))
-    
-    print("{0:>{1}} | {2: >10} | {3: >10} | {4: >10} | {5: >10} | Count".format(
-        "Field", max_width, "Min", "Max", "Average", "Std Dev"))
+    if aggs is not None:
+        max_width=len("Field")
+        for agg in aggs:
+            max_width=max(max_width, len(agg))
+        
+        print("{0:>{1}} | {2: >14} | {3: >14} | {4: >14} | {5: >14} | Count".format(
+            "Field", max_width, "Min", "Max", "Average", "Std Dev"))
 
-    print_fmt="{0: >{1}} | {2:10.3f} | {3:10.3f} | {4:10.3f} | {5:10.3f} | {6}"
-    for agg in aggs:
-        print(print_fmt.format(agg, max_width, aggs[agg]["min"], aggs[agg]["max"],
-            aggs[agg]["avg"], aggs[agg]["std_deviation"], aggs[agg]["count"]))
+        print_fmt="{0: >{1}} | {2:>14.3} | {3:>14.3} | {4:>14.3} | {5:>14.3} | {6}"
 
+        for agg in aggs:
+            print(print_fmt.format(agg, max_width, aggs[agg]["min"], aggs[agg]["max"],
+                aggs[agg]["avg"], aggs[agg]["std_deviation"], aggs[agg]["count"]))
+    else:
+        print("No aggregations were found.")
     return 0
 
 
