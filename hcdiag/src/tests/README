@@ -19,6 +19,7 @@ Tests that requires sudo privileges to run
 Run in Node and Management mode
 ==========================================
 chk-cpu
+chk-capi
 chk-ib-pcispeed    
 chk-mlnx-pci
 chk-mlxlink-pci
@@ -85,7 +86,7 @@ chk-sw-level
 chk-sys-firmware-local
 chk-temp
 chk-zombies
-daxpy   
+daxpy and daxpy_per_socket   
    *** does not required sudo by default. If CLEANUP_OS_CACHE=1, 
    *** then sudo is required, in order to be able to write to sysfs 
 dcgm-diag
@@ -93,6 +94,7 @@ dcgm-diag-double
 dcgm-diag-single
 dcgm-health
 dgemm
+dgemm-per-socket
 gpfsperf
 gpu-health
 ipoib

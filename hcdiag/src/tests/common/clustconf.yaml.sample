@@ -251,6 +251,7 @@ node_info:
       clocks_applications_mem: 877
       persistence_mode: Enabled
       link_speed : 25
+      nlinks     : 6
     ib:
       slot_rx: "00(03|33):01:00.(0|1)"
       board_id: "IBM0000000002"
