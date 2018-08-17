@@ -1612,9 +1612,11 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                     }
 
-                    // Unconditionally perform a chmod to 0777 for the cross-bbserver metatdata root directory.
-                    // NOTE:  Users for all jobs must be able to insert into this directory.
-                    rc = chmod(l_DataStorePath.c_str(), 0777);
+                    // Unconditionally perform a chmod to 0755 for the cross-bbserver metatdata root directory.
+                    // NOTE:  root:root will insert jobid directories into this directory and then ownership
+                    //        of those jobid directories will be changed to the uid:gid of the mountpoint.
+                    //        The mode of the jobid directories is also changed to be 0700.
+                    rc = chmod(l_DataStorePath.c_str(), 0755);
                     if (rc)
                     {
                         errorText << "chmod failed";

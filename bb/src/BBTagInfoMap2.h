@@ -39,12 +39,12 @@ class BBTagInfoMap2
 {
   public:
     // Static methods
-    static int update_xbbServerAddData(const uint64_t pJobId);
+    static int update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId);
     static int update_xbbServerRemoveData(const uint64_t pJobId);
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
-    int addLVKey(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
+    int addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
     int cleanLVKeyOnly(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     void ensureStageOutEnded(const LVKey* pLVKey);

@@ -790,73 +790,49 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
             ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
         }
     }
+
     else if(pExtent->flags & BBI_TargetPFSPFS)
     {
         BBSTATUS l_Status = BBFULLSUCCESS;
 
         bs::error_code err;
-        bfs::copy_file(bfs::path(pTransferDef->files[pExtent->sourceindex]), bfs::path(pTransferDef->files[pExtent->targetindex]), err);
+        bfs::copy_file(bfs::path(pTransferDef->files[pExtent->sourceindex]), bfs::path(pTransferDef->files[pExtent->targetindex]), bfs::copy_option::overwrite_if_exists, err);
 
         if (err.value())
         {
             l_Status = BBFAILED;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
         }
 
-        uint64_t l_FileStatus = 0;
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
-            case BBSTOPPED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Stopped;
-                LOG(bb,info) << "PFS copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
             case BBFAILED:
                 pExtent->len = 0;
-                l_FileStatus |= BBTD_Failed;
                 LOG(bb,info) << "PFS copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
             case BBCANCELED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Canceled;
-                LOG(bb,info) << "PFS copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
+            case BBSTOPPED:
             default:
                 // Not possible...
                 break;
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
+
     else if(pExtent->flags & BBI_TargetSSDSSD)
     {
-        uint64_t l_FileStatus = 0;
-        if (pExtent->flags & BBTD_Stopped)
+        if (pExtent->flags & BBTD_Failed)
         {
-            l_FileStatus |= BBTD_Stopped;
-            LOG(bb,info) << "Local compute node SSD copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Failed)
-        {
-            l_FileStatus |= BBTD_Failed;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
             LOG(bb,info) << "Local compute node SSD copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Canceled)
-        {
-            l_FileStatus |= BBTD_Canceled;
-            LOG(bb,info) << "Local compute node SSD copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
         else
@@ -866,7 +842,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {
@@ -2548,7 +2524,7 @@ void startTransferThreads()
     return;
 }
 
-int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -2560,7 +2536,7 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
         BBTagInfo2 empty(pConnectionName, pHostName, pJobId);
         // NOTE:  The LVKey could already exist in the case where a given job spans the failover
         //        to a backup and then back to the primary bbServer.
-        rc = metadata.addLVKey(pHostName, pLVKey, pJobId, empty, pTolerateAlreadyExists);
+        rc = metadata.addLVKey(pHostName, pMsg, pLVKey, pJobId, empty, pTolerateAlreadyExists);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -3223,3 +3199,25 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+
+void switchIdsToMountPoint(txp::Msg* pMsg)
+{
+    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData();
+    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData();
+
+    int rc = becomeUser(l_Owner, l_Group);
+    if (!rc)
+    {
+        bberror << err("in.misc.mntptuid", l_Owner) << err("in.misc.mntptgid", l_Group);
+    }
+    else
+    {
+        stringstream errorText;
+        errorText << "becomeUser failed";
+    	bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+
