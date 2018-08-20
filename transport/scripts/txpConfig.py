@@ -65,6 +65,7 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                           'option',                             # __u32
                           'performoperation',                   # __u32
                           'rate',                               # __u64
+                          'returncode',                         # __s32
                           'serializeversion',                   # __u32
                           'sizetransferred',                    # __u64
                           'sourcefile',                         # char*

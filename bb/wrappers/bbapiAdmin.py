@@ -154,19 +154,21 @@ def BB_CreateLogicalVolume(pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
 
     return
 
-def BB_GetServer(pType):
+def BB_GetServer(pType, pPrintOption=True):
     l_BufferSize = 512
 
     l_Type = bb.cvar("type", pType)
     l_Size = bb.cvar("size", l_BufferSize)
     l_Buffer = bb.cvar("buffer", l_BufferSize)
 
-    print "%sBB_GetServer issued for type %s" % (os.linesep, pType)
+    if (pPrintOption):
+        print "%sBB_GetServer issued for type %s" % (os.linesep, pType)
     rc = bb.api.BB_GetServer(l_Type, l_Size, byref(l_Buffer))
     if (rc):
         raise BB_GetServerError(rc)
 
-    bb.printLastErrorDetailsSummary()
+    if (pPrintOption):
+        bb.printLastErrorDetailsSummary()
 
     l_Temp = []
     for i in xrange(l_Size.value):
@@ -177,11 +179,12 @@ def BB_GetServer(pType):
     l_Output = "".join(l_Temp)
     l_TypePrt = list(pType)
     l_TypePrt[0] = l_TypePrt[0].upper()
-    print "%s Server: %s" % ("".join(l_TypePrt), l_Output)
+    if (pPrintOption):
+        print "%s Server: %s" % ("".join(l_TypePrt), l_Output)
 
     return l_Output
 
-def BB_GetServerByName(pName, pType):
+def BB_GetServerByName(pName, pType, pPrintOption=True):
     l_BufferSize = 512
 
     l_Name = bb.cvar("type", pName)
@@ -189,12 +192,14 @@ def BB_GetServerByName(pName, pType):
     l_Size = bb.cvar("size", l_BufferSize)
     l_Buffer = bb.cvar("buffer", l_BufferSize)
 
-    print "%sBB_GetServerByName issued for name %s, type %s" % (os.linesep, pName, pType)
+    if (pPrintOption):
+        print "%sBB_GetServerByName issued for name %s, type %s" % (os.linesep, pName, pType)
     rc = bb.api.BB_GetServerByName(l_Name, l_Type, l_Size, byref(l_Buffer))
     if (rc):
         raise BB_GetServerByNameError(rc)
 
-    bb.printLastErrorDetailsSummary()
+    if (pPrintOption):
+        bb.printLastErrorDetailsSummary()
 
     l_Temp = []
     for i in xrange(l_Size.value):
@@ -203,7 +208,8 @@ def BB_GetServerByName(pName, pType):
         else:
             break
     l_Output = "".join(l_Temp)
-    print "%s Server: %s  Option: %s  Result: %s" % (os.linesep, pName, pType, l_Output)
+    if (pPrintOption):
+        print "%s Server: %s  Option: %s  Result: %s" % (os.linesep, pName, pType, l_Output)
 
     return l_Output
 

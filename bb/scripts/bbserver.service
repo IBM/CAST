@@ -22,6 +22,7 @@ After=network.target
 
 
 [Service]
+UMask=0027
 Type=simple
 ExecStart=/opt/ibm/bb/sbin/bbServer --config /etc/ibm/bb.cfg
 PIDFile=/var/run/bbserver.pid

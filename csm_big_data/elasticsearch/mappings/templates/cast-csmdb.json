@@ -1,5 +1,5 @@
 {
-    "index_patterns": ["cast-csmdb*"]
+    "index_patterns": ["cast-csmdb*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -15,8 +15,7 @@
             "properties" : {
                 "@version"   : { "type" : "text" },
                 "@timestamp" : { "type" : "date" },
-                "tags"       : { "type" : "text" },
-                "_table"     : { "type" : "text" } 
+                "tags"       : { "type" : "text" }
             }
         }
     }

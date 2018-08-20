@@ -74,7 +74,7 @@ int BBTagInfo2::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
+void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
@@ -82,6 +82,41 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
 
     // Indicate that next findWork() needs to look for canceled extents
     wrkqmgr.setCheckForCanceledExtents(1);
+
+    // If we are to perform remove operations for target PFS files, do so now...
+    if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
+    {
+        // Wait for the canceled extents to be processed
+        uint64_t l_Attempts = 1;
+        while (1)
+        {
+            if (wrkqmgr.getCheckForCanceledExtents())
+            {
+                if ((l_Attempts % 15) == 0)
+                {
+                    // Display this message every 15 seconds...
+                    LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo2::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                                 << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                }
+
+                unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                {
+                    usleep((useconds_t)1000000);    // Delay 1 second
+                }
+                lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                ++l_Attempts;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Remove the target files
+        LOG(bb,info) << "Start: Removing target files assocaited with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
+        removeTargetFiles(pLVKey, *pHandle, *pContribId);
+        LOG(bb,info) << "Completed: Removing target files assocaited with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
+    }
 
     return;
 }
@@ -634,7 +669,7 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
 
         try
         {
-            rc = sendMsgAndWaitForNonDataReply(pConnectionName, l_Complete);
+            rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
         }
         catch(exception& e)
         {
@@ -742,7 +777,6 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
         // Send the message
         int rc = sendMessage(pConnectionName,l_Complete);
         if (rc) LOG(bb,info) << "sendMessage rc="<<rc<<" @ func="<<__func__<<":"<<__LINE__;
-        delete l_Complete;
 
         // Determine if this status update for the handle should be appended to the async file
         // to be consumed by other bbServers
@@ -779,6 +813,8 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
         }
     }
 
+    delete l_Complete;
+
     return;
 }
 
@@ -795,7 +831,7 @@ void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pH
     return;
 }
 
-void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle)
+void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption)
 {
     if (jobid == pJobId)
     {
@@ -804,7 +840,7 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(pLVKey, &pHandle, &l_ContribId);
+        cancelExtents(pLVKey, &pHandle, &l_ContribId, pRemoveOption);
     }
 
     return;
@@ -813,75 +849,52 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
 int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue)
 {
     int rc = 0;
-    int l_Continue = 120;
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
         if (!stageOutStarted())
         {
-            while ((!rc) && l_Continue--)
+            rc = wrkqmgr.setSuspended(pLVKey, pValue);
+            switch (rc)
             {
-                rc = wrkqmgr.setSuspended(pLVKey, pValue);
-                switch (rc)
+                case 0:
                 {
-                    case 0:
+                    if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
                     {
-                        if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
-                        {
-                            LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                         << connectionName << ", " << *pLVKey << ", jobid " << jobid \
-                                         << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-                        }
-                        SET_FLAG(BBTI2_Suspended, pValue);
-                        l_Continue = 0;
+                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                     << connectionName << ", " << *pLVKey << ", jobid " << jobid \
+                                     << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
                     }
-                    break;
-
-                    case -2:
-                    {
-                        // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
-                        //       has 'used' the LVKey and required the work queue to be present.  For a resume request, we simply tolerate the
-                        //       situation as any work queue added later for the LVKey/CN hostname will automatically be in the resumed state.
-                        //       Otherwise, for a suspend request, we wait for a total of 2 minutes awaiting an LVKey/work queue to become present.
-                        // \todo - Not sure if this is the right duration...  @DLH
-                        if (pValue)
-                        {
-                            // Connection being suspended
-                            if (l_Continue)
-                            {
-                                rc = 0;
-                                unlockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
-                                {
-                                    usleep((useconds_t)1000000);    // Delay 1 second
-                                }
-                                lockTransferQueue(pLVKey, "setSuspended - Waiting for LVKey to be registered");
-                            }
-                            else
-                            {
-                                rc = -1;
-                                LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                              << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                              << ". Failing condition for a suspend operation.";
-                            }
-                        }
-                        else
-                        {
-                            // Connection being resumed
-                            LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
-                                         << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                         << ". Tolerated condition for a resume operation.";
-                            break;
-                        }
-                    }
-                    break;
-
-                    case 2:
-                        break;
-
-                    default:
-                        rc = -1;
-                        break;
+                    SET_FLAG(BBTI2_Suspended, pValue);
                 }
+                break;
+
+                case -2:
+                {
+                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
+                    //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
+                    string l_Temp = "resume";
+                    if (pValue)
+                    {
+                        // Connection being suspended
+                        l_Temp = "suspend";
+                    }
+                    LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                                 << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
+                                 << ". Tolerated condition for a " << l_Temp << " operation.";
+                }
+                break;
+
+                case 2:
+                    break;
+
+                default:
+                    LOG(bb,info) << "BBTagInfo2::setSuspended(): Unexpected return code " << rc \
+                                 << " received for hostname " << pHostName << ", connection " \
+                                 << connectionName << ", jobid " << jobid << ", " << *pLVKey \
+                                 << " when attempting the suspend or resume operation on the work queue.";
+                    rc = -1;
+                    break;
             }
         }
         else
@@ -943,7 +956,7 @@ int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
                 //
                 // Sort the extents, moving the canceled extents to the front of
                 // the work queue so they are immediately removed...
-                cancelExtents(pLVKey, &pHandle, &pContribId);
+                cancelExtents(pLVKey, &pHandle, &pContribId, DO_NOT_REMOVE_TARGET_PFS_FILES);
             }
         }
         else

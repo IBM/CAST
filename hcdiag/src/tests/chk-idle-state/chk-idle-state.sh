@@ -23,10 +23,18 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi     
 
-me=$(basename $0) 
-model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
-echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
+thisdir=`dirname $0`
+source $thisdir/../common/functions
+supported_machine
+
+if  ( ! $is_witherspoon ) ; then 
+   echo "This test applies only to Withersppon, P9 machines."
+   exit 1
+fi
+
+me=$(basename $0) 
+echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 idle_state=3
 eyecatcher1=DISABLED
 eyecatcher2="Number of idle states"

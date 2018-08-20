@@ -204,7 +204,7 @@ git repository.
 .. code:: bash
 
    $ yum install -y ruby  
-   $ cd csm_big_data/Logstash/plugins/csm_event_correlator
+   $ cd /opt/ibm/csm/bigdata/logstash/plugins/
    $ gem build logstash-filter-csm_event_correlator.gemspec # Requires network connection.
    $ /usr/share/logstash/bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-                   # remove when Python 3
 #================================================================================
 #   
-#    hcdiag/src/framework/test.properties
+#    hcdiag/src/framework/test.properties.sample
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -29,6 +29,13 @@ targetType  = Management
 xcat_cmd    = yes
 timeout     = 10
 #args        = -v
+
+## chk-capi
+[tests.chk-capi]
+description = check if capi is enabled on the node
+executable  = /opt/ibm/csm/hcdiag/tests/chk-capi/chk-capi.sh
+timeout     = 10
+args        = -a
 
 ## chk-cpu
 [tests.chk-cpu]
@@ -73,12 +80,19 @@ timeout     = 10
 [tests.chk-gpu-ats]
 description = check if the gpu ats is enable/disabled
 executable  = /opt/ibm/csm/hcdiag/tests/chk-gpu-ats/chk-gpu-ats.sh
+args        = 1
 timeout     = 10
 
 [tests.chk-hca-attributes]
 description = check hca board version and firmware
 executable  = /opt/ibm/csm/hcdiag/tests/chk-hca-attributes/chk-hca-attributes.sh
 timeout     = 10
+
+[tests.chk-ib-node]
+description = check node ib bandwidth
+executable  = /opt/ibm/csm/hcdiag/tests/chk-ib-node/chk-ib-node.sh
+timeout     = 50
+#args       = 21250
 
 [tests.chk-ib-pcispeed]
 description = check ib adapters vendor, speed and width
@@ -254,6 +268,14 @@ group       = memory
 timeout     = 100
 targetType  = Compute    
 
+[tests.daxpy-per-socket]
+description = measure aggregate memory bandwidth in MB/s, per socket.
+executable  = /opt/ibm/csm/hcdiag/tests/daxpy/daxpy.sh
+group       = memory
+timeout     = 100
+args        = 2
+targetType  = Compute    
+
 # NVIDIA datacenter. Argment for dcgmi diag is level, possible values:
 # 1 - Quick System Validation (~ seconds)  
 # 2 - Extended System Validation (~ 2 minutes)  
@@ -318,6 +340,16 @@ executable  = /opt/ibm/csm/hcdiag/tests/dgemm-gpu/dgemm-gpu.sh
 group        = gpu
 timeout      = 2000
 targetType   = Compute
+#args        = 1
+
+[tests.dgemm-per-socket]
+description = measure CPU performance per socket.
+executable  = /opt/ibm/csm/hcdiag/tests/dgemm-per-socket/dgemm-per-socket.sh
+group       = cpu
+timeout     = 800
+targetType  = Compute
+#              performance in Gflops 
+#args        = 450
 
 # strong recomend to run on the node, just invoking this script
 # NOTE: NVIDIA distributes the fieldiag binary and the source code for the
@@ -341,15 +373,16 @@ timeout     = 25000
 # checks gpu memory bw, gpu dgemm flops, nvlink transfer speeds 
 # NOTE: the source code for the gpu-health binary is distributed as samples
 # arguments:
-#  nvlink transfer to devices in the same socket speed: default 40 GB/sec  
+#  nvlink transfer to devices in the same socket speed: default 65 GB/sec  
 #  gpu memory bandwidth: defaul 800 GB/sec
 #  gpu dgemm: deault is 7 TFlops
 [tests.gpu-health]
-description = NVIDIA hardware diagnostic
+description = checks gpu memory bw, gpu dgemm flops, nvlink transfer speeds 
 executable  = /opt/ibm/csm/hcdiag/tests/gpu-health/gpu-health.sh
 group       = gpu
+#args        = 40 800 6.7
+args        = 65 800 6.7
 timeout     = 10000
-#args       = 40 800 7
 
 [tests.gpudirect]
 description = Exercise GPUDirect RDMA and p2p data movement
@@ -399,9 +432,6 @@ executable = /opt/ibm/csm/hcdiag/tests/hxecpu/hxecpu.sh
 args        = 10 2 
 
 # arguments for hxediag is  <eth|ib> <duration> [args]
-# if you you want to specify exactly which interface, it has to be passed as 
-# args, otherwise it will test all interfaces.
-# example ib 10 mlx5_0
 
 [tests.hxediag_eth]
 description = HTX test for Ethernet adapters
@@ -609,7 +639,7 @@ args        = 3
 
 ## Invokes p2pBandwidthLatencyTest, from cuda samples
 [tests.p2pBandwidthLatencyTest]
-description = parallel ping from nodes to other nodes in the cluster
+description = NVIDIA GPU bandwidth test
 executable  = /opt/ibm/csm/hcdiag/tests/p2pBandwidthLatencyTest/p2pBandwidthLatencyTest.sh
 timeout     = 200
 group       = gpu
@@ -670,6 +700,12 @@ tests       = hxecache,hxecpu,hxefpu64,hxemem64,hxenvidia,hxediag_ib, hxediag_et
 [bucket.htx_pass2]    
 description = A bucket including all htx pass2 tests
 tests       = hxeewm_pass2,hxecpu_pass2,hxefpu64_pass2,hxemem64_pass2,hxenvidia_pass2,hxerng_pass2,hxesctu_pass2,hxefabricbus_pass2,hxestorage_sd_pass2,hxestorage_nvme_pass2
+
+#############
+# executed as xcat post-boot
+[bucket.boot_node_health]
+description=A set of tests to be executed as post-boot
+tests=chk-cpu,chk-memory,chk-mlnx-pci,chk-nvlink-speed,gpu-health
 
 ##############
 # 1 min

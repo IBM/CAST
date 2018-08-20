@@ -146,7 +146,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         if (strstr(pRequest.data, "heartbeat"))
         {
-            LOG(bb,debug) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            LOG(bb,info ) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
         }
         else
         {
@@ -207,9 +207,7 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
             getOffsetToNextAsyncRequest(l_CurrentAsyncRequestFileSeqNbr, l_CurrentOffsetToNextAsyncRequest);
             while (l_CurrentAsyncRequestFileSeqNbr <= l_AsyncRequestFileSeqNbr)
             {
-                // NOTE: If we set the offset target to MAXIMUM_ASYNC_REQUEST_FILE_SIZE, we have to add 1 to it so that we process the last async request
-                //       in that file.  Otherwise, we don't add 1 because that is the offset to the next async request to be inserted.
-                l_TargetOffsetToNextAsyncRequest = (l_CurrentAsyncRequestFileSeqNbr < l_AsyncRequestFileSeqNbr ? MAXIMUM_ASYNC_REQUEST_FILE_SIZE+1 : (uint64_t)l_OffsetToNextAsyncRequest);
+                l_TargetOffsetToNextAsyncRequest = (l_CurrentAsyncRequestFileSeqNbr < l_AsyncRequestFileSeqNbr ? MAXIMUM_ASYNC_REQUEST_FILE_SIZE : (uint64_t)l_OffsetToNextAsyncRequest);
                 if (!l_FirstFile)
                 {
                     // We crossed the boundary to a new async request file...  Start at offset zero...
@@ -330,114 +328,119 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
 }
 
 void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOption) {
-    const char* l_PostfixOverride = " (Number of Skipped Dumps Exceeded)";
-    char* l_PostfixStr = const_cast<char*>(pPostfix);
-
-    if (allowDump)
+    // NOTE: We early exit based on the logging level because we don't want to 'reset'
+    //       dump counters, etc. if the logging facility filters out an entry.
+    if (pSev == loggingLevel)
     {
-        if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
+        const char* l_PostfixOverride = " (Number of Skipped Dumps Exceeded)";
+        char* l_PostfixStr = const_cast<char*>(pPostfix);
+
+        if (allowDump)
         {
-            bool l_DumpIt = false;
-            if (pDumpOption != DUMP_UNCONDITIONALLY)
+            if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
             {
-                if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                bool l_DumpIt = false;
+                if (pDumpOption != DUMP_UNCONDITIONALLY)
                 {
-                    l_DumpIt = true;
+                    if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                    {
+                        l_DumpIt = true;
+                    }
+                    else
+                    {
+                        if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests >= numberOfAllowedSkippedDumpRequests)
+                        {
+                            l_DumpIt = true;
+                            l_PostfixStr = const_cast<char*>(l_PostfixOverride);
+                        }
+                    }
                 }
                 else
                 {
-                    if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests > numberOfAllowedSkippedDumpRequests)
-                    {
-                        l_DumpIt = true;
-                        l_PostfixStr = const_cast<char*>(l_PostfixOverride);
-                    }
+                    l_DumpIt = true;
                 }
-            }
-            else
-            {
-                l_DumpIt = true;
-            }
 
-            if (l_DumpIt)
-            {
-                stringstream l_OffsetStr;
-                if (outOfOrderOffsets.size())
+                if (l_DumpIt)
                 {
-                    // Build an output stream for the out of order async request offsets...
-                    l_OffsetStr << "(";
-                    size_t l_NumberOfOffsets = outOfOrderOffsets.size();
-                    for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                    stringstream l_OffsetStr;
+                    if (outOfOrderOffsets.size())
                     {
-                        if (i!=l_NumberOfOffsets-1) {
-                            l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
-                        } else {
-                            l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                        // Build an output stream for the out of order async request offsets...
+                        l_OffsetStr << "(";
+                        size_t l_NumberOfOffsets = outOfOrderOffsets.size();
+                        for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                        {
+                            if (i!=l_NumberOfOffsets-1) {
+                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
+                            } else {
+                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                            }
                         }
+                        l_OffsetStr << ")";
                     }
-                    l_OffsetStr << ")";
-                }
 
-                if (!strcmp(pSev,"debug")) {
-                    LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                    LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                    LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                  << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-//                    LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                    LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                    LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                    LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
-//                    LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                    LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                  << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                  << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
-                    if (outOfOrderOffsets.size())
-                    {
-                        LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                    if (!strcmp(pSev,"debug")) {
+                        LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                      << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+//                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                        LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
+//                        LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                        LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                        LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                      << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                      << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                        if (outOfOrderOffsets.size())
+                        {
+                            LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                        }
+                        LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
+                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                        {
+                            qe->second->dump(pSev, "          ");
+                        }
+                        LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                    } else if (!strcmp(pSev,"info")) {
+                        LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                     << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+//                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                        LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                        LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
+//                        LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                        LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                        LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                     << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                     << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                        if (outOfOrderOffsets.size())
+                        {
+                            LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                        }
+                        LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
+                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                        {
+                            qe->second->dump(pSev, "          ");
+                        }
+                        LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
-                    LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-                    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
-                    {
-                        qe->second->dump(pSev, "          ");
-                    }
-                    LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                } else if (!strcmp(pSev,"info")) {
-                    LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                    LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                    LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                 << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-//                    LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                    LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                    LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                    LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
-//                    LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                    LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                    LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                 << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                 << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
-                    if (outOfOrderOffsets.size())
-                    {
-                        LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
-                    }
-                    LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
-                    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
-                    {
-                        qe->second->dump(pSev, "          ");
-                    }
-                    LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                }
-                lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
-                numberOfSkippedDumpRequests = 0;
+                    lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
+                    numberOfSkippedDumpRequests = 0;
 
-                // NOTE:  Only reset the dumpTimerCount if we actually dumped the work queue manager.
-                //        Then, if no transfer activity for a while, we will dump the work queue manager
-                //        the next time the throttle timer pops.
-                dumpTimerCount = 0;
-            }
-            else
-            {
-                // Not dumped...
-                ++numberOfSkippedDumpRequests;
+                    // NOTE:  Only reset the dumpTimerCount if we actually dumped the work queue manager.
+                    //        Then, if no transfer activity for a while, we will dump the work queue manager
+                    //        the next time the throttle timer pops.
+                    dumpTimerCount = 0;
+                }
+                else
+                {
+                    // Not dumped...
+                    ++numberOfSkippedDumpRequests;
+                }
             }
         }
     }
@@ -610,7 +613,14 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
   	becomeUser(0, 0);
 
-    int l_SeqNbr = 0;
+    // Default is to open the currrent async request file
+    int l_SeqNbr = asyncRequestFileSeqNbr;
+    if (pWorkItem.getTag() >= offsetToNextAsyncRequest)
+    {
+        // We need to open the prior async request file...
+        l_SeqNbr -= 1;
+    }
+
     FILE* fd = openAsyncRequestFile("rb", l_SeqNbr);
     if (fd != NULL)
     {
@@ -1009,6 +1019,7 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                 {
                     l_TargetOffset = 0;
                 }
+                LOG(bb,debug) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
                 for (auto it=outOfOrderOffsets.begin(); it!=outOfOrderOffsets.end(); ++it) {
                     if (*it == l_TargetOffset)
                     {
@@ -1036,7 +1047,6 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
 {
     FILE* l_FilePtr = 0;
     char* l_AsyncRequestFileNamePtr = 0;
-    pSeqNbr = 0;
 
     int rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, pMaintenanceOption);
     if ((!rc) && l_AsyncRequestFileNamePtr)
@@ -1138,7 +1148,9 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
         // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
         if ((i % 20) == 10)
         {
-            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() = " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess = " << l_NumberToProcess;
+            LOG(bb,info) << "processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() " << HPWrkQE->getNumberOfWorkItemsProcessed() << ", l_NumberToProcess " << l_NumberToProcess \
+                         << ", Async Seq# " << asyncRequestFileSeqNbr << ", LstOff 0x" << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed \
+                         << ", NxtOff 0x" << setw(8) << offsetToNextAsyncRequest << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
         }
         if (HPWrkQE->getNumberOfWorkItemsProcessed() >= l_NumberToProcess)
         {
@@ -1215,7 +1227,7 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
             else
             {
                 pWrkQE->dump("debug", "Start: Current work item -> ");
-                if (dumpOnRemoveWorkItem && (l_WrkQ != HPWrkQE->getWrkQ()))
+                if (dumpOnRemoveWorkItem && (pWrkQE != HPWrkQE))
                 {
                     dump("debug", " Work Queue Mgr (Debug)", DUMP_ALWAYS);
                 }
@@ -1228,8 +1240,12 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
         // Update the last processed work queue in the manager
         setLastQueueProcessed(pWrkQE->getLVKey());
 
-        // Increment number of work items processed
-        incrementNumberOfWorkItemsProcessed();
+        // If work item is not for the HP work queue, increment number of work items processed.
+        // NOTE: We don't want to trigger the timer interval dump based solely on async requests.
+        if (pWrkQE != HPWrkQE)
+        {
+            incrementNumberOfWorkItemsProcessed();
+        }
     }
     else
     {
@@ -1537,7 +1553,8 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
             if(bfs::is_directory(asyncfile)) continue;
 
             int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
-            if (l_Count == 1 && l_CurrentSeqNbr > l_SeqNbr)
+            // NOTE: If pSeqNbr is passed in, that is the file we want to open...
+            if (l_Count == 1 && ((pSeqNbr && pSeqNbr == l_CurrentSeqNbr) || ((!pSeqNbr) && l_CurrentSeqNbr > l_SeqNbr)))
             {
                 l_SeqNbr = l_CurrentSeqNbr;
                 strCpy(pAsyncRequestFileName, asyncfile.path().c_str(), PATH_MAX+1);
@@ -1583,6 +1600,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 }
                 // Fall through...
 
+                case START_BBSERVER:
                 case FULL_MAINTENANCE:
                 {
                     // Unconditionally perform a chown to root:root for the cross-bbserver metatdata root directory.
@@ -1594,9 +1612,11 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                     }
 
-                    // Unconditionally perform a chmod to 0777 for the cross-bbserver metatdata root directory.
-                    // NOTE:  Users for all jobs must be able to insert into this directory.
-                    rc = chmod(l_DataStorePath.c_str(), 0777);
+                    // Unconditionally perform a chmod to 0755 for the cross-bbserver metatdata root directory.
+                    // NOTE:  root:root will insert jobid directories into this directory and then ownership
+                    //        of those jobid directories will be changed to the uid:gid of the mountpoint.
+                    //        The mode of the jobid directories is also changed to be 0700.
+                    rc = chmod(l_DataStorePath.c_str(), 0755);
                     if (rc)
                     {
                         errorText << "chmod failed";
@@ -1631,21 +1651,26 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     {
                         if (l_AsyncRequestFileSeqNbr > 0 && l_OffsetToNextAsyncRequest >= 0)
                         {
-                            wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
-                            LOG(bb,info) << "WRKQMGR: Current async request file = " << pAsyncRequestFileName << ", offsetToNextAsyncRequest = " << hex << uppercase << setfill('0') << setw(8) \
-                                         << l_OffsetToNextAsyncRequest << setfill(' ') << nouppercase << dec;
-                            if (l_OffsetToNextAsyncRequest)
+                            if (pMaintenanceOption == START_BBSERVER)
                             {
-                                // Set the last offset processed to one entry less than the next offset set above.
-                                lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
+                                wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                                if (l_OffsetToNextAsyncRequest)
+                                {
+                                    // Set the last offset processed to one entry less than the next offset set above.
+                                    lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
+                                }
+                                else
+                                {
+                                    // Set the last offset processed to the maximum async request file size.
+                                    // NOTE: This will cause the first expected target offset to be zero in method
+                                    //       manageWorkItemsProcessed().
+                                    lastOffsetProcessed = MAXIMUM_ASYNC_REQUEST_FILE_SIZE;
+                                }
                             }
-                            else
-                            {
-                                // Set the last offset processed to the maximum async request file size.
-                                // NOTE: This will cause the first expected target offset to be zero in method
-                                //       manageWorkItemsProcessed().
-                                lastOffsetProcessed = MAXIMUM_ASYNC_REQUEST_FILE_SIZE;
-                            }
+                            LOG(bb,info) << "WRKQMGR: Current async request file " << pAsyncRequestFileName \
+                                         << hex << uppercase << setfill('0') << ", LstOff 0x" << setw(8) << lastOffsetProcessed \
+                                         << ", NxtOff 0x" << setw(8) << l_OffsetToNextAsyncRequest \
+                                         << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
                         }
                         else
                         {

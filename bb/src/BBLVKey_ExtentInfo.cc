@@ -312,7 +312,7 @@ void BBLVKey_ExtentInfo::dumpInFlight(const char* pSev) const {
     return;
 }
 
-Extent* BBLVKey_ExtentInfo::getAnyExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex)
+Extent* BBLVKey_ExtentInfo::getAnySourceExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex)
 {
     Extent* l_Extent = 0;
 

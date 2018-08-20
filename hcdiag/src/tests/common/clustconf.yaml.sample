@@ -1,0 +1,334 @@
+#================================================================================
+#
+#    hcdiag/src/tests/common/clustconf.yaml.sample
+#
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# node specific information, make it work like a 
+# bash case statement.
+# note very little of this information is actually used yet.
+# so this is a placeholder for when we get all the tests to pick it up
+node_info:
+  - case: c699mgt00
+    rvitals: habenaro
+    ncpus: 176
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
+    clock:   
+      max: 3.50
+      min: 2.0
+    firmware: 
+      name: "unknown version"
+      versions:
+        - 'BMC Firmware: 2.16'
+        - 'System Firmware Product Version: IBM-habanero-ibm-OP8_v1.8_1.1'
+        - 'System Firmware Product Additional Info: hostboot-bc98d0b-74f74b1'
+        - 'System Firmware Product Additional Info: occ-0362706-opdirty-60bbdf1'
+        - 'System Firmware Product Additional Info: skiboot-5.1.16'
+        - 'System Firmware Product Additional Info: hostboot-binaries-43d5a59'
+        - 'System Firmware Product Additional Info: habanero-xml-a71550e-9ba0a35'
+        - 'System Firmware Product Additional Info: capp-ucode-105cb8f-opdirty'
+
+
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
+      board_id: "IBM2150110033"
+      firmware: "12.22.4020"
+      link_speed: 16
+      link_width: 8 
+    os:
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
+    kernel:
+      release: "4.14.0-49.8.1.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+
+    software:
+        - ibm-csm: 1.2.0-728
+        - gpfs.base: 5.0.1-0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.148-1 
+        - ibm_smpi: 10.02.00.06rtm1
+
+  - case: c699mgt0.*
+    rvitals: boston
+    firmware: 
+      name: "unknown version"
+      versions:
+        - 'TBD'
+
+  - case: (c699launch01)
+    rvitals: wspoon_dd2
+    ncpus: 176
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
+    clock:   
+      max: 3.50
+      min: 2.0
+    firmware:
+      name: 1742FxRev11
+      versions:
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.185 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-8c017b7-pa10387d'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-37be536'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-pd73059d'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: op-build-v2.0.5-305-g9caa6d0'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-p22c6f3f'
+        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.6'
+
+    gpu:
+      pciids:
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1312
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+      link_speed : 25
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
+      board_id: "IBM0000000002"
+      firmware: "16.22.8038"
+      link_speed: 16
+      link_width: 8 
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+    os:
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
+    kernel:
+      release: "4.14.0-49.10.1.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+    software:
+        - ibm-csm: 1.2.0-728
+        - gpfs.base: 5.0.1.0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.148-1 
+        - ibm_smpi: 10.02.00.06rtm1
+
+  - case: (c699login\d+|c699wrk\d+)
+    rvitals: wspoon_dd2
+    ncpus: 176
+    memory: 
+      total: 572
+      banks: 16
+      bank_size:  32
+    clock:   
+      max: 3.50
+      min: 2.0
+    firmware:
+      name: 1742FxRev11
+      versions:
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.185 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-8c017b7-pa10387d'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-37be536'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-pd73059d'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: op-build-v2.0.5-305-g9caa6d0'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-p22c6f3f'
+        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.6'
+
+    gpu:
+      pciids:
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1312
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+      link_speed : 25
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
+      board_id: "IBM0000000002"
+      firmware: "16.22.8038"
+      link_speed: 16
+      link_width: 8 
+
+    os:
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
+    kernel:
+      release: "4.14.0-49.10.1.el7a.ppc64le"
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+    software:
+        - ibm-csm: 1.2.0-728
+        - gpfs.base: 5.0.1-0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.148-1 
+        - ibm_smpi: 10.02.00.06rtm1
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+#
+# 6 gpus
+#
+  - case: (c699c0([0-5]+[0-9]))
+    rvitals: wspoon_dd2
+    ncpus: 176
+    memory: 
+      total: 606
+      banks: 16
+      bank_size:  32
+    clock: 
+      max: 3.50
+      min: 2.0
+    firmware:
+      name: 1742FxRev11
+      versions:
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.185 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-8c017b7-pa10387d'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-37be536'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-pd73059d'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: op-build-v2.0.5-305-g9caa6d0'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.1-p22c6f3f'
+        - 'HOST Firmware Product: -- additional info: sbe-1b143b5'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.6'
+
+    gpu:
+      pciids:
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0004:06:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+        - '0035:05:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1312
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+      link_speed : 25
+      nlinks     : 6
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
+      board_id: "IBM0000000002"
+      firmware: "16.22.8038"
+      link_speed: 16
+      link_width: 8 
+
+    os:
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
+    kernel:
+      release: "4.14.0-49.10.1.el7a.ppc64le"
+
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+    software:
+        - ibm-csm: 1.2.0-728
+        - gpfs.base: 5.0.1-0
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.148-1 
+        - ibm_smpi: 10.02.00.06rtm1
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+#
+# gpfs mounts expected on all nodes.
+gpfs_mounts: 
+  - {mount: '/gpfs/wscgpfs01',  match: 'wscgpfs01' }
+  - {mount: '/gpfs/wscgpfs02',  match: 'wscgpfs02' }
+
+
+rvitals:
+  habenaro:
+    - {id: 'nada', match: 0 }
+  boston:
+    - {id: 'nada', match: 0 }
+  wspoon_dd2: 
+    - {id: 'Ambient', regex: (\S+), range: [10,40] }
+    # note this is an error, remove when correct in https://github.ibm.com/DCS-research/R92-cluster/issues/1710
+    - {id: 'Fan1 \d',  regex: (\S+), range: [0,24000] }
+    - {id: 'Fan[0-3] \d',  regex: (\S+), range: [2500,14000] }
+    - {id: 'P\d Vcs Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P\d Vdd Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P\d Vddr Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'P\d Vdn Temp',  regex: (\S+), range: [15,80]}
+    - {id: 'Ambient', regex: (\S+), range: [10,40] }
+    - {id: 'DIMM\d+ Temp', regex: (\S+), range: [15,75,N/A]}
+    # core 6 frequetly reports https://github.ibm.com/DCS-research/WSC-coral/issues/335
+    - {id: 'P\d Core6 Temp',    regex: (\S+), range: [0,90,N/A]}
+    # core 7 frequetly reports https://github.ibm.com/DCS-research/WSC-coral/issues/639
+    - {id: 'P\d Core7 Temp',    regex: (\S+), range: [0,90,N/A]}
+
+    - {id: 'P\d Core\d Temp',    regex: (\S+), range: [10,90,N/A]}
+    - {id: 'P\d GPU Power',  regex: (\S+), range: [10,1800,N/A] }
+    - {id: 'P\d Io Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'P\d Mem Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'P\d Power',  regex: (\S+), range: [1,1800,N/A] }
+    - {id: 'Ps\d Input Power',  regex: (\S+), range: [10,1800,N/A] }
+
+    # Yesenia: Jordan keuseman says that the power supply will support until 300 Vac
+    # - {id: 'Ps\d Input Voltage',  regex: (\S+), range: [200,300,N/A] }
+    - {id: 'Ps\d Input Voltage',  regex: (\S+), range: [200,285,N/A] }
+
+    #   and we have an outlier of 0.125 current  and zero volts
+    #   https://github.ibm.com/DCS-research/WSC-coral/issues/433
+    - {id: 'Ps1 Output Current',  regex: (\S+), range: [0,100,N/A] }
+    - {id: 'Ps\d Output Voltage',  regex: (\S+), range: [10,400,0] }
+
+    - {id: 'Ps\d Output Current',  regex: (\S+), range: [10,100,N/A] }
+    - {id: 'Ps\d Output Voltage',  regex: (\S+), range: [300,400,N/A] }
+    - {id: 'Storage A Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'Storage B Power',  regex: (\S+), range: [10,500,N/A] }
+    - {id: 'Total Power',  regex: (\S+), range: [10,2000,N/A] }
+

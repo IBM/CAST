@@ -15,6 +15,7 @@
 
 add_subdirectory(chk-aslr)
 add_subdirectory(chk-boot-time)
+add_subdirectory(chk-capi)
 add_subdirectory(chk-cpu)
 add_subdirectory(chk-cpu-count)
 add_subdirectory(chk-csm-health)
@@ -23,6 +24,7 @@ add_subdirectory(chk-gpfs-mount)
 add_subdirectory(chk-gpu-ats)
 add_subdirectory(chk-hca-attributes)
 add_subdirectory(chk-idle-state)
+add_subdirectory(chk-ib-node)
 add_subdirectory(chk-ib-pcispeed)
 add_subdirectory(chk-kworker)
 add_subdirectory(chk-led)
@@ -54,6 +56,7 @@ add_subdirectory(dcgm-diag)
 add_subdirectory(dcgm-health)
 add_subdirectory(dgemm)
 add_subdirectory(dgemm-gpu)
+add_subdirectory(dgemm-per-socket)
 add_subdirectory(fieldiag)
 add_subdirectory(gpfsperf)
 add_subdirectory(gpu-health)
@@ -86,3 +89,9 @@ add_subdirectory(rvitals)
 add_subdirectory(swhealth)
 add_subdirectory(test-simple)
 #add_subdirectory(test_2)
+
+
+file(GLOB HCDIAG_README_FILE
+  "README"
+)
+install(FILES ${HCDIAG_README_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests)

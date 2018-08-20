@@ -20,6 +20,8 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
+// 07/26/2018: printing also PCI Bus Id (alda) 
+
 #define MAX_BLOCKS 512
 #define THREADS_PER_BLOCK 256
 
@@ -76,10 +78,12 @@ int main(int argc, char * argv[])
 
   for (device=0; device<numDevices; device++)
   {
-
+     char pciBusId[256];
      CUDA_RC(cudaSetDevice(device));
      CUDA_RC(cudaGetDeviceProperties(&prop, device));
+     CUDA_RC(cudaDeviceGetPCIBusId (pciBusId, 256, device));
      printf("checking device %d = %s ... \n", device, prop.name);
+     printf("device on PCI Bus ID: %s\n", pciBusId);
      printf("compute capability major = %d, minor = %d\n", prop.major, prop.minor);
  
      // use pinned memory for x, pageable memory for y

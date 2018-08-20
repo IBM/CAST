@@ -2,7 +2,7 @@
 
     utilities/src/string_tools.c
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -246,4 +246,80 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 	
 	fprintf(stderr, "ERROR: Problem with code. Skipped dataCount check.\n");
 	return 1;
+}
+
+
+/*
+* Author: Nick Buonarota
+* Last Edited: July 11, 2018
+* Summary: This function takes in a string and compares it to CSM KEYWORDS.
+* Parameters:
+*   char*   myString:    The string to compare.
+*   int*    compareCode: The result of the comparison.
+*
+* compareCode values
+*   0 no match
+*   1 keyword detected but no known match
+*   2 #CSM_NULL
+*
+* Returns: int 
+*   0 Success
+*   1 ERROR: Generic error. Default.
+*   2 ERROR: myString is NULL. Can not parse NULL string.
+*   3 ERROR: reached end of program without returning valid data
+*/
+int CAST_stringTools_CSM_KEYWORD_Compare(char* myString, int* compareCode)
+{
+	//reset to 0 (no match), just to be safe.
+	*compareCode = 0;
+	
+	//Get some early returns out of the way. 
+	if(myString[0] == '\0')
+	{
+		//The string passed in was NULL.
+		//Return an error code.
+		return 2;
+	}
+	
+	//check for special keywords that begin with '#'
+	if(myString[0] != '#')
+	{
+		//CSM Keywords all begin with '#'
+		//If one isn't found then its not a keyword. 
+		//return success with no match.
+		*compareCode = 0;
+		return 0;
+	}
+	
+	//If we made it this far, then we know we have a 'KEYWORD' 
+	
+	//a special CSM API keyword was found
+	//go through all keywords
+	// which keyword? -- too bad I can't use a switch statement
+	if(strncmp ("#CSM_NULL", myString, 9) == 0)
+	{
+		//Special keyword "#CSM_NULL" was found.
+		//this means reset Database field to NULL
+		*compareCode = 2;
+		return 0;
+		
+	}else{
+		//final default case
+		
+		//unknown keyword
+		//treat as normal value? -- well that's what i'll do for now
+		
+		//CSM Keywords all begin with '#'
+		//we found the '#' but it didn't match any of our keywords.
+		// i could treat this as a 'no match'
+		// but i wanted to specfify that we found a 'no match' and a '#'
+		// in case the caller wants to do something with this info.
+		
+		//return success with no match and '#'.
+		*compareCode = 1;
+		return 0;
+	}
+	
+	// we should not have gotten here. something else should have triggered.
+	return 3;
 }

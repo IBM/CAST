@@ -69,7 +69,7 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
       }
       else
       {
-        CSMLOG( csmd, info ) << "Error sending to BDS: " << content;
+        CSMLOG( csmd, warning ) << "Failed sending to BDS: " << content.substr(0, 50 ) << ( content.length() > 49 ? "..." : "" );
       }
     }
   }
@@ -90,7 +90,8 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   _Thread = new boost::thread( BDSManagerMain, this );
   _IdleRetryBackOff.SetThread( _Thread );
 
-  Connect();
+  if( BDSActive() )
+    Connect();
   Unfreeze();
 
 }
@@ -102,11 +103,12 @@ csm::daemon::EventManagerBDS::Connect()
   memset( &hints, 0, sizeof( struct addrinfo ) );
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
+  int tmp_errno = 0;
 
-  if( getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist ) != 0 )
+  if( (tmp_errno = getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist )) != 0 )
   {
     CSMLOG( csmd, warning ) << "Unable to collect address info for " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort()
-        << " error: " << strerror( errno );
+        << " error: " << gai_strerror( tmp_errno );
     return false;
   }
 
@@ -146,7 +148,26 @@ csm::daemon::EventManagerBDS::Connect()
 bool
 csm::daemon::EventManagerBDS::CheckConnectivity()
 {
-  return (_Socket > 0 );
+  bool alive = (_Socket > 0 );
+  if( ! alive )
+  {
+    CSMLOG( csmd, debug ) << "Connection to BDS is down.";
+    return alive;
+  }
+
+  char buf[ 8 ];
+  errno = 0;
+  ssize_t rc = recv( _Socket, buf, 1, MSG_DONTWAIT );
+  int terrno = errno;
+  alive = (( rc > 0 ) || ( terrno == EAGAIN ));
+  if( ! alive )
+  {
+    CSMLOG( csmd, warning ) << "Connection to BDS failed: rc=" << rc << ":"<< terrno;
+    close( _Socket );
+    _Socket = 0;
+  }
+
+  return alive;
 }
 
 bool
@@ -157,7 +178,7 @@ csm::daemon::EventManagerBDS::SendData( const std::string data )
   ssize_t remain = data.length();
   while(( rc >= 0 ) && ( rc < remain ))
   {
-    rc = write( _Socket, data.c_str() + done, remain );
+    rc = send( _Socket, data.c_str() + done, remain, 0 );
     if( rc > 0 )
     {
       remain -= rc;

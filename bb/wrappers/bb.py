@@ -30,6 +30,7 @@ import threading
 from copy import deepcopy
 
 from bbapi import *
+from bbapiAdmin import BB_GetServerByName
 from bbapiAdminProcs import *
 from bbapiTest import *
 from datetime import datetime
@@ -46,9 +47,9 @@ NO_CONTRIBID = 999999999
 
 
 DO_NOT_PRINT_VALUE = False
-DEFAULT_REMOVE_JOB_INFO_DELAY = 30
+DEFAULT_REMOVE_JOB_INFO_DELAY = 60
 # DEFAULT_GET_TRANSFERINFO_DELAY = 5
-DEFAULT_GET_TRANSFERINFO_DELAY = 1
+DEFAULT_GET_TRANSFERINFO_DELAY = 1.5
 # DEFAULT_WAIT_FOR_COMPLETION_ATTEMPTS = 360  # 30 minutes
 DEFAULT_WAIT_FOR_COMPLETION_ATTEMPTS = 1440  # 2 hours
 
@@ -172,6 +173,30 @@ def createRandomFile(pEnv, pFile, pSize):
         runCmd("%s %s" % (l_CreateFilePgm, pFile))
 
     return
+
+def flushWaiters(pActiveServer):
+    # Flush the waiters for the input active server
+
+    l_StartingValue = 5
+
+    if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", False)) == 0):
+        l_Continue = l_StartingValue - 1;
+    else:
+        l_Continue = l_StartingValue
+    l_Attempts = 1
+
+    while (l_Continue > 0):
+        time.sleep(0.05)
+        l_PrintOption = False;
+        if (l_Attempts % 200 == 0):
+            l_PrintOption = True
+        if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", l_PrintOption)) == 0):
+            l_Continue -= 1;
+        else:
+            l_Continue = l_StartingValue
+        l_Attempts += 1
+
+    return;
 
 def getContribId(pPrintValue=DO_NOT_PRINT_VALUE):
     return Coral_GetVar('contribid', pPrintValue)
@@ -348,6 +373,7 @@ def setContribId(pValue):
 
 def waitForCompletion(pEnv, pHandles, pAttempts=DEFAULT_WAIT_FOR_COMPLETION_ATTEMPTS):
     l_Complete = False
+    l_Continue = True
     l_AllFullSuccess = True;
     l_Attempts = 1
     l_LastTotalTransferSize = 0
@@ -355,45 +381,54 @@ def waitForCompletion(pEnv, pHandles, pAttempts=DEFAULT_WAIT_FOR_COMPLETION_ATTE
     l_TransferSize = []
 
     l_CopyHandles = deepcopy(pHandles)
-    while ((not l_Complete) and l_Attempts < pAttempts):
+    while (l_Continue and (not l_Complete) and l_Attempts < pAttempts):
         l_Complete = True
         l_Handles = deepcopy(l_CopyHandles)
         for l_Handle in l_Handles:
-            l_Info = BB_GetTransferInfo(l_Handle)
-            # NOTE: BBSTOPPED is not included below because we want to 'spin' on a stopped transfer definition,
-            #       waiting for it to progress to another status.
-            # NOTE: BBPARTIALSUCCESS is not included below because we want to 'spin' on a it also, waiting for
-            #       it to progress back to BBINPROGRESS.  It is possible in the restart scenarios if all of the
-            #       extents are processed, but the restart processing hasn't finished yet.
-            if BBSTATUS[l_Info.status] not in ("BBFULLSUCCESS", "BBCANCELED",):
-                l_Complete = False
-                if l_LastTotalTransferSize != l_Info.totalTransferSize:
-                    # Making progress...  Reset the number of attempts...
-                    l_LastTotalTransferSize = l_Info.totalTransferSize
-                    l_Attempts = 0
-                if len(pEnv["contrib"]) == 1 or bb.getContribId() == 0:
-                    l_Delay = DEFAULT_GET_TRANSFERINFO_DELAY
+            try:
+                l_Info = BB_GetTransferInfo(l_Handle)
+                # NOTE: BBSTOPPED is not included below because we want to 'spin' on a stopped transfer definition,
+                #       waiting for it to progress to another status.
+                # NOTE: BBPARTIALSUCCESS is not included below because we want to 'spin' on a it also, waiting for
+                #       it to progress back to BBINPROGRESS.  It is possible in the restart scenarios if all of the
+                #       extents are processed, but the restart processing hasn't finished yet.
+                if BBSTATUS[l_Info.status] not in ("BBFULLSUCCESS", "BBCANCELED",):
+                    l_Complete = False
+                    if l_LastTotalTransferSize != l_Info.totalTransferSize:
+                        # Making progress...  Reset the number of attempts...
+                        l_LastTotalTransferSize = l_Info.totalTransferSize
+                        l_Attempts = 0
+                    if len(pEnv["contrib"]) == 1 or bb.getContribId() == 0:
+                        l_Delay = DEFAULT_GET_TRANSFERINFO_DELAY
+                    else:
+                        l_Delay = DEFAULT_GET_TRANSFERINFO_DELAY*2
+                    time.sleep(l_Delay)
+                    break
                 else:
-                    l_Delay = DEFAULT_GET_TRANSFERINFO_DELAY*2
-                time.sleep(l_Delay)
+                    if BBSTATUS[l_Info.status] not in ("BBFULLSUCCESS",) or BBSTATUS[l_Info.localstatus] not in ("BBFULLSUCCESS",):
+                        l_AllFullSuccess = False
+                    l_Status.append((BBSTATUS[l_Info.localstatus],BBSTATUS[l_Info.status]))
+                    l_TransferSize.append((l_Info.localTransferSize,l_Info.totalTransferSize))
+                    l_CopyHandles.remove(l_Handle)
+                    l_Attempts = 0
+            except BBError as error:
+                l_Continue = error.handleError()
+            if (not l_Continue):
                 break
-            else:
-                if BBSTATUS[l_Info.status] not in ("BBFULLSUCCESS",) or BBSTATUS[l_Info.localstatus] not in ("BBFULLSUCCESS",):
-                    l_AllFullSuccess = False
-                l_Status.append((BBSTATUS[l_Info.localstatus],BBSTATUS[l_Info.status]))
-                l_TransferSize.append((l_Info.localTransferSize,l_Info.totalTransferSize))
-                l_CopyHandles.remove(l_Handle)
-                l_Attempts = 0
         l_Attempts += 1
 
-    if (l_Complete):
-        if (len(pHandles) > 1):
-            print
+    if (l_Continue):
+        if (l_Complete):
+            if (len(pHandles) > 1):
+                print
 
-        for i in xrange(len(pHandles)):
-            print "    *FINAL* Handle: %12s -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (pHandles[i], l_Status[i][0], l_Status[i][1], '{:,}'.format(l_TransferSize[i][0]), '{:,}'.format(l_TransferSize[i][1]))
+            for i in xrange(len(l_Status)):
+                print "    *FINAL* Handle: %12s -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (pHandles[i], l_Status[i][0], l_Status[i][1], '{:,}'.format(l_TransferSize[i][0]), '{:,}'.format(l_TransferSize[i][1]))
+        else:
+            l_AllFullSuccess = False
+            print "Exceeded the maximum number of attempts to have all handles reach a status of BBFULLSUCCESS.  %d attempts were made." % (pAttempts)
     else:
         l_AllFullSuccess = False
-        print "Exceeded the maximum number of attempts to have all handles reach a status of BBFULLSUCCESS.  %d attempts were made." % (pAttempts)
+        print "Error occurred while waiting for all handles reach a status of BBFULLSUCCESS."
 
     return l_AllFullSuccess

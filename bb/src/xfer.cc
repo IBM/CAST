@@ -29,6 +29,10 @@
 
 using namespace std;
 
+#include <boost/filesystem.hpp>
+namespace bfs = boost::filesystem;
+namespace bs  = boost::system;
+
 #include "bbapi.h"
 #include "bbinternal.h"
 #include "bbio_regular.h"
@@ -160,7 +164,7 @@ void processAsyncRequest(WorkID& pWorkItem)
                     {
                         // This was a direct cancel request from a given compute node to the bbServer servicing
                         // that CN at the request's hostname.  That request is now being propagated to all other bbServers...
-                        rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle);
+                        rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
                     }
                     else if (strstr(l_Str1, "stoprequest"))
                     {
@@ -184,11 +188,11 @@ void processAsyncRequest(WorkID& pWorkItem)
                 {
                     // Process the handle status request...
                     // NOTE:  We send the completion message here because some other bbServer has updated the
-                    //        status for the handle.  This is the mechinism for notify changes to other bbServers
-                    //        that have already finished processing a handle.  However, if a bbServer still has
-                    //        extents on a work queue for the handle in question, a status change will be sent here
-                    //        and also might be sent again when this bbServer processes that last extent for the handle.
-                    //        This is probably only in the status case of BBFAILED.
+                    //        status for the handle.  This is the mechanism used to notify handle status changes
+                    //        to other bbServers that have already finished processing a handle.  However,
+                    //        if a bbServer still has extents on a work queue for the handle in question, a status
+                    //        change will be sent here and also might be sent again when this bbServer processes
+                    //        that last extent for the handle.  This is probably only in the status case of BBFAILED.
                     BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
                     metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
                     wrkqmgr.updateHeartbeatData(l_Request.getHostName());
@@ -268,7 +272,7 @@ void processAsyncRequest(WorkID& pWorkItem)
     return;
 }
 
-int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -277,7 +281,7 @@ int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, cons
 
     try
     {
-        metadata.setCanceled(pJobId, pJobStepId, pHandle);
+        metadata.setCanceled(pJobId, pJobStepId, pHandle, pRemoveOption);
 
         // Determine if this cancel request should be appended to the async file
         // to be consumed by other bbServers
@@ -351,58 +355,53 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         {
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
             //       bbServer that is marking the handle/contribid file as 'stopped'
+            // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
+            //       not generate RAS messages indicating that we are blocked waiting on the handle file lock.
+            //       When stopping the transfer definition, processing may have to hold the lock for an extended period.
             rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
             if (!rc)
             {
-                // NOTE: We check here to make sure that the handle is marked as stopped because there is a window
-                //       between marking allExtentsTransferred() for the ContribIdFile and marking the handle as
-                //       stopped.  If we do not check for the handle file being stopped here, we could have two bbServers
-                //       marking the handle as stopped, and thus, we would never exit that state.  It is unfortunate, as
-                //       for handles that will not be marked as stopped because there are no outstanding extents and no
-                //       failures, we wait for getDeclareServerDeadCount() value to pass before proceeding...
-                // \todo - Is there a better way?  @DLH
-                if (l_HandleFile->stopped())
+                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
+                if (rc >= 0)
                 {
-                    // Handle file is stopped...
-                    rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
-                    if (rc >= 0)
+                    // Contribid file successfully loaded
+                    // NOTE: We process the contribid file first to see if this contributor
+                    //       is restartable.  If not, we early exit without having to wait
+                    //       for the handle to be marked as stopped.  In the case where a contributor
+                    //       is not restartable, the handle may never transition to being stopped.
+                    //       Otherwise, we then wait for the contributor/handle to be
+                    //       marked as stopped.
+                    //
+                    // Process the contribid file
+                    if (rc == 1 && l_ContribIdFile)
                     {
-                        // Contribid file successfully loaded...  Unlock the handle file...
-                        l_HandleFile->close();
-
-                        // Process the contribid file
-                        if (rc == 1 && l_ContribIdFile)
+                        if (l_ContribIdFile->allExtentsTransferred())
                         {
-                            if (l_ContribIdFile->allExtentsTransferred())
+                            // All extents have been processed...
+                            if (!l_ContribIdFile->stopped())
                             {
-                                // All extents have been processed...
-                                if (l_ContribIdFile->stopped())
+                                // Contribid is not marked as stopped
+                                if (l_ContribIdFile->allFilesClosed())
                                 {
-                                    // Transfer definition is stopped and all previously enqueued extents have been processed.
-                                    // Will exit both loops...  rc is already 1
-                                }
-                                else
-                                {
-                                    // Transfer definition is not marked as stopped...
-                                    if (l_ContribIdFile->allFilesClosed())
+                                    // All files are marked as closed (but, some could have failed...)
+                                    if (l_ContribIdFile->notRestartable())
                                     {
-                                        // All files are marked as closed (but, some could have failed...)
-                                        if (l_ContribIdFile->notRestartable())
+                                        // All extents have been processed, all files closed, no failed files -or- canceled and
+                                        // not marked as stopped.  Therefore, no need to restart this transfer definition.
+                                        rc = 0;
+                                        l_Continue = 0;
+                                        LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << pContribId \
+                                                     << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
+                                                     << " See previous messages.";
+                                    }
+                                    else
+                                    {
+                                        // At least one of the files failed.  (It may have been marked failed after processing the
+                                        // last extent for the transfer definition...)
+                                        //
+                                        // First ensure that the handle is marked as stopped...
+                                        if (l_HandleFile->stopped())
                                         {
-                                            // All extents have been processed, all files closed, with no failed files.
-                                            // The transfer definition is not marked as stopped, therefore, no need to restart this
-                                            // transfer definition.
-                                            rc = 0;
-                                            l_Continue = 0;
-                                            LOG(bb,info) << "msgin_starttransfer(): All extents have been transferred for contribId " << pContribId \
-                                                         << ", but it is not marked as being stopped.   All file transfers for this contributor have already finished or were canceled." \
-                                                         << " See previous messages.";
-                                        }
-                                        else
-                                        {
-                                            // At least one of the files failed.  (It may have been marked failed after processing the
-                                            // last extent for the transfer definition...)
-                                            //
                                             // Mark the transfer definition as stopped...
                                             uint64_t l_StartingFlags = l_ContribIdFile->flags;
                                             SET_FLAG_VAR(l_ContribIdFile->flags, l_ContribIdFile->flags, BBTD_Stopped, 1);
@@ -418,7 +417,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                                 rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
                                                 if (!rc)
                                                 {
-                                                    // Indicate to restart this transfer defintion as it is now marked as stopped
+                                                    // Indicate to restart this transfer definition as it is now marked as stopped
                                                     rc = 1;
                                                     LOG(bb,info) << "contribIdStopped():  At least one file transfer failed for the transfer definition. " \
                                                                  << "Transfer definition marked as stopped for jobid " << pJobId \
@@ -426,7 +425,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                                 }
                                                 else
                                                 {
-                                                    // Indicate to not restart this transfer defintion
+                                                    // Indicate to not restart this transfer definition
                                                     rc = 0;
                                                     l_Continue = 0;
                                                     LOG(bb,error) << "contribIdStopped():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
@@ -435,64 +434,87 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                             }
                                             else
                                             {
-                                                // Indicate to not restart this transfer defintion
+                                                // Indicate to not restart this transfer definition
                                                 rc = 0;
                                                 l_Continue = 0;
                                                 LOG(bb,error) << "contribIdStopped():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
                                                               << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
                                             }
                                         }
-                                    }
-                                    else
-                                    {
-                                        // Not all of the files have been marked as closed.
-                                        rc = 0;     //  Assume that we will keep spinning...
-                                        if (!l_Continue)
+                                        else
                                         {
-                                            //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
-                                            rc = -2;
+                                            // Handle file is not marked as stopped.
+                                            // NOTE: If any contributor is marked as stopped, the handle file should
+                                            //       eventually be marked as stopped also.  We will wait for the handle
+                                            //       file to be marked.
+                                            rc = 0;     //  Assume that we will keep spinning...
+                                            if (!l_Continue)
+                                            {
+                                                //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                                rc = -2;
+                                            }
                                         }
+                                    }
+                                }
+                                else
+                                {
+                                    // Not all of the files have been marked as closed.
+                                    rc = 0;     //  Assume that we will keep spinning...
+                                    if (!l_Continue)
+                                    {
+                                        //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                        rc = -2;
                                     }
                                 }
                             }
                             else
                             {
-                                // Not all previously enqueued extents have been processed
-                                rc = 0;     //  Assume that we will keep spinning...
-                                if (!l_Continue)
+                                // Contribid is marked as stopped
+                                // First ensure that the handle is also marked as stopped...
+                                if (!l_HandleFile->stopped())
                                 {
-                                    //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
-                                    rc = -2;
+                                    rc = 0;     //  Assume that we will keep spinning...
+                                    if (!l_Continue)
+                                    {
+                                        //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                        rc = -2;
+                                    }
+                                }
+                                else
+                                {
+                                    // Transfer definition and handle are both  stopped and all previously enqueued extents have been processed.
+                                    // Will exit both loops...  rc is already 1
                                 }
                             }
                         }
                         else
                         {
-                            rc = 0;
-                            l_Continue = 0;
-                            LOG(bb,info) << "contribIdStopped(): ContribId " << pContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
-                                         << " All transfers for this contributor may have already finished.  See previous messages.";
+                            // Not all previously enqueued extents have been processed
+                            rc = 0;     //  Assume that we will keep spinning...
+                            if (!l_Continue)
+                            {
+                                //  We have waited long enough...  Processing for all prior enqueued extents has not occurred...
+                                rc = -2;
+                            }
                         }
                     }
                     else
                     {
                         rc = 0;
                         l_Continue = 0;
-                        l_HandleFile->close();
-                        LOG(bb,info) << "contribIdStopped(): Error occurred when attempting to load the contrib file for contribid " << pContribId \
-                                     << " (Negative rc from loadContribIdFile()). All transfers for this contributor may have already finished.  See previous messages.";
+                        LOG(bb,info) << "contribIdStopped(): ContribId " << pContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                     << " All transfers for this contributor may have already finished.  See previous messages.";
                     }
                 }
                 else
                 {
-                    // Handle not stopped...
-                    rc = 0;     //  Assume that we will keep spinning...
-                    if (!l_Continue)
-                    {
-                        //  We have waited long enough...  Handle did not become marked as stopped...
-                        rc = -2;
-                    }
+                    rc = 0;
+                    l_Continue = 0;
+                    LOG(bb,info) << "contribIdStopped(): Error occurred when attempting to load the contrib file for contribid " << pContribId \
+                                 << " (Negative rc from loadContribIdFile()). All transfers for this contributor may have already finished.  See previous messages.";
                 }
+                // Unlock the handle file...
+                l_HandleFile->close();
             }
             else
             {
@@ -534,7 +556,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
                                  << ". Waiting for all extents to finish being processed on the prior bbServer" \
                                  << " and the transfer definition to be marked as stopped. Delay of 1 second before retry. " \
-                                 << l_Continue << " seconds remain before the original bbServer is declared dead.";
+                                 << l_Continue << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
                     if (pOrigTransferDef)
                     {
                         // The prior bbServer is this same bbServer...
@@ -768,79 +790,49 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
             ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
         }
     }
+
     else if(pExtent->flags & BBI_TargetPFSPFS)
     {
-        string cmd;
-        cmd = "cp " + pTransferDef->files[pExtent->sourceindex] + " " + pTransferDef->files[pExtent->targetindex];
-
-        // \todo NOTE: Currently, no way to get to the stopped or canceled legs...  @DLH
         BBSTATUS l_Status = BBFULLSUCCESS;
-        for (auto&l_Line : runCommand(cmd)) {
-            // No expected output...
-            if (l_Line.size() > 1) {
-                LOG(bb,error) << l_Line;
-            } else {
-                LOG(bb,error) << std::hex << std::uppercase << setfill('0') << "One byte rc from cp: 0x" << setw(2) << l_Line[0] << setfill(' ') << std::nouppercase << std::dec;
-            }
-            // Any output is currently treated as a failure...
+
+        bs::error_code err;
+        bfs::copy_file(bfs::path(pTransferDef->files[pExtent->sourceindex]), bfs::path(pTransferDef->files[pExtent->targetindex]), bfs::copy_option::overwrite_if_exists, err);
+
+        if (err.value())
+        {
             l_Status = BBFAILED;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
         }
 
-        uint64_t l_FileStatus = 0;
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
-            case BBSTOPPED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Stopped;
-                LOG(bb,info) << "PFS copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
             case BBFAILED:
                 pExtent->len = 0;
-                l_FileStatus |= BBTD_Failed;
                 LOG(bb,info) << "PFS copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
                              << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
                 break;
 
             case BBCANCELED:
-                pExtent->len = 0;
-                l_FileStatus |= BBTD_Canceled;
-                LOG(bb,info) << "PFS copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-                break;
-
+            case BBSTOPPED:
             default:
                 // Not possible...
                 break;
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
+
     else if(pExtent->flags & BBI_TargetSSDSSD)
     {
-        uint64_t l_FileStatus = 0;
-        if (pExtent->flags & BBTD_Stopped)
+        if (pExtent->flags & BBTD_Failed)
         {
-            l_FileStatus |= BBTD_Stopped;
-            LOG(bb,info) << "Local compute node SSD copy stopped for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Failed)
-        {
-            l_FileStatus |= BBTD_Failed;
+            pTransferDef->setFailed(&pKey, pHandle, pContribId);
             LOG(bb,info) << "Local compute node SSD copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
-                         << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
-        }
-        else if (pExtent->flags & BBTD_Canceled)
-        {
-            l_FileStatus |= BBTD_Canceled;
-            LOG(bb,info) << "Local compute node SSD copy canceled for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
         else
@@ -850,7 +842,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (l_FileStatus | BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
+        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {
@@ -2382,46 +2374,39 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     if (!rc)
                                     {
                                         WRKQE* l_WrkQE = 0;
-                                        if (!wrkqmgr.getWrkQE(pLVKey, l_WrkQE))
+                                        rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                        if ((!rc) && l_WrkQE)
                                         {
-                                            if (l_WrkQE)
+                                            l_WrkQE->dump("debug", "Before pushing work onto this queue ");
+                                            bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
+                                            for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
                                             {
-                                                l_WrkQE->dump("debug", "Before pushing work onto this queue ");
-                                                bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
-                                                for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
+                                                LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
+                                                // Queue a WorkID object for every extent to the work queue
+                                                WorkID l_WorkId(*pLVKey, l_TagId);
+                                                if (i+1 == (l_TransferDef->extents).size())
                                                 {
-                                                    LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
-                                                    // Queue a WorkID object for every extent to the work queue
-                                                    WorkID l_WorkId(*pLVKey, l_TagId);
-                                                    if (i+1 == (l_TransferDef->extents).size())
-                                                    {
-                                                        // Validate work queue on last add...
-                                                        l_ValidateOption = VALIDATE_WORK_QUEUE;
-                                                    }
-                                                    l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
+                                                    // Validate work queue on last add...
+                                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
                                                 }
-                                                l_WrkQE->dump("info", "After pushing work onto this queue ");
-
-                                                // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
-                                                if ((l_TransferDef->extents).size())
-                                                {
-                                                    l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
-                                                }
+                                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                             }
-                                            else
+                                            l_WrkQE->dump("info", "After pushing work onto this queue ");
+
+                                            // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
+                                            if ((l_TransferDef->extents).size())
                                             {
-                                                // Inconsistency with metadata....
-                                                rc = -1;
-                                                errorText << "queueTransfer(): Work queue entry was not returned from work queue manager when attempting to schedule additional extents to transfer";
-                                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                                l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
                                             }
                                         }
                                         else
                                         {
-                                            // Inconsistency with metadata....
+                                            // Work queue not found....
                                             rc = -1;
-                                            errorText << "queueTransfer(): Could not find work queue when attempting to schedule additional extents to transfer";
+                                            errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                                      << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
                                             LOG_ERROR_TEXT_RC(errorText, rc);
+                                            wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                         }
 
                                         if (!rc)
@@ -2532,7 +2517,7 @@ void startTransferThreads()
     return;
 }
 
-int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -2544,7 +2529,7 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
         BBTagInfo2 empty(pConnectionName, pHostName, pJobId);
         // NOTE:  The LVKey could already exist in the case where a given job spans the failover
         //        to a backup and then back to the primary bbServer.
-        rc = metadata.addLVKey(pHostName, pLVKey, pJobId, empty, pTolerateAlreadyExists);
+        rc = metadata.addLVKey(pHostName, pMsg, pLVKey, pJobId, empty, pTolerateAlreadyExists);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -2973,7 +2958,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     // Extents still left to be transferred...
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
 
-                    if (!wrkqmgr.getWrkQE(pLVKey, l_WrkQE))
+                    int rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                    if ((!rc2) && l_WrkQE)
                     {
                         l_WrkQ = l_WrkQE->getWrkQ();
                         WorkID l_WorkId;
@@ -3011,16 +2997,26 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_Temp.pop();
                             l_Key = l_WorkId.getLVKey();
                             l_WorkItemTagInfo2 = metadata.getTagInfo2(&l_Key);
-                            if (l_WorkItemTagInfo2->getJobId() == l_JobId) {
-                                l_Temp2.push(l_WorkId);
-                            } else {
-                                LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
-                                if (!l_Temp.size())
-                                {
-                                    // Validate work queue on last add...
-                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
+                            if (l_WorkItemTagInfo2)
+                            {
+                                if (l_WorkItemTagInfo2->getJobId() == l_JobId) {
+                                    l_Temp2.push(l_WorkId);
+                                } else {
+                                    LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
+                                    if (!l_Temp.size())
+                                    {
+                                        // Validate work queue on last add...
+                                        l_ValidateOption = VALIDATE_WORK_QUEUE;
+                                    }
+                                    l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                 }
-                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
+                            }
+                            else
+                            {
+                                // Not sure how we could get here...  Do not set rc...  Plow ahead...
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey \
+                                                << ". " << l_Key << " could not be found in the metadata when reloading the work queue with unrelated work items.";
+                                l_WorkId.dump("info", "Failure when reloading work queue ");
                             }
                         }
 
@@ -3056,8 +3052,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             }
                             else
                             {
-                                // Do not set rc...  Plow ahead...
-                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be tramsferred for " << l_Key;
+                                // Not sure how we could get here...  Do not set rc...  Plow ahead...
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey \
+                                                << ". " << l_Key << " could not be found in the metadata when attempting to process the related work items.";
+                                l_WorkId.dump("info", "Failure when processing work items to remove ");
                             }
                         }
                     }
@@ -3195,3 +3193,25 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+
+void switchIdsToMountPoint(txp::Msg* pMsg)
+{
+    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData();
+    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData();
+
+    int rc = becomeUser(l_Owner, l_Group);
+    if (!rc)
+    {
+        bberror << err("in.misc.mntptuid", l_Owner) << err("in.misc.mntptgid", l_Group);
+    }
+    else
+    {
+        stringstream errorText;
+        errorText << "becomeUser failed";
+    	bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+

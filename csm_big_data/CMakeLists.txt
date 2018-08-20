@@ -19,6 +19,8 @@ set(BDS_RPM_NAME csm-bds)
 add_subdirectory(elasticsearch)
 add_subdirectory(logstash)
 add_subdirectory(data-aggregators)
+add_subdirectory(beats)
+add_subdirectory(config-scripts)
 
 set(SCRIPTDIR scripts)
 
