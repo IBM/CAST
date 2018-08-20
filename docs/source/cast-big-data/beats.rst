@@ -20,7 +20,7 @@ Installation
 ************
 
 The following installation guide will deal with configuring filebeats for the CSM transaction log
-for a more generalized installation guide please consult the official `Filebeats Reference`_
+for a more generalized installation guide please consult the official `Filebeats Reference`_.
 
 1. Install the filebeats rpm on the node:
 
