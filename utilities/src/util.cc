@@ -145,6 +145,7 @@ int getLogicalVolumeDeviceName(const std::string pFile, std::string &pLogicalVol
         return -1;
 
     pLogicalVolumeDeviceName = std::string("/dev/mapper/") + lines[0];
+    LOG(bb,always) << "getLogicalVolumeDeviceName(): pFile=" << pFile << ", pLogicalVolumeDeviceName=" << pLogicalVolumeDeviceName;
     return 0;
 }
 
@@ -156,7 +157,7 @@ int getUUID(const char* pLogicalVolumeDeviceName, Uuid& pUuid)
     {
         if(bfs::equivalent(uuid, vglv))
         {
-            LOG(bb,always) << "uuid=" << uuid.path().filename().string();
+            LOG(bb,always) << "getUUID(): pLogicalVolumeDeviceName=" << pLogicalVolumeDeviceName << ", vglv=" << vglv.string() << ", uuid=" << uuid.path().filename().string();
             pUuid.copyFrom(uuid.path().filename().string().c_str());
             return 0;
         }
