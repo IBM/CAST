@@ -1726,7 +1726,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             l_TransferPtr->setTag(l_Tag);
 
                             // NOTE:  Perform the lvuuid checks only during the second pass of processing...
-                            LOG(bb,debug) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
+                            LOG(bb,info ) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
                                           << ", mark_failed_from_bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
                                           << ", no stage in/out in transfer definition " << l_TransferPtr->noStageinOrStageoutTransfersInDefinition() \
                                           << ", lvuuid " << lv_uuid_str << ", lvuuid2 " << lv_uuid2_str;

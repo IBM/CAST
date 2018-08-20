@@ -87,14 +87,20 @@ map<string, mapResponseDescriptor > replyWaiters;
 void releaseReplyWaiters(const std::string& pName){
     pthread_mutex_lock(&replyWaitersLock);
     {
+#if BBPROXY
+        if (replyWaiters[pName].size())
+        {
+            LOG(bb,info) << "releaseReplyWaiters() entry:  pName " << pName << ", replyWaiters[pName].size() " << replyWaiters[pName].size();
+        }
+#endif
         for(auto waiters : replyWaiters[pName])
         {
             LOG(bb,error) << "Notifying reply of connection close";
             waiters.first->reply = NULL;
             waiters.first->sempost();
         }
+        replyWaiters.erase(pName);
     }
-    replyWaiters.erase(pName);
     pthread_mutex_unlock(&replyWaitersLock);
 }
 //for gdb, print dumpReplyWaiters()
@@ -851,19 +857,30 @@ int countWaitReplyList(const std::string& pConnectionName){
 
 int waitReply(ResponseDescriptor& reply, txp::Msg*& response_msg)
 {
+    char l_MsgId[64] = {'\0'};
+    txp::Msg::msgIdToChar(reply.msgid, l_MsgId, sizeof(l_MsgId));
+
+#if BBPROXY
     pthread_mutex_lock(&replyWaitersLock);
     {
+        size_t l_Before = replyWaiters[reply.connName].size();
         replyWaiters[reply.connName][&reply] = true;
+        LOG(bb,debug) << "waitReply:    Add [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
     }
     pthread_mutex_unlock(&replyWaitersLock);
+#endif
 
     reply.semwait();
 
+#if BBPROXY
     pthread_mutex_lock(&replyWaitersLock);
     {
+        size_t l_Before = replyWaiters[reply.connName].size();
         replyWaiters[reply.connName].erase(&reply);
+        LOG(bb,debug) << "waitReply:  Erase [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
     }
     pthread_mutex_unlock(&replyWaitersLock);
+#endif
 
     response_msg = (txp::Msg*)reply.reply;
 
@@ -878,9 +895,14 @@ int waitReply(ResponseDescriptor& reply, txp::Msg*& response_msg)
 
 int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
 {
+    char l_MsgId[64] = {'\0'};
+    txp::Msg::msgIdToChar(reply.msgid, l_MsgId, sizeof(l_MsgId));
+
     pthread_mutex_lock(&replyWaitersLock);
     {
+        size_t l_Before = replyWaiters[reply.connName].size();
         replyWaiters[reply.connName][&reply] = true;
+        LOG(bb,debug) << "waitReplyNoErase: [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
     }
     pthread_mutex_unlock(&replyWaitersLock);
 
@@ -904,11 +926,16 @@ int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
 
 void waitReplyErase(ResponseDescriptor& reply)
 {
-pthread_mutex_lock(&replyWaitersLock);
-{
-    replyWaiters[reply.connName].erase(&reply);
-}
-pthread_mutex_unlock(&replyWaitersLock);
+    char l_MsgId[64] = {'\0'};
+    txp::Msg::msgIdToChar(reply.msgid, l_MsgId, sizeof(l_MsgId));
+
+    pthread_mutex_lock(&replyWaitersLock);
+    {
+        size_t l_Before = replyWaiters[reply.connName].size();
+        replyWaiters[reply.connName].erase(&reply);
+        LOG(bb,debug) << "waitReply:  Erase [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
+    }
+    pthread_mutex_unlock(&replyWaitersLock);
 }
 
 int addReply(txp::Msg* msg, txp::Msg* response_msg)
@@ -1764,7 +1791,7 @@ void* responseThread(void* ptr)
 
                         if(rc == 0)
                         {
- #if MSG_STALE_CHECK
+#if MSG_STALE_CHECK
                             LOG(txp,always) << "responseThread incoming msg "<< (connections[pollinfo[idx].fd]->getFamily() == AF_UNIX ? "AF_UNIX":"SOCK")<<" msg msgId="<<msg->getMsgId()<<" msgNumber="<<msg->getMsgNumber()
                             <<std::hex<<" hex msgId="<<msg->getMsgId()<<" hex msgNumber="<<msg->getMsgNumber() <<std::dec<<" pointer msg="<<msg;
 #endif
