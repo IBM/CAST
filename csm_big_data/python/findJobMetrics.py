@@ -45,7 +45,7 @@ def main(args):
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to.')
     parser.add_argument( '-f', '--fields', metavar='field', dest='fields', nargs='*', default=None,
-        help='A list of fields to retrieve metrics for.')
+        help='A list of fields to retrieve metrics for (REQUIRED).')
     parser.add_argument( '-i', '--index', metavar='index', dest='index', default='_all', 
         help='The index to query for metrics records.')
     parser.add_argument( '--correlation', action='store_true',
@@ -62,6 +62,11 @@ def main(args):
             parser.print_help()
             print("Missing target, '%s' was not set." % TARGET_ENV)
             return 2
+
+    if args.fields is None:
+        print("Fields weren't set for metrics analysis.")
+        return 2
+
 
     # Open a connection to the elastic cluster, if this fails is wrong on the server.
     es = Elasticsearch(
