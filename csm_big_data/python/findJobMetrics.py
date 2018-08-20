@@ -21,6 +21,7 @@ import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 from datetime import datetime
+import operator
 
 TARGET_ENV='CAST_ELASTIC'
 
@@ -47,6 +48,8 @@ def main(args):
         help='A list of fields to retrieve metrics for.')
     parser.add_argument( '-i', '--index', metavar='index', dest='index', default='_all', 
         help='The index to query for metrics records.')
+    parser.add_argument( '--correlation', action='store_true',
+        help="Displays the correlation between the supplied fields over the job run.")
     
 
     args = parser.parse_args()
@@ -128,13 +131,13 @@ def main(args):
 
     # ---------------------------------------------------------------------------------------------
     # Matrix stats are very interesting..
-    #aggregation='"aggs": {{ "statistics" : {{ "matrix_stats" :{{ "fields" :  {0}  }} }} }}'.format(
-    #    args.fields).replace("'",'"')
+    matrix_stats=' "statistics" : {{ "matrix_stats" :{{ "fields" :  {0}  }} }}'.format(
+        args.fields).replace("'",'"')
 
     stats=[]
     for field in args.fields:
         stats.append('"{0}_stat" : {{ "extended_stats" : {{ "field": "{0}" }} }}'.format(field))
-    aggregation='"aggs": {{ {0} }}'.format(",".join(stats))
+    aggregation='"aggs": {{ {0} , {1} }}'.format(",".join(stats), matrix_stats)
 
 
     query_filter='"must": [ {{ {0} }}, {{ {1} }} ]'.format(timerange, hostnames)
@@ -149,9 +152,9 @@ def main(args):
     )
 
     if args.allocation_id > 0 :
-        print("\n\nMetric Analysis for Allocation ID {0} :\n".format(args.allocation_id))
+        print("\nMetric Analysis for Allocation ID {0} :\n".format(args.allocation_id))
     else : 
-        print("\n\nMetric Analysis for Job ID {0} - {1} :\n".format(args.job_id, args.job_id_secondary))
+        print("\nMetric Analysis for Job ID {0} - {1} :\n".format(args.job_id, args.job_id_secondary))
     
 
     # Print the table.
@@ -164,11 +167,36 @@ def main(args):
         print("{0:>{1}} | {2: >14} | {3: >14} | {4: >14} | {5: >14} | Count".format(
             "Field", max_width, "Min", "Max", "Average", "Std Dev"))
 
-        print_fmt="{0: >{1}} | {2:>14.3} | {3:>14.3} | {4:>14.3} | {5:>14.3} | {6}"
+        print_fmt="{0: >{1}} | {2:>14.3f} | {3:>14.3f} | {4:>14.3f} | {5:>14.3f} | {6}"
+        print_str="{0: >{1}} | {2:>14.3} | {3:>14.3} | {4:>14.3} | {5:>14.3} | {6}"
 
         for agg in aggs:
-            print(print_fmt.format(agg, max_width, aggs[agg]["min"], aggs[agg]["max"],
-                aggs[agg]["avg"], aggs[agg]["std_deviation"], aggs[agg]["count"]))
+            try:
+                print(print_fmt.format(agg, max_width, aggs[agg]["min"], aggs[agg]["max"],
+                    aggs[agg]["avg"], aggs[agg]["std_deviation"], aggs[agg]["count"]))
+            except ValueError:
+                continue
+            except KeyError:
+                continue
+
+        #print matrix stats
+        if args.correlation:
+            print("\n{0}".format("="*80))
+            print("Field Correlations:")
+            stat_fields=aggs["statistics"].get("fields",[])
+            for stat in stat_fields:
+                name=stat["name"]
+                print("\n{0}:".format( name))
+                
+                correlation=stat["correlation"]
+                corr_d=sorted(correlation.items(), key=operator.itemgetter(1))
+                
+                for field in corr_d:
+                    if field[0] != name:
+                        print("  {0} : {1}".format(field[0], field[1]))
+
+
+
     else:
         print("No aggregations were found.")
     return 0
