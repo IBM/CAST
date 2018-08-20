@@ -19,7 +19,7 @@
 #   current_version:    01.1
 #   migration_version:  16.0 # <--------example version after the DB upgrade
 #   create:             08-08-2018
-#   last modified:      08-13-2018
+#   last modified:      08-20-2018
 #================================================================================
 #set -x
 export PGOPTIONS='--client-min-messages=warning'
@@ -403,10 +403,10 @@ ALTER TABLE csm_dimm DROP CONSTRAINT csm_dimm_pkey;
 ALTER TABLE csm_dimm ADD PRIMARY KEY (node_name, serial_number);
 
 COMMENT ON COLUMN csm_allocation_node.energy is 'the total energy used by the node in joules during the allocation';
-COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage aggregated across all GPUs in the node in seconds during the allocation';
+COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
 COMMENT ON COLUMN csm_allocation_node.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
 COMMENT ON COLUMN csm_allocation_node_history.energy is 'the total energy used by the node in joules during the allocation'; 
-COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage aggregated across all GPUs in the node in seconds during the allocation';
+COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
 COMMENT ON COLUMN csm_allocation_node_history.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
 
 UPDATE csm_db_schema_version
