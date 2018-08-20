@@ -17,19 +17,19 @@ specific messages.
 Configuration
 -------------
 
-.. note:: This guide has been tested using Logstash 6.2.3, the latest RPM may be downloaded from
+.. note:: This guide has been tested using Logstash 6.3.2, the latest RPM may be downloaded from
    `the Elastic Site <https://www.elastic.co/downloads/logstash>`_.
 
 The following is a brief introduction to the installation and configuration of the logstash service.
-CAST provides a set of sample configuration files in the repository at `csm_big_data/Logstash/`.
+CAST provides a set of sample configuration files in the repository at `csm_big_data/logstash/`.
 If the `ibm-csm-bds-*.noarch.rpm` has been installed the sample configurations may be found 
-in `/opt/ibm/csm/bigdata/Logstash/`.
+in `/opt/ibm/csm/bigdata/logstash/`.
 
 1. Install the logstash rpm and java 1.8.1+ (command run from directory with logstash rpm):
 
 .. code-block:: bash
 
-    $ yum install -y logstash-*.rpm java-1.8.*-openjdk
+     yum install -y logstash-*.rpm java-1.8.*-openjdk
 
 2. Copy the Logstash pipeline configuration files to the appropriate directories. This step
     is ultimately optional, however it is recommended that these files be reviewed and modified
@@ -194,19 +194,16 @@ There's an extensive asciidoc for usage of the `CSM Event Correlator plugin`_. T
 documentation is an abridged version.
 
 
-Building CEC
-^^^^^^^^^^^^^
+Installing CEC
+^^^^^^^^^^^^^^
 
-CEC currently needs to be built before installation. This build process requires that ruby be installed
-on the node. The following instructions assume that the build is being run on a node with the 
-git repository.
+CEC should be bundled in the `ibm-csm-bds-*.noarch.rpm` rpm. Installation at
+the current time requires an external connection to the internet or an exported 
+copy of the plugin (A section on the process is being developed).
 
 .. code:: bash
 
-   $ yum install -y ruby  
-   $ cd /opt/ibm/csm/bigdata/logstash/plugins/
-   $ gem build logstash-filter-csm_event_correlator.gemspec # Requires network connection.
-   $ /usr/share/logstash/bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
+   $ /usr/share/logstash/bin/logstash-plugin install /opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator-*.gem
 
 .. TODO: Rename csm_event_correlator to cast_event_correlator.
 
