@@ -14,17 +14,18 @@
 --===============================================================================
 
 --===============================================================================
---   usage:         ./csm_db_script.sh <----- -e (drop all the csm_db tables)
---   version:       03.9
---   create:        04-25-2015
---   last modified: 02-28-2018
+--   usage:             ./csm_db_script.sh <----- -e (drop all the csm_db tables)
+--   current_version:   16.0
+--   create:            04-25-2015
+--   last modified:     08-10-2018
 --   log change:
---      3.9 -       Removed csm_switch_ports + csm_switch_ports_history;
---      3.8 -       table name change
---                  csm_processor + history = csm_processor_socket
---                  csm_node_ready_history = csm_node_state_history
---      3.7 -       added in csm_ssd_wear_history table
---      3.6 -       changed the order in which the csm_vg, csm_vg_ssd are dropped
+--      16.0 -          Moving this version to sync with DB schema version
+--      3.9  -          Removed csm_switch_ports + csm_switch_ports_history;
+--      3.8  -          table name change
+--                      csm_processor + history = csm_processor_socket
+--                      csm_node_ready_history = csm_node_state_history
+--      3.7  -          added in csm_ssd_wear_history table
+--      3.6  -          changed the order in which the csm_vg, csm_vg_ssd are dropped
 --===============================================================================
 
 \set ON_ERROR_STOP on
@@ -35,8 +36,6 @@ DROP TABLE IF EXISTS csm_vg_ssd;
 DROP TABLE IF EXISTS csm_vg_ssd_history;
 DROP TABLE IF EXISTS csm_vg;
 DROP TABLE IF EXISTS csm_vg_history;
-DROP TABLE IF EXISTS csm_map_tag;
-DROP TABLE IF EXISTS csm_map_tag_history;
 DROP TABLE IF EXISTS csm_allocation_state_history;
 DROP TABLE IF EXISTS csm_step_node;
 DROP TABLE IF EXISTS csm_step_node_history;

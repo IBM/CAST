@@ -14,18 +14,18 @@
 #================================================================================
 
 #================================================================================
-#   usage:         ./csm_db_script.sh <----- to create the csm_db
-#   version:       10.13
-#   create:        12-14-2015
-#   last modified: 01-19-2018
+#   usage:              ./csm_db_script.sh <----- to create the csm_db
+#   current_version:    10.14
+#   create:             12-14-2015
+#   last modified:      08-08-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
 
 OPTERR=0
 DEFAULT_DB="csmdb"
-logpath="/var/log/ibm/csm/db"
-#logpath=`pwd` #<------ change this when pushing to the repo.
+#logpath="/var/log/ibm/csm/db"
+logpath=`pwd` #<------ change this when pushing to the repo.
 logname="csm_db_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 cur_path=`pwd`
@@ -541,7 +541,7 @@ if [ $removedata == "yes" ]; then
     # Removes all data from tables except
     # csm_db_schema_version table
     #=====================================
-    psql -q -U $csmdb_user -d $dbname -f $delete_data_file 2>&1 >/dev/null
+    psql -q -U $csmdb_user -d $dbname -f $delete_data_file 2>>/dev/null
     if [ $? -eq 0  ]; then
         echo "[Complete] $dbname database data deleted from all tables excluding csm_db_schema_version and csm_db_schema_version_history tables"
         LogMsg "[Complete] $dbname database data deleted from all tables excluding csm_db_schema_version and csm_db_schema_history tables"
@@ -553,8 +553,8 @@ if [ $removedata == "yes" ]; then
         return_code=1
     fi
     if [ $return_code -ne 0 ]; then
-        echo "[Error   ] Error creating database"
-        LogMsg "[Error   ] Error creating database"
+        echo "[Error   ] Error removing database data"
+        LogMsg "[Error   ] Error removing database data"
         echo "-----------------------------------------------------------------------------------------------------------------"
     fi
     LogMsg "[End     ] $dbname database remove all data from the database tables end."

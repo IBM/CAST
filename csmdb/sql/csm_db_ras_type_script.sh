@@ -15,10 +15,10 @@
 #================================================================================
 
 #================================================================================
-#   usage:         ./csm_db_ras_type_script.sh
-#   version:       01.7
-#   create:        11-07-2017
-#   last modified: 04-09-2018
+#   usage:              ./csm_db_ras_type_script.sh
+#   current_version:    01.7
+#   create:             11-07-2017
+#   last modified:      08-10-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -287,13 +287,16 @@ csm_ras_type_count="csm_ras_type_count"
 # psql csm_ras_type csv data import
 #-------------------------------------------------------------------------------
 return_code=0
+ras_script_errors="$(mktemp)"
+#trap 'rm -f "$ras_script_errors"' EXIT
+
 if [ $loaddata == "yes" ]; then
-count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 select count(*) from csm_ras_type;
 
 THE_END`
 
-import_count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 BEGIN;
 LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
@@ -314,8 +317,15 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
         (SELECT "count"(*) as cnt1 from csm_ras_type) - (SELECT "count"(*) as cnt2 from tmp_ras_type_data) as total_count;
         select count(*) from csm_ras_type;
         select count(*) from csm_ras_type_audit;
-COMMIT;
+COMMIT; 
 THE_END`
+
+if [[ 0 -ne $? ]]; then
+    #>> "$ras_script_errors" #| tee -a "$ras_script_errors" | \
+    #awk '/^ERROR:.*$/ { print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($current_user) ($BASENAME ) [Error ] "'" $0 }' | tee -a >>"${logfile}"
+    echo "Something went wrong; error log follows:" >> "$ras_script_errors"
+    exit 0
+fi
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count
@@ -398,7 +408,7 @@ count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 select count(*) from csm_ras_type;
 
 THE_END`
-import_count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 BEGIN;
 LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
@@ -420,7 +430,7 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
         select count(*) from csm_ras_type;
         select count(*) from csm_ras_type_audit;
 COMMIT;
-THE_END`
+THE_END` 2>>/dev/null
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count

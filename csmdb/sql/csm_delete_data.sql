@@ -14,15 +14,17 @@
 --===============================================================================
 
 --===============================================================================
---   usage:         ./csm_db_script.sh <----- delete data in the csm_db tables
---   version:       03.7
---   create:        04-25-2015
---   last modified: 02-26-2018
+--   usage:             ./csm_db_script.sh <----- delete data in the csm_db tables
+--   current_version:   16.0
+--   create:            04-25-2015
+--   last modified:     08-10-2018
 --   change log:    
---   03.7 -         modified or changed these tables
---                  csm_node_ready_history = csm_node_state_history
---                  csm_processor = csm_processor_socket
---   03.6 -         added csm_ssd_wear_history table
+--   16.0 -             Moving this version to sync with DB schema version
+--   03.8 -             removed map_tag + history from file
+--   03.7 -             modified or changed these tables
+--                      csm_node_ready_history = csm_node_state_history
+--                      csm_processor = csm_processor_socket
+--   03.6 -             added csm_ssd_wear_history table
 --===============================================================================
 
 \set ON_ERROR_STOP on
@@ -35,8 +37,6 @@ BEGIN;
     DELETE FROM csm_lv;
     DELETE FROM csm_vg;
     DELETE FROM csm_vg_history;
-    DELETE FROM csm_map_tag;
-    DELETE FROM csm_map_tag_history;
     DELETE FROM csm_allocation_state_history;
     DELETE FROM csm_step_node;
     DELETE FROM csm_step_node_history;
