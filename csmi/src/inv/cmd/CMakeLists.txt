@@ -75,6 +75,12 @@ install(TARGETS csm_node_delete COMPONENT csm-api DESTINATION csm/bin)
 target_include_directories(csm_node_delete PRIVATE ./)
 target_link_libraries(csm_node_delete csmi csm_network_c csmutil fsutil)
 
+# cmd line interface for node_find_job
+add_executable(csm_node_find_job node_find_job.c)
+install(TARGETS csm_node_find_job COMPONENT csm-api DESTINATION csm/bin)
+target_include_directories(csm_node_find_job PRIVATE ./)
+target_link_libraries(csm_node_find_job csmi csm_network_c csmutil fsutil)
+
 # cmd line interface for switch_attributes_query
 add_executable(csm_switch_attributes_query switch_attributes_query.c)
 install(TARGETS csm_switch_attributes_query COMPONENT csm-api DESTINATION csm/bin)

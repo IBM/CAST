@@ -38,6 +38,8 @@ csm_node_attributes_update_input.def 11 1fabf46e8e830027d18b0d0f9d63f0da
 csm_node_attributes_update_output.def 2 3342319840c7c249fc6e688cd9f527ff
 csm_node_delete_input.def 2 b36d828ffada80e5309321ba1db4c158
 csm_node_delete_output.def 2 3342319840c7c249fc6e688cd9f527ff
+csm_node_find_job_input.def 0  
+csm_node_find_job_output.def 0  
 csm_switch_attributes_query_input.def 7 
 csm_switch_attributes_query_output.def 2 46710f5d9852ed0bb64fc380a5c477c7
 csm_switch_attributes_query_details_input.def 1 2ea2a59c05628a9f41218d239fea22f8
