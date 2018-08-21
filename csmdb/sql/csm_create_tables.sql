@@ -17,7 +17,7 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   16.0
 --   create:            12-14-2015
---   last modified:     08-10-2018
+--   last modified:     08-21-2018
 --   change log:    
 --   16.0   upgrade to functions to support API changes
 --          csm_dimm, csm_socket_processor PKs constraint updated (including node_name)
@@ -696,7 +696,7 @@ CREATE UNIQUE INDEX uk_csm_allocation_node_b
     COMMENT ON COLUMN csm_allocation_node.power_shifting_ratio is 'power power shifting ratio currently in effect for this node';
     COMMENT ON COLUMN csm_allocation_node.power_cap_hit is 'total number of windowed ticks the processor frequency was reduced';
     COMMENT ON COLUMN csm_allocation_node.power_shifting_ratio is 'power power shifting ratio currently in effect for this node';
-    COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage aggregated across all GPUs in the node in seconds during the allocation';
+    COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
     COMMENT ON COLUMN csm_allocation_node.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
     COMMENT ON COLUMN csm_allocation_node.cpu_usage is 'the cpu usage in nanoseconds';
     COMMENT ON COLUMN csm_allocation_node.memory_usage_max is 'The high water mark for memory usage (bytes).';
@@ -752,7 +752,7 @@ CREATE INDEX ix_csm_allocation_node_history_a
     COMMENT ON COLUMN csm_allocation_node_history.power_cap is 'power cap currently in effect for this node (in watts)';
     COMMENT ON COLUMN csm_allocation_node_history.power_shifting_ratio is 'power power shifting ratio currently in effect for this node';
     COMMENT ON COLUMN csm_allocation_node_history.power_cap_hit is 'total number of windowed ticks the processor frequency was reduced';
-    COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage aggregated across all GPUs in the node in seconds during the allocation';
+    COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
     COMMENT ON COLUMN csm_allocation_node_history.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
     COMMENT ON COLUMN csm_allocation_node_history.cpu_usage is 'the cpu usage in nanoseconds';
     COMMENT ON COLUMN csm_allocation_node_history.memory_usage_max is 'The high water mark for memory usage (bytes).';
