@@ -5,11 +5,12 @@ Logstash
 of this service is to process unstructured data, typically syslogs, and then pass the newly structured
 text to the elasticsearch service.
 
-Typically the Logstash service is run on the service nodes in the xCAT infrastructure. This design
-is to reduce the number of servers communicating with each instance of Logstash, distributing the 
-workload. xCAT service nodes have failover capabilities removing the need for HAProxies to reduce the
-risk of data loss. Finally, in using the service node the total cost of the Big Data Cluster
-is reduced as the need for a dedicated node for data processing is removed.
+Typically, in the CAST design, the Logstash service is run on the service nodes in the xCAT 
+infrastructure. This design is to reduce the number of servers communicating with each instance of 
+Logstash, distributing the workload. xCAT service nodes have failover capabilities removing the 
+need for HAProxies to reduce the risk of data loss. Finally, in using the service node the total 
+cost of the Big Data Cluster is reduced as the need for a dedicated node for data processing is 
+removed.
 
 CAST provides an event correlator for Logstash to assist in the generation of RAS events for
 specific messages.
@@ -22,7 +23,7 @@ Configuration
 
 The following is a brief introduction to the installation and configuration of the logstash service.
 CAST provides a set of sample configuration files in the repository at `csm_big_data/logstash/`.
-If the `ibm-csm-bds-*.noarch.rpm` has been installed the sample configurations may be found 
+If the `ibm-csm-bds-*.noarch.rpm` rpm has been installed the sample configurations may be found 
 in `/opt/ibm/csm/bigdata/logstash/`.
 
 1. Install the logstash rpm and java 1.8.1+ (command run from directory with logstash rpm):
@@ -61,7 +62,9 @@ in `/opt/ibm/csm/bigdata/logstash/`.
     
 .. code:: bash
 
-   $ bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
+   bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
+
+Please refer to `Installing CEC`_ for more details.
 
 .. note:: The bin directory is relative to your logstash install location.
 
@@ -70,8 +73,8 @@ in `/opt/ibm/csm/bigdata/logstash/`.
 
 .. code-block:: bash
 
-    $ systemctl enable logstash
-    $ systemctl start logstash
+    systemctl enable logstash
+    systemctl start logstash
 
 Logstash should now be operational. At this point data aggregators should be configured to point
 to your Logstash node as appropriate.
@@ -130,18 +133,6 @@ The default ports and data tagging are as follows:
 +=================+====================+
 |      syslog     |       10515        |
 +-----------------+--------------------+
-| bmc_temp_sensor |       10516        |
-+-----------------+--------------------+
-| ib_temp_sensor  |       10517        |
-+-----------------+--------------------+
-|     bmc_sel     |       10518        |
-+-----------------+--------------------+
-|      zimon      |       10519        |
-+-----------------+--------------------+
-|      gocons     |       10520        |
-+-----------------+--------------------+
-| data_archiving  |       10521        |
-+-----------------+--------------------+
 |    json_data    |       10522        |
 +-----------------+--------------------+
 |  transactions   |       10523        |
@@ -168,6 +159,15 @@ output
 
 The output section defines the target for the data processed through the pipeline. In the CAST
 sample the `elasticsearch plugin`_ is used, for more details please refer to the linked documentation.
+
+The user *must* replace `_ELASTIC_IP_PORT_LIST_` with a comma delimited list of `hostname`:`port`
+string pairs refering to the nodes in the elasticsearch cluster. Generally if using the default 
+configuration the port should be `9200`. An example of this configuration is as follows:
+
+.. code-block:: bash
+
+   hosts => [ "10.7.4.14:9200", "10.7.4.15:9200", "10.7.4.19:9200" ]
+
 
 grok
 ^^^^
@@ -199,17 +199,14 @@ Installing CEC
 
 CEC should be bundled in the `ibm-csm-bds-*.noarch.rpm` rpm. Installation at
 the current time requires an external connection to the internet or an exported 
-copy of the plugin (A section on the process is being developed).
+copy of the plugin (this process is described in :ref:`offline-cec-install`).
 
 .. code:: bash
 
-   $ /usr/share/logstash/bin/logstash-plugin install /opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator-*.gem
+    /usr/share/logstash/bin/logstash-plugin install \
+        /opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator-*.gem
 
-.. TODO: Rename csm_event_correlator to cast_event_correlator.
-
-.. attention:: In future iterations of the CAST rpm this gem will be packed in the bds RPM. 
-
-After the plugin has been built it may then be configured with the steps described in 
+After the plugin has been installed it may then be configured with the steps described in 
 :ref:`csm-event-correlator-config`
 
 

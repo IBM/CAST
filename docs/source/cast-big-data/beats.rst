@@ -56,8 +56,6 @@ Filebeats should now be sending injested data  to the Logstash instances specifi
 configuation file.
 
 
-
-
 .. Links
 
 .. _Beats Reference: https://www.elastic.co/guide/en/beats/libbeat/current/beats-reference.html
