@@ -89,6 +89,7 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/CSMINodeAttributesQuery.cc
   csmi_request_handler/CSMINodeAttributesQueryDetails.cc
   csmi_request_handler/CSMINodeAttributesQueryHistory.cc
+  csmi_request_handler/CSMINodeFindJob.cc
   csmi_request_handler/CSMINodeQueryStateHistory.cc
   csmi_request_handler/CSMINodeDelete.cc
   csmi_request_handler/CSMIRasEventCreate.cc

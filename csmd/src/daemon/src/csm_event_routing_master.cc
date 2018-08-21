@@ -69,6 +69,7 @@ void EventRoutingMaster::RegisterHandlers()
    Register<CSMINodeAttributesQueryHistory>(CSM_CMD_node_attributes_query_history);
    Register<CSMINodeAttributesUpdate>(CSM_CMD_node_attributes_update);
    Register<CSMINodeQueryStateHistory>(CSM_CMD_node_query_state_history);
+   Register<CSMINodeFindJob>(CSM_CMD_node_find_job);
    Register<CSMINodeDelete>(CSM_CMD_node_delete);
    Register<CSMIRasEventCreate>(CSM_CMD_ras_event_create);
    Register<CSMIRasEventQuery>(CSM_CMD_ras_event_query);

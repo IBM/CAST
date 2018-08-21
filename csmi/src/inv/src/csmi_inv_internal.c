@@ -688,6 +688,19 @@ const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t= {
     cast_csmi_cluster_query_state_record_t
 };
 
+const csmi_struct_node_t csmi_node_find_job_record_tree[1] = {{"temp",offsetof(csmi_node_find_job_record_t,temp),0,NULL,0x7c9e679b,68}}
+;
+
+void* cast_csmi_node_find_job_record_t(void* ptr,size_t index, char isArray) { 
+    csmi_node_find_job_record_t ** ptr_cast = *(csmi_node_find_job_record_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csmi_node_find_job_record_t= {
+    1,
+    csmi_node_find_job_record_tree,
+    cast_csmi_node_find_job_record_t
+};
+
 const csmi_struct_node_t csm_ib_cable_inventory_collection_input_tree[3] = {{"inventory_count",offsetof(csm_ib_cable_inventory_collection_input_t,inventory_count),0,NULL,0xde0c63b,24},
 {NULL,0,0,NULL,0,0},
 {"inventory",offsetof(csm_ib_cable_inventory_collection_input_t,inventory),offsetof(csm_ib_cable_inventory_collection_input_t, inventory_count),&map_csmi_ib_cable_record_t,0xac696ff3,1}}
@@ -1014,6 +1027,53 @@ const csmi_struct_mapping_t map_csm_node_delete_output_t= {
     3,
     csm_node_delete_output_tree,
     cast_csm_node_delete_output_t
+};
+
+const csmi_struct_node_t csm_node_find_job_input_tree[21] = {{"node_names_count",offsetof(csm_node_find_job_input_t,node_names_count),0,NULL,0x868cf686,24},
+{"offset",offsetof(csm_node_find_job_input_t,offset),0,NULL,0x123b4b4c,36},
+{"begin_time_search_end",offsetof(csm_node_find_job_input_t,begin_time_search_end),0,NULL,0xc583ac83,4},
+{"limit",offsetof(csm_node_find_job_input_t,limit),0,NULL,0xfdcc804,36},
+{"begin_time_search_begin",offsetof(csm_node_find_job_input_t,begin_time_search_begin),0,NULL,0x34e5bb11,4},
+{"midpoint",offsetof(csm_node_find_job_input_t,midpoint),0,NULL,0x97cb1ba9,4},
+{"end_time_search_begin",offsetof(csm_node_find_job_input_t,end_time_search_begin),0,NULL,0xf2b45ac3,4},
+{"node_names",offsetof(csm_node_find_job_input_t,node_names),offsetof(csm_node_find_job_input_t, node_names_count),NULL,0x23603fe,5},
+{NULL,0,0,NULL,0,0},
+{"midpoint_delta",offsetof(csm_node_find_job_input_t,midpoint_delta),0,NULL,0x1e8a5992,4},
+{"search_range_begin",offsetof(csm_node_find_job_input_t,search_range_begin),0,NULL,0x35fc576b,4},
+{"end_time_search_end",offsetof(csm_node_find_job_input_t,end_time_search_end),0,NULL,0x8f62b7b5,4},
+{"user_name",offsetof(csm_node_find_job_input_t,user_name),0,NULL,0xc029f5a4,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"search_range_end",offsetof(csm_node_find_job_input_t,search_range_end),0,NULL,0x7bb36a5d,4}}
+;
+
+void* cast_csm_node_find_job_input_t(void* ptr,size_t index, char isArray) { 
+    csm_node_find_job_input_t ** ptr_cast = *(csm_node_find_job_input_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csm_node_find_job_input_t= {
+    21,
+    csm_node_find_job_input_tree,
+    cast_csm_node_find_job_input_t
+};
+
+const csmi_struct_node_t csm_node_find_job_output_tree[2] = {{"results_count",offsetof(csm_node_find_job_output_t,results_count),0,NULL,0x8261013f,24},
+{"results",offsetof(csm_node_find_job_output_t,results),offsetof(csm_node_find_job_output_t, results_count),&map_csmi_node_find_job_record_t,0x3f2ab7f7,1}}
+;
+
+void* cast_csm_node_find_job_output_t(void* ptr,size_t index, char isArray) { 
+    csm_node_find_job_output_t ** ptr_cast = *(csm_node_find_job_output_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csm_node_find_job_output_t= {
+    2,
+    csm_node_find_job_output_tree,
+    cast_csm_node_find_job_output_t
 };
 
 const csmi_struct_node_t csm_switch_attributes_query_input_tree[11] = {{"limit",offsetof(csm_switch_attributes_query_input_t,limit),0,NULL,0xfdcc804,36},

@@ -766,6 +766,27 @@ int csm_node_env_data_query(csm_api_object **handle, const char *node_list[],
  */
 int csm_cluster_query_state(csm_api_object **handle, csm_cluster_query_state_input_t* input, csm_cluster_query_state_output_t* *output);
 
+
+/** @ingroup inv_apis
+ * @brief Used to help find what job was running on a node during a specific time.
+ *
+ * 
+ * @p output must be destroyed using @ref csm_api_object_destroy.
+ *
+ * @param[out] handle An output pointer containing internally managed api data, destroy 
+ *                      with @ref csm_api_object_destroy.
+ * @param[in]  input Used to contain the input parameters for the this API.
+ * @param[out] output Used to contain the output parameters for the this API, consult @ref csm_node_find_job_output_t
+ *                      for details. Null in the event of an error.
+ *                      Destroy using @ref csm_api_object_destroy
+ *
+ * @note The error message may be retrieved though use of @ref csm_api_object_errmsg_get with 
+ *      @p handle.
+ * 
+ * @returns An error code from the list of CSM error code enums.
+ */
+int csm_node_find_job(csm_api_object **handle, csm_node_find_job_input_t* input, csm_node_find_job_output_t* *output);
+
 #ifdef __cplusplus
 }
 #endif

@@ -68,6 +68,7 @@
 #include "src/csmi_request_handler/CSMINodeAttributesQueryHistory.h"
 #include "src/csmi_request_handler/CSMINodeQueryStateHistory.h"
 #include "src/csmi_request_handler/CSMINodeDelete.h"
+#include "src/csmi_request_handler/CSMINodeFindJob.h"
 #include "src/csmi_request_handler/CSMIRasEventCreate.h"
 #include "src/csmi_request_handler/CSMIRasEventQuery.h"
 #include "src/csmi_request_handler/CSMIRasMsgTypeCreate.h"

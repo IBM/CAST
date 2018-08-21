@@ -489,6 +489,13 @@ typedef struct {
     char** shared; /**< Array of "is this allocation shared" . */
 } csmi_cluster_query_state_record_t;
 /**
+ * @brief A node record in the **csm_node** table of the CSM database.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    char temp; /**< Reserved field for future use.*/
+} csmi_node_find_job_record_t;
+/**
  * @brief An input wrapper for @ref csm_ib_cable_inventory_collection
  */
 typedef struct {
@@ -677,6 +684,33 @@ typedef struct {
     uint32_t failure_count; /**< The number of nodes which failed to be deleted, size of @ref failure_node_names. */
     char** failure_node_names; /**< A list of nodes which failed to be deleted, size defined by @ref failure_count. */
 } csm_node_delete_output_t;
+/**
+ * @brief An input wrapper for @ref csm_node_find_job.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+    int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+    uint32_t node_names_count; /**< Number of names to query, size of @ref node_names. */
+    char** node_names; /**< List of nodes to perform query on, size defined in @ref node_names_count.*/
+    char* begin_time_search_begin; /**< A time used to filter results of the SQL query and only include records with a begin_time at or after (ie: '>=' ) this time. */
+    char* begin_time_search_end; /**< A time used to filter results of the SQL query and only include records with a begin_time at or before (ie: '<=' ) this time. */
+    char* end_time_search_begin; /**< A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time.*/
+    char* end_time_search_end; /**< A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time*/
+    char* midpoint; /**< A time used to filter results of the SQL query. */
+    char* midpoint_delta; /**< A time that will be added and subtracted from the midpoint field to expand the range of the search window. */
+    char* search_range_begin; /**< A time used to filter results of the SQL query and only include records that were active during or after this time. */
+    char* search_range_end; /**< A time used to filter results of the SQL query and only include records that were active during or before this time. */
+    char* user_name; /**< Filter results to only include this user_name. */
+} csm_node_find_job_input_t;
+/**
+ * @brief A wrapper for the output of @ref csm_node_find_job.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    uint32_t results_count; /**< Number of database records retrieved, size of @ref results. */
+    csmi_node_find_job_record_t** results; /**< A list of records retrieved from the queries, size defined by @ref results_count.*/
+} csm_node_find_job_output_t;
 /**
  * @brief An input wrapper for @ref csm_switch_attributes_query.
  */
