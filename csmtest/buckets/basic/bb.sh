@@ -73,7 +73,7 @@ ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
 # Test Case 7: Create lv_01
-${CAST_PATH}/work/rpms/_CPack_Packages/Linux/RPM/ibm-*-Linux/csm-unittest/opt/ibm/csm/tests/bb/fernando_csm_bb_lv_create -a ${allocation_id} -c 500 -f mount -F type -l lv_01 -n ${SINGLE_COMPUTE} -s C -V vg_01 > ${TEMP_LOG} 2>&1
+${CSM_PATH}/csm_bb_lv_create -a ${allocation_id} -c 500 -f mount -F type -l lv_01 -n ${SINGLE_COMPUTE} -s C -V vg_01 > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 7: Create lv_01"
 
 # Test Case 8: Calling csm_bb_lv_query using allocation ID
