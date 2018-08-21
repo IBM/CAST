@@ -12,8 +12,8 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-#ifndef __CSMI_NODE_ATTRIBUTES_QUERY_H__
-#define __CSMI_NODE_ATTRIBUTES_QUERY_H__
+#ifndef __CSMI_NODE_FIND_JOB_H__
+#define __CSMI_NODE_FIND_JOB_H__
 
 #include "csmi_stateful_db.h"
 
