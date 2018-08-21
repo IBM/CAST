@@ -41,7 +41,7 @@ def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime):
             Log_Line = LO.Log(line)
             if Log_Line.DateTime >= start_datetime and Log_Line.DateTime <= end_datetime:   # Looking for only start and end time of Api call
                 if 'AGG-MTC' in line:
-                    responses = int(line.split()[6])
+                    responses = int(line.split()[8])
                     Api_Statistics['responses'].append(responses)
             else:
                 break
@@ -63,9 +63,14 @@ def collision_error(Api_Id, start_api, end_api):
 def calculate_statistics(filename, Api_Statistics):
     print ("Aggregator Log").center(print_padding, '+')
     print filename[2:].center(print_padding, '-')
+    file_opened = open(filename, 'r')
+    file_lines = file_opened.readlines()
+    file_start = file_lines[0].split("csm")[0][5:].strip()
+    file_end   = file_lines[-1].split("csm")[0][5:].strip()
+    file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     total_calls = 0
-    stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
+    stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') +'\n' + file_time + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     if not Api_Statistics['responses']:
         pass
     else:
@@ -87,4 +92,5 @@ def calculate_statistics(filename, Api_Statistics):
 
 def Pre_Process(filename):
     p1 = Popen(shlex.split("grep \'AGG-MTC\' " + filename ), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+    # p2 = Popen(split("grep -v \'Allocation\'"), stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
     return p1.split('\n')
