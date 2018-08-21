@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <mutex>
 #include <boost/property_tree/ptree.hpp>
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -105,14 +106,27 @@ public:
   typedef dcgm_field_meta_p (*DcgmFieldGetById_ptr_t)(unsigned short fieldId);
   // DcgmFieldGetById_ptr_t - dcgm_field_meta_p DcgmFieldGetById(unsigned short fieldId);
 
+  typedef dcgmReturn_t (*dcgmWatchJobFields_ptr_t)(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
+  // dcgmWatchJobFields_ptr_t - dcgmReturn_t dcgmWatchJobFields(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
+
+  typedef dcgmReturn_t (*dcgmJobStartStats_ptr_t)(dcgmHandle_t, dcgmGpuGrp_t, char []);
+  // dcgmJobStartStats_ptr_t - dcgmReturn_t dcgmJobStartStats(dcgmHandle_t, dcgmGpuGrp_t, char []);
+
+  typedef dcgmReturn_t (*dcgmJobStopStats_ptr_t)(dcgmHandle_t, char []);
+  // dcgmJobStopStats_ptr_t - dcgmReturn_t dcgmJobStopStats(dcgmHandle_t, char []);  
+
+  typedef dcgmReturn_t (*dcgmJobGetStats_ptr_t)(dcgmHandle_t, char [], dcgmJobInfo_t*);
+  // dcgmJobGetStats_ptr_t - dcgmReturn_t dcgmJobGetStats(dcgmHandle_t, char [], dcgmJobInfo_t*);
+
+  typedef dcgmReturn_t (*dcgmJobRemove_ptr_t)(dcgmHandle_t, char []);
+  // dcgmJobRemove_ptr_t - dcgmReturn_t dcgmJobRemove(dcgmHandle_t, char []);
+
   // functions
 
   static INV_DCGM_ACCESS* GetInstance(){ if( _Instance == nullptr ){ _Instance = new INV_DCGM_ACCESS(); } return _Instance; } // get the istance of the class object
   void Init(); // initialization for dlopen and  DCGM
-  bool GetDCGMInstalledFlag(){ return dcgm_installed_flag; }; // dcgm installed flag, equal to true if dcgm is installed
   bool GetDlopenFlag(){ return dlopen_flag; } // dlopen flag, true if libdcgm_ptr is == nullptr
   bool GetDCGMInitFlag(){ return dcgm_init_flag; } // dcgm init flag, false if some modules were not loaded correcty or if some of the DCGM initialization functions failed
-  bool GetDCGMUsedFlag(){ return dcgm_used_flag; } // dcgm used flag, true if DCGM is not installed, if Dlopen did not work correctly or if DCGM was not initialized correctly 
   unsigned int * GetGPUsIdsPointer(){ return &(gpu_ids[0]); } // pointer to the array of the gpu_ids
   dcgmDeviceAttributes_t * GetGPUsAttributesPointer(){ return &(gpu_attributes[0]); } // pointer to the arrray of the dcgmDeviceAttributes_ts
   int DCGMGPUCount(){ return dcgm_gpu_count; } // number of gpu of the node as counted by dcgm
@@ -143,17 +157,45 @@ public:
    */
   bool CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list);
 
+  /**
+   * Start collecting GPU statistics for the specificed allocation.  
+   *
+   * @param i_allocation_id The CSM allocation id to associate with this set of statistics.
+   *
+   * @return true if successful, false if unsuccessful. 
+   */
+  bool StartAllocationStats(const int64_t &i_allocation_id);
+  
+  /**
+   * Stop collecting GPU statistics for the specificed allocation.  
+   *
+   * @param i_allocation_id The CSM allocation id to stop collecting statistics for.
+   * @param o_gpu_usage The cumulative GPU usage for all GPUs, measured in gpu*microseconds. Will not be modified if return value is false.
+   *
+   * @return true if successful, false if unsuccessful. 
+   */
+  bool StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage);
+
 private:
   INV_DCGM_ACCESS();
   //static int objectCount;
 
-  
   /**
    * Attempt to initialize the function pointers to DCGM functions using dlsym().
    *
    * @return true if successful, false if unsuccessful. 
    */
   bool InitializeFunctionPointers();
+  
+  /**
+   * Returns true if the class has failed to initialize correctly.
+   */
+  bool Uninitialized();
+
+  /**
+   * Used to log an appropriate warning message with the reason for failed initialization.
+   */
+  void LogInitializationWarning(const std::string &function_name);
 
   /**
    * Attempt to create a field group for CSM to use in DCGM.
@@ -176,11 +218,11 @@ private:
   // pointer to the class object
   static INV_DCGM_ACCESS *_Instance;
 
+  std::mutex dcgm_mutex;
+
   // flags
-  bool dcgm_installed_flag;
   bool dlopen_flag;
   bool dcgm_init_flag;
-  bool dcgm_used_flag;
 
   // function pointers
   void* libdcgm_ptr;
@@ -204,7 +246,12 @@ private:
   dcgmDisconnect_ptr_t dcgmDisconnect_ptr;
   dcgmShutdown_ptr_t dcgmShutdown_ptr;
   DcgmFieldGetById_ptr_t DcgmFieldGetById_ptr;
-
+  dcgmWatchJobFields_ptr_t dcgmWatchJobFields_ptr;
+  dcgmJobStartStats_ptr_t dcgmJobStartStats_ptr;
+  dcgmJobStopStats_ptr_t dcgmJobStopStats_ptr;
+  dcgmJobGetStats_ptr_t dcgmJobGetStats_ptr;
+  dcgmJobRemove_ptr_t dcgmJobRemove_ptr;
+  
   // other variables necessary for DCGM
   dcgmHandle_t dcgm_handle; // DCGM handle
   unsigned int gpu_ids[DCGM_MAX_NUM_DEVICES]; // GPU identifiers
@@ -294,10 +341,8 @@ public:
   // functions
 
   static INV_DCGM_ACCESS* GetInstance(){ if( _Instance == nullptr ){ _Instance = new INV_DCGM_ACCESS(); } return _Instance; } // get the istance of the class object
-  bool GetDCGMInstalledFlag(){ return dcgm_installed_flag; } // dcgm installed flag, equal to true if dcgm is installed
   bool GetDlopenFlag(){ return dlopen_flag; } // dlopen flag, true if libdcgm_ptr is == nullptr
   bool GetDCGMInitFlag(){ return dcgm_init_flag; } // dcgm init flag, false if some modules were not loaded correcty or if some of the DCGM initialization functions failed
-  bool GetDCGMUsedFlag(){ return dcgm_used_flag; } // dcgm used flag, true if DCGM is not installed, if Dlopen did not work correctly or if DCGM was not initialized correctly
   bool LogGPUsEnviromentalData(); // log GPU enviromental data
   void Get_Double_DCGM_Field_Values( std::vector<double> &vector_double_dcgm_field_values ); // transfer the double dcgm field values to the input vector
   void Get_Long_DCGM_Field_Values( std::vector<long> &vector_int64_dcgm_field_values ); // transfer the i64 dcgm field values to the input vector
@@ -307,6 +352,8 @@ public:
   
   bool ReadAllocationFields();
   bool CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list);
+  bool StartAllocationStats(const int64_t &i_allocation_id);
+  bool StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage);
 
 private:
   INV_DCGM_ACCESS();
