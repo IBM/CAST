@@ -96,7 +96,7 @@ class BBLVKey_ExtentInfo
     void dump(const char* pSev, const char* pPrefix=0) const;
     void dumpExtents(const char* pSev, const char* pPrefix=0) const;
     void dumpInFlight(const char* pSev) const;
-    Extent* getAnyExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex);
+    Extent* getAnySourceExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex);
     Extent* getMaxInFlightExtent();
     Extent* getMinimumTrimExtent();
     int moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight);

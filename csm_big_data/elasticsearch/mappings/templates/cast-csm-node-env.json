@@ -22,13 +22,7 @@
                 "data": {
 		            "type" : "nested",
                     "properties" : {
-                        "processor_id"      : {"type": "long"},
-                        "processor_energy"  : {"type": "long"},
-                        "gpu_energy"        : {"type": "long"},
-                        "memory_energy"     : {"type": "long"},
-                        "processor_temp"    : {"type": "long"},
-                        "processor_temp_min": {"type": "long"},
-                        "processor_temp_max": {"type": "long"}
+                        "system_energy"     : {"type": "long"}
                     }
                 }
             }

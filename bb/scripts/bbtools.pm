@@ -25,6 +25,7 @@ require AutoLoader;
              bpost
              cmd
              setupUserEnvironment
+             getBBENVDir
              getBBENVName
              bbfail
 );
@@ -182,7 +183,7 @@ if (! $QUIET) {print "HOSTLIST: $::HOSTLIST\n"};
 $::JOBUSER = untaint($::JOBUSER);
 $oldpath = $ENV{'PATH'};
 $ENV{'PATH'} = '/bin:/usr/bin';
-chomp($::JOBGROUP=`id -ng $::JOBUSER`);
+chomp($::JOBGROUP=`/usr/bin/id -ng $::JOBUSER`);
 $ENV{'PATH'} = $oldpath;
 
 $::BBPATH="/tmp/bblv_$::JOBUSER\_$::JOBID";
@@ -297,12 +298,12 @@ sub setupBSCFS
 {
     if(!exists $ENV{BSCFS_WORK_PATH})
     {
-	eval
-	{
-	    $jsondata = `cat /etc/ibm/bb.cfg`;
-	    $json = decode_json($jsondata);
-	};
-	$ENV{BSCFS_WORK_PATH} = $json->{"bb"}{"bscfsagent"}{"workpath"} . "/$::JOBID";
+        eval
+        {
+            $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
+            $json = decode_json($jsondata);
+        };
+        $ENV{BSCFS_WORK_PATH} = $json->{"bb"}{"bscfsagent"}{"workpath"} . "/$::JOBID";
     }
     
     $::BSCFS_BB_PATH    = $ENV{BBPATH} . "/.bscfs";
@@ -317,27 +318,40 @@ sub setupBSCFS
     defaultenv("BSCFS_MNT_PATH", "local_path", "/bscfs");
 }
 
-sub getBBENVName
+sub getBBENVDir
 {
-    #$bbtmpdir = "/tmp";
-    my @pwentry   = getpwnam($ENV{"USER"});
-    @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
-    my $bbtmpdir  = @pwentry[7] . "/.bbtmp";
-    $bbenvfile = $bbtmpdir . "/env.$::JOBID";
-    return $bbenvfile;
+    my $bbenvdir = "/tmp";
+    eval
+    {
+        $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
+	    $json = decode_json($jsondata);
+        $bbenvdir = $json->{"bb"}{"envdir"};
+    };
+    
+    if($bbenvdir eq "")
+    {
+        my @pwentry   = getpwuid($<);
+        @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
+        $bbenvdir  = @pwentry[7] . "/.bbtmp";
+    }
+    return $bbenvdir;
+}
+
+sub getBBENVName
+{    
+    return &getBBENVDir() . "/env.$::JOBID";
 }
 
 sub openBBENV
 {
     my $bbenvfile = getBBENVName();
-    print "BBENV:  $bbenvfile\n";
-    open(BBENV, $bbenvfile) || bbfail "Unable to open BB_ENVFILE file.  $!";
+    open(BBENV, $bbenvfile) || bbfail "Unable to open BB_ENVFILE file($bbenvfile).  $!";
     
     my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
         $atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat BB_ENVFILE.  $!";
     if($mode & 0077)
     {
-	bbfail "Permissions on BB_ENVFILE are too broad, the group and world fields should be zero.";
+	    bbfail "Permissions on BB_ENVFILE are too broad, the group and world fields should be zero.";
     }
 }
 

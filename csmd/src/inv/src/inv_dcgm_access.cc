@@ -15,6 +15,7 @@
 
 #include "inv_dcgm_access.h"
 #include "logging.h"
+#include "csm_bds_keys.h"
 
 #include <iostream>
 #include "string.h"
@@ -60,7 +61,45 @@ uint16_t csm::daemon::INV_DCGM_ACCESS::CSM_ALLOCATION_FIELDS[] =
 
 const uint32_t csm::daemon::INV_DCGM_ACCESS::CSM_ALLOCATION_FIELD_COUNT = 
    (sizeof(csm::daemon::INV_DCGM_ACCESS::CSM_ALLOCATION_FIELDS) / sizeof(uint16_t));
+    
+uint16_t csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELDS[] =
+{
+   DCGM_FI_DEV_SERIAL,                            // Device Serial Number
+   DCGM_FI_DEV_POWER_USAGE,                       // GPU power consumption, in Watts
+   DCGM_FI_DEV_MEM_COPY_UTIL_SAMPLES,             // memory utilization samples
+   DCGM_FI_DEV_GPU_UTIL_SAMPLES,                  // gpu utilization samples
+   DCGM_FI_DEV_GPU_TEMP,                          // GPU temperature, in degrees C
+   DCGM_FI_DEV_GPU_UTIL,                          // GPU utilization
+   DCGM_FI_DEV_MEM_COPY_UTIL,                     // GPU memory utilization
+   DCGM_FI_DEV_ENC_UTIL,                          // GPU encoder utilization
+   DCGM_FI_DEV_DEC_UTIL,                          // GPU decoder utilizatioin
+   DCGM_FI_DEV_NVLINK_BANDWIDTH_L0,               // GPU NVLINK bandwidth counter for line 0
+   DCGM_FI_DEV_NVLINK_BANDWIDTH_L1,               // GPU NVLINK bandwidth counter for line 1
+   DCGM_FI_DEV_NVLINK_BANDWIDTH_L2,               // GPU NVLINK bandwidth counter for line 2
+   DCGM_FI_DEV_NVLINK_BANDWIDTH_L3,               // GPU NVLINK bandwidth counter for line 3
+   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L0,    // GPU NV link flow control CRC error for lane 0
+   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L1,    // GPU NV link flow control CRC error for lane 1
+   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L2,    // GPU NV link flow control CRC error for lane 2
+   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L3,    // GPU NV link flow control CRC error for lane 3
+   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L0,    // GPU NV link data CRC error for lane 0
+   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L1,    // GPU NV link data CRC error for lane 1
+   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L2,    // GPU NV link data CRC error for lane 2
+   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L3,    // GPU NV link data CRC error for lane 3
+   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L0,      // GPU NV link replay error counter for lane 0
+   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L1,      // GPU NV link replay error counter for lane 1
+   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L2,      // GPU NV link replay error counter for lane 2
+   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L3,      // GPU NV link replay error counter for lane 3
+   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L0,    // GPU NV link recovery error for lane 0
+   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L1,    // GPU NV link recovery error for lane 1
+   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L2,    // GPU NV link recovery error for lane 2
+   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L3,    // GPU NV link recovery error for lane 3
+   DCGM_FI_DEV_POWER_VIOLATION,                   // GPU power violation in usecs
+   DCGM_FI_DEV_THERMAL_VIOLATION,                 // GPU thermal power violation in usecs
+   DCGM_FI_DEV_SYNC_BOOST_VIOLATION               // GPU boost sync violation in usecs
+};
 
+const uint32_t csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELD_COUNT = 
+   (sizeof(csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELDS) / sizeof(uint16_t));
 
 csm::daemon::INV_DCGM_ACCESS::INV_DCGM_ACCESS()
 {
@@ -146,7 +185,10 @@ csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
 
 }
 
-void csm::daemon::INV_DCGM_ACCESS::Init(){
+void csm::daemon::INV_DCGM_ACCESS::Init()
+{
+    // Only allow one thread to call DCGM at a time
+    std::lock_guard<std::mutex> lock(dcgm_mutex);
 
     // alloc and init of some vectors and arrays
     number_of_double_fields = 3;
@@ -156,10 +198,8 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     vector_of_int64_values.resize( number_of_int64_fields );
     
     // flags
-    dcgm_installed_flag = true;
     dlopen_flag = false;
     dcgm_init_flag = true;
-    dcgm_used_flag = true;
     
     // initialize function pointers
     libdcgm_ptr = nullptr;
@@ -183,6 +223,11 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     dcgmDisconnect_ptr = nullptr;
     dcgmShutdown_ptr = nullptr;
     DcgmFieldGetById_ptr = nullptr;
+    dcgmWatchJobFields_ptr = nullptr;
+    dcgmJobStartStats_ptr = nullptr;
+    dcgmJobStopStats_ptr = nullptr;      
+    dcgmJobGetStats_ptr = nullptr;
+    dcgmJobRemove_ptr = nullptr;
 
     // other variables
     // updateFreq = 1000000;
@@ -206,7 +251,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
         LOG(csmd, info) << "Couldn't load libdcgm.so, no GPU inventory will be returned.";
         dlopen_flag = true;
         dcgm_init_flag = false;
-	dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "libdcgm_ptr was successful";
@@ -216,7 +260,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     if ( InitializeFunctionPointers() == false )
     {
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     }
     else
@@ -231,7 +274,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
 	LOG(csmd, error) << "Error: dcgmInit returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmInit was successful";
@@ -244,7 +286,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
         LOG(csmd, error) << "Error: dcgmConnect returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmConnect was successful";
@@ -255,7 +296,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
 	LOG(csmd, error) << "Error: dcgmGetAllDevices returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmGetAllDevices was successful";
@@ -265,7 +305,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
 	LOG(csmd, error) << "Error: dcgmGetAllDevices returned unexpected gpu_count=" << dcgm_gpu_count;
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
 	LOG(csmd, debug) << "dcgm_gpu_count: " << dcgm_gpu_count;
@@ -312,20 +351,18 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
 	LOG(csmd, error) << "Error: dcgmGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmGroupCreate was successful";
     }
 
-    // add gpus tho the group
+    // add gpus to the group
     for (int i = 0; i < dcgm_gpu_count; i++){
      rc = (*dcgmGroupAddDevice_ptr)(dcgm_handle, gpugrp, gpu_ids[i]);
      if (rc != DCGM_ST_OK)
      {
 	LOG(csmd, error) << "Error: dcgmGroupAddDevice returned \"" << errorString(rc) << "(" << rc << ")\"";
 	dcgm_init_flag = false;
-        dcgm_used_flag= false;
 	return;
      } else {
         LOG(csmd, debug) << "dcgmGroupAddDevice was successful";
@@ -338,7 +375,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
 	LOG(csmd, error) << "Error: dcgmFieldGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmFieldGroupCreate was successful";
@@ -350,7 +386,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
         LOG(csmd, error) << "Error: dcgmFieldGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmFieldGroupCreate was successful";
@@ -363,8 +398,28 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     if (success == false)
     {
         dcgm_init_flag = false;
-        dcgm_used_flag = false;
         return;
+    }
+    
+    success = CreateCsmFieldGroup(CSM_ENVIRONMENTAL_FIELD_COUNT, CSM_ENVIRONMENTAL_FIELDS, CSM_ENVIRONMENTAL_FIELD_GROUP, 
+       &csm_environmental_field_group_handle);
+    if (success == false)
+    {
+        dcgm_init_flag = false;
+        return;
+    }
+
+    // Read the field names associated with the DCGM Field Groups used internally by CSM
+    success = ReadFieldNames(CSM_ALLOCATION_FIELD_COUNT, CSM_ALLOCATION_FIELDS, csm_allocation_field_names);
+    if (success == false)
+    {
+        LOG(csmenv, warning) << "ReadFieldNames() returned false for CSM_ALLOCATION_FIELDS";
+    }
+
+    success = ReadFieldNames(CSM_ENVIRONMENTAL_FIELD_COUNT, CSM_ENVIRONMENTAL_FIELDS, csm_environmental_field_names);
+    if (success == false)
+    {
+        LOG(csmenv, warning) << "ReadFieldNames() returned false for CSM_ENVIRONMENTAL_FIELDS";
     }
 
     // watcher, necessary for the manual update, at this moment update fields every 1000 secs (1000000000 us), keep them for 10 secs, and only 1 sample per field
@@ -374,7 +429,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
 	LOG(csmd, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmWatchFields was successful";
@@ -386,7 +440,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
     {
         LOG(csmd, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
     } else {
         LOG(csmd, debug) << "dcgmWatchFields was successful";
@@ -452,7 +505,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
      {
         LOG(csmd, error) << "Error: Field " << std::setw(2) << i << " - DcgmFieldGetById returned 0";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
      } else {
         dcgm_meta_double_vector.push_back( dcgm_meta_double_field->tag );
@@ -467,7 +519,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init(){
      {
         LOG(csmd, error) << "Error: Field " << std::setw(2) << i << " - DcgmFieldGetById returned 0";
         dcgm_init_flag = false;
-        dcgm_used_flag= false;
         return;
      } else {
         dcgm_meta_int64_vector.push_back( dcgm_meta_int64_field->tag );
@@ -724,6 +775,61 @@ bool csm::daemon::INV_DCGM_ACCESS::InitializeFunctionPointers()
    else
    {
       LOG(csmd, debug) << "DcgmFieldGetById_ptr was successful";
+   }
+    
+   dcgmWatchJobFields_ptr = (dcgmWatchJobFields_ptr_t) dlsym(libdcgm_ptr, "dcgmWatchJobFields");
+   if ( dcgmWatchJobFields_ptr == nullptr )
+   {
+      LOG(csmd, error) << dlerror();
+      return false;
+   }
+   else
+   {
+      LOG(csmd, debug) << "dcgmWatchJobFields_ptr was successful";
+   }
+
+   dcgmJobStartStats_ptr = (dcgmJobStartStats_ptr_t) dlsym(libdcgm_ptr, "dcgmJobStartStats");
+   if ( dcgmJobStartStats_ptr == nullptr )
+   {
+      LOG(csmd, error) << dlerror();
+      return false;
+   }
+   else
+   {
+      LOG(csmd, debug) << "dcgmJobStartStats_ptr was successful";
+   }
+
+   dcgmJobStopStats_ptr = (dcgmJobStopStats_ptr_t) dlsym(libdcgm_ptr, "dcgmJobStopStats");
+   if ( dcgmJobStopStats_ptr == nullptr )
+   {
+      LOG(csmd, error) << dlerror();
+      return false;
+   }
+   else
+   {
+      LOG(csmd, debug) << "dcgmJobStopStats_ptr was successful";
+   }
+
+   dcgmJobGetStats_ptr = (dcgmJobGetStats_ptr_t) dlsym(libdcgm_ptr, "dcgmJobGetStats");
+   if ( dcgmJobGetStats_ptr == nullptr )
+   {
+      LOG(csmd, error) << dlerror();
+      return false;
+   }
+   else
+   {
+      LOG(csmd, debug) << "dcgmJobGetStats_ptr was successful";
+   }
+
+   dcgmJobRemove_ptr = (dcgmJobRemove_ptr_t) dlsym(libdcgm_ptr, "dcgmJobRemove");
+   if ( dcgmJobRemove_ptr == nullptr )
+   {
+      LOG(csmd, error) << dlerror();
+      return false;
+   }
+   else
+   {
+      LOG(csmd, debug) << "dcgmJobRemove_ptr was successful";
    }
 
    return true;
@@ -1043,6 +1149,188 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
    return true;
 }
 
+bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list)
+{
+   LOG(csmenv, debug) << "Enter " << __FUNCTION__;
+
+   if (Uninitialized())
+   {
+      LogInitializationWarning(__FUNCTION__);
+      LOG(csmenv, debug) << "Exit " << __FUNCTION__;   
+      return false;
+   }
+   
+   // Only allow one thread to call DCGM at a time
+   std::lock_guard<std::mutex> lock(dcgm_mutex);
+   
+   dcgmReturn_t rc(DCGM_ST_OK);
+
+   uint64_t update_frequency(100);    // How often to update this field in usec
+   double max_keep_age(1);            // How long to keep data for this field in seconds
+   uint32_t max_keep_samples(1);      // Maximum number of samples to keep
+   
+   rc = (*dcgmWatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_environmental_field_group_handle, update_frequency, 
+      max_keep_age, max_keep_samples);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+      return false;
+   }
+   else 
+   {
+      LOG(csmenv, debug) << "dcgmWatchFields was successful";
+   }
+
+   // Sleep for update_frequency to make sure the fields have been updated before reading
+   usleep(update_frequency);
+      
+   rc = (*dcgmUpdateAllFields_ptr)(dcgm_handle, 1);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+      return false;
+   }
+
+   dcgmFieldValue_t csm_environmental_field_values[CSM_ENVIRONMENTAL_FIELD_COUNT]; 
+
+   // scan the gpus
+   for (int i = 0; i < dcgm_gpu_count; i++)
+   {
+      // get the latests values for CSM_ENVIRONMENTAL_FIELD_GROUP 
+      rc = (*dcgmGetLatestValuesForFields_ptr)(dcgm_handle, gpu_ids[i], CSM_ENVIRONMENTAL_FIELDS, CSM_ENVIRONMENTAL_FIELD_COUNT, 
+         csm_environmental_field_values);
+      if (rc != DCGM_ST_OK)
+      {
+         LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned \"" << errorString(rc) << "(" << rc << ")\"";
+         return false;
+      }
+      else
+      {
+         boost::property_tree::ptree gpu_pt;
+         gpu_pt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_GPU_COUNTERS);
+         bool has_gpu_data(false);
+         
+         // lambda used to insert gpu id data as the first elements in data when a sensor match occurs 
+         auto insert_gpu_field = [&](const std::string &key, const std::string &value)
+         {
+            // If this is the first valid field found, insert the identifier information first
+            if (!has_gpu_data)
+            {
+               has_gpu_data = true;
+               gpu_pt.put( "data.gpu_id", std::to_string(i) );
+            }
+
+            gpu_pt.put("data." + key, value);
+         };
+         
+         for (uint32_t j = 0; j < CSM_ENVIRONMENTAL_FIELD_COUNT; j++)
+         {
+            if ( (csm_environmental_field_values[j].status == DCGM_ST_OK) &&
+                 (csm_environmental_field_values[j].fieldType == DCGM_FT_INT64) &&
+                 (! DCGM_INT64_IS_BLANK(csm_environmental_field_values[j].value.i64) ) ) 
+            {
+               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                  << " (INT64), value: " << csm_environmental_field_values[j].value.i64;
+               insert_gpu_field(csm_environmental_field_names[j], std::to_string(csm_environmental_field_values[j].value.i64));
+            }
+            else if ( (csm_environmental_field_values[j].status == DCGM_ST_OK) &&
+                      (csm_environmental_field_values[j].fieldType == DCGM_FT_DOUBLE) &&
+                      (! DCGM_FP64_IS_BLANK(csm_environmental_field_values[j].value.dbl) ) ) 
+            {
+               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j] 
+                                  << " (FP64), value: " << csm_environmental_field_values[j].value.dbl;
+               insert_gpu_field(csm_environmental_field_names[j], std::to_string(csm_environmental_field_values[j].value.dbl));
+            }
+            else if ( (csm_environmental_field_values[j].status == DCGM_ST_OK) &&
+                      (csm_environmental_field_values[j].fieldType == DCGM_FT_STRING) &&
+                      (! DCGM_STR_IS_BLANK(csm_environmental_field_values[j].value.str) ) )
+            {
+               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                  << " (STR), value: " << csm_environmental_field_values[j].value.str;
+               insert_gpu_field(csm_environmental_field_names[j], csm_environmental_field_values[j].value.str);
+            }
+            else
+            {
+               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                  << " unexpected case!";
+            }
+         }
+
+         if (has_gpu_data)
+         {
+            gpu_data_pt_list.push_back(gpu_pt);
+         }
+      }
+   }
+
+   rc = (*dcgmUnwatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_environmental_field_group_handle);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmUnwatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+   }
+   else 
+   {
+      LOG(csmenv, debug) << "dcgmUnwatchFields was successful";
+   }
+   
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__;   
+   return true;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocation_id)
+{
+   LOG(csmenv, debug) << "Enter " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;
+
+   if (Uninitialized())
+   {
+      LogInitializationWarning(__FUNCTION__);
+      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;   
+      return false;
+   }
+
+   // Only allow one thread to call DCGM at a time
+   std::lock_guard<std::mutex> lock(dcgm_mutex);
+
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;   
+   return true;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage)
+{
+   LOG(csmenv, debug) << "Enter " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;
+
+   if (Uninitialized())
+   {
+      LogInitializationWarning(__FUNCTION__);
+      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;   
+      return false;
+   }
+
+   // Only allow one thread to call DCGM at a time
+   std::lock_guard<std::mutex> lock(dcgm_mutex);
+   
+   o_gpu_usage = -1;
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;   
+   return true;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::Uninitialized()
+{
+   return ( (dlopen_flag == true) || (dcgm_init_flag == false) );
+}
+
+void csm::daemon::INV_DCGM_ACCESS::LogInitializationWarning(const std::string &function_name)
+{
+   if (dlopen_flag == true)
+   {
+      LOG(csmenv, warning) << "Failed to load libdcgm.so at start up, skipping " << function_name;
+   }
+   else if (dcgm_init_flag == false)
+   {
+      LOG(csmenv, warning) << "DCGM initialization failed at start up, skipping " << function_name;
+   }
+}
+
 bool csm::daemon::INV_DCGM_ACCESS::CreateCsmFieldGroup(const uint32_t field_count, uint16_t fields[], char* field_group_name,
    dcgmFieldGrp_t* field_group_handle)
 {
@@ -1067,6 +1355,31 @@ bool csm::daemon::INV_DCGM_ACCESS::CreateCsmFieldGroup(const uint32_t field_coun
 bool csm::daemon::INV_DCGM_ACCESS::DeleteCsmFieldGroup()
 {
    return true;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::ReadFieldNames(const uint32_t field_count, uint16_t fields[], std::vector<std::string> &field_names)
+{
+   bool status(true);
+
+   field_names.resize(field_count, "unknown_field");
+
+   for (uint32_t i = 0; i < field_count; i++)
+   {
+      dcgm_field_meta_t* dcgm_field_meta_ptr(NULL);
+      dcgm_field_meta_ptr = (*DcgmFieldGetById_ptr)( fields[i] );
+      if (dcgm_field_meta_ptr == NULL)
+      {
+         LOG(csmenv, error) << "Error: DcgmFieldGetById returned NULL for field id:" << fields[i];
+         status = false;
+      } 
+      else 
+      {
+         field_names[i] = dcgm_field_meta_ptr->tag;
+         LOG(csmenv, debug) << "Read field id: " << fields[i] << " field_name: " << field_names[i];
+      }
+   }
+
+   return status;
 }
 
 int list_field_values(unsigned int gpuId, dcgmFieldValue_t *values, int numValues, void *userdata)
@@ -1181,26 +1494,21 @@ int list_field_values_since(unsigned int gpuId, dcgmFieldValue_t *values, int nu
 
 csm::daemon::INV_DCGM_ACCESS::INV_DCGM_ACCESS()
 {
-
    // flags
-    dcgm_installed_flag = false;
-    dlopen_flag = true;
-    dcgm_init_flag = false;
-    dcgm_used_flag = false;
+   dlopen_flag = true;
+   dcgm_init_flag = false;
 
    // logging
-   LOG(csmd, info) << "The right DCGM version is not installed or the framework was configured without DCGM support, no data for the GPUs will be collected";
-
+   LOG(csmenv, info) << "Built without DCGM support, GPU related functions are disabled.";
 }
 
 csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
 {
-
 }
 
 bool csm::daemon::INV_DCGM_ACCESS::LogGPUsEnviromentalData()
 {
- return true;
+   return true;
 }
 
 void
@@ -1215,5 +1523,30 @@ csm::daemon::INV_DCGM_ACCESS::Get_Double_DCGM_Field_String_Identifiers( std::vec
 void
 csm::daemon::INV_DCGM_ACCESS::Get_Long_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_int64_dcgm_fields )
 {}
+
+bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
+{
+   LOG(csmenv, warning) << "Built without DCGM support, skipping ReadAllocationFields()";
+   return false;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list)
+{
+   LOG(csmenv, warning) << "Built without DCGM support, skipping CollectGpuData()";
+   return false;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocation_id)
+{
+   LOG(csmenv, warning) << "Built without DCGM support, skipping StartAllocationStats()";
+   return false;
+}
+
+bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage)
+{
+   LOG(csmenv, warning) << "Built without DCGM support, skipping StopAllocationStats()";
+   return false;
+}
+
 #endif  // DCGM support is disabled
 

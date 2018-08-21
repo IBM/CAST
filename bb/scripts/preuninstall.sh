@@ -13,7 +13,8 @@
 ###################################################
 
 service bbhealth stop
-killall bscfsAgent
+killall -9 bscfsAgent
+umount /bscfs
 service bbproxy stop
 service bbserver stop
 

@@ -1,8 +1,8 @@
 /*================================================================================
 
-    csmi/src/bb/cmd/fernando_bb_lv_create.c
+    csmi/src/bb/cmd/bb_lv_create.c
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -45,7 +45,7 @@ void help() {
 	puts("  csm_bb_lv_create ARGUMENTS [OPTIONS]");
 	puts("  csm_bb_lv_create -a allocation_id -c current_size -f file_system_mount -F file_system_type -l logical_volume_name -n node_name -s state -V vg_name [-h] [-v verbose_level]");
 	puts("");
-	puts("SUMMARY: Used by Fernando to create an LV.");
+	puts("SUMMARY: Used by to create an LV.");
 	puts("");
 	puts("EXIT STATUS:");
 	puts("  0  if OK,");
@@ -224,30 +224,26 @@ int main(int argc, char *argv[])
 	
 	/*All that just to call the api.*/
 	returnValue = csm_bb_lv_create(&csm_obj, input);
-	//Use CSM API free to release arguments. We no longer need them.
-	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
-	if(returnValue == 0){
-		csmutil_logging(debug, "%s-%d:", __FILE__, __LINE__);
-		csmutil_logging(debug, "  csm_bb_lv_create has completed successfully!");
-	}else if(returnValue != 0){
-		csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
-		csmutil_logging(error, "  Encountered an error in the api.");
-		csmutil_logging(error, "  returnValue: %i", returnValue);
-		csmutil_logging(error, "  errcode:     %d", csm_api_object_errcode_get(csm_obj));
-		csmutil_logging(error, "  errmsg:      \"%s\"", csm_api_object_errmsg_get(csm_obj));
-		
-		/* Clean up and exit. */
-		csm_term_lib();
-		csm_api_object_destroy(csm_obj);
-		return returnValue;
+	
+	switch( returnValue )
+    {
+		case CSMI_SUCCESS:
+            printf("---\n# The lv: \"%s\" has been successfully created on node: \"%s\" for allocation_id: %"PRId64".\n...\n", input->logical_volume_name, input->node_name, input->allocation_id);
+            break;
+		default:
+            printf("%s FAILED: errcode: %d errmsg: %s\n", argv[0], returnValue,  csm_api_object_errmsg_get(csm_obj));
+			csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+			csmutil_logging(error, "  Encountered an error in the api.");
+			csmutil_logging(error, "  returnValue: %i", returnValue);
+			csmutil_logging(error, "  errcode:     %d", csm_api_object_errcode_get(csm_obj));
+			csmutil_logging(error, "  errmsg:      \"%s\"", csm_api_object_errmsg_get(csm_obj));
+			break;
 	}
 	
-	//FIXME Below should we use A or B?
+	//Use CSM API free to release arguments. We no longer need them.
+	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 	
-	//A: Call internal CSM API clean up.
     csm_api_object_destroy(csm_obj);
-	//B: Use CSM API free to release output. We no longer need it.
-	//csm_free_struct_ptr(API_PARAMETER_OUTPUT_TYPE, output);
 	
 	/* Does the cleanup needed after calling csm_init_lib */
 	int lib_returnValue = csm_term_lib();

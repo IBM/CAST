@@ -53,9 +53,7 @@
     -x --target         Path prefix for target(s)  Default is "/gpfs/gpfs0/$USER/target".
     -y --testcase       Testcase to run.  Default is "bbtests".
                         NOTE:  This must be a python script file, but do not include the .py
-    -z --config         Configuration file to use.  If libpath is specified, the default is
-                        to move up one directory using the libpath specification and then append
-                        "scripts/bb.cfg".  Otherwise, the default is "/etc/coral/node.cfg".
+    -z --config         Configuration file to use.  Default is "/etc/ibm/bb.cfg".
     -1 --process_args   Process arguments (bbapiAdminProcs interface only)
     -2 --iteration      Iteration number
 
@@ -122,7 +120,7 @@ DEFAULT_HANDLE = 0
 DEFAULT_HOSTNAME = ""
 
 l_Temp = os.environ['USER']
-DEFAULT_CONFIG = (os.path.join(*("%s,etc,coral,node.cfg" % (os.path.sep)).split(",")))
+DEFAULT_CONFIG = (os.path.join(*("%s,etc,ibm,bb.cfg" % (os.path.sep)).split(",")))
 DEFAULT_ORGSRC = (os.path.join(*("%s,gpfs,gpfs0,%s,source" % (os.path.sep, l_Temp)).split(",")))
 DEFAULT_MOUNT = (os.path.join(*("%s,tmp,%s,mnt" % (os.path.sep, l_Temp)).split(",")))
 DEFAULT_TARGET = (os.path.join(*("%s,gpfs,gpfs0,%s,target" % (os.path.sep, l_Temp)).split(",")))
@@ -174,7 +172,6 @@ def usage(code, msg=''):
 def setDefaults(pEnv):
     setDefaultFloor(pEnv)
     setLibPath(pEnv)
-    setDefaultConfigPath(pEnv, None)
     pEnv["contrib"] = DEFAULT_CONTRIB
     pEnv["contribid"] = DEFAULT_CONTRIBID
     pEnv["handle"] = DEFAULT_HANDLE
@@ -182,6 +179,8 @@ def setDefaults(pEnv):
     pEnv["jobid"] = DEFAULT_JOBID
     pEnv["jobstepid"] = DEFAULT_JOBSTEPID
     pEnv["tag"] = DEFAULT_TAG
+
+    pEnv['CONFIG'] = DEFAULT_CONFIG
 
     pEnv["ORGSRC"] = DEFAULT_ORGSRC
     pEnv["MOUNT"] = DEFAULT_MOUNT
@@ -201,14 +200,6 @@ def setDefaults(pEnv):
     #       routine of this module
     if (not pEnv.has_key("iteration")):
         pEnv["iteration"] = DEFAULT_ITERATION
-
-    return
-
-def setDefaultConfigPath(pEnv, pLibPath):
-    if pLibPath != None:
-        pEnv['CONFIG'] = os.path.abspath(os.path.join(os.path.dirname(pLibPath), "scripts", "bb.cfg"))
-    else:
-        pEnv['CONFIG'] = DEFAULT_CONFIG
 
     return
 
@@ -248,8 +239,6 @@ def setSysPath(pEnv):
 def setWrapperPath(pEnv):
     l_LibPath = pEnv["LIBPATH"].split(os.path.sep)
     pEnv["WRAPPER_PATH"] = os.path.sep.join(l_LibPath[:-1]) + os.path.sep + 'wrappers'
-    # The following line is for test purposes...
-    pEnv["WRAPPER_PATH"] = "/u/dlherms/git/bluecoral/bb/wrappers"
 
     return
 
@@ -351,16 +340,12 @@ def processArgs(pEnv, pArgs):
         elif l_Opt in ("-2", "--iteration"):
             pEnv["iteration"] = int(l_Arg)
 
-    if l_LibPathSpecified:
-        if not l_ConfigSpecified:
-            setDefaultConfigPath(pEnv, pEnv["LIBPATH"])
-
     pEnv["COMMAND"] = os.path.abspath(__file__)
     pEnv["COMMAND_LINE_ARGS"] = " ".join(pArgs)
     setWrapperPath(pEnv)
 
     setLib(pEnv)
-    # pprint.pprint(pEnv)
+#    pprint.pprint(pEnv)
 
     return
 

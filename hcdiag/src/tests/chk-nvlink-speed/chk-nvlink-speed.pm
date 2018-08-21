@@ -63,8 +63,9 @@ if ( !defined $nodeCfg ) {
 }
 my $gpus=$nodeCfg->{gpu}->{pciids};
 my $speed=$nodeCfg->{gpu}->{link_speed};
+my $nlinks=$nodeCfg->{gpu}->{nlinks};
 my $ngpus=scalar(@$gpus);
-my $nlinks=$ngpus*6;
+$nlinks=$ngpus*$nlinks;
 
 my $tempdir = tempdir( CLEANUP => 1 );
 $speed="$speed GB/s";

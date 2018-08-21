@@ -25,7 +25,7 @@ file(GLOB HCDIAG_TEST_FILE
 )
 
 file(GLOB HCDIAG_TEST_CONFIG
-  "clustconf.yaml"
+  "clustconf.yaml.sample"
 )
 
 install(FILES ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})

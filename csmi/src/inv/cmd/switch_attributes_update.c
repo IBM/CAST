@@ -2,7 +2,7 @@
 
     csmi/src/inv/cmd/switch_attributes_update.c
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -46,7 +46,7 @@ void help(){
 	puts("  csm_switch_attributes_update ARGUMENTS [OPTIONS]");
 	puts("  csm_switch_attributes_update -s switch_names [-c comment] [-f physical_frame_location] [-u physical_u_location] [-h] [-v verbose_level]");
 	puts("");
-	puts("SUMMARY: Used to query the 'csm_switch_history' table of the CSM database.");
+	puts("SUMMARY: Used to update the 'csm_switch' table of the CSM database.");
 	puts("");
 	puts("EXIT STATUS:");
 	puts("  0  if OK,");
@@ -63,7 +63,7 @@ void help(){
 	puts("    csm_switch_attributes_update can have 3 optional arguments and requires at least 1");
 	puts("    Argument                      | Example value        | Description  ");                                                 
 	puts("    ------------------------------|----------------------|--------------");
-	puts("    -c, --comment                 | \"My awesome comment\" | (STRING) Comment field for system administrators.");
+	puts("    -c, --comment                 | \"My awesome comment\" | (STRING) Comment field for system administrators. Can be reset to NULL in CSM DB via \"#CSM_NULL\".");
 	puts("    -f, --physical_frame_location | \"X12,Y24\"            | (STRING) Physical frame number where the switch is located.");
 	puts("    -u, --physical_u_location     | \"U02\"                | (STRING) Physical u location (position in the frame) where the switch is located.");
 	puts("                                  |                      | ");

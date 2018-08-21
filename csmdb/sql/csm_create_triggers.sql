@@ -14,11 +14,17 @@
 --===============================================================================
 
 --===============================================================================
---   usage:         run ./csm_db_script.sh <----- to create the csm_db with triggers
---   version:       4.3.86
---   create:        06-22-2016
---   last modified: 06-14-2018
+--   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
+--   current_version:       16.0
+--   create:                06-22-2016
+--   last modified:         08-09-2018
 --   change log:
+--     16.0   - Moving this version to sync with DB schema version
+--            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
+--            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
+--            - fn_csm_allocation_create_data_aggregator - updated handling of gpu_energy
+--     4.3.88 - fn_csm_db_chema_version_history_dump. fix defect on UPDATE trigger. 
+--     4.3.87 - fn_csm_ib_cable_inventory_collection. fix defect. duplicated port info. 
 --     4.3.86 - Added fields to fn_csm_step_begin and fn_csm_step_end, fn_csm_allocation_node_sharing_status for diagnostics
 --     4.3.85 - Added fields to fn_csm_allocation_history_dump, fn_csm_allocation_create_data_aggregator and fn_csm_allocation_finish_data_stats
 --     4.3.84 - fn_csm_allocation_node_sharing_status - Improved the node sharing test to account for failed allocation transitions.
@@ -214,6 +220,7 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_finish_data_stats(
         gpu_usage_list  bigint[],
         cpu_usage_list  bigint[],
         mem_max_list    bigint[],
+        gpu_energy_list  bigint[],
         out o_end_time timestamp, 
         out o_final_state text
 )
@@ -256,13 +263,14 @@ BEGIN
                             ELSE BIGINT_MAX - (power_cap_hit- d.pc_hit) END
                           ELSE -1 * ABS(power_cap_hit) END ), 
 
-            gpu_usage = (CASE WHEN(d.gpu_use > 0 AND gpu_usage >= 0) THEN 
-                            CASE WHEN ( d.gpu_use >= gpu_usage ) THEN  d.gpu_use  - gpu_usage
-                            ELSE BIGINT_MAX - (gpu_usage- d.gpu_use) END
-                          ELSE -1 * ABS(gpu_usage ) END ) ,
-
+            gpu_usage = d.gpu_use,
             cpu_usage = d.cpu_use,
-            memory_usage_max = d.mem_max
+            memory_usage_max = d.mem_max,
+
+            gpu_energy = (CASE WHEN(d.l_gpu_energy > 0 AND gpu_energy >= 0) THEN 
+                            CASE WHEN ( d.l_gpu_energy >= gpu_energy ) THEN  d.l_gpu_energy - gpu_energy
+                            ELSE BIGINT_MAX - (gpu_energy- d.l_gpu_energy) END
+                          ELSE -1 * ABS(gpu_energy ) END )
         FROM
             ( SELECT
                 unnest(node_names) as node,
@@ -274,7 +282,8 @@ BEGIN
                 unnest(pc_hit_list) as pc_hit,
                 unnest(gpu_usage_list) as gpu_use,
                 unnest(cpu_usage_list) as cpu_use,
-                unnest(mem_max_list) as mem_max
+                unnest(mem_max_list) as mem_max,
+                unnest(gpu_energy_list) as l_gpu_energy
             ) d
         WHERE allocation_id = allocationid AND node_name = d.node;
 
@@ -295,7 +304,7 @@ BEGIN
             o_final_state = 'complete';
             PERFORM fn_csm_allocation_history_dump (allocationid, o_end_time, 0, 'complete', false,
                  node_names, ib_rx_list, ib_tx_list, gpfs_read_list, gpfs_write_list, 
-                 energy_list, pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list);
+                 energy_list, pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list, gpu_energy_list);
         END IF;
 
         UPDATE csm_allocation_node SET state=i_state WHERE allocation_id=allocationid;
@@ -306,7 +315,7 @@ $$ LANGUAGE 'plpgsql';
 COMMENT ON FUNCTION fn_csm_allocation_finish_data_stats( allocationid bigint, i_state text, node_names text[], 
     ib_rx_list bigint[], ib_tx_list bigint[], gpfs_read_list bigint[], gpfs_write_list bigint[],
     energy_list bigint[], pc_hit_list bigint[], gpu_usage_list bigint[], cpu_usage_list bigint[],
-    mem_max_list bigint[], out o_end_time timestamp, out o_final_state text )
+    mem_max_list bigint[], gpu_energy_list bigint[], out o_end_time timestamp, out o_final_state text )
     is 
     'csm_allocation function to finalize the data aggregator fields.';
 
@@ -429,6 +438,7 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_history_dump(
         gpu_usage_list  bigint[],
         cpu_usage_list  bigint[],
         mem_max_list    bigint[],
+        gpu_energy_list  bigint[],
         OUT o_end_time  timestamp
 )
 
@@ -489,7 +499,7 @@ BEGIN
         IF (finalize)  THEN
             PERFORM fn_csm_allocation_finish_data_stats( allocationid, '', node_names, ib_rx_list, 
                 ib_tx_list, gpfs_read_list,gpfs_write_list, energy_list,
-                pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list);
+                pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list, gpu_energy_list);
         END IF;
 
         -- Update the state value.
@@ -555,7 +565,7 @@ COMMENT ON FUNCTION fn_csm_allocation_history_dump( allocationid bigint, endtime
     exitstatus int, i_state text, finalize boolean, node_names text[], 
     ib_rx_list bigint[], ib_tx_list bigint[], gpfs_read_list bigint[], gpfs_write_list bigint[],
     energy_list bigint[], pc_hit_list bigint[], gpu_usage_list bigint[], cpu_usage_list bigint[], 
-    mem_max_list bigint[], out o_end_time timestamp)
+    mem_max_list bigint[], gpu_energy_list bigint[], out o_end_time timestamp)
     is 
     'csm_allocation function to amend summarized column(s) on DELETE. (csm_allocation_history_dump)';
 
@@ -1583,7 +1593,7 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_create_data_aggregator(
     i_power_cap       integer[],
     i_ps_ratio        integer[],
     i_power_cap_hit   bigint[],
-    i_gpu_usage       bigint[],
+    i_gpu_energy      bigint[],
     out o_timestamp   timestamp   
 ) RETURNS timestamp AS $$
 DECLARE
@@ -1612,7 +1622,7 @@ BEGIN
         power_cap            = d.power_cap,
         power_shifting_ratio = d.ps_ratio,
         power_cap_hit        = d.pc_hit,
-        gpu_usage            = d.gpu_usage
+        gpu_energy           = d.gpu_energy
     FROM 
         ( SELECT
             unnest(i_node_names)      as node,
@@ -1624,7 +1634,7 @@ BEGIN
             unnest(i_power_cap)       as power_cap,
             unnest(i_ps_ratio)        as ps_ratio,
             unnest(i_power_cap_hit)   as pc_hit,
-            unnest(i_gpu_usage)       as gpu_usage
+            unnest(i_gpu_energy)      as gpu_energy
         ) d
     WHERE allocation_id = i_allocation_id AND node_name = d.node;
     
@@ -1636,7 +1646,7 @@ $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION fn_csm_allocation_create_data_aggregator( 
     i_allocation_id bigint, i_state text, i_node_names text[], i_ib_rx_list bigint[], i_ib_tx_list bigint[],
     i_gpfs_read_list bigint[], i_gpfs_write_list bigint[], i_energy bigint[], 
-    i_power_cap integer[], i_ps_ratio integer[], i_power_cap_hit bigint[], i_gpu_usage bigint[]) 
+    i_power_cap integer[], i_ps_ratio integer[], i_power_cap_hit bigint[], i_gpu_energy bigint[]) 
     is 'csm_allocation_node function to populate the data aggregator fields in csm_allocation_node.';
 
 -----------------------------------------------------------------------------------------------
@@ -3756,7 +3766,7 @@ BEGIN
         ELSE
             INSERT INTO csm_ib_cable
             (serial_number     , discovery_time, collection_time, comment     ,  guid_s1     , guid_s2     , identifier     , length     , name     , part_number     , port_s1     , port_s2     , revision     , severity     , type     , width     ) VALUES
-            (i_serial_number[i], now()         , now()          , i_comment[i],  i_guid_s1[i], i_guid_s2[i], i_identifier[i], i_length[i], i_name[i], i_part_number[i], i_port_s2[i], i_port_s2[i], i_revision[i], i_severity[i], i_type[i], i_width[i]);
+            (i_serial_number[i], now()         , now()          , i_comment[i],  i_guid_s1[i], i_guid_s2[i], i_identifier[i], i_length[i], i_name[i], i_part_number[i], i_port_s1[i], i_port_s2[i], i_revision[i], i_severity[i], i_type[i], i_width[i]);
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
@@ -4785,9 +4795,9 @@ CREATE FUNCTION fn_csm_db_schema_version_history_dump()
             comment)
         VALUES(
             now(),
-            NEW.version,
-            NEW.create_time,
-            NEW.comment);
+            OLD.version,
+            OLD.create_time,
+            OLD.comment);
         RETURN NEW;
     END IF;
 -- RETURN NULL;

@@ -27,6 +27,7 @@
 #if BBPROXY
 #include "bbproxy_flightlog.h"
 #include "bbproxyConn2bbserver.h"
+#include "identity.h"
 #elif BBSERVER
 #include "bbserver_flightlog.h"
 #include "identity.h"
@@ -80,19 +81,48 @@ map<txp::Connex*, CONNECTION_SUSPEND_OPTION> connection2suspendState;
 map<txp::Connex*, uint32_t> contribIdMap;
 
 pthread_mutex_t replyWaitersLock = PTHREAD_MUTEX_INITIALIZER;
-map<string, map<ResponseDescriptor*, bool> > replyWaiters;
+typedef map<ResponseDescriptor*, bool> mapResponseDescriptor;
+map<string, mapResponseDescriptor > replyWaiters;
 
 void releaseReplyWaiters(const std::string& pName){
     pthread_mutex_lock(&replyWaitersLock);
     {
+#if BBPROXY
+        if (replyWaiters[pName].size())
+        {
+            LOG(bb,info) << "releaseReplyWaiters() entry:  pName " << pName << ", replyWaiters[pName].size() " << replyWaiters[pName].size();
+        }
+#endif
         for(auto waiters : replyWaiters[pName])
         {
             LOG(bb,error) << "Notifying reply of connection close";
             waiters.first->reply = NULL;
-            sem_post(&waiters.first->semaphore);
+            waiters.first->sempost();
         }
+        replyWaiters.erase(pName);
     }
     pthread_mutex_unlock(&replyWaitersLock);
+}
+//for gdb, print dumpReplyWaiters()
+extern int dumpReplyWaiters();
+int dumpReplyWaiters(){
+    pthread_mutex_lock(&replyWaitersLock);
+    int i=0;
+    char l_MsgIdStr[64] = {'\0'};
+    for(auto& list : replyWaiters){
+        printf("connName=%s \n",list.first.c_str() );
+        int j=0;
+        for (auto& waiters: list.second){
+            j++;
+            l_MsgIdStr[64] = {'\0'};
+            txp::Msg::msgIdToChar(waiters.first->msgid, l_MsgIdStr, sizeof(l_MsgIdStr));
+            printf("%u msgid=%u (%s) \n",j,waiters.first->msgid,l_MsgIdStr);
+            i++;
+        }
+        if (!j) printf("\t waiters=%u \n",j);
+    }
+    pthread_mutex_unlock(&replyWaitersLock);
+    return i;
 }
 
 
@@ -678,7 +708,7 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
 
             if((iter != name2connections.end()) && (iter->second != NULL ))
             {
-                sem_init(&(reply.semaphore),0,0);
+
                 txp::Connex* cnx = iter->second;
                 std::string realName = cnx->getConnectName();
 
@@ -700,6 +730,7 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
                     msg->addAttribute(myattr);
                 }
                 reply.connName = realName;
+                reply.msgid = msg->getMsgId();
 
                 // We log all messages in the flight log...
                 FL_Write(FLConn, FL_SendMsgWReply, "Send message id=%ld, number=%ld, request=%ld, len=%ld",
@@ -763,7 +794,7 @@ int sendMessage2bbserver(const string& name, txp::Msg* msg, ResponseDescriptor& 
     return sendMessage(name, msg, reply, true);
 }
 
-int sendMsgAndWaitForNonDataReply(const std::string& pConnectionName, txp::Msg* &pMsg)
+int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &pMsg)
 {
     int rc = 0;
     ResponseDescriptor reply;
@@ -778,6 +809,12 @@ int sendMsgAndWaitForNonDataReply(const std::string& pConnectionName, txp::Msg* 
         // Wait for the response
         txp::Msg* l_ReplyMsg = 0;
         rc = waitReply(reply, l_ReplyMsg);
+        txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
+        if (l_Attribute)
+        {
+            rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
+        }
+
         delete l_ReplyMsg;
     }
 
@@ -787,7 +824,7 @@ int sendMsgAndWaitForNonDataReply(const std::string& pConnectionName, txp::Msg* 
 int expectReply(const std::string& pConnectionName, ResponseDescriptor& reply, txp::Msg* outgoing_msg)
 {
     reply.connName=pConnectionName;
-    sem_init(&(reply.semaphore),0,0);
+    reply.msgid = outgoing_msg->getMsgId();
 
     /* Warning:
        The following uses new-with-placement using storage already allocated in ResponseDescriptor.
@@ -807,6 +844,11 @@ int countWaitReplyList(const std::string& pConnectionName){
     auto itReplyWaiter = replyWaiters.find(pConnectionName);
     if (itReplyWaiter != replyWaiters.end() ){
         count = itReplyWaiter->second.size(); //size of responseDescriptor map
+        for(auto waiters : replyWaiters[pConnectionName]){
+            uint64_t l_value = waiters.first->msgid;
+            LOG(bb,info) << "pConnectionName="<<name<<" has msgid="<<l_value<<" out of count="<<count;
+            break;
+        }
     }
     else bberror<<err("out.notfound",pConnectionName);
     pthread_mutex_unlock(&replyWaitersLock);
@@ -815,57 +857,85 @@ int countWaitReplyList(const std::string& pConnectionName){
 
 int waitReply(ResponseDescriptor& reply, txp::Msg*& response_msg)
 {
+    char l_MsgId[64] = {'\0'};
+    txp::Msg::msgIdToChar(reply.msgid, l_MsgId, sizeof(l_MsgId));
+
+#if BBPROXY
     pthread_mutex_lock(&replyWaitersLock);
     {
+        size_t l_Before = replyWaiters[reply.connName].size();
         replyWaiters[reply.connName][&reply] = true;
+        LOG(bb,debug) << "waitReply:    Add [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
     }
     pthread_mutex_unlock(&replyWaitersLock);
+#endif
 
-    sem_wait(&(reply.semaphore));
+    reply.semwait();
 
+#if BBPROXY
     pthread_mutex_lock(&replyWaitersLock);
     {
+        size_t l_Before = replyWaiters[reply.connName].size();
         replyWaiters[reply.connName].erase(&reply);
+        LOG(bb,debug) << "waitReply:  Erase [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
     }
     pthread_mutex_unlock(&replyWaitersLock);
+#endif
+
+    response_msg = (txp::Msg*)reply.reply;
 
     if(reply.reply == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
         return -1;
     }
-    response_msg = (txp::Msg*)reply.reply;
 
     return 0;
 }
 
 int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
 {
+    char l_MsgId[64] = {'\0'};
+    txp::Msg::msgIdToChar(reply.msgid, l_MsgId, sizeof(l_MsgId));
+
     pthread_mutex_lock(&replyWaitersLock);
     {
+        size_t l_Before = replyWaiters[reply.connName].size();
         replyWaiters[reply.connName][&reply] = true;
+        LOG(bb,debug) << "waitReplyNoErase: [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
     }
     pthread_mutex_unlock(&replyWaitersLock);
 
-    sem_wait(&(reply.semaphore));
+    reply.semwait();
 
-    if(reply.reply == NULL)
+    pthread_mutex_lock(&replyWaitersLock);
+    {
+        response_msg = (txp::Msg*)reply.reply;
+        reply.reply =NULL; //lose the message reference to response_msg
+    }
+    pthread_mutex_unlock(&replyWaitersLock);
+
+    if(response_msg == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
         return -1;
     }
-    response_msg = (txp::Msg*)reply.reply;
 
     return 0;
 }
 
 void waitReplyErase(ResponseDescriptor& reply)
 {
-pthread_mutex_lock(&replyWaitersLock);
-{
-    replyWaiters[reply.connName].erase(&reply);
-}
-pthread_mutex_unlock(&replyWaitersLock);
+    char l_MsgId[64] = {'\0'};
+    txp::Msg::msgIdToChar(reply.msgid, l_MsgId, sizeof(l_MsgId));
+
+    pthread_mutex_lock(&replyWaitersLock);
+    {
+        size_t l_Before = replyWaiters[reply.connName].size();
+        replyWaiters[reply.connName].erase(&reply);
+        LOG(bb,debug) << "waitReply:  Erase [" << reply.connName << "][" << &reply << "] for " << l_MsgId << ", wfr_count " << l_Before << "->" << replyWaiters[reply.connName].size();
+    }
+    pthread_mutex_unlock(&replyWaitersLock);
 }
 
 int addReply(txp::Msg* msg, txp::Msg* response_msg)
@@ -896,6 +966,7 @@ int closeConnectionFD(const string& name)
                 }
                 else
                 {
+                    releaseReplyWaiters(name);
                     name2connections.erase(it);
                 }
 
@@ -1516,7 +1587,7 @@ void* workerThread(void* ptr)
 
         while(1)
         {
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
         	becomeUser(0,0);
 #endif
             pthread_mutex_lock(&threadFreePool_mutex);
@@ -1720,7 +1791,7 @@ void* responseThread(void* ptr)
 
                         if(rc == 0)
                         {
- #if MSG_STALE_CHECK
+#if MSG_STALE_CHECK
                             LOG(txp,always) << "responseThread incoming msg "<< (connections[pollinfo[idx].fd]->getFamily() == AF_UNIX ? "AF_UNIX":"SOCK")<<" msg msgId="<<msg->getMsgId()<<" msgNumber="<<msg->getMsgNumber()
                             <<std::hex<<" hex msgId="<<msg->getMsgId()<<" hex msgNumber="<<msg->getMsgNumber() <<std::dec<<" pointer msg="<<msg;
 #endif
@@ -1729,7 +1800,7 @@ void* responseThread(void* ptr)
                             {
                                 ResponseDescriptor* resp = (ResponseDescriptor*)((txp::Attr_uint64*)(msg->retrieveAttrs()->at(txp::responseHandle)))->getData();
                                 resp->reply = msg;
-                                sem_post(&resp->semaphore);
+                                resp->sempost();
                             }
                             else if (msg->getMsgId() == txp::CORAL_AUTHENTICATE)
                             {

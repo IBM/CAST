@@ -95,167 +95,124 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                         delete l_HandleFile;
                                         l_HandleFile = 0;
                                     }
-                                    bool l_Continue = true;
                                     bfs::path handlefile = l_Handle.path() / bfs::path(l_Handle.path().filename());
                                     rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                     if (!rc)
                                     {
-#if 0
-                                        // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case because we want to include
-                                        //       transfer definitions with files that are not all closed or have failed.
-                                        switch (pTransferDefs.flags)
+                                        // Early exit if we already have a 'final' status
+                                        if ((pTransferDefs.flags == ALL_DEFINITIONS) || (!(l_HandleFile->status == BBFULLSUCCESS && l_HandleFile->status == BBCANCELED)))
                                         {
-                                            case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
-                                            {
-                                                // If we are only interested in obtaining transfer definitions with unfinished files
-                                                // then check to see if all the extents have been transferred for this handle...
-                                                if (l_HandleFile->flags & BBTD_All_Extents_Transferred)
-                                                {
-                                                    l_Continue = false;
-                                                }
-                                                break;
-                                            }
+                                            // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
+                                            //       because we want to also include transfer definitions with files that are not all closed or have failed.
 
-                                            case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
-                                                //  NOTE: The 'stopped' attribute is not maintained in the handle file
-                                            default:
+                                            // Iterate through the logical volumes...
+                                            bool l_Continue = true;
+                                            for (auto& l_LVUuid : boost::make_iterator_range(bfs::directory_iterator(l_Handle.path()), {}))
                                             {
-                                                break;
-                                            }
-                                        }
-#endif
-                                    }
-                                    else
-                                    {
-                                        // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
-                                        LOG(bb,warning) << "Could not load handle file " << handlefile.string();
-                                    }
-
-                                    if ((!rc) && l_Continue)
-                                    {
-                                        // Iterate through the logical volumes...
-                                        for (auto& l_LVUuid : boost::make_iterator_range(bfs::directory_iterator(l_Handle.path()), {}))
-                                        {
-                                            if (!bfs::is_directory(l_LVUuid)) continue;
-                                            l_Continue = true;
-                                            bfs::path lvuuidfile = l_LVUuid.path() / l_LVUuid.path().filename();
-                                            LVUuidFile l_LVUuidFile;
-                                            rc = l_LVUuidFile.load(lvuuidfile.string());
-                                            if (!rc)
-                                            {
-                                                if ((pTransferDefs.hostname == UNDEFINED_HOSTNAME) || (l_LVUuidFile.hostname == pTransferDefs.hostname))
-                                                {
-#if 0
-                                                    // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case because we want to include
-                                                    //       transfer definitions with files that are not all closed or have failed.
-                                                    // Hostname of interest...
-                                                    switch (pTransferDefs.flags)
-                                                    {
-                                                        case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
-                                                        {
-                                                            // If we are only interested in obtaining transfer definitions with unfinished files
-                                                            // then check to see if all the extents have been transferred for this LVUuid...
-                                                            if (l_LVUuidFile.flags & BBTD_All_Extents_Transferred)
-                                                            {
-                                                                l_Continue = false;
-                                                            }
-                                                            break;
-                                                        }
-
-                                                        case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
-                                                            //  NOTE: The 'stopped' attribute is not maintained in the LVUuid file
-                                                        default:
-                                                        {
-                                                            break;
-                                                        }
-                                                    }
-#endif
-                                                }
-                                                else
-                                                {
-                                                    l_Continue = false;
-                                                }
-                                                // Note if we found a specifically named hostname...
-                                                if (l_LVUuidFile.hostname == pTransferDefs.hostname)
-                                                {
-                                                    l_HostNameFound = true;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
-                                                LOG(bb,warning) << "Could not load LVUuid file " << lvuuidfile.string();
-                                            }
-
-                                            if ((!rc) && l_Continue)
-                                            {
-                                                if (l_ContribFile)
-                                                {
-                                                    delete l_ContribFile;
-                                                    l_ContribFile = 0;
-                                                }
-                                                bfs::path contribs_file = l_LVUuid.path() / "contribs";
-                                                rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
+                                                if (!bfs::is_directory(l_LVUuid)) continue;
+                                                l_Continue = true;
+                                                bfs::path lvuuidfile = l_LVUuid.path() / l_LVUuid.path().filename();
+                                                LVUuidFile l_LVUuidFile;
+                                                rc = l_LVUuidFile.load(lvuuidfile.string());
                                                 if (!rc)
                                                 {
-                                                    // Iterate through the contributors...
-                                                    for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
+                                                    // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
+                                                    //       because we want to also include transfer definitions with files that are not all closed or have failed.
+
+                                                    if (!((pTransferDefs.hostname == UNDEFINED_HOSTNAME) || (l_LVUuidFile.hostname == pTransferDefs.hostname)))
                                                     {
-                                                        l_Continue = true;
-                                                        if ((pTransferDefs.contribid == UNDEFINED_CONTRIBID) || (ce->first == pTransferDefs.contribid))
+                                                        l_Continue = false;
+                                                    }
+                                                    // Note if we found a specifically named hostname...
+                                                    if (l_LVUuidFile.hostname == pTransferDefs.hostname)
+                                                    {
+                                                        l_HostNameFound = true;
+                                                    }
+
+                                                    if (l_Continue)
+                                                    {
+                                                        if (l_ContribFile)
                                                         {
-                                                            // ContribId of interest...
-                                                            switch (pTransferDefs.flags)
+                                                            delete l_ContribFile;
+                                                            l_ContribFile = 0;
+                                                        }
+                                                        bfs::path contribs_file = l_LVUuid.path() / "contribs";
+                                                        rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
+                                                        if (!rc)
+                                                        {
+                                                            // Iterate through the contributors...
+                                                            for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                                                             {
-                                                                case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
+                                                                l_Continue = true;
+                                                                if ((pTransferDefs.contribid == UNDEFINED_CONTRIBID) || (ce->first == pTransferDefs.contribid))
                                                                 {
-                                                                    // If we are only interested in obtaining transfer definitions with unfinished files
-                                                                    // then check to see if all the extents have been transferred for this contributor...
-                                                                    if ((ce->second).notRestartable())
+                                                                    // ContribId of interest...
+                                                                    switch (pTransferDefs.flags)
                                                                     {
-                                                                        l_Continue = false;
+                                                                        case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
+                                                                        {
+                                                                            // If we are only interested in obtaining transfer definitions with unfinished files
+                                                                            // then check to see if all the extents have been transferred for this contributor...
+                                                                            if ((ce->second).notRestartable())
+                                                                            {
+                                                                                l_Continue = false;
+                                                                            }
+                                                                            break;
+                                                                        }
+                                                                        case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
+                                                                        {
+                                                                            // If we are only interested in obtaining transfer definitions with stopped files
+                                                                            // then check to see if this contributor has been stopped...
+                                                                            if (!((ce->second).flags & BBTD_Stopped))
+                                                                            {
+                                                                                l_Continue = false;
+                                                                            }
+                                                                            break;
+                                                                        }
+
+                                                                        default:
+                                                                        {
+                                                                            break;
+                                                                        }
                                                                     }
-                                                                    break;
                                                                 }
-                                                                case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
+                                                                else
                                                                 {
-                                                                    // If we are only interested in obtaining transfer definitions with stopped files
-                                                                    // then check to see if this contributor has been stopped...
-                                                                    if (!((ce->second).flags & BBTD_Stopped))
-                                                                    {
-                                                                        l_Continue = false;
-                                                                    }
-                                                                    break;
+                                                                    l_Continue = false;
                                                                 }
 
-                                                                default:
+                                                                if ((!rc) && l_Continue)
                                                                 {
-                                                                    break;
+                                                                    // Copy this transfer definition...
+                                                                    rc = (ce->second).copyForRetrieveTransferDefinitions(pTransferDefs, l_LVUuidFile.hostname, stoull(l_JobId.path().filename().string()), stoull(l_JobStepId.path().filename().string()),
+                                                                                                                         stoull(l_Handle.path().filename().string()), ce->first, l_HandleFile->transferKeys);
                                                                 }
                                                             }
                                                         }
                                                         else
                                                         {
-                                                            l_Continue = false;
-                                                        }
-
-                                                        if ((!rc) && l_Continue)
-                                                        {
-                                                            // Copy this transfer definition...
-                                                            rc = (ce->second).copyForRetrieveTransferDefinitions(pTransferDefs, l_LVUuidFile.hostname, stoull(l_JobId.path().filename().string()), stoull(l_JobStepId.path().filename().string()),
-                                                                                                                 stoull(l_Handle.path().filename().string()), ce->first, l_HandleFile->transferKeys);
+                                                            // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
+                                                            LOG(bb,warning) << "Could not load contrib file " << contribs_file.string();
                                                         }
                                                     }
-                                                    delete l_ContribFile;
-                                                    l_ContribFile = 0;
                                                 }
                                                 else
                                                 {
                                                     // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
-                                                    LOG(bb,warning) << "Could not load contrib file " << contribs_file.string();
+                                                    LOG(bb,warning) << "Could not load LVUuid file " << lvuuidfile.string();
                                                 }
                                             }
                                         }
+                                        else
+                                        {
+                                            // Status of handle file is a 'final' status and the request is not for all definitions.
+                                            // Continue to next handle...
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
+                                        LOG(bb,warning) << "Could not load handle file " << handlefile.string();
                                     }
 
                                     if (rc)
@@ -865,7 +822,7 @@ void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSo
 {
     for (size_t i=0; i<files.size(); i=i+2)
     {
-        Extent* l_ExtentPtr = pExtentInfo->getAnyExtent(transferHandle, contribid, (uint32_t)i);
+        Extent* l_ExtentPtr = pExtentInfo->getAnySourceExtent(transferHandle, contribid, (uint32_t)i);
         if (l_ExtentPtr)
         {
             extents.push_back(Extent(l_ExtentPtr->getSourceIndex(), l_ExtentPtr->getTargetIndex(), (l_ExtentPtr->getFlags() & BB_AddFilesFlagsMask)));
@@ -877,7 +834,7 @@ void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSo
         else
         {
             pSourceTransferDef->dump("info", "Retrieve and no extents in work queue for this definition");
-            l_ExtentPtr = pSourceTransferDef->getAnyExtent((uint32_t)i);
+            l_ExtentPtr = pSourceTransferDef->getAnySourceExtent((uint32_t)i);
             if (l_ExtentPtr)
             {
                 extents.push_back(Extent(l_ExtentPtr->getSourceIndex(), l_ExtentPtr->getTargetIndex(), (l_ExtentPtr->getFlags() & BB_AddFilesFlagsMask)));
@@ -1000,13 +957,29 @@ void BBTransferDef::dump(const char* pSev, const char* pPrefix) {
 }
 
 #if BBSERVER
-Extent* BBTransferDef::getAnyExtent(const uint32_t pSourceIndex)
+Extent* BBTransferDef::getAnySourceExtent(const uint32_t pSourceIndex)
 {
     Extent* l_Extent = 0;
 
     for (size_t i=0; i<extents.size(); ++i)
     {
         if (pSourceIndex == extents[i].getSourceIndex())
+        {
+            l_Extent = &extents[i];
+            break;
+        }
+    }
+
+    return l_Extent;
+}
+
+Extent* BBTransferDef::getAnyTargetExtent(const uint32_t pTargetIndex)
+{
+    Extent* l_Extent = 0;
+
+    for (size_t i=0; i<extents.size(); ++i)
+    {
+        if (pTargetIndex == extents[i].getTargetIndex())
         {
             l_Extent = &extents[i];
             break;
@@ -1142,7 +1115,9 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     else if (pPass == THIRD_PASS)
     {
         // First, reset the following transfer definition/ContribId file flags
+        setAllFilesClosed(pLVKey, pHandle, pContribId, 0);
         setAllExtentsTransferred(pLVKey, pHandle, pContribId, 0);
+        setExtentsEnqueued(pLVKey, pHandle, pContribId, 0);
         setCanceled(pLVKey, pHandle, pContribId, 0);
         setFailed(pLVKey, pHandle, pContribId, 0);
         setStopped(pLVKey, pHandle, pContribId, 0);
@@ -1166,6 +1141,57 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     }
 
     return rc;
+}
+
+void BBTransferDef::removeFile(const char* pFileName)
+{
+    int rc = 0;
+
+    try
+    {
+        LOG(bb,debug) << "removeFile(): Attempting to remove file " << pFileName << " as part of the cancel operation issued for handle " \
+                      << transferHandle << ", contribid " << contribid;
+        rc = remove(pFileName);
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to remove target file " << pFileName;
+    }
+
+    if (!rc)
+    {
+        LOG(bb,info) << "Target file " << pFileName << " successfully removed as part of the cancel operation issued for handle " \
+                     << transferHandle << ", contribid " << contribid;
+    }
+    else
+    {
+        LOG(bb,warning) << "Target file " << pFileName << " could not be removed as part of the cancel operation issued for handle " \
+                        << transferHandle << ", contribid " << contribid \
+                        << ", errno " << errno << " (" << strerror(errno) << ")";
+    }
+
+    return;
+}
+
+void BBTransferDef::removeTargetFiles(const LVKey* pLVKey)
+{
+    Extent* l_ExtentPtr = 0;
+    for(size_t i=1; i<files.size(); i=i+2)
+    {
+        l_ExtentPtr = getAnyTargetExtent((uint32_t)i);
+        if (l_ExtentPtr)
+        {
+            uint64_t l_Flags = l_ExtentPtr->getFlags();
+            if (l_Flags & BBI_TargetPFS || l_Flags & BBI_TargetPFSPFS)
+            {
+                removeFile((char*)files[i].c_str());
+            }
+        }
+    }
+
+    return;
 }
 #endif
 
@@ -1234,6 +1260,17 @@ void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // \todo - We do not handle the return code... @DLH
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Extents_Transferred, pValue);
+
+    return;
+}
+
+void BBTransferDef::setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue)
+{
+    // NOTE: This attribute is NOT maintained in the transfer definition and only in the contribid file
+
+    // Update the status for the ContribId and Handle files in the xbbServer data...
+    // \todo - We do not handle the return code... @DLH
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Files_Closed, pValue);
 
     return;
 }
@@ -1351,170 +1388,198 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
     int rc = 0;
     stringstream errorText;
 
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    bool l_HandleFileLocked = false;
+
     bool l_StopDefinition = false;
 
     if (job.getJobStepId() == pJobStepId)
     {
-        if (!stopped())
+        // NOTE: We cannot check the local metadata for stopped() nor canceled().
+        //       In the case where a transfer definition has already failed over
+        //       once, the local metadata will still show that the definition is
+        //       already stopped when attempting to fail back.
+        //       Must check the cross bbServer metadata, which is current.
+        // NOTE: We may have to spin for a while waiting for the extents to be
+        //       enqueued on the work queue.  This is the case where we are
+        //       performing a start transfer for this definition but it hasn't
+        //       completed the processing performed by the second volley from
+        //       bbProxy.  We have to make sure that the extents are first enqueued
+        //       so that the stop processing is properly performed.
+        //
+        //       We spin for up to 2 minutes...
+        string l_ConnectionName = string();
+        int l_Attempts = 120;
+        while (!rc && l_Attempts--)
         {
-            if (!canceled())
+            // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer checking for
+            //       the extents to be enqueued and another thread/bbServer enqueuing those extents.
+            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+            if (!rc)
             {
-                // NOTE: We may have to spin for a while waiting for the extents to be
-                //       enqueued on the work queue.  This is the case where we are in
-                //       performing a start transfer for this definition but it hasn't
-                //       completed the processing performed by the second volley from
-                //       bbProxy.  We have to make sure that the extents are first enqueued
-                //       so that the stop processing is properly performed.
-                //
-                //       We spin for up to a 2 minutes...
-                string l_ConnectionName = string();
-                int l_Attempts = 120;
-                while (!rc && l_Attempts--)
+                l_HandleFileLocked = true;
+                rc = extentsAreEnqueued();
+                if (!rc)
                 {
-                    rc = extentsAreEnqueued();
-                    if (!rc)
-                    {
-                        unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
-                        {
-                            usleep((useconds_t)1000000);    // Delay 1 second
-                        }
-                        lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                    // Release the handle file
+                    l_HandleFileLocked = false;
+                    l_HandleFile->close();
 
-                        // Check to make sure the job still exists after releasing/re-acquiring the lock
-                        // NOTE: The connection name is optional, and is potentially different for every
-                        //       transfer definition that is being stopped from the retrieve transfer archive.
-                        if (!jobStillExists(l_ConnectionName, pLVKey, (BBTagInfo2*)0, (BBTagInfo*)0, pJobId, pContribId))
-                        {
-                            rc = -1;
-                            l_Attempts = 0;
-                        }
+                    unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                    {
+                        usleep((useconds_t)1000000);    // Delay 1 second
                     }
-                }
+                    lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
 
-                bool l_UnconditionalRestart = false;
-                switch (rc)
-                {
-                    case 0:
+                    // Check to make sure the job still exists after releasing/re-acquiring the lock
+                    // NOTE: The connection name is optional, and is potentially different for every
+                    //       transfer definition that is being stopped from the retrieve transfer archive.
+                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBTagInfo2*)0, (BBTagInfo*)0, pJobId, pContribId))
                     {
-                        l_UnconditionalRestart = true;
-                        LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                                     << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
-                                     << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not reponding." \
-                                     << " The transfer definition will be stopped and then restarted.";
-                    }
-                    // Fall through is intended...
-
-                    case 1:
-                    {
-                        rc = 0;
-                        ContribIdFile* l_ContribIdFile = 0;
-                        if (!l_UnconditionalRestart)
-                        {
-                            bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-                            l_HandleFilePath /= bfs::path(to_string(pJobId));
-                            l_HandleFilePath /= bfs::path(to_string(pJobStepId));
-                            l_HandleFilePath /= bfs::path(to_string(pHandle));
-                            int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                            switch (l_RC)
-                            {
-                                case 1:
-                                {
-                                    // We stop any transfer definition that does not have all of its files transferred/closed -or-
-                                    // has a failed transfer
-                                    if ((!l_ContribIdFile->allFilesClosed()) || l_ContribIdFile->anyFilesFailed())
-                                    {
-                                        l_StopDefinition = true;
-                                    }
-
-                                    break;
-                                }
-                                case 0:
-                                {
-                                    LOG(bb,error) << "ContribId " << pContribId << "could not be found in the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
-
-                                    break;
-                                }
-                                default:
-                                {
-                                    LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            l_StopDefinition = true;
-                        }
-
-                        if (l_StopDefinition)
-                        {
-                            rc = becomeUser(getUserId(), getGroupId());
-                            if (!rc)
-                            {
-                                // Mark the transfer definition as stopped
-                                markAsStopped(pLVKey, pHandle, pContribId);
-
-                                // If an unconditional restart, in addition to marking the transfer definition
-                                // as stopped, indicate that all extents have been processed.
-                                // NOTE:  No extents were enqueued/processed for an unconditional restart so this bit
-                                //        needs to be set on here...
-                                if (l_UnconditionalRestart)
-                                {
-                                    setAllExtentsTransferred(pLVKey, pHandle, pContribId);
-                                }
-                                rc = 1;
-
-                                becomeUser(0,0);
-                            }
-                            else
-                            {
-                                rc = -2;
-                                errorText << "becomeUser failed when attempting to stop the transfer definition associated with host " << pHostName \
-                                          << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                                          << " when attempting to become uid=" << getUserId() << ", gid=" << getGroupId();
-                                bberror << err("error.uid", getUserId()) << err("error.gid", getGroupId());
-                                LOG_ERROR_TEXT_RC(errorText, rc);
-                            }
-                        }
-                        else
-                        {
-                            LOG(bb,info) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                                         << ", handle " << pHandle << ", contribid " << pContribId << ", however no extents are left to be transferred (via BBTransferDef), rc = " << rc \
-                                         << ". Stop transfer request ignored.";
-                            rc = 2;
-                        }
-
-                        if (l_ContribIdFile)
-                        {
-                            delete l_ContribIdFile;
-                            l_ContribIdFile = NULL;
-                        }
-                    }
-                    break;
-
-                    default:
-                    {
-                        // rc already -1
-                        errorText << "Job no longer exists for the transfer definition associated with host " << pHostName \
-                                  << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                                  << ".  Stop transfer request ignored.";
-                        LOG_ERROR_TEXT_RC(errorText, rc);
+                        rc = -1;
+                        l_Attempts = 0;
                     }
                 }
             }
             else
             {
-                LOG(bb,info) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                             << ", handle " << pHandle << ", contribid " << pContribId << ", however it was already in a canceled state. (via BBTransferDef), rc = " << rc \
-                             << ". Stop transfer request ignored.";
-                rc = 4;
+                // Handle file could not be locked
+                rc = -1;
+                l_Attempts = 0;
+                LOG(bb,error) << "Could not lock the handle file for " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                              << " when attempting to determine if all extents had been enqueued during stop transfer processing";
+            }
+
+            if (l_HandleFileLocked)
+            {
+                // Release the handle file
+                l_HandleFileLocked = false;
+                l_HandleFile->close();
+            }
+            if (l_HandleFileName)
+            {
+                delete[] l_HandleFileName;
+                l_HandleFileName = 0;
+            }
+
+            if (l_HandleFile)
+            {
+                delete l_HandleFile;
+                l_HandleFile = 0;
             }
         }
-        else
+
+        bool l_UnconditionalRestart = false;
+        switch (rc)
         {
-            LOG(bb,info) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                         << ", handle " << pHandle << ", contribid " << pContribId << ", however it was already in a stopped state. (via BBTransferDef), rc = " << rc \
-                         << ". Stop transfer request ignored.";
-            rc = 3;
+            case 0:
+            {
+                l_UnconditionalRestart = true;
+                LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                             << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
+                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not reponding." \
+                             << " The transfer definition will be stopped and then restarted.";
+            }
+            // Fall through is intended...
+
+            case 1:
+            {
+                rc = 0;
+                ContribIdFile* l_ContribIdFile = 0;
+                if (!l_UnconditionalRestart)
+                {
+                    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                    l_HandleFilePath /= bfs::path(to_string(pJobId));
+                    l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+                    l_HandleFilePath /= bfs::path(to_string(pHandle));
+                    int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                    switch (l_RC)
+                    {
+                        case 1:
+                        {
+                            // We stop any transfer definition that does not have all of its files transferred/closed -or-
+                            // has a failed transfer
+                            if (!l_ContribIdFile->notRestartable())
+                            {
+                                l_StopDefinition = true;
+                            }
+
+                            break;
+                        }
+                        case 0:
+                        {
+                            LOG(bb,error) << "ContribId " << pContribId << "could not be found in the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
+
+                            break;
+                        }
+                        default:
+                        {
+                            LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
+                        }
+                    }
+                }
+                else
+                {
+                    l_StopDefinition = true;
+                }
+
+                if (l_StopDefinition)
+                {
+                    rc = becomeUser(getUserId(), getGroupId());
+                    if (!rc)
+                    {
+                        // Mark the transfer definition as stopped
+                        markAsStopped(pLVKey, pHandle, pContribId);
+
+                        // If an unconditional restart, in addition to marking the transfer definition
+                        // as stopped, indicate that all extents have been enqueued/processed and all files closed.
+                        // NOTE:  No extents were enqueued/processed for an unconditional restart so these bits
+                        //        need to be set on here...
+                        if (l_UnconditionalRestart)
+                        {
+                            setExtentsEnqueued(pLVKey, pHandle, pContribId);
+                            setAllExtentsTransferred(pLVKey, pHandle, pContribId);
+                            setAllFilesClosed(pLVKey, pHandle, pContribId);
+                        }
+                        rc = 1;
+
+                        becomeUser(0,0);
+                    }
+                    else
+                    {
+                        rc = -2;
+                        errorText << "becomeUser failed when attempting to stop the transfer definition associated with host " << pHostName \
+                                  << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
+                                  << " when attempting to become uid=" << getUserId() << ", gid=" << getGroupId();
+                        bberror << err("error.uid", getUserId()) << err("error.gid", getGroupId());
+                        LOG_ERROR_TEXT_RC(errorText, rc);
+                    }
+                }
+                else
+                {
+                    LOG(bb,info) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                                 << ", handle " << pHandle << ", contribid " << pContribId << ", however no extents are left to be transferred (via BBTransferDef), rc = " << rc \
+                                 << ". Stop transfer request ignored.";
+                    rc = 2;
+                }
+
+                if (l_ContribIdFile)
+                {
+                    delete l_ContribIdFile;
+                    l_ContribIdFile = NULL;
+                }
+            }
+            break;
+
+            default:
+            {
+                // rc already -1
+                errorText << "Job no longer exists or the handle file could not be locked for the transfer definition associated with host " << pHostName \
+                          << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
+                          << ".  Stop transfer request ignored.";
+                LOG_ERROR_TEXT_RC(errorText, rc);
+            }
         }
     }
 

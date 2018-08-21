@@ -15,7 +15,7 @@
 # 
 #=============================================================================
 
-# gpsferp is a simple benchmark program (gpfsperf) that can be used to
+# gpfsperf is a simple benchmark program (gpfsperf) that can be used to
 # measure the performance of GPFS for several common file access patterns.
 # it is shipped under /usr/lpp/mmfs/samples/perf
 

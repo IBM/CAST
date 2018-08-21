@@ -52,7 +52,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
   auto it = list.begin();
   try {
     CSM_Environmental_Data envData;
-    envData.Collect_Node_Data();
+    envData.CollectNodeData();
 
     while ( it != list.end() )
     {
@@ -62,92 +62,27 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
         {
           case csm::daemon::GPU:
           {
-            // local variables
-            bool dcgm_installed_flag;
-            bool dlopen_flag;
-            bool dcgm_init_flag;
-
-            // setting variables
-            dcgm_installed_flag = true;
-            dlopen_flag = false;
-            dcgm_init_flag = true;
-
             LOG(csmenv, debug) << "Collecting GPU data.";
+            bool gpu_success(false);            
+            std::list<boost::property_tree::ptree> gpu_data_pt_list;
 
-            // checking if dcgm is installed
-            dcgm_installed_flag = csm::daemon::INV_DCGM_ACCESS::GetInstance()->GetDCGMInstalledFlag();
-            if ( dcgm_installed_flag == false )
+            gpu_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->CollectGpuData(gpu_data_pt_list);
+            if (gpu_success)
             {
-
-               LOG(csmenv, info) << "The right DCGM version is not installed or the framework was configured without DCGM support, no GPU env data collection";
-
-            } else {
-
-               // checking if the class that collects the data was not able to use dlopen
-               dlopen_flag = csm::daemon::INV_DCGM_ACCESS::GetInstance()->GetDlopenFlag();
-               if ( dlopen_flag == true )
-               {
-
-                LOG(csmenv, error) << "The class that collects the data was not able to use dlopen, no GPU env data collection";
-
-               } else {
-
-                  // checking if the class that collects the data was not able to initialize DCGM env
-                  dcgm_init_flag = csm::daemon::INV_DCGM_ACCESS::GetInstance()->GetDCGMInitFlag();
-                  if ( dcgm_init_flag == false )
-                  {
-
-                   LOG(csmenv, error) << "The class that collects the data was not able to initialize DCGM, no GPU env data collection";
-
-                  } else {
-
-                   csm::daemon::INV_DCGM_ACCESS::GetInstance()->LogGPUsEnviromentalData();
-
-                   Environmental_data->Get_GPU_Double_DCGM_Field_Values_And_Set_Bit();
-                   Environmental_data->Get_GPU_Long_DCGM_Field_Values_And_Set_Bit();
-                   //Environmental_data->Get_GPU_Double_DCGM_Field_String_Identifiers_And_Set_Bit();
-                   //Environmental_data->Get_GPU_Long_DCGM_Field_String_Identifiers_And_Set_Bit();
-
-                   /*
-		   Environmental_data->Print_GPU_Double_DCGM_Field_Values();
-                   Environmental_data->Print_GPU_Double_DCGM_Field_Values();
-                   Environmental_data->Print_GPU_Int64_DCGM_Field_Values();
-                   Environmental_data->Print_GPU_Double_DCGM_Field_String_Identifiers();
-                   Environmental_data->Print_GPU_Int64_DCGM_Field_String_identifiers();
-                   */
-                   
-                  }
-
-               }
-
+               envData.AddDataItems(gpu_data_pt_list);
             }
-            {
 
-              GPU_Double_Data = Environmental_data->Return_GPU_Double_Data_Object();
-              GPU_Long_Data = Environmental_data->Return_GPU_Long_Data_Object();
-              //GPU_Double_Label_Data = Environmental_data->Return_GPU_Double_Label_Data_Object();
-              //GPU_Long_Label_Data = Environmental_data->Return_GPU_Long_Label_Data_Object();
-
-              envData.Set_Data( GPU_Double_Data );
-              envData.Set_Data( GPU_Long_Data );
-              //envData.Set_Data( GPU_Double_Label_Data );
-              //envData.Set_Data( GPU_Long_Label_Data );
-
-            }
             break;
           }
           case csm::daemon::CPU:
           {
             LOG(csmenv, debug) << "Collecting CPU data.";
-            CSM_CPU_Data CPU_Data;
-            CPU_Data.DummyReadCPU();
-            envData.Set_Data( CPU_Data );
             break;
           }
           case csm::daemon::ENVIRONMENTAL:
           {
             LOG(csmenv, debug) << "Collecting node environmental data.";
-            envData.Collect_Environmental_Data();
+            envData.CollectEnvironmentalData();
             break;
           }
           case csm::daemon::NETWORK:
