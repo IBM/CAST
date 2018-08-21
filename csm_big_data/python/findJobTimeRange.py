@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    findJobKeys.py
+#    findJobTimeRange.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,20 +15,26 @@
 #
 #================================================================================
 
+
 import argparse
 import sys
 import os
+from datetime import datetime
+from dateutil.parser import parse
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
-
+import json
 
 TARGET_ENV='CAST_ELASTIC'
+
+def deep_get( obj, *keys):
+    return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
 
 def main(args):
 
     # Specify the arguments.
     parser = argparse.ArgumentParser(
-        description='''A tool for finding keywords during the run time of a job.''')
+        description='''A tool for finding when a job was running through use of the big data store.''')
     
     parser.add_argument( '-a', '--allocationid', metavar='int', dest='allocation_id', default=-1,
         help='The allocation ID of the job.')
@@ -38,9 +44,6 @@ def main(args):
         help='The secondary job ID of the job (default : 0).')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    # Probably don't need this
-    # parser.add_argument( '-k', '--keywords', metavar='key', dest='keywords', nargs='*', default=['*'],
-    #     help='A list of keywords to search for in the Big Data Store (default : *).')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
         help='A list of hostnames to filter the results to ')
 
@@ -55,6 +58,7 @@ def main(args):
             print("Missing target, '%s' was not set." % TARGET_ENV)
             return 2
 
+    
     # Open a connection to the elastic cluster, if this fails is wrong on the server.
     es = Elasticsearch(
         args.target, 
@@ -64,18 +68,19 @@ def main(args):
     )
 
     # Build the query to get the time range.
-    should_query='{{"query":{{"bool":{{"should":[{0}]}}}}}}'
-    match_clause= '{{"match":{{"{0}":{1}}}}}'
+    should_query='{{"query":{{"bool":{{ "should":[{0}] {1} }} }} }}'
+    match_clause= '{{"match":{{"{0}":{1} }} }}'
 
     if args.allocation_id > 0 :
         tr_query = should_query.format(
-            match_clause.format("data.allocation_id", args.allocation_id))
+            match_clause.format("data.allocation_id", args.allocation_id), "")
     else : 
         tr_query = should_query.format(
             "{0},{1}".format(
                 match_clause.format("data.primary_job_id", args.job_id ),
-                match_clause.format("data.secondary_job_id", args.job_id_secondary )))
-
+                match_clause.format("data.secondary_job_id", args.job_id_secondary )), 
+            ',"minimum_should_match" : 2' )
+            
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
@@ -83,65 +88,36 @@ def main(args):
     )
     total_hits = tr_res["hits"]["total"]
 
-    print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
+    print("Found {0} matches for specified the job.".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
+
     # TODO make this code more fault tolerant
-    tr_data = tr_res["hits"]["hits"][0]["_source"]["data"]
+    hits= deep_get(tr_res, "hits", "hits")
+    if len(hits) > 0 :
+        tr_data = deep_get( hits[0], "_source", "data")
 
-    # ---------------------------------------------------------------------------------------------
+        date_format= '%Y-%m-%d %H:%M:%S.%f'
+        print_format='%Y-%m-%d.%H:%M:%S:%f'
+        search_format='"yyyy-MM-dd HH:mm:ss:SSS"'
+
+        start_time=datetime.strptime(tr_data["begin_time"], '%Y-%m-%d %H:%M:%S.%f')
+        start_time='{0}'.format(start_time.strftime(print_format)[:-3])
+
+        # If a history is present end_time is end_time, otherwise it's now.
+        if "history" in tr_data:
+            end_time=datetime.strptime(tr_data["history"]["end_time"], date_format)
+            end_time='{0}'.format(end_time.strftime(print_format)[:-3])
+        else:
+            end_time="Still Running"
+        
+        print( "\nAllocation ID: {0}".format(tr_data["allocation_id"]))
+        print( "Job ID: {0} - {1}".format(tr_data["primary_job_id"], tr_data["secondary_job_id"]))
+        print( "Start Time: {0} \n  End Time: {1}\n".format(start_time, end_time))
     
-    # Build the hostnames string:
-    if args.hosts is None: 
-        args.hosts = tr_data["compute_nodes"]
-    hostnames="hostname:({0})".format(" OR ".join(args.hosts))
-    
     # ---------------------------------------------------------------------------------------------
-
-    # Determine the timerange:
-    start_time='"{0}Z"'.format(tr_data["begin_time"])
-    # If a history is present end_time is end_time, otherwise it's now.
-    if "history" in tr_data:
-        end_time='"{0}Z"'.format(tr_data["history"]["end_time"])
-    else:
-        end_time="*"
-    timerange='''@timestamp:[{0} TO {1}]'''.format(start_time, end_time)
-
-    print("Start time: " + start_time)
-    print("End time  : " + end_time)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
