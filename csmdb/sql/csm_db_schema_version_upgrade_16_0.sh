@@ -19,7 +19,7 @@
 #   current_version:    01.1
 #   migration_version:  16.0 # <--------example version after the DB upgrade
 #   create:             08-08-2018
-#   last modified:      08-20-2018
+#   last modified:      08-21-2018
 #================================================================================
 #set -x
 export PGOPTIONS='--client-min-messages=warning'
@@ -76,8 +76,8 @@ echo "$now ($current_user) $1" >> $logfile
 # Log messaging intro. header
 #================================
 echo "-------------------------------------------------------------------------------------------------"
-LogMsg "[Start   ] Welcome to CSM database schema version upgrate script."
-echo "[Start   ] Welcome to CSM database schema version upgrate script."
+LogMsg "[Start   ] Welcome to CSM database schema version upgrade script."
+echo "[Start   ] Welcome to CSM database schema version upgrade script."
 
 #==============================================
 # Usage Command Line Functions
@@ -95,6 +95,20 @@ echo "                 |           | fields, indexes, functions, triggers, etc  
 echo "-----------------|-----------|-------------------------------------------------------------------"
 echo "================================================================================================="
 }
+
+#---------------------------------------------
+# The optstring for input.
+#---------------------------------------------
+
+optstring="h"
+
+while getopts $optstring OPTION
+do
+    case $OPTION in
+        h|*)
+            usage; exit 1;;
+    esac
+done
 
 #================================================================
 # Check if dbname exists
