@@ -87,15 +87,24 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
     if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
     {
         // Wait for the canceled extents to be processed
+        uint64_t l_Attempts = 1;
         while (1)
         {
             if (wrkqmgr.getCheckForCanceledExtents())
             {
+                if ((l_Attempts % 15) == 0)
+                {
+                    // Display this message every 15 seconds...
+                    LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo2::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                                 << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                }
+
                 unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
                 {
                     usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                ++l_Attempts;
             }
             else
             {
@@ -104,7 +113,9 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
         }
 
         // Remove the target files
+        LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
         removeTargetFiles(pLVKey, *pHandle, *pContribId);
+        LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
     }
 
     return;
@@ -658,7 +669,7 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
 
         try
         {
-            rc = sendMsgAndWaitForNonDataReply(pConnectionName, l_Complete);
+            rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
         }
         catch(exception& e)
         {

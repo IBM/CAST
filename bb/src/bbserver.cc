@@ -142,27 +142,6 @@ void switchIds(txp::Msg* pMsg)
     return;
 }
 
-void switchIdsToMountPoint(txp::Msg* pMsg)
-{
-    const uid_t l_Owner = (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData();
-    const gid_t l_Group = (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData();
-
-    int rc = becomeUser(l_Owner, l_Group);
-    if (!rc)
-    {
-        bberror << err("in.misc.mntptuid", l_Owner) << err("in.misc.mntptgid", l_Group);
-    }
-    else
-    {
-        stringstream errorText;
-        errorText << "becomeUser failed";
-    	bberror << err("error.uid", l_Owner) << err("error.gid", l_Group);
-        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-    }
-
-    return;
-}
-
 
 //*****************************************************************************
 //  Requests from bbproxy
@@ -524,7 +503,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
         switchIdsToMountPoint(msg);
 
         // NOTE:  If addLogicalVolume() fails, it fills in the error state...
-        rc = addLogicalVolume(pConnectionName, l_HostName, l_LVKeyPtr, l_JobId, (TOLERATE_ALREADY_EXISTS_OPTION)l_Option);
+        rc = addLogicalVolume(pConnectionName, l_HostName, msg, l_LVKeyPtr, l_JobId, (TOLERATE_ALREADY_EXISTS_OPTION)l_Option);
         if (rc)
         {
             if (rc < 0)
@@ -1747,7 +1726,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             l_TransferPtr->setTag(l_Tag);
 
                             // NOTE:  Perform the lvuuid checks only during the second pass of processing...
-                            LOG(bb,debug) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
+                            LOG(bb,info ) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
                                           << ", mark_failed_from_bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
                                           << ", no stage in/out in transfer definition " << l_TransferPtr->noStageinOrStageoutTransfersInDefinition() \
                                           << ", lvuuid " << lv_uuid_str << ", lvuuid2 " << lv_uuid2_str;

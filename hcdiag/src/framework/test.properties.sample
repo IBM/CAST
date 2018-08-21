@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-                   # remove when Python 3
 #================================================================================
 #   
-#    hcdiag/src/framework/test.properties
+#    hcdiag/src/framework/test.properties.sample
 # 
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -29,6 +29,13 @@ targetType  = Management
 xcat_cmd    = yes
 timeout     = 10
 #args        = -v
+
+## chk-capi
+[tests.chk-capi]
+description = check if capi is enabled on the node
+executable  = /opt/ibm/csm/hcdiag/tests/chk-capi/chk-capi.sh
+timeout     = 10
+args        = -a
 
 ## chk-cpu
 [tests.chk-cpu]
@@ -334,6 +341,15 @@ group        = gpu
 timeout      = 2000
 targetType   = Compute
 #args        = 1
+
+[tests.dgemm-per-socket]
+description = measure CPU performance per socket.
+executable  = /opt/ibm/csm/hcdiag/tests/dgemm-per-socket/dgemm-per-socket.sh
+group       = cpu
+timeout     = 800
+targetType  = Compute
+#              performance in Gflops 
+#args        = 450
 
 # strong recomend to run on the node, just invoking this script
 # NOTE: NVIDIA distributes the fieldiag binary and the source code for the

@@ -52,7 +52,7 @@ typedef enum TOLERATE_ALREADY_EXISTS_OPTION TOLERATE_ALREADY_EXISTS_OPTION;
 /*******************************************************************************
  | External functions
  *******************************************************************************/
-extern int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
+extern int addLogicalVolume(const std::string& pConnectionName, const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
 
 extern int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption);
 
@@ -87,6 +87,8 @@ extern int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, 
 extern int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey);
 
 extern void startTransferThreads();
+
+extern void switchIdsToMountPoint(txp::Msg* pMsg);
 
 extern void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 

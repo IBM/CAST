@@ -27,7 +27,16 @@ fi
 
 # Local Variables
 LOG=${LOG_PATH}/buckets/basic/hcdiag.log
+TEMP_LOG=${LOG_PATH}/buckets/basic/hcdiag_temp.log
+FLAG_LOG=${LOG_PATH}/buckets/basic/hcdiag_flags.log
 HC_DIAG_PATH=/opt/ibm/csm/hcdiag
+
+if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
+then
+        . "${BASH_SOURCE%/*}/../../include/functions.sh"
+else
+        echo "Could not find functions file expected at /../../include/functions.sh, exitting."
+fi
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "                 Starting hcdiag Bucket" >> ${LOG}
@@ -35,142 +44,126 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
-echo "CALLING hcdiag test ppping..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test ppping --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_ppping.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\nppping FAILED"
-fi
+# Copy included test.properties and clustconf.yaml over to active test.properties
+echo "y" | cp ${FVT_PATH}/include/hcdiag/test.properties ${HC_DIAG_PATH}/etc/
+xdcp ${COMPUTE_NODES} ${FVT_PATH}/include/hcdiag/test.properties ${HC_DIAG_PATH}/etc/
+echo "y" | cp ${FVT_PATH}/include/hcdiag/clustconf.yaml ${HC_DIAG_PATH}/etc/
+xdcp ${COMPUTE_NODES} ${FVT_PATH}/include/hcdiag/clustconf.yaml ${HC_DIAG_PATH}/etc/
 
-echo "CALLING hcdiag test test_memsize..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test test_memsize --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_test_memsize.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\ntest_memsize FAILED"
-fi
+# Test Case 1: ppping
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test ppping --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 1: ppping"
 
-echo "CALLING hcdiag test test_simple..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test test_simple --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_test_simple.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\ntest_simple FAILED"
-fi
+# Get run id from temp log
+run_id=`grep "run id" ${TEMP_LOG} | awk -F' ' '{print $6}' | awk -F',' '{print $1}'`
 
-echo "CALLING hcdiag hxecache..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test hxecache --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_hxecache.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\nhxecache FAILED"
-fi
+# Test Case 2: csm_diag_run_query
+${CSM_PATH}/csm_diag_run_query -r ${run_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: csm_diag_run_query"
 
-echo "CALLING hcdiag hxecpu..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test hxecpu --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_hxecpu.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\nhxecpu FAILED"
-fi
+# Test Case 3: csm_diag_run_query_details
+${CSM_PATH}/csm_diag_run_query_details -r ${run_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 3: csm_diag_run_query_details"
 
-echo "CALLING hcdiag hxefpu64..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test hxefpu64 --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_hxefpu64.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\nhxefpu64 FAILED"
-fi
+# Test Case 4: hcdiag_query.py
+${HC_DIAG_PATH}/bin/hcdiag_query.py -r ${run_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 4: hcdiag_query.py"
 
-echo "CALLING hcdiag hxemem64..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test hxemem64 --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_hxemem64.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\nhxemem64 FAILED"
-fi
+# Test Case 5: chk-csm-health
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-csm-health --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 5: chk-csm-health"
 
-echo "CALLING hcdiag daxpy..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test daxpy --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_daxpy.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\ndaxpy FAILED"
-fi
+# Test Case 6: chk-free-memory
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-free-memory --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 6: chk-free-memory"
 
-echo "CALLING hcdiag dcgm_diag..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test dcgm-diag --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_dcgm_diag.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\ndcgm_diag FAILED"
-fi
+# Test Case 7: chk-led
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-led --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 7: chk-led"
 
-echo "CALLING hcdiag dgemm..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test dgemm --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_dgemm.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\ndgemm FAILED"
-fi
+# Test Case 8: chk-boot-time
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-boot-time --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 8: chk-boot-time"
 
-echo "CALLING hcdiag jlink..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test jlink --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_jlink.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\njlink FAILED"
-fi
+# Test Case 9: chk-noping
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-noping --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 9: chk-noping"
 
-echo "CALLING hcdiag nvvs..." >> ${LOG}
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test nvvs --target ${COMPUTE_NODES} > ${LOG_PATH}/test/hcdiag_nvvs.log 2>&1
-RC=$?
-if [ ${RC} -eq 0 ]
-then
-        echo "PASS" >> ${LOG}
-else
-        echo "FAILED" >> ${LOG}
-        FLAGS+="\nnvvs FAILED"
-fi
+# Test Case 10: rpower
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test rpower --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 10: rpower"
+
+# Test Case 11: chk-load-average
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-load-average --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 11: chk-load-average"
+
+# Test Case 12: chk-load-cpu
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-load-cpu --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 12: chk-load-cpu"
+
+# Test Case 13: chk-load-mem
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-load-mem --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 13: chk-load-mem"
+
+# Test Case 14: chk-power
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-power --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 14: chk-power"
+
+# Test Case 15: chk-smt
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-smt --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 15: chk-smt"
+
+# Test Case 16: chk-temp
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-temp --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 16: chk-temp"
+
+# Test Case 17: chk-zombies
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-zombies --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 17: chk-zombies"
+
+# Test Case 18: test-simple
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test test-simple --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 18: test-simple"
+
+# Test Case 19: chk-process
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-process --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 19: chk-process"
+
+# Test Case 20: chk-nfs-mount
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-nfs-mount --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 20: chk-nfs-mount"
+
+# Test Case 21: chk-cpu
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-cpu --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 21: chk-cpu"
+
+# Test Case 22: chk-cpu-count
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-cpu-count --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 22: chk-cpu-count"
+
+# Test Case 23: chk-sys-firmware
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-sys-firmware --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 23: chk-sys-firmware"
+
+# Test Case 24: chk-memory
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-memory --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 24: chk-memory"
+
+# Test Case 25: chk-aslr
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-aslr --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 25: chk-aslr"
+
+# Test Case 26: chk-os
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-os --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 26: chk-os"
+
+# Test Case 27: chk-temp
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-temp --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 27: chk-temp"
+
+rm -f ${TEMP_LOG}
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "                hcdiag Bucket COMPLETED" >> ${LOG}
-echo "------------------------------------------------------------" >> ${LOG}
-echo "Additional Flags:" >> ${LOG}
-echo -e "${FLAGS}" >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 exit 0

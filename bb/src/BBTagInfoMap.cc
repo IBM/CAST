@@ -14,15 +14,18 @@
 #include "BBTagInfoMap.h"
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <boost/system/error_code.hpp>
 
 using namespace std;
 using namespace boost::archive;
 namespace bfs = boost::filesystem;
+namespace bs = boost::system;
 
 #include "bberror.h"
 #include "BBLVKey_ExtentInfo.h"
 #include "BBTransferDef.h"
 #include "bbinternal.h"
+#include "bbwrkqmgr.h"
 
 
 // Static data...
@@ -371,31 +374,78 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
         bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
         bfs::path handle = jobstepid / bfs::path(to_string(pTagInfo.getTransferHandle()));
-        if(!bfs::exists(handle))
-        {
-            bool l_JobStepDirectoryAlreadyExists = false;
-            if(bfs::exists(jobstepid))
-            {
-                l_JobStepDirectoryAlreadyExists = true;
-            }
 
-            // Create the handle directory
-            LOG(bb,info) << "xbbServer: Handle " << pTagInfo.getTransferHandle() << " is not already registered.  It will be added.";
-            bfs::create_directories(handle);
+        // NOTE:  There is a window between creating the job directory and
+        //        performing the chmod to the correct uid:gid.  Therefore, if
+        //        create_directories() returns EACCESS (permission denied), keep
+        //        attempting for 2 minutes.
+        bs::error_code l_ErrorCode;
+        bool l_AllDone = false;
+        bool l_JobStepDirectoryAlreadyExists = false;
+        int l_Attempts = 120;
+        while ((!l_AllDone) && l_Attempts-- > 0)
+        {
+            if(!bfs::exists(handle))
+            {
+                // Note if the jobstepid directory exists...
+                if(bfs::exists(jobstepid))
+                {
+                    l_JobStepDirectoryAlreadyExists = true;
+                }
+
+                // On first attempt, log the creation of the handle directory...
+                if (l_Attempts == 119)
+                {
+                    LOG(bb,info) << "xbbServer: Handle " << pTagInfo.getTransferHandle() << " is not already registered.  It will be added.";
+                }
+
+                // Attempt to create the handle directory
+                bfs::create_directories(handle, l_ErrorCode);
+                if (l_ErrorCode.value() == EACCES)
+                {
+                    unlockTransferQueue(pLVKey, "BBTagInfoMap::update_xbbServerAddData() - Waiting for correct permissions on jobid directory");
+                    {
+                        usleep((useconds_t)1000000);    // Delay 1 second
+                    }
+                    lockTransferQueue(pLVKey, "BBTagInfoMap::update_xbbServerAddData() - Waiting for correct permissions on jobid directory");
+                }
+                else
+                {
+                    // Handle directory created
+                    l_Attempts = -1;
+                }
+            }
+            else
+            {
+                // Handle directory already exists
+                l_AllDone = true;
+                LOG(bb,debug) << "BBTagInfoMap::update_xbbServerAddData(): Handle file " << handle.c_str() << " already exists";
+            }
+        }
+
+        if (!l_AllDone)
+        {
+            if (l_Attempts == 0)
+            {
+                // Error returned via create_directories...
+                // Attempt one more time, without the error code.
+                // On error, the appropriate boost exception will be thrown...
+                LOG(bb,debug) << "BBTagInfoMap::update_xbbServerAddData(): l_Attempts " << l_Attempts << ", l_ErrorCode.value() " << l_ErrorCode.value();
+                bfs::create_directories(handle);
+            }
 
             // Archive a file for this handle...
             // NOTE: We want the creation of the directory and the handle file as close together as possible.
             //       The handle file is 'assumed' to exist if the directory exists...
             HandleFile* l_HandleFile = 0;
             rc = HandleFile::saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pTag, pTagInfo, pTagInfo.getTransferHandle());
-
             if (!rc)
             {
                 if (!l_JobStepDirectoryAlreadyExists)
                 {
                     // Perform a chmod to 0770 for the jobstepid directory.
 
-                     // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
+                    // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
                     rc = chmod(jobstepid.c_str(), 0770);
                     if (rc)
@@ -424,10 +474,6 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                 // Back out the creation of the handle directory
                 bfs::remove(handle);
             }
-        }
-        else
-        {
-            LOG(bb,debug) << "BBTagInfoMap::update_xbbServerAddData(): Handle file " << handle.c_str() << " already exists";
         }
     }
     catch(ExceptionBailout& e) { }

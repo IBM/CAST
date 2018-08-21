@@ -77,8 +77,8 @@ ${FVT_PATH}/buckets/error_injection/messaging.sh
 check_return $?
 #${FVT_PATH}/buckets/timing/allocation.sh
 #check_return $?
-#${FVT_PATH}/buckets/basic/hcdiag.sh
-#check_return $?
+${FVT_PATH}/buckets/basic/hcdiag.sh
+check_return $?
 ${FVT_PATH}/buckets/basic/csm_ctrl_cmd.sh
 check_return $?
 ${FVT_PATH}/tools/dual_aggregator/shutdown_daemons.sh

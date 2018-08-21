@@ -50,11 +50,16 @@ typedef enum CONNECTION_SUSPEND_OPTION CONNECTION_SUSPEND_OPTION;
 class ResponseDescriptor
 {
   public:
-    sem_t     semaphore;
+
     volatile txp::Msg* reply;
     char attr[sizeof(txp::Attr_uint64)];
     std::string connName;
-    ResponseDescriptor() : reply(NULL) { }
+    ResponseDescriptor() : reply(NULL), msgid( txp::Id(0)) {sem_init(&semaphore,0,0); }
+    txp::Id msgid;
+    int sempost() {return sem_post(&semaphore);}
+    int semwait() {return sem_wait(&semaphore);}
+private:
+    sem_t     semaphore;
 };
 
 
@@ -82,7 +87,7 @@ extern int sendMessage(const std::string& name, txp::Msg* msg);
 extern int sendMessage(const std::string& name, txp::Msg* msg, ResponseDescriptor& reply, bool addUidGid=0);
 extern int sendMessage2bbserver(const std::string& name, txp::Msg* msg, ResponseDescriptor& reply);
 bool const MUSTADDUIDGID=true;
-extern int sendMsgAndWaitForNonDataReply(const std::string& pConnectionName, txp::Msg* &pMsg);
+extern int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &pMsg);
 
 typedef void(MessageHandlerFunc_t)(txp::Id id, const std::string& pConnectionName, txp::Msg* msg);
 extern int registerMessageHandler(int32_t id, MessageHandlerFunc_t* func);
