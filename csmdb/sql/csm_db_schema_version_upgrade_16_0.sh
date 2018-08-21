@@ -1,7 +1,7 @@
 #!/bin/bash
 #================================================================================
 #
-#    csm_db_schema_version_upgrade_15_1.sh
+#    csm_db_schema_version_upgrade_16_0.sh
 #
 #  © Copyright IBM Corporation 2018. All Rights Reserved
 #
@@ -15,13 +15,13 @@
 #================================================================================
 
 #================================================================================
-#   usage:         ./csm_db_schema_version_upgrade_15_1.sh
-#   version:       01.0
-#   db_version:    15.1 # <--------example version after the DB upgrade
-#   create:        07-24-2018
-#   last modified: 07-24-2018
+#   usage:              ./csm_db_schema_version_upgrade_16_0.sh
+#   current_version:    01.1
+#   migration_version:  16.0 # <--------example version after the DB upgrade
+#   create:             08-08-2018
+#   last modified:      08-21-2018
 #================================================================================
-
+#set -x
 export PGOPTIONS='--client-min-messages=warning'
 
 OPTERR=0
@@ -40,8 +40,11 @@ db_username="postgres"
 csmdb_user="csmdb"
 now1=$(date '+%Y-%m-%d %H:%M:%S')
 version_comp="csm_create_tables.sql"
-version_comp_2=`awk -F ',' ' NR==18 {print substr($0,20,6)}' $cur_path/$version_comp`
-migration_db_version="15.1"
+version_comp_2=`grep current_version $cur_path/$version_comp | awk '{print $3}'`
+trigger_version="csm_create_triggers.sql"
+trigger_version_2=`grep current_version $cur_path/$trigger_version | awk '{print $3}'`
+
+migration_db_version="16.0"
 csm_db_schema_csv="csm_db_schema_version_data.csv"
 csm_db_schema_version_comp=`awk -F ',' ' NR==2 {print substr($0,0,4)}' $cur_path/$csm_db_schema_csv`
 
@@ -73,8 +76,8 @@ echo "$now ($current_user) $1" >> $logfile
 # Log messaging intro. header
 #================================
 echo "-------------------------------------------------------------------------------------------------"
-LogMsg "[Start   ] Welcome to CSM database schema version upgrate script."
-echo "[Start   ] Welcome to CSM database schema version upgrate script."
+LogMsg "[Start   ] Welcome to CSM database schema version upgrade script."
+echo "[Start   ] Welcome to CSM database schema version upgrade script."
 
 #==============================================
 # Usage Command Line Functions
@@ -87,11 +90,25 @@ echo "[Usage] $BASENAME : $BASENAME [DBNAME]"
 echo "-------------------------------------------------------------------------------------------------"
 echo "  Argument       |  DB Name  | Description                                               "
 echo "-----------------|-----------|-------------------------------------------------------------------"
-echo "  script_name    | [db_name] | Imports sql upgrates to csm db table(s) (appends)         "
+echo "  script_name    | [db_name] | Imports sql upgrades to csm db table(s) (appends)         "
 echo "                 |           | fields, indexes, functions, triggers, etc                 "
 echo "-----------------|-----------|-------------------------------------------------------------------"
 echo "================================================================================================="
 }
+
+#---------------------------------------------
+# The optstring for input.
+#---------------------------------------------
+
+optstring="h"
+
+while getopts $optstring OPTION
+do
+    case $OPTION in
+        h|*)
+            usage; exit 1;;
+    esac
+done
 
 #================================================================
 # Check if dbname exists
@@ -164,7 +181,7 @@ fi
 #------------------------------------------------------------------------
 # 1. check existence of csv file (if exists read version # in) else exit
 # 3. Check the csmdb schema version
-# 4. Check if the csm_create_tables is up-to-date with version 15.1
+# 4. Check if the csm_create_tables is up-to-date with version 16.0
 #========================================================================
 
 #=================================================================
@@ -175,12 +192,12 @@ version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db
 
 
 #----------------------------------------------------------
-# Checks the files and compares to db schema versioin table
+# Checks the files and compares to db schema version table
 # If they all match then it will display
 # currently running db schema version: $version"
 #----------------------------------------------------------
 
-if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] && [[ $(bc <<< "$migration_db_version == $version_comp_2") -eq 1 ]]; then
+if [[ $(bc <<< "$version == $migration_db_version") -eq 1 ]]; then
 echo "[Info    ] $dbname is currently running db schema version: $version"
 LogMsg "[Info    ] $dbname is currently running db schema version: $version"
 echo "-------------------------------------------------------------------------------------------------"
@@ -194,13 +211,17 @@ fi
 # to date.
 #----------------------------------------------------------
 
-if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]]; then
-    echo "[Error   ] Cannot perform action because the $version_comp is not compatible."
-    LogMsg "[Error   ] Cannot perform action because the $version_comp is not compatible."
+if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] || [[ $(bc <<< "$version < 15.0") -eq 1 ]] || [[ $(bc <<< "$migration_db_version == $trigger_version_2") -eq 0 ]]; then
+    echo "[Error   ] Cannot perform action because not compatible."
+    echo "[Info    ] Required DB schema version 15.0, 15.1 or appropriate files in directory"
+    LogMsg "[Error   ] Cannot perform action because not compatible."
+    LogMsg "[Info    ] Required DB schema version 15.0, 15.1 or appropriate files in directory"
     echo "[Info    ] $dbname current_schema_version is running: $version"
     LogMsg "[Info    ] $dbname current_schema_version is running: $version"
-    echo "[Info    ] csm_create_tables.sql file currently in the directory is:$version_comp_2 (required version) $migration_db_version"
-    LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is:$version_comp_2 (required version) $migration_db_version"
+    echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
+    LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
+    echo "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
+    LogMsg "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
     echo "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
     LogMsg "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
     echo "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
@@ -275,10 +296,10 @@ fi
     #--------------------------------------------------------------------------------------------------------------
     if [ $connections_count -gt 0 ]; then
         LogMsg "[Error   ] $dbname will not be dropped because of existing connection(s) to the database."
-        psql -t -A -U $csmdb_user -c "select to_char(now(),'YYYY-MM-DD HH24:MI:SS') || ' ($current_user) [Info    ] Current Connection | User: ' || usename || ' ',' Datebase: ' \
+        psql -t -A -U $db_username -c "select to_char(now(),'YYYY-MM-DD HH24:MI:SS') || ' ($current_user) [Info    ] Current Connection | User: ' || usename || ' ',' Datebase: ' \
         || datname, ' Connection(s): ' || count(*), ' Duration: ' || now() - backend_start as Duration \
         from pg_stat_activity WHERE datname='$dbname' group by usename, datname, Duration order by datname, Duration desc;" &>> $logfile
-        connections=`psql -t -U $csmdb_user -c "select distinct usename from pg_stat_activity WHERE datname='$dbname';"`
+        connections=`psql -t -U $db_username -c "select distinct usename from pg_stat_activity WHERE datname='$dbname';"`
         #-------------------------------------------------------------------------------------------------------------------
         if [ ${#connections[@]} -gt 0 ]; then
             echo "[Error   ] $dbname has existing connection(s) to the database."
@@ -287,7 +308,7 @@ fi
             #==============================================
             #----------------------------------------------------------------------------------------------------------------------------------
             for i in ${connections[@]}; do
-                connection_count=`psql -t -U $csmdb_user -c "select count(*) from pg_stat_activity WHERE datname='$dbname' and usename='$i';"`
+                connection_count=`psql -t -U $db_username -c "select count(*) from pg_stat_activity WHERE datname='$dbname' and usename='$i';"`
                 shopt -s extglob
                 connection_count="${connection_count##*( )}"
                 connection_count="${connection_count%%*( )}"
@@ -384,15 +405,30 @@ DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],tex
 DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]) CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]) CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text) CASCADE;
+THE_END`    
 
+db_query_3=`psql -q -t -U $csmdb_user -d $dbname << THE_END
 \i csm_create_triggers.sql
+
+ALTER TABLE csm_processor_socket DROP CONSTRAINT csm_processor_socket_pkey;
+ALTER TABLE csm_processor_socket ADD PRIMARY KEY (node_name, serial_number);
+
+ALTER TABLE csm_dimm DROP CONSTRAINT csm_dimm_pkey;
+ALTER TABLE csm_dimm ADD PRIMARY KEY (node_name, serial_number);
+
+COMMENT ON COLUMN csm_allocation_node.energy is 'the total energy used by the node in joules during the allocation';
+COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
+COMMENT ON COLUMN csm_allocation_node.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
+COMMENT ON COLUMN csm_allocation_node_history.energy is 'the total energy used by the node in joules during the allocation'; 
+COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
+COMMENT ON COLUMN csm_allocation_node_history.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
 
 UPDATE csm_db_schema_version
 SET
-version = '15.1',
+version = '16.0',
 create_time = 'now()'
-where 15.1 > 15.0;
-THE_END`
+where 16.0 > 15.0;
+THE_END`    
 
         if [ $? -eq 0  ]; then
         echo "[Complete] $dbname database schema update $migration_db_version."
