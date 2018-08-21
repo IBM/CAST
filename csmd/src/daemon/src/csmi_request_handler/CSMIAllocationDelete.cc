@@ -372,14 +372,13 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
 
     if (allocation && allocation->primary_job_id > 0)
     {
-        const int paramCount = 12;
+        const int paramCount = 13;
         std::string stmt = "SELECT fn_csm_allocation_history_dump( "
             "$1::bigint,'now','0',$2::text,'t',$3::text[],$4::bigint[],"
             "$5::bigint[],$6::bigint[],$7::bigint[],$8::bigint[],"
-            "$9::bigint[],$10::bigint[],$11::bigint[],$12::bigint[]);";
+            "$9::bigint[],$10::bigint[],$11::bigint[],$12::bigint[],$13::bigint[]);";
 
         dbReq = new csm::db::DBReqContent( stmt, paramCount );
-
 
         csmi_state_t error_code = (csmi_cmd_err_t) ctx->GetErrorCode() == CSMI_SUCCESS ? 
             CSM_COMPLETE : CSM_FAILED;
@@ -393,9 +392,10 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
         dbReq->AddNumericArrayParam<int64_t>(allocation->gpfs_write, allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->energy,     allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->power_cap_hit, allocation->num_nodes);
-        dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy, allocation->num_nodes);
+        dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_usage,     allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->cpu_usage,     allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->memory_max,    allocation->num_nodes);
+        dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
 
         LOG(csmapi,info) << ctx <<  mcastProps->GenerateIdentifierString()
             << "; Message: Recording Allocation statistics and removing allocation from database;";

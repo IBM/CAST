@@ -18,6 +18,7 @@
 #include "helpers/cgroup.h"
 #include "helpers/DataAggregators.h"
 #include "helpers/AgentHandler.h"
+#include "csmd/src/inv/include/inv_dcgm_access.h"
 
 #include "csmi/include/csm_api_consts.h"
 #include "csmi/include/csm_api.h"
@@ -187,6 +188,7 @@ bool AllocationAgentUpdateState::InitNode(
     
     // 0. Get the data before any operations.
     DataAggregators(respPayload);
+    csm::daemon::INV_DCGM_ACCESS::GetInstance()->StartAllocationStats(payload->allocation_id);
 
     // 1. Create the cgroup for the allocation.
     #if !defined CSM_MULTI_COMPUTE_PER_NODE
@@ -396,6 +398,12 @@ bool AllocationAgentUpdateState::InitNode(
         
         // 4. In a delete get a snapshot after everything.
         DataAggregators(respPayload);
+
+        bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(payload->allocation_id, respPayload->gpu_usage);
+        if ( gpu_usage_success == false )
+        {
+            respPayload->gpu_usage = -1;  
+        }
 
         LOG( csmapi, trace ) << STATE_NAME ":RevertNode: Exit";
         return success;
