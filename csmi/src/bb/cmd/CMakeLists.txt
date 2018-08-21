@@ -2,7 +2,7 @@
 #
 #    csmi/src/bb/cmd/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,6 +15,12 @@
 
 
 include (${CMAKE_SOURCE_DIR}/csmd/csmd.cmake)
+
+#csm_bb_lv_create
+add_executable(csm_bb_lv_create bb_lv_create.c)
+install(TARGETS csm_bb_lv_create COMPONENT csm-api DESTINATION csm/bin)
+target_include_directories(csm_bb_lv_create PRIVATE ./)
+target_link_libraries(csm_bb_lv_create csmi csm_network_c csmutil fsutil)
 
 # cmd line interface for csm_bb_lv_delete
 add_executable(csm_bb_lv_delete bb_lv_delete.c)
@@ -50,11 +56,7 @@ add_definitions(-DUSE_SC_LOGGER)
 
 ##PERFORMANCE TESTS
 
-#csm_bb_lv_create
-add_executable(fernando_csm_bb_lv_create fernando_bb_lv_create.c)
-install(TARGETS fernando_csm_bb_lv_create COMPONENT csm-unittest DESTINATION csm/tests/bb)
-target_include_directories(fernando_csm_bb_lv_create PRIVATE ./)
-target_link_libraries(fernando_csm_bb_lv_create csmi csm_network_c csmutil fsutil)
+
 #csm_bb_lv_update
 add_executable(fernando_csm_bb_lv_update fernando_bb_lv_update.c)
 install(TARGETS fernando_csm_bb_lv_update COMPONENT csm-unittest DESTINATION csm/tests/bb)
