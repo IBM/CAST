@@ -345,12 +345,11 @@ csm::db::DBReqContent* CSMIAllocationUpdateState::InsertStatsStatement(
 
     if ( allocation )
     {
-        // // TODO add energy
         std::string stmt = "SELECT * FROM fn_csm_allocation_finish_data_stats( $1::bigint, $2::text, $3::text[],"
             "$4::bigint[],$5::bigint[],$6::bigint[],$7::bigint[],$8::bigint[],$9::bigint[], $10::bigint[],"
-            "$11::bigint[], $12::bigint[])";
+            "$11::bigint[], $12::bigint[], $13::bigint[])";
     
-        const int paramCount = 12;
+        const int paramCount = 13;
         dbReq = new csm::db::DBReqContent( stmt, paramCount );
 
         dbReq->AddNumericParam<int64_t>( allocation->allocation_id );
@@ -363,9 +362,10 @@ csm::db::DBReqContent* CSMIAllocationUpdateState::InsertStatsStatement(
         dbReq->AddNumericArrayParam<int64_t>(allocation->energy,     allocation->num_nodes);
 
         dbReq->AddNumericArrayParam<int64_t>(allocation->power_cap_hit, allocation->num_nodes);
-        dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
+        dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_usage,     allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->cpu_usage,     allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->memory_max,    allocation->num_nodes);
+        dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
 
 
         LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString()
