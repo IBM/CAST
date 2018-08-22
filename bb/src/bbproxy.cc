@@ -3523,91 +3523,53 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
 
 void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
+    int rc = 0;
+
+    filehandle* fh = NULL;
+
     ENTRY(__FILE__,__FUNCTION__);
     FL_Write(FLProxy, Msg_xferFileComplete, "file transfers complete for file id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
     // All extents for a given sourceindex have been transferred to the I/O node...
 
-    // NOTE: Nothing to do for a local cp transfer...
+    Uuid lv_uuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
+    char l_DevName[1024] = {'\0'};
+    getLogicalVolumeDevName(lv_uuid, l_DevName, sizeof(l_DevName));
+    uint64_t l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
+    uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+    uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+    uint32_t l_SourceIndex = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::sourceindex))->getData();
+    uint32_t l_TargetIndex = (BBTransferDef::getTargetIndex(l_SourceIndex));
+    char* l_SourceFile = (char*)(msg->retrieveAttrs()->at(txp::sourcefile))->getDataPtr();
+    BBFILESTATUS l_FileStatus = (BBFILESTATUS)((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::status))->getData();
+    char l_TransferType[64] = {'\0'};
+    getStrFromTransferType(((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData(), l_TransferType, sizeof(l_TransferType));
+    uint64_t l_SizeTransferred = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::sizetransferred))->getData();
+
+    // NOTE: No processing to perform for a local cp transfer...
     if (!((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSDSSD))
     {
-        Uuid lv_uuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
-        char l_DevName[1024] = {'\0'};
-        getLogicalVolumeDevName(lv_uuid, l_DevName, sizeof(l_DevName));
-        uint64_t l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
-        uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
-        uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
-        uint32_t l_SourceIndex = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::sourceindex))->getData();
         bool l_StageoutStarted = (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBLVK_Stage_Out_Start ? true : false;
-        char* l_SourceFile = (char*)(msg->retrieveAttrs()->at(txp::sourcefile))->getDataPtr();
-        BBFILESTATUS l_FileStatus = (BBFILESTATUS)((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::status))->getData();
-        char l_FileStatusStr[64] = {'\0'};
-        getStrFromBBFileStatus(l_FileStatus, l_FileStatusStr, sizeof(l_FileStatusStr));
-        char l_TransferStatusStr[64] = {'\0'};
-        switch (l_FileStatus) {
-            case BBFILE_STOPPED:
-            {
-                strCpy(l_TransferStatusStr, "stopped", sizeof(l_TransferStatusStr));
-                break;
-            }
-            case BBFILE_FAILED:
-            {
-                strCpy(l_TransferStatusStr, "failed", sizeof(l_TransferStatusStr));
-                break;
-            }
-            case BBFILE_CANCELED:
-            {
-                strCpy(l_TransferStatusStr, "canceled", sizeof(l_TransferStatusStr));
-                break;
-            }
-            default:
-            {
-                strCpy(l_TransferStatusStr, "completed", sizeof(l_TransferStatusStr));
-                break;
-            }
-        }
-        char l_TransferType[64] = {'\0'};
-        getStrFromTransferType(((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData(), l_TransferType, sizeof(l_TransferType));
-        uint64_t l_SizeTransferred = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::sizetransferred))->getData();
-        LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for file " << l_SourceFile << ": LV device = " << l_DevName \
-                     << ", handle = " << l_Handle << ", contribid = " << l_ContribId << ", sourceindex = " << l_SourceIndex \
-                     << ", file status " << l_FileStatusStr << ", transfer type " << l_TransferType \
-                     << ", size transferred " << l_SizeTransferred << ".";
 
         if ((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSD ||
             (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS)
         {
             try
             {
-                bool fh_not_found = true;
-                filehandle* fh;
-                // Remove both source and target files (if open)
-                if(!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_SourceIndex))
+                // Remove source file (if open)
+                if (!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_SourceIndex))
                 {
-                    fh_not_found = false;
                     LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
-                    int rc = fh->release(l_FileStatus);
-                    if(rc)
+                    if (fh->release(l_FileStatus))
+                    {
                         throw runtime_error(string("Unable to release filehandle"));
-                    delete fh;
-                    fh=NULL;
+                    }
                 }
-
-                if(!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, (BBTransferDef::getTargetIndex(l_SourceIndex))))
+                else
                 {
-                    fh_not_found = false;
-                    LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
-                    int rc = fh->release(l_FileStatus);
-                    if(rc)
-                        throw runtime_error(string("Unable to release filehandle"));
-                    delete fh;
-                    fh=NULL;
-                }
-
-                if(fh_not_found)
-                {
+                    // NOTE:  fh will be NULL in this leg
                     if (!l_StageoutStarted)
                     {
-                        LOG(bb,info) << "Unable to find file associated with handle=" << l_Handle << "  contrib=" << l_ContribId << "  index=" << l_SourceIndex;
+                        LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", source index " << l_SourceIndex;
                     }
                     else
                     {
@@ -3617,7 +3579,50 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
             }
             catch(exception& e)
             {
+                rc = -1;
                 LOG(bb,warning) << "Exception thrown when processing transfer complete for file: " << e.what();
+            }
+
+            if (fh)
+            {
+                delete fh;
+                fh = NULL;
+            }
+
+            try
+            {
+                // Remove target file (if open)
+                if (!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_TargetIndex))
+                {
+                    LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
+                    if (fh->release(l_FileStatus))
+                    {
+                        throw runtime_error(string("Unable to release filehandle"));
+                    }
+                }
+                else
+                {
+                    // NOTE:  fh will be NULL in this leg
+                    if (!l_StageoutStarted)
+                    {
+                        LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", target index " << l_TargetIndex;
+                    }
+                    else
+                    {
+                        // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                    }
+                }
+            }
+            catch(exception& e)
+            {
+                rc = -1;
+                LOG(bb,warning) << "Exception thrown when processing transfer complete for file: " << e.what();
+            }
+
+            if (fh)
+            {
+                delete fh;
+                fh = NULL;
             }
         }
     }
@@ -3626,9 +3631,52 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     txp::Msg* response;
     msg->buildResponseMsg(response);
 
+    // NOTE:  rc is the return code being put into the response message as a simple attribute.
+    //        It is NOT being inserted into the bberror information here...
+    txp::Attr_int32 returncode(txp::returncode, rc);
+    response->addAttribute(&returncode);
     addReply(msg, response);
 
+    if (rc)
+    {
+        l_FileStatus = BBFILE_FAILED;
+        l_SizeTransferred = 0;
+        LOG(bb,info) << "For jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", source index " << l_SourceIndex << ", target index " << l_TargetIndex \
+                     << ", failure during close related processing for the source/target file has caused the file transfer status to be changed to BBFILE_FAILED";
+    }
+
+    char l_FileStatusStr[64] = {'\0'};
+    getStrFromBBFileStatus(l_FileStatus, l_FileStatusStr, sizeof(l_FileStatusStr));
+    char l_TransferStatusStr[64] = {'\0'};
+    switch (l_FileStatus) {
+        case BBFILE_STOPPED:
+        {
+            strCpy(l_TransferStatusStr, "stopped", sizeof(l_TransferStatusStr));
+            break;
+        }
+        case BBFILE_FAILED:
+        {
+            strCpy(l_TransferStatusStr, "failed", sizeof(l_TransferStatusStr));
+            break;
+        }
+        case BBFILE_CANCELED:
+        {
+            strCpy(l_TransferStatusStr, "canceled", sizeof(l_TransferStatusStr));
+            break;
+        }
+        default:
+        {
+            strCpy(l_TransferStatusStr, "completed", sizeof(l_TransferStatusStr));
+            break;
+        }
+    }
+    LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for source file " << l_SourceFile << ", LV device " << l_DevName \
+                 << ", jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", sourceindex " << l_SourceIndex \
+                 << ", file status " << l_FileStatusStr << ", transfer type " << l_TransferType \
+                 << ", size transferred " << l_SizeTransferred;
+
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+
     return;
 }
 

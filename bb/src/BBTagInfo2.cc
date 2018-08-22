@@ -113,9 +113,9 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
         }
 
         // Remove the target files
-        LOG(bb,info) << "Start: Removing target files assocaited with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
+        LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
         removeTargetFiles(pLVKey, *pHandle, *pContribId);
-        LOG(bb,info) << "Completed: Removing target files assocaited with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
+        LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
     }
 
     return;
@@ -669,7 +669,7 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
 
         try
         {
-            rc = sendMsgAndWaitForNonDataReply(pConnectionName, l_Complete);
+            rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
         }
         catch(exception& e)
         {

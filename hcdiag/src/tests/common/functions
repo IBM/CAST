@@ -17,16 +17,16 @@ LSPCI=/usr/sbin/lspci
 NVIDIA_SMI=/usr/bin/nvidia-smi
 
 
-P8_PVR=( 004b 004c 004d ) 
+P8_PVR=( 004b 004c 004d 004e) 
 P9_PVR=( 004e 004f )
 
 # Firestone, Garrison, Witherspoon (GTC - air cooled and GTW) and Bostons 
 # 9006-22C: Management, Gateway, Big Data nodes
 # 5104-22C: ESS IO node
-SUPPORTED_MODELS=( 8335-GTA 8335-GTB 8335-GTC 8335-GTW 9006-22C 5104-22C )
+SUPPORTED_MODELS=( 8335-GTA 8335-GTB 8335-GTC 8335-GTW 9006-22C 5104-22C 8335-GTX )
 FIRESTONE=( 8335-GTA )
 GARRISON=( 8335-GTB )
-WITHERSPOON=( 8335-GTC 8335-GTW )
+WITHERSPOON=( 8335-GTC 8335-GTW 8335-GTX )
 BOSTON=( 9006-22C 5104-22C )
 AIR_COOLED=( 8335-GTC ) 
 WATER_COOLED=( 8335-GTW )
@@ -109,21 +109,21 @@ function supported_machine()
    c=$(echo "${SUPPORTED_MODELS[@]}" | grep -o $model |wc -w)  
    if [ "$c" -ne "1" ]; then echo "Machine type $model not supported." ; ret=1; return; fi
    
-   is_witherspoon=False
-   is_garrison=False
-   is_firestone=False
-   is_boston=False
+   is_witherspoon=false
+   is_garrison=false
+   is_firestone=false
+   is_boston=false
    c=$(echo "${WITHERSPOON[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_witherspoon=True; return; fi
+   if [ "$c" -eq "1" ]; then is_witherspoon=true; return; fi
 
    c=$(echo "${BOSTON[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_boston=True; return; fi
+   if [ "$c" -eq "1" ]; then is_boston=true; return; fi
 
    c=$(echo "${GARRISON[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_garrison=True; return; fi
+   if [ "$c" -eq "1" ]; then is_garrison=true; return; fi
 
    c=$(echo "${FIRESTONE[@]}" | grep -o $model |wc -w)  
-   if [ "$c" -eq "1" ]; then is_firestone=True; return; fi
+   if [ "$c" -eq "1" ]; then is_firestone=true; return; fi
 
    return
 }

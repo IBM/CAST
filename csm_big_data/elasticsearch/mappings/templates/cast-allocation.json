@@ -1,5 +1,5 @@
 {
-    "index_patterns" : ["cast-allocation-*"],
+    "index_patterns" : ["cast-allocation*"],
     "order" : 1,
     "settings" :{
         "index" : { 
