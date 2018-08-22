@@ -702,7 +702,13 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		ARRAY_STR_PROPERTY(csmi_cluster_query_state_record_t, char**, shared, num_allocs, NULL, );
 
     class_<csmi_node_find_job_record_t,csmi_node_find_job_record_t*>("node_find_job_record_t")
-		.add_property("temp", &csmi_node_find_job_record_t::temp,&csmi_node_find_job_record_t::temp," Reserved field for future use.");
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, node_name, , NULL, )
+		.add_property("allocation_id", &csmi_node_find_job_record_t::allocation_id,&csmi_node_find_job_record_t::allocation_id," The allocation_id of the job.")
+		.add_property("primary_job_id", &csmi_node_find_job_record_t::primary_job_id,&csmi_node_find_job_record_t::primary_job_id," The primary_job_id of the job.")
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, user_name, , NULL, )
+		.add_property("num_nodes", &csmi_node_find_job_record_t::num_nodes,&csmi_node_find_job_record_t::num_nodes," The number of nodes participating in this job.")
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, begin_time, , NULL, )
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, end_time, , NULL, );
 
     class_<csm_ib_cable_inventory_collection_input_t,csm_ib_cable_inventory_collection_input_t*>("ib_cable_inventory_collection_input_t")
 		.add_property("inventory_count", &csm_ib_cable_inventory_collection_input_t::inventory_count,&csm_ib_cable_inventory_collection_input_t::inventory_count," Number of ib cable records, size of @ref inventory. ")

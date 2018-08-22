@@ -493,7 +493,13 @@ typedef struct {
  */
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
-    char temp; /**< Reserved field for future use.*/
+    char* node_name; /**< The job is on this node.*/
+    int64_t allocation_id; /**< The allocation_id of the job.*/
+    int64_t primary_job_id; /**< The primary_job_id of the job.*/
+    char* user_name; /**< The user_name of who launched this job. */
+    int32_t num_nodes; /**< The number of nodes participating in this job.*/
+    char* begin_time; /**< The time this job began. */
+    char* end_time; /**< The time this job ended. NULL if the job is still running.*/
 } csmi_node_find_job_record_t;
 /**
  * @brief An input wrapper for @ref csm_ib_cable_inventory_collection

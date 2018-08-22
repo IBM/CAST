@@ -688,7 +688,17 @@ const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t= {
     cast_csmi_cluster_query_state_record_t
 };
 
-const csmi_struct_node_t csmi_node_find_job_record_tree[1] = {{"temp",offsetof(csmi_node_find_job_record_t,temp),0,NULL,0x7c9e679b,68}}
+const csmi_struct_node_t csmi_node_find_job_record_tree[11] = {{"allocation_id",offsetof(csmi_node_find_job_record_t,allocation_id),0,NULL,0x99d3da77,40},
+{"node_name",offsetof(csmi_node_find_job_record_t,node_name),0,NULL,0x746e3e2b,4},
+{"user_name",offsetof(csmi_node_find_job_record_t,user_name),0,NULL,0xc029f5a4,4},
+{"begin_time",offsetof(csmi_node_find_job_record_t,begin_time),0,NULL,0x5f818b18,4},
+{NULL,0,0,NULL,0,0},
+{"num_nodes",offsetof(csmi_node_find_job_record_t,num_nodes),0,NULL,0xa5d6722d,36},
+{"primary_job_id",offsetof(csmi_node_find_job_record_t,primary_job_id),0,NULL,0xcfd430cf,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"end_time",offsetof(csmi_node_find_job_record_t,end_time),0,NULL,0xb56ec18a,4}}
 ;
 
 void* cast_csmi_node_find_job_record_t(void* ptr,size_t index, char isArray) { 
@@ -696,7 +706,7 @@ void* cast_csmi_node_find_job_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_find_job_record_t= {
-    1,
+    11,
     csmi_node_find_job_record_tree,
     cast_csmi_node_find_job_record_t
 };
