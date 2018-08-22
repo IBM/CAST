@@ -33,7 +33,7 @@ export PGOPTIONS='--client-min-messages=warning'
 OPTERR=0
 DEFAULT_DB="csmdb"
 logpath="/var/log/ibm/csm/db"
-logpath=`pwd` #<------- Change this when pushing to the repo
+#logpath=`pwd` #<------- Change this when pushing to the repo
 logname="csm_db_connections_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 #cur_path=`pwd`
