@@ -81,7 +81,7 @@ void help() {
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_node_find_job -n node_01 ");
+	puts("  csm_node_find_job -n node_01 -s \"2000-01-15 12:00:00.000000\" -S \"2000-01-15 13:00:00.000000\"");
 	puts("");
 	puts("OUTPUT OF THIS COMMAND IS DISPLAYED IN THE YAML FORMAT.");
 	puts("____________________");
