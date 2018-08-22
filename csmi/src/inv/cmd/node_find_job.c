@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 			case 'n':
 				csm_optarg_test( "-n, --node_names", optarg, USAGE );
 				csm_parse_csv( optarg, input->node_names, input->node_names_count, char*, csm_str_to_char, NULL, "-n, --node_names", USAGE );
-				optionalParameterCounter++;
+				requiredParameterCounter++;
 				break;
             case 'l':
                 csm_optarg_test( "-l, --limit", optarg, USAGE );
@@ -276,7 +276,13 @@ int main(int argc, char *argv[])
 		    printf("Total_Records: %u\n", output->results_count);
 		    for (i = 0; i < output->results_count; i++) {
 		    	printf("RECORD_%i:\n", i+1);
-		    	
+		    	printf("  node_name:      %s\n", output->results[i]->node_name);
+				printf("  allocation_id:  %" PRId64 "\n", output->results[i]->allocation_id);
+				printf("  primary_job_id: %" PRId64 "\n", output->results[i]->primary_job_id);
+				printf("  user_name:      %s\n", output->results[i]->user_name);
+				printf("  num_nodes:      %" PRId32 "\n", output->results[i]->num_nodes);
+	    		printf("  begin_time:     %s\n", output->results[i]->begin_time);
+				printf("  end_time:       %s\n", output->results[i]->end_time);
 		    }
 		    puts("...");
             break;

@@ -54,6 +54,24 @@ bool CSMINodeFindJob::CreatePayload(
 	// =====================================================================
 	std::string stmtParams = "";
 	int SQLparameterCount = 0;
+	int SQLNum_search_range_begin = 0;
+	int SQLNum_search_range_end = 0;
+	
+	//for the standard WHERE
+	add_param_sql( stmtParams, input->node_names_count > 0, ++SQLparameterCount, "node_name = ANY ( $","::text[] ) AND ")
+	
+	//for variables that repeat
+	if(input->search_range_begin[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_search_range_begin = SQLparameterCount;
+	}
+	
+	if(input->search_range_end[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_search_range_end = SQLparameterCount;
+	}
 	
 		
 	// TODO should this fail if the parameter count is zero?
@@ -69,14 +87,68 @@ bool CSMINodeFindJob::CreatePayload(
 	/*Open "std::string stmt"*/
 	std::string stmt = 
 		"SELECT "
-			"node_name "
+			"an.node_name, "
+			"an.allocation_id, "
+			"a.primary_job_id, "
+			"a.user_name, "
+			"a.num_nodes, "
+			"a.begin_time, "
+			"NULL as end_time "
 		"FROM "
-			"csm_node "
+			"csm_allocation_node AS an "
+		"INNER JOIN "
+			"csm_allocation AS a "
+			"ON an.allocation_id = a.allocation_id "
 		"WHERE (";
+			//statement generated above
 			stmt.append( stmtParams );
+			stmt.append(" AND "
+			"("
+				"(");
+					add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time >= $", "::timestamp ")
+					stmt.append("AND");
+					add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " begin_time <= $", "::timestamp ")
+			stmt.append(
+				")"
+			")"
+			);
 		stmt.append(") "
+		"UNION "
+		"SELECT "
+			"anh.node_name, "
+			"anh.allocation_id, "
+			"ah.primary_job_id, "
+			"ah.user_name, "
+			"ah.num_nodes, "
+			"ah.begin_time, "
+			"ah.end_time "
+		"FROM "
+			"csm_allocation_node_history AS anh "
+		"INNER JOIN "
+			"csm_allocation_history AS ah "
+			"ON anh.allocation_id = ah.allocation_id "
+		"WHERE (");
+			//statement generated above
+			stmt.append( stmtParams );
+			stmt.append(" AND "
+			"("
+				"("); 
+					add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " end_time >= $", "::timestamp ")
+					stmt.append("AND");
+					add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " end_time <= $", "::timestamp ")
+				stmt.append(
+				") OR "
+				"(");
+					add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time >= $", "::timestamp ")
+					stmt.append("AND");
+					add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " begin_time <= $", "::timestamp ")
+			stmt.append(
+				")"
+			")"
+		")"
 		"ORDER BY "
-			"node_name "
+			"node_name, "
+			"allocation_id "
 			"ASC NULLS LAST ");
 		add_param_sql( stmt, input->limit > 0, ++SQLparameterCount,
             "LIMIT $", "::int ")
@@ -87,16 +159,18 @@ bool CSMINodeFindJob::CreatePayload(
 	// Build the parameterized list.
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount); 
 	
-	if(input->node_names_count     > 0    ) dbReq->AddTextArrayParam   (input->node_names, input->node_names_count);
-	if(input->limit                > 0    ) dbReq->AddNumericParam<int>(input->limit);
-	if(input->offset               > 0    ) dbReq->AddNumericParam<int>(input->offset);
+	if(input->node_names_count      > 0    ) dbReq->AddTextArrayParam(input->node_names, input->node_names_count);
+	if(input->search_range_begin[0] != '\0') dbReq->AddTextParam(input->search_range_begin);
+	if(input->search_range_end[0]   != '\0') dbReq->AddTextParam(input->search_range_end);
+	if(input->limit                 > 0    ) dbReq->AddNumericParam<int>(input->limit);
+	if(input->offset                > 0    ) dbReq->AddNumericParam<int>(input->offset);
 	
 	*dbPayload = dbReq;
 
 	//release memory using CSM API function
 	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 	
-	LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Parameterized SQL: " << stmt;
+	LOG(csmapi, debug) << STATE_NAME ":CreatePayload: Parameterized SQL: " << stmt;
 
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Exit";
 
@@ -153,21 +227,27 @@ void CSMINodeFindJob::CreateOutputStruct(
         LOG(csmapi, trace) << STATE_NAME ":CreateOutputStruct: Enter";
 
 		// Error check
-        if(fields->nfields != 29){
+        if(fields->nfields != 7){
             *output = nullptr;
             return;
         }
 		
 		/*Helper Variables*/
-		//char* pEnd; // comparison pointer for data conversion check.
-		//int i = 0; //keep place in data counter
+		char* pEnd; // comparison pointer for data conversion check.
+		int i = 0; //keep place in data counter
         
 		/*Set up data to call API*/
         DB_RECORD_STRUCT *o = nullptr;
 		/* CSM API initialize and malloc function*/
         csm_init_struct_ptr(DB_RECORD_STRUCT, o);
 
-        o->temp = 1; 
+        o->node_name      = strdup(fields->data[i]);                                                                     i++;
+		o->allocation_id  = strtoll(fields->data[i], &pEnd, 10); if(pEnd == fields->data[i]){ o->allocation_id = -1.0;}  i++;
+		o->primary_job_id = strtoll(fields->data[i], &pEnd, 10); if(pEnd == fields->data[i]){ o->primary_job_id = -1.0;} i++;
+		o->user_name      = strdup(fields->data[i]);                                                                     i++;
+		o->num_nodes      = strtol(fields->data[i], &pEnd, 10); if(pEnd == fields->data[i]){ o->num_nodes = -1.0;}       i++;
+		o->begin_time     = strdup(fields->data[i]);                                                                     i++;
+		o->end_time       = strdup(fields->data[i]);                                                                     i++;
 
         *output = o;
 
