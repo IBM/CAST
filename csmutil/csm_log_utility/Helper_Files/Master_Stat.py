@@ -94,6 +94,12 @@ def calculate_time_difference(start_time, end_time, time_format):
     return runtime.total_seconds()
 
 def collision_error(Api_Id, start_api, end_api):
+    # print "Error: Api ID collision: " + Api_Id
+    # error_file.write("Error: Api ID collision: " + Api_Id)
+    # print "Start Api: " + ' '.join(start_api)
+    # error_file.write("Start Api: " + ' '.join(start_api))
+    # print "End   Api: " + ' '.join(end_api)
+    # error_file.write("End   Api: " + ' '.join(end_api))
     error = "Error: Api ID collision: " + Api_Id + '\n'  + "Start Api: " + ' '.join(start_api) + '\n' + "End   Api: " + ' '.join(end_api) + '\n\n'
     global total_errors 
     total_errors += 1
@@ -102,10 +108,15 @@ def collision_error(Api_Id, start_api, end_api):
 def calculate_statistics(filename, Api_Statistics):
     print ("Master Log").center(print_padding, '+')
     print filename[2:].center(print_padding, '-')
+    file_opened = open(filename, 'r')
+    file_lines = file_opened.readlines()
+    file_start = file_lines[0].split("csm")[0].strip()
+    file_end   = file_lines[-1].split("csm")[0].strip()
+    file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     # print Api_Statistics.keys()
     total_calls = 0
-    stats = ("Master Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
+    stats = ("Master Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') + '\n' + file_time +'\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     for key in Api_Statistics.keys():
         stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(
             key, 
@@ -126,3 +137,55 @@ def Pre_Process(filename):
     p1 = Popen(split("grep \'start\|end\' " + filename ), stdout=PIPE, stderr=subprocess.PIPE)
     p2 = Popen(split("grep -v \'Allocation\'"), stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
     return p2.split('\n')
+
+# if len(sys.argv) == 1:
+#     pass
+# elif len(sys.argv) == 3:
+#     start_datetime = datetime.strptime(sys.argv[1] + ' ' + sys.argv[2], '%Y-%m-%d %H:%M:%S.%f')
+# elif len(sys.argv) == 5:
+#     start_datetime = datetime.strptime(sys.argv[1] + ' ' + sys.argv[2], '%Y-%m-%d %H:%M:%S.%f')
+#     end_datetime = datetime.strptime(sys.argv[3] + ' ' + sys.argv[4], '%Y-%m-%d %H:%M:%S.%f')
+# else:
+#     print "Incorrect Number of Arguments. Please use one of the following"
+#     print "python api_statistics.py"
+#     print "python api_statistics.py <Start Date YYYY-MM-DD> <Start Time HH:MM:SS>"
+#     print "python api_statistics.py <Start Date YYYY-MM-DD> <Start Time HH:MM:SS> <End Date YYYY-MM-DD> <End Time HH:MM:SS>"
+# print "Search from:  %s to %s" % (str(start_datetime), str(end_datetime))
+
+# compute_CSM_Master_stats('csm_resources.txt')
+# compute_CSM_Master_stats('csm_master_LL.log')
+# compute_CSM_Master_stats('csm_master.log.old.5')
+
+# start_time = time.time()
+# compute_CSM_Master_stats('csm_master_OR.log.old.1')
+# elapsed_time = time.time() - start_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master.log.old.2')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master.log.old.3')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master.log.old.4')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master.log.old.5')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+
+# start_time = time.time()
+# compute_CSM_Master_stats('csm_master_LL.log.old.1')
+# elapsed_time = time.time() - start_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master_LL.log.old.2')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master_LL.log.old.3')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master_LL.log.old.4')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time
+# compute_CSM_Master_stats('csm_master_LL.log.old.5')
+# elapsed_time = time.time() - elapsed_time
+# print elapsed_time

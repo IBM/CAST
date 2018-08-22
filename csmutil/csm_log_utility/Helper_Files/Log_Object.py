@@ -34,3 +34,17 @@ class Log:
 		print 'Data: 	 ' + str(self.Data)
 		print ''
 
+# compute = '[COMPUTE]2018-05-30 17:26:40.718991     csmapi::info     | [365788516]; csm_allocation_delete start'
+# master = '2018-05-30 16:32:55.067376     csmapi::info     | CSM_CMD_node_resources_query_all[2102082113]; Client Sent; PID: 29752; UID:0; GID:0'
+# aggregate = '[AGG]2018-05-30 16:25:20.611547       csmd::info     | DAEMONSTATE: Compute node 10.7.8.9:59322 switched to PRIMARY connection.'
+# util = '[UTL]2018-05-31 01:25:27.669148     csmapi::info     | CSM_CMD_node_resources_query_all[645948134]; Client Sent; PID: 49482; UID:0; GID:0'
+
+# o1 = Log(compute)
+# o2 = Log(master)
+# o3 = Log(aggregate)
+# o4 = Log(util)
+
+# o1.printing()
+# o2.printing()
+# o3.printing()
+# o4.printing()
