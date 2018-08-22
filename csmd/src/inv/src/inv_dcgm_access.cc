@@ -301,7 +301,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
         LOG(csmd, debug) << "dcgmGetAllDevices was successful";
     }
 
-    if (( dcgm_gpu_count < 0 ) || ( dcgm_gpu_count >= UINT32_MAX))
+    if (( dcgm_gpu_count < 0 ) || ( dcgm_gpu_count > DCGM_MAX_NUM_DEVICES))
     {
 	LOG(csmd, error) << "Error: dcgmGetAllDevices returned unexpected gpu_count=" << dcgm_gpu_count;
         dcgm_init_flag = false;
