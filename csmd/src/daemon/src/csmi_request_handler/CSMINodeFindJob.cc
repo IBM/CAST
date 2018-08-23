@@ -53,6 +53,8 @@ bool CSMINodeFindJob::CreatePayload(
 	
 	// =====================================================================
 	std::string stmtParams = "";
+	std::string stmtParams_live_range = "";
+	std::string stmtParams_history_range = "";
 	int SQLparameterCount = 0;
 	int SQLNum_search_range_begin = 0;
 	int SQLNum_search_range_end = 0;
@@ -72,6 +74,28 @@ bool CSMINodeFindJob::CreatePayload(
 		SQLparameterCount++;
 		SQLNum_search_range_end = SQLparameterCount;
 	}
+	
+	//for the extra WHERE
+	add_param_sql( stmtParams_live_range, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time >= $", "::timestamp AND ")
+	add_param_sql( stmtParams_live_range, input->search_range_end[0] != '\0', SQLNum_search_range_end, " begin_time <= $", "::timestamp AND ")
+    // Replace the last 4 characters if any parameters were found.
+    if ( SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+    {
+        int len = stmtParams_live_range.length() - 1;
+        for( int i = len - 3; i < len; ++i)
+            stmtParams_live_range[i] = ' ';
+    }
+	
+	//for the extra WHERE
+	add_param_sql( stmtParams_history_range, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " end_time >= $", "::timestamp AND ")
+	add_param_sql( stmtParams_history_range, input->search_range_end[0] != '\0', SQLNum_search_range_end, " end_time <= $", "::timestamp AND ")
+    // Replace the last 4 characters if any parameters were found.
+    if ( SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+    {
+        int len = stmtParams_history_range.length() - 1;
+        for( int i = len - 3; i < len; ++i)
+            stmtParams_history_range[i] = ' ';
+    }
 	
 		
 	// TODO should this fail if the parameter count is zero?
@@ -102,16 +126,17 @@ bool CSMINodeFindJob::CreatePayload(
 		"WHERE (";
 			//statement generated above
 			stmt.append( stmtParams );
-			stmt.append(" AND "
-			"("
-				"(");
-					add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time >= $", "::timestamp ")
-					stmt.append("AND");
-					add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " begin_time <= $", "::timestamp ")
-			stmt.append(
+			if(SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+			{
+				stmt.append(" AND "
+				"("
+					"(");
+						stmt.append(stmtParams_live_range);
+				stmt.append(
+					")"
 				")"
-			")"
-			);
+				);
+			}
 		stmt.append(") "
 		"UNION "
 		"SELECT "
@@ -130,22 +155,21 @@ bool CSMINodeFindJob::CreatePayload(
 		"WHERE (");
 			//statement generated above
 			stmt.append( stmtParams );
-			stmt.append(" AND "
-			"("
-				"("); 
-					add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " end_time >= $", "::timestamp ")
-					stmt.append("AND");
-					add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " end_time <= $", "::timestamp ")
+			if(SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+			{
+				stmt.append(" AND "
+				"("
+					"("); 
+						stmt.append(stmtParams_history_range);
+					stmt.append(
+					") OR "
+					"(");
+						stmt.append(stmtParams_live_range);
 				stmt.append(
-				") OR "
-				"(");
-					add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time >= $", "::timestamp ")
-					stmt.append("AND");
-					add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " begin_time <= $", "::timestamp ")
-			stmt.append(
-				")"
-			")"
-		")"
+					")"
+				")");
+			}
+		stmt.append(")"
 		"ORDER BY "
 			"node_name, "
 			"allocation_id "
