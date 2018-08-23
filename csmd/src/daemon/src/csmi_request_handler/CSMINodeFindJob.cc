@@ -52,28 +52,108 @@ bool CSMINodeFindJob::CreatePayload(
 	}
 	
 	// =====================================================================
+	//statements to construct
 	std::string stmtParams = "";
+	std::string stmtParams_history_only = "";
 	std::string stmtParams_live_range = "";
 	std::string stmtParams_history_range = "";
+	std::string stmtParams_live_midpoint = "";
+	std::string stmtParams_history_midpoint = "";
+	std::string midpoint_search_begin = "";
+	std::string midpoint_search_end = "";
+	//counter
 	int SQLparameterCount = 0;
+	//var spot placeholders
+	int SQLNum_node_names = 0;
+	int SQLNum_begin_time_search_begin = 0;
+	int SQLNum_begin_time_search_end = 0;
+	int SQLNum_end_time_search_begin = 0;
+	int SQLNum_end_time_search_end = 0;
+	//int SQLNum_midpoint = 0;
+	//int SQLNum_midpoint_delta = 0;
 	int SQLNum_search_range_begin = 0;
 	int SQLNum_search_range_end = 0;
+	int SQLNum_user_name = 0;
 	
-	//for the standard WHERE
-	add_param_sql( stmtParams, input->node_names_count > 0, ++SQLparameterCount, "node_name = ANY ( $","::text[] ) AND ")
+	//save placeholders
+	if(input->node_names_count > 0)
+	{
+		SQLparameterCount++;
+		SQLNum_node_names = SQLparameterCount;
+	}
+	if(input->begin_time_search_begin[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_begin_time_search_begin = SQLparameterCount;
+	}
 	
-	//for variables that repeat
+	if(input->begin_time_search_end[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_begin_time_search_end = SQLparameterCount;
+	}
+	if(input->end_time_search_begin[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_end_time_search_begin = SQLparameterCount;
+	}
+	
+	if(input->end_time_search_end[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_end_time_search_end = SQLparameterCount;
+	}
+	/* if(input->midpoint[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_midpoint = SQLparameterCount;
+	} */
+	/* if(input->midpoint_delta[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_midpoint_delta = SQLparameterCount;
+	} */
 	if(input->search_range_begin[0] != '\0')
 	{
 		SQLparameterCount++;
 		SQLNum_search_range_begin = SQLparameterCount;
 	}
-	
 	if(input->search_range_end[0] != '\0')
 	{
 		SQLparameterCount++;
 		SQLNum_search_range_end = SQLparameterCount;
 	}
+	if(input->user_name[0] != '\0')
+	{
+		SQLparameterCount++;
+		SQLNum_user_name = SQLparameterCount;
+	}
+	
+	//for the standard WHERE
+	add_param_sql( stmtParams, input->node_names_count > 0, SQLNum_node_names, "node_name = ANY ( $","::text[] ) AND ")
+	add_param_sql( stmtParams, input->user_name [0] != '\0', SQLNum_user_name, "user_name = $","::text AND ")
+	add_param_sql( stmtParams, input->begin_time_search_begin [0] != '\0', SQLNum_begin_time_search_begin, "begin_time >= $", "::timestamp AND ")
+	add_param_sql( stmtParams, input->begin_time_search_end [0] != '\0', SQLNum_begin_time_search_end, "begin_time <= $", "::timestamp AND ")
+	
+	// TODO should this fail if the parameter count is zero?
+    // Replace the last 4 characters if any parameters were found.
+    if ( SQLNum_node_names > 0 || SQLNum_user_name > 0 || SQLNum_begin_time_search_begin > 0 || SQLNum_begin_time_search_end > 0)
+    {
+        int len = stmtParams.length() - 1;
+        for( int i = len - 3; i < len; ++i)
+            stmtParams[i] = ' ';
+    }
+	
+	//history expansion where
+	add_param_sql( stmtParams_history_only, input->end_time_search_begin [0] != '\0', SQLNum_end_time_search_begin, "end_time >= $", "::timestamp AND ")
+	add_param_sql( stmtParams_history_only, input->end_time_search_end [0] != '\0', SQLNum_end_time_search_end, "end_time <= $", "::timestamp AND ")
+	 // Replace the last 4 characters if any parameters were found.
+    if ( SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+    {
+        int len = stmtParams_history_range.length() - 1;
+        for( int i = len - 3; i < len; ++i)
+            stmtParams_history_range[i] = ' ';
+    }
 	
 	//for the extra WHERE
 	add_param_sql( stmtParams_live_range, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time >= $", "::timestamp AND ")
@@ -97,15 +177,41 @@ bool CSMINodeFindJob::CreatePayload(
             stmtParams_history_range[i] = ' ';
     }
 	
-		
-	// TODO should this fail if the parameter count is zero?
+	//making a interval range with midpoint
+	
+	//if mid point but no delta
+	// no range 
+	
+	//if delta but no mid ppoint 
+	//time is now
+	
+	/*
+	midpoint_search_begin.append(" (timestamp '");
+	midpoint_search_begin.append(input->midpoint);
+	midpoint_search_begin.append("' - interval '");
+	midpoint_search_begin.append(input->midpoint_delta);
+	midpoint_search_begin.append("') ");
+	
+	midpoint_search_end.append(" (timestamp '");
+	midpoint_search_end.append(input->midpoint);
+	midpoint_search_end.append("' + interval '");
+	midpoint_search_end.append(input->midpoint_delta);
+	midpoint_search_end.append("') ");
+	
+	add_param_sql( stmtParams_live_midpoint, midpoint_search_begin.length() > 3, SQLNum_midpoint_search_range_begin, " begin_time >= $", "::timestamp AND ")
+	add_param_sql( stmtParams_live_midpoint, midpoint_search_end.length() > 3, SQLNum_midpoint_search_range_end, " begin_time <= $", "::timestamp AND ")
     // Replace the last 4 characters if any parameters were found.
-    if ( SQLparameterCount  > 0)
+    if ( SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
     {
-        int len = stmtParams.length() - 1;
+        int len = stmtParams_live_midpoint.length() - 1;
         for( int i = len - 3; i < len; ++i)
-            stmtParams[i] = ' ';
+            stmtParams_live_midpoint[i] = ' ';
     }
+	
+	*/
+	
+	
+	
 	
 	
 	/*Open "std::string stmt"*/
@@ -126,12 +232,12 @@ bool CSMINodeFindJob::CreatePayload(
 		"WHERE (";
 			//statement generated above
 			stmt.append( stmtParams );
-			if(SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+			if(SQLNum_search_range_end > 0)
 			{
 				stmt.append(" AND "
 				"("
 					"(");
-						stmt.append(stmtParams_live_range);
+						add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " begin_time <= $", "::timestamp ")
 				stmt.append(
 					")"
 				")"
@@ -155,6 +261,7 @@ bool CSMINodeFindJob::CreatePayload(
 		"WHERE (");
 			//statement generated above
 			stmt.append( stmtParams );
+			stmt.append( stmtParams_history_only );
 			if(SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
 			{
 				stmt.append(" AND "
@@ -165,8 +272,18 @@ bool CSMINodeFindJob::CreatePayload(
 					") OR "
 					"(");
 						stmt.append(stmtParams_live_range);
+					stmt.append(
+					")");
+					if(SQLNum_search_range_begin > 0 && SQLNum_search_range_end > 0)
+					{
+						stmt.append(
+						" OR "
+						"(");
+							add_param_sql( stmt, input->search_range_begin[0] != '\0', SQLNum_search_range_begin, " begin_time <= $", "::timestamp AND ")
+							add_param_sql( stmt, input->search_range_end[0] != '\0', SQLNum_search_range_end, " end_time >= $", "::timestamp ")
+						stmt.append(")");
+					}
 				stmt.append(
-					")"
 				")");
 			}
 		stmt.append(")"
@@ -183,11 +300,19 @@ bool CSMINodeFindJob::CreatePayload(
 	// Build the parameterized list.
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount); 
 	
-	if(input->node_names_count      > 0    ) dbReq->AddTextArrayParam(input->node_names, input->node_names_count);
-	if(input->search_range_begin[0] != '\0') dbReq->AddTextParam(input->search_range_begin);
-	if(input->search_range_end[0]   != '\0') dbReq->AddTextParam(input->search_range_end);
-	if(input->limit                 > 0    ) dbReq->AddNumericParam<int>(input->limit);
-	if(input->offset                > 0    ) dbReq->AddNumericParam<int>(input->offset);
+	if(input->node_names_count           > 0    ) dbReq->AddTextArrayParam(input->node_names, input->node_names_count);
+	if(input->begin_time_search_begin[0] != '\0') dbReq->AddTextParam(input->begin_time_search_begin);
+	if(input->begin_time_search_end[0]   != '\0') dbReq->AddTextParam(input->begin_time_search_end);
+	if(input->end_time_search_begin[0]   != '\0') dbReq->AddTextParam(input->end_time_search_begin);
+	if(input->end_time_search_end[0]     != '\0') dbReq->AddTextParam(input->end_time_search_end);
+	if(input->midpoint[0]                != '\0') dbReq->AddTextParam(input->midpoint);
+	if(input->midpoint_delta[0]          != '\0') dbReq->AddTextParam(input->midpoint_delta);
+	if(input->search_range_begin[0]      != '\0') dbReq->AddTextParam(input->search_range_begin);
+	if(input->search_range_end[0]        != '\0') dbReq->AddTextParam(input->search_range_end);
+	if(input->user_name[0]               != '\0') dbReq->AddTextParam(input->user_name);
+	//after the placeholders we made above
+	if(input->limit                      > 0    ) dbReq->AddNumericParam<int>(input->limit);
+	if(input->offset                     > 0    ) dbReq->AddNumericParam<int>(input->offset);
 	
 	*dbPayload = dbReq;
 
