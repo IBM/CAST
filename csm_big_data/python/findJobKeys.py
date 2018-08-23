@@ -45,7 +45,7 @@ def main(args):
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
     parser.add_argument( '-k', '--keywords', metavar='key', dest='keywords', nargs='*', default=['.*'],
-        help='A list of keywords to search for in the Big Data Store. Case insensitive regular expressions (default : .*).')
+        help='A list of keywords to search for in the Big Data Store. Case insensitive regular expressions (default : .*). If your keyword is a phrase (e.g. "xid 13") regular expressions are not supported at this time.')
     parser.add_argument( '-v', '--verbose', action='store_true',
         help='Displays any logs that matched the keyword search.' )
     parser.add_argument( '--size', metavar='size', dest='size', default=30,
@@ -144,7 +144,12 @@ def main(args):
     keywords=[]
     should_keywords=[]
     for key in args.keywords:
-        should='{{ "regexp" : {{ "message" : "{0}" }} }}'.format(key.lower())
+        if key.find(" ") == -1:
+            should='{{ "regexp" : {{ "message" : "{0}" }} }}'.format(key.lower())
+        else:
+            should='{{ "match_phrase" : {{ "message" : "{0}" }} }}'.format(key)
+            
+
         filter='"filter" : {0}'.format(should)
         keywords.append('"{0}" : {{ {1} }}'.format(key,filter))
         should_keywords.append(should)
