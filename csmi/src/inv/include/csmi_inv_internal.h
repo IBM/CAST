@@ -61,6 +61,8 @@ extern const csmi_struct_mapping_t map_csmi_node_details_t;
 
 extern const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t;
 
+extern const csmi_struct_mapping_t map_csmi_node_find_job_record_t;
+
 extern const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_input_t;
 
 extern const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_output_t;
@@ -100,6 +102,10 @@ extern const csmi_struct_mapping_t map_csm_node_attributes_update_output_t;
 extern const csmi_struct_mapping_t map_csm_node_delete_input_t;
 
 extern const csmi_struct_mapping_t map_csm_node_delete_output_t;
+
+extern const csmi_struct_mapping_t map_csm_node_find_job_input_t;
+
+extern const csmi_struct_mapping_t map_csm_node_find_job_output_t;
 
 extern const csmi_struct_mapping_t map_csm_switch_attributes_query_input_t;
 

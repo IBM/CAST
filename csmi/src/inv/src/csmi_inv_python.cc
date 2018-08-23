@@ -701,6 +701,15 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		ARRAY_STR_PROPERTY(csmi_cluster_query_state_record_t, char**, states, num_allocs, NULL, )
 		ARRAY_STR_PROPERTY(csmi_cluster_query_state_record_t, char**, shared, num_allocs, NULL, );
 
+    class_<csmi_node_find_job_record_t,csmi_node_find_job_record_t*>("node_find_job_record_t")
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, node_name, , NULL, )
+		.add_property("allocation_id", &csmi_node_find_job_record_t::allocation_id,&csmi_node_find_job_record_t::allocation_id," The allocation_id of the job.")
+		.add_property("primary_job_id", &csmi_node_find_job_record_t::primary_job_id,&csmi_node_find_job_record_t::primary_job_id," The primary_job_id of the job.")
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, user_name, , NULL, )
+		.add_property("num_nodes", &csmi_node_find_job_record_t::num_nodes,&csmi_node_find_job_record_t::num_nodes," The number of nodes participating in this job.")
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, begin_time, , NULL, )
+		STRING_PROPERTY(csmi_node_find_job_record_t, char*, end_time, , NULL, );
+
     class_<csm_ib_cable_inventory_collection_input_t,csm_ib_cable_inventory_collection_input_t*>("ib_cable_inventory_collection_input_t")
 		.add_property("inventory_count", &csm_ib_cable_inventory_collection_input_t::inventory_count,&csm_ib_cable_inventory_collection_input_t::inventory_count," Number of ib cable records, size of @ref inventory. ")
 		ARRAY_STRUCT_PROPERTY(csm_ib_cable_inventory_collection_input_t, csmi_ib_cable_record_t**, inventory, inventory_count, NULL, csmi_ib_cable_record_t);
@@ -807,6 +816,25 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
     class_<csm_node_delete_output_t,csm_node_delete_output_t*>("node_delete_output_t")
 		.add_property("failure_count", &csm_node_delete_output_t::failure_count,&csm_node_delete_output_t::failure_count," The number of nodes which failed to be deleted, size of @ref failure_node_names. ")
 		ARRAY_STR_PROPERTY(csm_node_delete_output_t, char**, failure_node_names, failure_count, NULL, );
+
+    class_<csm_node_find_job_input_t,csm_node_find_job_input_t*>("node_find_job_input_t")
+		.add_property("limit", &csm_node_find_job_input_t::limit,&csm_node_find_job_input_t::limit," SQL 'LIMIT' numeric value. API will ignore values less than 1.")
+		.add_property("offset", &csm_node_find_job_input_t::offset,&csm_node_find_job_input_t::offset," SQL 'OFFSET' numeric value. API will ignore values less than 1.")
+		.add_property("node_names_count", &csm_node_find_job_input_t::node_names_count,&csm_node_find_job_input_t::node_names_count," Number of names to query, size of @ref node_names. ")
+		ARRAY_STR_PROPERTY(csm_node_find_job_input_t, char**, node_names, node_names_count, NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, begin_time_search_begin, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, begin_time_search_end, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, end_time_search_begin, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, end_time_search_end, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, midpoint, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, midpoint_delta, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, search_range_begin, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, search_range_end, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, user_name, , NULL, );
+
+    class_<csm_node_find_job_output_t,csm_node_find_job_output_t*>("node_find_job_output_t")
+		.add_property("results_count", &csm_node_find_job_output_t::results_count,&csm_node_find_job_output_t::results_count," Number of database records retrieved, size of @ref results. ")
+		ARRAY_STRUCT_PROPERTY(csm_node_find_job_output_t, csmi_node_find_job_record_t**, results, results_count, NULL, csmi_node_find_job_record_t);
 
     class_<csm_switch_attributes_query_input_t,csm_switch_attributes_query_input_t*>("switch_attributes_query_input_t")
 		.add_property("limit", &csm_switch_attributes_query_input_t::limit,&csm_switch_attributes_query_input_t::limit," SQL 'LIMIT' numeric value. API will ignore values less than 1.")

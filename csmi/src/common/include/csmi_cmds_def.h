@@ -87,13 +87,13 @@ cmd(jsrun_cmd)
 
 //OPEN SOURCE
 cmd(cluster_query_state)
+cmd(node_find_job)
 
 // new APIS should go here by adding the new API immediately above this line
 // and removing the first reserved_NN that appears after MAX_REGULAR
 cmd(MAX_REGULAR)
 
 // reserved cmd IDS
-cmd(reserved_63)
 cmd(reserved_64)
 cmd(reserved_65)
 cmd(reserved_66)

@@ -1,0 +1,69 @@
+/*================================================================================
+
+    csmi/include/csm_types/struct_defs/inv/csm_node_find_job_input.def
+
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+
+    This program is licensed under the terms of the Eclipse Public License
+    v1.0 as published by the Eclipse Foundation and available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+    restricted by GSA ADP Schedule Contract with IBM Corp.
+
+================================================================================*/
+
+/**
+ * CSMI_COMMENT
+ * @brief An input wrapper for @ref csm_node_find_job.
+ */
+
+#ifndef CSMI_STRUCT_NAME
+    #define CSMI_STRUCT_NAME csm_node_find_job_input_t
+    
+    #undef CSMI_BASIC              
+    #undef CSMI_STRING             
+    #undef CSMI_STRING_FIXED       
+    #undef CSMI_ARRAY              
+    #undef CSMI_ARRAY_FIXED        
+    #undef CSMI_ARRAY_STR          
+    #undef CSMI_ARRAY_STR_FIXED    
+    #undef CSMI_STRUCT             
+    #undef CSMI_ARRAY_STRUCT       
+    #undef CSMI_ARRAY_STRUCT_FIXED 
+    #undef CSMI_NONE  
+    
+    #define CSMI_BASIC               1
+    #define CSMI_STRING              1
+    #define CSMI_STRING_FIXED        0
+    #define CSMI_ARRAY               0
+    #define CSMI_ARRAY_FIXED         0
+    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR_FIXED     0
+    #define CSMI_STRUCT              0
+    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT_FIXED  0
+    #define CSMI_NONE                0
+#endif 
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+// CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
+CSMI_STRUCT_MEMBER(int32_t , limit                  , BASIC    ,                 , -1  , ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(int32_t , offset                 , BASIC    ,                 , -1  , ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+CSMI_STRUCT_MEMBER(uint32_t, node_names_count       , BASIC    ,                 , 0   , ) /**< Number of names to query, size of @ref node_names. */
+CSMI_STRUCT_MEMBER(char**  , node_names             , ARRAY_STR, node_names_count, NULL, ) /**< List of nodes to perform query on, size defined in @ref node_names_count.*/
+CSMI_STRUCT_MEMBER(char*   , begin_time_search_begin, STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records with a begin_time at or after (ie: '>=' ) this time. */
+CSMI_STRUCT_MEMBER(char*   , begin_time_search_end  , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records with a begin_time at or before (ie: '<=' ) this time. */
+CSMI_STRUCT_MEMBER(char*   , end_time_search_begin  , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time.*/
+CSMI_STRUCT_MEMBER(char*   , end_time_search_end    , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time*/
+CSMI_STRUCT_MEMBER(char*   , midpoint               , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query. */
+CSMI_STRUCT_MEMBER(char*   , midpoint_delta         , STRING   ,                 , NULL, ) /**< A time that will be added and subtracted from the midpoint field to expand the range of the search window. */
+CSMI_STRUCT_MEMBER(char*   , search_range_begin     , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records that were active during or after this time. */
+CSMI_STRUCT_MEMBER(char*   , search_range_end       , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records that were active during or before this time. */
+CSMI_STRUCT_MEMBER(char*   , user_name              , STRING   ,                 , NULL, ) /**< Filter results to only include this user_name. */
+
+CSMI_VERSION_END(0)
+
+#undef CSMI_VERSION_START
+#undef CSMI_VERSION_END
+#undef CSMI_STRUCT_MEMBER

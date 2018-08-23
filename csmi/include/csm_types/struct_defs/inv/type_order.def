@@ -18,6 +18,7 @@ csmi_switch_env_data.def 1 6c0f5ef571cf4653347579de5ef91469
 csmi_fabric_topology.def 1 6c0f5ef571cf4653347579de5ef91469
 csmi_node_details.def 11 0481c5178acd96d62bf0fd1d528143f1
 csmi_cluster_query_state_record.def 9 
+csmi_node_find_job_record.def 7 
 csm_ib_cable_inventory_collection_input.def 2 e6623d2246ede860366b032523fd8262
 csm_ib_cable_inventory_collection_output.def 2 3809391c168b0a0a6298b0247c923b22
 csm_ib_cable_query_input.def 4 3e69eda81e00d592815ea50c6d0889b6
@@ -38,6 +39,8 @@ csm_node_attributes_update_input.def 11 1fabf46e8e830027d18b0d0f9d63f0da
 csm_node_attributes_update_output.def 2 3342319840c7c249fc6e688cd9f527ff
 csm_node_delete_input.def 2 b36d828ffada80e5309321ba1db4c158
 csm_node_delete_output.def 2 3342319840c7c249fc6e688cd9f527ff
+csm_node_find_job_input.def 13  
+csm_node_find_job_output.def 2   
 csm_switch_attributes_query_input.def 7 
 csm_switch_attributes_query_output.def 2 46710f5d9852ed0bb64fc380a5c477c7
 csm_switch_attributes_query_details_input.def 1 2ea2a59c05628a9f41218d239fea22f8
