@@ -36,12 +36,6 @@ csm::daemon::INV_DCGM_ACCESS *csm::daemon::INV_DCGM_ACCESS::_Instance = nullptr;
 
 #ifdef DCGM
 
-// GPU Group Names
-char csm::daemon::INV_DCGM_ACCESS::CSM_GPU_GROUP[] = "CSM_GPU_GROUP";
-
-// GPU Field Group Names
-char csm::daemon::INV_DCGM_ACCESS::CSM_DOUBLE_FIELDS[] = "CSM_DOUBLE_FIELDS";
-char csm::daemon::INV_DCGM_ACCESS::CSM_INT64_FIELDS[] = "CSM_INT64_FIELDS";
 char csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELD_GROUP[] = "CSM_ENVIRONMENTAL_FIELD_GROUP";
 char csm::daemon::INV_DCGM_ACCESS::CSM_ALLOCATION_FIELD_GROUP[] = "CSM_ALLOCATION_FIELD_GROUP";
       
@@ -123,30 +117,6 @@ csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
     {
 
      // finalize DCGM environment
-     rc = (*dcgmFieldGroupDestroy_ptr)(dcgm_handle, double_fields_grp);
-     if (rc != DCGM_ST_OK)
-     {
-	LOG(csmd, error) << "Error: dcgmFieldGroupDestroy returned \"" << errorString(rc) << "(" << rc << ")\"";
-     } else {
-        LOG(csmd, debug) << "dcgmFieldGroupDestroy was successful";
-     }
-
-     rc = (*dcgmFieldGroupDestroy_ptr)(dcgm_handle, int64_fields_grp);
-     if (rc != DCGM_ST_OK)
-     {
-        LOG(csmd, error) << "Error: dcgmFieldGroupDestroy returned \"" << errorString(rc) << "(" << rc << ")\"";
-     } else {
-        LOG(csmd, debug) << "dcgmFieldGroupDestroy was successful";
-     }
-
-     rc = (*dcgmGroupDestroy_ptr)(dcgm_handle, gpugrp);
-     if (rc != DCGM_ST_OK)
-     {
-	LOG(csmd, error) << "Error: dcgmGroupDestroy returned \"" << errorString(rc) << "(" << rc << ")\"";
-     } else {
-        LOG(csmd, debug) << "dcgmGroupDestroy was successful";
-     }
-
      rc = (*dcgmDisconnect_ptr)(dcgm_handle);
      if (rc != DCGM_ST_OK)
      {
@@ -164,25 +134,6 @@ csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
      }
 
     }
-
-    vector_of_ids_of_double_fields.clear();
-    vector_of_ids_of_int64_fields.clear();
-
-    vector_of_double_values.clear();
-    vector_of_int64_values.clear();
-
-    vector_old_double_fields_value.clear();
-    vector_old_int64_fields_value.clear();
-
-    dcgm_meta_double_vector.clear();
-    dcgm_meta_int64_vector.clear();
-
-    vector_of_ids_of_double_fields.clear();
-    vector_of_ids_of_int64_fields.clear();
-
-    vector_for_double_values_storage.clear();
-    vector_for_int64_values_storage.clear();
-
 }
 
 void csm::daemon::INV_DCGM_ACCESS::Init()
@@ -190,13 +141,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     // Only allow one thread to call DCGM at a time
     std::lock_guard<std::mutex> lock(dcgm_mutex);
 
-    // alloc and init of some vectors and arrays
-    number_of_double_fields = 3;
-    number_of_int64_fields = 29;
-
-    vector_of_double_values.resize( number_of_double_fields );
-    vector_of_int64_values.resize( number_of_int64_fields );
-    
     // flags
     dlopen_flag = false;
     dcgm_init_flag = true;
@@ -310,87 +254,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
 	LOG(csmd, debug) << "dcgm_gpu_count: " << dcgm_gpu_count;
     }
 
-    // setting vectors of the fields
-    vector_of_ids_of_double_fields.push_back( DCGM_FI_DEV_POWER_USAGE );                       // GPU power consumption, in Watts
-    vector_of_ids_of_double_fields.push_back( DCGM_FI_DEV_MEM_COPY_UTIL_SAMPLES );             // memory utilizaiton samples
-    vector_of_ids_of_double_fields.push_back( DCGM_FI_DEV_GPU_UTIL_SAMPLES );                  // gpu utilization samples
-
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_GPU_TEMP );                           // GPU temperature, in degrees C
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_GPU_UTIL );                           // GPU utilization
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_MEM_COPY_UTIL );                      // GPU memory utilization
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_ENC_UTIL );                           // GPU encoder utilization
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_DEC_UTIL );                           // GPU decoder utilizatioin
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_BANDWIDTH_L0 );                // GPU NVLINK bandwidth counter for line 0
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_BANDWIDTH_L1 );                // GPU NVLINK bandwidth counter for line 1
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_BANDWIDTH_L2 );                // GPU NVLINK bandwidth counter for line 2
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_BANDWIDTH_L3 );                // GPU NVLINK bandwidth counter for line 3
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L0 );     // GPU NV link flow control CRC error for lane 0
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L1 );     // GPU NV link flow control CRC error for lane 1
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L2 );     // GPU NV link flow control CRC error for lane 2
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L3 );     // GPU NV link flow control CRC error for lane 3
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L0 );     // GPU NV link data CRC error for lane 0
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L1 );     // GPU NV link data CRC error for lane 1
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L2 );     // GPU NV link data CRC error for lane 2
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L3 );     // GPU NV link data CRC error for lane 3
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L0 );       // GPU NV link replay error counter for lane 0
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L1 );       // GPU NV link replay error counter for lane 1
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L2 );       // GPU NV link replay error counter for lane 2
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L3 );       // GPU NV link replay error counter for lane 3
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L0 );     // GPU NV link recovery error for lane 0
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L1 );     // GPU NV link recovery error for lane 1
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L2 );     // GPU NV link recovery error for lane 2
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L3 );     // GPU NV link recovery error for lane 3
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_POWER_VIOLATION );                    // GPU power violation in usecs
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_THERMAL_VIOLATION );                  // GPU thermal power violation in usecs
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_SYNC_BOOST_VIOLATION );               // GPU boost sync violation in usecs
-    vector_of_ids_of_int64_fields.push_back( DCGM_FI_DEV_XID_ERRORS );                         // gpu utilization samples
-
-    // create group of gpus
-    rc = (*dcgmGroupCreate_ptr)(dcgm_handle, DCGM_GROUP_EMPTY, CSM_GPU_GROUP, &gpugrp);
-    if (rc != DCGM_ST_OK)
-    {
-	LOG(csmd, error) << "Error: dcgmGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
-        dcgm_init_flag = false;
-        return;
-    } else {
-        LOG(csmd, debug) << "dcgmGroupCreate was successful";
-    }
-
-    // add gpus to the group
-    for (int i = 0; i < dcgm_gpu_count; i++){
-     rc = (*dcgmGroupAddDevice_ptr)(dcgm_handle, gpugrp, gpu_ids[i]);
-     if (rc != DCGM_ST_OK)
-     {
-	LOG(csmd, error) << "Error: dcgmGroupAddDevice returned \"" << errorString(rc) << "(" << rc << ")\"";
-	dcgm_init_flag = false;
-	return;
-     } else {
-        LOG(csmd, debug) << "dcgmGroupAddDevice was successful";
-     }
-    }
-
-    // create group of double fields
-    rc = (*dcgmFieldGroupCreate_ptr)(dcgm_handle, number_of_double_fields, &vector_of_ids_of_double_fields.front(), CSM_DOUBLE_FIELDS, &double_fields_grp);
-    if (rc != DCGM_ST_OK)
-    {
-	LOG(csmd, error) << "Error: dcgmFieldGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
-        dcgm_init_flag = false;
-        return;
-    } else {
-        LOG(csmd, debug) << "dcgmFieldGroupCreate was successful";
-    }
-
-    // create group of int64 fields
-    rc = (*dcgmFieldGroupCreate_ptr)(dcgm_handle, number_of_int64_fields, &vector_of_ids_of_int64_fields.front(), CSM_INT64_FIELDS, &int64_fields_grp);
-    if (rc != DCGM_ST_OK)
-    {
-        LOG(csmd, error) << "Error: dcgmFieldGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
-        dcgm_init_flag = false;
-        return;
-    } else {
-        LOG(csmd, debug) << "dcgmFieldGroupCreate was successful";
-    }
-
     // Create DCGM Field Groups used internally by CSM
     // Create the DCGM Field Group used for collecting data during allocation create and delete
     bool success(false);
@@ -420,126 +283,6 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     if (success == false)
     {
         LOG(csmenv, warning) << "ReadFieldNames() returned false for CSM_ENVIRONMENTAL_FIELDS";
-    }
-
-    // watcher, necessary for the manual update, at this moment update fields every 1000 secs (1000000000 us), keep them for 10 secs, and only 1 sample per field
-    // watcher, necessary for the manual update, at this moment update fields every   60 secs (  60000000 us), keep them for 45 secs, and only 1 sample per field
-    rc = (*dcgmWatchFields_ptr)(dcgm_handle, gpugrp, double_fields_grp, updateFreq, maxKeepAge, maxKeepSamples);
-    if (rc != DCGM_ST_OK)
-    {
-	LOG(csmd, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
-        dcgm_init_flag = false;
-        return;
-    } else {
-        LOG(csmd, debug) << "dcgmWatchFields was successful";
-    }
-
-    // watcher, necessary for the manual update, at this moment update fields every 1000 secs (1000000000 us), keep them for 10 secs, and only 1 sample per field
-    rc = (*dcgmWatchFields_ptr)(dcgm_handle, gpugrp, int64_fields_grp, updateFreq, maxKeepAge, maxKeepSamples);
-    if (rc != DCGM_ST_OK)
-    {
-        LOG(csmd, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
-        dcgm_init_flag = false;
-        return;
-    } else {
-        LOG(csmd, debug) << "dcgmWatchFields was successful";
-    }
-
-    // setting vectors of the flags for the old data
-    vector_flag_old_double_data.push_back( 0 ); //  0
-    vector_flag_old_double_data.push_back( 1 ); //  1
-    vector_flag_old_double_data.push_back( 1 ); //  2
-
-    vector_flag_old_int64_data.push_back( 0 ); //  0
-    vector_flag_old_int64_data.push_back( 0 ); //  1
-    vector_flag_old_int64_data.push_back( 0 ); //  2
-    vector_flag_old_int64_data.push_back( 0 ); //  3
-    vector_flag_old_int64_data.push_back( 0 ); //  4
-    vector_flag_old_int64_data.push_back( 0 ); //  5
-    vector_flag_old_int64_data.push_back( 1 ); //  6
-    vector_flag_old_int64_data.push_back( 1 ); //  7
-    vector_flag_old_int64_data.push_back( 1 ); //  8
-    vector_flag_old_int64_data.push_back( 1 ); //  9
-    vector_flag_old_int64_data.push_back( 1 ); // 10
-    vector_flag_old_int64_data.push_back( 1 ); // 11
-    vector_flag_old_int64_data.push_back( 1 ); // 12
-    vector_flag_old_int64_data.push_back( 1 ); // 13 
-    vector_flag_old_int64_data.push_back( 1 ); // 14
-    vector_flag_old_int64_data.push_back( 1 ); // 15
-    vector_flag_old_int64_data.push_back( 1 ); // 16
-    vector_flag_old_int64_data.push_back( 1 ); // 17
-    vector_flag_old_int64_data.push_back( 1 ); // 18
-    vector_flag_old_int64_data.push_back( 1 ); // 19
-    vector_flag_old_int64_data.push_back( 1 ); // 20
-    vector_flag_old_int64_data.push_back( 1 ); // 21
-    vector_flag_old_int64_data.push_back( 1 ); // 22
-    vector_flag_old_int64_data.push_back( 1 ); // 23
-    vector_flag_old_int64_data.push_back( 1 ); // 24
-    vector_flag_old_int64_data.push_back( 1 ); // 24
-    vector_flag_old_int64_data.push_back( 1 ); // 25
-    vector_flag_old_int64_data.push_back( 1 ); // 26
-    vector_flag_old_int64_data.push_back( 1 ); // 27
-    vector_flag_old_int64_data.push_back( 0 ); // 28
-
-    // setting vectors of the old data values
-    for (int i = 0; i < dcgm_gpu_count; i++) {
-     vector_old_double_fields_value.push_back( vector<double>() );
-     for (unsigned int j = 0; j < number_of_double_fields; j++) {
-      vector_old_double_fields_value[i].push_back( 0.0 );
-     }
-    }
-
-    for (int i = 0; i < dcgm_gpu_count; i++) {
-     vector_old_int64_fields_value.push_back( vector<long>() );
-     for (unsigned int j = 0; j < number_of_int64_fields; j++) {
-      vector_old_int64_fields_value[i].push_back( 0 );
-     }
-    }
-
-    // about the meta fields
-
-    LOG(csmd, info) << "Printing the unique identifiers of the watched DCGM double fields";
-    for (unsigned int i = 0; i < number_of_double_fields; i++){
-     dcgm_field_meta_t * dcgm_meta_double_field = (*DcgmFieldGetById_ptr)( vector_of_ids_of_double_fields[i] );
-     if ( dcgm_meta_double_field == 0 )
-     {
-        LOG(csmd, error) << "Error: Field " << std::setw(2) << i << " - DcgmFieldGetById returned 0";
-        dcgm_init_flag = false;
-        return;
-     } else {
-        dcgm_meta_double_vector.push_back( dcgm_meta_double_field->tag );
-        LOG(csmd, info) << "        Field " << std::setw(2) << i << " - The tag for the field is: " << dcgm_meta_double_field->tag;
-     }
-    }
-
-    LOG(csmd, info) << "Printing the unique identifiers of the watched DCGM int64 fields";
-    for (unsigned int i = 0; i < number_of_int64_fields; i++){
-     dcgm_field_meta_t * dcgm_meta_int64_field = (*DcgmFieldGetById_ptr)( vector_of_ids_of_int64_fields[i] );
-     if ( dcgm_meta_int64_field == 0 )
-     {
-        LOG(csmd, error) << "Error: Field " << std::setw(2) << i << " - DcgmFieldGetById returned 0";
-        dcgm_init_flag = false;
-        return;
-     } else {
-        dcgm_meta_int64_vector.push_back( dcgm_meta_int64_field->tag );
-        LOG(csmd, info) << "        Field " << std::setw(2) << i << " - The tag for the field is: " << dcgm_meta_int64_field->tag;
-     }
-    }
-
-    // about the storage vectors
-
-    for (int i = 0; i < dcgm_gpu_count; i++) {
-     vector_for_double_values_storage.push_back( vector<double>() );
-     for (unsigned int j = 0; j < number_of_double_fields; j++) {
-      vector_for_double_values_storage[i].push_back( 0.0 );
-     }
-    }
-
-    for (int i = 0; i < dcgm_gpu_count; i++) {
-     vector_for_int64_values_storage.push_back( vector<long>() );
-     for (unsigned int j = 0; j < number_of_int64_fields; j++) {
-      vector_for_int64_values_storage[i].push_back( 0 );
-     }
     }
 
 }
@@ -882,178 +625,6 @@ bool csm::daemon::INV_DCGM_ACCESS::GetGPUsAttributes(){
 
 }
 
-bool csm::daemon::INV_DCGM_ACCESS::LogGPUsEnviromentalData()
-{
-
-  // checking if dlopen and dcgm init functions were successfull
-  if ( !dlopen_flag && dcgm_init_flag )
-  {
-
-   // update all the fields
-   dcgmReturn_t rc(DCGM_ST_OK);
-   rc = (*dcgmUpdateAllFields_ptr)(dcgm_handle, 1);
-   if (rc != DCGM_ST_OK)
-   {
-	LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned \"" << errorString(rc) << "(" << rc << ")\"";
-        return false;
-   }
-
-   // scanning the gpus
-   for (int i = 0; i < dcgm_gpu_count; i++){
-
-    // get the latests values of the double fields
-    rc = (*dcgmGetLatestValuesForFields_ptr)(dcgm_handle, gpu_ids[i], &vector_of_ids_of_double_fields.front(), number_of_double_fields, &vector_of_double_values.front());
-    if (rc != DCGM_ST_OK)
-    {
-	  LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned \"" << errorString(rc) << "(" << rc << ")\"";
-          return false;
-    }
-
-    // updating the storage vector for the doubles
-    for (unsigned int j = 0; j < number_of_double_fields; j++){
-     vector_for_double_values_storage[i][j] = vector_of_double_values[j].value.dbl;
-    }
-
-    // log the double results
-    for (unsigned int j = 0; j < number_of_double_fields; j++){
-
-     int status = vector_of_double_values[j].status;
-     string error_string = errorString( (dcgmReturn_t) vector_of_double_values[j].status );
-     double actual_double_value;
-     if ( vector_flag_old_double_data[j] == (unsigned int) 0 ){
-      actual_double_value = vector_of_double_values[j].value.dbl;
-      vector_old_double_fields_value[i][j] = 0.0;
-     } else {
-      actual_double_value = vector_of_double_values[j].value.dbl - vector_old_double_fields_value[i][j];
-      vector_old_double_fields_value[i][j] = vector_of_double_values[j].value.dbl;
-     }
-     
-     if ( status == DCGM_ST_OK ){
-      if ( DCGM_FP64_IS_BLANK( actual_double_value ) ){
-       LOG(csmenv, debug) << "GPU " << i << " - Field  " << j << " - Identifier " << std::setw(40) << dcgm_meta_double_vector[j] << " - Field not supported";
-      } else {
-       LOG(csmenv, debug) << "GPU " << i << " - Field  " << j << " - Identifier " << std::setw(40) << dcgm_meta_double_vector[j] << " - " << actual_double_value;
-      }
-     } else {
-       LOG(csmenv, debug) << "GPU " << i << " - Field  " << j << " - Identifier " << std::setw(40) << dcgm_meta_double_vector[j] << " - " << error_string;
-     }
-
-    }
-
-    // get the latests values of the int64 fields
-    rc = (*dcgmGetLatestValuesForFields_ptr)(dcgm_handle, gpu_ids[i], &vector_of_ids_of_int64_fields.front(), number_of_int64_fields, &vector_of_int64_values.front());
-    if (rc != DCGM_ST_OK)
-    {
-          LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned \"" << errorString(rc) << "(" << rc << ")\"";
-          return false;
-    }
-
-    // updating the storage vector for the int64
-    for (unsigned int j = 0; j < number_of_double_fields; j++){
-     vector_for_int64_values_storage[i][j] = vector_of_int64_values[j].value.i64;
-    }
-
-    // log the int64 results
-    for (unsigned int j = 0; j < number_of_int64_fields; j++){
-
-     int status = vector_of_int64_values[j].status;
-     string error_string = errorString( (dcgmReturn_t) vector_of_int64_values[j].status );
-     long actual_int64_value;
-     if ( vector_flag_old_int64_data[j] == (unsigned int) 0 ){
-      actual_int64_value = vector_of_int64_values[j].value.i64;
-      vector_old_int64_fields_value[i][j] = 0.0;
-     } else {
-      actual_int64_value = vector_of_int64_values[j].value.i64 - vector_old_int64_fields_value[i][j];
-      vector_old_int64_fields_value[i][j] = vector_of_int64_values[j].value.i64;
-     }
-
-     if ( status == DCGM_ST_OK ){
-      if ( DCGM_INT64_IS_BLANK( actual_int64_value ) ){
-       LOG(csmenv, debug) << "GPU " << i << " - Field  " << j << " - Identifier " << std::setw(40) << dcgm_meta_int64_vector[j] << " - Field not supported";
-      } else {
-       LOG(csmenv, debug) << "GPU " << i << " - Field  " << j << " - Identifier " << std::setw(40) << dcgm_meta_int64_vector[j] << " - " << actual_int64_value;
-      }
-     } else {
-       LOG(csmenv, debug) << "GPU " << i << " - Field  " << j << " - Identifier " << std::setw(40) << dcgm_meta_int64_vector[j] << " - " << error_string;
-     }
-
-    }
-
-   }
-
-  } else {
-
-   // dlopen or dcgm init functions failed, no "gpu env data collection" will be executed
-   LOG(csmenv, error) << "Error: Dlopen or DCGM failed when the class was constructed, no \"gpu env data collection\" will be executed";
-   return false;
-
-  }
-
-  // dlopen and dcgm were successfull, gpu env data collection for all the gpus of the node have been executed
-  return true;
-
-}
-
-void csm::daemon::INV_DCGM_ACCESS::Get_Double_DCGM_Field_Values( vector<double> &vector_double_dcgm_field_values )
-{
-
- // resize input vector
- vector_double_dcgm_field_values.resize( dcgm_gpu_count * number_of_double_fields );
-
- // scan of gpus and double fields
- int index; 
- for (int i = 0; i < dcgm_gpu_count; i++ ){
-  for (unsigned int j = 0; j < number_of_double_fields; j++ ){
-   index = i * number_of_double_fields + j;
-   vector_double_dcgm_field_values[ index ] = vector_for_double_values_storage[i][j];
-  }
- }
-
-}
-
-void csm::daemon::INV_DCGM_ACCESS::Get_Long_DCGM_Field_Values( vector<long> &vector_int64_dcgm_field_values )
-{
-
- // resize input vector
- vector_int64_dcgm_field_values.resize( dcgm_gpu_count * number_of_int64_fields );
-
- // scan of gpus and double fields
- int index;
- for (int i = 0; i < dcgm_gpu_count; i++ ){
-  for (unsigned int j = 0; j < number_of_int64_fields; j++ ){
-   index = i * number_of_int64_fields + j;
-   vector_int64_dcgm_field_values[ index ] = vector_for_int64_values_storage[i][j];
-  }
- }
-
-}
-
-void csm::daemon::INV_DCGM_ACCESS::Get_Double_DCGM_Field_String_Identifiers( vector<string> &vector_labels_for_double_dcgm_fields )
-{
-
- // resize input vector
- vector_labels_for_double_dcgm_fields.resize( number_of_double_fields );
-
- // scan of double fields
- for (unsigned int i = 0; i < number_of_double_fields; i++ ){
-  vector_labels_for_double_dcgm_fields[ i ] = dcgm_meta_double_vector[ i ];
- }
-
-}
-
-void csm::daemon::INV_DCGM_ACCESS::Get_Long_DCGM_Field_String_Identifiers( vector<string> &vector_labels_for_int64_dcgm_fields )
-{
-
- // resize input vector
- vector_labels_for_int64_dcgm_fields.resize( number_of_int64_fields );
-
- // scan of double fields
- for (unsigned int i = 0; i < number_of_int64_fields; i++ ){
-  vector_labels_for_int64_dcgm_fields[ i ] = dcgm_meta_int64_vector[ i ];
- }
-
-}
- 
 bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
 {
    // Check for successful initialization
@@ -1284,14 +855,14 @@ bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocat
    if (Uninitialized())
    {
       LogInitializationWarning(__FUNCTION__);
-      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;   
+      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;
       return false;
    }
 
    // Only allow one thread to call DCGM at a time
    std::lock_guard<std::mutex> lock(dcgm_mutex);
 
-   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;   
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;
    return true;
 }
 
@@ -1302,15 +873,15 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
    if (Uninitialized())
    {
       LogInitializationWarning(__FUNCTION__);
-      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;   
+      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;
       return false;
    }
 
    // Only allow one thread to call DCGM at a time
    std::lock_guard<std::mutex> lock(dcgm_mutex);
-   
+
    o_gpu_usage = -1;
-   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;   
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;
    return true;
 }
 
@@ -1382,108 +953,6 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadFieldNames(const uint32_t field_count, ui
    return status;
 }
 
-int list_field_values(unsigned int gpuId, dcgmFieldValue_t *values, int numValues, void *userdata)
-{
-
-    // The void pointer at the end allows a pointer to be passed to this
-    // function. Here we know that we are passing in a null terminated C
-    // string, so I can cast it as such. This pointer can be useful if you
-    // need a reference to something inside your function.
-    std::cout << std::endl;
-    std::map <unsigned int,dcgmFieldValue_t > field_val_map;
-    //note this is a pointer to a map.
-    field_val_map = *static_cast<std::map<unsigned int,
-                                            dcgmFieldValue_t > *> (userdata);
-
-    // Storing the values in the map where key is field Id and the value is
-    // the corresponding data for the field.
-    for (int i = 0; i < numValues; i++) {
-        field_val_map[values[i].fieldId] = values[i];
-    }
-
-
-    // Output the information to screen.
-    for (map<unsigned int, dcgmFieldValue_t>::iterator it = field_val_map.begin();
-         it != field_val_map.end(); ++it) {
-        std::cout << "Field ID => " << it->first << endl;
-        std::cout << "Value => ";
-	/*
-        switch (DcgmFieldGetById((it->second).fieldId)->fieldType) {
-            case DCGM_FT_BINARY:
-                // Handle binary data
-                break;
-            case DCGM_FT_DOUBLE:
-                std::cout << (it->second).value.dbl;
-                break;
-            case DCGM_FT_INT64:
-                std::cout << (it->second).value.i64;
-                break;
-            case DCGM_FT_STRING:
-                std::cout << (it->second).value.str;
-                break;
-            case DCGM_FT_TIMESTAMP:
-                std::cout << (it->second).value.i64;
-                break;
-            default:
-                std::cout << "Error in field types. " << (it->second).fieldType
-                          << " Exiting.\n";
-                // Error, return > 0 error code.
-                return 1;
-                break;
-        }
-	*/
-
-        std::cout << std::endl;
-        // Shutdown DCGM fields. This takes care of the memory initialized
-        // when we called DcgmFieldsInit.
-
-    }
-
-    // Program executed correctly. Return 0 to notify DCGM (callee) that it
-    // was successful.
-    return 0;
-
-}
-
-int list_field_values_since(unsigned int gpuId, dcgmFieldValue_t *values, int numValues, void *userdata)
-{
-
-    int i =0;
-    vector<dcgmFieldValue_t> dcgm_field_vals_vec;
-
-    map <unsigned int,vector<dcgmFieldValue_t> > field_val_vec_map;
-    //note this is a pointer to a map.
-    field_val_vec_map = *static_cast<std::map<unsigned int, vector<dcgmFieldValue_t> > *> (userdata);
-
-    for(i = 0;i<numValues;i++)
-    {
-        //Check if element exists in the map
-        if(field_val_vec_map.count((values[i].fieldId)) > 0)
-        {
-            dcgm_field_vals_vec = field_val_vec_map[values[i].fieldId];
-
-            dcgm_field_vals_vec.push_back(values[i]);
-
-            field_val_vec_map[values[i].fieldId] = dcgm_field_vals_vec;
-            std::cout<<"Pushed value for the existing field id => "<<
-                     (values[i].fieldId)<<endl;
-        }
-            // Element is not present in map. Create a new vector and push values
-            // into it.
-        else
-        {
-            dcgm_field_vals_vec.push_back(values[i]);
-            field_val_vec_map[values[i].fieldId] = dcgm_field_vals_vec;
-            std::cout<<"\n\n\n\nPushed value for the non - existing field id => "
-                     << values[i].fieldId<<endl;
-        }
-    }
-
-    return 0;
-}
-
-
-
 #endif  // DCGM support is enabled
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -1505,24 +974,6 @@ csm::daemon::INV_DCGM_ACCESS::INV_DCGM_ACCESS()
 csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
 {
 }
-
-bool csm::daemon::INV_DCGM_ACCESS::LogGPUsEnviromentalData()
-{
-   return true;
-}
-
-void
-csm::daemon::INV_DCGM_ACCESS::Get_Double_DCGM_Field_Values( std::vector<double> &vector_double_dcgm_field_values )
-{}
-void
-csm::daemon::INV_DCGM_ACCESS::Get_Long_DCGM_Field_Values( std::vector<long> &vector_int64_dcgm_field_values )
-{}
-void
-csm::daemon::INV_DCGM_ACCESS::Get_Double_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_double_dcgm_field_strings )
-{}
-void
-csm::daemon::INV_DCGM_ACCESS::Get_Long_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_int64_dcgm_fields )
-{}
 
 bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
 {
