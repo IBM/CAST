@@ -69,8 +69,6 @@ bool CSMINodeFindJob::CreatePayload(
 	int SQLNum_begin_time_search_end = 0;
 	int SQLNum_end_time_search_begin = 0;
 	int SQLNum_end_time_search_end = 0;
-	//int SQLNum_midpoint_search_range_begin = 0;
-	//int SQLNum_midpoint_search_range_end = 0;
 	int SQLNum_midpoint = 0;
 	int SQLNum_midpoint_interval = 0;
 	int SQLNum_search_range_begin = 0;
@@ -211,11 +209,11 @@ bool CSMINodeFindJob::CreatePayload(
 	add_param_sql( stmtParams_history_only, input->end_time_search_begin [0] != '\0', SQLNum_end_time_search_begin, "end_time >= $", "::timestamp AND ")
 	add_param_sql( stmtParams_history_only, input->end_time_search_end [0] != '\0', SQLNum_end_time_search_end, "end_time <= $", "::timestamp AND ")
 	 // Replace the last 4 characters if any parameters were found.
-    if ( SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
+    if ( SQLNum_end_time_search_begin > 0 || SQLNum_end_time_search_end > 0)
     {
-        int len = stmtParams_history_range.length() - 1;
+        int len = stmtParams_history_only.length() - 1;
         for( int i = len - 3; i < len; ++i)
-            stmtParams_history_range[i] = ' ';
+            stmtParams_history_only[i] = ' ';
     }
 	
 	//for the extra WHERE
@@ -289,7 +287,12 @@ bool CSMINodeFindJob::CreatePayload(
 	
 	
 	/*Open "std::string stmt"*/
-	std::string stmt = 
+	std::string stmt = "";
+	
+	//if there are specific end time constraints, then don't search the live table. 
+	if ( SQLNum_end_time_search_begin == 0 && SQLNum_end_time_search_end == 0)
+	{
+		stmt.append(
 		"SELECT "
 			"an.node_name, "
 			"an.allocation_id, "
@@ -303,7 +306,7 @@ bool CSMINodeFindJob::CreatePayload(
 		"INNER JOIN "
 			"csm_allocation AS a "
 			"ON an.allocation_id = a.allocation_id "
-		"WHERE (";
+		"WHERE (");
 			//statement generated above
 			stmt.append( stmtParams );
 			if(SQLNum_search_range_end > 0)
@@ -336,7 +339,12 @@ bool CSMINodeFindJob::CreatePayload(
 			}
 		stmt.append(") "
 		"UNION "
-		"SELECT "
+		);
+		
+	}
+	//regardless. append the history table search
+		stmt.append(
+		"SELECT DISTINCT "
 			"anh.node_name, "
 			"anh.allocation_id, "
 			"ah.primary_job_id, "
@@ -352,7 +360,12 @@ bool CSMINodeFindJob::CreatePayload(
 		"WHERE (");
 			//statement generated above
 			stmt.append( stmtParams );
-			stmt.append( stmtParams_history_only );
+			if ( SQLNum_end_time_search_begin > 0 || SQLNum_end_time_search_end > 0)
+			{
+				stmt.append(" AND ");
+				stmt.append( stmtParams_history_only );
+			}
+			
 			if(SQLNum_search_range_begin > 0 || SQLNum_search_range_end > 0)
 			{
 				stmt.append(" AND "
