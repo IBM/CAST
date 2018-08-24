@@ -65,16 +65,31 @@ void help() {
 	puts("    -e, --end_time_search_begin   | \"2000-01-15 12:34:56.123456\" | (STRING) A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time.");
 	puts("    -E, --end_time_search_end     | \"2000-01-15 13:37:33.134317\" | (STRING) A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time.");
 	puts("    -m, --midpoint                | \"2000-01-15 12:00:00.000000\" | (STRING) A time used to filter results of the SQL query.");
-	puts("    -M, --midpoint_delta          | \"0000-00-00 01:00:00.000000\" | (STRING) A time that will be added and subtracted from the midpoint field to expand the range of the search window. ");
+	puts("    -M, --midpoint_interval       | \"1 day 2 hour 1 minute\"      | (STRING) A time that will be added and subtracted from the midpoint field to expand the range of the search window. Read more about interval syntax in postgres for more info.");
 	puts("    -s, --search_range_begin      | \"2000-01-15 12:00:00.000000\" | (STRING) A time used to filter results of the SQL query and only include records that were active during or after this time.");
 	puts("    -S, --search_range_end        | \"2000-01-15 13:00:00.000000\" | (STRING) A time used to filter results of the SQL query and only include records that were active during or before this time.");
     puts("    -u, --user_name               | \"csm_admin\"                  | (STRING) Filter results to only include this user_name.");
 	puts("  FILTERS:");
 	puts("    csm_diag_run_query can have 2 optional filters.");
-	puts("    Argument      | Example value | Description  ");                                                 
-	puts("    --------------|---------------|--------------");
-	puts("    -l, --limit   | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
-    puts("    -o, --offset  | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    Argument       | Example value | Description  ");                                                 
+	puts("    ---------------|---------------|--------------");
+	puts("    -l, --limit    | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
+    puts("    -o, --offset   | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    -O, --order_by | a             | (CHAR) SQL 'ORDER BY' numeric value. Default Value: 'a'");
+	puts("                                   | Valid Values: [a] = 'ORDER BY node_name, allocation_id ASC NULLS LAST'"); 
+	puts("                                   |               [b] = 'ORDER BY node_name, allocation_id DESC NULLS LAST'");
+	puts("                                   |               [c] = 'ORDER BY allocation_id ASC NULLS LAST'"); 
+	puts("                                   |               [d] = 'ORDER BY allocation_id DESC NULLS LAST'");
+	puts("                                   |               [e] = 'ORDER BY primary_job_id ASC NULLS LAST'");
+	puts("                                   |               [f] = 'ORDER BY primary_job_id DESC NULLS LAST'");
+	puts("                                   |               [g] = 'ORDER BY user_name ASC NULLS LAST'");
+	puts("                                   |               [h] = 'ORDER BY user_name DESC NULLS LAST'");
+	puts("                                   |               [i] = 'ORDER BY num_nodes ASC NULLS LAST'");
+	puts("                                   |               [j] = 'ORDER BY num_nodes DESC NULLS LAST'");
+	puts("                                   |               [k] = 'ORDER BY begin_time ASC NULLS LAST'");
+	puts("                                   |               [l] = 'ORDER BY begin_time DESC NULLS LAST'");
+	puts("                                   |               [m] = 'ORDER BY end_time ASC NULLS LAST'");
+	puts("                                   |               [n] = 'ORDER BY end_time DESC NULLS LAST'");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -82,7 +97,7 @@ void help() {
 	puts("[-Y, --YAML]                  | Set output to YAML. By default for this API, we have a custom output for ease of reading the many jobs on a node.");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_node_find_job -n node_01 -s \"2000-01-15 12:00:00.000000\" -S \"2000-01-15 13:00:00.000000\"");
+	puts("  csm_node_find_job -n node_01 -m \"2000-01-15 12:00:00.000000\" -M \"1 hour\"");
 	puts("");
 	puts("OUTPUT OF THIS COMMAND CAN BE DISPLAYED IN THE YAML FORMAT.");
 	puts("____________________");
@@ -97,7 +112,7 @@ struct option longopts[] = {
 	{"begin_time_search_begin", required_argument, 0, 'b'},
 	{"begin_time_search_end",   required_argument, 0, 'B'},
 	{"midpoint",                required_argument, 0, 'm'},
-	{"midpoint_delta",          required_argument, 0, 'M'},
+	{"midpoint_interval",       required_argument, 0, 'M'},
 	{"node_names",              required_argument, 0, 'n'},
 	{"search_range_begin",      required_argument, 0, 's'},
 	{"search_range_end",        required_argument, 0, 'S'},
@@ -105,6 +120,7 @@ struct option longopts[] = {
 	//filters
 	{"limit",                   required_argument, 0, 'l'},
 	{"offset",                  required_argument, 0, 'o'},
+	{"order_by",                required_argument, 0, 'O'},
 	{0,0,0,0}
 };
 
@@ -176,8 +192,8 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			case 'M':
-				csm_optarg_test( "-M, --midpoint_delta", optarg, USAGE );
-				input->midpoint_delta = strdup(optarg);
+				csm_optarg_test( "-M, --midpoint_interval", optarg, USAGE );
+				input->midpoint_interval = strdup(optarg);
 				optionalParameterCounter++;
 				break;
 			case 'n':
@@ -257,7 +273,7 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "    end_time_search_end:     %s", input->end_time_search_end);
 	csmutil_logging(debug, "    limit:                   %i", input->limit);
 	csmutil_logging(debug, "    midpoint:                %s", input->midpoint);
-	csmutil_logging(debug, "    midpoint_delta:          %s", input->midpoint_delta);
+	csmutil_logging(debug, "    midpoint_interval:       %s", input->midpoint_interval);
 	csmutil_logging(debug, "    node_names_count:        %i", input->node_names_count);
 	csmutil_logging(debug, "    node_names:              %p", input->node_names);
 	for(i = 0; i < input->node_names_count; i++){

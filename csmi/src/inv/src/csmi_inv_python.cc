@@ -827,7 +827,7 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		STRING_PROPERTY(csm_node_find_job_input_t, char*, end_time_search_begin, , NULL, )
 		STRING_PROPERTY(csm_node_find_job_input_t, char*, end_time_search_end, , NULL, )
 		STRING_PROPERTY(csm_node_find_job_input_t, char*, midpoint, , NULL, )
-		STRING_PROPERTY(csm_node_find_job_input_t, char*, midpoint_delta, , NULL, )
+		STRING_PROPERTY(csm_node_find_job_input_t, char*, midpoint_interval, , NULL, )
 		STRING_PROPERTY(csm_node_find_job_input_t, char*, search_range_begin, , NULL, )
 		STRING_PROPERTY(csm_node_find_job_input_t, char*, search_range_end, , NULL, )
 		STRING_PROPERTY(csm_node_find_job_input_t, char*, user_name, , NULL, );

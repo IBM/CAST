@@ -106,7 +106,7 @@ bool CSMINodeFindJob::CreatePayload(
 
 	//if midpoint or interval input, then create a search range from these values	
 	
-	if(input->midpoint[0] != '\0' && input->midpoint_delta[0] != '\0')
+	if(input->midpoint[0] != '\0' && input->midpoint_interval[0] != '\0')
 	{
 		//increase the SQL parameter counters
 		SQLparameterCount++;
@@ -131,7 +131,7 @@ bool CSMINodeFindJob::CreatePayload(
 		midpoint_search_end.append("::interval");
 		midpoint_search_end.append(") ");
 		
-	}else if(input->midpoint[0] != '\0' && input->midpoint_delta[0] == '\0')
+	}else if(input->midpoint[0] != '\0' && input->midpoint_interval[0] == '\0')
 	{
 		//if mid point but no interval
 		// no range
@@ -152,7 +152,7 @@ bool CSMINodeFindJob::CreatePayload(
 		midpoint_search_end.append("::timestamp ");
 		midpoint_search_end.append(") ");
 		
-	}else if(input->midpoint[0] == '\0' && input->midpoint_delta[0] != '\0')
+	}else if(input->midpoint[0] == '\0' && input->midpoint_interval[0] != '\0')
 	{
 		//if interval but no mid point 
 		//time is now
@@ -425,11 +425,54 @@ bool CSMINodeFindJob::CreatePayload(
 				stmt.append(
 				")");
 			}
-		stmt.append(")"
-		"ORDER BY "
-			"node_name, "
-			"allocation_id "
-			"ASC NULLS LAST ");
+		stmt.append("ORDER BY ");
+		switch (input->order_by)
+		{
+			case 'a':
+				stmt.append("node_name, allocation_id ASC NULLS LAST ");
+				break;
+			case 'b':
+				stmt.append("node_name, allocation_id DESC NULLS LAST ");
+				break;
+			case 'c':
+				stmt.append("allocation_id ASC NULLS LAST ");
+				break;
+			case 'd':
+				stmt.append("allocation_id DESC NULLS LAST ");
+				break;
+			case 'e':
+				stmt.append("primary_job_id ASC NULLS LAST ");
+				break;
+			case 'f':
+				stmt.append("primary_job_id DESC NULLS LAST ");
+				break;
+			case 'g':
+				stmt.append("user_name ASC NULLS LAST ");
+				break;
+			case 'h':
+				stmt.append("user_name DESC NULLS LAST ");
+				break;
+			case 'i':
+				stmt.append("num_nodes ASC NULLS LAST ");
+				break;
+			case 'j':
+				stmt.append("num_nodes DESC NULLS LAST ");
+				break;
+			case 'k':
+				stmt.append("begin_time ASC NULLS LAST ");
+				break;
+			case 'l':
+				stmt.append("begin_time DESC NULLS LAST ");
+				break;
+			case 'm':
+				stmt.append("end_time ASC NULLS LAST ");
+				break;
+			case 'n':
+				stmt.append("end_time DESC NULLS LAST ");
+				break;
+			default:
+				stmt.append("node_name, allocation_id ASC NULLS LAST ");
+		}
 		add_param_sql( stmt, input->limit > 0, ++SQLparameterCount,
             "LIMIT $", "::int ")
 		add_param_sql( stmt, input->offset > 0, ++SQLparameterCount,
@@ -445,7 +488,7 @@ bool CSMINodeFindJob::CreatePayload(
 	if(input->end_time_search_begin[0]    != '\0') dbReq->AddTextParam(input->end_time_search_begin);
 	if(input->end_time_search_end[0]      != '\0') dbReq->AddTextParam(input->end_time_search_end);
 	if(SQLNum_midpoint                    > 0    ) dbReq->AddTextParam(input->midpoint);
-	if(SQLNum_midpoint_interval           > 0    ) dbReq->AddTextParam(input->midpoint_delta);
+	if(SQLNum_midpoint_interval           > 0    ) dbReq->AddTextParam(input->midpoint_interval);
 	if(input->search_range_begin[0]       != '\0') dbReq->AddTextParam(input->search_range_begin);
 	if(input->search_range_end[0]         != '\0') dbReq->AddTextParam(input->search_range_end);
 	if(input->user_name[0]                != '\0') dbReq->AddTextParam(input->user_name);
