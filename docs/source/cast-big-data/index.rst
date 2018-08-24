@@ -17,8 +17,8 @@ assumes the components of the stack are installed in the following order:
     logstash.rst 
     elasticsearch.rst
     kibana.rst
-    beats.rst
     data-aggregators.rst
+    beats.rst
     python-guide.rst
     csm-event-correlator.rst
     timeline.rst
