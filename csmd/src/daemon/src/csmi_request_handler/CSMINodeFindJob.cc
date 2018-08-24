@@ -425,7 +425,8 @@ bool CSMINodeFindJob::CreatePayload(
 				stmt.append(
 				")");
 			}
-		stmt.append(" ORDER BY ");
+		stmt.append(") ");
+		stmt.append("ORDER BY ");
 		switch (input->order_by)
 		{
 			case 'a':
