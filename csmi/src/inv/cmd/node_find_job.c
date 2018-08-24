@@ -42,7 +42,7 @@ void help() {
 	puts("_____CSM_NODE_FIND_JOB_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_node_find_job ARGUMENTS [OPTIONS]");
-	puts("  csm_node_find_job [-b begin_time_search_begin] [-B begin_time_search_end] [-e end_time_search_begin] [-E end_time_search_end] [-n node_names] [-l limit] [-o offset] [-h] [-v verbose_level]");
+	puts("  csm_node_find_job [-b begin_time_search_begin] [-B begin_time_search_end] [-e end_time_search_begin] [-E end_time_search_end] [-n node_names] [-l limit] [-o offset] [-h] [-v verbose_level] [-Y]");
 	puts("");
 	puts("SUMMARY: Used to help find what job was running on a node during a specific time.");
 	puts("");
@@ -79,11 +79,12 @@ void help() {
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
+	puts("[-Y, --YAML]                  | Set output to YAML. By default for this API, we have a custom output for ease of reading the many jobs on a node.");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
 	puts("  csm_node_find_job -n node_01 -s \"2000-01-15 12:00:00.000000\" -S \"2000-01-15 13:00:00.000000\"");
 	puts("");
-	puts("OUTPUT OF THIS COMMAND IS DISPLAYED IN THE YAML FORMAT.");
+	puts("OUTPUT OF THIS COMMAND CAN BE DISPLAYED IN THE YAML FORMAT.");
 	puts("____________________");
 }
 
@@ -91,6 +92,7 @@ struct option longopts[] = {
 	//general options
 	{"help",                    no_argument,       0, 'h'},
 	{"verbose",                 required_argument, 0, 'v'},
+	{"YAML",                    no_argument,       0, 'Y'},
 	//arguments
 	{"begin_time_search_begin", required_argument, 0, 'b'},
 	{"begin_time_search_end",   required_argument, 0, 'B'},
@@ -129,6 +131,8 @@ int main(int argc, char *argv[])
 	/* For for loops.*/
 	uint32_t i = 0;
 	char *arg_check = NULL; ///< Used in verifying the long arg values.
+	/*For format printing later. */
+	char YAML = 0;
 	
 	/*Set up data to call API*/
 	API_PARAMETER_INPUT_TYPE* input = NULL;
@@ -137,7 +141,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:b:B:e:E:m:M:n:l:o:s:S:u:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:b:B:e:E:m:M:n:l:o:s:S:u:Y", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':      
                 USAGE();
@@ -203,6 +207,9 @@ int main(int argc, char *argv[])
 				csm_optarg_test( "-u, --user_name", optarg, USAGE );
 				input->user_name = strdup(optarg);
 				optionalParameterCounter++;
+				break;
+			case 'Y':
+				YAML = 1;
 				break;
 			default:
 				csmutil_logging(error, "unknown arg: '%c'\n", opt);
@@ -272,19 +279,59 @@ int main(int argc, char *argv[])
     switch(return_value)
     {
         case CSMI_SUCCESS:
-		    puts("---");
-		    printf("Total_Records: %u\n", output->results_count);
-		    for (i = 0; i < output->results_count; i++) {
-		    	printf("RECORD_%i:\n", i+1);
-		    	printf("  node_name:      %s\n", output->results[i]->node_name);
-				printf("  allocation_id:  %" PRId64 "\n", output->results[i]->allocation_id);
-				printf("  primary_job_id: %" PRId64 "\n", output->results[i]->primary_job_id);
-				printf("  user_name:      %s\n", output->results[i]->user_name);
-				printf("  num_nodes:      %" PRId32 "\n", output->results[i]->num_nodes);
-	    		printf("  begin_time:     %s\n", output->results[i]->begin_time);
-				printf("  end_time:       %s\n", output->results[i]->end_time);
-		    }
-		    puts("...");
+			if(YAML == 1)
+			{
+				puts("---");
+				printf("Total_Records: %u\n", output->results_count);
+				for (i = 0; i < output->results_count; i++) {
+					printf("RECORD_%i:\n", i+1);
+					printf("  node_name:      %s\n", output->results[i]->node_name);
+					printf("  allocation_id:  %" PRId64 "\n", output->results[i]->allocation_id);
+					printf("  primary_job_id: %" PRId64 "\n", output->results[i]->primary_job_id);
+					printf("  user_name:      %s\n", output->results[i]->user_name);
+					printf("  num_nodes:      %" PRId32 "\n", output->results[i]->num_nodes);
+					printf("  begin_time:     %s\n", output->results[i]->begin_time);
+					printf("  end_time:       %s\n", output->results[i]->end_time);
+				}
+				puts("...");
+			}
+			else
+			{
+				int largest_nodename_length = 9;
+				int largest_allocationid_length = 13;
+				int largest_primaryjobid_length = 14;
+				int largest_username_length = 9;
+				int largest_numnodes_length = 9;
+				
+				// 10 = largest 
+				for(i = 0; i < output->results_count; i++)
+				{
+					int temp_nodeNameSize = strlen(output->results[i]->node_name);
+					int temp_userNameSize = strlen(output->results[i]->user_name);
+					
+					if(temp_nodeNameSize > largest_nodename_length){
+						largest_nodename_length = temp_nodeNameSize;
+					}
+					if(temp_userNameSize > largest_username_length){
+						largest_username_length = temp_userNameSize;
+					}
+				}
+				
+				puts("---");
+				//printf("node_name: %s\n", output->results[i]->node_name);
+				printf("# %-*s | %-*s | %-*s | %-*s | %-*s | %-26s | %-26s\n", largest_nodename_length, "node_name", largest_allocationid_length, "allocation_id", largest_primaryjobid_length, "primary_job_id", largest_username_length, "user_name", largest_numnodes_length, "num_nodes", "begin_time", "end_time");
+				printf("# %-*s + %-*s + %-*s + %-*s + %-*s + %-26s + %-26s\n", largest_nodename_length, " "        , largest_allocationid_length, " "            , largest_primaryjobid_length, " "             , largest_username_length, " "        , largest_numnodes_length, " "        , " "         , " ");
+				
+				//printf("#    node_name    | allocation_id | primary_job_id | user_name | num_nodes |         begin_time         |          end_time          \n");
+				//printf("#-----------------+---------------+----------------+-----------+-----------+----------------------------+----------------------------\n");
+				for(i = 0; i < output->results_count; i++){
+					//format the string for nice padding
+					printf("# %-*s | %-*"PRId64" | %-*"PRId64" | %-*s | %-*"PRId32" | %-26s | %-26s\n", largest_nodename_length, output->results[i]->node_name, largest_allocationid_length, output->results[i]->allocation_id, largest_primaryjobid_length, output->results[i]->primary_job_id, largest_username_length, output->results[i]->user_name, largest_numnodes_length, output->results[i]->num_nodes, output->results[i]->begin_time, output->results[i]->end_time);
+				}
+				puts("...");
+			}
+			
+		    
             break;
 
         case CSMI_NO_RESULTS:
