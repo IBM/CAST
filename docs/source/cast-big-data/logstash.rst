@@ -32,17 +32,14 @@ in `/opt/ibm/csm/bigdata/logstash/`.
 
      yum install -y logstash-*.rpm java-1.8.*-openjdk
 
-2. Copy the Logstash pipeline configuration files to the appropriate directories. This step
-    is ultimately optional, however it is recommended that these files be reviewed and modified
-    by the system administrator at this phase:
+2. Copy the Logstash pipeline configuration files to the appropriate directories. 
+
+    This step is ultimately optional, however it is recommended that these files be reviewed and 
+    modified by the system administrator at this phase:
 
     +-----------------------------+-----------+-----------+
     | Target file                 | Repo Dir  | RPM Dir   |
     +=============================+===========+===========+
-    | logstash.yml                | config/   | config/   |
-    +-----------------------------+-----------+-----------+
-    | jvm.options                 | config/   | config/   |
-    +-----------------------------+-----------+-----------+
     | conf.d/logstash.conf        | config/   | config/   |
     +-----------------------------+-----------+-----------+
     | patterns/ibm_grok.conf      | patterns/ | patterns/ |
