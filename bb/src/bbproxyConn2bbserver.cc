@@ -58,7 +58,18 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
             LOG(bb,error) << "SSL failure, sock->attachRemote(), errno = " << errno << ", (" << strerror(errno) << ")";
             LOG_RC_AND_BAIL(errno);
         }
-        else sock->verifyCertificates();
+        else {
+            sock->verifyCertificates();
+            bool l_turnOnKeepAlive = config.get("bb.usekeepalive", true);
+            sock->setKeepAliveBool(l_turnOnKeepAlive);
+            if (l_turnOnKeepAlive){
+                int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
+                int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
+                int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+            }
+            sock->keepAlive();
+        }
         
     }
     catch(ExceptionBailout& e)
@@ -101,6 +112,17 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
         {
             LOG(bb,error) << "nonSSL failure, sock->attachRemote(), errno = " << errno << ", (" << strerror(errno) << ")";
             LOG_RC_AND_BAIL(errno);
+        }
+        else {
+            bool l_turnOnKeepAlive = config.get("bb.usekeepalive", true);
+            sock->setKeepAliveBool(l_turnOnKeepAlive);
+            if (l_turnOnKeepAlive){
+                int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
+                int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
+                int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+            }
+            sock->keepAlive();
         }
     }
     catch(ExceptionBailout& e)

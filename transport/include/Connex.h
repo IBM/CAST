@@ -86,7 +86,7 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         int _lastReadHadNextMsg;
         std::string _connectionName;
         std::string _connectionNameAlias;
-        
+        int attachRemote(int retryTime, int retryCount);
 
     public:
         // Constructors
@@ -156,6 +156,7 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         virtual int listen4remote()=0;
         virtual void setCred(){};
         virtual bool remoteAndLocalAddressNotSame(){return false;}
+        virtual int keepAlive(){return 0;}
 
         // Virtual methods
         virtual memItemPtr getReadChunk();
@@ -208,6 +209,10 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
             _memChunkReadPtr(0),
             _numChunks(64),
             _chunkSizeRead(2*64*1024) {
+            _keepAliveIntvl=5;
+            _keepAliveIdle=60;
+            _keepAliveCount=12;
+            _turnOnKeepAlive=true;
         }
 
         int _family;    //!< socket family
@@ -219,6 +224,10 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         MemChunk * _memChunkReadPtr; //!Point to memchunks for read processing
         int _numChunks;  //! number of memory chunks for read processing
         uint64_t _chunkSizeRead; //! size of memory chunks for read processing
+        int _keepAliveIntvl;   //!  the interval seconds between subsequential keepalive probes
+        int _keepAliveIdle;    //!  the interval seconds between the last data packet sent and the first keepalive probe
+        int _keepAliveCount;   //!  the maximum number of unacknowledged probes to send
+        bool _turnOnKeepAlive; //!  turn keepAlive on if true; turn off if false
 
     public:
         virtual int getFamily() final {return _family;}
@@ -260,10 +269,14 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
 
         int attachRemote();
         int attachRemote(int retryTime, int retryCount);
-        //! pKeepIdle [in] the interval between the last data packet sent and the first keepalive probe
-        //! pKeepIntvl [in] the interval between subsequential keepalive probes
-        //! pKeepCount [in] the maximum number of unacknowledged probes to send
-        int setKeepAlive( int pKeepIdle=60, int pKeepIntvl=5,int pKeepCount=12);
+        virtual int keepAlive();
+        void setKeepAliveBool(bool pTurnOnKeepAlive){_turnOnKeepAlive=pTurnOnKeepAlive;}
+        void setKeepAliveParms(int pKeepAliveIntvl, int pKeepAliveIdle, int pKeepAliveCount )
+        {
+            _keepAliveIntvl = pKeepAliveIntvl;
+            _keepAliveIdle = pKeepAliveIdle;   
+            _keepAliveCount = pKeepAliveCount;   
+        }
 
 
         virtual void closefd() {
