@@ -18,7 +18,7 @@ csmi_switch_env_data.def 1 6c0f5ef571cf4653347579de5ef91469
 csmi_fabric_topology.def 1 6c0f5ef571cf4653347579de5ef91469
 csmi_node_details.def 11 0481c5178acd96d62bf0fd1d528143f1
 csmi_cluster_query_state_record.def 9 
-csmi_node_find_job_record.def 7 
+csmi_node_find_job_record.def 8 
 csm_ib_cable_inventory_collection_input.def 2 e6623d2246ede860366b032523fd8262
 csm_ib_cable_inventory_collection_output.def 2 3809391c168b0a0a6298b0247c923b22
 csm_ib_cable_query_input.def 4 3e69eda81e00d592815ea50c6d0889b6
