@@ -55,10 +55,11 @@
 #include <linux/iomap.h>
 #endif
 
+#define EXP_VERSION "1.2"
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bryan Rosenburg");
 MODULE_DESCRIPTION("Provides access to block layout functionality");
-MODULE_VERSION("1.1");
+MODULE_VERSION(EXP_VERSION);
 
 static int export_layout_debug = 0;
 module_param(export_layout_debug, int, S_IRUGO | S_IWUSR);
@@ -128,8 +129,8 @@ static int __init export_layout_init(void)
 	Device = device;
 
 	printk(KERN_INFO
-	       "%s: module (built %s %s) loaded, major number %d export_layout_debug %d \n",
-	       __func__, __DATE__, __TIME__, Major, export_layout_debug);
+	       "%s: export_layout module (built %s %s)  major %d version %s  \n",
+	       __func__, __DATE__, __TIME__, Major, EXP_VERSION);
 
 	return 0;
 
@@ -160,12 +161,11 @@ static bool export_layout_callback(struct file_lock *fl)
 static void export_layout_callback(struct file_lock *fl)
 #endif
 {
-	struct transfer_info *t;
-	t = (struct transfer_info *)fl->fl_owner;
-
-	if (export_layout_debug)
-		printk(KERN_DEBUG "%s: fd %d, file %p\n", __func__, t->fd,
-		       t->target);
+	if (export_layout_debug){
+		long int fd = (long int)fl->fl_owner;
+		printk(KERN_DEBUG "%s: fl_pid mainpid=%d fd=%ld file=%p\n", __func__, fl->fl_pid, fd, fl->fl_file);
+	}
+		
 
 	fl->fl_break_time = 0;	// Don't let the lease timeout.
 #if (LINUX_VERSION_CODE >=  KERNEL_VERSION(3,18,0))
@@ -192,7 +192,7 @@ static int export_layout_set_callback(struct transfer_info *t)
 	fl->fl_flags = FL_LAYOUT;
 	fl->fl_type = F_RDLCK;
 	fl->fl_end = OFFSET_MAX;
-	fl->fl_owner = (fl_owner_t) t;
+	fl->fl_owner = (fl_owner_t)(long) t->fd;
 	fl->fl_pid = current->tgid;
 	fl->fl_file = t->target;
 
@@ -213,7 +213,7 @@ static void export_layout_clear_callback(struct transfer_info *t)
 static int export_layout_open(struct inode *inodep, struct file *filep)
 {
 	struct transfer_info *t;
-	if (export_layout_debug)
+	if (export_layout_debug>1)
 		printk(KERN_DEBUG "%s: inode %p, file %p\n", __func__, inodep,
 		       filep);
 	t = kzalloc(sizeof(struct transfer_info), GFP_KERNEL);
@@ -226,22 +226,31 @@ static int export_layout_open(struct inode *inodep, struct file *filep)
 static int export_layout_release(struct inode *inodep, struct file *filep)
 {
 	struct transfer_info *t;
-	if (export_layout_debug)
+	if (export_layout_debug>2)
 		printk(KERN_DEBUG "%s: inode %p, file %p\n", __func__, inodep,
 		       filep);
 
 	mutex_lock(&export_layout_lock);
 	t = (struct transfer_info *)filep->private_data;
 	filep->private_data = NULL;
+	mutex_unlock(&export_layout_lock);
+	
 	if (t->target) {
+		if (export_layout_debug){
+    	    printk(KERN_DEBUG "%s: completed fd=%d, file=%p name=%pd usecount=%ld pid=%d mainpid=%d\n",
+		       __func__, t->fd,
+		       t->target, t->target->f_path.dentry,atomic_long_read(&t->target->f_count),current->pid,current->tgid);
+		}
 		export_layout_clear_callback(t);
 		kfree(t->iomap);
 		t->iomap = NULL;
 		fput(t->target);
 		t->target = NULL;
+	}else{
+		if (export_layout_debug)
+    	    printk(KERN_DEBUG "%s: completed fd=%d pid=%d mainpid=%d\n", __func__, t->fd, current->pid,current->tgid);
 	}
 	kfree(t);
-	mutex_unlock(&export_layout_lock);
 	return 0;
 }
 
@@ -276,6 +285,7 @@ static long transfer_setup(struct file *filep,
 	}
 
 	if (copy_from_user(&setup, (void __user *)p, sizeof(setup))){
+		printk(KERN_ALERT "%s: bad copy_from_user fd=%d file=%p \n", __func__,t->fd,t->target);	 
 		rc = -EFAULT;
 		goto error_return_rc;
 	}
@@ -287,15 +297,15 @@ static long transfer_setup(struct file *filep,
 
 	t->target = fget(t->fd);
 	if (!t->target){
+		printk(KERN_ALERT "%s: bad fget fd=%d file=%p \n", __func__,t->fd,t->target);	 
 		rc = -EBADF;
 		goto error_return_rc;
 	}
-
-	if (export_layout_debug)
-		printk(KERN_DEBUG "%s: fd %d, writing %d, offset 0x%llx, "
-		       "length 0x%llx, file %p\n",
-		       __func__, t->fd, t->writing, t->offset, t->length,
-		       t->target);
+	if (export_layout_debug){
+    	printk(KERN_DEBUG "%s: proceeding fd=%d, file=%p name=%pd pid=%d mainpid=%d writing=%d offset=0x%llx length=0x%llx setup.extent_count_max=%d\n",
+		       __func__, t->fd, t->target, t->target->f_path.dentry,current->pid,current->tgid,t->writing,t->offset, t->length,
+		       setup.extent_count_max);
+	}
 
 	rc = export_layout_set_callback(t);
 	if (rc)
@@ -404,8 +414,14 @@ static long transfer_setup(struct file *filep,
 	if (copy_to_user
 	    (&((struct export_layout_transfer_setup *)p)->extent_count,
 	     &setup_return->extent_count, sizeof(__u32) + extent_size)) {
+		printk(KERN_ALERT "%s: bad copy_to_user fd=%d file=%p \n", __func__,t->fd,t->target);	 
 		rc = -EFAULT;
 		goto error_free_setup_return;
+	}
+    if (export_layout_debug){
+    	printk(KERN_DEBUG "%s: completed fd=%d, file=%p name=%pd usecount=%ld pid=%d mainpid=%d\n",
+		       __func__, t->fd,
+		       t->target, t->target->f_path.dentry,atomic_long_read(&t->target->f_count),current->pid,current->tgid);	
 	}
 
 	kfree(setup_return);
@@ -453,13 +469,16 @@ static long transfer_finalize(struct file *filep,
 	}
 
 	if (copy_from_user(&final, (void __user *)p, sizeof(final))) {
+		printk(KERN_ALERT "%s: bad copy_from_user fd=%d file=%p \n", __func__,t->fd,t->target);
 		rc = -EFAULT;
 		goto finalize_badrc;
 	}
 
-	if (export_layout_debug)
-		printk(KERN_DEBUG "%s: fd %d, file %p, status %d\n",
-		       __func__, t->fd, t->target, final.status);
+	if (export_layout_debug){
+    	printk(KERN_DEBUG "%s: proceeding fd=%d, file=%p name=%pd usecount=%ld status=%d pid=%d mainpid=%d\n",
+		       __func__, t->fd,
+		       t->target, t->target->f_path.dentry,atomic_long_read(&t->target->f_count),final.status,current->pid,current->tgid);	
+	}		   
 
 	inode = file_inode(t->target);
 	ops = inode->i_sb->s_export_op;
@@ -478,9 +497,13 @@ static long transfer_finalize(struct file *filep,
 	}
 
 	export_layout_clear_callback(t);
-
 	kfree(t->iomap);
 	t->iomap = NULL;
+    if (export_layout_debug){
+    	printk(KERN_DEBUG "%s: completed rc=%d fd=%d, file=%p name=%pd usecount=%ld pid=%d mainpid=%d\n",
+		       __func__, rc, t->fd,
+		       t->target, t->target->f_path.dentry,atomic_long_read(&t->target->f_count),current->pid,current->tgid);	
+	}
 	fput(t->target);
 	t->target = NULL;
 finalize_badrc:	
@@ -491,10 +514,6 @@ finalize_badrc:
 static long export_layout_ioctl(struct file *filep,
 				unsigned int cmd, unsigned long p)
 {
-	if (export_layout_debug)
-		printk(KERN_DEBUG "%s: file %p, cmd 0x%04x, %p\n",
-		       __func__, filep, cmd, (void __user *)p);
-
 	switch (cmd) {
 
 	case EXPORT_LAYOUT_IOC_TRANSFER_SETUP:
@@ -504,7 +523,11 @@ static long export_layout_ioctl(struct file *filep,
 		return transfer_finalize(filep, cmd, p);
 	}
 
-	return 0;
+	if (export_layout_debug)
+		printk(KERN_DEBUG "%s: invalid command file %p, cmd 0x%04x, %p\n",
+		       __func__, filep, cmd, (void __user *)p);
+
+	return -EINVAL;
 }
 
 module_init(export_layout_init);
