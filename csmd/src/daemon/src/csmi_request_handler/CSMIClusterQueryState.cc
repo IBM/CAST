@@ -116,6 +116,7 @@ bool CSMIClusterQueryState::CreatePayload(
 				break;
 			case 'h':
 				stmt.append("num_allocs DESC NULLS LAST ");
+				break;
 			default:
 				stmt.append("node_name ASC NULLS LAST ");
 		}
