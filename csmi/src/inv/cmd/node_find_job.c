@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:b:B:e:E:m:M:n:l:o:s:S:u:Y", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:b:B:e:E:m:M:n:l:o:O:s:S:u:Y", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':      
                 USAGE();
@@ -208,6 +208,32 @@ int main(int argc, char *argv[])
             case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
+				break;
+			case 'O':
+				if(strlen(optarg) == 1 && 
+                    (  optarg[0] == 'a' 
+					|| optarg[0] == 'b' 
+					|| optarg[0] == 'c' 
+					|| optarg[0] == 'd' 
+					|| optarg[0] == 'e' 
+					|| optarg[0] == 'f' 
+					|| optarg[0] == 'g' 
+					|| optarg[0] == 'h' 
+					|| optarg[0] == 'i' 
+					|| optarg[0] == 'j' 
+					|| optarg[0] == 'k' 
+					|| optarg[0] == 'l' 
+					|| optarg[0] == 'm' 
+					|| optarg[0] == 'n' 
+					)
+				)
+                {
+					input->order_by = optarg[0];
+				}else{
+					csmutil_logging(error, "Invalid parameter for -O: optarg , encountered: %s", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
 				break;
 			case 's':
 				csm_optarg_test( "-s, --search_range_begin", optarg, USAGE );
