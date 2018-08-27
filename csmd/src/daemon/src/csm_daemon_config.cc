@@ -1086,6 +1086,13 @@ void Configuration::CreateThreadPool()
         _Tweaks._NetMgr_polling_loops = 1000;
     }
 
+    // Defaults for a maximum job length of 30 days are below
+    // Attempt to limit samples using max_keep_samples, but set max_keep_age to be a multiple of this time span just in case 
+    // Note: if a job runs for longer than MAX_JOB_IN_SECONDS, DCGM job stats collected will truncate the data collected
+    // to the last MAX_JOB_IN_SECONDS seconds worth of data
+    const uint64_t DEFAULT_UPDATE_INTERVAL_S(30);      // set in seconds here, it will be scaled later
+    const uint32_t MAX_JOB_IN_SECONDS(60*60*24*30);
+
     uint_val = GetValueInConfig( std::string("csm.tuning.dcgm_update_interval_s") );
     if( ! uint_val.empty() )
     {
@@ -1093,7 +1100,28 @@ void Configuration::CreateThreadPool()
       enabled = true;
     }
     else
-      _Tweaks._DCGM_update_interval_s = 30;  // set in seconds here, it will be scaled later
+      _Tweaks._DCGM_update_interval_s = DEFAULT_UPDATE_INTERVAL_S;
+   
+    // Using max_keep_samples to control sample purging in DCGM, max_keep_age should be set to a larger value 
+    uint_val = GetValueInConfig( std::string("csm.tuning.dcgm_max_keep_age_s") );
+    if( ! uint_val.empty() )
+    {
+      _Tweaks._DCGM_max_keep_age_s = (double)std::stoi( uint_val );
+      enabled = true;
+    }
+    else
+      _Tweaks._DCGM_max_keep_age_s = (MAX_JOB_IN_SECONDS*3);  // Include some margin of error based on max expected job length
+    
+    // Use max_keep_samples to control sample purging in DCGM
+    // Set based on the configured update interval and maximum supported job length
+    uint_val = GetValueInConfig( std::string("csm.tuning.dcgm_max_keep_samples") );
+    if( ! uint_val.empty() )
+    {
+      _Tweaks._DCGM_max_keep_samples = (uint32_t)std::stoi( uint_val );
+      enabled = true;
+    }
+    else
+      _Tweaks._DCGM_max_keep_samples = (MAX_JOB_IN_SECONDS/_Tweaks._DCGM_update_interval_s); 
 
     if( enabled )
       LOG( csmd, info ) << "CSMD Tuning enabled: " << _Tweaks;

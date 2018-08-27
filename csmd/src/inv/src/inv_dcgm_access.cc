@@ -60,8 +60,6 @@ uint16_t csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELDS[] =
 {
    DCGM_FI_DEV_SERIAL,                            // Device Serial Number
    DCGM_FI_DEV_POWER_USAGE,                       // GPU power consumption, in Watts
-   DCGM_FI_DEV_MEM_COPY_UTIL_SAMPLES,             // memory utilization samples
-   DCGM_FI_DEV_GPU_UTIL_SAMPLES,                  // gpu utilization samples
    DCGM_FI_DEV_GPU_TEMP,                          // GPU temperature, in degrees C
    DCGM_FI_DEV_GPU_UTIL,                          // GPU utilization
    DCGM_FI_DEV_MEM_COPY_UTIL,                     // GPU memory utilization
@@ -167,22 +165,13 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     dcgmDisconnect_ptr = nullptr;
     dcgmShutdown_ptr = nullptr;
     DcgmFieldGetById_ptr = nullptr;
+    dcgmWatchPidFields_ptr = nullptr;
     dcgmWatchJobFields_ptr = nullptr;
     dcgmJobStartStats_ptr = nullptr;
     dcgmJobStopStats_ptr = nullptr;      
     dcgmJobGetStats_ptr = nullptr;
     dcgmJobRemove_ptr = nullptr;
 
-    // other variables
-    // updateFreq = 1000000;
-    // maxKeepAge = 0.5;
-    // updateFreq = 1;
-    // maxKeepAge = 1000;
-    // starting by setting in seconds then scale later
-    updateFreq = csm::daemon::Configuration::Instance()->GetTweaks()._DCGM_update_interval_s;
-    maxKeepAge = updateFreq + 5;  // add 5s to make sure we keep data longer than the update interval
-    updateFreq *= 1000000; // scale to the right unit
-    maxKeepSamples = 1;
 
     // other variables
     dcgm_gpu_count = 0; 
@@ -284,7 +273,100 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     {
         LOG(csmenv, warning) << "ReadFieldNames() returned false for CSM_ENVIRONMENTAL_FIELDS";
     }
+   
+    // Workaround for DCGM behavior:
+    // While DCGM allows for multiple internal and external field groups, 
+    // it appears to only store a single update_frequency, max_keep_age, and max_keep_samples per field.
+    // If any two field groups, external or internal, both watch a common field, the watch settings of
+    // one field group interfere with the watch settings of the other.
+    // This causes interference between CSM environmental data and job stats data, for example.
+    // In order to work around this behavior, always set all fields watched by CSM to use common settings.
+   
+    // For job stats fields, the data is calculated based on the samples that DCGM collects for
+    // the job stats watched by WatchJobFields().
+    // In order to have the most accurate accounting, we would prefer to always have samples representing 
+    // the whole duration of the job. In order to have the most samples possible, try not to throw any
+    // samples away due to max_keep_age or max_keep_samples limits being hit.
+    // 
+    // Scale max_keep_samples and max_keep_age to be around the length of the maximum expected job, plus some margin of error
+    
+    // Example values for a maximum job length of 30 days are below, actual values read from CSM daemon config
+    // The CSM daemon config values can be overridden with tweaks 
+    const uint32_t MAX_JOB_IN_SECONDS(60*60*24*30);
+    const uint64_t UPDATE_FREQUENCY_IN_SECONDS(30);
+    uint64_t update_frequency(UPDATE_FREQUENCY_IN_SECONDS*1000000);                 // How often to update this field in usecs
+    double max_keep_age(MAX_JOB_IN_SECONDS*3);                                      // How long to keep data for this field in seconds
+    uint32_t max_keep_samples(MAX_JOB_IN_SECONDS/UPDATE_FREQUENCY_IN_SECONDS);      // Maximum number of samples to keep (0=no limit)
 
+    // Read actual values from csm config tweaks
+    update_frequency = csm::daemon::Configuration::Instance()->GetTweaks()._DCGM_update_interval_s * 1000000;
+    max_keep_age = csm::daemon::Configuration::Instance()->GetTweaks()._DCGM_max_keep_age_s;
+    max_keep_samples = csm::daemon::Configuration::Instance()->GetTweaks()._DCGM_max_keep_samples;
+
+    LOG(csmenv, info) << "DCGM watch settings: update_frequency: " << update_frequency
+                      << ", max_keep_age: " << max_keep_age << ", max_keep_samples: " << max_keep_samples;
+  
+    // Start watching environmental fields 
+    rc = (*dcgmWatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_environmental_field_group_handle, update_frequency, 
+      max_keep_age, max_keep_samples);
+    if (rc != DCGM_ST_OK)
+    {
+        LOG(csmenv, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+        dcgm_init_flag = false;
+        return;
+    }
+    else 
+    {
+        LOG(csmenv, debug) << "dcgmWatchFields was successful";
+    }
+    
+    // Start watching Job Fields to allow allocation job accounting to work correctly 
+    rc = (*dcgmWatchJobFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, update_frequency, max_keep_age, max_keep_samples);
+    if (rc != DCGM_ST_OK)
+    {
+        LOG(csmenv, error) << "Error: dcgmWatchJobFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+        dcgm_init_flag = false;
+        return;
+    }
+    else 
+    {
+        LOG(csmenv, debug) << "dcgmWatchJobFields was successful";
+    }
+
+    // Call UpdateAllFields to initialize all of the fields watched above with valid data.
+    // Without this call, any watched fields will not be guaranteed to have valid data the first time they are read.
+    // This call prevents that situation by forcing valid data to be populated immediately after watching.
+    //
+    // A note about what UpdateAllFields does when using watches and DCGM in daemon mode:
+    // UpdateAllFields(1) will only update fields if DCGM sees that they are due for an update based on the
+    // current watch update frequency.
+    // For example, if the watch update frequency is 10 seconds, but the data is polled by CSM every 1 second using:
+    // UpdateAllFields() 
+    // GetLatestValuesForFields()
+    // DCGM will not actually update any of the data until 10 seconds has elapsed.
+    // CSM will read the same set of data 10 times in a row until the update frequency triggers an update to occur.
+    // The DCGM watch frequency should always be less than or equal to the CSM bucket frequency for useful data to be read. 
+    //
+    // UpdateAllFields() should be thought of as UpdateAllFieldsIfTheyAreOverdueForUpdating()
+    // When running in DCGM daemon mode, UpdateAllFields() will be redundant most of the time because
+    // DCGM is already polling the data based on the watch frequency.
+    //
+    // The exception to this is freshly watched fields. Calling UpdateAllFields(1) every time there is a change to 
+    // watched fields forces valid data into the fields that are being watched.
+    // 
+    // UpdateAllFields is more important when using DCGM in embedded mode because DCGM is not polling on its own, 
+    // but it still uses the same logic.
+    rc = (*dcgmUpdateAllFields_ptr)(dcgm_handle, 1);
+    if (rc != DCGM_ST_OK)
+    {
+        LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+        dcgm_init_flag = false;
+        return;
+    }
+    else 
+    {
+        LOG(csmenv, debug) << "dcgmUpdateAllFields was successful";
+    }
 }
 
 bool csm::daemon::INV_DCGM_ACCESS::InitializeFunctionPointers()
@@ -520,6 +602,17 @@ bool csm::daemon::INV_DCGM_ACCESS::InitializeFunctionPointers()
       LOG(csmd, debug) << "DcgmFieldGetById_ptr was successful";
    }
     
+   dcgmWatchPidFields_ptr = (dcgmWatchPidFields_ptr_t) dlsym(libdcgm_ptr, "dcgmWatchPidFields");
+   if ( dcgmWatchPidFields_ptr == nullptr )
+   {
+      LOG(csmd, error) << dlerror();
+      return false;
+   }
+   else
+   {
+      LOG(csmd, debug) << "dcgmWatchPidFields_ptr was successful";
+   }
+   
    dcgmWatchJobFields_ptr = (dcgmWatchJobFields_ptr_t) dlsym(libdcgm_ptr, "dcgmWatchJobFields");
    if ( dcgmWatchJobFields_ptr == nullptr )
    {
@@ -585,7 +678,6 @@ bool csm::daemon::INV_DCGM_ACCESS::GetGPUsAttributes(){
   {
 
    // cycling on the gpus of the group
-   //for (int32_t i = 0; i < dcgm_gpu_count && i < DCGM_MAX_NUM_DEVICES; i++)
    for (int i = 0; i < dcgm_gpu_count && i < DCGM_MAX_NUM_DEVICES; i++)
    {
 
@@ -735,39 +827,13 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
    std::lock_guard<std::mutex> lock(dcgm_mutex);
    
    dcgmReturn_t rc(DCGM_ST_OK);
-
-   uint64_t update_frequency(100);    // How often to update this field in usec
-   double max_keep_age(1);            // How long to keep data for this field in seconds
-   uint32_t max_keep_samples(1);      // Maximum number of samples to keep
    
-   rc = (*dcgmWatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_environmental_field_group_handle, update_frequency, 
-      max_keep_age, max_keep_samples);
-   if (rc != DCGM_ST_OK)
-   {
-      LOG(csmenv, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
-      return false;
-   }
-   else 
-   {
-      LOG(csmenv, debug) << "dcgmWatchFields was successful";
-   }
-
-   // Sleep for update_frequency to make sure the fields have been updated before reading
-   usleep(update_frequency);
-      
-   rc = (*dcgmUpdateAllFields_ptr)(dcgm_handle, 1);
-   if (rc != DCGM_ST_OK)
-   {
-      LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned \"" << errorString(rc) << "(" << rc << ")\"";
-      return false;
-   }
-
    dcgmFieldValue_t csm_environmental_field_values[CSM_ENVIRONMENTAL_FIELD_COUNT]; 
 
    // scan the gpus
    for (int i = 0; i < dcgm_gpu_count; i++)
    {
-      // get the latests values for CSM_ENVIRONMENTAL_FIELD_GROUP 
+      // get the latest values for CSM_ENVIRONMENTAL_FIELD_GROUP 
       rc = (*dcgmGetLatestValuesForFields_ptr)(dcgm_handle, gpu_ids[i], CSM_ENVIRONMENTAL_FIELDS, CSM_ENVIRONMENTAL_FIELD_COUNT, 
          csm_environmental_field_values);
       if (rc != DCGM_ST_OK)
@@ -827,21 +893,20 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
             }
          }
 
+#ifdef REMOVED        
+         // Extra printing for debugging field update times 
+         for (uint32_t j = 0; j < CSM_ENVIRONMENTAL_FIELD_COUNT; j++)
+         {
+            LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                               << " field_ts: " << csm_environmental_field_values[j].ts;
+         }
+#endif
+
          if (has_gpu_data)
          {
             gpu_data_pt_list.push_back(gpu_pt);
          }
       }
-   }
-
-   rc = (*dcgmUnwatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_environmental_field_group_handle);
-   if (rc != DCGM_ST_OK)
-   {
-      LOG(csmenv, error) << "Error: dcgmUnwatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
-   }
-   else 
-   {
-      LOG(csmenv, debug) << "dcgmUnwatchFields was successful";
    }
    
    LOG(csmenv, debug) << "Exit " << __FUNCTION__;   
@@ -862,7 +927,22 @@ bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocat
    // Only allow one thread to call DCGM at a time
    std::lock_guard<std::mutex> lock(dcgm_mutex);
 
-   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;
+   dcgmReturn_t rc(DCGM_ST_OK);
+
+   char csm_job_stats_name[] = "CSM_JOB_STATS";
+
+   rc = (*dcgmJobStartStats_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_job_stats_name);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmJobStartStats returned \"" << errorString(rc) << "(" << rc << ")\"";
+      return false;
+   }
+   else 
+   {
+      LOG(csmenv, debug) << "dcgmJobStartStats was successful";
+   }
+
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;   
    return true;
 }
 
@@ -879,9 +959,85 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
 
    // Only allow one thread to call DCGM at a time
    std::lock_guard<std::mutex> lock(dcgm_mutex);
+   
+   dcgmReturn_t rc(DCGM_ST_OK);
+   char csm_job_stats_name[] = "CSM_JOB_STATS";
+   
+   rc = (*dcgmJobStopStats_ptr)(dcgm_handle, csm_job_stats_name);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmJobStopStats returned \"" << errorString(rc) << "(" << rc << ")\"";
+      return false;
+   }
+   else 
+   {
+      LOG(csmenv, debug) << "dcgmJobStopStats was successful";
+   }
+   
+   dcgmJobInfo_t dcgm_job_stats;
+   dcgm_job_stats.version = dcgmJobInfo_version;
 
-   o_gpu_usage = -1;
-   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;
+   rc = (*dcgmJobGetStats_ptr)(dcgm_handle, csm_job_stats_name, &dcgm_job_stats);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmJobGetStats returned \"" << errorString(rc) << "(" << rc << ")\"";
+      return false;
+   }
+   else 
+   {
+      LOG(csmenv, debug) << "dcgmJobGetStats was successful, numGpus: " << dcgm_job_stats.numGpus;
+  
+      o_gpu_usage = 0;
+      uint64_t elapsed_usecs(0);
+      uint64_t gpu_usecs(0); 
+
+      for (int32_t i = 0; i < dcgm_job_stats.numGpus; i++)
+      {
+         LOG(csmenv, debug) << "dcgmJobGetStats: gpuId: " << dcgm_job_stats.gpus[i].gpuId          << ", "
+                            << " energyConsumed: "        << dcgm_job_stats.gpus[i].energyConsumed << ", "
+                            << " startTime: "             << dcgm_job_stats.gpus[i].startTime      << ", "
+                            << " endTime: "               << dcgm_job_stats.gpus[i].endTime        << ", "
+                            << " smUtilization: "         << dcgm_job_stats.gpus[i].smUtilization.average;
+         
+         elapsed_usecs = dcgm_job_stats.gpus[i].endTime - dcgm_job_stats.gpus[i].startTime;
+         gpu_usecs = (elapsed_usecs * dcgm_job_stats.gpus[i].smUtilization.average / 100);
+         
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " numComputePids: " << dcgm_job_stats.gpus[i].numComputePids << ", "
+                            << " smUtilization.minValue: "  << dcgm_job_stats.gpus[i].smUtilization.minValue << ", "
+                            << " smUtilization.maxValue: "  << dcgm_job_stats.gpus[i].smUtilization.maxValue << ", "
+                            << " smUtilization.average: "   << dcgm_job_stats.gpus[i].smUtilization.average;
+      
+         for (int32_t j = 0; j < dcgm_job_stats.gpus[i].numComputePids; j++)
+         {
+            LOG(csmenv, debug) << "gpuId: "    << dcgm_job_stats.gpus[i].gpuId << ", "
+                               << " pid: "     << dcgm_job_stats.gpus[i].computePidInfo[j].pid << ", "
+                               << " smUtil: "  << dcgm_job_stats.gpus[i].computePidInfo[j].smUtil << ", "
+                               << " memUtil: " << dcgm_job_stats.gpus[i].computePidInfo[j].memUtil;
+         }
+ 
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " elapsed_usecs: "  << elapsed_usecs << ", "
+                            << " smUtilization: "  << dcgm_job_stats.gpus[i].smUtilization.average << ", "
+                            << " gpu_usecs: "      << gpu_usecs;
+
+         o_gpu_usage += gpu_usecs;
+      }
+
+   }
+
+   rc = (*dcgmJobRemove_ptr)(dcgm_handle, csm_job_stats_name);
+   if (rc != DCGM_ST_OK)
+   {
+      LOG(csmenv, error) << "Error: dcgmJobRemove returned \"" << errorString(rc) << "(" << rc << ")\"";
+      return false;
+   }
+   else 
+   {
+      LOG(csmenv, debug) << "dcgmJobRemove was successful";
+   }
+
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;   
    return true;
 }
 
