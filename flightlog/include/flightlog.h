@@ -149,19 +149,21 @@ typedef struct FlightRecorderRegistry
     uint64_t                       flightlock;           ///< flightlock needs to be 1st entry in FlightRecorderRegistry_t (ppc asm performance opt)
 #elif __x86_64__
     uint32_t                       flightlock;
-    uint32_t                       padding;
+    uint32_t                       padding1;
 #else
   #error not supported
 #endif
-    uint64_t                       flightsize;           ///< size of the flightlog, in entries  (circular buffer wrap size)
+    uint64_t                       flightchecksum;
+    uint64_t                       flightsize;         ///< size of the flightlog, in entries  (circular buffer wrap size)
 
     // below are static fields needed for decoder
-    uint64_t                       num_ids;              ///< maximum number of IDs in the registry.
-    double                         timebaseScale;        ///< timebase scaling of the recorded system
-    uint64_t                       initTimebase;         ///< timebase value at initialization time
-    double                         initEpoch;            ///< epoch value at initialization time
-    const char                     decoderName[64];
-    const char                     registryName[128 - (sizeof(uint64_t)*3)]; //! name of the registry
+    uint64_t                       num_ids;            ///< maximum number of IDs in the registry.
+    double                         timebaseScale;      ///< timebase scaling of the recorded system
+    uint64_t                       timebaseAdjust;     ///< calculated adjustment for timebase
+    uint64_t                       padding2;           ///< pad to 64 byte boundary
+    uint64_t                       padding3;           ///< pad to 64 byte boundary
+    const char                     decoderName[64];    ///< path to the flightlog decoder
+    const char                     registryName[128];  ///< name of the registry
 } FlightRecorderRegistry_t;
 
 #define FLIGHTLOG_OFFSET sizeof(FlightRecorderRegistry_t)
@@ -347,9 +349,9 @@ __INLINE__ uint64_t FL_Write6_internal(FlightRecorderRegistry_t* reg,
 /**
  * \brief Create Flightlog Registries
 */
-extern int FL_CreateRegistries(const char* rootpath, unsigned int numreg, FlightRecorderCreate_t* flcreate);
+extern int FL_CreateRegistries(const char* rootpath, unsigned int numreg, FlightRecorderCreate_t* flcreate, uint64_t csum);
 extern int FL_AttachRegistry(FlightRecorderRegistryList_t** reglist, const char* filename, FlightRecorderRegistry_t* reg);
-extern int FL_CreateRegistry(FlightRecorderRegistry_t** regHandle, const char* name, const char* filename, const char* decoder, uint64_t length, FlightRecorderFormatter_t* fmt, uint64_t numids);
+extern int FL_CreateRegistry(FlightRecorderRegistry_t** regHandle, const char* name, const char* filename, const char* decoder, uint64_t length, FlightRecorderFormatter_t* fmt, uint64_t numids, uint64_t csum);
 
 /**
  * \brief Set the size of the flight log
