@@ -72,17 +72,38 @@ def convert_timestamp( timestamp ):
     return new_timestamp
 
 def build_time_range( start_time, end_time, 
-    start_field="@timestamp", end_field="@timestamp", end_optional=False):
+    start_field="@timestamp", end_field="@timestamp", 
+    end_optional=False):
+    
+    # Process the incoming time ranges, None in end_time is considered a bounding test.
+    single_point = end_time is None
+    if start_time is None:
+        return (None, None)
+
     # Build the time range
     start_time = convert_timestamp(start_time)
     end_time = convert_timestamp(end_time)
 
     # Build the time range.
-    timestamp={ "format" : TIME_SEARCH_FORMAT }
+    timestamp_start = { "format" : TIME_SEARCH_FORMAT } 
+    timestamp_end   = { "format" : TIME_SEARCH_FORMAT } 
+    
+    # Build the start time field.
     if start_time:
-        timestamp["gte"]=start_time
+        timestamp_start["gte"]=start_time
+        if end_field == start_field and end_time:
+            timestamp_start["lte"]=end_time
+
+    # If the end time was set specify an lte option.
     if end_time:
-        timestamp["lte"]=end_time
+        timestamp_end["lte"]=end_time
+
+    # For single point ranges build a bounding box and swap the start and end. 
+    if single_point:
+        timestamp_end["lte"] = start_time
+        temp_time            = timestamp_start
+        timestamp_start      = timestamp_end 
+        timestamp_end        = temp_time
 
     # If the time range has real data process, otherwise return the empty set.
     if start_time or end_time:
@@ -90,12 +111,12 @@ def build_time_range( start_time, end_time,
         match_min=1
 
         # The start field is always considered the "Baseline" 
-        target.append( { "range" : { start_field : timestamp } } )
+        target.append( { "range" : { start_field : timestamp_start } } )
 
         # If the end_field differs, increment the min match counter and add a missing catch for fields that are optional.
         if end_field != start_field:
             match_min += 1
-            target.append( { "range" : { end_field : timestamp } } )
+            target.append( { "range" : { end_field : timestamp_end } } )
 
             if end_optional:
                 target.append({"bool" : { "must_not" : { "exists" : { "field" : end_field } } } })
@@ -107,7 +128,8 @@ def build_time_range( start_time, end_time,
     return(target, match_min)
 
 
-def search_user_jobs( es, user_name=None, user_id=None,  job_state=None, start_time=None, end_time=None, size=1000,
+def search_user_jobs( es, user_name=None, user_id=None, job_state=None, 
+    start_time=None, end_time=None, size=1000,
     fields=USER_JOB_FIELDS, index="cast-allocation" ):
     
     query={}
@@ -149,5 +171,44 @@ def search_user_jobs( es, user_name=None, user_id=None,  job_state=None, start_t
         body=body
     )
 
+def search_job( es, allocation_id=0, primary_job_id=0, secondary_job_id=0, size=1000,
+    fields=None, index="cast-allocation" ):
+
+    query={ "bool" : { "should" : [] } }
+    
+    if allocation_id > 0 : 
+        query={ 
+            "bool" : { 
+                "should" : [ 
+                    { "match" : { "data.allocation_id" : allocation_id } } 
+                ] 
+            } 
+        }
+    elif primary_job_id > 0 and secondary_job_id >= 0:
+        query={ 
+            "bool" : { 
+                "should" : [ 
+                    { "match" : { "data.primary_job_id"   : primary_job_id } },
+                    { "match" : { "data.secondary_job_id" : secondary_job_id } } 
+                ],
+                "minimum_should_match" : 2
+            } 
+        }
+    else:
+        return None
+
+    body={
+        "query" : query,
+        "size"  : size
+    }
+
+    if fields : 
+        body["_source"] = fields
+    
+
+    return es.search(
+        index=index,
+        body=body
+    )
 
 

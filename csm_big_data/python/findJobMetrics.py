@@ -23,10 +23,9 @@ from elasticsearch.serializer import JSONSerializer
 from datetime import datetime
 import operator
 
-TARGET_ENV='CAST_ELASTIC'
+import cast_helper as cast
 
-def deep_get( obj, *keys):
-    return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
+TARGET_ENV='CAST_ELASTIC'
 
 def main(args):
 
@@ -50,7 +49,6 @@ def main(args):
         help='The index to query for metrics records.')
     parser.add_argument( '--correlation', action='store_true',
         help="Displays the correlation between the supplied fields over the job run.")
-    
 
     args = parser.parse_args()
 
@@ -76,84 +74,87 @@ def main(args):
         sniffer_timeout=60
     )
 
-    # Build the query to get the time range.
-    should_query='{{ "query": {{ "bool": {{ "should":[{0}] {1} }} }} }}'
-    match_clause= '{{ "match":{{ "{0}": {1} }} }}'
-
-    if args.allocation_id > 0 :
-        tr_query = should_query.format(
-            match_clause.format("data.allocation_id", args.allocation_id), "")
-    else : 
-        tr_query = should_query.format(
-            "{0},{1}".format(
-                match_clause.format("data.primary_job_id", args.job_id ),
-                match_clause.format("data.secondary_job_id", args.job_id_secondary )),
-            ',"minimum_should_match" : 2' )
-
     # Execute the query on the cast-allocation index.
-    tr_res = es.search(
-        index="cast-allocation",
-        body=tr_query
-    )
+    tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
 
-    total_hits = deep_get(tr_res, "hits","total")
+    total_hits = cast.deep_get(tr_res, "hits","total")
 
     print("Got {0} Hit(s) for specified job:".format(total_hits))
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
-    hits=deep_get(tr_res, "hits", "hits")
-    allocation=deep_get(hits[0], "_source", "data")
+    hits       = cast.deep_get(tr_res, "hits", "hits")
+    allocation = cast.deep_get(hits[0], "_source", "data")
+
+    # ---------------------------------------------------------------------------------------------
+    # Build the hostnames string:
+    if args.hosts is None:
+        args.hosts = allocation.get("compute_nodes")
+    
+    hostnames = {
+        "multi_match" : {
+            "query"                 : " ".join(args.hosts),
+            "type"                  : "best_fields",
+            "fields"                :  [ "hostname", "source"],
+            "tie_breaker"           : 0.3,
+            "minimum_should_match"  : 1
+        }
+    }
 
     # ---------------------------------------------------------------------------------------------
     date_format= '%Y-%m-%d %H:%M:%S.%f'
     print_format='%Y-%m-%d %H:%M:%S:%f'
-    search_format='"yyyy-MM-dd HH:mm:ss:SSS"'
-    
-    start_time=datetime.strptime(allocation["begin_time"], date_format)
-    start_time='"{0}"'.format(start_time.strftime(print_format)[:-3])
-    
+    search_format='yyyy-MM-dd HH:mm:ss:SSS'
+
+    # Determine the timerange:
+    start_time=datetime.strptime(allocation.get("begin_time"), date_format)
+
+    timestamp_range= {
+        "gte"    : start_time.strftime(print_format)[:-3],
+        "format" : search_format
+    }
+
+    # If a history is present end_time is end_time, otherwise it's now.
     if "history" in allocation:
-        end_time=datetime.strptime(allocation["history"]["end_time"], date_format)
-        end_time_clause=',"lte": "{0}"'.format(end_time.strftime(print_format)[:-3])
-    else:
-        end_time="now"
-        end_time_clause=""
-
-    timerange='''"range": {{ "@timestamp": {{ "gte": {0} {1}, "format" : {2} }} }}'''\
-        .format(start_time, end_time_clause, search_format)
-
+        end_time=datetime.strptime(allocation.get("history").get("end_time"), date_format)
+        timestamp_range["lte"] = end_time.strftime(print_format)[:-3] 
     
+    timerange={
+        "range" : {
+            "@timestamp" : timestamp_range
+        }
+    }
     # ---------------------------------------------------------------------------------------------
 
-    # Build the hostnames string:
-    if args.hosts is None:
-        args.hosts = allocation["compute_nodes"]
-    
-    hostnames='''"multi_match" : {{ "query" : "{0}", "type" : "best_fields", "fields" : [ "hostname", "source" ], "tie_breaker" : 0.3, "minimum_should_match" : 1 }}'''
-    hostnames = hostnames.format(" ".join(args.hosts))
-
-    # ---------------------------------------------------------------------------------------------
     # Matrix stats are very interesting..
-    matrix_stats=' "statistics" : {{ "matrix_stats" :{{ "fields" :  {0}  }} }}'.format(
-        args.fields).replace("'",'"')
+    stats={
+        "statistics" : {
+            "matrix_stats" : {
+                "fields" : args.fields
+            }
+        }
+    }
 
-    stats=[]
     for field in args.fields:
-        stats.append('"{0}_stat" : {{ "extended_stats" : {{ "field": "{0}" }} }}'.format(field))
-    aggregation='"aggs": {{ {0} , {1} }}'.format(",".join(stats), matrix_stats)
+        stats[field] = { "extended_stats" : { "field" : field } } 
 
-
-    query_filter='"must": [ {{ {0} }}, {{ {1} }} ]'.format(timerange, hostnames)
-
-
-    query='{{ "query" :{{ "bool": {{ {0} }} }}, {1}, "size": {2} }}'.format(query_filter, aggregation, 0)
-    
+    body={ 
+        "query" :{ 
+            "bool": { 
+                "must" : [
+                    hostnames,
+                    timerange
+                ]
+            }
+        },
+        "aggs": stats, 
+        "size" : 0
+    }
 
     key_res = es.search(  
         index=args.index, # TODO This should be replaced.
-        body=query
+        body=body
     )
 
     if args.allocation_id > 0 :
@@ -163,7 +164,7 @@ def main(args):
     
 
     # Print the table.
-    aggs=deep_get(key_res, "aggregations")
+    aggs=cast.deep_get(key_res, "aggregations")
     if aggs is not None:
         max_width=len("Field")
         for agg in aggs:
@@ -199,8 +200,6 @@ def main(args):
                 for field in corr_d:
                     if field[0] != name:
                         print("  {0} : {1}".format(field[0], field[1]))
-
-
 
     else:
         print("No aggregations were found.")
