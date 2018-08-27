@@ -24,7 +24,9 @@ extern "C" {
 #endif
 
 //C includes
+#include <inttypes.h>
 #include <string.h>
+#include <stdint.h>
 
 /*
 * Author: Nick Buonarota
@@ -60,6 +62,23 @@ int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* 
 *   4 ERROR: myString is NULL. Can not parse NULL string.
 */
 int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount);
+
+/*
+* Author: Nick Buonarota
+* Last Edited: August 27, 2018
+* Summary: This function takes in a string and counts the number of 'nodes' based on a xCAT node range syntax of '[00-XY]'.
+* Parameters:
+*   char*     myString:     The string to compare.
+*   uint32_t* stringCount:  A pointer to an int. When this function finishes, this will contain
+*                           the number of 'seperated values' found in 'myString'.
+*   char***   stringArray:  A pointer to an array of strings. When this function finishes, this will contain
+*                           an array of 'seperated values' found in 'myString' with 'stringCount' elements. 
+*
+* Returns: int 
+*   0 Success
+*   1 ERROR: Generic error. Default.
+*/
+int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, char*** stringArray);
 
 /*
 * Author: Nick Buonarota

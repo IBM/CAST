@@ -57,6 +57,7 @@ void help(){
 	puts("    Argument         | Example value   | Description  ");                                                 
 	puts("    -----------------|-----------------|--------------");
 	puts("    -n, --node_names | \"node01,node02\" | (STRING) This is a csv field of valid node names. Identifies which nodes will be updated.");
+	puts("                     |                 | Valid formats: \"node01\", \"node01,node02\", or \"node[01-09]\"");
 	puts("                     |                 | ");
 	puts("  OPTIONAL:");
 	puts("    csm_node_attributes_update can have 8 optional arguments");
@@ -146,8 +147,17 @@ int main(int argc, char *argv[])
 			case 'n':
 			{
                 csm_optarg_test( "-n, --node_names", optarg, USAGE )
-                csm_parse_csv( optarg, input->node_names, input->node_names_count, char*,
-                            csm_str_to_char, NULL, "-n, --node_names", USAGE )
+				
+				int return_node_range = 0;	
+				
+				return_node_range = CORAL_stringTools_nodeRangeParser(optarg, &(input->node_names_count), &(input->node_names));
+				
+				if(return_node_range != 0)
+				{
+					//No range was found
+					csm_parse_csv( optarg, input->node_names, input->node_names_count, char*, csm_str_to_char, NULL, "-n, --node_names", USAGE )
+				}
+				
 				/* Increment requiredParameterCounter so later we can check if arguments were correctly set before calling API. */
 				requiredParameterCounter++;
 				break;
