@@ -105,6 +105,9 @@ public:
 
   typedef dcgm_field_meta_p (*DcgmFieldGetById_ptr_t)(unsigned short fieldId);
   // DcgmFieldGetById_ptr_t - dcgm_field_meta_p DcgmFieldGetById(unsigned short fieldId);
+  
+  typedef dcgmReturn_t (*dcgmWatchPidFields_ptr_t)(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
+  // dcgmWatchPidFields_ptr_t - dcgmReturn_t dcgmWatchPidFields(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
 
   typedef dcgmReturn_t (*dcgmWatchJobFields_ptr_t)(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
   // dcgmWatchJobFields_ptr_t - dcgmReturn_t dcgmWatchJobFields(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
@@ -120,7 +123,7 @@ public:
 
   typedef dcgmReturn_t (*dcgmJobRemove_ptr_t)(dcgmHandle_t, char []);
   // dcgmJobRemove_ptr_t - dcgmReturn_t dcgmJobRemove(dcgmHandle_t, char []);
-
+  
   // functions
 
   static INV_DCGM_ACCESS* GetInstance(){ if( _Instance == nullptr ){ _Instance = new INV_DCGM_ACCESS(); } return _Instance; } // get the istance of the class object
@@ -236,6 +239,7 @@ private:
   dcgmDisconnect_ptr_t dcgmDisconnect_ptr;
   dcgmShutdown_ptr_t dcgmShutdown_ptr;
   DcgmFieldGetById_ptr_t DcgmFieldGetById_ptr;
+  dcgmWatchPidFields_ptr_t dcgmWatchPidFields_ptr;
   dcgmWatchJobFields_ptr_t dcgmWatchJobFields_ptr;
   dcgmJobStartStats_ptr_t dcgmJobStartStats_ptr;
   dcgmJobStopStats_ptr_t dcgmJobStopStats_ptr;
@@ -269,11 +273,6 @@ private:
   // Names of the fields associated with the field groups 
   std::vector<std::string> csm_allocation_field_names; 
   std::vector<std::string> csm_environmental_field_names; 
-
-  // other variables
-  long long updateFreq; // update frequency in us for the DCGM fields
-  double maxKeepAge;    // number of secs that DCGM has to store the samples
-  int maxKeepSamples;   // number of samples per field that DCGM will store
 };
 
 // Initialize static member of class INV_DCGM_ACCESS
