@@ -51,6 +51,10 @@ def main(args):
     parser.add_argument( '--endtime', metavar='YYYY-MM-DD HH:MM:SS', dest='endtime', default=None,
         help='A timestamp representing the ending of the absolute range to look for failed jobs, if not set no upper bound will be imposed on the search.')
 
+    # TODO should this be a percentage?
+    parser.add_argument( '--commonnodes', metavar='threshold', dest='commonnodes', default=-1,
+        help='Displays a list of nodes that the user jobs had in common if set. Only nodes with collisions exceeding the threshold are shown. (Default: -1)')
+
     parser.add_argument( '-v', '--verbose', action='store_true',
         help='Displays all retrieved fields from the `cast-allocation` index.')
 
@@ -82,6 +86,13 @@ def main(args):
         sniffer_timeout=60
     )
 
+    # Ammend compute nodes for common node search.
+    fields=cast.USER_JOB_FIELDS
+    if args.commonnodes > 0:
+       fields += ["data.compute_nodes"]
+
+
+
     resp = cast.search_user_jobs(es, 
         user_name  = args.user, 
         user_id    = args.userid,
@@ -91,16 +102,17 @@ def main(args):
         size       = args.size)
         
 
-
+    # Parse the response from elasticsearch.
     hits       = cast.deep_get(resp, "hits", "hits")
     total_hits = cast.deep_get(resp, "hits","total")
+    node_collisions = {}
 
     print_fmt="{5: >10} | {0: >5} | {1: >8} | {2: <8} | {3: <26} | {4: <26}"
     print(print_fmt.format("AID", "P Job ID", "S Job ID", "Begin Time", "End Time", "State"))
 
-
     hits.sort(key=lambda x: cast.deep_get(x,"_source","data","allocation_id"), reverse=False)
-    
+
+    # Process hits.
     for hit in hits:
         data=cast.deep_get(hit,"_source","data")
         
@@ -109,7 +121,35 @@ def main(args):
                 data.get("allocation_id"), data.get("primary_job_id"), data.get("secondary_job_id"),
                 data.get("begin_time"), cast.deep_get(data, "history","end_time"),
                 data.get("state")))
-    
+            
+            # Generate a counter. 
+            if args.commonnodes > 0:
+                for node in data.get("compute_nodes"):
+                    node_collisions[node] = 1 + node_collisions.get(node, 0)
+
+
+    # Print out common nodes with collisions above threshold.
+    if args.commonnodes > 0:
+        max_width=4
+        collision_found=False
+
+        # get the max width to improve printing. 
+        for key in node_collisions:
+            max_width=max(len(key),max_width)
+
+        print( "=============================" )
+        print( "Node collisions between jobs:" )
+        print( "=============================" )
+        print("{0:>{1}} : {2}".format("node", max_width, "collisions"))
+        
+        node_count=int(args.commonnodes)
+        for key,value in sorted( node_collisions.iteritems(), key=lambda (k,v): (v,k), reverse=False):
+            if int(value) > node_count:
+                collision_found = True
+                print("{0:>{1}} : {2}".format(key, max_width, value))
+        
+        if not collision_found:
+            print("No nodes exceeded collision threshold: {0}".format(args.commonnodes))
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
