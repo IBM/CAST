@@ -304,8 +304,18 @@ sub outputHeader
     print "extern FlightRecorderCreate_t $symbol\[];\n";
     print "extern size_t sizeof_$symbol;\n";
     print "#undef FL_CreateAll\n";
-    print "#define FL_CreateAll(rootpath) FL_CreateRegistries(rootpath, sizeof_$symbol/sizeof(FlightRecorderCreate_t), $symbol)\n";
 
+    $csum = 0;
+    if($file ne "")
+    {
+        select STDOUT;
+        close($fp);
+        ($csum) = `sum $file` =~ /(\d+)/;
+        open($fp, ">>$file");
+        select $fp;
+    }
+
+    print "#define FL_CreateAll(rootpath) FL_CreateRegistries(rootpath, sizeof_$symbol/sizeof(FlightRecorderCreate_t), $symbol, $csum)\n";
     print "#endif\n\n";
 
     writeXML($FILE);
