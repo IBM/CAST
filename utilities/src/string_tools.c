@@ -264,7 +264,7 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 *   0 Success
 *   1 ERROR: Generic error. Default.
 *   2 ERROR: noderange not present. generic
-*   3 ERROR: noderange not properly formatted. node range digits don't match. ie: 003 VS 05 ie: node[005-98]
+*   3 ERROR: noderange not properly formatted. node range digits precision don't match. ie: 003 VS 05 ie: node[005-98]
 *   4 ERROR: noderange not properly formatted. node range is negative. ie: 100 VS 001 ie: node[100-001]
 *   5 ERROR: noderange not present. opening bracket '[' was not found
 *   6 ERROR: noderange not present. mid range dash '-' was not found
@@ -292,7 +292,7 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		// === Function Variables ===
 		// number of reserved characters before the opening bracket. aka, base node name 
 		int reserved_chars = 0;
-		//number of digits in the node range
+		//number of digits in the node range, calculated later by subtracting pointer locations
 		int range_digits = 0;
 		//number of digits in the node range before '-', used to compare for a quality check
 		int range_digits_begin = 0;
@@ -349,7 +349,7 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		if(range_digits_begin != range_digits_end)
 		{
 			//illegal format detected. 
-			//fprintf(stderr, "ERROR: node range digits don't match.\n");
+			//fprintf(stderr, "ERROR: node range digits precision don't match.\n");
 			//fprintf(stderr, "ERROR: range_digits_begin: %i\n", range_digits_begin);
 			//fprintf(stderr, "ERROR: range_digits_end: %i\n", range_digits_end);
 			//fprintf(stderr, "ERROR: determined noderange was not properly formatted.\n");
@@ -366,6 +366,8 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		//use this later to find total number of nodes
 		int first_node_digit_int = 0;
 		first_node_digit_int = atoi(first_node_digit);
+		
+		free(first_node_digit);
 
 		//find end of range
 		char* last_node_digit = NULL;
@@ -376,6 +378,8 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		//grab the last node digit. save to int. use this later to find total number of nodes
 		int last_node_digit_int = 0;
 		last_node_digit_int = atoi(last_node_digit);
+		
+		free(last_node_digit);
 
 		int totalNumberOfNodesInNodeRange = 0;
 		totalNumberOfNodesInNodeRange = last_node_digit_int - first_node_digit_int + 1;
