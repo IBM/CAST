@@ -67,6 +67,7 @@ elsif(exists $ENV{"LSF_STAGE_HOSTS"})
 {
     $::SRMTYPE = "LSF";
     @::HOSTLIST_ARRAY = split(/\s+/, $ENV{"LSF_STAGE_HOSTS"});
+    shift @::HOSTLIST_ARRAY;
 }
 elsif((exists $ENV{"LSB_DJOB_HOSTFILE"}) && (-r $ENV{"LSB_DJOB_HOSTFILE"}))
 {

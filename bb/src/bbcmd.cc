@@ -1121,7 +1121,7 @@ int getDefaultHostlist(string& hostlist)
     {
         if(strstr(env, " ") != NULL)
         {
-            hostlist = env;
+            hostlist = strstr(env, " ")+1;
             replace(hostlist.begin(), hostlist.end(), ' ', ',');
         }
     }
