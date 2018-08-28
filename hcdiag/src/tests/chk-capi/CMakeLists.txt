@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    hcdiag/src/tests/common/CMakeLists.txt
+#    hcdiag/src/tests/chk-capi/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -13,21 +13,10 @@
 #
 #================================================================================
 
-set(HCDIAG_TEST common)
+set(HCDIAG_TEST chk-capi)
 
 file(GLOB HCDIAG_TEST_FILE
-  "ClustConf.pm"
-  "htx_functions"
-  "functions"
-  "gpu_functions"
-  "jsm_functions"
-  "network_functions"
+  "chk-capi.sh"
 )
 
-file(GLOB HCDIAG_TEST_CONFIG
-  "clustconf.yaml.sample"
-)
-
-install(FILES ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})
-install(FILES ${HCDIAG_TEST_CONFIG} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/etc)
-
+install(PROGRAMS ${HCDIAG_TEST_FILE} COMPONENT ${HCDIAG_RPM_NAME} DESTINATION csm/hcdiag/tests/${HCDIAG_TEST})

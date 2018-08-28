@@ -128,7 +128,7 @@ if [ $level -eq 1 ]; then
 elif [ $level -eq 2 ]; then 
    ncpu=`grep processor /proc/cpuinfo|wc -l`
    half=$((ncpu / 2))
-   EXPECTED_PERF=134000
+   EXPECTED_PERF=133000
    re='^[0-9]+([.][0-9]+)?$'
    if [ $# -gt 1 ]; then EXPECTED_PERF=$2; fi 
    cd $S_BINDIR

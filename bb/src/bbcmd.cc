@@ -1121,7 +1121,8 @@ int getDefaultHostlist(string& hostlist)
     {
         if(strstr(env, " ") != NULL)
         {
-            hostlist = strstr(env, " ")+1;
+            hostlist = env;
+            replace(hostlist.begin(), hostlist.end(), ' ', ',');
         }
     }
     else if((env = getenv("LSB_DJOB_HOSTFILE")) != NULL)
@@ -1145,6 +1146,7 @@ int getDefaultHostlist(string& hostlist)
         if(strstr(env, " ") != NULL)
         {
             hostlist = strstr(env, " ")+1;
+            replace(hostlist.begin(), hostlist.end(), ' ', ',');
         }
     }
     
@@ -1160,7 +1162,6 @@ int getDefaultHostlist(string& hostlist)
     }
     if(hostlist == "")
         hostlist = "localhost";
-    
     return 0;
 }
 

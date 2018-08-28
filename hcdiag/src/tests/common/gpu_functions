@@ -76,9 +76,9 @@ stop_dcgm () {
 #====================================================================================
 stop_nvidia_persistenced () {
    echo -e "\nStopping nvdia-persistenced"
-   echo -e "\nsystemctl disable $NVIDIA_PERSISTENCED" 
+   #echo -e "\nsystemctl disable $NVIDIA_PERSISTENCED" 
    echo -e "\nsystemctl stop $NVIDIA_PERSISTENCED" 
-   sudo systemctl disable $NVIDIA_PERSISTENCED || true
+   #sudo systemctl disable $NVIDIA_PERSISTENCED || true
    sudo systemctl stop $NVIDIA_PERSISTENCED 
 
    return

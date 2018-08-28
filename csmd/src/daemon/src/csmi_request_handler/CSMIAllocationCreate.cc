@@ -394,7 +394,7 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(
         if ( reserve )
         {
             stmt = "SELECT * FROM fn_csm_allocation_history_dump( $1::bigint, 'now', -1, $2::text, 'f', "
-                "'{}',  '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}' )";
+                "'{}',  '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}' )";
 
             const int paramCount = 2;
             dbReq = new csm::db::DBReqContent( stmt, paramCount );
@@ -451,7 +451,6 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::InsertStatsStatement(
         dbReq->AddNumericArrayParam<int32_t>(allocation->ps_ratio,   allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->power_cap_hit, allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy, allocation->num_nodes);
-
 
         LOG(csmapi,info) << ctx <<  mcastProps->GenerateIdentifierString() 
             << "; Message: Recording Allocation statistics to database; ";

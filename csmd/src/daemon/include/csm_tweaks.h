@@ -23,13 +23,16 @@ struct Tweaks
 {
   unsigned _NetMgr_polling_loops;
   uint64_t _DCGM_update_interval_s;
+  double   _DCGM_max_keep_age_s; 
+  uint32_t _DCGM_max_keep_samples;
 };
 
 template<class stream>
 static stream&
 operator<<( stream &out, const csm::daemon::Tweaks &data )
 {
-  out << " net:ploops=" << data._NetMgr_polling_loops << " dcgm:updint=" << data._DCGM_update_interval_s;
+  out << " net:ploops=" << data._NetMgr_polling_loops << " dcgm:updint=" << data._DCGM_update_interval_s
+      << " dcgm:maxage=" << data._DCGM_max_keep_age_s << " dcgm:maxsamples=" << data._DCGM_max_keep_samples;
   return (out);
 }
 

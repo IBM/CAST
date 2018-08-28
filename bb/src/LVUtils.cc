@@ -580,12 +580,12 @@ int doResizeLogicalVolume(const char* pVolumeGroupName, const char* pDevName, co
 }
 #include <sys/mount.h>
 
-int lsofRunCmd( const char* pDirectory) 
+int lsofRunCmd( const char* pDirectory)
 {
     ENTRY(__FILE__,__FUNCTION__);
     int rc = 0;
 
-    for (auto& l_Line : runCommand("lsof | grep /mnt")) 
+    for (auto& l_Line : runCommand("lsof | grep /mnt"))
     {
         LOG(bb,info) << "lsof: " << l_Line;
     }
@@ -2157,7 +2157,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             BBFILESTATUS l_FileStatus = BBFILE_SUCCESS;
 
                             bs::error_code err;
-                            bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), err);
+                            bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), bfs::copy_option::overwrite_if_exists, err);
                             if (err.value())
                             {
                                 l_FileStatus = BBFILE_FAILED;
@@ -2181,12 +2181,6 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len;
                                     break;
 
-                                case BBFILE_STOPPED:
-                                    e.flags |= BBTD_Stopped;
-                                    LOG(bb,info) << "Local copy stopped for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                    << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex;
-                                    break;
-
                                 case BBFILE_FAILED:
                                     e.flags |= BBTD_Failed;
                                     LOG(bb,info) << "Local copy failed for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
@@ -2194,11 +2188,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     break;
 
                                 case BBFILE_CANCELED:
-                                    e.flags |= BBTD_Canceled;
-                                    LOG(bb,info) << "Local copy canceled for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                    << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex;
-                                    break;
-
+                                case BBFILE_STOPPED:
                                 default:
                                     // Not possible...
                                     break;
@@ -2548,7 +2538,7 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
 
     ResponseDescriptor reply;
     txp::Msg* msgserver = 0;
-    std::string l_ConnectionName=DEFAULT_SERVER_ALIAS;
+    std::string l_ConnectionName;
 
     try
     {
@@ -2617,8 +2607,11 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
 
                     // Send the message to bbserver
                     // First sendMessage uses DEFAULT_SERVER_ALIAS and then the real name after
+                    if (l_ConnectionName.empty())
+                    {
+                        l_ConnectionName = connectionNameFromAlias();
+                    }
                     rc=sendMessage2bbserver(l_ConnectionName, msgserver, reply);
-                    l_ConnectionName=reply.connName;    //  Next volley uses the name placed in reply which should be the real connection name
                     delete msgserver;
                     msgserver=NULL;
                     if (rc)

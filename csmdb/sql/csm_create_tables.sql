@@ -14,11 +14,14 @@
 --===============================================================================
 
 --===============================================================================
---   usage:         run ./csm_db_script.sh <----- to create the csm_db with tables
---   version:       15.1   <-------- GA release version
---   create:        12-14-2015
---   last modified: 07-24-2018
+--   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
+--   current_version:   16.0
+--   create:            12-14-2015
+--   last modified:     08-21-2018
 --   change log:    
+--   16.0   upgrade to functions to support API changes
+--          csm_dimm, csm_socket_processor PKs constraint updated (including node_name)
+--          csm_allocation_node + history modified energy, gpu_usage, and gpu_energy comments
 --   15.1   GA release version - upgrade
 --   15.0   GA release version
 --   14.25  csm_node + history table included: discovered_ssds
@@ -684,7 +687,7 @@ CREATE UNIQUE INDEX uk_csm_allocation_node_b
     COMMENT ON COLUMN csm_allocation_node.state is 'state can be: stage in allocation, running allocation, stage out allocation';
     COMMENT ON COLUMN csm_allocation_node.shared is 'indicates if the node resources are shareable';
 --  COMMENT ON COLUMN csm_allocation_node.status is 'status of allocation (protect against master daemon crashing.(creating, created, updating, updated, deleting, deleted).';
-    COMMENT ON COLUMN csm_allocation_node.energy is 'node energy usage reading at allocation begin time';
+    COMMENT ON COLUMN csm_allocation_node.energy is 'the total energy used by the node in joules during the allocation';
     COMMENT ON COLUMN csm_allocation_node.gpfs_read is 'bytes read counter (net) at the start of the allocation.';
     COMMENT ON COLUMN csm_allocation_node.gpfs_write is 'bytes written counter (net) at the start of the allocation.';
     COMMENT ON COLUMN csm_allocation_node.ib_tx is 'count of data octets transmitted on all port VLs (1/4 of a byte) at the start of the allocation.';
@@ -693,8 +696,8 @@ CREATE UNIQUE INDEX uk_csm_allocation_node_b
     COMMENT ON COLUMN csm_allocation_node.power_shifting_ratio is 'power power shifting ratio currently in effect for this node';
     COMMENT ON COLUMN csm_allocation_node.power_cap_hit is 'total number of windowed ticks the processor frequency was reduced';
     COMMENT ON COLUMN csm_allocation_node.power_shifting_ratio is 'power power shifting ratio currently in effect for this node';
-    COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage of the GPU in watts';
-    COMMENT ON COLUMN csm_allocation_node.gpu_energy is 'the total energy of the GPU in watts';
+    COMMENT ON COLUMN csm_allocation_node.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
+    COMMENT ON COLUMN csm_allocation_node.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
     COMMENT ON COLUMN csm_allocation_node.cpu_usage is 'the cpu usage in nanoseconds';
     COMMENT ON COLUMN csm_allocation_node.memory_usage_max is 'The high water mark for memory usage (bytes).';
     COMMENT ON INDEX ix_csm_allocation_node_a IS 'index on allocation_id';
@@ -741,7 +744,7 @@ CREATE INDEX ix_csm_allocation_node_history_a
     COMMENT ON COLUMN csm_allocation_node_history.state is 'state can be: stage in allocation, running allocation, stage out allocation';
     COMMENT ON COLUMN csm_allocation_node_history.shared is 'indicates if the node resources are shareable';
 --  COMMENT ON COLUMN csm_allocation_node_history.status is 'status of allocation (protect against master daemon crashing.(creating, created, updating, updated, deleting, deleted).';
-    COMMENT ON COLUMN csm_allocation_node_history.energy is 'total node energy usage reading during the allocation.';
+    COMMENT ON COLUMN csm_allocation_node_history.energy is 'the total energy used by the node in joules during the allocation';
     COMMENT ON COLUMN csm_allocation_node_history.gpfs_read is 'total bytes read counter (net) at the during the allocation. Negative values represent the start reading, indicating the end was never writen to the database.';
     COMMENT ON COLUMN csm_allocation_node_history.gpfs_write is 'total bytes written counter (net) at the during the allocation. Negative values represent the start reading, indicating the end was never writen to the database.';
     COMMENT ON COLUMN csm_allocation_node_history.ib_tx is 'total count of data octets transmitted on all port VLs (1/4 of a byte) during the allocation. Negative values represent the start reading, indicating the end was never writen to the database.';
@@ -749,8 +752,8 @@ CREATE INDEX ix_csm_allocation_node_history_a
     COMMENT ON COLUMN csm_allocation_node_history.power_cap is 'power cap currently in effect for this node (in watts)';
     COMMENT ON COLUMN csm_allocation_node_history.power_shifting_ratio is 'power power shifting ratio currently in effect for this node';
     COMMENT ON COLUMN csm_allocation_node_history.power_cap_hit is 'total number of windowed ticks the processor frequency was reduced';
-    COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage of the GPU in watts';
-    COMMENT ON COLUMN csm_allocation_node_history.gpu_energy is 'the total energy of the GPU in watts';
+    COMMENT ON COLUMN csm_allocation_node_history.gpu_usage is 'the total usage aggregated across all GPUs in the node in microseconds during the allocation';
+    COMMENT ON COLUMN csm_allocation_node_history.gpu_energy is 'the total energy used across all GPUs in the node in joules during the allocation';
     COMMENT ON COLUMN csm_allocation_node_history.cpu_usage is 'the cpu usage in nanoseconds';
     COMMENT ON COLUMN csm_allocation_node_history.memory_usage_max is 'The high water mark for memory usage (bytes).';
     COMMENT ON COLUMN csm_allocation_node_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
@@ -1363,14 +1366,14 @@ CREATE TABLE csm_processor_socket (
     node_name           text        references csm_node(node_name),
     physical_location   text,
     discovered_cores    int,
-    PRIMARY KEY (serial_number)
+    PRIMARY KEY (serial_number, node_name)
 );
 
 -------------------------------------------------
 -- csm_processor_socket_index
 -------------------------------------------------
 
--- automatically created index ON pkey (serial_number)
+-- automatically created index ON pkey (serial_number, node_name)
 
 CREATE INDEX ix_csm_processor_socket_a
     on csm_processor_socket (serial_number, node_name);
@@ -1552,14 +1555,14 @@ CREATE TABLE csm_dimm (
     node_name           text        references csm_node(node_name),
     size                int         not null,
     physical_location   text        not null,
-    PRIMARY KEY (serial_number)
+    PRIMARY KEY (serial_number, node_name)
 );
 
 -------------------------------------------------
 -- csm_dimm_index
 -------------------------------------------------
 
--- automatically created index ON pkey (serial_number)
+-- automatically created index ON pkey (serial_number, node_name)
 
 -------------------------------------------------
 -- csm_dimm_comments

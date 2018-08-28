@@ -74,6 +74,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
             // Only populate when not creating.
             _Data->cpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
             _Data->memory_max  = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
+	    _Data->gpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
         }
     }
 }
@@ -184,6 +185,7 @@ bool ParseResponseDelete(
                     allocation->memory_max[hostIdx] = allocPayload->memory_max;
                     allocation->power_cap_hit[hostIdx]  = allocPayload->pc_hit;
                     allocation->gpu_energy[hostIdx]     = allocPayload->gpu_energy;
+                    allocation->gpu_usage[hostIdx]     = allocPayload->gpu_usage;
                 }
             }
 

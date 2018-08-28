@@ -1,5 +1,5 @@
 {
-    "index_patterns" : ["cast-csm-node-env*"],
+    "index_patterns" : ["cast-csm-processor-env*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -8,21 +8,27 @@
         }
     }, 
     "aliases" : {
-        "cast-csm-node-env" : {}
+        "cast-csm-processor-env" : {}
     },
     "mappings": {
         "_doc" : {
             "properties" : {
                 "@version"   : { "type" : "text" },
                 "@timestamp" : { "type" : "date" },
-                "timestamp " : { "type" : "date" },
+                "timestamp"  : { "type" : "date" },
                 "tags"       : { "type" : "text" },
                 "type"       : { "type" : "text" } ,
                 "source"     : { "type" : "text" },
                 "data": {
-		            "type" : "nested",
+		    "type" : "nested",
                     "properties" : {
-                        "system_energy"    : {"type": "long"}
+                        "gpu_energy"        : { "type": "long"},
+                        "memory_energy"     : { "type": "long"},
+                        "processor_energy"  : { "type": "long"},
+                        "processor_id"      : { "type": "long"},
+                        "processor_temp"    : { "type": "long"},
+                        "processor_temp_max": { "type": "long"},
+                        "processor_temp_min": { "type": "long"}
                     }
                 }
             }

@@ -47,6 +47,7 @@
 #include <linux/exportfs.h>
 #include <linux/slab.h>
 #include <linux/version.h>
+#include <linux/mutex.h>
 
 #include "../include/export_layout.h"
 
@@ -57,7 +58,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bryan Rosenburg");
 MODULE_DESCRIPTION("Provides access to block layout functionality");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.1");
 
 static int export_layout_debug = 0;
 module_param(export_layout_debug, int, S_IRUGO | S_IWUSR);
@@ -79,6 +80,7 @@ static struct file_operations export_layout_ops = {
 static int Major = -1;
 static struct class *Class = NULL;
 static struct device *Device = NULL;
+static DEFINE_MUTEX(export_layout_lock);
 
 struct transfer_info {
 	int fd;
@@ -227,7 +229,10 @@ static int export_layout_release(struct inode *inodep, struct file *filep)
 	if (export_layout_debug)
 		printk(KERN_DEBUG "%s: inode %p, file %p\n", __func__, inodep,
 		       filep);
+
+	mutex_lock(&export_layout_lock);
 	t = (struct transfer_info *)filep->private_data;
+	filep->private_data = NULL;
 	if (t->target) {
 		export_layout_clear_callback(t);
 		kfree(t->iomap);
@@ -236,6 +241,7 @@ static int export_layout_release(struct inode *inodep, struct file *filep)
 		t->target = NULL;
 	}
 	kfree(t);
+	mutex_unlock(&export_layout_lock);
 	return 0;
 }
 
@@ -254,22 +260,36 @@ static long transfer_setup(struct file *filep,
 	struct iomap *map;
 	u64 offset, length;
 
+    mutex_lock(&export_layout_lock);
 	t = (struct transfer_info *)filep->private_data;
-	if (t->target != NULL) {
-		printk(KERN_ALERT "%s: transfer in progress\n", __func__);
-		return -EINVAL;
+
+	if (!t) {
+		printk(KERN_ALERT "%s: close in progress\n", __func__);
+		rc = -EINVAL;
+		goto error_return_rc;
 	}
 
-	if (copy_from_user(&setup, (void __user *)p, sizeof(setup)))
-		return -EFAULT;
+	if (t->target != NULL) {
+		printk(KERN_ALERT "%s: transfer in progress\n", __func__);
+		rc = -EINVAL;
+		goto error_return_rc;
+	}
+
+	if (copy_from_user(&setup, (void __user *)p, sizeof(setup))){
+		rc = -EFAULT;
+		goto error_return_rc;
+	}
+
 	t->fd = setup.fd;
 	t->writing = setup.writing;
 	t->offset = setup.offset;
 	t->length = setup.length;
 
 	t->target = fget(t->fd);
-	if (!t->target)
-		return -EBADF;
+	if (!t->target){
+		rc = -EBADF;
+		goto error_return_rc;
+	}
 
 	if (export_layout_debug)
 		printk(KERN_DEBUG "%s: fd %d, writing %d, offset 0x%llx, "
@@ -389,6 +409,7 @@ static long transfer_setup(struct file *filep,
 	}
 
 	kfree(setup_return);
+	mutex_unlock(&export_layout_lock);
 	return 0;
 
  error_free_setup_return:
@@ -401,6 +422,8 @@ static long transfer_setup(struct file *filep,
  error_release_target:
 	fput(t->target);
 	t->target = NULL;
+error_return_rc:	
+	mutex_unlock(&export_layout_lock);
 	return rc;
 }
 
@@ -411,17 +434,28 @@ static long transfer_finalize(struct file *filep,
 	struct export_layout_transfer_finalize final;
 	struct inode *inode;
 	struct export_operations const *ops;
-	int rc;
+	int rc=0;
 	struct iattr iattr;
 
+    mutex_lock(&export_layout_lock);
 	t = (struct transfer_info *)filep->private_data;
-	if (t->target == NULL) {
-		printk(KERN_ALERT "%s: no transfer in progress\n", __func__);
-		return -EINVAL;
+
+	if (!t) {
+		printk(KERN_ALERT "%s: close in progress\n", __func__);
+		rc = -EINVAL;
+		goto finalize_badrc;
 	}
 
-	if (copy_from_user(&final, (void __user *)p, sizeof(final)))
-		return -EFAULT;
+	if (t->target == NULL) {
+		printk(KERN_ALERT "%s: no transfer in progress\n", __func__);
+		rc = -EINVAL;
+		goto finalize_badrc;
+	}
+
+	if (copy_from_user(&final, (void __user *)p, sizeof(final))) {
+		rc = -EFAULT;
+		goto finalize_badrc;
+	}
 
 	if (export_layout_debug)
 		printk(KERN_DEBUG "%s: fd %d, file %p, status %d\n",
@@ -449,8 +483,9 @@ static long transfer_finalize(struct file *filep,
 	t->iomap = NULL;
 	fput(t->target);
 	t->target = NULL;
-
-	return 0;
+finalize_badrc:	
+    mutex_unlock(&export_layout_lock);
+	return rc;
 }
 
 static long export_layout_ioctl(struct file *filep,
