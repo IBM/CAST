@@ -1,0 +1,9 @@
+{
+    "*syslog*":[
+        { "message" : { 
+            "value" : "error",
+            "boost" : 50
+            }
+        }
+    ]
+}
