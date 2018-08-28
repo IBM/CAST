@@ -158,7 +158,21 @@ int main(int argc, char *argv[])
 				
 				return_node_range = CORAL_stringTools_nodeRangeParser(optarg, &(input->node_names_count), &(input->node_names));
 				
-				if(return_node_range != 0)
+				if(return_node_range == 3)
+				{
+					//function returned 3: 
+					//noderange not properly formatted. 
+					//node range digits precision don't match. ie: 003 VS 05 ie: node[005-98]
+					csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+					csmutil_logging(error, "  node range digits precision don't match.");
+					csmutil_logging(error, "  ie: 3 precision places VS 2 precision places, ie: node[005-98].");
+					csmutil_logging(error, "  node range digits precision MUST match.");
+					csmutil_logging(error, "  %s is not a valid value for node range.", optarg);
+					csmutil_logging(error, "  determined noderange was not properly formatted.");
+					USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				else if(return_node_range != 0)
 				{
 					//No range was found
 					csm_parse_csv( optarg, input->node_names, input->node_names_count, char*, csm_str_to_char, NULL, "-n, --node_names", USAGE );
