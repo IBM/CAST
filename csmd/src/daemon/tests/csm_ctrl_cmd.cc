@@ -88,6 +88,7 @@ int ParseCommandLineOptions( int argc, char **argv, CtrlCmdOption &o_cmd_option 
   std::string log_csmnet;
   std::string log_csmras;
   std::string log_csmapi;
+  std::string log_csmenv;
   
   po::options_description usage("Supported Command Line Options");
   usage.add_options()
@@ -112,6 +113,9 @@ int ParseCommandLineOptions( int argc, char **argv, CtrlCmdOption &o_cmd_option 
             "Specify the severity level ")
         ("log.csmapi",
             po::value<std::string>(&log_csmapi),
+            "Specify the severity level ")
+        ("log.csmenv",
+            po::value<std::string>(&log_csmenv),
             "Specify the severity level ")
 
         ("agg.reset",
@@ -199,6 +203,20 @@ int ParseCommandLineOptions( int argc, char **argv, CtrlCmdOption &o_cmd_option 
     }
   }
   
+  if( vm.count( "log.csmenv" ) )
+  {
+    if (str2severity.find(log_csmenv) != str2severity.end())
+    {
+      o_cmd_option.set_log_csmenv(str2severity[log_csmenv]);
+      count++;
+    }
+    else
+    {
+      std::cout << "Invalid severity: " << log_csmenv << std::endl;
+      return -1;
+    }
+  }
+
   if( vm.count( "dump_perf_data" ) )
   {
     o_cmd_option.set_dump_perf_data();
