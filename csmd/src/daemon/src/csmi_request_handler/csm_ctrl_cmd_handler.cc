@@ -65,6 +65,10 @@ void CSM_CTRL_CMD_HANDLER::Process( const csm::daemon::CoreEvent &aEvent,
   {
     SET_SEVERITY_LEVEL(csmapi, option.get_log_csmapi());
   }
+  if (option.get_log_csmenv() != utility::bluecoral_sevs::NUM_SEVERITIES)
+  {
+    SET_SEVERITY_LEVEL(csmenv, option.get_log_csmenv());
+  }
   
   // process the options which would require to generate the response.
   // The response is simply a string
