@@ -116,84 +116,92 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                 rc = l_LVUuidFile.load(lvuuidfile.string());
                                                 if (!rc)
                                                 {
-                                                    // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
-                                                    //       because we want to also include transfer definitions with files that are not all closed or have failed.
+                                                    if ((pTransferDefs.flags & ALL_DEFINITIONS) || (!(l_LVUuidFile.flags & BBLVK_Stage_Out_End)))
+                                                    {
+                                                        // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
+                                                        //       because we want to also include transfer definitions with files that are not all closed or have failed.
 
-                                                    if (!((pTransferDefs.hostname == UNDEFINED_HOSTNAME) || (l_LVUuidFile.hostname == pTransferDefs.hostname)))
-                                                    {
-                                                        l_Continue = false;
-                                                    }
-                                                    // Note if we found a specifically named hostname...
-                                                    if (l_LVUuidFile.hostname == pTransferDefs.hostname)
-                                                    {
-                                                        l_HostNameFound = true;
-                                                    }
-
-                                                    if (l_Continue)
-                                                    {
-                                                        if (l_ContribFile)
+                                                        if (!((pTransferDefs.hostname == UNDEFINED_HOSTNAME) || (l_LVUuidFile.hostname == pTransferDefs.hostname)))
                                                         {
-                                                            delete l_ContribFile;
-                                                            l_ContribFile = 0;
+                                                            l_Continue = false;
                                                         }
-                                                        bfs::path contribs_file = l_LVUuid.path() / "contribs";
-                                                        rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
-                                                        if (!rc)
+                                                        // Note if we found a specifically named hostname...
+                                                        if (l_LVUuidFile.hostname == pTransferDefs.hostname)
                                                         {
-                                                            // Iterate through the contributors...
-                                                            for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
-                                                            {
-                                                                l_Continue = true;
-                                                                if ((pTransferDefs.contribid == UNDEFINED_CONTRIBID) || (ce->first == pTransferDefs.contribid))
-                                                                {
-                                                                    // ContribId of interest...
-                                                                    switch (pTransferDefs.flags)
-                                                                    {
-                                                                        case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
-                                                                        {
-                                                                            // If we are only interested in obtaining transfer definitions with unfinished files
-                                                                            // then check to see if all the extents have been transferred for this contributor...
-                                                                            if ((ce->second).notRestartable())
-                                                                            {
-                                                                                l_Continue = false;
-                                                                            }
-                                                                            break;
-                                                                        }
-                                                                        case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
-                                                                        {
-                                                                            // If we are only interested in obtaining transfer definitions with stopped files
-                                                                            // then check to see if this contributor has been stopped...
-                                                                            if (!((ce->second).flags & BBTD_Stopped))
-                                                                            {
-                                                                                l_Continue = false;
-                                                                            }
-                                                                            break;
-                                                                        }
+                                                            l_HostNameFound = true;
+                                                        }
 
-                                                                        default:
+                                                        if (l_Continue)
+                                                        {
+                                                            if (l_ContribFile)
+                                                            {
+                                                                delete l_ContribFile;
+                                                                l_ContribFile = 0;
+                                                            }
+                                                            bfs::path contribs_file = l_LVUuid.path() / "contribs";
+                                                            rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
+                                                            if (!rc)
+                                                            {
+                                                                // Iterate through the contributors...
+                                                                for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
+                                                                {
+                                                                    l_Continue = true;
+                                                                    if ((pTransferDefs.contribid == UNDEFINED_CONTRIBID) || (ce->first == pTransferDefs.contribid))
+                                                                    {
+                                                                        // ContribId of interest...
+                                                                        switch (pTransferDefs.flags)
                                                                         {
-                                                                            break;
+                                                                            case ONLY_DEFINITIONS_WITH_UNFINISHED_FILES:
+                                                                            {
+                                                                                // If we are only interested in obtaining transfer definitions with unfinished files
+                                                                                // then check to see if all the extents have been transferred for this contributor...
+                                                                                if ((ce->second).notRestartable())
+                                                                                {
+                                                                                    l_Continue = false;
+                                                                                }
+                                                                                break;
+                                                                            }
+                                                                            case ONLY_DEFINITIONS_WITH_STOPPED_FILES:
+                                                                            {
+                                                                                // If we are only interested in obtaining transfer definitions with stopped files
+                                                                                // then check to see if this contributor has been stopped...
+                                                                                if (!((ce->second).flags & BBTD_Stopped))
+                                                                                {
+                                                                                    l_Continue = false;
+                                                                                }
+                                                                                break;
+                                                                            }
+
+                                                                            default:
+                                                                            {
+                                                                                break;
+                                                                            }
                                                                         }
                                                                     }
-                                                                }
-                                                                else
-                                                                {
-                                                                    l_Continue = false;
-                                                                }
+                                                                    else
+                                                                    {
+                                                                        l_Continue = false;
+                                                                    }
 
-                                                                if ((!rc) && l_Continue)
-                                                                {
-                                                                    // Copy this transfer definition...
-                                                                    rc = (ce->second).copyForRetrieveTransferDefinitions(pTransferDefs, l_LVUuidFile.hostname, stoull(l_JobId.path().filename().string()), stoull(l_JobStepId.path().filename().string()),
-                                                                                                                         stoull(l_Handle.path().filename().string()), ce->first, l_HandleFile->transferKeys);
+                                                                    if ((!rc) && l_Continue)
+                                                                    {
+                                                                        // Copy this transfer definition...
+                                                                        rc = (ce->second).copyForRetrieveTransferDefinitions(pTransferDefs, l_LVUuidFile.hostname, stoull(l_JobId.path().filename().string()), stoull(l_JobStepId.path().filename().string()),
+                                                                                                                             stoull(l_Handle.path().filename().string()), ce->first, l_HandleFile->transferKeys);
+                                                                    }
                                                                 }
                                                             }
+                                                            else
+                                                            {
+                                                                // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
+                                                                LOG(bb,warning) << "Could not load contrib file " << contribs_file.string();
+                                                            }
                                                         }
-                                                        else
-                                                        {
-                                                            // NOTE:  We don't have the cross-bbserver data locked down, so it can 'change'...
-                                                            LOG(bb,warning) << "Could not load contrib file " << contribs_file.string();
-                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        // Not retrieving all transfer definitions and stage out end has started.
+                                                        // Do not include this transfer definition.
                                                     }
                                                 }
                                                 else
