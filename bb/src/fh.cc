@@ -54,6 +54,7 @@ using namespace std;
 
 #if BBPROXY
 #include "bbproxy_flightlog.h"
+#include "tracksyscall.h"
 #endif
 
 // NOTE:  This mutex is acquired around access to the file handle registry
@@ -273,11 +274,11 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
 
     LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=" << std::oct << mode << std::dec;
     FL_Write(FLProxy, OpenFile, "Open for filehandle",(uint64_t)oflag,(uint64_t)mode,0,0);
-#if BBSERVER
-     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
+#if (BBSERVER || BBPROXY)
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
 #endif
     fd = open(filename.c_str(), oflag | O_CLOEXEC, mode);
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
     threadLocalTrackSyscallPtr->clearTrack();
 #endif
     if (fd >= 0)
@@ -312,7 +313,7 @@ int filehandle::close()
 {
     if (fd >= 0)
     {
-        LOG(bb,info) << "Closing file " << filename << " fd=" << fd;
+        LOG(bb,info) << "Closing file " << filename << ", fd=" << fd;
         FL_Write(FLProxy, CloseFile, "Close for filehandle %ld",(uint64_t)fd,0,0,0);
         ::close(fd);
         fd = -1;
@@ -355,11 +356,11 @@ int filehandle::getstats(struct stat& statbuf)
     if(fd >= 0)
     {
         FL_Write(FLXfer, BBIOR_FSTAT, "Calling fstat(%ld)",fd,0,0,0);
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
 #endif
         rc = fstat(fd, &statinfo);
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
         threadLocalTrackSyscallPtr->clearTrack();
 #endif
         FL_Write6(FLXfer, BBIOR_FSTATCMP, "Called fstat(%ld) rc=%ld errno=%ld size=%ld", fd, rc, errno, statinfo.st_size,0,0);
@@ -370,7 +371,7 @@ int filehandle::getstats(struct stat& statbuf)
                 statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
                 LOG(bb,info) << "Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,debug) << "filehandle::getstats(): " << filename << ": st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
+            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
             statbuf = statinfo;
         }
         else
@@ -392,19 +393,19 @@ int filehandle::getstats(struct stat& statbuf)
 int filehandle::setsize(size_t newsize)
 {
     int rc;
-    LOG(bb,info) << "Truncating target file '" << filename << "'";
+    LOG(bb,info) << "Truncating " << filename << ", fd=" << fd << ", newsize=" << newsize;
     rc = ftruncate(fd, newsize);
     if (rc)
     {
         LOG(bb,error) << "Truncate of target file " << filename << " failed.  fd=" << fd << " newsize=" << newsize << ", errno=" << errno;
         throw runtime_error(string("Truncate failed.  errno=") + to_string(errno));
     }
-    LOG(bb,debug) << "Target file '" << filename << "' truncated";
-#if BBSERVER
+    LOG(bb,debug) << "Target file " << filename << " truncated";
+#if (BBSERVER || BBPROXY)
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
 #endif
     rc = fstat(fd, &statinfo);
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
     threadLocalTrackSyscallPtr->clearTrack();
 #endif
     if(rc)
@@ -412,7 +413,7 @@ int filehandle::setsize(size_t newsize)
         LOG(bb,error) << filename << " fstat failed.  errno=" << errno;
         throw runtime_error(string("fstat failed in filehandke::setsize.  errno=") + to_string(errno));
     }
-    LOG(bb,info) << filename << "  fstat size = " << getsize();
+    LOG(bb,info) << "Target file " << filename << ", fstat size=" << getsize() << ", fd=" << fd;
 
     return rc;
 }
@@ -557,7 +558,10 @@ protected:
             becomeUser(0,0);
 
             errno=0;
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::openexlayout, fh->getfd(), __LINE__);
             exlo = open("/dev/export_layout", O_RDWR | O_CLOEXEC, 0);
+            threadLocalTrackSyscallPtr->clearTrack();
+            LOG(bb,debug) << "Open /dev/export_layout fd=" << fh->getfd() << ", exlo=" << exlo << ", errno=" << errno;
             FL_Write(FLExtents, ExportOpen, "Open /dev/export_layout  fd=%ld  exlo=%ld errno=%ld", fh->getfd(), exlo, errno, 0);
 
             if (exlo < 0)
@@ -588,9 +592,16 @@ protected:
             setup->length = fh->getsize();
             setup->writing = writing;
             setup->extent_count_max = numextents;
+            if (numextents)
+            {
+                LOG(bb,debug) << "Querying export_layout fd=" << setup->fd << ", offset=" << setup->offset << ", length=" << setup->length << ", writing=" << setup->writing << ", extent_count_max=" << setup->extent_count_max;
+            }
             FL_Write6(FLExtents, ExportQuery, "Querying export_layout.  fd=%ld  offset=%ld  length=%ld  writing=%ld  extent_max=%ld", setup->fd, setup->offset, setup->length, setup->writing, setup->extent_count_max, 0);
 
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::setupexlayout, setup->fd, __LINE__, setup->length, setup->offset);
             rc = ioctl(exlo, EXPORT_LAYOUT_IOC_TRANSFER_SETUP, setup);
+            threadLocalTrackSyscallPtr->clearTrack();
+            LOG(bb,debug) << "Query of export_layout completed.  rc=" << rc;
             FL_Write(FLExtents, ExportQueryCmpl, "Query of export_layout completed.  rc=%ld", rc,0,0,0);
 
             if (rc < 0)
@@ -624,7 +635,9 @@ public:
         }
         if(exlo > 0)
         {
+            LOG(bb,debug) << "Closing /dev/export_layout device fd=" << fh->getfd() << ", exlo=" << exlo;
             FL_Write(FLExtents, ExportClose, "Closing /dev/export_layout device.  fd=%ld  exlo=%ld", fh->getfd(), exlo, 0, 0);
+            LOG(bb,debug) << "Closing complete for /dev/export_layout device fd=" << fh->getfd() << ", exlo=" << exlo;
             close(exlo);
         }
     };
@@ -660,11 +673,14 @@ public:
     {
         int rc;
         struct export_layout_transfer_finalize finalize;
+        LOG(bb,debug) << "Releasing the file fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
         FL_Write(FLExtents, ExportRelease, "Releasing the file fd=%ld, exlo=%ld  status=%ld", fh->getfd(), exlo, 0, (int)completion_status);
         if(exlo > 0)
         {
             finalize.status = (completion_status == BBFILE_SUCCESS ? 0 : -1);
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::finalizeexlayout, fh->getfd() , __LINE__);
             rc = ioctl(exlo, EXPORT_LAYOUT_IOC_TRANSFER_FINALIZE, &finalize);
+            threadLocalTrackSyscallPtr->clearTrack();
             if (rc < 0 && completion_status == BBFILE_SUCCESS)
             {
                 // NOTE: Only throw the runtime error if we think everything is OK up to this FINALIZE.
@@ -672,6 +688,7 @@ public:
                 throw runtime_error(string("ioctl FINALIZE failed.  errno=") + to_string(errno));
             }
         }
+        LOG(bb,debug) << "Releasing the file complete for fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
 
         return 0;
     }
@@ -700,6 +717,7 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
         extlookup = new extentLookup_fiemap(this);
         if(writing)
         {
+            LOG(bb,debug) << "Performing fallocate(fd=" << fd << ", start=" << start << ", size=" << len << ")";
             FL_Write(FLExtents, DoFAllocate, "Performing fallocate(fd=%ld, start=%ld  size=%ld)", fd, start, len, 0);
             if (len)
             {
@@ -736,6 +754,7 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
         //  Webpage indicates posix_fadvise(fd,0,0,POSIX_ADV_DONTNEED) is sufficient.  But
         //  it seems like specifying the correct offset and filesize is important.
         //
+        LOG(bb,debug) << "Perform fd=" << fd << ", datasync() and fadvise(), start=" << start << ", len=" << len;
         FL_Write(FLExtents, DataSyncTgt, "Perform fd=%ld datasync() and fadvise()  start=%ld  len=%ld",fd,start,len,0);
         fdatasync(fd);
         posix_fadvise(fd, start, len, POSIX_FADV_DONTNEED);
@@ -767,10 +786,12 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
     uint64_t l_LBA_Start, l_Start, l_Length;
     if (numextents)
     {
+        LOG(bb,debug) << "Start finding FS extents, fd=" << fd << ", numextents=" << numextents;
         for (unsigned x=0; x<numextents; x++)
         {
             rc = extlookup->get(x, l_LBA_Start, l_Start, l_Length);
-            FL_Write6(FLExtents, FoundFSExtent, "Found FS Extent.  Filedescriptor %ld extent #%ld:  0x%lx for 0x%lx bytes.  Start LBA=0x%lx   rc=%ld", fd, x, l_Start, l_Length, l_LBA_Start, rc);
+            LOG(bb,debug) << "Found FS Extent fd=" << fd << ", extent #" << x << ", starting at 0x" << l_Start << " for 0x" << l_Length << " bytes.  Start LBA=0x" << l_LBA_Start << ", rc=" << rc;
+            FL_Write6(FLExtents, FoundFSExtent, "Found FS Extent.  File descriptor %ld extent #%ld:  0x%lx for 0x%lx bytes.  Start LBA=0x%lx   rc=%ld", fd, x, l_Start, l_Length, l_LBA_Start, rc);
             if (rc == -1)
             {
                 return -1;
@@ -797,6 +818,7 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
 
             // Lookup location(s) in LVM
             lookup.translate(tmp, result);
+            LOG(bb,debug) << "lookup.translate returned for extent #" << x;
         }
     }
     else
@@ -813,6 +835,8 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
     }
 
     proxy_BumpBBUsage(statinfo.st_dev, bytesWritten, bytesRead);
+    LOG(bb,debug) << "proxy_BumpBBUsage, statinfo.st_dev=" << statinfo.st_dev << ", bytesWritten=" << bytesWritten << ", bytesRead=" << bytesRead;
+
     return 0;
 }
 

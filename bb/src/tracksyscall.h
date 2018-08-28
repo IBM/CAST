@@ -43,11 +43,11 @@ uint64_t timebase;
  class TrackSyscall{
    public:
    enum tracking{nosyscall=0, opensyscall=1, preadsyscall=2, pwritesyscall=3, statsyscall=4,
-                 fstatsyscall=5, fsyncsyscall=6, fcntlsyscall=7,
+                 fstatsyscall=5, fsyncsyscall=6, fcntlsyscall=7, openexlayout=8, setupexlayout=9, finalizeexlayout=10,
                  SSDopenwritedirect=32, SSDopenwriteNOTdirect=33, SSDpreadsyscall=34, SSDpwritesyscall=35, SSDopenreaddirect=48};
 
      TrackSyscall();
-     
+
 inline uint64_t   nowTrack(tracking pSyscall,const std::string& pFilename, int pLineNumber=0)
    {
     _syscall = pSyscall;
