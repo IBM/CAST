@@ -38,7 +38,7 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
     +-----------------------------+-----------+-----------+
     | Target file                 | Repo Dir  | RPM Dir   |
     +=============================+===========+===========+
-    | logstash.yml                | config/   | config/   |
+    | logstash.yml(see note)      | config/   | config/   |
     +-----------------------------+-----------+-----------+
     | jvm.options                 | config/   | config/   |
     +-----------------------------+-----------+-----------+
@@ -52,10 +52,24 @@ in `/opt/ibm/csm/bigdata/Logstash/`.
     +-----------------------------+-----------+-----------+
 
 .. note:: Target files are relative to `/etc/logstash`. Repo Directories are relative to 
-   `csm_big_data/Logstash`. RPM Directories are relative to `/opt/ibm/csm/bigdata/Logstash/`.
+   `csm_big_data/logstash`. RPM Directories are relative to `/opt/ibm/csm/bigdata/logstash/`.
 
 .. note:: The `conf.d/logstash.conf` file requires the ELASTIC-INSTANCE field be replaced with
    your cluster's elastic search nodes.
+   
+.. note:: logstash.yml is not shipped with this version of the RPM please use the following config for logstash.
+.. code-block:: bash
+
+   # logstash.yml
+   ---
+   path.data: /var/lib/logstash
+   path.config: /etc/logstash/conf.d/*conf
+   path.logs: /var/log/logstash
+   pipeline.workers: 2
+   pipeline.batch.size: 2000 # This is the MAXIMUM, to prevent exceedingly long waits a delay is supplied.  
+   pipeline.batch.delay: 50  # Maximum time to wait to execute an underfilled queue in milliseconds.
+   queue.type: persisted
+   ...
 
 3. Install the `CSM Event Correlator`_
     
