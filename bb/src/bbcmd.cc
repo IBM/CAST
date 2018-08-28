@@ -1121,7 +1121,8 @@ int getDefaultHostlist(string& hostlist)
     {
         if(strstr(env, " ") != NULL)
         {
-            hostlist = strstr(env, " ")+1;
+            hostlist = env;
+            replace(hostlist.begin(), hostlist.end(), ' ', ',');
         }
     }
     else if((env = getenv("LSB_DJOB_HOSTFILE")) != NULL)
@@ -1145,6 +1146,7 @@ int getDefaultHostlist(string& hostlist)
         if(strstr(env, " ") != NULL)
         {
             hostlist = strstr(env, " ")+1;
+            replace(hostlist.begin(), hostlist.end(), ' ', ',');
         }
     }
     
@@ -1161,6 +1163,7 @@ int getDefaultHostlist(string& hostlist)
     if(hostlist == "")
         hostlist = "localhost";
     
+    LOG(bb,info) << "Default hostlist: " << hostlist;
     return 0;
 }
 
@@ -1456,6 +1459,7 @@ int main(int argc, const char** argv)
         
         if (vm.count("target") > 0)
         {
+            LOG(bb,info) << "--target selected, skipping proxy init";
             config.put("bb.api.noproxyinit", true);
         }
 
