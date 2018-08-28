@@ -1162,8 +1162,6 @@ int getDefaultHostlist(string& hostlist)
     }
     if(hostlist == "")
         hostlist = "localhost";
-    
-    LOG(bb,info) << "Default hostlist: " << hostlist;
     return 0;
 }
 
@@ -1459,7 +1457,6 @@ int main(int argc, const char** argv)
         
         if (vm.count("target") > 0)
         {
-            LOG(bb,info) << "--target selected, skipping proxy init";
             config.put("bb.api.noproxyinit", true);
         }
 
