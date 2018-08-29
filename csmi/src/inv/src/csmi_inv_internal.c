@@ -1039,27 +1039,27 @@ const csmi_struct_mapping_t map_csm_node_delete_output_t= {
     cast_csm_node_delete_output_t
 };
 
-const csmi_struct_node_t csm_node_find_job_input_tree[21] = {{"node_names_count",offsetof(csm_node_find_job_input_t,node_names_count),0,NULL,0x868cf686,24},
+const csmi_struct_node_t csm_node_find_job_input_tree[21] = {{"begin_time_search_begin",offsetof(csm_node_find_job_input_t,begin_time_search_begin),0,NULL,0x34e5bb11,4},
 {"offset",offsetof(csm_node_find_job_input_t,offset),0,NULL,0x123b4b4c,36},
 {"begin_time_search_end",offsetof(csm_node_find_job_input_t,begin_time_search_end),0,NULL,0xc583ac83,4},
 {"limit",offsetof(csm_node_find_job_input_t,limit),0,NULL,0xfdcc804,36},
-{"begin_time_search_begin",offsetof(csm_node_find_job_input_t,begin_time_search_begin),0,NULL,0x34e5bb11,4},
-{"midpoint",offsetof(csm_node_find_job_input_t,midpoint),0,NULL,0x97cb1ba9,4},
+{"order_by",offsetof(csm_node_find_job_input_t,order_by),0,NULL,0x245553bb,68},
+{"end_time_search_end",offsetof(csm_node_find_job_input_t,end_time_search_end),0,NULL,0x8f62b7b5,4},
 {"end_time_search_begin",offsetof(csm_node_find_job_input_t,end_time_search_begin),0,NULL,0xf2b45ac3,4},
 {"node_names",offsetof(csm_node_find_job_input_t,node_names),offsetof(csm_node_find_job_input_t, node_names_count),NULL,0x23603fe,5},
 {NULL,0,0,NULL,0,0},
-{"midpoint_delta",offsetof(csm_node_find_job_input_t,midpoint_delta),0,NULL,0x1e8a5992,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"search_range_end",offsetof(csm_node_find_job_input_t,search_range_end),0,NULL,0x7bb36a5d,4},
+{"midpoint_interval",offsetof(csm_node_find_job_input_t,midpoint_interval),0,NULL,0x9f223e4d,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"search_range_begin",offsetof(csm_node_find_job_input_t,search_range_begin),0,NULL,0x35fc576b,4},
-{"end_time_search_end",offsetof(csm_node_find_job_input_t,end_time_search_end),0,NULL,0x8f62b7b5,4},
-{"user_name",offsetof(csm_node_find_job_input_t,user_name),0,NULL,0xc029f5a4,4},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{"search_range_end",offsetof(csm_node_find_job_input_t,search_range_end),0,NULL,0x7bb36a5d,4}}
+{"node_names_count",offsetof(csm_node_find_job_input_t,node_names_count),0,NULL,0x868cf686,24},
+{"midpoint",offsetof(csm_node_find_job_input_t,midpoint),0,NULL,0x97cb1ba9,4},
+{"user_name",offsetof(csm_node_find_job_input_t,user_name),0,NULL,0xc029f5a4,4}}
 ;
 
 void* cast_csm_node_find_job_input_t(void* ptr,size_t index, char isArray) { 

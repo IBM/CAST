@@ -697,6 +697,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
+    char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY node_name, allocation_id ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY node_name, allocation_id ASC NULLS LAST'", [b] = 'ORDER BY node_name, allocation_id DESC NULLS LAST'", [c] = 'ORDER BY allocation_id ASC NULLS LAST'", [d] = 'ORDER BY allocation_id DESC NULLS LAST'", [e] = 'ORDER BY primary_job_id ASC NULLS LAST'", [f] = 'ORDER BY primary_job_id DESC NULLS LAST'", [g] = 'ORDER BY user_name ASC NULLS LAST'", [h] = 'ORDER BY user_name DESC NULLS LAST'", [i] = 'ORDER BY num_nodes ASC NULLS LAST'", [j] = 'ORDER BY num_nodes DESC NULLS LAST'", [k] = 'ORDER BY begin_time ASC NULLS LAST'", [l] = 'ORDER BY begin_time DESC NULLS LAST'", [m] = 'ORDER BY end_time ASC NULLS LAST'", [n] = 'ORDER BY end_time DESC NULLS LAST'" */
     uint32_t node_names_count; /**< Number of names to query, size of @ref node_names. */
     char** node_names; /**< List of nodes to perform query on, size defined in @ref node_names_count.*/
     char* begin_time_search_begin; /**< A time used to filter results of the SQL query and only include records with a begin_time at or after (ie: '>=' ) this time. */
@@ -704,7 +705,7 @@ typedef struct {
     char* end_time_search_begin; /**< A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time.*/
     char* end_time_search_end; /**< A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time*/
     char* midpoint; /**< A time used to filter results of the SQL query. */
-    char* midpoint_delta; /**< A time that will be added and subtracted from the midpoint field to expand the range of the search window. */
+    char* midpoint_interval; /**< A time that will be added and subtracted from the midpoint field to expand the range of the search window. Read more about interval syntax in postgres for more info. */
     char* search_range_begin; /**< A time used to filter results of the SQL query and only include records that were active during or after this time. */
     char* search_range_end; /**< A time used to filter results of the SQL query and only include records that were active during or before this time. */
     char* user_name; /**< Filter results to only include this user_name. */
