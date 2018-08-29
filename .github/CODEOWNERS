@@ -49,18 +49,42 @@
 
 # These owners will be the default owners for everything in
 # the repo. Unless a later match takes precedence,
-# @mew2057 and @NickyDaB will be requested for
+# @fpizzano and @tgooding will be requested for
 # review when someone opens a pull request.
-*       @mew2057 @NickyDaB
+# because they are the team leads of CSM and BB
+* @fpizzano @tgooding
 
-# In this example, @NickyDaB owns any file in the `/docs`
+# In this example, @NickyDaB and @mew2057 own any file in the `/docs`
 # directory in the root of your repository.
-/docs/ @NickyDaB
+/docs/ @NickyDaB @mew2057
 
+#NOTE: Until we get git status bots checking regression. 
+# both @williammorrison2 and @pdlun92 should be added
+# as codeowners to all to run regression, maybe? 
+
+# Folder Experts
 # The following are in alphabetical order by category
+
+#GITHUB related integration files 
+/.github/ @NickyDaB
 
 # Files related to Burst Buffer
 /bb/ @tgooding
+
+#Files related to CSM Configuration
+/csmconf/ @lasch
+
+#Files related to CSM Daemons
+/csmd/ @lasch
+
+#Files related to CSM APIs on the CSM backend
+/csmd/src/daemon/src/csmi_request_handler/ @NickyDaB
+
+#Files related to CSM inventory collection
+/csmd/src/inv/ @besawn
+
+#Files related to CSM ib and switch interaction
+/csmd/src/inv/ib_and_switch/ @NickyDaB
 
 #Files related to CSM APIs
 /csmi/ @NickyDaB
@@ -70,3 +94,25 @@
 
 # Files related to CSM Database
 /csmdb/ @williammorrison2
+
+#Files related to CSM Networking
+/csmnet/ @lasch
+
+#Files related to CSM rest APIs
+/csmrestd/ @besawn
+
+#Files related to CSM FVT test
+/csmtest/ @pdlun92
+
+#Files related to diagnostics and health check
+/hcdiag/ @sanomiya
+
+# File Type Experts
+# CAST Markdown Experts
+*.md @mew2057 @NickyDaB
+
+# CAST SQL Expert 
+*.sql @williammorrison2
+
+# CAST Python Expert 
+*.py @mew2057
