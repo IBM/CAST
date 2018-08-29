@@ -60,6 +60,7 @@ void help(){
 	puts("    -----------------|------------------|--------------");
 	puts("    -c, --comment    | \"csm.reserved.%\" | (STRING) Filter results by the comment field in the CSM database. This field will query by 'LIKE' so '%' are accepted. API will ignore NULL values.");
 	puts("    -n, --node_names | \"node01,node02\"  | (STRING) This is a csv field of node names to query. Filter results to only include records that have a matching node names. The node name is a unique identification for a node.");
+	puts("                     |                  | Valid formats: \"node01\", \"node01,node02\", or \"node[01-09]\"");
 	puts("    -s, --state      | \"IN_SERVICE\"     | (CSM_NODE_STATE) Filter results by the state field in the CSM database. API will ignore NULL values.");
 	puts("                     |                  | Valid values: \"undefined\", \"DISCOVERED\", \"IN_SERVICE\", \"OUT_OF_SERVICE\", \"ADMIN_RESERVED\", or \"SOFT_FAILURE\" ");
 	puts("    -t, --type       | \"compute\"        | (STRING) Filter results by the type field in the CSM database. API will ignore NULL values.");
@@ -152,8 +153,30 @@ int main(int argc, char *argv[])
 			case 'n':
             {
                 csm_optarg_test( "-n, --node_names", optarg, USAGE );
-				csm_parse_csv( optarg, input->node_names, input->node_names_count,
-                            char*, csm_str_to_char, NULL, "-n, --node_names", USAGE );
+				
+				int return_node_range = 0;	
+				
+				return_node_range = CORAL_stringTools_nodeRangeParser(optarg, &(input->node_names_count), &(input->node_names));
+				
+				if(return_node_range == 3)
+				{
+					//function returned 3: 
+					//noderange not properly formatted. 
+					//node range digits precision don't match. ie: 003 VS 05 ie: node[005-98]
+					csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+					csmutil_logging(error, "  node range digits precision don't match.");
+					csmutil_logging(error, "  ie: 3 precision places VS 2 precision places, ie: node[005-98].");
+					csmutil_logging(error, "  node range digits precision MUST match.");
+					csmutil_logging(error, "  %s is not a valid value for node range.", optarg);
+					csmutil_logging(error, "  determined noderange was not properly formatted.");
+					USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				else if(return_node_range != 0)
+				{
+					//No range was found
+					csm_parse_csv( optarg, input->node_names, input->node_names_count, char*, csm_str_to_char, NULL, "-n, --node_names", USAGE );
+				}
 				
 				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
 				optionalParameterCounter++;

@@ -251,6 +251,205 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 
 /*
 * Author: Nick Buonarota
+* Last Edited: August 27, 2018
+* Summary: This function takes in a string and counts the number of 'nodes' based on a xCAT node range syntax of '[00-XY]'.
+* Parameters:
+*   char*     myString:     The string to compare.
+*   uint32_t* stringCount:  A pointer to an int. When this function finishes, this will contain
+*                           the number of 'seperated values' found in 'myString'.
+*   char***   stringArray:  A pointer to an array of strings. When this function finishes, this will contain
+*                           an array of 'seperated values' found in 'myString' with 'stringCount' elements. 
+*
+* Returns: int 
+*   0 Success
+*   1 ERROR: Generic error. Default.
+*   2 ERROR: noderange not present. generic
+*   3 ERROR: noderange not properly formatted. node range digits precision don't match. ie: 003 VS 05 ie: node[005-98]
+*   4 ERROR: noderange not properly formatted. node range is negative. ie: 100 VS 001 ie: node[100-001]
+*   5 ERROR: noderange not present. opening bracket '[' was not found
+*   6 ERROR: noderange not present. mid range dash '-' was not found
+*   7 ERROR: noderange not present. ending bracket ']' was not found
+*/
+int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, char*** stringArray)
+{
+
+	// Function Variables 
+	// pointer location of the opening '[' bracket for the node range 
+	char* bracket_pointer = NULL;
+	
+	//search for the opening bracket 
+	bracket_pointer = strchr(myString,'[');
+
+	if(bracket_pointer == NULL)
+	{
+		//No range was found
+		//fprintf(stderr, "ERROR: opening bracket '[' was not found.\n");
+		//fprintf(stderr, "ERROR: determined noderange not present.\n");
+		return 5;
+	}else{
+		//range was found
+
+		// === Function Variables ===
+		// number of reserved characters before the opening bracket. aka, base node name 
+		int reserved_chars = 0;
+		//number of digits in the node range, calculated later by subtracting pointer locations
+		int range_digits = 0;
+		//number of digits in the node range before '-', used to compare for a quality check
+		int range_digits_begin = 0;
+		//number of digits in the node range after '-', used to compare for a quality check
+		int range_digits_end = 0;
+		//used to later construct the full node name incrementally 
+		int range_counter = 0;
+		char range_counter_buffer[512];
+		// a reused string that will contain a full node name. 
+		char* base_node_name = NULL;
+		// ===========================
+		
+		//record the number of characters in the string before the '['
+		//aka, the base node name
+		reserved_chars = bracket_pointer-myString;
+
+		//find the dash
+		char* dash_pointer = NULL;
+		dash_pointer = strchr(myString,'-');
+
+		if(dash_pointer == NULL)
+		{
+			//No range was found
+			//fprintf(stderr, "ERROR: mid range dash '-' was not found.\n");
+			//fprintf(stderr, "ERROR: determined noderange not present.\n");
+			return 6;
+		}else
+		{
+			//good - found more format
+
+			//calculate the range digits
+			range_digits = (dash_pointer-myString+1) - (bracket_pointer-myString+1) -1;
+			range_digits_begin = range_digits;
+		}
+		
+		//find the end bracket
+		//only needed for testing quality. 
+		char* end_bracket_pointer = NULL;
+		end_bracket_pointer = strchr(myString,']');
+		
+		if(end_bracket_pointer == NULL)
+		{
+			//No range was found
+			//fprintf(stderr, "ERROR: ending bracket ']' was not found.\n");
+			//fprintf(stderr, "ERROR: determined noderange not present.\n");
+			return 7;
+		}
+		
+		//calculate the range digits
+		range_digits = (end_bracket_pointer-myString+1) - (dash_pointer-myString+1) -1;
+		range_digits_end = range_digits;
+		
+		//Quality check to make sure there is no mismatch between the opening range and closing range 
+		if(range_digits_begin != range_digits_end)
+		{
+			//illegal format detected. 
+			//fprintf(stderr, "ERROR: node range digits precision don't match.\n");
+			//fprintf(stderr, "ERROR: range_digits_begin: %i\n", range_digits_begin);
+			//fprintf(stderr, "ERROR: range_digits_end: %i\n", range_digits_end);
+			//fprintf(stderr, "ERROR: determined noderange was not properly formatted.\n");
+			return 3;
+		}
+
+		char* first_node_digit = NULL;
+
+		first_node_digit = (char*)calloc(range_digits+1,sizeof(char));
+		//memcpy the stuff out of myString
+		memcpy(first_node_digit, bracket_pointer+1, range_digits);
+
+		//grab the first node digit. save to int. 
+		//use this later to find total number of nodes
+		int first_node_digit_int = 0;
+		first_node_digit_int = atoi(first_node_digit);
+		
+		free(first_node_digit);
+
+		//find end of range
+		char* last_node_digit = NULL;
+		last_node_digit = (char*)calloc(range_digits+1,sizeof(char));
+		//memcpy the stuff out of myString
+		memcpy(last_node_digit, dash_pointer+1, range_digits);
+
+		//grab the last node digit. save to int. use this later to find total number of nodes
+		int last_node_digit_int = 0;
+		last_node_digit_int = atoi(last_node_digit);
+		
+		free(last_node_digit);
+
+		int totalNumberOfNodesInNodeRange = 0;
+		totalNumberOfNodesInNodeRange = last_node_digit_int - first_node_digit_int + 1;
+		
+		//make sure the begining of the node range is smaller than the end. 
+		if(totalNumberOfNodesInNodeRange < 0)
+		{
+			//illegal format detected. 
+			//fprintf(stderr, "ERROR: node range is negative: %i\n", totalNumberOfNodesInNodeRange);
+			//fprintf(stderr, "ERROR: determined noderange was not properly formatted.\n");
+			return 4;
+		}
+
+		//now that you know the total number of nodes in the range
+		//set the num nodes
+		*stringCount = totalNumberOfNodesInNodeRange;
+		//allocate the array
+		//so we can start filling up the node names
+		*stringArray = (char**)calloc(*stringCount, sizeof(char*));
+
+		//grab the base node name for the range
+		base_node_name = (char*)calloc(reserved_chars+1, sizeof(char));
+
+		memcpy(base_node_name, myString, reserved_chars);
+
+		//fill up all the node names in the range
+
+		//set up the first range counter
+		range_counter = first_node_digit_int;
+
+		char* full_node_name = NULL;
+
+		int i = 0;
+		for(i = 0; i < *stringCount; i++)
+		{
+			//reserve a node name with enough space for characters
+			// the reserved chars from above, plus the range digits, plus one for null terminated char
+			// example: c123f01p[01-10]
+			// reserved chars: c123f01p = 8
+			// range_digits: 01 = 2
+			// total space for malloc = 11
+			full_node_name = (char*)calloc(reserved_chars+range_digits+1,sizeof(char));
+
+			//memcpy the base node name
+			memcpy(full_node_name, base_node_name, reserved_chars);
+
+			//temp var for help
+			sprintf(range_counter_buffer, "%0*d", range_digits, range_counter);
+
+			//memcpy the node digits
+			memcpy(full_node_name + reserved_chars, range_counter_buffer, range_digits);
+
+			(*stringArray)[i] = strdup(full_node_name);
+
+			range_counter++;
+			free(full_node_name);
+		}
+	}
+	
+	//ToDo: What about a case where the node range has text? 
+	//Example: node[001-f45]
+	//it currently returns as node range is negative, improperly formatted.
+	//prevents an error, but could be more specific 
+	
+	return 0;
+}
+
+
+/*
+* Author: Nick Buonarota
 * Last Edited: July 11, 2018
 * Summary: This function takes in a string and compares it to CSM KEYWORDS.
 * Parameters:
