@@ -637,71 +637,59 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
     char l_TransferType[64] = {'\0'};
     getStrFromTransferType((pExtentInfo.getExtent())->flags, l_TransferType, sizeof(l_TransferType));
 
-    if (!pTransferDef->stopped())
+    LOG(bb,info) << "->bbproxy: " << l_OperationStr << l_TransferStatusStr << " for file " \
+                 << pTransferDef->files[pExtentInfo.getSourceIndex()] << ", " << *pLVKey << ",";
+    LOG(bb,info) << "           handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " \
+                 << pExtentInfo.getSourceIndex() << ", file status " << l_FileStatusStr << ",";
+    LOG(bb,info) << "           transfer type " << l_TransferType << ", size transferred is " << l_SizeTransferred << ".";
+
+    // NOTE:  The char array is copied to heap by addAttribute and the storage for
+    //        the logical volume uuid attribute is owned by the message facility.
+    //        Our copy can then go out of scope...
+    l_Complete->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
+    l_Complete->addAttribute(txp::jobid, pTransferDef->getJobId());
+    l_Complete->addAttribute(txp::handle, pExtentInfo.getHandle());
+    l_Complete->addAttribute(txp::contribid, pExtentInfo.getContrib());
+    l_Complete->addAttribute(txp::sourceindex, pExtentInfo.getSourceIndex());
+    l_Complete->addAttribute(txp::flags, (pExtentInfo.getExtent())->flags);
+    l_Complete->addAttribute(txp::sourcefile, pTransferDef->files[pExtentInfo.getSourceIndex()].c_str(), pTransferDef->files[pExtentInfo.getSourceIndex()].size()+1);
+    l_Complete->addAttribute(txp::status, (int64_t)l_FileStatus);
+    l_Complete->addAttribute(txp::sizetransferred, (int64_t)l_SizeTransferred);
+
+    bool l_LockTransferQueue = false;
+    if (wrkqmgr.transferQueueIsLocked())
     {
-        LOG(bb,info) << "->bbproxy: " << l_OperationStr << l_TransferStatusStr << " for file " \
-                     << pTransferDef->files[pExtentInfo.getSourceIndex()] << ", " << *pLVKey << ",";
-        LOG(bb,info) << "           handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " \
-                     << pExtentInfo.getSourceIndex() << ", file status " << l_FileStatusStr << ",";
-        LOG(bb,info) << "           transfer type " << l_TransferType << ", size transferred is " << l_SizeTransferred << ".";
-
-        // NOTE:  The char array is copied to heap by addAttribute and the storage for
-        //        the logical volume uuid attribute is owned by the message facility.
-        //        Our copy can then go out of scope...
-        l_Complete->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
-        l_Complete->addAttribute(txp::jobid, pTransferDef->getJobId());
-        l_Complete->addAttribute(txp::handle, pExtentInfo.getHandle());
-        l_Complete->addAttribute(txp::contribid, pExtentInfo.getContrib());
-        l_Complete->addAttribute(txp::sourceindex, pExtentInfo.getSourceIndex());
-        l_Complete->addAttribute(txp::flags, (pExtentInfo.getExtent())->flags);
-        l_Complete->addAttribute(txp::sourcefile, pTransferDef->files[pExtentInfo.getSourceIndex()].c_str(), pTransferDef->files[pExtentInfo.getSourceIndex()].size()+1);
-        l_Complete->addAttribute(txp::status, (int64_t)l_FileStatus);
-        l_Complete->addAttribute(txp::sizetransferred, (int64_t)l_SizeTransferred);
-
-        bool l_LockTransferQueue = false;
-        if (wrkqmgr.transferQueueIsLocked())
-        {
-            l_LockTransferQueue = true;
-            unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
-        }
-
-        // Send the message and wait for reply
-
-        try
-        {
-            rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
-        }
-        catch(exception& e)
-        {
-            rc = -1;
-            LOG(bb,warning) << "Exception thrown when attempting to send completion for file " << pTransferDef->files[pExtentInfo.getSourceIndex()] << ": " << e.what();
-            assert(strlen(e.what())==0);
-        }
-
-
-        if (l_LockTransferQueue)
-        {
-            lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
-        }
-
-        if (rc)
-        {
-            markTransferFailed(pLVKey, pTransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib());
-            ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_Failed);
-        }
-
-        ContribIdFile::update_xbbServerFileStatus(pLVKey, pTransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Files_Closed);
-
+        l_LockTransferQueue = true;
+        unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
     }
-    else
+
+    // Send the message and wait for reply
+
+    try
     {
-        LOG(bb,info) << "NOT SENT TO->bbproxy: " << l_OperationStr << l_TransferStatusStr << " for file " \
-                     << pTransferDef->files[pExtentInfo.getSourceIndex()] << ", " << *pLVKey << ",";
-        LOG(bb,info) << "                      handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " \
-                     << pExtentInfo.getSourceIndex() << ", file status " << l_FileStatusStr << ",";
-        LOG(bb,info) << "                      transfer type " << l_TransferType << ", size transferred is " << l_SizeTransferred << ".";
-        LOG(bb,info) << "                      Message NOT SENT to bbproxy due to the transfer definition being stopped.";
+        rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
     }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG(bb,warning) << "Exception thrown when attempting to send completion for file " << pTransferDef->files[pExtentInfo.getSourceIndex()] << ": " << e.what();
+        assert(strlen(e.what())==0);
+    }
+
+
+    if (l_LockTransferQueue)
+    {
+        lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
+    }
+
+    if (rc)
+    {
+        markTransferFailed(pLVKey, pTransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+        ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_Failed);
+    }
+
+    ContribIdFile::update_xbbServerFileStatus(pLVKey, pTransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Files_Closed);
+
 
     delete l_Complete;
 
