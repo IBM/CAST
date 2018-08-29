@@ -1,9 +1,44 @@
-{
-    "*syslog*":[
-        { "message" : { 
-            "value" : "error",
-            "boost" : 50
+[
+    {
+        "index"   : "*syslog*",
+        "source"  : "hostname",
+        "category": "Syslog Errors" ,
+        "mapping" : [
+            {    
+                "field" : "message",
+                "value" : "error",
+                "boost" : 50
+            },
+            {    
+                "field" : "message",
+                "value" : "kdump",
+                "boost" : 60
+            },
+            {    
+                "field" : "message",
+                "value" : "kernel",
+                "boost" : 10
             }
-        }
-    ]
-}
+        ]
+    },
+    {
+        "index"    : "cast-zimon*",
+        "source"   : "source",
+        "category" : "Zimon Counters",
+        "mapping"  : [
+            {
+                "field"     : "data.mem_active",
+                "value"     : 12000000,
+                "boost"     : 100,
+                "threshold" : "gte"
+            },
+            {
+                "field"     : "data.cpu_system",
+                "value"     : 10,
+                "boost"     : 200,
+                "threshold" : "gte"
+            }
+
+        ]
+    }
+]

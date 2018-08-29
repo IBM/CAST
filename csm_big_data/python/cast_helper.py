@@ -73,10 +73,8 @@ def convert_timestamp( timestamp ):
 
 def build_time_range( start_time, end_time, 
     start_field="@timestamp", end_field="@timestamp", 
-    end_optional=False):
+    end_optional=False, bounding_test=False):
     
-    # Process the incoming time ranges, None in end_time is considered a bounding test.
-    single_point = end_time is None
     if start_time is None:
         return (None, None)
 
@@ -99,7 +97,7 @@ def build_time_range( start_time, end_time,
         timestamp_end["lte"]=end_time
 
     # For single point ranges build a bounding box and swap the start and end. 
-    if single_point:
+    if bounding_test:
         timestamp_end["lte"] = start_time
         temp_time            = timestamp_start
         timestamp_start      = timestamp_end 

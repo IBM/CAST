@@ -78,7 +78,7 @@ def main(args):
         return 2
 
     (range, match_min) =  cast.build_time_range(target_date, None,
-        "data.begin_time", "data.history.end_time", True)
+        "data.begin_time", "data.history.end_time", True, True)
 
     bool_query={ "should" : range, "minimum_should_match" : match_min }
 
