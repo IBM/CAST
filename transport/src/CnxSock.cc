@@ -58,6 +58,10 @@ CnxSock::CnxSock(const CnxSock &pCnxSock) :
 	memcpy(&_sockaddrLocal, (void*)&(pCnxSock._sockaddrLocal), sizeof(struct sockaddr));
 	memcpy(&_sockaddrRemote, (void*)&(pCnxSock._sockaddrRemote), sizeof(struct sockaddr));
 	_sockaddrlen=pCnxSock._sockaddrlen;
+	_keepAliveIntvl=pCnxSock._keepAliveIntvl;
+    _keepAliveIdle=pCnxSock._keepAliveIdle;
+    _keepAliveCount=pCnxSock._keepAliveCount;
+    _turnOnKeepAlive=pCnxSock._turnOnKeepAlive;
 };
 
 int CnxSock::accept() {
@@ -78,6 +82,7 @@ int CnxSock::accept() {
             LOG(txp,always)<<"CnxSock::accept() getpeername errno="<<errno<<", "<<strerror(errno);
         }
 		LOG(txp,always)<<"CnxSock::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
+		keepAlive();
 		errno=0;
 	}
 
@@ -101,6 +106,7 @@ int CnxSock::accept(txp::Connex* &pNewSock) {
 		l_RC = l_NewSock->_rcLast;
 		if (l_RC > 0) {
 			l_NewSock->_sockfd = l_NewSock->_rcLast;
+			l_NewSock->keepAlive();
 			int RCgetpeername = getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
                         getsockname(l_NewSock->_sockfd, &(l_NewSock->_sockaddrLocal), &l_Sockaddrlen);
             if (RCgetpeername){//error to log

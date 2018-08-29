@@ -16,6 +16,42 @@ actions (ruby scripts).
    :local:
 
 
+Installation
+------------
+
+The CSM Event Correlator comes bundled in the `ibm-csm-bds-*.noarch.rpm` rpm. Installation
+with this currently bundled version requires an external internet connection. If there are nodes in
+your cluster that are not exposed to the internet CAST recommends following the steps in 
+`Offline Installation`_.
+
+.. code:: bash
+    
+    /usr/share/logstash/bin/logstash-plugin install \
+        /opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator-*.gem
+
+
+.. _offline-cec-install:
+
+Offline Installation
+^^^^^^^^^^^^^^^^^^^^
+
+As Logstash requires an internet connection to install the CSM Event Correlator for clusters
+that have logstash instances CAST recommends creating an offline plugin on a node which has
+followed the `Installation`_ process.
+
+1. Build the offline package:
+
+.. code-block:: bash
+
+    /usr/share/logstash/bin/logstash-plugin prepare-offline-pack --output CEC.zip \
+        logstash-filter-csm-event-correlator
+
+2. Deploy the offline package on nodes with no internet connection:
+
+.. code-block:: bash
+    
+    /usr/share/logstash/bin/logstash-plugin install file:///root/CEC.zip
+
 CSM Event Correlator Pipeline Configuration Options
 ---------------------------------------------------
 This plugin supports the following configuration options:

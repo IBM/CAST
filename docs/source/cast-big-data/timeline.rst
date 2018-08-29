@@ -12,7 +12,13 @@ Sprint 5
 :Start Time: 07/05/18
 :End Time: 09/01/18
 
-.. attention:: This sprint timeframe is not set in stone.
+
+- [X] Reimplement `findJobTimeRange.py` for the ELK stack.
+- [X] Reimplement `findJobKeys.py` for the ELK stack.
+- [X] Reimplement `findJobsRunning.py` for the ELK stack.
+- [X] Reimplement `findJobMetrics.py` for the ELK stack.
+- [X] Implement Kibana plugin.
+- [ ] Improve BDS documentation.
 
 
 Sprint 4
@@ -20,12 +26,12 @@ Sprint 4
 :Start Time: 05/21/18
 :End Time: 06/30/18
 
-- [ ] CSM history data injection.
-- [ ] Node performance counter data injection.
-- [ ] UFM performance counter data injection.
-- [ ] GPU performance counter data injection.
-- [ ] GPFS performance counter data injection.
-- [ ] P9 energy environmental data injection.
+- [X] CSM history data injection.
+- [X] Node performance counter data injection.
+- [X] UFM performance counter data injection.
+- [X] GPU performance counter data injection.
+- [X] GPFS performance counter data injection.
+- [X] P9 energy environmental data injection.
 
 Sprint 3
 --------
@@ -35,7 +41,7 @@ Sprint 3
 - [X] UFM RAS generation.
 - [X] Logstash on Service nodes.
 - [X] Documentation update (read the docs).
-- [ ] X-Pack
+- [X] X-Pack
 
 Sprint 2
 --------

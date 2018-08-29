@@ -4,8 +4,8 @@ Data Aggregation
 Data Aggregation in CAST utilizes the logstash pipeline to process events and pass it along to 
 Elasticsearch.
 
-.. note:: In the following documentation, examples requiring replacement will be annotated with the bash style 
-    `${variable_name}` and followed by an explanation of the variable.
+.. note:: In the following documentation, examples requiring replacement will be annotated with the 
+    bash style `${variable_name}` and followed by an explanation of the variable.
 
 .. contents::
     :local:
@@ -274,8 +274,8 @@ Configuration of the logging on the switch can be achieved through the *net* com
 
 .. code-block:: bash
 
-   $ net add syslog host ipv4 ${logstash_node} port tcp ${syslog_port}
-   $ net commit 
+   net add syslog host ipv4 ${logstash_node} port tcp ${syslog_port}
+   net commit 
 
 This command will populate the  */etc/rsyslog.d/11-remotesyslog.conf* file with a rule to
 export the syslog to the supplied hostname and port. If using the default CAST syslog configuration
@@ -283,11 +283,11 @@ this file will need to be modified to have the CAST syslog template:
 
 .. code-block:: bash
 
-    $ vi /etc/rsyslog.d/11-remotesyslog.conf
+    vi /etc/rsyslog.d/11-remotesyslog.conf
         
         $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %syslogseverity-text% %msg%\n"
         *.*;cron.none @@${logstash_node}:${syslog_port};logFormat
-    $ sudo service rsyslog restart
+    sudo service rsyslog restart
 
 
 .. note:: For more configuration details please refer to the official `Cumulus Linux User Guide`_.
@@ -307,7 +307,6 @@ script interacting with this utility is provided in the `ibm-csm-bds-*.noarch.rp
 
 The following document assumes that the cluster's service nodes be running the `pmcollector`
 service and any nodes requiring metrics be running `pmsensors`.
-
 
 
 .. _zimon.collector:
@@ -343,8 +342,8 @@ After configuring the collector start and enable the pmcollectors.
 
 .. code-block:: bash
 
-    $ systemctl start pmcollector
-    $ systemctl enable pmcollector
+    systemctl start pmcollector
+    systemctl enable pmcollector
 
 Sensors
 ^^^^^^^
@@ -358,8 +357,8 @@ command be run:
 
 .. code-block:: bash
 
-   $ /usr/lpp/mmfs/bin/mmperfmon config generate --collectors <collectors>
-   $ /usr/lpp/mmfs/bin/mmperfmon config update GPFSNode.period=0
+   /usr/lpp/mmfs/bin/mmperfmon config generate --collectors ${collectors}
+   /usr/lpp/mmfs/bin/mmperfmon config update GPFSNode.period=0
 
 It's recommended to specify at least two collectors defined in the `zimon.collector`_ section of this
 document. The `pmsensor` service will attempt to distribute the load and account for failover in 
@@ -369,7 +368,7 @@ After generating the sensor configuration the nodes must then be set to `perfmon
 
 .. code-block:: bash
 
-   $ /usr/lpp/mmfs/bin/mmchnode --perfmon -N <nodes>
+   $ /usr/lpp/mmfs/bin/mmchnode --perfmon -N ${nodes}
 
 Assuming `/opt/IBM/zimon/ZIMonSensors.cfg` has been properly distributed the sensors may then
 be started on the nodes.
