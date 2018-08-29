@@ -3551,7 +3551,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
         bool l_StageoutStarted = (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBLVK_Stage_Out_Start ? true : false;
 
         if ((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSD ||
-            (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS)
+            (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS ||
+            (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFSPFS)
         {
             try
             {
@@ -3589,40 +3590,44 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                 fh = NULL;
             }
 
-            try
+            if ((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSD ||
+                (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS)
             {
-                // Remove target file (if open)
-                if (!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_TargetIndex))
+                try
                 {
-                    LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
-                    if (fh->release(l_FileStatus))
+                    // Remove target file (if open)
+                    if (!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_TargetIndex))
                     {
-                        throw runtime_error(string("Unable to release filehandle"));
-                    }
-                }
-                else
-                {
-                    // NOTE:  fh will be NULL in this leg
-                    if (!l_StageoutStarted)
-                    {
-                        LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", target index " << l_TargetIndex;
+                        LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
+                        if (fh->release(l_FileStatus))
+                        {
+                            throw runtime_error(string("Unable to release filehandle"));
+                        }
                     }
                     else
                     {
-                        // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                        // NOTE:  fh will be NULL in this leg
+                        if (!l_StageoutStarted)
+                        {
+                            LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", target index " << l_TargetIndex;
+                        }
+                        else
+                        {
+                            // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                        }
                     }
                 }
-            }
-            catch(exception& e)
-            {
-                rc = -1;
-                LOG(bb,warning) << "Exception thrown when processing transfer complete for file: " << e.what();
-            }
+                catch(exception& e)
+                {
+                    rc = -1;
+                    LOG(bb,warning) << "Exception thrown when processing transfer complete for file: " << e.what();
+                }
 
-            if (fh)
-            {
-                delete fh;
-                fh = NULL;
+                if (fh)
+                {
+                    delete fh;
+                    fh = NULL;
+                }
             }
         }
     }
@@ -4279,9 +4284,34 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             errorText << "The bbserver is active for serverName="<<serverName;
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-        else{
-            rc=closeConnectionFD(serverName);
-            if (rc) {
+        else
+        {
+            //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all files closes are
+            //         first processed from the 'old' server.  In the case of cancel/stop, we want to process
+            //         all closes for those transfer definitions before the connection is closed.  Otherwise,
+            //         nothing other than a remove logical volume will close the files.
+            //
+            //         It is possible for new start transfers to be initialted to the new server and those
+            //         file handles would be inserted into the fh map.  But, we don't care about those file
+            //         handles and the only harm is the 2 minute wait.
+            int l_Continue = 120;
+            rc = -1;
+            while ((rc) && (l_Continue--))
+            {
+                rc = fileHandleCount();
+                if (rc)
+                {
+                    usleep((useconds_t)1000000);    // Delay 1 second
+                    if (l_Continue % 10 == 0)
+                    {
+                        dumpFileHandleMap("info", "msgin_closeserver() - Waiting for all files to be closed, ");
+                    }
+                }
+            }
+
+            rc = closeConnectionFD(serverName);
+            if (rc)
+            {
                 stringstream errorText;
                 errorText << "The close request failed for the bbserver serverName="<<serverName;
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
