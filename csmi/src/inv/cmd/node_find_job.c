@@ -64,7 +64,7 @@ void help() {
 	puts("    -B, --begin_time_search_end   | \"1999-01-15 13:00:00.123456\" | (STRING) A time used to filter results of the SQL query and only include records with a begin_time at or before (ie: '<=' ) this time.");
 	puts("    -e, --end_time_search_begin   | \"2000-01-15 12:34:56.123456\" | (STRING) A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time.");
 	puts("    -E, --end_time_search_end     | \"2000-01-15 13:37:33.134317\" | (STRING) A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time.");
-	puts("    -m, --midpoint                | \"2000-01-15 12:00:00.000000\" | (STRING) A time used to filter results of the SQL query.");
+	puts("    -m, --midpoint                | \"2000-01-15 12:00:00.000000\" | (STRING) A time used to filter results of the SQL query and only include records active during this time.");
 	puts("    -M, --midpoint_interval       | \"1 day 2 hour 1 minute\"      | (STRING) A time that will be added and subtracted from the midpoint field to expand the range of the search window. Read more about interval syntax in postgres for more info.");
 	puts("    -s, --search_range_begin      | \"2000-01-15 12:00:00.000000\" | (STRING) A time used to filter results of the SQL query and only include records that were active during or after this time.");
 	puts("    -S, --search_range_end        | \"2000-01-15 13:00:00.000000\" | (STRING) A time used to filter results of the SQL query and only include records that were active during or before this time.");
