@@ -164,7 +164,7 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
 
     FileHandleRegistryLock();
 
-    LOG(bb,info) << "addFilehandle:  jobid=" << jobid << "  handle=" << handle << "  index=" << index;
+    LOG(bb,debug) << "addFilehandle:  fh=" << fh << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index;
     {
         fhregistry[fl] = fh;
     }
@@ -172,6 +172,49 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
     FileHandleRegistryUnlock();
 
     return 0;
+}
+
+void dumpFileHandleMap(const char* pSev, const char* pPrefix)
+{
+    if (!strcmp(pSev,"debug"))
+    {
+        LOG(bb,debug) << "Start dump file handle map:" << pPrefix << "  " <<  fhregistry.size() << " entries";
+    }
+    else if (!strcmp(pSev,"info"))
+    {
+        LOG(bb,info) << "Start dump file handle map:" << pPrefix << "  " <<  fhregistry.size() << " entries";
+    }
+
+    for (auto& fhentry : fhregistry)
+    {
+        (fhentry.second)->dump(pSev);
+    }
+
+    if (!strcmp(pSev,"debug"))
+    {
+        LOG(bb,debug) << "  End dump file handle map:" << pPrefix << "  " <<  fhregistry.size() << " entries";
+    }
+    else if (!strcmp(pSev,"info"))
+    {
+        LOG(bb,info) << "  End dump file handle map:" << pPrefix << "  " <<  fhregistry.size() << " entries";
+    }
+
+    return;
+}
+
+int fileHandleCount()
+{
+    int l_Count = 0;
+
+    FileHandleRegistryLock();
+
+    {
+        l_Count = fhregistry.size();
+    }
+
+    FileHandleRegistryUnlock();
+
+    return l_Count;
 }
 
 int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index)
@@ -199,6 +242,8 @@ int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t co
 
     FileHandleRegistryUnlock();
 
+    LOG(bb,debug) << "findFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
+
     return rc;
 }
 
@@ -219,6 +264,7 @@ void removeNextFilehandleByJobId(filehandle* &fh, uint64_t jobid)
                 fl.contrib = fhentry.first.contrib;
                 fl.fileindex = fhentry.first.fileindex;
                 fhregistry.erase(fl);
+                LOG(bb,debug) << "removeNextFilehandleByJobId: fh=" << fh << " jobid=" << jobid << " handle=" << fl.handle << " contribid=" << fl.contrib << " index=" << fl.fileindex;
                 break;
             }
         }
@@ -255,6 +301,8 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
 
     FileHandleRegistryUnlock();
 
+    LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
+
     return rc;
 }
 
@@ -273,6 +321,7 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
     isdevzero = false;
 
     LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=" << std::oct << mode << std::dec;
+
     FL_Write(FLProxy, OpenFile, "Open for filehandle",(uint64_t)oflag,(uint64_t)mode,0,0);
 #if (BBSERVER || BBPROXY)
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
@@ -324,16 +373,16 @@ int filehandle::close()
 
 void filehandle::dump(const char* pSev, const char* pPrefix) {
     if (!strcmp(pSev,"debug")) {
-        LOG(bb,error) << "Start: " << (pPrefix ? pPrefix : "filehandle");
-        LOG(bb,error) << "                   fd: " << fd;
-        LOG(bb,error) << "             filename: " << filename;
-        LOG(bb,error) << "             statinfo: st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
-        LOG(bb,error) << "            extlookup: " << extlookup;
-        LOG(bb,error) << "            fd_oflags: " << fd_oflags;
-        LOG(bb,error) << "      numWritesNoSync: " << numWritesNoSync;
-        LOG(bb,error) << "totalSizeWritesNoSync: " << totalSizeWritesNoSync;
-        LOG(bb,error) << "            isdevzero: " << isdevzero;
-        LOG(bb,error) << " End: " << (pPrefix ? pPrefix : "filehandle");
+        LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "filehandle");
+        LOG(bb,debug) << "                   fd: " << fd;
+        LOG(bb,debug) << "             filename: " << filename;
+        LOG(bb,debug) << "             statinfo: st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
+        LOG(bb,debug) << "            extlookup: " << extlookup;
+        LOG(bb,debug) << "            fd_oflags: " << fd_oflags;
+        LOG(bb,debug) << "      numWritesNoSync: " << numWritesNoSync;
+        LOG(bb,debug) << "totalSizeWritesNoSync: " << totalSizeWritesNoSync;
+        LOG(bb,debug) << "            isdevzero: " << isdevzero;
+        LOG(bb,debug) << " End: " << (pPrefix ? pPrefix : "filehandle");
     } else if (!strcmp(pSev,"info")) {
         LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "filehandle");
         LOG(bb,info) << "                   fd: " << fd;
@@ -371,7 +420,7 @@ int filehandle::getstats(struct stat& statbuf)
                 statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
                 LOG(bb,info) << "Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+            LOG(bb,info) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
             statbuf = statinfo;
         }
         else
