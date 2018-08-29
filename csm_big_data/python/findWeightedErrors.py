@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    findJobKeys.py
+#    findWeightedErrors.py
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -129,14 +129,12 @@ def main(args):
         help='The secondary job ID of the job (default : 0).')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    parser.add_argument( '-k', '--keywords', metavar='key', dest='keywords', nargs='*', default=['.*'],
-        help='A list of keywords to search for in the Big Data Store. Case insensitive regular expressions (default : .*). If your keyword is a phrase (e.g. "xid 13") regular expressions are not supported at this time.')
     parser.add_argument( '-v', '--verbose', action='store_true',
-        help='Displays any logs that matched the keyword search.' )
+        help='Displays the top --size logs matching the --errormap mappings.')
     parser.add_argument( '--size', metavar='size', dest='size', default=10,
         help='The number of results to be returned. (default=10)')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
-        help='A list of hostnames to filter the results to ')
+        help='A list of hostnames to filter the results to.')
     parser.add_argument( '--errormap', metavar="file", dest="err_map_file", default=None,
         help='A map of errors to scan the user jobs for, including weights.')
 
