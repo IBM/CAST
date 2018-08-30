@@ -16,7 +16,7 @@
 #================================================================================
 
 '''
-.. module:: cast.util
+.. module:: cast_helper
     :platform: Linux
     :synopsis: A collection of frequently used queries and patterns for Elasticsearch accesses.
 .. moduleauthor:: John Dunham (jdunham@us.ibm.com)
@@ -33,6 +33,7 @@ from datetime import datetime
 TARGET_ENV='CAST_ELASTIC'
 
 # Date constants
+
 DATE_FORMAT        = '(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
 DATE_FORMAT_PRINT  = '%Y-%m-%d %H:%M:%S'
 TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
@@ -44,14 +45,39 @@ SEARCH_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocati
     "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
 
 def get_env():
-    '''Gets useful evironment variables.''' 
+    '''Gets useful evironment variables.
+    
+    :return tuple: 
+        (TARGET_ENV)
+    ''' 
     return (os.environ[TARGET_ENV])
 
 def deep_get( obj, *keys):
+    '''
+    Performs a deep get operation. This acts as a utility function for deeply nested elasticsearch
+    responses.
+
+    :param dict obj: The dictionary object perform a deep get on.
+    :param list keys: A list of strings representing keys for deeply nested objects. If any of the
+        keys are not present in the nesting the None type will be returned. This may be specified
+        as a set of variadic arguments to the function.
+
+    :returns obj: Returns the object found at the level of indirection defined by the list of keys.
+        If the key list supplied is not a legal indirection the None type will be returned.
+    '''
     return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
 
 def convert_timestamp( timestamp ):
-    '''  
+    '''  Converts a timestamp string into a datetime formatted string. Primarily used to verify 
+    user input.
+    
+    :param string timestamp: A timestamp in the @ref DATE_FORMAT format (yyyy-MM-dd[ .]HH:mm:ss).
+        Everything from precision hour and higher is optional as an input.
+
+    :returns string: A datetime formatted string using the @ref DATE_FORMAT_PRINT. The now string
+        will be rendered as the output from datetime.now().
+
+    :raises ValueError: If the timestamp is not formatted legally a value error will be raised.
     '''
     new_timestamp=None
     if timestamp:
@@ -77,9 +103,26 @@ def convert_timestamp( timestamp ):
 def build_time_range( start_time, end_time, 
     start_field="@timestamp", end_field="@timestamp", 
     end_optional=False, bounding_test=False):
+    ''' Builds a timerange for an elasticsearch query.
+
+    WARNING: This is going to be broken down into multiple fuctions, it has too many moving parts 
+    to be maintained correctly.
+
+    :param string start_time: The start time for the range being queried. If @ref bounding_test is 
+        specified this timestamp will be used as the "midpoint".
+    :param string end_time: The end time for the range being queried. 
+        
+    :param string start_field: The field to be associated with the start time.
+    :param string end_field: The field to be associated with the end time.
+
+    :param bool end_optional: If the ending field is optional this must be specified so the query 
+        can intelligently respond.
+    :param bool bounding_test: Performs a bounding test (WARNING will be moved to a new function)
     
-    if start_time is None:
-        return (None, None)
+    :returns (list, min_match): A list of time range queries, the minimum number of those queries which must match.
+    '''
+    # TODO This function probably should be spearated for clarity.
+    # TODO this function really needs better documentation/needs a rewrite.
 
     # Build the time range
     start_time = convert_timestamp(start_time)
@@ -132,6 +175,23 @@ def build_time_range( start_time, end_time,
 def search_user_jobs( es, user_name=None, user_id=None, job_state=None, 
     start_time=None, end_time=None, size=1000,
     fields=USER_JOB_FIELDS, index="cast-allocation" ):
+    ''' Performs an elastic search query to retrieve a listing of jobs that a user participated in.
+
+    :param Elasticsearch es: An initialized elasticsearch object, a search operation is performed with
+        this object.
+    :param string user_name: A user to search elasticsearch for, takes precedence over @ref user_id.
+    :param string user_id: A user id to search elasticsearch for, if @ref user_name is specified, ignored.
+    :param string job_state: Filters the results to the supplied job states.
+
+    :param string start_time: A starting time to search for running jobs (yyyy-MM-dd[ .]HH:mm:ss).
+    :param string end_time: An ending time to search for running jobs (yyyy-MM-dd[ .]HH:mm:ss).
+    :param int size: The number of jobs to display in the results.
+
+    :param list fields: A list of fields see in the output of the search.
+    :param string index: The index to search for the job, "cast-allocation" is the default index name.
+
+    :returns dict: A dictionary containing the results from the elasticsearch query.
+    '''
     
     query={}
 
@@ -174,6 +234,20 @@ def search_user_jobs( es, user_name=None, user_id=None, job_state=None,
 
 def search_job( es, allocation_id=0, primary_job_id=0, secondary_job_id=0, size=1000,
     fields=None, index="cast-allocation" ):
+    ''' Performs an elastic search query to retrieve any jobs that match the specified job.
+
+    :param Elasticsearch es: An initialized elasticsearch object, a search operation is performed with
+        this object.
+    :param int allocation_id: The allocation id of the job to be searched for, takes precedence over job id.
+    :param int primary_job_id: The primary job id of the job to be searched for, overriden by allocation id.
+    :param int secondary_job_id: The secondary id of the job to be searched for, only used if primary is set.
+    :param int size: The number of jobs to display in the results.
+
+    :param list fields: A list of fields see in the output of the search.
+    :param string index: The index to search for the job, "cast-allocation" is the default index name.
+
+    :returns dict: A dictionary containing the results from the elasticsearch query.
+    '''
 
     query={ "bool" : { "should" : [] } }
     
