@@ -118,6 +118,42 @@ protected:
     return rc;
   }
 
+  // checks if there's any available data on a socket
+  // and retrieves and returns any errors via getsockopt
+  int CheckConnectActivity( int aSocket, bool aWithRead = false )
+  {
+    int rc = 0;
+
+    fd_set fdsW;
+    FD_ZERO( &fdsW );
+    FD_SET( aSocket, &fdsW );
+
+    fd_set fdsR;
+    FD_ZERO( &fdsR );
+    FD_SET( aSocket, &fdsR );
+
+    struct timeval timeout;
+    timeout.tv_sec = 1; timeout.tv_usec = 0;
+
+    if( aWithRead )
+      rc = select( aSocket+1, &fdsR, &fdsW, NULL, &timeout );
+    else
+      rc = select( aSocket+1, NULL, &fdsW, NULL, &timeout );
+
+    if( rc > 0 )
+    {
+      socklen_t vallen = sizeof( int );
+      if( getsockopt( aSocket, SOL_SOCKET, SO_ERROR, &rc, &vallen ) != 0 )
+        throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
+      LOG( csmnet, trace) << "ConnectionActivity: status returned: " << rc;
+    }
+    else
+      throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", rc );
+
+    return rc;
+  }
+
+
   template<typename AddressClass>
   int ConnectPrep( const csm::network::Address_sptr aSrvAddr )
   {
@@ -161,26 +197,10 @@ protected:
           // check if the non-blocking socket completed the connect() or not, if not, use select+getsockopt to go check completion or error
           if( stored_errno == EINPROGRESS )
           {
-            fd_set fds;
-            FD_ZERO( &fds );
-            FD_SET( _Socket, &fds );
-
-            struct timeval timeout;
-            timeout.tv_sec = 2; timeout.tv_usec = 0;
-
-            if( select( _Socket+1, NULL, &fds, NULL, &timeout ) > 0 )
-            {
-              socklen_t vallen = sizeof( int );
-              if( getsockopt( _Socket, SOL_SOCKET, SO_ERROR, &stored_errno, &vallen ) != 0 )
-                throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
-              if( stored_errno == 0 )
-              {
-                rc = 0;
-                break;
-              }
-            }
-            else
-              throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", stored_errno );
+            --retries; // this is an incomplete connect, so we cannot count it as a "retry"
+            stored_errno = CheckConnectActivity( _Socket );
+            if( stored_errno == 0 )
+              rc = 0;
           }
           // there are some error cases where we just shouldn't retry immediately
           if(( stored_errno == EALREADY ) || ( stored_errno == EHOSTUNREACH ))

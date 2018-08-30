@@ -394,60 +394,45 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
 
   LOG( csmnet, debug ) << "SSL Connecting...";
   ERR_clear_error();
-  rc = 0;
-  while( rc != 1 )
+  bool keep_retrying = true;
+  while( keep_retrying )
   {
     rc = SSL_connect( _SSLStruct );
-    if( rc != 1 )
+    switch( rc )
     {
-      rc = SSL_get_error( _SSLStruct, rc );
-      switch( rc )
-      {
-        default:
-        {
-          std::string err_str = "SSL_connect"+SSLPrintError( rc );
-          while( (rc = SSL_get_error( _SSLStruct, rc )) > 0 )
-          {
-            // todo: cleanup BIO
-            err_str.append( SSLPrintError( rc ) );
-            err_str.append( " :: " );
-          }
-          SSL_clear( _SSLStruct );
-          throw csm::network::ExceptionEndpointDown(err_str, rc);
-          break;
-        }
-        case SSL_ERROR_WANT_READ:
-        case SSL_ERROR_WANT_WRITE:
-        {
-          fd_set fds;
-          FD_ZERO( &fds );
-          FD_SET( bsock, &fds );
+      case 0: // unable to continue error
+        LOG( csmnet, error ) << "SSL Connection error.";
+        throw csm::network::ExceptionEndpointDown( SSLExtractError( rc, " SSL_Connect: " ) );
 
-          struct timeval timeout;
-          timeout.tv_sec = 2; timeout.tv_usec = 0;
+      case 1: // successful connection
+        LOG( csmnet, debug ) << "SSL Connection complete.";
+        keep_retrying = false;
+        break;
 
-          if( select( bsock+1, NULL, &fds, NULL, &timeout ) > 0 )
-          {
-            socklen_t vallen = sizeof( int );
-            if( getsockopt( bsock, SOL_SOCKET, SO_ERROR, &rc, &vallen ) != 0 )
-              throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
-            if( rc == 0 )
-            {
-              rc = 0;
-              break;
-            }
-          }
-          else
-            throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", rc );
-          break;
+      default: // potentially incomplete connect or other serious error
+        LOG( csmnet, trace ) << "SSL Connection incomplete.";
+        rc = SSL_get_error( _SSLStruct, rc );
+        // since we already pulled the first error, we need to add the error to the prefix for the full error string
+        std::string err_str = " SSL_Connect: " + SSLPrintError( rc );
+        LOG( csmnet, trace ) << "SSL Connection status: rc=" << rc;
+        switch( rc )
+        {
+          case SSL_ERROR_NONE: // seems unlikely, but we better cover that case
+            keep_retrying = false; // we're connected
+            break;
+
+          case SSL_ERROR_WANT_READ:
+          case SSL_ERROR_WANT_WRITE:
+            rc = csm::network::EndpointPTP_base::CheckConnectActivity( bsock, true ); // check read and write activity
+            if( rc != 0 )
+              throw csm::network::ExceptionEndpointDown( "SSL Connection failed.", rc );
+            break;
+
+          default:
+            throw csm::network::ExceptionEndpointDown( SSLExtractError( rc, err_str ) );
+            break;
         }
-        case SSL_ERROR_NONE:
-          rc = 1;
-          break;
-      }
     }
-    else
-      break;
   }
 
   if( SSL_get_verify_result( _SSLStruct ) != X509_V_OK )
