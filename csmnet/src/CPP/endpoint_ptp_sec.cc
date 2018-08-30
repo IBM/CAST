@@ -379,6 +379,9 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
   if( bsock <= 0 )
     throw csm::network::ExceptionEndpointDown( "BIO Creation failure to retrieve socket number" );
 
+  if( bsock != _Socket )
+    LOG( csmnet, debug ) << "Connected socket: " << _Socket << " is different from BIO fd: " << bsock;
+
   // ... to make the socket non-blocking
   long current_setting = fcntl( bsock, F_GETFL, NULL );
   if( (current_setting & O_NONBLOCK) == 0 )
@@ -389,12 +392,13 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
       throw csm::network::ExceptionEndpointDown("fcntl: NONBLOCK");
   }
 
-
   SSL_set_bio(_SSLStruct, _BIO, _BIO);
 
   LOG( csmnet, debug ) << "SSL Connecting...";
   ERR_clear_error();
   bool keep_retrying = true;
+  std::chrono::time_point< std::chrono::system_clock > end = std::chrono::system_clock::now() + std::chrono::milliseconds( 1000 );
+
   while( keep_retrying )
   {
     rc = SSL_connect( _SSLStruct );
@@ -426,6 +430,8 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
             rc = csm::network::EndpointPTP_base::CheckConnectActivity( bsock, true ); // check read and write activity
             if( rc != 0 )
               throw csm::network::ExceptionEndpointDown( "SSL Connection failed.", rc );
+            if( std::chrono::system_clock::now() > end )
+              throw csm::network::ExceptionEndpointDown( "SSL Connection timed out", ETIMEDOUT );
             break;
 
           default:
