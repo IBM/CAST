@@ -12,7 +12,7 @@ storage or large numbers of drives are prefered.
 Configuration
 -------------
 
-.. note:: This guide has been tested using Elasticsearch 6.2.3, the latest RPM may be downloaded from
+.. note:: This guide has been tested using Elasticsearch 6.3.2, the latest RPM may be downloaded from
     `the Elastic Site <https://www.elastic.co/downloads/elasticsearch>`_.
 
 The following is a brief introduction to the installation and configuration of the elasticsearch service.
@@ -20,36 +20,36 @@ It is generally assumed that elasticsearch is to be installed on multiple Big Da
 advantage of the distributed nature of the service. Additionally, in the CAST configuration data drives
 are assumed to be JBOD.
 
-CAST provides a set of sample configuration files in the repository at `csm_big_data/Elasticsearch/`
-If the `ibm-csm-bds-*.noarch.rpm` has been installed the sample configurations may be found
-in `/opt/ibm/csm/bigdata/Elasticsearch/`.
+CAST provides a set of sample configuration files in the repository at `csm_big_data/elasticsearch/`
+If the `ibm-csm-bds-*.noarch.rpm` rpm as been installed the sample configurations may be found
+in `/opt/ibm/csm/bigdata/elasticsearch/`.
 
 1. Install the elasticsearch rpm and java 1.8.1+ (command run from directory with elasticsearch rpm):
 
 .. code-block:: bash
 
-    $ yum install -y elasticsearch-*.rpm java-1.8.*-openjdk
+    yum install -y elasticsearch-*.rpm java-1.8.*-openjdk
 
-2. Copy the elastic search configuration files to the `/etc/elasticsearch` directory.
-    It is recommended that the system administrator review these configurations at this 
-    phase.
+2. Copy the elastic search configuration files to the `/etc/elasticsearch` directory. 
 
-    * jvm.options
-        * jvm options for the Elasticsearch service.
-    * elasticsearch.yml
-        * Configuration of the service specific attributes, please see `elasticsearch.yml`_ for details.
+    It is recommended that the system administrator review these configurations at this phase.
 
-3. Make an ext4 filesystem on each hard drive designated to be in the elastic search JBOD. The
-    mounted names for these file systems should match the names spcified in `path.data`. Additionally,
-    these mounted file systems should be owned by the `elasticsearch` user and in the 
+    :jvm.options: jvm options for the Elasticsearch service.
+    :elasticsearch.yml: Configuration of the service specific attributes, please see 
+        `elasticsearch.yml`_ for details.
+
+3. Make an ext4 filesystem on each hard drive designated to be in the elastic search JBOD. 
+
+    The mounted names for these file systems should match the names spcified in `path.data`. 
+    Additionally, these mounted file systems should be owned by the `elasticsearch` user and in the 
     `elasticsearch` group.
 
 4. Start Elasticsearch:
 
 .. code-block:: bash
 
-    $ systemctl enable elasticsearch
-    $ systemctl start elasticsearch
+    systemctl enable elasticsearch
+    systemctl start elasticsearch
 
 Elasticsearch should now be operational. If Logstash was properly configured there should already
 be data being written to your index.
@@ -97,9 +97,14 @@ system administrator. A brief rundown of the fields to modify is as follows:
 
 :gateway.recover_after_nodes: Number of nodes to wait for before begining recovery after cluster-wide restart.
 
-.. :bootstrap.system_call_filter: CAST defaults to false. 
+:xpack.ml.enabled: Enables/disables the Machine Learning utility in xpack, 
+                this should be disabled on ppc64le installations.
 
-.. TODO: Why is bootstrap.system_call_filter set to false (got this setting from lab).
+:xpack.security.enabled: Enables/disables security in elasticsearch.
+
+:xpack.license.self_generated.type: Sets the license of xpack for the cluster, if the user has
+                no license it should be set to `basic`.
+
 .. TODO: Determine what the rpm install will do with this.
 .. TODO: Determine some logical defaults.
 
@@ -122,8 +127,6 @@ System Settings
 
 .. TODO: Add more details.
 
-
-
 Indices
 --------
 
@@ -138,7 +141,6 @@ of the type of data: *syslog*, *node*, *mellanox-event*, etc.
 .. note:: Cast has elected to use lowercase and '-' characters to separate words. This is not mandatory
     for your index naming and creation.
 
-
 Templates
 ^^^^^^^^^
 
@@ -146,7 +148,6 @@ CAST leverages the elasticsearch index templating system to assist in the defint
 Today each of the cast specified indices is given the *cast* template, followed by the exact specialization.
 
 .. TODO: Flesh this section out. 
-
 
 .. _SyslogElastic:
 
@@ -248,22 +249,50 @@ The mapping for the *console* index is provided below:
 +---------------+--------+----------------------------------------------------------------+
 | message       | *text* | The console event data, typically a console line.              | 
 +---------------+--------+----------------------------------------------------------------+
-| hostname      | *text* | The hostname of the ufm aggregating the events.                | 
+| hostname      | *text* | The hostname generating the console.                           | 
 +---------------+--------+----------------------------------------------------------------+
 | tags          | *text* | Tags containing additional metadata about the console log.     |
 +---------------+--------+----------------------------------------------------------------+
 
-cast-counters-gpfs
-^^^^^^^^^^^^^^^^^^
+cast-csm-gpu-env
+^^^^^^^^^^^^^^^^
 
-:alias: cast-counters-gpfs
+:alias: cast-csm-gpu-env
 :shards: 5
 :replication: 1
 
-.. attention:: This section is currently a work in progress.
 
-.. note:: The CAST team is currently in the process of reviewing the GPFS counter polling process
-    it is likely that this index will be modified in the forseeable future.
+The mapping for the *cast-csm-gpu-env* index is provided below:
+
++-------------------------+--------+-------------------------------------------------+
+| Field                   | Type   | Description                                     |
++=========================+========+=================================================+
+| @timestamp              | *date* | Ingestion time of the gpu environment counters. |
++-------------------------+--------+-------------------------------------------------+
+| timestamp               | *date* | When environment counters were gathered.        |
++-------------------------+--------+-------------------------------------------------+
+| type                    | *text* | The type of the event (*csm-gpu-env*).          | 
++-------------------------+--------+-------------------------------------------------+
+| source                  | *text* | The source of the counters.                     |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_id             | *long* | The id of the GPU record being aggregated.      |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_mem_temp       | *long* | The memory temperature of the GPU.              |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_mem_temp_max   | *long* | The max memory temperature of the GPU           |
+|                         |        | over the collection period.                     |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_mem_temp_min   | *long* | The min memory temperature of the GPU           |
+|                         |        | over the collection period.                     |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_temp           | *long* | The temperature of the GPU.                     |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_temp_max       | *long* | The max temperature of the GPU                  |
+|                         |        | over the collection period.                     |
++-------------------------+--------+-------------------------------------------------+
+| data.gpu_temp_min       | *long* | The min temperature of the GPU                  |
+|                         |        | over the collection period.                     |
++-------------------------+--------+-------------------------------------------------+
 
 cast-counters-ufm
 ^^^^^^^^^^^^^^^^^
@@ -272,35 +301,22 @@ cast-counters-ufm
 :shards: 5
 :replication: 1
 
-.. attention:: This section is currently a work in progress.
+Due to the wide variety of counters that may be gathered checking the data aggregation script
+is strongly recommended.
 
-.. note:: The CAST team is currently in the process of reviewing the ufm counters being aggregated
-    it is likely that this index will be modified in the forseeable future.
+The mapping for the *cast-counters-ufm* index is provided below:
 
-
-cast-counters-gpu
-^^^^^^^^^^^^^^^^^
-
-:alias: cast-counters-gpu
-:shards: 5
-:replication: 1
-
-.. attention:: This section is currently a work in progress.
-
-.. note:: The CAST team is currently in the process of reviewing the GPU counters and the process
-    of using DCGM to perform the aggregation operation.
-
-cast-environmental-node
-^^^^^^^^^^^^^^^^^^^^^^^
-
-:alias: cast-environmental-node
-:shards: 5
-:replication: 1
-
-.. attention:: This section is currently a work in progress.
-
-.. note:: The CAST team is currently in the process of reviewing the inband aggregation of the node
-    environmental data.
++-------------------------+--------+-------------------------------------------------+
+| Field                   | Type   | Description                                     |
++=========================+========+=================================================+
+| @timestamp              | *date* | Ingestion time of the ufm environment counters. |
++-------------------------+--------+-------------------------------------------------+
+| timestamp               | *date* | When environment counters were gathered.        |
++-------------------------+--------+-------------------------------------------------+
+| type                    | *text* | The type of the event (*cast-counters-ufm*).    | 
++-------------------------+--------+-------------------------------------------------+
+| source                  | *text* | The source of the counters.                     |
++-------------------------+--------+-------------------------------------------------+
 
 cast-db
 ^^^^^^^

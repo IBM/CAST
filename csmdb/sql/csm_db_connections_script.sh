@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_connections_script.sh  <----- to kill db sessions
 #   current_version:    1.6
 #   create:             09-08-2017
-#   last modified:      08-10-2018
+#   last modified:      08-22-2018
 #   Comments:           Execute this script as "postgres" user
 #                       (user who runs postmaster)
 #================================================================================
@@ -31,12 +31,12 @@ export PGOPTIONS='--client-min-messages=warning'
 #================================================
 
 OPTERR=0
-#DEFAULT_DB="csmdb"
-#logpath="/var/log/ibm/csm/db"
-logpath=`pwd` #<------- Change this when pushing to the repo
+DEFAULT_DB="csmdb"
+logpath="/var/log/ibm/csm/db"
+#logpath=`pwd` #<------- Change this when pushing to the repo
 logname="csm_db_connections_script.log"
 cd "${BASH_SOURCE%/*}" || exit
-cur_path=`pwd`
+#cur_path=`pwd`
 
 #==============================================
 # Current user connected

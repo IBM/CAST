@@ -18,14 +18,14 @@
 #   usage:              ./csm_db_stats.sh
 #   current_version:    01.4
 #   create:             08-02-2016
-#   last modified:      08-08-2018
+#   last modified:      08-22-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
 
 OPTERR=0
-#logpath="/var/log/ibm/csm/db"
-logpath=`pwd` #<------- Change this when pushing to the repo.
+logpath="/var/log/ibm/csm/db"
+#logpath=`pwd` #<------- Change this when pushing to the repo.
 logname="csm_db_stats.log"
 cd "${BASH_SOURCE%/*}" || exit
 cur_path=`pwd`

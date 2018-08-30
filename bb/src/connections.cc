@@ -1394,6 +1394,14 @@ int setupConnections(string whoami, string instance)
             }
 
             listen_socket = sock->getSockfd();
+            bool l_turnOnKeepAlive = config.get("bb.usekeepalive", true);
+            sock->setKeepAliveBool(l_turnOnKeepAlive);
+            if (l_turnOnKeepAlive){
+                int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
+                int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
+                int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+            }
 
             connections[sock->getSockfd()] = sock;
             addToNameConnectionMaps(sock, "listener");
@@ -1453,6 +1461,15 @@ int setupConnections(string whoami, string instance)
             }
 
             ssl_listen_socket = sslSock->getSockfd();
+            bool l_turnOnKeepAlive = config.get("bb.usekeepalive", true);
+            sslSock->setKeepAliveBool(l_turnOnKeepAlive);
+            if (l_turnOnKeepAlive){
+                int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
+                int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
+                int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
+                sslSock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+            }
+            
 
             connections[sslSock->getSockfd()] = sslSock;
             addToNameConnectionMaps(sslSock, "ssllistener");
@@ -1732,6 +1749,7 @@ void* responseThread(void* ptr)
                         lockConnectionMaps("responseThread - accept remote connection");
                         {
                             (connections[pollinfo[idx].fd])->accept(newsock);
+                            newsock->keepAlive();
                             connections[newsock->getSockfd()] = newsock;
                         }
                         unlockConnectionMaps("responseThread - accept remote connection");
@@ -1748,6 +1766,7 @@ void* responseThread(void* ptr)
                         lockConnectionMaps("responseThread - accept remote SSL connection");
                         {
                             (connections[pollinfo[idx].fd])->accept(newsock);
+                            newsock->keepAlive();
                             connections[newsock->getSockfd()] = newsock;
                         }
                         unlockConnectionMaps("responseThread - accept remote SSL connection");

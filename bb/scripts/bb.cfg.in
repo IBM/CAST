@@ -6,6 +6,10 @@
 		"bbserverMetadataPath"       : "@METADATAPATH@",
                 "bbserverFileIOwarnSeconds"  : 20,
                 "bbserverFileIOStuckSeconds" : 60,
+				"usekeepalive"               : true,
+				"keepaliveidle"              : 60,
+				"keepalivecount"             : 12,
+				"keepaliveinterval"          :  5,
               
 		"server0" :
 		{		

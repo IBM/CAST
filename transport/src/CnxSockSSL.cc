@@ -67,6 +67,11 @@ CnxSockSSL::CnxSockSSL(const CnxSockSSL &pCnxSock) :
     memcpy(&_sockaddrLocal, (void*)&(pCnxSock._sockaddrLocal), sizeof(struct sockaddr));
     memcpy(&_sockaddrRemote, (void*)&(pCnxSock._sockaddrRemote), sizeof(struct sockaddr));
     _sslctx = pCnxSock._sslctx;
+    _keepAliveIntvl=pCnxSock._keepAliveIntvl;
+    _keepAliveIdle=pCnxSock._keepAliveIdle;
+    _keepAliveCount=pCnxSock._keepAliveCount;
+    _turnOnKeepAlive=pCnxSock._turnOnKeepAlive;
+
 };
 
 

@@ -17,15 +17,15 @@
 #   usage:              ./csm_db_script.sh <----- to create the csm_db
 #   current_version:    10.14
 #   create:             12-14-2015
-#   last modified:      08-08-2018
+#   last modified:      08-22-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
 
 OPTERR=0
 DEFAULT_DB="csmdb"
-#logpath="/var/log/ibm/csm/db"
-logpath=`pwd` #<------ change this when pushing to the repo.
+logpath="/var/log/ibm/csm/db"
+#logpath=`pwd` #<------ change this when pushing to the repo.
 logname="csm_db_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 cur_path=`pwd`

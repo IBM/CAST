@@ -36,6 +36,7 @@ public:
     _log_csmd = utility::bluecoral_sevs::NUM_SEVERITIES;
     _log_csmras = utility::bluecoral_sevs::NUM_SEVERITIES;
     _log_csmapi = utility::bluecoral_sevs::NUM_SEVERITIES;
+    _log_csmenv = utility::bluecoral_sevs::NUM_SEVERITIES;
     _dump_perf_data = false;
     _dump_mem_usage = false;
     _agg_reset = false;
@@ -52,6 +53,7 @@ private:
     ar & _log_csmd;
     ar & _log_csmras;
     ar & _log_csmapi;
+    ar & _log_csmenv;
     ar & _dump_perf_data;
     ar & _dump_mem_usage;
     ar & _agg_reset;
@@ -87,6 +89,11 @@ public:
     _log_csmapi = i_level;
   }
   utility::bluecoral_sevs get_log_csmapi() { return _log_csmapi; }
+  void set_log_csmenv(utility::bluecoral_sevs i_level)
+  {
+    _log_csmenv = i_level;
+  }
+  utility::bluecoral_sevs get_log_csmenv() { return _log_csmenv; }
   
   void set_dump_perf_data() { _dump_perf_data = true;}
   bool get_dump_perf_data() { return _dump_perf_data;}
@@ -103,6 +110,7 @@ private:
   utility::bluecoral_sevs _log_csmd;
   utility::bluecoral_sevs _log_csmras;
   utility::bluecoral_sevs _log_csmapi;
+  utility::bluecoral_sevs _log_csmenv;
   bool _dump_perf_data;
   bool _dump_mem_usage;
   bool _agg_reset;

@@ -105,6 +105,9 @@ public:
 
   typedef dcgm_field_meta_p (*DcgmFieldGetById_ptr_t)(unsigned short fieldId);
   // DcgmFieldGetById_ptr_t - dcgm_field_meta_p DcgmFieldGetById(unsigned short fieldId);
+  
+  typedef dcgmReturn_t (*dcgmWatchPidFields_ptr_t)(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
+  // dcgmWatchPidFields_ptr_t - dcgmReturn_t dcgmWatchPidFields(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
 
   typedef dcgmReturn_t (*dcgmWatchJobFields_ptr_t)(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
   // dcgmWatchJobFields_ptr_t - dcgmReturn_t dcgmWatchJobFields(dcgmHandle_t, dcgmGpuGrp_t, long long, double, int);
@@ -120,7 +123,7 @@ public:
 
   typedef dcgmReturn_t (*dcgmJobRemove_ptr_t)(dcgmHandle_t, char []);
   // dcgmJobRemove_ptr_t - dcgmReturn_t dcgmJobRemove(dcgmHandle_t, char []);
-
+  
   // functions
 
   static INV_DCGM_ACCESS* GetInstance(){ if( _Instance == nullptr ){ _Instance = new INV_DCGM_ACCESS(); } return _Instance; } // get the istance of the class object
@@ -131,17 +134,8 @@ public:
   dcgmDeviceAttributes_t * GetGPUsAttributesPointer(){ return &(gpu_attributes[0]); } // pointer to the arrray of the dcgmDeviceAttributes_ts
   int DCGMGPUCount(){ return dcgm_gpu_count; } // number of gpu of the node as counted by dcgm
   bool GetGPUsAttributes(); // populate the gpu_ids array and the gpu_attributes array, return false if something went wrong
-  bool LogGPUsEnviromentalData(); // log GPU enviromental data
-  void Get_Double_DCGM_Field_Values( vector<double> &vector_double_dcgm_field_values ); // transfer the double dcgm field values to the input vector
-  void Get_Long_DCGM_Field_Values( vector<long> &vector_int64_dcgm_field_values ); // transfer the i64 dcgm field values to the input vector
-  void Get_Double_DCGM_Field_String_Identifiers( vector<string> &vector_labels_for_double_dcgm_fields ); // transfer the double dcgm field string identifiers to the input vector
-  void Get_Long_DCGM_Field_String_Identifiers( vector<string> &vector_labels_for_int64_dcgm_fields ); // transfer the i64 dcgm field string identifiers to the input vector
+  
   ~INV_DCGM_ACCESS();
-
-  int list_field_values_since(unsigned int gpuId, dcgmFieldValue_t *values, int numValues, void *userData);
-  int list_field_values(unsigned int gpuId, dcgmFieldValue_t *values, int numValues, void *userData); 
-
-  //static int objectCount = 0;
 
   /**
    * Read the GPU metrics that are needed at the start and end of an allocation and return them to the caller.
@@ -178,7 +172,6 @@ public:
 
 private:
   INV_DCGM_ACCESS();
-  //static int objectCount;
 
   /**
    * Attempt to initialize the function pointers to DCGM functions using dlsym().
@@ -246,6 +239,7 @@ private:
   dcgmDisconnect_ptr_t dcgmDisconnect_ptr;
   dcgmShutdown_ptr_t dcgmShutdown_ptr;
   DcgmFieldGetById_ptr_t DcgmFieldGetById_ptr;
+  dcgmWatchPidFields_ptr_t dcgmWatchPidFields_ptr;
   dcgmWatchJobFields_ptr_t dcgmWatchJobFields_ptr;
   dcgmJobStartStats_ptr_t dcgmJobStartStats_ptr;
   dcgmJobStopStats_ptr_t dcgmJobStopStats_ptr;
@@ -258,22 +252,6 @@ private:
   dcgmDeviceAttributes_t gpu_attributes[DCGM_MAX_NUM_DEVICES]; // GPU attributes
   int dcgm_gpu_count; // number of GPUs discovered by DCGM
   
-  // other variables necessary for the fields
-  unsigned int number_of_double_fields; // number of double fields to query
-  unsigned int number_of_int64_fields; // number of int64 fields to query
-
-  vector<unsigned short> vector_of_ids_of_double_fields; // vector of ids of double fields to query
-  vector<unsigned short> vector_of_ids_of_int64_fields; // vector of ids of int64 fields to query
-
-  vector<dcgmFieldValue_t> vector_of_double_values; // vector of double values for the fields
-  vector<dcgmFieldValue_t> vector_of_int64_values; // vector of int64 values for the fields
-  
-  // DCGM GPU Group Names
-  static char CSM_GPU_GROUP[];
-
-  // DCGM GPU Field Group Names
-  static char CSM_DOUBLE_FIELDS[];
-  static char CSM_INT64_FIELDS[];
   static char CSM_ENVIRONMENTAL_FIELD_GROUP[];
   static char CSM_ALLOCATION_FIELD_GROUP[];
 
@@ -295,26 +273,6 @@ private:
   // Names of the fields associated with the field groups 
   std::vector<std::string> csm_allocation_field_names; 
   std::vector<std::string> csm_environmental_field_names; 
-
-  // other variables
-  long long updateFreq; // update frequency in us for the DCGM fields
-  double maxKeepAge;    // number of secs that DCGM has to store the samples
-  int maxKeepSamples;   // number of samples per field that DCGM will store
-
-  vector<vector<double>> vector_old_double_fields_value;
-  vector<vector<long>> vector_old_int64_fields_value;
-
-  vector<unsigned int> vector_flag_old_double_data;
-  vector<unsigned int> vector_flag_old_int64_data;
-
-  // additional variables for the fields
-
-  vector<string> dcgm_meta_double_vector;
-  vector<string> dcgm_meta_int64_vector;
-
-  vector<vector<double>> vector_for_double_values_storage; // vector for the storage of double values for the fields
-  vector<vector<long>> vector_for_int64_values_storage; // vector for the storage of int64 values for the fields
-
 };
 
 // Initialize static member of class INV_DCGM_ACCESS
@@ -343,11 +301,6 @@ public:
   static INV_DCGM_ACCESS* GetInstance(){ if( _Instance == nullptr ){ _Instance = new INV_DCGM_ACCESS(); } return _Instance; } // get the istance of the class object
   bool GetDlopenFlag(){ return dlopen_flag; } // dlopen flag, true if libdcgm_ptr is == nullptr
   bool GetDCGMInitFlag(){ return dcgm_init_flag; } // dcgm init flag, false if some modules were not loaded correcty or if some of the DCGM initialization functions failed
-  bool LogGPUsEnviromentalData(); // log GPU enviromental data
-  void Get_Double_DCGM_Field_Values( std::vector<double> &vector_double_dcgm_field_values ); // transfer the double dcgm field values to the input vector
-  void Get_Long_DCGM_Field_Values( std::vector<long> &vector_int64_dcgm_field_values ); // transfer the i64 dcgm field values to the input vector
-  void Get_Double_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_double_dcgm_field_strings ); // transfer the double dcgm field string identifiers to the input vector
-  void Get_Long_DCGM_Field_String_Identifiers( std::vector<std::string> &vector_labels_for_int64_dcgm_fields ); // transfer the i64 dcgm field string identifiers to the input vector
   ~INV_DCGM_ACCESS();
   
   bool ReadAllocationFields();
@@ -364,11 +317,8 @@ private:
   static INV_DCGM_ACCESS *_Instance;
 
   // flags
-  bool dcgm_installed_flag;
   bool dlopen_flag;
   bool dcgm_init_flag;
-  bool dcgm_used_flag;
-
 
 };
 

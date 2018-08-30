@@ -243,25 +243,34 @@ int ConnexSocket::poll4DataIn() {
     return rc;
 }
 
-    int ConnexSocket::setKeepAlive( int pKeepIdle, int pKeepIntvl,int pKeepCount)
+    int ConnexSocket::keepAlive( )
     {  
-      int savedErrno=0;
-      //override net.ipv4.tcp_keepalive_time
-      if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPIDLE, &pKeepIdle, sizeof(pKeepIdle) ) != 0){
-         if (!savedErrno) savedErrno=errno;
-         LOGERRNO(txp,error,errno);//syslog that something bad happened;     
-      }
-      //override net.ipv4.tcp_keepalive_intvl
-      if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPINTVL, &pKeepIntvl, sizeof(pKeepIntvl)) != 0){
-         if (!savedErrno) savedErrno=errno;
-         LOGERRNO(txp,error,errno);//syslog that something bad happened      
-      }
-      //override net.ipv4.tcp_keepalive_probes
-      if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPCNT, &pKeepCount, sizeof(pKeepCount)) != 0){
-         if (!savedErrno) savedErrno=errno;    
-         LOGERRNO(txp,error,errno);//syslog that something bad happened
-      }
-      (void)savedErrno;
+        int val=0; //start by turning it off
+        if (setsockopt(_sockfd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0) {
+             LOGERRNO(txp,error,errno);//syslog that something bad happened;     
+        }
+
+        if (_turnOnKeepAlive){//turn it on
+
+            //override net.ipv4.tcp_keepalive_time
+            if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPIDLE, &_keepAliveIdle, sizeof(_keepAliveIdle) ) != 0){
+                LOGERRNO(txp,error,errno);//syslog that something bad happened;     
+            }
+            //override net.ipv4.tcp_keepalive_intvl
+            if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPINTVL, &_keepAliveIntvl, sizeof(_keepAliveIntvl)) != 0){
+                LOGERRNO(txp,error,errno);//syslog that something bad happened      
+            }
+            //override net.ipv4.tcp_keepalive_probes
+            if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPCNT, &_keepAliveCount, sizeof(_keepAliveCount)) != 0){
+                LOGERRNO(txp,error,errno);//syslog that something bad happened
+            }
+
+            val=1; //on=1
+            if (setsockopt(_sockfd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0) {
+               LOGERRNO(txp,error,errno);//syslog that something bad happened;     
+            }
+        }
+    
       return 0;
     }
 
