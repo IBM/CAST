@@ -109,10 +109,7 @@
 
 # File Type Experts
 # CAST Markdown Experts
-*.md @mew2057 @NickyDaB
+*.md @NickyDaB
 
 # CAST SQL Expert 
 *.sql @williammorrison2
-
-# CAST Python Expert 
-*.py @mew2057
