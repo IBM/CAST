@@ -176,6 +176,8 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
 
 void dumpFileHandleMap(const char* pSev, const char* pPrefix)
 {
+    FileHandleRegistryLock();
+
     if (!strcmp(pSev,"debug"))
     {
         LOG(bb,debug) << "Start dump file handle map:" << pPrefix << "  " <<  fhregistry.size() << " entries";
@@ -198,6 +200,8 @@ void dumpFileHandleMap(const char* pSev, const char* pPrefix)
     {
         LOG(bb,info) << "  End dump file handle map:" << pPrefix << "  " <<  fhregistry.size() << " entries";
     }
+
+    FileHandleRegistryUnlock();
 
     return;
 }
@@ -420,7 +424,7 @@ int filehandle::getstats(struct stat& statbuf)
                 statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
                 LOG(bb,info) << "Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,info) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
             statbuf = statinfo;
         }
         else
@@ -442,7 +446,7 @@ int filehandle::getstats(struct stat& statbuf)
 int filehandle::setsize(size_t newsize)
 {
     int rc;
-    LOG(bb,info) << "Truncating " << filename << ", fd=" << fd << ", newsize=" << newsize;
+    LOG(bb,debug) << "Truncating " << filename << ", fd=" << fd << ", newsize=" << newsize;
     rc = ftruncate(fd, newsize);
     if (rc)
     {
@@ -462,7 +466,7 @@ int filehandle::setsize(size_t newsize)
         LOG(bb,error) << filename << " fstat failed.  errno=" << errno;
         throw runtime_error(string("fstat failed in filehandke::setsize.  errno=") + to_string(errno));
     }
-    LOG(bb,info) << "Target file " << filename << ", fstat size=" << getsize() << ", fd=" << fd;
+    LOG(bb,debug) << "Target file " << filename << ", fstat size=" << getsize() << ", fd=" << fd;
 
     return rc;
 }

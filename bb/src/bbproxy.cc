@@ -4278,7 +4278,8 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         }
         LOG(bb,info) << "Close request for serverName="<<serverName;
         std::string active = connectionNameFromAlias();
-        if (serverName == active){
+        if (serverName == active)
+        {
             rc=EBUSY;
             stringstream errorText;
             errorText << "The bbserver is active for serverName="<<serverName;
@@ -4286,7 +4287,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         }
         else
         {
-            //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all files closes are
+            //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all file closes are
             //         first processed from the 'old' server.  In the case of cancel/stop, we want to process
             //         all closes for those transfer definitions before the connection is closed.  Otherwise,
             //         nothing other than a remove logical volume will close the files.
