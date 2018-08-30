@@ -373,29 +373,92 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
   if( _BIO == nullptr )
     throw csm::network::ExceptionEndpointDown( "BIO Creation failure during connect." );
 
+  // retrieve the socket descriptor for this BIO ...
+  int bsock;
+  BIO_get_fd( _BIO, &bsock );
+  if( bsock <= 0 )
+    throw csm::network::ExceptionEndpointDown( "BIO Creation failure to retrieve socket number" );
+
+  // ... to make the socket non-blocking
+  long current_setting = fcntl( bsock, F_GETFL, NULL );
+  if( (current_setting & O_NONBLOCK) == 0 )
+  {
+    current_setting |= O_NONBLOCK;
+    rc = fcntl( bsock, F_SETFL, current_setting );
+    if( rc )
+      throw csm::network::ExceptionEndpointDown("fcntl: NONBLOCK");
+  }
+
+
   SSL_set_bio(_SSLStruct, _BIO, _BIO);
 
   LOG( csmnet, debug ) << "SSL Connecting...";
   ERR_clear_error();
-  rc = SSL_connect( _SSLStruct );
-  if( rc != 1 )
+  rc = 0;
+  while( rc != 1 )
   {
-    std::string err_str = "SSL_connect";
-    while( (rc = SSL_get_error( _SSLStruct, rc )) > 0 )
+    rc = SSL_connect( _SSLStruct );
+    if( rc != 1 )
     {
-      // todo: cleanup BIO
+      rc = SSL_get_error( _SSLStruct, rc );
+      switch( rc )
+      {
+        default:
+        {
+          std::string err_str = "SSL_connect"+SSLPrintError( rc );
+          while( (rc = SSL_get_error( _SSLStruct, rc )) > 0 )
+          {
+            // todo: cleanup BIO
+            err_str.append( SSLPrintError( rc ) );
+            err_str.append( " :: " );
+          }
+          SSL_clear( _SSLStruct );
+          throw csm::network::ExceptionEndpointDown(err_str, rc);
+          break;
+        }
+        case SSL_ERROR_WANT_READ:
+        case SSL_ERROR_WANT_WRITE:
+        {
+          fd_set fds;
+          FD_ZERO( &fds );
+          FD_SET( bsock, &fds );
 
-      err_str.append( SSLPrintError( rc ) );
-      err_str.append( " :: " );
+          struct timeval timeout;
+          timeout.tv_sec = 2; timeout.tv_usec = 0;
+
+          if( select( bsock+1, NULL, &fds, NULL, &timeout ) > 0 )
+          {
+            socklen_t vallen = sizeof( int );
+            if( getsockopt( bsock, SOL_SOCKET, SO_ERROR, &rc, &vallen ) != 0 )
+              throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
+            if( rc == 0 )
+            {
+              rc = 0;
+              break;
+            }
+          }
+          else
+            throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", rc );
+          break;
+        }
+        case SSL_ERROR_NONE:
+          rc = 1;
+          break;
+      }
     }
-    SSL_clear( _SSLStruct );
-    throw csm::network::ExceptionEndpointDown(err_str, rc);
+    else
+      break;
   }
 
   if( SSL_get_verify_result( _SSLStruct ) != X509_V_OK )
     throw csm::network::ExceptionEndpointDown( "SSL verification failed." );
   else
     rc = 0;
+
+  current_setting &= (~O_NONBLOCK);
+  rc = fcntl( bsock, F_SETFL, current_setting );
+  if( rc )
+    throw csm::network::ExceptionEndpointDown("fcntl: NONBLOCK");
 
   return rc;
 }
