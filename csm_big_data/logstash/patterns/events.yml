@@ -13,7 +13,7 @@ ras_create_url: "/csmi/V1.0/ras/event/create"  # Mandatory, Specifies the resour
 csm_target: "c650f99p04"              # Mandatory, Specifies the hostname of a node running CSMRESTD.
 csm_port: 4213                                 # Mandatory, Specifies the port running the CSMRESTD daemon.
 data_sources:                                  # Mandatory, Map with the keys corresponding to data source types.
- syslog:                                        # Key, corresponds to a data source type.
+ log-syslog:                                        # Key, corresponds to a data source type.
   ras_location:  "hostname"                 # Mandatory, the event field representing the location of the event for the RAS generation.
   ras_timestamp: "timestamp"                      # Mandatory, the event field representing the time of the RAS Event.
   event_data:    "message"                        # Mandatory, the event field representing the remaining data to process for RAS generation.
