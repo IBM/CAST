@@ -40,6 +40,9 @@ TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
 USER_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
     "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
 
+SEARCH_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
+    "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
+
 def get_env():
     '''Gets useful evironment variables.''' 
     return (os.environ[TARGET_ENV])
