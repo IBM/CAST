@@ -107,6 +107,7 @@ def main(args):
         
         print( "\nallocation-id: {0}".format(tr_data["allocation_id"]))
         print( "job-id: {0} - {1}".format(tr_data["primary_job_id"], tr_data["secondary_job_id"]))
+        print( "user-name: {0} \nuser-id: {1}".format(tr_data["user_name"], tr_data["user_id"]))
         print( "begin-time: {0} \nend-time: {1}".format(start_time, end_time))
         
         if args.verbose:

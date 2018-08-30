@@ -35,14 +35,14 @@ TARGET_ENV='CAST_ELASTIC'
 # Date constants
 
 DATE_FORMAT        = '(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
-DATE_FORMAT_PRINT  = '%Y-%m-%d %H:%M:%S'
+DATE_FORMAT_PRINT  = '%Y-%m-%dT%H:%M:%S'
 TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
 
 USER_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
     "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
 
 SEARCH_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
-    "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
+    "data.user_name", "data.user_id", "data.begin_time", "data.history.end_time", "data.state"]
 
 def get_env():
     '''Gets useful evironment variables.
