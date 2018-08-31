@@ -138,9 +138,9 @@ def main(args):
             max_width=max(len(key),max_width)
 
         print( "=============================" )
-        print( "Node collisions between jobs:" )
+        print( "Nodes common between jobs:" )
         print( "=============================" )
-        print("{0:>{1}} : {2}".format("node", max_width, "collisions"))
+        print("{0:>{1}} : {2}".format("node", max_width, "common count"))
         
         node_count=int(args.commonnodes)
         for key,value in sorted( node_collisions.iteritems(), key=lambda (k,v): (v,k), reverse=False):
