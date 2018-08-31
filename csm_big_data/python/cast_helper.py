@@ -35,7 +35,7 @@ TARGET_ENV='CAST_ELASTIC'
 # Date constants
 
 DATE_FORMAT        = '(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
-DATE_FORMAT_PRINT  = '%Y-%m-%dT%H:%M:%S'
+DATE_FORMAT_PRINT  = '%Y-%m-%d %H:%M:%S'
 TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
 
 USER_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
@@ -99,6 +99,43 @@ def convert_timestamp( timestamp ):
             raise ValueError('"%s" is not a legal timestamp.' % timestamp)
     
     return new_timestamp
+
+def build_job_bounding_time_range(start_time, end_time,  
+    start_field="data.begin_time", end_field="date.history.end_time"):
+
+    # Build the time range
+    start_time = convert_timestamp(start_time)
+    end_time = convert_timestamp(end_time)
+
+    # Build the time range.
+    timestamp = { "format" : TIME_SEARCH_FORMAT } 
+    timestamp = { "format" : TIME_SEARCH_FORMAT } 
+
+    if start_time:
+        timestamp["gte"]=start_time
+
+    if end_time:
+        timestamp["lte"]=end_time
+
+
+    if start_time or end_time:
+        target=[]
+        match_min=1
+
+        # The start field is always considered the "Baseline" 
+        target.append( { "range" : { start_field : timestamp } } )
+
+        # If the end_field differs, increment the min match counter and add a missing catch for fields that are optional.
+        if end_field != start_field:
+            target.append( { "range" : { end_field : timestamp } } )
+        
+    else:
+        target=None
+        match_min=0
+    
+    return(target, match_min)
+
+    
 
 def build_time_range( start_time, end_time, 
     start_field="@timestamp", end_field="@timestamp", 
