@@ -101,34 +101,41 @@ def convert_timestamp( timestamp ):
     return new_timestamp
 
 def build_job_bounding_time_range(start_time, end_time,  
-    start_field="data.begin_time", end_field="date.history.end_time"):
+    start_field="data.begin_time", end_field="data.history.end_time"):
+    ''' Builds a set of queries to determine any records for which the record range (defined by
+    start_field and end_field) collides with the range defined by start_time and end_time.
 
+    The logic used in these time range queries is : 
+        `start_field <= end_time && ( end_field >= start_time || end_field == None)`
+
+    :param string start_time:  The start of the time range to find records in.
+    :param string end_time:    The end of the time range to find records in.
+    :param string start_field: The start field denoting the start time of a record.
+    :param string end_field:   The end field denoting the end time of a record (may be empty in elasticsearch).
+    
+    :returns (list, int): Returns a list of range queries and the minimum number that must match
+        for a record to be considered "in range".
+    '''
     # Build the time range
     start_time = convert_timestamp(start_time)
     end_time = convert_timestamp(end_time)
 
-    # Build the time range.
-    timestamp = { "format" : TIME_SEARCH_FORMAT } 
-    timestamp = { "format" : TIME_SEARCH_FORMAT } 
-
-    if start_time:
-        timestamp["gte"]=start_time
-
-    if end_time:
-        timestamp["lte"]=end_time
-
-
-    if start_time or end_time:
+    if start_time and end_time:
+        # Build the time range.
+        timestamp_start = { "format" : TIME_SEARCH_FORMAT } 
+        timestamp_end   = { "format" : TIME_SEARCH_FORMAT } 
+    
+        timestamp_end["gte"]   = start_time
+        timestamp_start["lte"] = end_time
         target=[]
-        match_min=1
+        match_min=2
 
         # The start field is always considered the "Baseline" 
-        target.append( { "range" : { start_field : timestamp } } )
+        target.append( { "range" : { start_field : timestamp_start } } )
 
-        # If the end_field differs, increment the min match counter and add a missing catch for fields that are optional.
-        if end_field != start_field:
-            target.append( { "range" : { end_field : timestamp } } )
-        
+        # Build the end range so it can capture running jobs.
+        target.append( { "range" : { end_field  : timestamp_end } } )
+        target.append( {  "bool" : { "must_not" : { "exists" : { "field" : end_field } } } } )
     else:
         target=None
         match_min=0
