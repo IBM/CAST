@@ -704,7 +704,7 @@ typedef struct {
     char* begin_time_search_end; /**< A time used to filter results of the SQL query and only include records with a begin_time at or before (ie: '<=' ) this time. */
     char* end_time_search_begin; /**< A time used to filter results of the SQL query and only include records with an end_time at or after (ie: '>=' ) this time.*/
     char* end_time_search_end; /**< A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time*/
-    char* midpoint; /**< A time used to filter results of the SQL query. */
+    char* midpoint; /**< A time used to filter results of the SQL query and only include records active during this time. */
     char* midpoint_interval; /**< A time that will be added and subtracted from the midpoint field to expand the range of the search window. Read more about interval syntax in postgres for more info. */
     char* search_range_begin; /**< A time used to filter results of the SQL query and only include records that were active during or after this time. */
     char* search_range_end; /**< A time used to filter results of the SQL query and only include records that were active during or before this time. */

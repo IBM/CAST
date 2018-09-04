@@ -187,6 +187,8 @@ while ( <$file> ) {
             {
                 $comment =~ /\/\*\*<(.*)\*\//;
                 my $stripped_comment = $1;
+                $stripped_comment =~ s/"/\\"/g;
+
                 if (${ser_type} eq "BASIC")
                 {
                     $py_string .= "\n\t\t.add_property(\"${name}\", &${struct_name}::$name,&${struct_name}::$name,\"$stripped_comment\")"
