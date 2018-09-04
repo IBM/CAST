@@ -61,69 +61,66 @@ install(TARGETS csmi_serialization COMPONENT csm-core DESTINATION csm/lib)
 
 add_subdirectory(launch/src)
 
-# Python is only supported in clang.
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    file(GLOB csmi_python
-        "common/src/*python.cc"
-        "inv/src/*python.cc"
-        "wm/src/*python.cc"
-        "diag/src/*python.cc"
-        "bb/src/*python.cc"
-        "ras/src/*python.cc"
-    )
+file(GLOB csmi_python
+    "common/src/*python.cc"
+    "inv/src/*python.cc"
+    "wm/src/*python.cc"
+    "diag/src/*python.cc"
+    "bb/src/*python.cc"
+    "ras/src/*python.cc"
+)
 
-    file(GLOB csmi_python_boot
-        "common/src/lib_csm_py.py"
-        "inv/src/lib_csm_inv_py.py"
-        "wm/src/lib_csm_wm_py.py"
-        "diag/src/lib_csm_diag_py.py"
-        "bb/src/lib_csm_bb_py.py"
-        "ras/src/lib_csm_ras_py.py"
-    )
-    
-    # python
-    # The Python Libraries:
-    find_package(PythonLibs 2.7 REQUIRED)
-    include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
-    
-    # The Boost Python Libraries:
-    find_package( Boost COMPONENTS python REQUIRED )
-    include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
-    
-    # Link the library
-    #add_library(_csm_py SHARED ${csmi_python})
-    #target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
-    #install(TARGETS _csm_py COMPONENT csm-core DESTINATION csm/lib)
-    #install(FILES ${csmi_python_boot} PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+file(GLOB csmi_python_boot
+    "common/src/lib_csm_py.py"
+    "inv/src/lib_csm_inv_py.py"
+    "wm/src/lib_csm_wm_py.py"
+    "diag/src/lib_csm_diag_py.py"
+    "bb/src/lib_csm_bb_py.py"
+    "ras/src/lib_csm_ras_py.py"
+)
 
-    add_library(_csm_py SHARED ${csmi_python})
-    target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
-    install(TARGETS _csm_py COMPONENT csm-core DESTINATION csm/lib)
-    install(FILES common/src/lib_csm_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
-    
-    add_library(_csm_wm_py SHARED ${csmi_python})
-    target_link_libraries( _csm_wm_py ${Boost_LIBRARIES} csmi)
-    install(TARGETS _csm_wm_py COMPONENT csm-core DESTINATION csm/lib)
-    install(FILES wm/src/lib_csm_wm_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+# python
+# The Python Libraries:
+find_package(PythonLibs 2.7 REQUIRED)
+include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
 
-    add_library(_csm_bb_py SHARED ${csmi_python})
-    target_link_libraries( _csm_bb_py ${Boost_LIBRARIES} csmi)
-    install(TARGETS _csm_bb_py COMPONENT csm-core DESTINATION csm/lib)
-    install(FILES bb/src/lib_csm_bb_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+# The Boost Python Libraries:
+find_package( Boost COMPONENTS python REQUIRED )
+include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
 
-    add_library(_csm_diag_py SHARED ${csmi_python})
-    target_link_libraries( _csm_diag_py ${Boost_LIBRARIES} csmi)
-    install(TARGETS _csm_diag_py COMPONENT csm-core DESTINATION csm/lib)
-    install(FILES diag/src/lib_csm_diag_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+# Link the library
+#add_library(_csm_py SHARED ${csmi_python})
+#target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
+#install(TARGETS _csm_py COMPONENT csm-core DESTINATION csm/lib)
+#install(FILES ${csmi_python_boot} PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
 
-    add_library(_csm_inv_py SHARED ${csmi_python})
-    target_link_libraries( _csm_inv_py ${Boost_LIBRARIES} csmi)
-    install(TARGETS _csm_inv_py COMPONENT csm-core DESTINATION csm/lib)
-    install(FILES inv/src/lib_csm_inv_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+add_library(_csm_py SHARED ${csmi_python})
+target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
+install(TARGETS _csm_py COMPONENT csm-core DESTINATION csm/lib)
+install(FILES common/src/lib_csm_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
 
-    add_library(_csm_ras_py SHARED ${csmi_python})
-    target_link_libraries( _csm_ras_py ${Boost_LIBRARIES} csmi)
-    install(TARGETS _csm_ras_py COMPONENT csm-core DESTINATION csm/lib)
-    install(FILES ras/src/lib_csm_ras_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
-endif()
+add_library(_csm_wm_py SHARED ${csmi_python})
+target_link_libraries( _csm_wm_py ${Boost_LIBRARIES} csmi)
+install(TARGETS _csm_wm_py COMPONENT csm-core DESTINATION csm/lib)
+install(FILES wm/src/lib_csm_wm_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+
+add_library(_csm_bb_py SHARED ${csmi_python})
+target_link_libraries( _csm_bb_py ${Boost_LIBRARIES} csmi)
+install(TARGETS _csm_bb_py COMPONENT csm-core DESTINATION csm/lib)
+install(FILES bb/src/lib_csm_bb_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+
+add_library(_csm_diag_py SHARED ${csmi_python})
+target_link_libraries( _csm_diag_py ${Boost_LIBRARIES} csmi)
+install(TARGETS _csm_diag_py COMPONENT csm-core DESTINATION csm/lib)
+install(FILES diag/src/lib_csm_diag_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+
+add_library(_csm_inv_py SHARED ${csmi_python})
+target_link_libraries( _csm_inv_py ${Boost_LIBRARIES} csmi)
+install(TARGETS _csm_inv_py COMPONENT csm-core DESTINATION csm/lib)
+install(FILES inv/src/lib_csm_inv_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
+
+add_library(_csm_ras_py SHARED ${csmi_python})
+target_link_libraries( _csm_ras_py ${Boost_LIBRARIES} csmi)
+install(TARGETS _csm_ras_py COMPONENT csm-core DESTINATION csm/lib)
+install(FILES ras/src/lib_csm_ras_py.py PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
 
