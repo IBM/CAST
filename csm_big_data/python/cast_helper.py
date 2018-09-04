@@ -97,10 +97,13 @@ def convert_timestamp( timestamp ):
         
         else:
             raise ValueError('"%s" is not a legal timestamp.' % timestamp)
+    else:
+        new_timestamp=datetime.strftime(datetime.now(), DATE_FORMAT_PRINT)
+
     
     return new_timestamp
 
-def build_job_bounding_time_range(start_time, end_time,  
+def build_time_range(start_time, end_time,  
     start_field="data.begin_time", end_field="data.history.end_time"):
     ''' Builds a set of queries to determine any records for which the record range (defined by
     start_field and end_field) collides with the range defined by start_time and end_time.
@@ -142,76 +145,60 @@ def build_job_bounding_time_range(start_time, end_time,
     
     return(target, match_min)
 
+def build_target_time_search( target_time, start_field="data.begin_time", 
+    end_field="data.history.end_time"):
+    ''' Perform a search for all records which have a range containing the supplied target_time.
+
+    Invokes build_time_range to generate a bounding test.
+
+    :param string target_time: The target time to search for collisions with elasticsearch records.
+    :param string start_field: The start field denoting the start time of a record.
+    :param string end_field:   The end field denoting the end time of a record (may be empty in elasticsearch).
     
-
-def build_time_range( start_time, end_time, 
-    start_field="@timestamp", end_field="@timestamp", 
-    end_optional=False, bounding_test=False):
-    ''' Builds a timerange for an elasticsearch query.
-
-    WARNING: This is going to be broken down into multiple fuctions, it has too many moving parts 
-    to be maintained correctly.
-
-    :param string start_time: The start time for the range being queried. If @ref bounding_test is 
-        specified this timestamp will be used as the "midpoint".
-    :param string end_time: The end time for the range being queried. 
-        
-    :param string start_field: The field to be associated with the start time.
-    :param string end_field: The field to be associated with the end time.
-
-    :param bool end_optional: If the ending field is optional this must be specified so the query 
-        can intelligently respond.
-    :param bool bounding_test: Performs a bounding test (WARNING will be moved to a new function)
-    
-    :returns (list, min_match): A list of time range queries, the minimum number of those queries which must match.
+    :returns (list, int): Returns a list of range queries and the minimum number that must match
+        for a record to be considered "in range".
     '''
-    # TODO This function probably should be spearated for clarity.
-    # TODO this function really needs better documentation/needs a rewrite.
+    
+    return build_time_range(target_time, target_time, start_field, end_field)
+    
+    
+
+def build_timestamp_range( start_time, end_time, field="@timestamp"):
+    ''' Builds a timestamp range filter.
+
+    A query for all records for which the contents of the `field` in the record are between 
+    `start_time` and `end_time`
+    
+    :param string start_time: The start time of the range to find records in.
+    :param string end_time: The end time of the range to find records in.
+    :param string field: The field to search on.
+    
+    :returns (list, int): Returns a list of range queries and the minimum number that must match 
+        for a record to be considered "in range". This will be (None, 0) if the range can't be built.
+    '''
 
     # Build the time range
     start_time = convert_timestamp(start_time)
-    end_time = convert_timestamp(end_time)
+    end_time   = convert_timestamp(end_time)
 
     # Build the time range.
-    timestamp_start = { "format" : TIME_SEARCH_FORMAT } 
-    timestamp_end   = { "format" : TIME_SEARCH_FORMAT } 
+    target=[]
+    match_min=0
+    timestamp = { "format" : TIME_SEARCH_FORMAT, "gte" : start_time  } 
     
     # Build the start time field.
     if start_time:
-        timestamp_start["gte"]=start_time
-        if end_field == start_field and end_time:
-            timestamp_start["lte"]=end_time
+        match_min = 1
+        timestamp["gte"] = start_time
 
-    # If the end time was set specify an lte option.
     if end_time:
-        timestamp_end["lte"]=end_time
-
-    # For single point ranges build a bounding box and swap the start and end. 
-    if bounding_test:
-        timestamp_end["lte"] = start_time
-        temp_time            = timestamp_start
-        timestamp_start      = timestamp_end 
-        timestamp_end        = temp_time
-
-    # If the time range has real data process, otherwise return the empty set.
-    if start_time or end_time:
-        target=[]
-        match_min=1
-
-        # The start field is always considered the "Baseline" 
-        target.append( { "range" : { start_field : timestamp_start } } )
-
-        # If the end_field differs, increment the min match counter and add a missing catch for fields that are optional.
-        if end_field != start_field:
-            match_min += 1
-            target.append( { "range" : { end_field : timestamp_end } } )
-
-            if end_optional:
-                target.append({"bool" : { "must_not" : { "exists" : { "field" : end_field } } } })
-        
+        match_min = 1
+        timestamp["lte"] = end_time
+    
+    if  match_min is 1:
+        target.append( { "range" : { field : timestamp } } )
     else:
         target=None
-        match_min=0
     
     return(target, match_min)
 
@@ -257,8 +244,7 @@ def search_user_jobs( es, user_name=None, user_id=None, job_state=None,
 
     (should, min_count) = build_time_range(start_time, end_time, 
         start_field  = "data.begin_time", 
-        end_field    = "data.history.end_time",
-        end_optional = True)
+        end_field    = "data.history.end_time")
 
     if should: 
         query["bool"]["should"]               = should

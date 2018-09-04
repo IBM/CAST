@@ -198,10 +198,10 @@ def main(args):
 
     # ---------------------------------------------------------------------------------------------
 
-    (ranges, should_match) = cast.build_time_range(
+
+    (ranges, should_match) = cast.build_timestamp_range(
         tr_data.get("begin_time"), 
-        cast.deep_get(tr_data, "history", "end_time"),
-        end_optional=True)
+        cast.deep_get(tr_data, "history", "end_time"))
     
     ranges.append(hostnames)
 

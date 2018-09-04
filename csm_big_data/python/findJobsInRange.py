@@ -55,7 +55,7 @@ def main(args):
             print("Missing target, '%s' was not set." % TARGET_ENV)
             return 2
 
-    (range, match_min) =  cast.build_job_bounding_time_range(args.starttime, args.endtime)
+    (range, match_min) =  cast.build_time_range(args.starttime, args.endtime)
 
     bool_query={ "should" : range, "minimum_should_match" : match_min }
 
