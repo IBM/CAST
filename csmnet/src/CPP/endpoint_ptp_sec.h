@@ -94,6 +94,22 @@ protected:
   void SetupSSLContext( const csm::network::SSLFilesCollection &i_SSLFiles );
   int SSLConnectPrep();
 
+  inline std::string SSLExtractError( int aRc, std::string aPrefix )
+  {
+    if( _SSLStruct == nullptr )
+      return aPrefix + " SSL not fully initialized.";
+
+    int rc = aRc;
+    std::string err_str = aPrefix;
+    while( (rc = SSL_get_error( _SSLStruct, rc )) > 0 )
+    {
+      err_str.append( SSLPrintError( rc ) );
+      err_str.append( " :: " );
+    }
+    SSL_clear( _SSLStruct );
+    return err_str;
+  }
+
   template<typename AddressClass, typename EndpointClass>
   csm::network::Endpoint* GenericAcceptSSL()
   {
@@ -131,15 +147,7 @@ protected:
     int rc = SSL_accept( newssl );
     if( rc != 1 )
     {
-      std::string err_str = " SSL ACCEPT: ";
-      while( (rc = SSL_get_error( newssl, rc )) > 0 )
-      {
-        // todo: cleanup BIO
-
-        err_str.append( SSLPrintError( rc ) );
-        err_str.append( " :: " );
-      }
-      SSL_clear( newssl );
+      std::string err_str = SSLExtractError( rc, " SSL ACCEPT: " );
       // todo: cleanup BIO
       close( newsock );
       throw csm::network::ExceptionEndpointDown(err_str, rc);
