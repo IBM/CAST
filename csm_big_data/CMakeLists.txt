@@ -21,6 +21,7 @@ add_subdirectory(logstash)
 add_subdirectory(data-aggregators)
 add_subdirectory(beats)
 add_subdirectory(config-scripts)
+add_subdirectory(python)
 
 set(SCRIPTDIR scripts)
 
