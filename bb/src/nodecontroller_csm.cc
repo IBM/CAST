@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    nodecontroller_csm.cc
  |
- |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  ï¿½ Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -96,6 +96,41 @@ NodeController_CSM::NodeController_CSM()
 
 #endif
 };
+
+int NodeController_CSM::gethostlist(string& hostlist)
+{
+    int rc = 0;
+    LOG(bb,info) << "NodeController_CSM::gethostlist:  hostlist=" << hostlist;
+    const char* allocid = getenv("CSM_ALLOCATION_ID");
+    if(allocid == NULL)
+        return -1;
+    
+    csm_allocation_query_input_t input;
+
+    input.allocation_id    = stol(allocid);
+    input.primary_job_id   = 0;
+    input.secondary_job_id = 0;
+    csm_allocation_query_output_t* output;
+
+    FL_Write(FLCSM, CSMAllocQuery2, "CSM: call csm_allocation_query(allocid=%ld)", input.allocation_id, 0, 0, 0);
+    rc = csm_allocation_query(&csmhandle, &input, &output);
+    FL_Write(FLCSM, CSMAllocQuery2RC, "CSM: call csm_allocation_query(allocid=%ld)  rc=%ld", input.allocation_id, rc, 0, 0);
+    if(rc)
+        return -1;
+
+    if(output->allocation->num_nodes == 0)
+    {
+        LOG(bb,error) << "CSM: allocation query returned zero compute nodes";
+        return -1;
+    }
+
+    hostlist = output->allocation->compute_nodes[0];
+    for(unsigned int x=1; x<output->allocation->num_nodes; x++)
+    {
+        hostlist += string(",") + string(output->allocation->compute_nodes[x]);
+    }
+    return rc;
+}
 
 int NodeController_CSM::getAllocationInfo(csmi_allocation_t& alloc)
 {

@@ -112,10 +112,13 @@ GetOptions(
     "nodelist=s"            => \$CFG{"nodelist"},
     "esslist=s"             => \$CFG{"esslist"},
     "configtempl=s"         => \$CFG{"configtempl"},
+    "nvmetempl=s"           => \$CFG{"nvmetempl"},
     "outputconfig=s"        => \$CFG{"outputconfig"},
     "offload!"              => \$CFG{"USE_NVMF_OFFLOAD"},
     "csm!"                  => \$CFG{"USE_CSM"},
     "server!"               => \$CFG{"bbServer"},
+    "ln!"                   => \$CFG{"bbcmd"},
+    "envdir=s"              => \$CFG{"envdir"},
     "metadata=s"            => \$CFG{"metadata"}
     );
 
@@ -125,6 +128,10 @@ if($CFG{"bbServer"})
     makeServerConfigFile();
     filterLVM();
     startServer();
+}
+elsif($CFG{"bbcmd"})
+{
+    makeLNConfigFile();
 }
 else
 {
@@ -146,7 +153,9 @@ sub setDefaults
     $CFG{"USE_NVMF_OFFLOAD"} = 0;
     $CFG{"USE_CSM"} = 1;
     $CFG{"bbServer"} = 0;
+    $CFG{"bbcmd"} = 0;
     $CFG{"metadata"} = "";
+    $CFG{"nvmetempl"} = "$SCRIPTPATH/nvmet.json";
 }
 
 sub getNodeName
@@ -175,6 +184,34 @@ sub requireFile
 	output("Specified file does not exist '$file'", LOG_ERR);
 	exit(2);
     }
+}
+
+sub makeLNConfigFile
+{
+    setprefix("makeLNConfigFile: ");
+    requireFile($CFG{"configtempl"});
+    
+    my $bbcfgtemplate = cat($CFG{"configtempl"});
+    my $json = decode_json($bbcfgtemplate);
+    
+    if($CFG{"USE_CSM"})
+    {
+	    $json->{"bb"}{"cmd"}{"controller"} = "csm";
+    }
+    if($CFG{"envdir"} eq "HOME")
+    {
+        $json->{"bb"}{"envdir"} = "";
+    }
+    else
+    {
+        $json->{"bb"}{"envdir"} = $CFG{"envdir"};
+    }
+    
+    my $jsonoo = JSON->new->allow_nonref;
+    my $out = $jsonoo->pretty->encode( $json );
+    open(TMP, ">$CFG{outputconfig}");
+    print TMP $out;
+    close(TMP);
 }
 
 sub makeServerConfigFile
@@ -308,7 +345,7 @@ sub configureNVMeTarget
     ($configfs) = $mtab =~ /configfs\s+(\S+)/;
     output("Configfs found at: $configfs");
     
-    my $nvmetjson = cat("$SCRIPTPATH/nvmet.json");
+    my $nvmetjson = cat($CFG{"nvmetempl"});
     my $json = decode_json($nvmetjson);
     my $ns  = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
     my $nqn = $json->{"subsystems"}[0]{"nqn"};

@@ -56,6 +56,62 @@ int NodeController::gethostname(std::string& pHostName)
     return 0;
 }
 
+int NodeController::gethostlist(string& hostlist)
+{
+    const char* env;
+    bool gethostlist = false;
+    if((env = getenv("LSF_STAGE_HOSTFILE")) != NULL)
+    {
+        gethostlist = true;
+    }
+    else if((env = getenv("LSF_STAGE_HOSTS")) != NULL)
+    {
+        if(strstr(env, " ") != NULL)
+        {
+            hostlist = strstr(env, " ")+1;
+            replace(hostlist.begin(), hostlist.end(), ' ', ',');
+        }
+    }
+    else if((env = getenv("LSB_DJOB_HOSTFILE")) != NULL)
+    {
+        gethostlist = true;
+    }
+    else if((env = getenv("LSB_MCPU_HOSTS")) != NULL)
+    {
+        vector<string> tok = buildTokens(" ", env);
+        for(unsigned i=2; i<tok.size(); i+=2)
+        {
+            for(unsigned long j=0; j<stoul(tok[i+1]); j++)
+            {
+                if((i > 2) || (j != 0)) hostlist += ",";
+                hostlist += tok[i];
+            }
+        }
+    }
+    else if((env = getenv("LSB_HOSTS")) != NULL)
+    {
+        if(strstr(env, " ") != NULL)
+        {
+            hostlist = strstr(env, " ")+1;
+            replace(hostlist.begin(), hostlist.end(), ' ', ',');
+        }
+    }
+    
+    if(gethostlist)
+    {
+        string line;
+        ifstream hostfile(env);
+        while (getline(hostfile, line))
+        {
+            if(hostlist != "") hostlist += ",";
+            hostlist += line;
+        }
+    }
+    if(hostlist == "")
+        hostlist = "localhost";
+    return 0;
+}
+
 int NodeController::lvcreate(const std::string& lvname, enum LVState state, size_t current_size, const std::string& mountpath, const std::string& fstype)
 {
     LOG(bb,info) << "Created logical volume '" << lvname << "'  size=" << current_size << "  state=" << state << "  mountpath=" << mountpath << "   fstype=" << fstype;
