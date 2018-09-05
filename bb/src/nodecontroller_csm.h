@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    nodecontroller.h
  |
- |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  ï¿½ Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -33,6 +33,7 @@ class NodeController_CSM : public NodeController
     virtual ~NodeController_CSM();
 
     virtual int gethostname(std::string& pHostName);
+    virtual int gethostlist(std::string& hostlist);
     virtual int lvcreate(const std::string& lvname, enum LVState state, size_t current_size,
                          const std::string& mountpath, const std::string& fstype);
     virtual int lvremove(const std::string& lvname, const BBUsage_t& usage);
