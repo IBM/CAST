@@ -126,6 +126,7 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/csm_daemon_clock.cc
   csmi_request_handler/csm_environmental_handler.cc
   csmi_request_handler/csm_envdata_handler.cc
+  csmi_request_handler/csm_interval_handler.cc
   csmi_request_handler/csm_handler_options.cc
   csmi_request_handler/csmi_stateful.cc
   csmi_request_handler/csmi_handler_state.cc

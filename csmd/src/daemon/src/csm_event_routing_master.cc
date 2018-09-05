@@ -104,6 +104,8 @@ void EventRoutingMaster::RegisterHandlers()
    // Environmental data handling
    Register<CSM_ENVDATA_HANDLER>( CSM_environmental_data );
 
+   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER>();
+
 #ifdef WITH_MASTER_LOAD_STATS
    AddInitEventHandler( createInstance_sptr<CSM_DAEMON_CLOCK>() );
 #endif

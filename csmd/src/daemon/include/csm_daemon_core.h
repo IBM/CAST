@@ -46,7 +46,7 @@
 #include "include/thread_manager.h"
 
 #include "src/csm_event_sources/csm_source_environmental.h"
-
+#include "src/csm_event_sources/csm_source_interval.h"
 
 namespace csm {
 namespace daemon {
@@ -65,6 +65,7 @@ protected:
   csm::daemon::EventManagerBDS *_bdsMgr;
 
   csm::daemon::EventSourceEnvironmental* _envSource;
+  csm::daemon::EventSourceInterval* _intervalSrc;
   
   csm::daemon::EventRouting *_EventRouting;
 
@@ -148,6 +149,12 @@ public:
     else return nullptr;
   }
     
+  inline CSMI_BASE *GetIntervalHandler()
+  {
+    if (_EventRouting) return _EventRouting->GetIntervalHandler();
+    else return nullptr;
+  }
+
   virtual CSMI_BASE *GetEventHandler(const csm::daemon::CoreEvent &aEvent);
 
   // call this if the daemon does not need to do anything at the startup

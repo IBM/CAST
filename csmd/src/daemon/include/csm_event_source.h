@@ -20,6 +20,7 @@
 #define TIMER_SRC_ID       ( 123457 )
 #define DB_SRC_ID          ( 123458 )
 #define ENVIRONMENT_SRC_ID ( 123459 )
+#define INTERVAL_SRC_ID    ( 123460 )
 
 namespace csm {
 namespace daemon {

@@ -53,6 +53,7 @@ void EventRoutingUtility::RegisterHandlers()
    AddInitEventHandler(inv_agent_handler);
    
    _EnvironmentHandler = createInstance_sptr<CSM_ENVIRONMENTAL_UTILITY>();
+   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER>();
 
 #ifdef WITH_MASTER_LOAD_STATS
    AddInitEventHandler ( createInstance_sptr<CSM_DAEMON_CLOCK>() );

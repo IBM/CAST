@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_event_routing_agent.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -12,9 +12,6 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-/* csm_event_routing_agent.cc
- *
- ******************************************/
 
 #include "include/csm_event_routing.h"
 #include "csmi_request_handler/csmi_init_handler_base.h"
@@ -62,6 +59,8 @@ void EventRoutingAgent::RegisterHandlers()
 #endif
 
    _EnvironmentHandler = createInstance_sptr<CSM_ENVIRONMENTAL>();
+   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER>();
+
 }
 
 EventRoutingAgent::EventRoutingAgent()
