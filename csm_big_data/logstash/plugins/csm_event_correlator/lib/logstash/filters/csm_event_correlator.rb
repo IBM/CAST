@@ -99,6 +99,7 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
             end # data_source test
         end # ras_map iteration
         
+    @logger.debug("Successfully registered CSM Event Correlator.")
 
     end # def register
     
@@ -109,13 +110,13 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
         action = (action_str.gsub(/%{([^}]*)}/, "event.get(\"\\1\")").
             gsub(/\.([a-z_]*);/, "%{\\1}"))
         action = action % @@default_actions
-        eval "lambda { | event, temp_event, ras_msg_id, ras_location, ras_timestamp, raw_data | #{action} }"
+        eval "lambda { | event, ras_msg_id, ras_location, ras_timestamp, raw_data | #{action} }"
     end # def process_action
 
     # Posts a RAS event and moves on. 
     def post_ras(message_id, location, timestamp, raw_data, retry_attempt=0)
         # TODO move to debug.
-        @logger.info("Posting ras message: #{message_id}; #{timestamp}; #{location}; #{raw_data}") 
+        @logger.debug("Posting ras message: #{message_id}; #{timestamp}; #{location}; #{raw_data}") 
         header= {'Content-Type': 'text/json'}
 
         ras_event = { 
@@ -132,8 +133,8 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
         begin
             response = http.request(request)
         rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, Errno::ECONNREFUSED, EOFError,
-               Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-            logger.warn("Unable send RAS event to: #{@csm_uri}\nMessage ID: #{message_id}\n#{e.message}")
+               Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError, Errno::EHOSTUNREACH => e
+            @logger.warn("Unable send RAS event to: #{@csm_uri}\nMessage ID: #{message_id}\n#{e.message}")
             #
             # TODO set tag for RAS generation failure.
         #ensure 
@@ -150,7 +151,7 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
             cat_key     = data_source["category_key"]
             raw_data    = data_source["event_data"]
             patterns    = data_source["categories"].fetch(event.get(cat_key),[])
-
+            
             patterns.each do |pattern|
                 grok_idx = pattern[:pattern_idx]
                 match = grok_timeout(grok_idx, event.get(raw_data))
@@ -161,7 +162,6 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
                     @multi_grok.capture(grok_idx,match) { 
                         |attribute,value| process(attribute, value, temp_event) }
                     
-
                     # Build the message id with the event.
                     pattern[:action].call(
                         temp_event,
