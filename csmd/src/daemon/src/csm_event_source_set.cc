@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_event_source_set.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -40,6 +40,9 @@ EventSourceSet::EventSourceSet()
   uint64_t MaxInterval = 128;
   for( auto it: BucketIntervals )
     MaxInterval = std::max(MaxInterval, (uint64_t)it);
+  MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_NETWORK_SRC_INTERVAL );
+  MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_TIMER_SRC_INTERVAL );
+  MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_INTERVAL_SRC_INTERVAL );
 
   mBucketScheduler = new ItemScheduler( MaxInterval );
 
@@ -48,6 +51,7 @@ EventSourceSet::EventSourceSet()
 
   mBucketScheduler->AddItem( NETWORK_SRC_ID, DEFAULT_NETWORK_SRC_INTERVAL, 0 );
   mBucketScheduler->AddItem( TIMER_SRC_ID, DEFAULT_TIMER_SRC_INTERVAL, 0 );
+  mBucketScheduler->AddItem( INTERVAL_SRC_ID, DEFAULT_INTERVAL_SRC_INTERVAL, 0 );
   mCurrentWindow = -1;
 
   mBucketScheduler->RRForward();
@@ -84,8 +88,8 @@ csm::daemon::EventSource* csm::daemon::EventSourceSet::GetNextSource()
         << " Scheduled=" << mScheduledSources
         << " Sources=" << mActiveSources[ mActiveSetIndex ].size();
 #endif
-    if( ( mScheduledSources > mSources.size() ) ||
-        ( mScheduledSources < mSources.size() - mOneShotSources ))
+    if( ( mScheduledSources > mActiveSources[ mActiveSetIndex ].size() ) ||
+        ( mScheduledSources < mActiveSources[ mActiveSetIndex ].size() - mOneShotSources ))
       throw csm::daemon::Exception("BUG: Failed to schedule all event sources.");
     mScheduledSources = 0;
   }
@@ -94,7 +98,7 @@ csm::daemon::EventSource* csm::daemon::EventSourceSet::GetNextSource()
     return nullptr;
   else
   {
-//    LOG( csmd, trace ) << "Scheduling Event Source: " << (*mCurrentSource)->GetIdentifier();
+    LOG( csmd, trace ) << "Scheduling Event Source: " << (*mCurrentSource)->GetIdentifier();
     csm::daemon::EventSource *nextSource = *mCurrentSource;
     ++mCurrentSource;
     if( ! nextSource->OncePerWindow() )
@@ -116,18 +120,27 @@ csm::daemon::CoreEvent* EventSourceSet::Fetch( const int i_JitterWindow )
   // path split for non-compute nodes? Make sure to cover env-collection...
   if( i_JitterWindow != mCurrentWindow )
   {
-//    LOG(csmd, trace) << "EventSourceSet::Fetch with new window";
+    LOG(csmd, trace) << "EventSourceSet::Fetch with new window";
     mCurrentWindow = i_JitterWindow;
     mBucketScheduler->RRForward();
 
     // recreate the active bucket list
     BucketEntry *bucket = nullptr;;
     mActiveBucketList.clear();
+    mActiveSources[ mActiveSetIndex ].clear();
     while( (bucket = mBucketScheduler->GetNext()) != nullptr )
     {
       mActiveBucketList.push_back( bucket->_Identifier );
+      for( auto it : mSources )
+      {
+        if( ( it->GetIdentifier() == bucket->_Identifier ) ||
+            (( bucket->_Identifier < NETWORK_SRC_ID ) && ( it->GetIdentifier() == ENVIRONMENT_SRC_ID )) )
+        {
+          mActiveSources[ mActiveSetIndex ].insert( it );
+          break;
+        }
+      }
     }
-    mActiveSources[ mActiveSetIndex ] = mSources;
     mCurrentSource = mActiveSources[ mActiveSetIndex ].begin();
     mScheduledSources = 0;
 
@@ -179,7 +192,7 @@ int EventSourceSet::Add( const csm::daemon::EventSource *aSource,
   }
 }
 // removes an event source from a given priority list
-int EventSourceSet::Remove( const csm::daemon::EventSource *aSource, const uint8_t aPriority )
+int EventSourceSet::Remove( csm::daemon::EventSource * const aSource, const uint8_t aPriority )
 {
   if( aPriority > CSM_NETWORK_MAX_PRIORITY )
     throw csm::daemon::EventSourceException();
@@ -187,6 +200,7 @@ int EventSourceSet::Remove( const csm::daemon::EventSource *aSource, const uint8
   // priority will be mostly ignored for now
   try
   {
+    mSources.erase( aSource );
     mActiveSources[ mActiveSetIndex^1 ].clear();
     mActiveSources[ mActiveSetIndex ] = mSources;
     mCurrentSource = mActiveSources[ mActiveSetIndex ].begin();
