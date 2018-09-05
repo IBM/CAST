@@ -32,7 +32,6 @@
 #define DEFAULT_NETWORK_SRC_INTERVAL ( 1 )
 #define DEFAULT_TIMER_SRC_INTERVAL ( 1 )
 #define DEFAULT_DB_SRC_INTERVAL ( 1 )
-#define DEFAULT_INTERVAL_SRC_INTERVAL ( 60 )
 
 
 namespace csm {

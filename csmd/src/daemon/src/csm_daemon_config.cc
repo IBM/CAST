@@ -213,7 +213,7 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
   if( _Role == CSM_DAEMON_ROLE_AGGREGATOR )
     SetBDS_Info();
 
-  // set up the jitter configuration
+  // set up several intervals and the jitter window configuration
   ConfigureDaemonTimers();
 }
 
@@ -296,6 +296,18 @@ void Configuration::ConfigureDaemonTimers()
   if( _window_duration * _window_extension_factor > _timer_interval )
   {
     _window_extension_factor = 1;
+  }
+
+  std::string interval_time_str = GetValueInConfig( "csm.interval_time" );
+  if( interval_time_str.empty() )
+  {
+    CSMLOG( csmd, info ) << "No interval timer defined in config. Using default: " << DEFAULT_INTERVAL_SRC_INTERVAL << "s";
+    _IntervalSrcTime = DEFAULT_INTERVAL_SRC_INTERVAL;
+  }
+  else
+  {
+    _IntervalSrcTime = strtoll( interval_time_str.c_str(), nullptr, 10 );
+    CSMLOG( csmd, debug ) << "Interval timer configured with " << _IntervalSrcTime << "s";
   }
 
   if (!_isConfigInit) return;
