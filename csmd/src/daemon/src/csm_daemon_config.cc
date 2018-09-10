@@ -1171,6 +1171,7 @@ void Configuration::CreateThreadPool()
         break;
       case HOST_CONFIG_NONE:
         inactive = true;
+        // no break on purpose: NONE -> inactive and not enabled
       case HOST_CONFIG_INVALID:
         enabled = false;
       default:
