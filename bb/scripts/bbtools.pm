@@ -190,9 +190,15 @@ $::BBPATH="/tmp/bblv_$::JOBUSER\_$::JOBID";
 $::BBPATH = $ENV{"BBPATH"} if($ENV{"BBPATH"} ne "");
 $ENV{"BBPATH"} = $::BBPATH;
 $::BBALL = join(",",0..$#::HOSTLIST_ARRAY);
-$::TARGET_NODE0 = "--jobstepid=1 --hostlist=$::HOSTLIST --target=0";
-$::TARGET_ALL   = "--jobstepid=1 --hostlist=$::HOSTLIST --target=0-";
-$::TARGET_QUERY = "--jobstepid=0 --hostlist=$::HOSTLIST --target=0";
+
+$hl = "";
+if($controller !~ /csm/i)
+{
+    $hl = " --hostlist=$::HOSTLIST";
+}
+$::TARGET_NODE0 = "--jobstepid=1$hl --target=0";
+$::TARGET_ALL   = "--jobstepid=1$hl --target=0-";
+$::TARGET_QUERY = "--jobstepid=0$hl --target=0";
 
 if(exists $ENV{"BSCFS_MNT_PATH"})
 {
@@ -326,6 +332,7 @@ sub getBBENVDir
         $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
 	    $json = decode_json($jsondata);
         $bbenvdir = $json->{"bb"}{"envdir"};
+        $controller = $json->{"bb"}{"cmd"}{"controller"};
     };
     
     if($bbenvdir eq "")
