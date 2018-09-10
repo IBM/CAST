@@ -47,6 +47,9 @@ sub bbfail
 
 sub openBBENV
 {
+    $maskvalue = umask() | 7;  # mask off world bits
+    umask($maskvalue);
+    
     my $bbenvfile = &getBBENVName();
     open(BBENV, ">". $bbenvfile) || bbfail "Unable to open BB_ENVFILE file ($bbenvfile).  $!";
     
@@ -56,6 +59,12 @@ sub openBBENV
     {
         bbfail "Permissions on $bbenvfile are too broad, the group and world fields should be zero.";
     }
+}
+
+# Check for job submission failure and abort
+if($ENV{"LSB_SUB_JOB_ID"} eq "-1")
+{
+    exit(0);
 }
 
 if(!-d &getBBENVDir())
