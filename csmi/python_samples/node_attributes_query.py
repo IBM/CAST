@@ -2,7 +2,7 @@
 # encoding: utf-8
 #================================================================================
 #
-#    allocation_query_active_all.py
+#    node_attributes_query.py
 #
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -15,11 +15,8 @@
 #
 #================================================================================
 
-#import wm_structs
-#import wm
 import sys
 sys.path.append('.')
-#sys.path.append('/u/jdunham/bluecoral/bluecoral/work/csm/lib')
 
 #add the python library to the path 
 sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
@@ -27,24 +24,36 @@ sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
 # eventually append the path as part of an rpm install 
 
 import lib_csm_py as csm
-import lib_csm_wm_py as wm
+import lib_csm_inv_py as inv
 from pprint import pprint
 
 csm.init_lib()
 
-alloc_input=wm.allocation_query_active_all_input_t()
-alloc_input.limit=-1
-alloc_input.offset=-1
+input = inv.node_attributes_query_input_t()
+#input.node_names = ["node_01", "n01"]
+#input.node_names_count = len(input.node_names)
+nodes=["node_01","n01"]
+input.set_node_names(nodes)
+#input.set_node_names(["node_01","n01"])
+input.limit=-1
+input.offset=-1
 
-rc,handler,alloc_output=wm.allocation_query_active_all(alloc_input)
+rc,handler,output = inv.node_attributes_query(input)
 
-
-for i in range (0, alloc_output.num_allocations):
-    alloc=alloc_output.get_allocations(i)
-    pprint(alloc.allocation_id)
-    pprint(alloc.user_name)
-    for i in range(0, alloc.num_nodes):
-        pprint(alloc.get_compute_nodes(i))
+for i in range (0, output.results_count):
+    node = output.get_results(i)
+    pprint(node.node_name)
+    pprint(node.collection_time)
+    pprint(node.update_time)
+    print(node.state)
+    print("node_state_value: " + str(node.state))
+    pprint(node.state)
+    pprint("node_state_value: " + str(node.state))
+    print(node.state)
+    print(node.node_name)
+    #print(csm.csm_get_string_from_enum(csm.csmi_node_state_t, node.state))
+	
+# csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state)
 
 
 csm.api_object_destroy(handler)
