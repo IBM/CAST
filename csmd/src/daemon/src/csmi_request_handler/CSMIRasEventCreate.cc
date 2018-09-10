@@ -695,7 +695,7 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                 if (rasRc._rc != CSMI_SUCCESS) {
                     csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)reqEvent;
                     csm::network::MessageAndAddress c = ev->GetContent();
-                    LOG(csmras,error) << "CreateRasEvent error " << rec._msg_id << ": " << rasRc._errstr;
+                    LOG(csmras, error) << "RAS EVENT ERROR      " << rctx->_rasEvent->getLogString() << " errstr:" << rasRc._errstr; 
                     if (! c._Msg.GetInt() )
                         returnErrorMsg(c.GetAddr(), c._Msg, rasRc._rc, rasRc._errstr, postEventList);
 
