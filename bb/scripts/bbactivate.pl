@@ -119,9 +119,11 @@ GetOptions(
     "server!"               => \$CFG{"bbServer"},
     "ln!"                   => \$CFG{"bbcmd"},
     "envdir=s"              => \$CFG{"envdir"},
+    "lsfdir=s"              => \$CFG{"lsfdir"},
+    "scriptpath=s"          => \$SCRIPTPATH,
     "metadata=s"            => \$CFG{"metadata"}
     );
-
+setDefaults();
 getNodeName();
 if($CFG{"bbServer"})
 {
@@ -132,6 +134,7 @@ if($CFG{"bbServer"})
 elsif($CFG{"bbcmd"})
 {
     makeLNConfigFile();
+    copyBBFilesToLSF();
 }
 else
 {
@@ -142,20 +145,27 @@ else
 }
 exit(0);
 
-
+sub def
+{
+    my($var, $phase, $value) = @_;
+    $value = "DEFAULT" if($phase > $currentphase);
+    $value = $CFG{$var} if(($phase == $currentphase) && ($phase > 1) && ($CFG{$var} ne "DEFAULT"));
+    $CFG{$var} = $value if($phase >= $currentphase);
+}
 
 sub setDefaults
 {
-    $CFG{"nodelist"} = "/etc/ibm/nodelist";
-    $CFG{"esslist"}  = "/etc/ibm/esslist";
-    $CFG{"configtempl"} = "/opt/ibm/bb/scripts/bb.cfg";
-    $CFG{"outputconfig"} = "/etc/ibm/bb.cfg";
-    $CFG{"USE_NVMF_OFFLOAD"} = 0;
-    $CFG{"USE_CSM"} = 1;
-    $CFG{"bbServer"} = 0;
-    $CFG{"bbcmd"} = 0;
-    $CFG{"metadata"} = "";
-    $CFG{"nvmetempl"} = "$SCRIPTPATH/nvmet.json";
+    $currentphase++;
+    &def("nodelist",         1, "/etc/ibm/nodelist");
+    &def("esslist",          1, "/etc/ibm/esslist");
+    &def("outputconfig",     1, "/etc/ibm/bb.cfg");
+    &def("USE_NVMF_OFFLOAD", 1, 0);
+    &def("USE_CSM",          1, 1);
+    &def("bbServer",         1, 0);
+    &def("bbcmd",            1, 0);
+    &def("metadata",         1, "");
+    &def("configtempl",      2, "$SCRIPTPATH/bb.cfg");
+    &def("nvmetempl",        2, "$SCRIPTPATH/nvmet.json");
 }
 
 sub getNodeName
@@ -186,6 +196,29 @@ sub requireFile
     }
 }
 
+sub copyBBFilesToLSF
+{
+    my $lsfdir;
+    if($CFG{"lsfdir"} ne "")
+    {
+        $lsfdir = $CFG{"lsfdir"};
+    }
+    else
+    {
+        output("Option --lsfdir=\$LSF_SERVERDIR was not specified.  Skipping BB script copy");
+        return 0;
+    }
+    requireFile("$SCRIPTPATH/esub.bscfs");  # this one is a byproduct of install vs. git checkout, make sure its there.
+
+    output("Copying BB scripts from $SCRIPTPATH");
+    cmd("cp $SCRIPTPATH/esub.bb $lsfdir/.");
+    cmd("cp $SCRIPTPATH/epsub.bb $lsfdir/.");
+    cmd("cp $SCRIPTPATH/esub.bscfs $lsfdir/.");
+    cmd("cp $SCRIPTPATH/epsub.bscfs $lsfdir/.");
+    cmd("cp $SCRIPTPATH/bb_pre_exec.sh $lsfdir/.");
+    cmd("cp $SCRIPTPATH/bb_post_exec.sh $lsfdir/.");
+}
+
 sub makeLNConfigFile
 {
     setprefix("makeLNConfigFile: ");
@@ -197,6 +230,10 @@ sub makeLNConfigFile
     if($CFG{"USE_CSM"})
     {
 	    $json->{"bb"}{"cmd"}{"controller"} = "csm";
+    }
+    else
+    {
+	    $json->{"bb"}{"cmd"}{"controller"} = "none";
     }
     if($CFG{"envdir"} eq "HOME")
     {
