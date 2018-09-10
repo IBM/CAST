@@ -93,7 +93,7 @@ void CSMIRasEventCreate::onRasPoolExit(RasEvent &rasEvent,
                                        const csm::daemon::CoreEvent &aEvent, 
                                        std::vector<csm::daemon::CoreEvent*>& postEventList)
 {
-    LOG(csmras, info) << "CSMIRasEventCreate::Process" << "onRasPoolExit = " << rasEvent.msg_id();
+    LOG(csmras, debug) << "CSMIRasEventCreate::Process" << "onRasPoolExit = " << rasEvent.msg_id();
 
     string suppressed = rasEvent.getValue(CSM_RAS_FKEY_SUPPRESSED);
     string ctxIdStr = rasEvent.getValue(CSM_RAS_FKEY_CTXID);       // get the remembered context id...
@@ -135,7 +135,7 @@ void CSMIRasEventCreate::onRasPoolExit(RasEvent &rasEvent,
      
     if (!db_write_resp_pending)
     {
-       LOG(csmras, debug) << "RAS EVENT COMPLETE   " << rasEvent.getLogString();
+       LOG(csmras, info) << "RAS EVENT COMPLETE   " << rasEvent.getLogString();
     }
 }
 
@@ -220,7 +220,7 @@ RasRc CSMIRasEventCreate::decodeRasEvent(csm::network::MessageAndAddress content
         strftime(time_stamp, 80, "%Y-%m-%d %H:%M:%S", info);    
         snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp, now_tv.tv_usec);
     
-        LOG(csmras, info) << "Optional parameter time_stamp is not set, setting to:" << time_stamp_with_usec;
+        LOG(csmras, debug) << "Optional parameter time_stamp is not set, setting to:" << time_stamp_with_usec;
         rasEvent.setValue(CSM_RAS_FKEY_TIME_STAMP, time_stamp_with_usec);
     }
     else
@@ -684,11 +684,11 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                     }
                     else if (suppressed)
                     {
-                        LOG(csmras, debug) << "RAS EVENT SUPPRESSED " << rctx->_rasEvent->getLogString(); 
+                        LOG(csmras, info) << "RAS EVENT SUPPRESSED " << rctx->_rasEvent->getLogString() << " state:" << node_state; 
                     }
                     else
                     {
-                        LOG(csmras, debug) << "RAS EVENT DISABLED   " << rctx->_rasEvent->getLogString(); 
+                        LOG(csmras, info) << "RAS EVENT DISABLED   " << rctx->_rasEvent->getLogString(); 
                     }
                 }
 
@@ -733,7 +733,7 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
             else if (rctx->_state == CSMIRasEventCreateContext::WRITE_RAS_EVENT) 
             {
                 LOG(csmras, debug) << "RAS EVENT DB WR RESP " << rctx->_rasEvent->getLogString(); 
-                LOG(csmras, debug) << "RAS EVENT COMPLETE   " << rctx->_rasEvent->getLogString(); 
+                LOG(csmras, info) << "RAS EVENT COMPLETE   " << rctx->_rasEvent->getLogString(); 
             }
             else 
             {
