@@ -114,10 +114,11 @@ csm::daemon::CoreGeneric::InitInfrastructure(const csm::daemon::EventManagerNetw
   else
     throw csm::daemon::Exception("BUG: no timer-mgr defined. Cannot continue.");
 
-  if( _Config->GetRole() == CSM_DAEMON_ROLE_MASTER )
+  csm::daemon::RecurringTasks RT = _Config->GetRecurringTasks();
+  if( RT.IsEnabled() )
   {
     _intervalSrc = new csm::daemon::EventSourceInterval( GetRetryBackOff() );
-    AddEventSource( _intervalSrc, INTERVAL_SRC_ID, 0, DEFAULT_INTERVAL_SRC_INTERVAL );
+    AddEventSource( _intervalSrc, INTERVAL_SRC_ID, 0, RT.GetMinInterval() );
   }
 
   if( bdsMgr )

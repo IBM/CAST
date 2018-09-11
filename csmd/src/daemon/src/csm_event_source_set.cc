@@ -42,7 +42,10 @@ EventSourceSet::EventSourceSet()
     MaxInterval = std::max(MaxInterval, (uint64_t)it);
   MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_NETWORK_SRC_INTERVAL );
   MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_TIMER_SRC_INTERVAL );
-  MaxInterval = std::max( MaxInterval, config->GetIntervalSourceTime() );
+
+  RecurringTasks RT = config->GetRecurringTasks();
+  if( RT.IsEnabled() )
+    MaxInterval = std::max( MaxInterval, (uint64_t)RT.GetMinInterval() );
 
   mBucketScheduler = new ItemScheduler( MaxInterval );
 
@@ -51,7 +54,9 @@ EventSourceSet::EventSourceSet()
 
   mBucketScheduler->AddItem( NETWORK_SRC_ID, DEFAULT_NETWORK_SRC_INTERVAL, 0 );
   mBucketScheduler->AddItem( TIMER_SRC_ID, DEFAULT_TIMER_SRC_INTERVAL, 0 );
-  mBucketScheduler->AddItem( INTERVAL_SRC_ID, config->GetIntervalSourceTime(), 0 );
+
+  if( RT.IsEnabled() )
+    mBucketScheduler->AddItem( INTERVAL_SRC_ID, RT.GetMinInterval(), 0 );
   mCurrentWindow = -1;
 
   mBucketScheduler->RRForward();

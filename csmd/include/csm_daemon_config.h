@@ -179,7 +179,7 @@ public:
   
   size_t GetNumOfBuckets() const { return _BucketList.size(); }
   csm::daemon::Tweaks GetTweaks() const { return _Tweaks; }
-  uint64_t GetIntervalSourceTime() const { return _Cron.GetMinInterval(); }
+  RecurringTasks GetRecurringTasks() const { return _Cron; }
 
   DBDefinitionInfo GetDBDefinitionInfo() const { return _dbInfo; }
 
