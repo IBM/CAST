@@ -54,7 +54,7 @@ void EventRoutingAgg::RegisterHandlers()
    // Register init handler for collecting the local inventory during initialization
    AddInitEventHandler(inv_aggregator_handler);
 
-   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER>();
+   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER_AGGREGATOR>();
 
 #ifdef WITH_MASTER_LOAD_STATS
    AddInitEventHandler( createInstance_sptr<CSM_DAEMON_CLOCK>() );

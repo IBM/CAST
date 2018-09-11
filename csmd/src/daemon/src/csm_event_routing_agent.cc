@@ -59,7 +59,7 @@ void EventRoutingAgent::RegisterHandlers()
 #endif
 
    _EnvironmentHandler = createInstance_sptr<CSM_ENVIRONMENTAL>();
-   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER>();
+   _IntervalHandler = createInstance_sptr<CSM_INTERVAL_HANDLER_COMPUTE>();
 
 }
 

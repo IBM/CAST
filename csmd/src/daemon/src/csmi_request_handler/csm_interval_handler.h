@@ -32,4 +32,46 @@ public:
 
 };
 
+class CSM_INTERVAL_HANDLER_MASTER : public CSM_INTERVAL_HANDLER
+{
+public:
+  CSM_INTERVAL_HANDLER_MASTER( csm::daemon::HandlerOptions& options)
+  : CSM_INTERVAL_HANDLER( options )
+  {
+    setCmdName(std::string("CSM_INTERVAL_MASTER"));
+  }
+};
+
+class CSM_INTERVAL_HANDLER_UTILITY : public CSM_INTERVAL_HANDLER
+{
+public:
+  CSM_INTERVAL_HANDLER_UTILITY( csm::daemon::HandlerOptions& options)
+  : CSM_INTERVAL_HANDLER( options )
+  {
+    setCmdName(std::string("CSM_INTERVAL_UTILITY"));
+  }
+};
+
+class CSM_INTERVAL_HANDLER_AGGREGATOR : public CSM_INTERVAL_HANDLER
+{
+public:
+  CSM_INTERVAL_HANDLER_AGGREGATOR( csm::daemon::HandlerOptions& options)
+  : CSM_INTERVAL_HANDLER( options )
+  {
+    setCmdName(std::string("CSM_INTERVAL_AGGREGATOR"));
+  }
+};
+
+class CSM_INTERVAL_HANDLER_COMPUTE : public CSM_INTERVAL_HANDLER
+{
+public:
+  CSM_INTERVAL_HANDLER_COMPUTE( csm::daemon::HandlerOptions& options)
+  : CSM_INTERVAL_HANDLER( options )
+  {
+    setCmdName(std::string("CSM_INTERVAL_COMPUTE"));
+  }
+};
+
+
+
 #endif /* __CSM_DAEMON_SRC_CSM_DAEMON_INTERVAL_HANDLER_H__ */
