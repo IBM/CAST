@@ -392,7 +392,7 @@ int Configuration::GetBucketItems(int windowId, std::vector<BucketItemType>& ite
     }
   }
 
-  LOG(csmd, info) << "windowId(" << windowId << "): " << ss.str();
+  CSMLOG(csmd, info) << "windowId(" << windowId << "): " << ss.str();
   
   return items.size();
 }
@@ -478,7 +478,7 @@ void Configuration::LoadFromFile( const std::string &aFileName, bool roleOptionI
   }
   catch (csm::daemon::Exception& e)
   {
-    LOG(csmd,error) << "The value in csm.role is not recognized: " << e.what();
+    CSMLOG(csmd,error) << "The value in csm.role is not recognized: " << e.what();
     throw;
   }
 }
@@ -571,7 +571,7 @@ bool Configuration::ParseCommandLineOptions( int argc, char **argv )
   
   if( vm.count( CSM_OPT_FILE_LONG ) )
     _CfgFile = vm[CSM_OPT_FILE_LONG].as<std::string>();
-  LOG(csmd, debug) << "Using command line provided config: " << _CfgFile;
+  CSMLOG(csmd, debug) << "Using command line provided config: " << _CfgFile;
   
   return RoleOptionInCommand;
 }
@@ -761,7 +761,7 @@ void Configuration::CreateThreadPool()
       port = std::stoi(value);
     else
     {
-      LOG( csmd, error ) << i_Key << " not defined in configuration.";
+      CSMLOG( csmd, error ) << i_Key << " not defined in configuration.";
       throw csm::daemon::Exception( i_Key + " not defined in configuration." );
     }
     return port;
@@ -865,11 +865,11 @@ void Configuration::CreateThreadPool()
     switch( HostNameValidate( aggB_host ) )
     {
       case HOST_CONFIG_NONE:
-        LOG( csmd, info ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
+        CSMLOG( csmd, info ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
         singleAggMode = true;
         break;
       case HOST_CONFIG_INVALID:
-        LOG( csmd, warning ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
+        CSMLOG( csmd, warning ) << "No secondary aggregator configured. Running in NON-REDUNDANT mode.";
         singleAggMode = true;
         break;
       case HOST_CONFIG_VALID:
@@ -1125,7 +1125,7 @@ void Configuration::CreateThreadPool()
       _Tweaks._DCGM_max_keep_samples = (MAX_JOB_IN_SECONDS/_Tweaks._DCGM_update_interval_s); 
 
     if( enabled )
-      LOG( csmd, info ) << "CSMD Tuning enabled: " << _Tweaks;
+      CSMLOG( csmd, info ) << "CSMD Tuning enabled: " << _Tweaks;
   }
 
   HostNameConfigState_t
@@ -1149,7 +1149,7 @@ void Configuration::CreateThreadPool()
     bool inactive = false;
     if( _Role != CSM_DAEMON_ROLE_AGGREGATOR )
     {
-      LOG( csmd, warning ) << "BDS Info/Connection from " << _Role << " is not supported.";
+      CSMLOG( csmd, warning ) << "BDS Info/Connection from " << _Role << " is not supported.";
       return;
     }
 
@@ -1174,17 +1174,17 @@ void Configuration::CreateThreadPool()
     if( enabled )
     {
       _BDS_Info.Init( host_val, port_val );
-      LOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+      CSMLOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
     }
     else
     {
       if( inactive )
       {
-        LOG( csmd, info ) << "BDS access disabled by configuration.";
+        CSMLOG( csmd, info ) << "BDS access disabled by configuration.";
       }
       else
       {
-        LOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made. ("
+        CSMLOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made. ("
           << host_val << ":" << port_val << ")";
       }
     }

@@ -16,6 +16,8 @@
 #ifndef CSMD_SRC_DAEMON_INCLUDE_CSM_TWEAKS_H_
 #define CSMD_SRC_DAEMON_INCLUDE_CSM_TWEAKS_H_
 
+#include <inttypes.h>
+
 namespace csm {
 namespace daemon {
 
