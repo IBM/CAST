@@ -215,6 +215,7 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
 
   // set up several intervals and the jitter window configuration
   ConfigureDaemonTimers();
+  SetRecurringTasks();
 }
 
 void Configuration::SetHostname()
@@ -296,18 +297,6 @@ void Configuration::ConfigureDaemonTimers()
   if( _window_duration * _window_extension_factor > _timer_interval )
   {
     _window_extension_factor = 1;
-  }
-
-  std::string interval_time_str = GetValueInConfig( "csm.interval_time" );
-  if( interval_time_str.empty() )
-  {
-    CSMLOG( csmd, info ) << "No interval timer defined in config. Using default: " << DEFAULT_INTERVAL_SRC_INTERVAL << "s";
-    _IntervalSrcTime = DEFAULT_INTERVAL_SRC_INTERVAL;
-  }
-  else
-  {
-    _IntervalSrcTime = strtoll( interval_time_str.c_str(), nullptr, 10 );
-    CSMLOG( csmd, debug ) << "Interval timer configured with " << _IntervalSrcTime << "s";
   }
 
   if (!_isConfigInit) return;
@@ -1199,6 +1188,39 @@ void Configuration::CreateThreadPool()
           << host_val << ":" << port_val << ")";
       }
     }
+  }
+
+  void
+  Configuration::SetRecurringTasks()
+  {
+    std::string ckey_str = GetValueInConfig( "csm.recurring_tasks.soft_fail_recovery.interval" );
+    if( ckey_str.empty() )
+    {
+      _Cron.Disable();
+      CSMLOG( csmd, info ) << "No Recurring tasks defined in config. Disabling feature.";
+    }
+    else
+    {
+      _Cron.Enable();
+      boost::posix_time::time_duration interval_time = boost::posix_time::duration_from_string(ckey_str);
+      unsigned interval = interval_time.total_seconds();
+
+      ckey_str = GetValueInConfig( "csm.recurring_tasks.soft_fail_recovery.retry" );
+      unsigned retry = strtol( ckey_str.c_str(), nullptr, 10 );
+
+      if(( interval == 0 ) || ( retry == 0 ))
+      {
+        _Cron.Disable();
+        throw csm::daemon::Exception("Recurring Tasks configuration error. Interval/Retry invalid." );
+      }
+
+      _Cron.SetSoftFailRecovery( interval, retry);
+
+      _Cron.UpdateLCM();
+    }
+
+    if( _Cron.IsEnabled() )
+      CSMLOG( csmd, info ) << "Recurring tasks config: " << _Cron;
   }
 
 }  // namespace daemon
