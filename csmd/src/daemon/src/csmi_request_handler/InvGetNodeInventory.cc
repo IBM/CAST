@@ -133,6 +133,7 @@ bool InvGetNodeInventory::CreateSqlStmt(const std::string& arguments, const uint
    static const string GPU_TABLE_NAME("csm_gpu");
    static const string HCA_TABLE_NAME("csm_hca");
    static const string SSD_TABLE_NAME("csm_ssd");
+   static const string PROCESSOR_TABLE_NAME("csm_processor_socket");
       
    // Try to unpack the csm_node_inventory_t structure
    csm_full_inventory_t inventory;
@@ -552,6 +553,68 @@ bool InvGetNodeInventory::CreateSqlStmt(const std::string& arguments, const uint
         stmt_out << "DELETE FROM " << SSD_TABLE_NAME;
         stmt_out << " WHERE node_name='" << inventory.node.node_name << "' "; 
         stmt_out << "AND serial_number NOT IN (" << ssd_serials_out.str() << ");" << endl;
+      }
+      
+      // Used to delete any old rows from the csm_processor_socket table
+      std::ostringstream procserials_out;
+
+      // Update/Insert the processor inventory
+      for ( uint32_t i = 0; i < inventory.processor_count; i++ )
+      {
+        const string PROC_INV = "PROC_INV: " + node_name + "-proc" + to_string(i);
+        CSMLOGp(csmd, info, PROC_INV) << " - serial_number:         " << inventory.processor[i].serial_number;
+        CSMLOGp(csmd, info, PROC_INV) << "   physical_location:     " << inventory.processor[i].physical_location;
+        CSMLOGp(csmd, info, PROC_INV) << "   discovered_cores:      " << inventory.processor[i].discovered_cores;
+      
+        // Build the list of processor serial numbers in the current inventory
+        if ( !procserials_out.str().empty() )
+        {
+          procserials_out << ", ";  // Add a comma between serial numbers
+        }
+        procserials_out << "'" << inventory.processor[i].serial_number << "'";
+
+        // Build the update statement 
+        stmt_out << "UPDATE " << PROCESSOR_TABLE_NAME << " SET ";
+        stmt_out << "physical_location='" << inventory.processor[i].physical_location << "', ";
+        stmt_out << "discovered_cores='"  << inventory.processor[i].discovered_cores << "'";
+        stmt_out << " WHERE node_name IN (SELECT t.node_name FROM csm_node_temp t WHERE ";
+        stmt_out << "t.collection_time!='" << inventory.node.collection_time << "') "; 
+        stmt_out << "AND serial_number='" << inventory.processor[i].serial_number << "';" << endl;
+      
+        // Build the insert statement
+        // First build the keys and values parts of the insert
+        // Clear the keys and values first
+        keys_out.str("");
+        keys_out.clear();
+        values_out.str("");
+        values_out.clear();
+
+        keys_out << "(node_name, ";           values_out << "'" << inventory.node.node_name << "', ";
+        keys_out << "serial_number, ";        values_out << "'" << inventory.processor[i].serial_number << "', ";
+        keys_out << "physical_location, ";    values_out << "'" << inventory.processor[i].physical_location  << "', ";
+        keys_out << "discovered_cores)";      values_out << "'" << inventory.processor[i].discovered_cores << "'";
+        
+        // Now build the statement
+        stmt_out << "INSERT INTO " << PROCESSOR_TABLE_NAME << " " << keys_out.str();
+        stmt_out << " SELECT " << values_out.str(); 
+        stmt_out << " WHERE NOT EXISTS (SELECT 1 FROM " << PROCESSOR_TABLE_NAME;
+        stmt_out << " WHERE node_name='" << inventory.node.node_name << "' "; 
+        stmt_out << "AND serial_number='" << inventory.processor[i].serial_number << "');" << endl;
+      }
+     
+      // Delete any processsors that are no longer present in the current inventory
+      if ( procserials_out.str().empty() )
+      {
+        // No processors in current inventory, delete all existing rows for this node
+        stmt_out << "DELETE FROM " << PROCESSOR_TABLE_NAME;
+        stmt_out << " WHERE node_name='" << inventory.node.node_name << "';" << endl;
+      }
+      else
+      {
+        // Only delete rows that do not have records in the current inventory
+        stmt_out << "DELETE FROM " << PROCESSOR_TABLE_NAME;
+        stmt_out << " WHERE node_name='" << inventory.node.node_name << "' "; 
+        stmt_out << "AND serial_number NOT IN (" << procserials_out.str() << ");" << endl;
       }
 
       // We need to treat this whole update as a single transaction
