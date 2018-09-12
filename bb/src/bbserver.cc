@@ -732,7 +732,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
             {
                 // LVKey not found on this bbServer
                 // Send the error back as a -2...  Might be tolerated...
-                errorText << "A logical volume (LVKey) is not currently associated with " << l_JobStr.str() \
+                errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
                           << " on this bbServer. Before a handle value can be generated," \
                           << " a logical volume must first be created for this job, associated with this bbServer.";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -1095,7 +1095,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
 
         stringstream l_JobStr;
         l_Job.getStr(l_JobStr);
-        LOG(bb,info) << "msgin_gettransferlist: " << l_JobStr.str() \
+        LOG(bb,info) << "msgin_gettransferlist: job" << l_JobStr.str() \
                      << std::hex << std::uppercase << setfill('0') \
                      << ", matchstatus = 0x" << (uint64_t)l_MatchStatus \
                      << setfill(' ') << std::nouppercase << std::dec;
@@ -1743,8 +1743,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     // Process the job into a formatted stringstream
                                     stringstream l_JobStr;
                                     l_Job.getStr(l_JobStr);
-                                    LOG(bb,debug) << "msgin_starttransfer: Found " << l_LVKey2 << ", " << l_JobStr.str() << ", tag=" << l_Tag \
-                                                  << ", handle=" << l_Handle << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str();
+                                    LOG(bb,debug) << "msgin_starttransfer: Found " << l_LVKey2 << ", job" << l_JobStr.str() << ", tag " << l_Tag \
+                                                  << ", handle " << l_Handle << ", numcontrib " << l_NumContrib << ", contrib " << l_ContribStr.str();
 
                                     // Start transfer
                                     // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
@@ -2177,7 +2177,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                             rc = -1;
                                             // This condition overrides any failure detected on bbProxy...
                                             l_MarkFailedFromProxy = 0;
-                                            errorText << "A logical volume (LVKey) is not currently associated with " << l_JobStr.str() \
+                                            errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
                                                       << " on this bbServer for contribid " << l_ContribId \
                                                       << ".  This is a restart scenario and the expected LVKey was not found.";
                                             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -2188,7 +2188,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                             rc = -1;
                                             // This condition overrides any failure detected on bbProxy...
                                             l_MarkFailedFromProxy = 0;
-                                            errorText << "A logical volume (LVKey) is not currently associated with " << l_JobStr.str() \
+                                            errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
                                                       << " on this bbServer for contribid " << l_ContribId \
                                                       << ".  This is not a restart scenario and either the contribid is already known" \
                                                       << " for this job to another bbServer in the cluster or a logical volume has yet" \
