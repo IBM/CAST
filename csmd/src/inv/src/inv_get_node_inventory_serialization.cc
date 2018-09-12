@@ -102,6 +102,27 @@ uint32_t get_node_inventory_pack(const csm_full_inventory_t& in_inventory, strin
     out_payload_str.append( (char*) &(in_inventory.ssd[i]), sizeof(in_inventory.ssd[i]) );
     //LOG(csmd, info) << "sizeof(in_inventory.ssd[i]) = " << sizeof(in_inventory.ssd[i]);
   }
+  
+  // Pack the processor_count
+  out_payload_str.append( (char*) &(in_inventory.processor_count), sizeof(in_inventory.processor_count) );
+  
+  // Pack the processor portion of the inventory 
+  if ( in_inventory.processor_count > CSM_PROCESSOR_MAX_DEVICES )
+  {
+    LOG(csmd, error) << "in_inventory.processor_count (" << in_inventory.processor_count << ") " 
+                     << "> CSM_PROCESSOR_MAX_DEVICES (" << CSM_PROCESSOR_MAX_DEVICES << ")";
+
+    out_payload_str.clear();
+    LOG(csmd, info) << "out_payload_str.length() = " << out_payload_str.length();
+    return out_payload_str.length();
+  }
+
+  // Only pack populated processors
+  for ( uint32_t i = 0; i < in_inventory.processor_count; i++ )
+  {
+    out_payload_str.append( (char*) &(in_inventory.processor[i]), sizeof(in_inventory.processor[i]) );
+    //LOG(csmd, info) << "sizeof(in_inventory.processor[i]) = " << sizeof(in_inventory.processor[i]);
+  }
 
   LOG(csmd, info) << "out_payload_str.length() = " << out_payload_str.length();
 
@@ -232,6 +253,48 @@ uint32_t get_node_inventory_unpack(const string& in_payload_str, csm_full_invent
       LOG(csmd, error) << "in_payload_str.size() (" << in_payload_str.size() << ") " 
                        << "< offset (" << offset << ") + sizeof(out_inventory.ssd[i]) (" 
                        << sizeof(out_inventory.ssd[i]) << ")";
+    }
+  }
+
+  // Unpack the processor count
+  if ( in_payload_str.size() >= (offset + sizeof(out_inventory.processor_count)) )
+  {
+    memcpy( &out_inventory.processor_count, &(in_payload_str.c_str()[offset]), sizeof(out_inventory.processor_count) );
+    offset += sizeof(out_inventory.processor_count);
+    //LOG(csmd, info) << "sizeof(out_inventory.processor_count) = " << sizeof(out_inventory.processor_count)
+    //                << ", offset = " << offset;
+  }
+  else
+  {
+    LOG(csmd, warning) << "No processor_count received, probable version mismatch: in_payload_str.size() (" << in_payload_str.size() << ") " 
+                       << "< offset (" << offset << ") + sizeof(out_inventory.processor_count) (" 
+                       << sizeof(out_inventory.processor_count) << ")";
+    out_inventory.processor_count = 0;
+  }
+  
+  // Unpack the processor portion of the inventory
+  if ( out_inventory.processor_count > CSM_PROCESSOR_MAX_DEVICES )
+  {
+    LOG(csmd, error) << "out_inventory.processor_count (" << out_inventory.processor_count << ") " 
+                     << "> CSM_PROCESSOR_MAX_DEVICES (" << CSM_PROCESSOR_MAX_DEVICES << "), truncating array to fit";
+
+    out_inventory.processor_count = CSM_PROCESSOR_MAX_DEVICES;
+  }
+
+  for ( uint32_t i = 0; i < out_inventory.processor_count; i++ )
+  {
+    if ( in_payload_str.size() >= (offset + sizeof(out_inventory.processor[i])) )
+    {
+      memcpy( &out_inventory.processor[i], &(in_payload_str.c_str()[offset]), sizeof(out_inventory.processor[i]) );
+      offset += sizeof(out_inventory.processor[i]);
+      //LOG(csmd, info) << "sizeof(out_inventory.processor[i]) = " << sizeof(out_inventory.processor[i])
+      //                << ", offset = " << offset;
+    }
+    else
+    {
+      LOG(csmd, error) << "in_payload_str.size() (" << in_payload_str.size() << ") " 
+                       << "< offset (" << offset << ") + sizeof(out_inventory.processor[i]) (" 
+                       << sizeof(out_inventory.processor[i]) << ")";
     }
   }
 
