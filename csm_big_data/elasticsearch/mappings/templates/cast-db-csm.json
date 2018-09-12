@@ -1,5 +1,5 @@
 {
-    "index_patterns": ["cast-csmdb*"],
+    "index_patterns": ["cast-db-csm*"],
     "order" : 1,
     "settings" :{
         "index" : { 
@@ -8,10 +8,12 @@
         }
     },
     "aliases" : {
-        "cast-csmdb" : {}
+        "cast-db-csm" : {}
     },
     "mappings": {
         "_doc" : {
+	        "dynamic_date_formats" : 
+		        [ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"],
             "properties" : {
                 "@version"   : { "type" : "text" },
                 "@timestamp" : { "type" : "date" },
