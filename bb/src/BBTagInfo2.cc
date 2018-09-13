@@ -157,8 +157,9 @@ void BBTagInfo2::dump(char* pSev, const char* pPrefix)
     return;
 }
 
-void BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
+int BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
 {
+    int l_LockWasReleased = 0;
 
     if (!stageOutEnded()) {
         LOG(bb,info) << "taginfo: Stageout end processing being initiated for jobid " << jobid << ", for " << *pLVKey;
@@ -174,6 +175,7 @@ void BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
         {
             unlockTransferQueue(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
             {
+                l_LockWasReleased = 1;
                 if (!(i++ % 30))
                 {
                     LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey;
@@ -184,7 +186,7 @@ void BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
         }
     }
 
-    return;
+    return l_LockWasReleased;
 }
 
 BBSTATUS BBTagInfo2::getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo)
