@@ -6,7 +6,7 @@
 1. Importing
 1. Connection to CSM
 1. Accessing the CSM API
-1. FAQ - Frequently Asked Questions
+1. [FAQ - Frequently Asked Questions](https://github.com/NickyDaB/CAST/blob/research/csm_python_apis/csmi/python_samples/guide.md#faq---frequently-asked-questions)
 
 ## About
 The CSM API Python Bindings library works similar to other C Python binding libraries. CSM APIs can be accessed in Python because they are bound to C via Boost. More technical details can be found here: https://wiki.python.org/moin/boost.python/GettingStarted but understanding all of this is not required to use CSM APIs in Python. This guide provides a central location for users looking to utilize CSM APIs via Python. If you believe this guide to be incomplete, then please make a pull request with your additional content. 
