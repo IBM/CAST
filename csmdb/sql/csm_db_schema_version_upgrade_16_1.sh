@@ -213,9 +213,9 @@ fi
 
 if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] || [[ $(bc <<< "$version < 15.0") -eq 1 ]] || [[ $(bc <<< "$migration_db_version == $trigger_version_2") -eq 0 ]]; then
     echo "[Error   ] Cannot perform action because not compatible."
-    echo "[Info    ] Required DB schema version 15.0, 15.1 or appropriate files in directory"
+    echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, or appropriate files in directory"
     LogMsg "[Error   ] Cannot perform action because not compatible."
-    LogMsg "[Info    ] Required DB schema version 15.0, 15.1 or appropriate files in directory"
+    LogMsg "[Info    ] Required DB schema version 15.0, 15.1, 16.0, or appropriate files in directory"
     echo "[Info    ] $dbname current_schema_version is running: $version"
     LogMsg "[Info    ] $dbname current_schema_version is running: $version"
     echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
