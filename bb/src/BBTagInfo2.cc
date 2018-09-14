@@ -863,6 +863,8 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                 {
                     // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
                     //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
+                    SET_FLAG(BBTI2_Suspended, pValue);
+
                     string l_Temp = "resume";
                     if (pValue)
                     {

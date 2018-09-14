@@ -2658,7 +2658,7 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (!rc)
+    if (rc == 0 || rc == -2)
     {
         LOG(bb,info) << "Connection from the CN hostname " << l_HostNamePrt2 << " is now marked as resumed to the active bbServer";
     }
@@ -3426,7 +3426,7 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Process response data
         rc = bberror.merge(msgserver);
 
-        if (!rc)
+        if (rc == 0 || rc == -2)
         {
             if (hostname == UNDEFINED_HOSTNAME || hostname == l_HostName)
             {
