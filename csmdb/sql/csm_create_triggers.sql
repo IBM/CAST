@@ -15,10 +15,12 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.0
+--   current_version:       16.1
 --   create:                06-22-2016
---   last modified:         08-09-2018
+--   last modified:         09-14-2018
 --   change log:
+--     16.1   - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
+--            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
 --     16.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
 --            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
@@ -2580,6 +2582,9 @@ CREATE FUNCTION fn_csm_ssd_history_dump()
      $$
      BEGIN
     IF (TG_OP = 'DELETE') THEN
+        -- clean up any possible vg and lv on this hard drive
+        PERFORM fn_csm_ssd_dead_records(OLD.serial_number); 
+        -- standard dump practice
         INSERT INTO csm_ssd_history(
             history_time,
             serial_number,
@@ -2702,6 +2707,89 @@ CREATE TRIGGER tr_csm_ssd_history_dump
 
 COMMENT ON FUNCTION fn_csm_ssd_history_dump() is 'csm_ssd function to amend summarized column(s) on UPDATE and DELETE.';
 COMMENT ON TRIGGER tr_csm_ssd_history_dump ON csm_ssd is 'csm_ssd trigger to amend summarized column(s) on UPDATE and DELETE.';
+
+-----------------------------------------------------------
+-- fn_csm_ssd_dead_records 
+-----------------------------------------------------------
+
+CREATE FUNCTION fn_csm_ssd_dead_records(
+    i_sn text
+)
+RETURNS void AS $$
+DECLARE
+    vg_count int;
+    lv_on_vg int;
+    vg_names_on_ssd text[];
+    matching_node_names text[];
+    t_lv_name text;
+    t_node_name text;
+    t_allocation_id bigint;
+BEGIN
+
+    SELECT 
+        count(vg_name)
+    INTO vg_count
+    FROM 
+        csm_vg_ssd
+    WHERE (
+        serial_number = i_sn
+    );
+
+    IF ( vg_count > 0) THEN
+        -- look further
+        SELECT
+            array_agg(vg_name), array_agg(node_name)
+        INTO
+            vg_names_on_ssd, matching_node_names
+        FROM
+            csm_vg_ssd
+        WHERE (
+            serial_number = i_sn
+        );
+        --loop through that array
+        -- find any lvs on those vgs
+        FOR i IN 1..vg_count LOOP
+
+            SELECT
+                count(logical_volume_name)
+            INTO lv_on_vg
+            FROM
+                csm_lv
+            WHERE (
+                vg_name = vg_names_on_ssd[i] AND
+                node_name = matching_node_names[i]
+            );
+
+            IF (lv_on_vg > 0) THEN 
+
+                FOR j IN 1..lv_on_vg LOOP
+                    SELECT
+                        logical_volume_name, node_name, allocation_id
+                    INTO
+                        t_lv_name, t_node_name, t_allocation_id
+                    FROM
+                        csm_lv
+                    WHERE (
+                        vg_name = vg_names_on_ssd[j] AND
+                        node_name = matching_node_names[j]
+                    );
+
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                END LOOP;
+            END IF;
+            -- once cleaned up all lvs on a vg, then we can remove the vg itself
+            PERFORM fn_csm_vg_delete(matching_node_names[i], vg_names_on_ssd[i]);
+        END LOOP;
+    END IF;
+END;
+$$
+LANGUAGE 'plpgsql';
+
+-----------------------------------------------------------
+-- fn_csm_ssd_dead_records comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION fn_csm_ssd_dead_records( i_sn text ) is 'Delete any vg and lv on an ssd that is being deleted.';
 
 ---------------------------------------------------------------------------------------------------
 -- csm_ssd_wear function to amend summarized column(s) on UPDATE
@@ -4470,7 +4558,7 @@ BEGIN
                 allocation_id = i_allocationid
             );
     ELSE
-        RAISE EXCEPTION using message = 'logical_volume_name and allocation_id does not exist';
+        RAISE EXCEPTION 'logical_volume_name and allocation_id does not exist % %', i_logical_volume_name, i_allocationid;
     END IF;
     EXCEPTION
         WHEN others THEN

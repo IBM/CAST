@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   16.0
+--   current_version:   16.1
 --   create:            12-14-2015
---   last modified:     08-21-2018
+--   last modified:     09-14-2018
 --   change log:    
+--   16.1   upgraded and added function to support API inventory
 --   16.0   upgrade to functions to support API changes
 --          csm_dimm, csm_socket_processor PKs constraint updated (including node_name)
 --          csm_allocation_node + history modified energy, gpu_usage, and gpu_energy comments

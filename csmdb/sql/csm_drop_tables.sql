@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -e (drop all the csm_db tables)
---   current_version:   16.0
+--   current_version:   16.1
 --   create:            04-25-2015
---   last modified:     08-10-2018
+--   last modified:     09-14-2018
 --   log change:
+--      16.1 -          Moving this version to sync with DB schema version
 --      16.0 -          Moving this version to sync with DB schema version
 --      3.9  -          Removed csm_switch_ports + csm_switch_ports_history;
 --      3.8  -          table name change
