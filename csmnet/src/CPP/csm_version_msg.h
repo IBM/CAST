@@ -68,6 +68,12 @@ public:
     return _version;
   }
 
+  static void Exit()
+  {
+    if( _version != nullptr )
+      delete _version;
+    _version = nullptr;
+  }
   static VersionMsg* Get()
   {
     if( _version == nullptr )
