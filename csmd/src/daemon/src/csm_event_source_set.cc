@@ -42,6 +42,8 @@ EventSourceSet::EventSourceSet()
     MaxInterval = std::max(MaxInterval, (uint64_t)it);
   MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_NETWORK_SRC_INTERVAL );
   MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_TIMER_SRC_INTERVAL );
+  if( config->GetRole() == CSM_DAEMON_ROLE_MASTER )
+    MaxInterval = std::max( MaxInterval, (uint64_t)DEFAULT_DB_SRC_INTERVAL );
 
   RecurringTasks RT = config->GetRecurringTasks();
   if( RT.IsEnabled() )
@@ -54,6 +56,8 @@ EventSourceSet::EventSourceSet()
 
   mBucketScheduler->AddItem( NETWORK_SRC_ID, DEFAULT_NETWORK_SRC_INTERVAL, 0 );
   mBucketScheduler->AddItem( TIMER_SRC_ID, DEFAULT_TIMER_SRC_INTERVAL, 0 );
+  if( config->GetRole() == CSM_DAEMON_ROLE_MASTER )
+    mBucketScheduler->AddItem( DB_SRC_ID, DEFAULT_DB_SRC_INTERVAL, 0 );
 
   if( RT.IsEnabled() )
     mBucketScheduler->AddItem( INTERVAL_SRC_ID, RT.GetMinInterval(), 0 );
@@ -182,7 +186,7 @@ int EventSourceSet::Add( const csm::daemon::EventSource *aSource,
       return 1;
     else
     {
-      LOG( csmd, trace ) << "Adding Event Source: " << (*retval.first)->GetIdentifier();
+      LOG( csmd, debug ) << "Adding Event Source: " << (*retval.first)->GetIdentifier() << " oneshot=" << (*retval.first)->OncePerWindow();
       mActiveSources[ mActiveSetIndex^1 ].clear();
       mActiveSources[ mActiveSetIndex ] = mSources;
       mCurrentSource = mActiveSources[ mActiveSetIndex ].begin();
