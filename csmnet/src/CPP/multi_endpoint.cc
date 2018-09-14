@@ -79,6 +79,7 @@ csm::network::MultiEndpoint::~MultiEndpoint( ) noexcept(false)
   _ActivityEpoll.Del( _Epoll.GetEpollSocket() );
   _ActivityEpoll.Del( _PassiveEpoll.GetEpollSocket() );
   _ActivityEpoll.Del( _OutboundPipe->GetSocket() );
+  delete _OutboundPipe;
 }
 
 csm::network::Endpoint* csm::network::MultiEndpoint::NewEndpoint( const csm::network::Address_sptr aAddr,
