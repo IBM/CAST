@@ -116,3 +116,10 @@ csm::daemon::EventSink* csm::daemon::EventSinkSet::operator[]( const csm::daemon
   else
     return nullptr;
 }
+
+void csm::daemon::EventSinkSet::Clear()
+{
+  std::lock_guard<std::mutex> guard( _Lock );
+  _Sinks.clear();
+  _CurrentSink = _Sinks.begin();
+}
