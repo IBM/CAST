@@ -120,6 +120,7 @@ GetOptions(
     "ln!"                   => \$CFG{"bbcmd"},
     "envdir=s"              => \$CFG{"envdir"},
     "lsfdir=s"              => \$CFG{"lsfdir"},
+    "bscfswork=s",          => \$CFG{"bscfswork"},
     "scriptpath=s"          => \$SCRIPTPATH,
     "metadata=s"            => \$CFG{"metadata"}
     );
@@ -164,6 +165,7 @@ sub setDefaults
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
     &def("metadata",         1, "");
+    &def("bscfswork",        1, "");
     &def("configtempl",      2, "$SCRIPTPATH/bb.cfg");
     &def("nvmetempl",        2, "$SCRIPTPATH/nvmet.json");
 }
@@ -242,6 +244,10 @@ sub makeLNConfigFile
     else
     {
         $json->{"bb"}{"envdir"} = $CFG{"envdir"};
+    }
+    if($CFG{"bscfswork"})
+    {
+        $json->{"bb"}{"bscfsagent"}{"workpath"} = $CFG{"bscfswork"};
     }
     
     my $jsonoo = JSON->new->allow_nonref;
@@ -372,7 +378,20 @@ sub configureNVMeTarget
     setprefix("configuring NVMf: ");
     cmd("modprobe nvmet");
     cmd("modprobe nvmet-rdma");
-    
+
+    # Wait for kernel module(s) to complete load.  nvme driver may not have been loaded.
+    my $timeout = 10;
+    while(($timeout > 0) && (`lsmod | grep nvmet_rdma` !~ /nvmet_rdma/))
+    {
+        $timeout -= 1;
+        sleep(1);
+    }
+    if($timeout == 0)
+    {
+        output("nvmet_rdma kernel module could not be loaded");
+        exit(5);
+    }
+
     my $mtab = cat("/etc/mtab");
     if($mtab !~ /configfs/)
     {
