@@ -75,7 +75,7 @@ Below I have some code from an example script of setting a node to `IN_SERVICE` 
 
 ```Python
 input = inv.node_attributes_update_input_t()
-nodes=["allie","n01","bobby"]
+nodes=["allie","node_01","bobby"]
 input.set_node_names(nodes)
 input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE
 
@@ -98,6 +98,46 @@ input = inv.node_attributes_update_input_t()
 Here we are doing a few things. Just like in C, before we call the API we need to set up the input for the API. We do this on this line. Because this is an inventory API, we can find its input struct in the inventory library we imported earlier via `inv`, and we create this as `input`. 
 
 We now fill `input`. 
+
+When using the CSM Python library arrays must be `set` and `get`. 
+
+```Python
+nodes=["allie","node_01","bobby"]
+input.set_node_names(nodes)
+input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE
+```
+
+First we create an awway in Python. `nodes=["allie","node_01","bobby"]` Then we use the CSM Python library function `set_ARRAYNAME(array)` to set the `node_names` field of `input`. We do not need to set `node_names_count` like we do in C. the `set_` function will take care of that for you. Finally, we call `input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE` to set the state field of input to `IN_SERVICE`. This will tell CSM to set these 3 nodes to `IN_SERVICE`.
+
+In the next line of code we call the csm API passing in the input we just populated. 
+
+```Python
+rc,handler,output = inv.node_attributes_update(input)
+```
+
+Our CSM library returns 3 values. 
+* A return code - Here defined as `rc`. This is the same as the return code found in the C version of the API.
+* A handler - 
+* The API output - Here defined as output. This is the same as the output prarmeter found in the C version of the API. We will use this to access any output from the API. Similar to how you woul duse it in the C version. 
+
+If you noticed before I set `nodes=["allie","node_01","bobby"]`. `allie` and `bobby` are not real nodes. So, the API will have some output data for us to check. 
+
+```Python
+print rc 
+
+if rc == csm.csmi_cmd_err_t.CSMERR_UPDATE_MISMATCH:
+    print output.failure_count
+    for i in range(0, output.failure_count):
+        print output.get_failure_node_names(i)
+```
+
+The end of our sample script here first prints the return code, then if it matches the `CSMERR_UPDATE_MISMATCH` prints additional information. Checking error codes and return codes from an API can be useful. The values are the same as the C APIs. Look at CSM API documentation for a full list of all CSM API return codes. Just like in the C version of APIs, error codes are found in the common API folder, which was included earlier as `csm`.
+
+Next we print out all the names of the nodes that could not be updated in the CSM database. To do this, we must access an array. 
+
+Arrays in the CSM Python library must be accessed using this `get_` function. Following the pattern of `get_ARRAYNAME`. The array names and fields of a CSM struct are the same as the C versions. Please look at CSM API documentation for a list of your struct and struct field names. 
+
+So in our example here, our struct has an array named `failure_node_names`. To access it, we must call `get_failure_node_names(i)`. `i` here represents the element we want to access. Just like in the C version, `output.failure_count` tells us how many elements are in our array.
 
 ## FAQ - Frequently Asked Questions
 ### How do I access and set arrays in the CSM Python library. 
