@@ -41,4 +41,5 @@ Table of Contents
     :maxdepth: 2
     
     csm/index.rst
+    csmdb/index.rst
     cast-big-data/index.rst
