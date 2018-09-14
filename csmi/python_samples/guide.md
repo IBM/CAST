@@ -122,3 +122,26 @@ So in our example here, our struct has an array named `dimms`. To access it, we 
 Once stored, `dimm` can be accessed like any other struct. `print("    - serial_number:     " + str(dimm.serial_number))   ` 
 
 #### Set
+
+
+Example: 
+```Python
+input = inv.node_attributes_update_input_t()
+nodes=["node_01","node_02","node_03"]
+input.set_node_names(nodes)
+input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE
+```
+
+Here we want to use `csm_node_attributes_update` to set a few nodes to `IN_SERVICE`. The API's input takes in a list of nodes. So in Python we will need to set this array of node names. The important line here is: `input.set_node_names(nodes)` here we are setting the array of the struct to an array we previously created. 
+
+Before we can call `set_node_names(nodes)` we need to populate `nodes`.  
+
+```Python
+nodes=["node_01","node_02","node_03"]
+```
+
+Once `nodes` has been defined, we can call: `set_node_names(nodes)`. 
+
+Arrays in the CSM Python library must be set using this `set_` function. Following the pattern of `set_ARRAYNAME`. The `set_` function requires a single parameter of a populated array. (Here that is `nodes`.) The array names and fields of a CSM struct are the same as the C versions. Please look at CSM API documentation for a list of your struct and struct field names. 
+
+So in our example here, our struct has an array named `node_names`. To set it, we must call `input.set_node_names(nodes)`. `nodes` here represents the Python array we already created in the previous line. `input` represents the parent struct that contains this array. 
