@@ -16,6 +16,31 @@
 #include "csmi/src/common/include/csmi_common_generated.h"
 #include <string>
 
+std::string escapeString(char* c)
+{
+    std::string output="";
+    for( ; c; c++)
+    {
+        switch (*c) {
+            case '"': output.append("\\\""); break;
+            case '\\': output.append("\\\\"); break;
+            case '\b': output.append("\\b"); break;
+            case '\f': output.append("\\f"); break;
+            case '\n': output.append("\\n"); break;
+            case '\r': output.append("\\r"); break;
+            case '\t': output.append("\\t"); break;
+            default:
+                //if ('\x00' <= *c && *c <= '\x1f') {
+                //    output.append("\\u");
+                //      << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
+                //} else {
+                output.append(*c);
+                //}
+        }
+    }
+    return output;
+}
+
 void csmiGenerateJSON(
     std::string& json,
     const char* format,
@@ -68,7 +93,7 @@ void csmiGenerateJSON(
                         for (size_t i=0; i < array_size; ++i)
                         {
                             json.append("\"").append(
-                                (*array)[i]).append("\",");
+                                escapeString((*array)[i])).append("\",");
                         }
                     }
                     json.pop_back();
@@ -78,7 +103,7 @@ void csmiGenerateJSON(
                 {
                     char** str = (char**)((char*)target + node->offset);
                     if ( *str ) 
-                        json.append("\"").append(*str).append("\",");
+                        json.append("\"").append(escapeString(*str)).append("\",");
                     else
                         json.append("\"\",");
                 }
@@ -125,16 +150,15 @@ void csmiGenerateJSON(
 
             for( size_t i=0; i < array_size; ++i )
             {
-                printf("here ");
-                printf("%p\n ", target);
-                printf("%zu\n ", node->offset);
-                printf("point %p\n", (((char**)target + node->offset))[0]);
+                //printf("here ");
+                //printf("%p\n ", target);
+                //printf("%zu\n ", node->offset);
+                //printf("point %p\n", (((char**)target + node->offset))[0]);
 
                 // Something is broken here, it looks like C++ handles this differently.
                 if ( ( member = sub_map->ptr_funct( 
                         ((char*)target + node->offset),(node->type & CSM_ARRAY_BIT),i) ) )
                 {
-                    printf("MADE IT");
                     csmiGenerateJSON(
                         json, 
                         start_token, 
