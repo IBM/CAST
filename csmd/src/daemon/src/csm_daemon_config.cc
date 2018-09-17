@@ -1066,6 +1066,8 @@ void Configuration::CreateThreadPool()
       default:
         throw csm::daemon::Exception("Unknown/invalid Role found during configuration.");
     }
+    if( _EndpointDefinitionList.empty() )
+      throw csm::daemon::Exception( "Initialization completed with empty list of critical connections/listeners.", ENOTCONN );
   }
   
   void
