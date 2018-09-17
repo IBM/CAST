@@ -1,12 +1,14 @@
 # CSM API Python Bindings Guide
 
 ## Tables of Contents:
-1. About
-1. User Notes
-1. Importing
-1. Connection to CSM
-1. Accessing the CSM API
-1. [FAQ - Frequently Asked Questions](https://github.com/NickyDaB/CAST/blob/research/csm_python_apis/csmi/python_samples/guide.md#faq---frequently-asked-questions)
+1. [About](#about)
+1. [User Notes](#user-notes)
+1. [Importing](#importing)
+1. [Connection to CSM](#connection-to-csm)
+1. [Accessing the CSM API](#accessing-the-csm-api)
+1. [Cleaning Up and Closing Connection to CSM](#cleaning-up-and-closing-connection-to-csm)
+1. [Conclusion](#conclusion)
+1. [FAQ - Frequently Asked Questions](#faq---frequently-asked-questions)
 
 ## About
 The CSM API Python Bindings library works similar to other C Python binding libraries. CSM APIs can be accessed in Python because they are bound to C via Boost. More technical details can be found here: https://wiki.python.org/moin/boost.python/GettingStarted but understanding all of this is not required to use CSM APIs in Python. This guide provides a central location for users looking to utilize CSM APIs via Python. If you believe this guide to be incomplete, then please make a pull request with your additional content. 
@@ -138,6 +140,22 @@ Next we print out all the names of the nodes that could not be updated in the CS
 Arrays in the CSM Python library must be accessed using this `get_` function. Following the pattern of `get_ARRAYNAME`. The array names and fields of a CSM struct are the same as the C versions. Please look at CSM API documentation for a list of your struct and struct field names. 
 
 So in our example here, our struct has an array named `failure_node_names`. To access it, we must call `get_failure_node_names(i)`. `i` here represents the element we want to access. Just like in the C version, `output.failure_count` tells us how many elements are in our array.
+
+This example keeps it simple and doesn't do anything too crazy. We just loop through the array and print all the node names that did not update. 
+
+## Cleaning Up and Closing Connection to CSM
+
+Just like in C, when you are done communicating with CSM you must clean up and close connection. You call the same functions you would in C. `api_object_destroy` and `term_lib`. This will clean up memory and terminate connection to CSM. 
+
+```Python
+csm.api_object_destroy(handler)
+
+csm.term_lib()
+```
+
+## Conclusion
+
+This concludes the walkthrough of using the CSM Python library. If you have further question, then you can contact:  https://github.com/NickyDaB . If you want more samples to analyze, then explore: `CAST/csmi/python_samples`. 
 
 ## FAQ - Frequently Asked Questions
 ### How do I access and set arrays in the CSM Python library. 
