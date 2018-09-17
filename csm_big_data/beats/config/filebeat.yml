@@ -5,11 +5,19 @@ filebeat.prospectors:
     - /var/log/ibm/csm/csm_transaction.log
   tags: ["transaction"]
 
+
 - type: log 
   enabled: true
   paths:
     - "/var/log/ibm/csm/archive/*.json"
+    - /var/log/ibm/csm/csm_ras_events.log
   tags: ["archive"]
+
+- type: log 
+  enabled: true
+  paths:
+    - /var/log/ibm/csm/csm_ras_events.log
+  tags: ["csm","ras"]
 
 filebeat.config.modules:
   path: ${path.config}/modules.d/*.yml
