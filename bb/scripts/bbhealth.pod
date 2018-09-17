@@ -1,0 +1,28 @@
+=head1 NAME
+
+bbhealth - monitor bbProxy on the compute nodes
+
+=head1 SYNOPSIS
+
+/opt/ibm/bb/scripts/bbhealth ...
+
+  or
+
+service bbhealth start
+
+=head1 DESCRIPTION
+
+bbhealth is a utility that runs in the background and monitors the health of the bbProxy connection to its active bbServer.
+If the connection were to close or fail, bbhealth will react by attempting to repeatedly alternate re-connection attempts to either its
+primary or backup bbServer.  The primary and backup bbServers are designated in the burst buffer configuration file.
+
+bbhealth will periodically poll the bbProxy connection.  This poll rate is settable via the --pollrate option.  Each query will be executed 
+at the poll interval at the start of the second.  
+
+=over 8
+
+=item B<--pollrate>
+
+Specifies the polling rate that bbhealth uses to query bbProxy's connection status.  The pollrate is in seconds, the default is 5.  
+
+=back
