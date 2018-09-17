@@ -53,6 +53,12 @@ in `/opt/ibm/csm/bigdata/elasticsearch/`.
     systemctl enable elasticsearch
     systemctl start elasticsearch
 
+5. (Optional) Run the index template creator script:
+
+.. code-block:: bash
+
+   /opt/ibm/csm/bigdata/elasticsearch/createIndices.sh
+
 Elasticsearch should now be operational. If Logstash was properly configured there should already
 be data being written to your index.
 
@@ -168,12 +174,44 @@ from the command line.
 createIndices.sh
 ++++++++++++++++
 
+A script for initializing the templates defined by CAST. When executed it with attempt to 
+target the elasticsearch server running on "${HOSTNAME}:9200". If the user supplies
+either a hostname or ip address this will be targeted in lieu of "${HOSTNAME}". This script
+need only be run once on a node in the elasticsearch cluster.
+
 removeIndices.sh
 ++++++++++++++++
+
+A script for removing all elasticsearch templates created by `createIndices.sh`_. 
+When executed it with attempt to target the elasticsearch server running on "${HOSTNAME}:9200".
+If the user supplies either a hostname or ip address this will be targeted in lieu of "${HOSTNAME}". 
+This script need only be run once on a node in the elasticsearch cluster.
 
 reindexIndices.py
 +++++++++++++++++
 
+A tool for performing in place reindexing of an elasticsearch index.
+
+.. warning:: This script should only be used to reindex a handful of indices at a time as 
+    it is slow and can result in partial reindexing.
+
+.. code-block:: bash
+
+    usage: reindexIndices.py [-h] [-t hostname:port]
+                         [-i [index-pattern [index-pattern ...]]]
+
+    A tool for reindexing a list of elasticsearch indices, all indices will be
+    reindexed in place.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -t hostname:port, --target hostname:port
+                            An Elasticsearch server to reindex indices on. This
+                            defaults to the contents of environment variable
+                            "CAST_ELASTIC".
+      -i [index-pattern [index-pattern ...]], --indices [index-pattern [index-pattern ...]]
+                            A list of indices to reindex, this should use the
+                            index pattern format.
 
 cast-log
 ^^^^^^^^
