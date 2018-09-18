@@ -34,7 +34,7 @@ std::string escapeString(char* c)
                 //    output.append("\\u");
                 //      << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
                 //} else {
-                output.append(*c);
+                output += *c;
                 //}
         }
     }
