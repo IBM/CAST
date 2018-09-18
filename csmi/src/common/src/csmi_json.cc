@@ -19,9 +19,9 @@
 std::string escapeString(char* c)
 {
     std::string output="";
-    for( ; c; c++)
+    for( int idx=0; c[idx]; idx++)
     {
-        switch (*c) {
+        switch (c[idx]) {
             case '"': output.append("\\\""); break;
             case '\\': output.append("\\\\"); break;
             case '\b': output.append("\\b"); break;
@@ -34,7 +34,7 @@ std::string escapeString(char* c)
                 //    output.append("\\u");
                 //      << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
                 //} else {
-                output += *c;
+                output += c[idx];
                 //}
         }
     }
