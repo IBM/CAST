@@ -77,11 +77,11 @@ void checkForStuckSyscall()
 {
     uint64_t nowTimeStamp = timeStamp();
     uint64_t tick_diff = 0;
-    
+
     pthread_mutex_lock(&tidTrackerMutex);
     auto l_pthread_syscalltracker = pthread_syscalltracker; //make a local copy
     pthread_mutex_unlock(&tidTrackerMutex);
-    
+
     for (auto iter : l_pthread_syscalltracker)
     {
         //auto l_tid = iter.first;
@@ -208,6 +208,9 @@ uint64_t getTimeBaseScale()
         case statsyscall:bberror << err("syscall.file.literal","statsyscall"); break;
         case fstatsyscall:bberror << err("syscall.file.literal","fstatsyscall"); break;
         case fsyncsyscall:bberror << err("syscall.file.literal","fsyncsyscall"); break;
+        case openexlayout: bberror << err("syscall.file.literal","openexlayout"); break;
+        case setupexlayout: bberror << err("syscall.file.literal","setupexlayout"); break;
+        case finalizeexlayout: bberror << err("syscall.file.literal","finalizeexlayout"); break;
 
         case SSDopenwritedirect:bberror << err("syscall.file.literal","SSDopenwritedirect"); break;
         case SSDopenwriteNOTdirect:bberror << err("syscall.file.literal","SSDopenwriteNOTdirect"); break;

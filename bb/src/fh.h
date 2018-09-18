@@ -172,6 +172,8 @@ class filehandle
 };
 
 extern int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index);
+extern void dumpFileHandleMap(const char* pSev, const char* pPrefix);
+extern int fileHandleCount();
 extern int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index);
 extern int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index);
 extern void removeNextFilehandleByJobId(filehandle* &fh, uint64_t jobid);
