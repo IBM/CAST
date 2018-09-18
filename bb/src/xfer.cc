@@ -1914,7 +1914,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                 errorText << "Transfer definition for contribid " << pContribId << " already exists for " << *pLVKey \
                                           << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "), handle " << l_TagInfo->transferHandle \
                                           << ". Extents have already been enqueued for the transfer definition. Most likely, an incorrect contribid" \
-                                          << " or a different tag should be used for the transfer.";
+                                          << " was specified or a different tag should be used for the transfer.";
                                 LOG_ERROR_TEXT_RC(errorText, rc);
                             }
                         }

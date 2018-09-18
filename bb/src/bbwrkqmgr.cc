@@ -146,7 +146,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         if (strstr(pRequest.data, "heartbeat"))
         {
-            LOG(bb,info ) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            LOG(bb,debug) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
         }
         else
         {
@@ -332,7 +332,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     //       dump counters, etc. if the logging facility filters out an entry.
     if (pSev == loggingLevel)
     {
-        const char* l_PostfixOverride = " (Number of Skipped Dumps Exceeded)";
+        const char* l_PostfixOverride = " - Normal periodic dump of work queue manager";
         char* l_PostfixStr = const_cast<char*>(pPostfix);
 
         if (allowDump)
