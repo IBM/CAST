@@ -95,6 +95,7 @@
 #include "src/csmi_request_handler/csm_daemon_clock.h"
 #include "src/csmi_request_handler/csm_environmental_handler.h"
 #include "src/csmi_request_handler/csm_envdata_handler.h"
+#include "src/csmi_request_handler/csm_interval_handler.h"
 #include "src/csmi_request_handler/csm_error_case_handler.h"
 
 #include "src/csmi_request_handler/csm_handler_options.h"
@@ -114,7 +115,7 @@ protected:
   CSMI_BASE_sptr _DefaultEventHandler;
   CSMI_BASE_sptr _EnvironmentHandler;
   CSMI_BASE_sptr _ErrorEventHandler;
-
+  CSMI_BASE_sptr _IntervalHandler;
   csm::daemon::HandlerOptions _options;
   csmi_map_type _csmi_map;
 
@@ -130,6 +131,7 @@ public:
     _ErrorEventHandler = createInstance_sptr<CSMI_ERROR_HANDLER>();
     _DefaultEventHandler = nullptr;
     _EnvironmentHandler = nullptr;
+    _IntervalHandler = nullptr;
 
   }
 
@@ -187,6 +189,11 @@ public:
     return ( (_EnvironmentHandler == nullptr) ? nullptr : _EnvironmentHandler.get() );
   }
   
+  inline CSMI_BASE *GetIntervalHandler()
+  {
+    return ( (_IntervalHandler == nullptr) ? nullptr : _IntervalHandler.get() );
+  }
+
   inline void AddInitEventHandler(CSMI_BASE_sptr aHandler)
   {
     _InitHandlers.push_back(aHandler);
