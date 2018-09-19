@@ -17,10 +17,13 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.1
 --   create:                06-22-2016
---   last modified:         09-14-2018
+--   last modified:         09-19-2018
 --   change log:
 --     16.1   - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
 --            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
+--            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
+--            - (Transactions were being recorded into the history table if a particular field was 'NULL')
+--            - Also removed the 'state' field from the UPDATE logic - as not needed.
 --     16.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
 --            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
@@ -3477,33 +3480,34 @@ CREATE FUNCTION fn_csm_switch_history_dump()
         RETURN OLD;
      ELSEIF (TG_OP = 'UPDATE') THEN
         IF  (
-            OLD.serial_number = NEW.serial_number AND
-            OLD.comment = NEW.comment AND
-            OLD.description = NEW.description AND
-            OLD.fw_version = NEW.fw_version AND
-            OLD.gu_id = NEW.gu_id AND
-            OLD.has_ufm_agent = NEW.has_ufm_agent AND
-            OLD.hw_version = NEW.hw_version AND
-            OLD.ip = NEW.ip AND
-            OLD.model = NEW.model AND
-            OLD.num_modules = NEW.num_modules AND
-            OLD.ps_id = NEW.ps_id AND
-            OLD.role = NEW.role AND
-            OLD.server_operation_mode = NEW.server_operation_mode AND
-            OLD.sm_mode = NEW.sm_mode AND
-            OLD.state = NEW.state AND
-            OLD.sw_version = NEW.sw_version AND
-            OLD.system_guid = NEW.system_guid AND
-            OLD.system_name = NEW.system_name AND
-            OLD.total_alarms = NEW.total_alarms AND
-            OLD.type = NEW.type AND
-            OLD.vendor = NEW.vendor) THEN
+            (OLD.serial_number           = NEW.serial_number OR OLD.serial_number IS NULL) AND
+            (OLD.comment                 = NEW.comment OR OLD.comment IS NULL) AND
+            (OLD.description             = NEW.description OR OLD.description IS NULL) AND
+            (OLD.fw_version              = NEW.fw_version OR OLD.fw_version IS NULL) AND
+            (OLD.gu_id                   = NEW.gu_id OR OLD.gu_id IS NULL) AND
+            (OLD.has_ufm_agent           = NEW.has_ufm_agent OR OLD.has_ufm_agent IS NULL) AND
+            (OLD.hw_version              = NEW.hw_version OR OLD.hw_version IS NULL) AND
+            (OLD.ip                      = NEW.ip OR OLD.ip IS NULL) AND
+            (OLD.model                   = NEW.model OR OLD.model IS NULL) AND
+            (OLD.num_modules             = NEW.num_modules OR OLD.num_modules IS NULL) AND
+            (OLD.physical_frame_location = NEW.physical_frame_location OR OLD.physical_frame_location IS NULL) AND
+            (OLD.physical_u_location     = NEW.physical_u_location OR OLD.physical_u_location IS NULL) AND
+            (OLD.ps_id                   = NEW.ps_id OR OLD.ps_id IS NULL) AND
+            (OLD.role                    = NEW.role OR OLD.role IS NULL) AND
+            (OLD.server_operation_mode   = NEW.server_operation_mode OR OLD.server_operation_mode IS NULL) AND
+            (OLD.sm_mode                 = NEW.sm_mode OR OLD.sm_mode IS NULL) AND
+            (OLD.state                   = NEW.state OR OLD.state IS NULL) AND
+            (OLD.sw_version              = NEW.sw_version OR OLD.sw_version IS NULL) AND
+            (OLD.system_guid             = NEW.system_guid OR OLD.system_guid IS NULL) AND
+            (OLD.system_name             = NEW.system_name OR OLD.system_name IS NULL) AND
+            (OLD.total_alarms            = NEW.total_alarms OR OLD.total_alarms IS NULL) AND
+            (OLD.type                    = NEW.type OR OLD.type IS NULL) AND
+            (OLD.vendor                  = NEW.vendor OR OLD.vendor IS NULL)) THEN
             OLD.collection_time = now();
         ELSIF(
-            OLD.comment <> NEW.comment OR
+            OLD.comment                 <> NEW.comment OR
             OLD.physical_frame_location <> NEW.physical_frame_location OR
-            OLD.physical_u_location <> NEW.physical_u_location OR
-            OLD.state <> NEW.state) THEN
+            OLD.physical_u_location     <> NEW.physical_u_location) THEN
         INSERT INTO csm_switch_history(
             history_time,
             switch_name,
