@@ -40,18 +40,21 @@ input.offset=-1
 
 rc,handler,output = inv.node_attributes_query(input)
 
-for i in range (0, output.results_count):
-    node = output.get_results(i)
-    pprint(node.node_name)
-    pprint(node.collection_time)
-    pprint(node.update_time)
-    print(node.state)
-    print("node_state_value: " + str(node.state))
-    pprint(node.state)
-    pprint("node_state_value: " + str(node.state))
-    print(node.state)
-    print(node.node_name)
-    #print(csm.csm_get_string_from_enum(csm.csmi_node_state_t, node.state))
+if(rc == csm.csmi_cmd_err_t.CSMI_SUCCESS):
+    for i in range (0, output.results_count):
+        node = output.get_results(i)
+        pprint(node.node_name)
+        pprint(node.collection_time)
+        pprint(node.update_time)
+        print(node.state)
+        print("node_state_value: " + str(node.state))
+        pprint(node.state)
+        pprint("node_state_value: " + str(node.state))
+        print(node.state)
+        print(node.node_name)
+        #print(csm.csm_get_string_from_enum(csm.csmi_node_state_t, node.state))
+else:
+    print("No matching records found.")
 	
 # csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state)
 
