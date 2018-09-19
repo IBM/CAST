@@ -1911,7 +1911,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                 pMarkFailedFromProxy = 0;
 
                                 rc = -1;
-                                errorText << "queueTagInfo: Failure from getTransferDef() for contribid=" << pContribId << ", rc=" << rc;
+                                errorText << "Transfer definition for contribid " << pContribId << " already exists for " << *pLVKey \
+                                          << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "), handle " << l_TagInfo->transferHandle \
+                                          << ". Extents have already been enqueued for the transfer definition. Most likely, an incorrect contribid" \
+                                          << " was specified or a different tag should be used for the transfer.";
                                 LOG_ERROR_TEXT_RC(errorText, rc);
                             }
                         }

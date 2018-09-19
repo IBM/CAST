@@ -34,7 +34,7 @@ add_custom_target(need_bbras ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bbras.h)
 
 add_executable(bbServer tracksyscall.cc bbconndata.cc main.cc connections.cc bberror.cc bbinternal.cc bbserver.cc xfer.cc usage.cc fh.cc serial.cc bbio.cc bbio_regular.cc bbio_BSCFS.cc BBTransferDef.cc BBJob.cc BBTagID.cc BBTagParts.cc BBTagInfo.cc BBTagInfoMap.cc BBLVKey_ExtentInfo.cc BBTagInfo2.cc BBTagInfoMap2.cc nodecontroller.cc bbwrkqmgr.cc bbwrkqe.cc ContribFile.cc ContribIdFile.cc HandleFile.cc LVUuidFile.cc weak.cc)
 
-add_executable(bbProxy bbconndata.cc main.cc connections.cc bbproxyConn2bbserver.cc bberror.cc bbinternal.cc bbproxy.cc lvlookup.cc fh.cc serial.cc usage.cc BBTransferDef.cc BBJob.cc nodecontroller.cc LVUtils.cc weak.cc ${SRCCSM})
+add_executable(bbProxy tracksyscall.cc bbconndata.cc main.cc connections.cc bbproxyConn2bbserver.cc bberror.cc bbinternal.cc bbproxy.cc lvlookup.cc fh.cc serial.cc usage.cc BBTransferDef.cc BBJob.cc nodecontroller.cc LVUtils.cc weak.cc ${SRCCSM})
 
 add_library(bbAPI SHARED  bbconndata.cc connections.cc bberror.cc bbinternal.cc bbapi.cc bbapi2.cc fh.cc BBTransferDef.cc BBJob.cc nodecontroller.cc   ${SRCCSM})
 add_executable(bbcmd bbcmd.cc)

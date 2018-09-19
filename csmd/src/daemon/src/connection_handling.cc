@@ -51,6 +51,7 @@ csm::daemon::ConnectionHandling::~ConnectionHandling()
   _Primary = nullptr;
   _Dependent.clear();
   _EndpointList.Clear();
+  csm::network::VersionMsg::Exit();
 }
 
 void

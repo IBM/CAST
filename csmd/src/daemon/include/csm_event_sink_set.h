@@ -65,6 +65,7 @@ public:
 
   EventSink* operator[]( const CoreEvent& aEvent );
 
+  void Clear();
 };
 
 }  // namespace daemon

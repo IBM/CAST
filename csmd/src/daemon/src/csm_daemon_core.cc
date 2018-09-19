@@ -162,6 +162,8 @@ csm::daemon::CoreGeneric::DestroyInfrastructure()
     delete _dbMgr;
     _dbMgr = nullptr;
   }
+
+  _EventSinks.Clear();
   if (_EventRouting) delete _EventRouting;
 }
 

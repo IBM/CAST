@@ -146,7 +146,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         if (strstr(pRequest.data, "heartbeat"))
         {
-            LOG(bb,info ) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            LOG(bb,debug) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
         }
         else
         {
@@ -265,7 +265,7 @@ void WRKQMGR::checkThrottleTimer()
         // See if it is time to dump the work manager
         if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
         {
-            dump("info", " Work Queue Mgr (Timer Interval)", DUMP_ALWAYS);
+            dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
         }
 
         // See if it is time to reload the work queue throttle buckets
@@ -332,7 +332,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     //       dump counters, etc. if the logging facility filters out an entry.
     if (pSev == loggingLevel)
     {
-        const char* l_PostfixOverride = " (Number of Skipped Dumps Exceeded)";
+        const char* l_PostfixOverride = " Work Queue Mgr (Not an error - Skip Interval)";
         char* l_PostfixStr = const_cast<char*>(pPostfix);
 
         if (allowDump)
@@ -1221,7 +1221,7 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
                 pWrkQE->dump("info", "Start: Current work item -> ");
                 if (dumpOnRemoveWorkItem && (l_WrkQ != HPWrkQE->getWrkQ()))
                 {
-                    dump("info", " Work Queue Mgr (Count Interval)", DUMP_ALWAYS);
+                    dump("info", " Work Queue Mgr (Not an error - Count Interval)", DUMP_ALWAYS);
                 }
             }
             else
