@@ -24,6 +24,7 @@
 --            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
 --            - Also removed the 'state' field from the UPDATE logic - as not needed.
+--            - fn_csm_node_delete_function - updated comment with appropriate content.
 --     16.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
 --            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
@@ -1256,7 +1257,7 @@ $$ LANGUAGE 'plpgsql';
 -- csm_node_delete_function_comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_node_delete(i_node_names text[]) is 'Function to delete a vg, and remove records in the csm_vg and csm_vg_ssd tables';
+COMMENT ON FUNCTION fn_csm_node_delete(i_node_names text[]) is 'Function to delete a node, and remove records in the csm_node, csm_ssd, csm_processor, csm_gpu, csm_hca, csm_dimm tables';
 
 ---------------------------------------------------------------------------------------------------
 -- csm_node_state function to amend summarized column(s) on UPDATE
