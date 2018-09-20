@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_event_source_set.h
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -12,9 +12,6 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-/* csm_event_sources.h
- *
- ******************************************/
 
 #ifndef CSM_DAEMON_SRC_CSM_EVENT_SOURCE_SET_H_
 #define CSM_DAEMON_SRC_CSM_EVENT_SOURCE_SET_H_
@@ -71,7 +68,7 @@ public:
 
   // removes an event processor from a given priority list
   // priority currently ignored until priorities implemented
-  int Remove( const csm::daemon::EventSource *aSource,
+  int Remove( csm::daemon::EventSource * const aSource,
               const uint8_t aPriority );
 
   // removes an event processor by name from a given priority list
