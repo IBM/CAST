@@ -1,3 +1,5 @@
+.. _CASTDataAgg:
+
 Data Aggregation
 ================
 
@@ -537,6 +539,32 @@ name of the index.
 Data Aggregators shipping to this port will generate indices with the following name format:
 `cast-%{type}-%{+YYYY.MM.dd}`
 
+crass bmc alerts
+****************
+
+While not bundled with CAST the crass daemon is used to monitor BMC events and counters.
+The following document is written assuming you have access to an `ibm-crassd-*.ppc64le` rpm.
+
+1. Install the rpm:
+
+.. code-block:: bash
+
+   yum install -y ibm-crassd-*.ppc64le.rpm 
+
+2. Edit the configuration file located at `/opt/ibm/ras/etc/ibm-crassd.config`:
+
+This file neds the `[logstash]` configuration section configured and  `logstash=True` in
+the `[notify]` section.
+
+3. Start crassd:
+
+.. code-block:: bash
+
+   systemctl start ibm-crassd
+
+.. attention:: The above section is a limited rundown of crassd configuration, for greater detail
+    consult the official documentation for crassd.
+  
 
 CAST Data Sources
 -----------------
