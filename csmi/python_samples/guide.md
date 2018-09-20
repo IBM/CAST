@@ -108,7 +108,7 @@ input.set_node_names(nodes)
 input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE
 ```
 
-First we create an awway in Python. `nodes=["allie","node_01","bobby"]` Then we use the CSM Python library function `set_ARRAYNAME(array)` to set the `node_names` field of `input`. We do not need to set `node_names_count` like we do in C. the `set_` function will take care of that for you. Finally, we call `input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE` to set the state field of input to `IN_SERVICE`. This will tell CSM to set these 3 nodes to `IN_SERVICE`.
+First we create an array in Python. `nodes=["allie","node_01","bobby"]` Then we use the CSM Python library function `set_ARRAYNAME(array)` to set the `node_names` field of `input`. We do not need to set `node_names_count` like we do in C. the `set_` function will take care of that for you. Finally, we call `input.state = csm.csmi_node_state_t.CSM_NODE_IN_SERVICE` to set the state field of input to `IN_SERVICE`. This will tell CSM to set these 3 nodes to `IN_SERVICE`.
 
 In the next line of code we call the csm API passing in the input we just populated. 
 
@@ -118,7 +118,7 @@ rc,handler,output = inv.node_attributes_update(input)
 
 Our CSM library returns 3 values. 
 * A return code - Here defined as `rc`. This is the same as the return code found in the C version of the API.
-* A handler - 
+* A handler - An identifier used in the `csm.api_object_destroy` function.
 * The API output - Here defined as output. This is the same as the output prarmeter found in the C version of the API. We will use this to access any output from the API. Similar to how you woul duse it in the C version. 
 
 If you noticed before I set `nodes=["allie","node_01","bobby"]`. `allie` and `bobby` are not real nodes. So, the API will have some output data for us to check. 
