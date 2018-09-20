@@ -120,7 +120,7 @@ rc,handler,output = inv.node_attributes_update(input)
 
 Our CSM library returns 3 values. 
 * A return code - Here defined as `rc`. This is the same as the return code found in the C version of the API.
-* A handler - 
+* A handler - An identifier used in the `csm.api_object_destroy` function.
 * The API output - Here defined as output. This is the same as the output prarmeter found in the C version of the API. We will use this to access any output from the API. Similar to how you woul duse it in the C version. 
 
 If you noticed before I set `nodes=["allie","node_01","bobby"]`. `allie` and `bobby` are not real nodes. So, the API will have some output data for us to check. 
