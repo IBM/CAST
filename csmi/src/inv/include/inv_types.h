@@ -141,6 +141,23 @@ typedef struct csm_ssd_inventory_t
 
 } csm_ssd_inventory_t;
 
+typedef struct csm_processor_inventory_t
+{
+  char serial_number[CSM_PROCESSOR_SERIAL_NUMBER_MAX];
+  char physical_location[CSM_PROCESSOR_PHYSICAL_LOCATION_MAX];
+  uint32_t discovered_cores;
+  
+  // Constructor 
+  csm_processor_inventory_t()
+  { 
+    // Initialize the whole struct with 0s first; guarantees any pad bytes are also initialized
+    memset(this, 0, sizeof(*this));
+
+    // Set any non-zero defaults here
+  }
+
+} csm_processor_inventory_t;
+
 typedef struct csm_full_inventory_t
 {
   csm_node_inventory_t node;
@@ -148,14 +165,18 @@ typedef struct csm_full_inventory_t
   csm_gpu_inventory_t gpu[CSM_GPU_MAX_DEVICES];
   csm_hca_inventory_t hca[CSM_HCA_MAX_DEVICES];
   csm_ssd_inventory_t ssd[CSM_SSD_MAX_DEVICES];
-  
+  uint32_t processor_count; 
+  csm_processor_inventory_t processor[CSM_PROCESSOR_MAX_DEVICES];
+ 
   // Constructor 
   csm_full_inventory_t() :
   node(),
   dimm(),
   gpu(),
   hca(),
-  ssd()
+  ssd(),
+  processor_count(0),
+  processor()
   {}
 
 } csm_full_inventory_t;

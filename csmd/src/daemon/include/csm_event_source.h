@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_event_source.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -20,6 +20,7 @@
 #define TIMER_SRC_ID       ( 123457 )
 #define DB_SRC_ID          ( 123458 )
 #define ENVIRONMENT_SRC_ID ( 123459 )
+#define INTERVAL_SRC_ID    ( 123460 )
 
 namespace csm {
 namespace daemon {
@@ -28,12 +29,12 @@ namespace daemon {
 class EventSource
 {
   RetryBackOff *_RetryBackoff;
-  int _Identifier;
+  uint64_t _Identifier;
   bool _OncePerWindow;
 
 public:
   EventSource( RetryBackOff *aRetryBackOff,
-               const int aIdentifier = 0,
+               const uint64_t aIdentifier = 0,
                const bool aOncePerWindow = false )
   : _RetryBackoff( aRetryBackOff ),
     _Identifier( aIdentifier ),
@@ -44,7 +45,7 @@ public:
   virtual csm::daemon::CoreEvent* GetEvent( const std::vector<uint64_t> &i_BucketList ) = 0;
   virtual bool QueueEvent( const csm::daemon::CoreEvent *i_Event ) = 0;
   inline bool OncePerWindow() const { return _OncePerWindow; }
-  inline int GetIdentifier() const { return _Identifier; }
+  inline uint64_t GetIdentifier() const { return _Identifier; }
   inline bool WakeUpMainLoop() { _RetryBackoff->WakeUp(); return true; }
 };
 

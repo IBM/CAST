@@ -6,7 +6,7 @@
         "adrfam": "ipv4", 
         "traddr": "127.0.0.1", 
         "treq": "not specified", 
-        "trsvcid": "1023", 
+        "trsvcid": "4420", 
         "trtype": "rdma"
       }, 
       "portid": 1, 

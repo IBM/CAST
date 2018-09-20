@@ -1,23 +1,19 @@
 {
     "index_patterns" : ["cast-csm-node-env*"],
     "order" : 1,
-    "settings" :{
-        "index" : { 
-            "number_of_shards"   : 5,
-            "number_of_replicas" : 1
-        }
-    }, 
     "aliases" : {
         "cast-csm-node-env" : {}
     },
     "mappings": {
         "_doc" : {
+	        "dynamic_date_formats" : 
+		        [ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"],
             "properties" : {
                 "@version"   : { "type" : "text" },
                 "@timestamp" : { "type" : "date" },
-                "timestamp " : { "type" : "date" },
+                "timestamp"  : { "type" : "date",  "format" : "yyyy-MM-dd HH:mm:ss.SSSSSS" },
                 "tags"       : { "type" : "text" },
-                "type"       : { "type" : "text" } ,
+                "type"       : { "type" : "text" },
                 "source"     : { "type" : "text" },
                 "data": {
 		            "type" : "nested",

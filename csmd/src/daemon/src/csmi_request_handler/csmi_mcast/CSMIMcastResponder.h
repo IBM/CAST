@@ -122,7 +122,7 @@ protected:
             }
             else
             {
-                LOG(csmapi, error) << ctx << STATE_NAME " The mulicast had errors.";
+                LOG(csmapi, error) << ctx << STATE_NAME " The multicast had errors.";
                 success = false;
             }
         }

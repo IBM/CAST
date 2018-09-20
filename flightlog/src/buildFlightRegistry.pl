@@ -311,6 +311,7 @@ sub outputHeader
         select STDOUT;
         close($fp);
         ($csum) = `sum $file` =~ /(\d+)/;
+        $csum =~ s/^0*//;
         open($fp, ">>$file");
         select $fp;
     }

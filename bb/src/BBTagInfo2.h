@@ -80,7 +80,7 @@ class BBTagInfo2
     void changeServer();
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
-    void ensureStageOutEnded(const LVKey* pLVKey);
+    int ensureStageOutEnded(const LVKey* pLVKey);
     BBSTATUS getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo);
     BBSTATUS getStatus(const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo);
     int getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);

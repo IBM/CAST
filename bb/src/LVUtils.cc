@@ -1906,15 +1906,12 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         {
                             LOG(bb,info) << "Releasing source filehandle '" << transfer->files[e.sourceindex] << "' before restart";
                             rc = fh->release(BBFILE_STOPPED);
-                            if (!rc)
+                            delete fh;
+                            fh = NULL;
+                            if (rc)
                             {
-                                delete fh;
-                                fh = NULL;
-                            }
-                            else
-                            {
+                                LOG(bb,error) << "Releasing the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc " << rc;
                                 rc = -1;
-                                LOG(bb,error) << "Releasing the filehandle for srcfile: " << transfer->files[e.sourceindex] << " failed.";
                                 break;
                             }
                         }
@@ -1935,8 +1932,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             else
                             {
                                 // Should never be the case...
+                                LOG(bb,error) << "Checking for the removal of the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc " << rc;
                                 rc = -1;
-                                LOG(bb,error) << "Removing the filehandle for srcfile: " << transfer->files[e.sourceindex] << " failed.";
                                 break;
                             }
                         }
@@ -1975,15 +1972,12 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         {
                             LOG(bb,info) << "Releasing target filehandle '" << transfer->files[e.targetindex] << "' before restart";
                             rc = fh->release(BBFILE_STOPPED);
-                            if (!rc)
+                            delete fh;
+                            fh = NULL;
+                            if (rc)
                             {
-                                delete fh;
-                                fh = NULL;
-                            }
-                            else
-                            {
+                                LOG(bb,error) << "Releasing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed, rc " << rc;
                                 rc = -1;
-                                LOG(bb,error) << "Releasing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
 
                                 delete srcfile_ptr;
                                 break;
@@ -1994,6 +1988,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             rc = 0;
                             LOG(bb,info) << "Could not find prior target filehandle for '" << transfer->files[e.targetindex] << "' before restart";
                         }
+
                         if (!rc)
                         {
                             // Now, just to make sure, attempt to find a filehandle for the target file...
@@ -2006,8 +2001,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             else
                             {
                                 // Should never be the case...
+                                LOG(bb,error) << "Checking for the removal of the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc " << rc;
                                 rc = -1;
-                                LOG(bb,error) << "Removing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
 
                                 delete srcfile_ptr;
                                 break;
@@ -2203,7 +2198,10 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             {
                                 LOG(bb,info) << "Releasing filehandle " << transfer->files[e.sourceindex];
                                 rc = fh->release(l_FileStatus);
-                                LOG(bb,info) << "Releasing fd rc=" << rc;
+                                if (rc)
+                                {
+                                    LOG(bb,error) << "Releasing the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc" << rc;
+                                }
                                 delete fh;
                                 fh = 0;
                             }
@@ -2212,11 +2210,14 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             {
                                 LOG(bb,info) << "Releasing filehandle " << transfer->files[e.targetindex];
                                 rc = fh->release(l_FileStatus);
-                                LOG(bb,info) << "Releasing fd rc=" << rc;
+                                if (rc)
+                                {
+                                    LOG(bb,error) << "Releasing the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc" << rc;
+                                }
                                 delete fh;
                                 fh = 0;
-                                rc = 0;
                             }
+                            rc = 0;
                         }
                     }
                     else if((l_SourceFileIsLocal && (!l_TargetFileIsLocal)) ||
@@ -2315,15 +2316,12 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                         {
                                             LOG(bb,info) << "Releasing target filehandle '" << transfer->files[e.targetindex] << "' before restart";
                                             rc = fh->release(BBFILE_STOPPED);
-                                            if (!rc)
+                                            delete fh;
+                                            fh = NULL;
+                                            if (rc)
                                             {
-                                                delete fh;
-                                                fh = NULL;
-                                            }
-                                            else
-                                            {
+                                                LOG(bb,error) << "Releasing the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc " << rc;
                                                 rc = -1;
-                                                LOG(bb,error) << "Releasing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
                                                 break;
                                             }
                                         }
@@ -2424,36 +2422,30 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         {
                             filehandle* fh;
                             // Remove both source and target files (if open)
-                            if(!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
+                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
                             {
-                                LOG(bb,info) << "Releasing filehandle '" << fh->getfn() << "'";
+                                LOG(bb,info) << "Releasing filehandle " << fh->getfn();
                                 rc = fh->release(BBFILE_NOT_TRANSFERRED);
-                                if (!rc)
+                                delete fh;
+                                fh=NULL;
+                                if (rc)
                                 {
-                                    delete fh;
-                                    fh=NULL;
-                                }
-                                else
-                                {
+                                    LOG(bb,error) << "Releasing the filehandle for srcfile (for skipped file) " << transfer->files[e.sourceindex] << " failed, rc " << rc;
                                     rc = -1;
-                                    LOG(bb,error) << "Releasing the filehandle for srcfile (for skipped file): " << transfer->files[e.sourceindex] << " failed.";
                                     break;
                                 }
                             }
 
-                            if(!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
+                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
                             {
-                                LOG(bb,info) << "Releasing filehandle '" << fh->getfn() << "'";
+                                LOG(bb,info) << "Releasing filehandle " << fh->getfn();
                                 rc = fh->release(BBFILE_NOT_TRANSFERRED);
-                                if (!rc)
+                                delete fh;
+                                fh = NULL;
+                                if (rc)
                                 {
-                                    delete fh;
-                                    fh = NULL;
-                                }
-                                else
-                                {
+                                    LOG(bb,error) << "Releasing the filehandle for tgtfile (for skipped file) " << transfer->files[e.targetindex] << " failed, rc " << rc;
                                     rc = -1;
-                                    LOG(bb,error) << "Releasing the filehandle for tgtfile (for skipped file): " << transfer->files[e.targetindex] << " failed.";
                                     break;
                                 }
                             }
@@ -2706,16 +2698,14 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
             {
                 string l_FileName = fh->getfn();
                 LOG(bb,info) << "Releasing filehandle '" << l_FileName << "'";
-                if (!fh->release(BBFILE_FAILED))
+                rc = fh->release(BBFILE_FAILED);
+                if (rc)
                 {
-                    delete fh;
-                    fh = NULL;
-                }
-                else
-                {
-                    errorText << "Unable to release filehandle '" << l_FileName << "'";
+                    errorText << "Releasing the filehandle " << l_FileName << " failed, rc " << rc;
                     LOG_ERROR_TEXT(errorText);
                 }
+                delete fh;
+                fh = NULL;
             }
         }
     }

@@ -373,29 +373,83 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
   if( _BIO == nullptr )
     throw csm::network::ExceptionEndpointDown( "BIO Creation failure during connect." );
 
+  // retrieve the socket descriptor for this BIO ...
+  int bsock;
+  BIO_get_fd( _BIO, &bsock );
+  if( bsock <= 0 )
+    throw csm::network::ExceptionEndpointDown( "BIO Creation failure to retrieve socket number" );
+
+  if( bsock != _Socket )
+    LOG( csmnet, debug ) << "Connected socket: " << _Socket << " is different from BIO fd: " << bsock;
+
+  // ... to make the socket non-blocking
+  long current_setting = fcntl( bsock, F_GETFL, NULL );
+  if( (current_setting & O_NONBLOCK) == 0 )
+  {
+    current_setting |= O_NONBLOCK;
+    rc = fcntl( bsock, F_SETFL, current_setting );
+    if( rc )
+      throw csm::network::ExceptionEndpointDown("fcntl: NONBLOCK");
+  }
+
   SSL_set_bio(_SSLStruct, _BIO, _BIO);
 
   LOG( csmnet, debug ) << "SSL Connecting...";
   ERR_clear_error();
-  rc = SSL_connect( _SSLStruct );
-  if( rc != 1 )
-  {
-    std::string err_str = "SSL_connect";
-    while( (rc = SSL_get_error( _SSLStruct, rc )) > 0 )
-    {
-      // todo: cleanup BIO
+  bool keep_retrying = true;
+  std::chrono::time_point< std::chrono::system_clock > end = std::chrono::system_clock::now() + std::chrono::milliseconds( 1000 );
 
-      err_str.append( SSLPrintError( rc ) );
-      err_str.append( " :: " );
+  while( keep_retrying )
+  {
+    rc = SSL_connect( _SSLStruct );
+    switch( rc )
+    {
+      case 0: // unable to continue error
+        LOG( csmnet, error ) << "SSL Connection error.";
+        throw csm::network::ExceptionEndpointDown( SSLExtractError( rc, " SSL_Connect: " ) );
+
+      case 1: // successful connection
+        LOG( csmnet, debug ) << "SSL Connection complete.";
+        keep_retrying = false;
+        break;
+
+      default: // potentially incomplete connect or other serious error
+        LOG( csmnet, trace ) << "SSL Connection incomplete.";
+        rc = SSL_get_error( _SSLStruct, rc );
+        // since we already pulled the first error, we need to add the error to the prefix for the full error string
+        std::string err_str = " SSL_Connect: " + SSLPrintError( rc );
+        LOG( csmnet, trace ) << "SSL Connection status: rc=" << rc;
+        switch( rc )
+        {
+          case SSL_ERROR_NONE: // seems unlikely, but we better cover that case
+            keep_retrying = false; // we're connected
+            break;
+
+          case SSL_ERROR_WANT_READ:
+          case SSL_ERROR_WANT_WRITE:
+            rc = csm::network::EndpointPTP_base::CheckConnectActivity( bsock, true ); // check read and write activity
+            if( rc != 0 )
+              throw csm::network::ExceptionEndpointDown( "SSL Connection failed.", rc );
+            if( std::chrono::system_clock::now() > end )
+              throw csm::network::ExceptionEndpointDown( "SSL Connection timed out", ETIMEDOUT );
+            break;
+
+          default:
+            throw csm::network::ExceptionEndpointDown( SSLExtractError( rc, err_str ) );
+            break;
+        }
     }
-    SSL_clear( _SSLStruct );
-    throw csm::network::ExceptionEndpointDown(err_str, rc);
   }
 
   if( SSL_get_verify_result( _SSLStruct ) != X509_V_OK )
     throw csm::network::ExceptionEndpointDown( "SSL verification failed." );
   else
     rc = 0;
+
+  current_setting &= (~O_NONBLOCK);
+  rc = fcntl( bsock, F_SETFL, current_setting );
+  if( rc )
+    throw csm::network::ExceptionEndpointDown("fcntl: NONBLOCK");
 
   return rc;
 }

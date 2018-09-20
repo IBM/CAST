@@ -146,6 +146,15 @@
 #define CSM_HCA_SWITCH_GUID_MAX 20                // csm_hca.switch_guid_port_X
 
 //////////////////////////////////////////////////////////////////////////
+// Constants related to the csm_processor_socket table
+//////////////////////////////////////////////////////////////////////////
+
+// Maximum lengths of strings in the csm_processor_socket table:
+#define CSM_PROCESSOR_MAX_DEVICES 4                 // Maximum number of processor sockets per server
+#define CSM_PROCESSOR_SERIAL_NUMBER_MAX 16          // csm_processor_socket.serial_number
+#define CSM_PROCESSOR_PHYSICAL_LOCATION_MAX 40      // csm_processor_socket.physical_location
+
+//////////////////////////////////////////////////////////////////////////
 // Constants related to the csm_ssd table
 //////////////////////////////////////////////////////////////////////////
 

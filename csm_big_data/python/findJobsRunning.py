@@ -23,10 +23,9 @@ from elasticsearch.serializer import JSONSerializer
 from datetime import datetime
 import re
 
-TARGET_ENV='CAST_ELASTIC'
+import cast_helper as cast
 
-def deep_get( obj, *keys):
-    return reduce(lambda o, key: o.get(key, None) if o else None, keys, obj)
+TARGET_ENV='CAST_ELASTIC'
 
 def main(args):
 
@@ -78,23 +77,27 @@ def main(args):
         print("Invalid timestamp: {0}".format(target_date))
         return 2
 
-    
-    # Build the search clauses. 
-    range_filter='''{{ "range": {{ "{0}" : {{ "lte": "{2}" , "format": {3} }} }} }}, 
-{{ "range": {{ "{1}" : {{ "gte": "{2}" , "format": {3} }} }} }}'''.format(
-        "data.begin_time", "data.history.end_time", target_date, date_search_format)
+    (range, match_min) =  cast.build_target_time_search(target_date)
 
-    end_missing='''{{ "exists" : {{ "field" : "{0}" }} }}'''.format("data.history.end_time")
-
-    source_filter='"_source" : [ "data.allocation_id", "data.primary_job_id", "data.secondary_job_id", "data.begin_time", "data.history.end_time"]'
-    meta='"size":{0}, {1}'.format(args.size, source_filter)
+    bool_query={ "should" : range, "minimum_should_match" : match_min }
 
     if args.hosts:
-        hosts='"must":{{ "match" : {{ "data.compute_nodes" : {{ "query" : "{0}" }} }} }},'.format(" ".join(args.hosts))
-    else:
-        hosts=""
+        bool_query["must"] = { 
+            "match" : { 
+                "data.compute_nodes" : { "query" : " ".join(args.hosts) }
+            }
+        }
 
-    query='{{ "query": {{ "bool": {{  {3} "should" : [{0}, {{ "bool": {{ "must_not":{1} }} }} ], "minimum_should_match":2}} }}, {2} }}'.format(range_filter, end_missing, meta, hosts)
+    body={
+        "query" : {
+            "bool" : bool_query
+        },
+        "_source" : [ "data.allocation_id", "data.primary_job_id", 
+            "data.secondary_job_id", "data.begin_time", "data.history.end_time"],
+        "size": args.size
+    }
+    
+    json = JSONSerializer()
 
     # Open a connection to the elastic cluster.
     es = Elasticsearch(
@@ -107,12 +110,12 @@ def main(args):
     # Execute the query on the cast-allocation index.
     tr_res = es.search(
         index="cast-allocation",
-        body=query
+        body=body
     )
 
     # Get Hit Data
-    hits          = deep_get(tr_res, "hits", "hits")
-    total_hits    = deep_get(tr_res, "hits","total")
+    hits          = cast.deep_get(tr_res, "hits", "hits")
+    total_hits    = cast.deep_get(tr_res, "hits","total")
     hits_displayed= len(hits)
 
     print("Search found {0} jobs running at '{2}', displaying {1} jobs:\n".format(total_hits, len(hits), target_date)) 
@@ -122,11 +125,11 @@ def main(args):
         print_fmt="{0: >13} | {1: >12} | {2: <14} | {3: <26} | {4: <26}"
         print(print_fmt.format("Allocation ID", "Prim. Job ID", "Second. Job ID", "Begin Time", "End Time"))
         for hit in hits:
-            data=deep_get(hit, "_source", "data")
+            data=cast.deep_get(hit, "_source", "data")
             if data:
                 print(print_fmt.format(
                     data.get("allocation_id"), data.get("primary_job_id"), data.get("secondary_job_id"),
-                    data.get("begin_time"), deep_get(data, "history","end_time")))
+                    data.get("begin_time"), cast.deep_get(data, "history","end_time")))
         
 
     return 0

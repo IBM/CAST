@@ -1,0 +1,24 @@
+{
+    "index_patterns": ["cast-db-csm*"],
+    "order" : 1,
+    "settings" :{
+        "index" : { 
+            "number_of_shards"   : 1,
+            "number_of_replicas" : 1
+        }
+    },
+    "aliases" : {
+        "cast-db-csm" : {}
+    },
+    "mappings": {
+        "_doc" : {
+	        "dynamic_date_formats" : 
+		        [ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"],
+            "properties" : {
+                "@version"   : { "type" : "text" },
+                "@timestamp" : { "type" : "date" },
+                "tags"       : { "type" : "text" }
+            }
+        }
+    }
+}

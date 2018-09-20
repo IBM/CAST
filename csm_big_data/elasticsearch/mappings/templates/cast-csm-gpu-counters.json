@@ -1,0 +1,54 @@
+{
+    "index_patterns" : ["cast-csm-gpu-counters*"],
+    "order" : 1,
+    "aliases" : {
+        "cast-csm-gpu-counters" : {}
+    },
+    "mappings": {
+        "_doc" : {
+	        "dynamic_date_formats" : 
+		        [ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"],
+            "properties" :
+            {
+                "data": {
+                    "type" : "nested",
+                    "properties" : {
+                        "nvlink_recovery_error_count_l1" : { "type" : "long"}, 
+                        "sync_boost_violation"           : { "type" : "long"}, 
+                        "gpu_temp"                       : { "type" : "long"},
+                        "nvlink_bandwidth_l2"            : { "type" : "long"}, 
+                        "dec_utilization"                : { "type" : "long"}, 
+                        "nvlink_recovery_error_count_l2" : { "type" : "long"}, 
+                        "nvlink_bandwidth_l1"            : { "type" : "long"}, 
+                        "mem_copy_utilization"           : { "type" : "long"}, 
+                        "gpu_util_samples"               : { "type" : "double"},
+                        "nvlink_replay_error_count_l1"   : { "type" : "long"},
+                        "nvlink_data_crc_error_count_l1" : { "type" : "long"},
+                        "nvlink_replay_error_count_l0"   : { "type" : "long"},
+                        "nvlink_bandwidth_l0"            : { "type" : "long"},
+                        "nvlink_data_crc_error_count_l3" : { "type" : "long"},
+                        "nvlink_flit_crc_error_count_l3" : { "type" : "long"},
+                        "nvlink_bandwidth_l3"            : { "type" : "long"},
+                        "nvlink_replay_error_count_l2"   : { "type" : "long"},
+                        "nvlink_replay_error_count_l3"   : { "type" : "long"},
+                        "nvlink_data_crc_error_count_l0" : { "type" : "long"},
+                        "nvlink_recovery_error_count_l0" : { "type" : "long"},
+                        "enc_utilization"                : { "type" : "long"},
+                        "power_usage"                    : { "type" : "double"},
+                        "nvlink_recovery_error_count_l3" : { "type" : "long"},
+                        "nvlink_data_crc_error_count_l2" : { "type" : "long"},
+                        "nvlink_flit_crc_error_count_l2" : { "type" : "long"},
+                        "serial_number"                  : { "type" : "text"},
+                        "power_violation"                : { "type" : "long"},
+                        "xid_errors"                     : { "type" : "long"},
+                        "gpu_utilization"                : { "type" : "long"},
+                        "nvlink_flit_crc_error_count_l0" : { "type" : "long"},
+                        "nvlink_flit_crc_error_count_l1" : { "type" : "long"},
+                        "mem_util_samples"               : { "type" : "double"},
+                        "thermal_violation"              : { "type" : "long"}
+                    }
+                }          
+            }
+        }
+    }
+}

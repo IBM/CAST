@@ -28,6 +28,7 @@
 #include "bbproxy_flightlog.h"
 #include "bbproxyConn2bbserver.h"
 #include "identity.h"
+#include "tracksyscall.h"
 #elif BBSERVER
 #include "bbserver_flightlog.h"
 #include "identity.h"
@@ -47,7 +48,6 @@ namespace po = boost::program_options;
 
 #include "bbinternal.h"
 #include "logging.h"
-#include "bbinternal.h"
 
 thread_local BBHandler bberror;
 thread_local std::string bbconnectionName;
@@ -1400,7 +1400,7 @@ int setupConnections(string whoami, string instance)
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
             }
 
             connections[sock->getSockfd()] = sock;
@@ -1467,9 +1467,9 @@ int setupConnections(string whoami, string instance)
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sslSock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+                sslSock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
             }
-            
+
 
             connections[sslSock->getSockfd()] = sslSock;
             addToNameConnectionMaps(sslSock, "ssllistener");
@@ -1588,7 +1588,7 @@ void* workerThread(void* ptr)
     threadState* mystate  = new threadState;
     threadState* wu       = NULL;
     bool was_backlog      = false;
-#if BBSERVER
+#if (BBSERVER || BBPROXY)
     threadLocalTrackSyscallPtr = getSysCallTracker();
 #endif
     try

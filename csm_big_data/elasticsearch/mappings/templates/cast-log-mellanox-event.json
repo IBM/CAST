@@ -1,12 +1,6 @@
 {
     "index_patterns": ["cast-log-mellanox-event*"],
     "order" : 1,
-    "settings" :{
-        "index" : { 
-            "number_of_shards"   : 5,
-            "number_of_replicas" : 1
-        }
-    },
     "aliases" : {
         "cast-log-mellanox-event" : {}
     },

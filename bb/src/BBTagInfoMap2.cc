@@ -296,9 +296,23 @@ void BBTagInfoMap2::ensureStageOutEnded(const LVKey* pLVKey) {
 void BBTagInfoMap2::ensureStageOutEnded(const uint64_t pJobId) {
 
     // Ensure stage-out ended for all LVKeys under the job
-    for (auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
-        if ((it->second).getJobId() == pJobId) {
-            (it->second).ensureStageOutEnded(&(it->first));
+    bool l_Restart = true;
+    while (l_Restart)
+    {
+        l_Restart = false;
+        for (auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
+            if ((it->second).getJobId() == pJobId)
+            {
+                // NOTE: ensureStageOutEnded() can release and re-acquire the transfer queue lock.
+                //       Therefore, the local metadata 'could' have changed upon return.
+                //       Thus, if the lock was released by ensureStageOutEnded() during it's processing,
+                //       we break out of the loop and start over again through the LVKeys.
+                if ((it->second).ensureStageOutEnded(&(it->first)))
+                {
+                    l_Restart = true;
+                    break;
+                }
+            }
         }
     }
 

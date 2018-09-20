@@ -79,6 +79,7 @@ csm::network::MultiEndpoint::~MultiEndpoint( ) noexcept(false)
   _ActivityEpoll.Del( _Epoll.GetEpollSocket() );
   _ActivityEpoll.Del( _PassiveEpoll.GetEpollSocket() );
   _ActivityEpoll.Del( _OutboundPipe->GetSocket() );
+  delete _OutboundPipe;
 }
 
 csm::network::Endpoint* csm::network::MultiEndpoint::NewEndpoint( const csm::network::Address_sptr aAddr,
@@ -433,8 +434,6 @@ csm::network::MultiEndpoint::RecvFrom( csm::network::MessageAndAddress &aMsgAddr
     AddCtrlEvent( csm::network::NET_CTL_DISCONNECT, ep->GetRemoteAddr() );
     DeleteEndpoint( ep, "Recv:HUP" );
     rc = 0;
-    // warum schmeiß ich hier eine exception????
-    //throw csm::network::ExceptionEndpointDown( "Endpoint disconnected", ENOTCONN );
   }
   else // process any non-error activity
   {
@@ -474,11 +473,17 @@ csm::network::MultiEndpoint::RecvFrom( csm::network::MessageAndAddress &aMsgAddr
       catch ( csm::network::Exception &e )
       {
         if( aMsgAddr.GetAddr() == nullptr )
+        {
+          _Epoll.AckEvent();
           throw csm::network::Exception("BUG: RecvFrom is supposed to return the address of the down endpoint.");
+        }
 
         // permission errors will be handled by ReliableMsg and won't cause the endpoint to disconnect
         if( e.GetErrno() == EPERM )
+        {
+          _Epoll.AckEvent();
           throw;
+        }
 
         if(( aMsgAddr.GetAddr()->GetAddrType() != csm::network::CSM_NETWORK_TYPE_LOCAL ) && ( e.GetErrno() != 0 ))
         { LOG( csmnet, info ) << "Disconnect addr=:" << aMsgAddr.GetAddr()->Dump() << " :" << e.what();  }
@@ -857,7 +862,9 @@ csm::network::Endpoint * csm::network::EpollWrapper::NextActiveEP( const bool aB
     _ActiveEvents = epoll_wait( _CtrlSock, _EpollEvents, CSM_MULTENDPOINT_MAX_EVENTS, timeout );
     _CurrentEvent = 0;
     _CompletedEvent = 0;
-    if( _ActiveEvents <= 0 )
+    if( _ActiveEvents < 0 )
+      throw csm::network::ExceptionFatal("Epoll error during epoll_wait():", errno );
+    if( _ActiveEvents == 0 )
       ret = nullptr;
     else
       LOG(csmnet, debug) << "sock=" << _CtrlSock << " New EPOLL events: " << _ActiveEvents;

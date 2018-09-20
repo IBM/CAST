@@ -128,6 +128,7 @@ extern uint64_t BBJOBID;
 
 #define VMEXISTS(name) if(vm.count(name) == 0) { LOG(bb,error) << "Missing parameter '" << name << "'"; bberror << err("error.text", "Missing parameter") << err("error.parm", name) << err("rc", -1); return -1; }
 #define VMMUTEXCL(name1,name2) if((vm.count(name1) != 0) && (vm.count(name2) != 0)) { LOG(bb,error) << "Mutually exclusive parameters '" << name1 << "' and '" << name2 << "'"; bberror << err("error.text", "Mutually exclusive parameters") << err("rc", -1) << err("error.parm1", name1) << err("error.parm2", name2); return -1; }
+#define DEFAULT_HOSTLIST "default_hostlist"
 
 // Helper routines...
 
@@ -1109,62 +1110,6 @@ int bbcmd_adminfailover(po::variables_map& vm)
     return 0;
 }
 
-int getDefaultHostlist(string& hostlist)
-{
-    const char* env;
-    bool gethostlist = false;
-    if((env = getenv("LSF_STAGE_HOSTFILE")) != NULL)
-    {
-        gethostlist = true;
-    }
-    else if((env = getenv("LSF_STAGE_HOSTS")) != NULL)
-    {
-        if(strstr(env, " ") != NULL)
-        {
-            hostlist = strstr(env, " ")+1;
-            replace(hostlist.begin(), hostlist.end(), ' ', ',');
-        }
-    }
-    else if((env = getenv("LSB_DJOB_HOSTFILE")) != NULL)
-    {
-        gethostlist = true;
-    }
-    else if((env = getenv("LSB_MCPU_HOSTS")) != NULL)
-    {
-        vector<string> tok = buildTokens(" ", env);
-        for(unsigned i=2; i<tok.size(); i+=2)
-        {
-            for(unsigned long j=0; j<stoul(tok[i+1]); j++)
-            {
-                if((i > 2) || (j != 0)) hostlist += ",";
-                hostlist += tok[i];
-            }
-        }
-    }
-    else if((env = getenv("LSB_HOSTS")) != NULL)
-    {
-        if(strstr(env, " ") != NULL)
-        {
-            hostlist = strstr(env, " ")+1;
-            replace(hostlist.begin(), hostlist.end(), ' ', ',');
-        }
-    }
-    
-    if(gethostlist)
-    {
-        string line;
-        ifstream hostfile(env);
-        while (getline(hostfile, line))
-        {
-            if(hostlist != "") hostlist += ",";
-            hostlist += line;
-        }
-    }
-    if(hostlist == "")
-        hostlist = "localhost";
-    return 0;
-}
-
 int main(int argc, const char** argv)
 {
     int rc = -999;
@@ -1255,10 +1200,7 @@ int main(int argc, const char** argv)
        OPTEND;
 #undef OPTEND
 #undef OPTION
-    
-    string hostlist = "localhost";
-    getDefaultHostlist(hostlist);
-    
+        
     cmd.add("command", -1);
     generic.add_options()
         ("command", po::value< string >(), "Command")
@@ -1271,7 +1213,7 @@ int main(int argc, const char** argv)
         ("contribid", po::value<string>()->default_value(NO_CONTRIBID_STR), "bbcmd Contributor ID")
         ("target", po::value<string>(), "Comma separated contributor list")
         ("envs", po::value<string>(), "Comma separated environment variable list")
-        ("hostlist", po::value<string>()->default_value(hostlist), "Comma separated Node list")
+        ("hostlist", po::value<string>()->default_value(DEFAULT_HOSTLIST), "Comma separated Node list")
 	    ("sendto", po::value<string>()->default_value(DEFAULT_PROXY_NAME), "bbProxy to use")
         ("csmcommand", po::value<string>(), "Format response for csm_bb_cmd")
         ("admin", "Display admin-level commands and options")
@@ -1497,7 +1439,16 @@ int main(int argc, const char** argv)
             boost::property_tree::ptree cmdoutput;
 
             executable = argv[0];
-            hosts = buildTokens(vm["hostlist"].as<string>(), ",");
+            string hostlist = vm["hostlist"].as<string>();
+            if(hostlist == DEFAULT_HOSTLIST)  // option was not specified
+            {
+                rc = activecontroller->gethostlist(hostlist);
+                if(rc)
+                {
+                    LOG_RC_AND_BAIL(rc);
+                }
+            }
+            hosts = buildTokens(hostlist, ",");
             expandRangeString(vm["target"].as<string>(), 0, hosts.size()-1, ranks);
             args.push_back(vm["command"].as<string>());
             args.push_back("--bbid");
@@ -1511,11 +1462,15 @@ int main(int argc, const char** argv)
             {
                 if((it.first == "target") || (it.first == "command") || (it.first == "pretty") || 
                    (it.first == "jobid") || (it.first == "jobindex") || (it.first == "bbid") ||
-                   (it.first == "contribid") || (it.first == "separator"))
+                   (it.first == "contribid") || (it.first == "separator") || (it.first == "hostlist") || (it.first == "sendto"))
                     continue;
-
+                
                 string arg = string("--") + it.first + "=";
                 auto& value = it.second.value();
+
+                if((it.first == "config") && (vm["config"].as<string>() == DEFAULT_CONFIGFILE))
+                    continue;
+                
                 if (auto v = boost::any_cast<uint32_t>(&value))
                     arg += to_string(*v);
                 else if (auto v = boost::any_cast<int>(&value))

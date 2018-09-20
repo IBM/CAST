@@ -18,6 +18,7 @@
 #include "inv_gpu_inventory.h"
 #include "inv_hca_inventory.h"
 #include "inv_ssd_inventory.h"
+#include "inv_processor_inventory.h"
 #include "logging.h"
 
 using namespace std;
@@ -53,6 +54,12 @@ bool GetFullInventory(csm_full_inventory_t& inventory)
   }
   
   rc = GetSsdInventory(inventory.ssd, inventory.node.discovered_ssds);
+  if (rc == false)
+  {
+    LOG(csmd, warning) << "GetSsdInventory() returned false.";
+  }
+  
+  rc = GetProcessorInventory(inventory.processor, inventory.processor_count);
   if (rc == false)
   {
     LOG(csmd, warning) << "GetSsdInventory() returned false.";

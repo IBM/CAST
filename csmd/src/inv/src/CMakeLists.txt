@@ -27,6 +27,7 @@ set(CSM_INVENTORY_SRC
   ${CSMD_INV_SRC_DIR}/inv_dimm_inventory.cc
   ${CSMD_INV_SRC_DIR}/inv_gpu_inventory.cc
   ${CSMD_INV_SRC_DIR}/inv_hca_inventory.cc
+  ${CSMD_INV_SRC_DIR}/inv_processor_inventory.cc
   ${CSMD_INV_SRC_DIR}/inv_ssd_inventory.cc
   ${CSMD_INV_SRC_DIR}/inv_agent_handler.cc
   ${CSMD_INV_SRC_DIR}/inv_aggregator_handler.cc

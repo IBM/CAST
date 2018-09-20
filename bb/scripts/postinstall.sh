@@ -13,4 +13,5 @@
 ###################################################
 
 systemctl daemon-reload
-dracut -f
+un=$(uname -r)
+dracut -f --kver $un

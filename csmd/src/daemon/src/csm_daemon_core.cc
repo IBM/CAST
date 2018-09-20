@@ -50,6 +50,7 @@ csm::daemon::CoreGeneric::CoreGeneric()
   _timerMgr(nullptr),
   _bdsMgr(nullptr),
   _envSource(nullptr),
+  _intervalSrc(nullptr),
   _EventRouting(nullptr),
   _threadMgr(nullptr),
   _IdleLoopRetry( "MainLoop",
@@ -113,6 +114,13 @@ csm::daemon::CoreGeneric::InitInfrastructure(const csm::daemon::EventManagerNetw
   else
     throw csm::daemon::Exception("BUG: no timer-mgr defined. Cannot continue.");
 
+  csm::daemon::RecurringTasks RT = _Config->GetRecurringTasks();
+  if( RT.IsEnabled() )
+  {
+    _intervalSrc = new csm::daemon::EventSourceInterval( GetRetryBackOff() );
+    AddEventSource( _intervalSrc, INTERVAL_SRC_ID, 0, RT.GetMinInterval() );
+  }
+
   if( bdsMgr )
   {
     _bdsMgr = const_cast<csm::daemon::EventManagerBDS*>( bdsMgr );
@@ -153,7 +161,17 @@ csm::daemon::CoreGeneric::DestroyInfrastructure()
     _bdsMgr = nullptr;
   }
 
-  if (_envSource) delete _envSource;
+  if(_envSource)
+  {
+    _EventSources.Remove( _envSource, 0 );
+    delete _envSource;
+  }
+
+  if( _intervalSrc )
+  {
+    _EventSources.Remove( _intervalSrc, 0 );
+    delete _intervalSrc;
+  }
 
   if( _dbMgr )
   {
@@ -162,6 +180,8 @@ csm::daemon::CoreGeneric::DestroyInfrastructure()
     delete _dbMgr;
     _dbMgr = nullptr;
   }
+
+  _EventSinks.Clear();
   if (_EventRouting) delete _EventRouting;
 }
 
@@ -220,6 +240,17 @@ csm::daemon::CoreGeneric::GetEventHandler(const csm::daemon::CoreEvent &aEvent)
   if (aEvent.GetEventType() == EVENT_TYPE_ENVIRONMENTAL)
   {
     handler = GetEnvironmentalHandler();
+  }
+
+  // a timer event with a nullptr context is either an error or is the magic interval trigger
+  if(( aEvent.GetEventType() == EVENT_TYPE_TIMER ) && ( aEvent.GetEventContext() == nullptr ))
+  {
+    const csm::daemon::TimerEvent *te = dynamic_cast<const csm::daemon::TimerEvent*>( &aEvent );
+    if(( te != nullptr ) && ( te->GetContent().GetTimerInterval() == EVENT_CTX_INTERVAL_MAGIC ))
+    {
+      LOG( csmd, trace ) << "Found Magic-number in Timer. Triggering interval handler.";
+      handler = GetIntervalHandler();
+    }
   }
 
   // if no context or event pointer in context is null, try to get the event handler
