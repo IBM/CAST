@@ -62,11 +62,13 @@ void help(){
 	puts("    Argument      | Example value                 | Description  ");                                                 
 	puts("    --------------|-------------------------------|--------------");
 	puts("    -c, --config  | \"/etc/ibm/csm/csm_master.cfg\" | (STRING) Full path to the master configure file");
+	puts("                  |                               | Default Value: \"/etc/ibm/csm/csm_master.cfg\"");
 	puts("    -t, --type    | 3                             | (INT) Type of inventory collection.");
 	puts("                  |                               | Valid values: ");
 	puts("                  |                               |   1 = ib cables");
 	puts("                  |                               |   2 = switches");
 	puts("                  |                               |   3 = ib cables and switches");
+	puts("                  |                               | Default Value: 3");
 	puts("                  |                               | ");
 	puts("");
     puts("GENERAL OPTIONS:");
@@ -112,9 +114,13 @@ int main(int argc, char *argv[])
 	
 	//temp place for input variables
 	// full path to the master config file
-	std::string full_path_to_the_master_config_file = "";
+	//default to etc path
+	std::string full_path_to_the_master_config_file = "/etc/ibm/csm/csm_master.cfg";
+	requiredParameterCounter++;
 	// type of collection
-	long int type_of_collection = -1;
+	//default to full collection, aka 3
+	long int type_of_collection = 3;
+	requiredParameterCounter++;
 	
 	/*check optional args*/
 	while ((opt = getopt_long(argc, argv, "hv:c:t:", longopts, &indexptr)) != -1) {
@@ -127,7 +133,6 @@ int main(int argc, char *argv[])
 				break;
 			case 'c':
 				full_path_to_the_master_config_file = strdup(optarg);
-				requiredParameterCounter++;
                 break;
 			case 't':
 				type_of_collection = std::atol(optarg);
@@ -137,7 +142,6 @@ int main(int argc, char *argv[])
 					//for now default to full inventory collection. 
 					type_of_collection = 3;
 				}
-				requiredParameterCounter++;
 				break;
 			default:
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
@@ -187,6 +191,7 @@ int main(int argc, char *argv[])
 		// printing
 		std::cout << "The master config file is not open" << std::endl;
 		std::cout << "Did you provide the full correct path to the master config file?" << std::endl;
+		std::cout << "run '-h' or '--help' for more details." << std::endl;
 		std::cout << "Return without executing data collection" << std::endl;
 		
 		// return error
