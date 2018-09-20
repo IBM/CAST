@@ -1,17 +1,13 @@
 {
     "index_patterns" : ["cast-counters-ufm*"],
     "order" : 1,
-    "settings" :{
-        "index" : { 
-            "number_of_shards"   : 5,
-            "number_of_replicas" : 1
-        }
-    }, 
     "aliases" : {
         "cast-counters-ufm" : {}
     },
     "mappings": {
         "_doc" : {
+	        "dynamic_date_formats" : 
+		        [ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"],
             "properties" :
             {
             }

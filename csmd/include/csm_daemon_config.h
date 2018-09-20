@@ -45,6 +45,7 @@
 #include "csmd/src/daemon/include/csm_daemon_role.h"
 #include "csmd/src/daemon/include/csm_tweaks.h"
 #include "csmd/src/daemon/include/bds_info.h"
+#include "csmd/src/daemon/include/csm_recurring_tasks.h"
 
 #ifndef DB_SCHEMA_VERSION
 #define DB_SCHEMA_VERSION "unknown"
@@ -52,6 +53,10 @@
 
 #define ENVIRONMENTAL_GRANULARITY_DEFAULT "00:00:01"
 #define ENVIRONMENTAL_GRANULARITY_MINIMUM "00:00:00.50"
+
+#ifndef DEFAULT_INTERVAL_SRC_INTERVAL
+#define DEFAULT_INTERVAL_SRC_INTERVAL (60)
+#endif
 
 #define CONFIGURATION_HOSTNAME_NONE ("NONE")
 
@@ -174,6 +179,7 @@ public:
   
   size_t GetNumOfBuckets() const { return _BucketList.size(); }
   csm::daemon::Tweaks GetTweaks() const { return _Tweaks; }
+  RecurringTasks GetRecurringTasks() const { return _Cron; }
 
   DBDefinitionInfo GetDBDefinitionInfo() const { return _dbInfo; }
 
@@ -208,6 +214,7 @@ private:
   void SetBDS_Info();
   
   void ConfigureDaemonTimers();
+  void SetRecurringTasks();
 
   // retrieve hostname from xCAT
   void SetHostname();
@@ -267,6 +274,9 @@ private:
   // pair.first: frequency pair.second: a list of bucket items
   std::vector< FreqAndBucketItems > _BucketList;
   int _LCMOfBuckets; // least common multiple of frequency of all buckets
+
+  RecurringTasks _Cron;
+//  uint64_t _IntervalSrcTime; // number of seconds between 2 triggers of the interval timer source
 
   DBDefinitionInfo _dbInfo;
 

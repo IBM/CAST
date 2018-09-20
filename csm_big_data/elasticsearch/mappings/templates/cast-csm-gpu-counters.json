@@ -4,14 +4,10 @@
     "aliases" : {
         "cast-csm-gpu-counters" : {}
     },
-    "settings" :{
-        "index" : { 
-            "number_of_shards"   : 5,
-            "number_of_replicas" : 1
-        }
-    },
     "mappings": {
         "_doc" : {
+	        "dynamic_date_formats" : 
+		        [ "strict_date_optional_time","yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z||yyyy-MM-dd HH:mm:ss.SSSSSS"],
             "properties" :
             {
                 "data": {

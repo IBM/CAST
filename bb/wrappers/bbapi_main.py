@@ -28,10 +28,10 @@
     -d --name           Name for Set/Open/CloseServer.  No default.
     -e --floor          Floor path.  Default is /opt/ibm
                         NOTE:  This value is ignored if libpath is provided.
-    -f --flags          Flags.  Only valid on Coral_RetrieveTransfers.  No default.
+    -f --flags          Flags.  No default.
     -g --group          Group name to use.  Default is "users".
-    -h --handle         Handle value.  Only valid on Coral_RetrieveTransfers.  Default is 0.
-    -i --hostname       Hostname to use.  Only valid on Coral_RetrieveTransfers.  Default is "".
+    -h --handle         Handle value.  Default is 0.
+    -i --hostname       Hostname to use.  Default is "".
     -j --jobid          Jobid value to use.  Default is 1.
     -k --jobstepid      Jobstepid value to use.  Default is 1.
     -l --libpath        Library path to libbbAPI.so.  Default is "$FLOOR/bb/lib".

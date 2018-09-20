@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_timer_event.h
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -49,9 +49,9 @@ public:
   { }
   
   // keep this for debugging purpose
-  uint64_t GetTimerInterval() { return _timerInterval; }
+  uint64_t GetTimerInterval() const { return _timerInterval; }
 
-  uint64_t GetTargetStateId() { return _targetStateId; }
+  uint64_t GetTargetStateId() const { return _targetStateId; }
   
   TimeType GetEndTime() const
   {

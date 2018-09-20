@@ -63,6 +63,21 @@ def GetHandle(pEnv):
 
     return rc
 
+def GetTransferInfo(pEnv):
+    rc = 0
+
+    try:
+        bb.initEnv(pEnv)
+
+        l_Handle = pEnv["handle"]
+        l_Info = BB_GetTransferInfo(l_Handle)
+        bb.printStruct(l_Info)
+    except BBError as error:
+        error.handleError()
+        rc = error.rc
+
+    return rc
+
 def GetWaitForReplyCount(pEnv):
     rc = 0
 
