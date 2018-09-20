@@ -16,7 +16,6 @@
 #================================================================================
 
 import sys
-sys.path.append('.')
 
 #add the python library to the path 
 sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')

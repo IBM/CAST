@@ -23,7 +23,6 @@ Before writing your script and accessing CSM APIs, you must first import the CSM
 ```Python
 
 import sys
-sys.path.append('.')
 
 #add the python library to the path 
 sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
@@ -41,7 +40,6 @@ First you should say where the library is located. Which is what we did above in
 ```Python
 
 import sys
-sys.path.append('.')
 
 #add the python library to the path 
 sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
