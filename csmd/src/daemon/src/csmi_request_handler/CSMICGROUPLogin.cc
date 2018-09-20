@@ -76,10 +76,11 @@ bool CGLoginInitState::HandleNetworkMessage(
                 if(state_args->migrate_pid)
                 {
                     std::string alloc = line.substr(delim +1);
-                    migrate_pid(state_args->pid, strtoll( alloc.c_str(), nullptr, 10 ));
+                    errCode=migrate_pid(state_args->pid, strtoll( alloc.c_str(), nullptr, 10 ));
                 }
                 
-                break; // once user has been located in active list, we are done.
+                if ( errCode == CSMI_SUCCESS )
+                    break; // once user has been located in active list, we are done.
             }
         }
     }
