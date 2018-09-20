@@ -130,7 +130,7 @@ def main(args):
         for host in sensorData:
             sensorData[host].append({
                 "source"   : host, 
-                "type"     : "zimon",
+                "type"     : "counters-gpfs",
                 "timestamp": row.tstamp,
                 "data": {}})
     
