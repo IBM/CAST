@@ -116,6 +116,7 @@ GetOptions(
     "outputconfig=s"        => \$CFG{"outputconfig"},
     "offload!"              => \$CFG{"USE_NVMF_OFFLOAD"},
     "csm!"                  => \$CFG{"USE_CSM"},
+    "cn!"                   => \$CFG{"bbProxy"},
     "server!"               => \$CFG{"bbServer"},
     "ln!"                   => \$CFG{"bbcmd"},
     "envdir=s"              => \$CFG{"envdir"},
@@ -137,12 +138,16 @@ elsif($CFG{"bbcmd"})
     makeLNConfigFile();
     copyBBFilesToLSF();
 }
-else
+elsif($CFG{"bbProxy"})
 {
     makeProxyConfigFile();
     configureNVMeTarget();
     configureVolumeGroup();
     startProxy();
+}
+else
+{
+    output("Valid node type was not specified");
 }
 exit(0);
 
@@ -162,12 +167,15 @@ sub setDefaults
     &def("outputconfig",     1, "/etc/ibm/bb.cfg");
     &def("USE_NVMF_OFFLOAD", 1, 0);
     &def("USE_CSM",          1, 1);
+    &def("bbProxy",          1, 0);
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
     &def("metadata",         1, "");
     &def("bscfswork",        1, "");
     &def("configtempl",      2, "$SCRIPTPATH/bb.cfg");
     &def("nvmetempl",        2, "$SCRIPTPATH/nvmet.json");
+
+    $CFG{"bbProxy"}=1    if(($currentphase == 2) && ($CFG{"bbProxy"}==0) && ($CFG{"bbServer"}==0) && ($CFG{"bbcmd"}==0));
 }
 
 sub getNodeName
@@ -473,7 +481,15 @@ sub configureVolumeGroup
             my $vgname = $lv->{"vg_name"};
             if($vgname eq $bbvgname)
             {
-                my $ismounted = cmd("grep '/dev/mapper/$vgname-$lvname ' /proc/mounts", 1);
+                my $dmpath = "/dev/mapper/$vgname-$lvname";
+                my $swappath = abs_path($dmpath);
+                my $isswap = cmd("grep '$swappath ' /proc/swaps", 1);
+                if($isswap =~ /\S/)
+                {
+                    output("Volume group $vgname, logical volume $lvname ($dmpath -> $swappath) was referenced in /proc/swaps.  Skipping");
+                    next;
+                }
+                my $ismounted = cmd("grep '$dmpath ' /proc/mounts", 1);
                 output("Mounted $vgname-$lvname at: $ismounted");
                 if($ismounted !~ /\S/)
                 {
