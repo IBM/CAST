@@ -48,7 +48,7 @@ void help(){
     puts("_____CSM_INVENTORY_COLLECTION_CMD_HELP_____");
     puts("USAGE:");
     puts("  standalone_ib_and_switch_collection ARGUMENTS [OPTIONS]");
-    puts("  standalone_ib_and_switch_collection -c config -t type [-h] [-v verbose_level]");
+    puts("  standalone_ib_and_switch_collection [-c config] [-t type] [-h] [-v verbose_level]");
     puts("");
     puts("SUMMARY: Used to collect switch and ib inventory and insert into CSM database.");
     puts("");
