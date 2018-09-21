@@ -2110,7 +2110,8 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
     LOG(bb,info) << "msgin_gettransferlist handles: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", numhandles=" << l_NumHandles << ", matchstatus=" << l_MatchStatus;
     uint64_t* l_Temp = l_Handles;
     for(size_t i=0; i<l_NumHandles; ++i) {
-        string l_HandleStr = "out.handle_" + to_string(i);
+        string l_TempStr = to_string(i);
+        string l_HandleStr = "out.handle_" + string(3-min((int)(l_TempStr.length()),3),'0') + l_TempStr;
         bberror << err(l_HandleStr.c_str(), *l_Temp);
         LOG(bb,info) << "msgin_gettransferlist: i=" << i << ", handle=" << *l_Temp;
         ++l_Temp;
