@@ -22,8 +22,6 @@
 #include "csmi/include/csm_api.h"
 #include <syslog.h>
 
-
-
 #define STATE_NAME "JSRUNCMDAgentState:"
 
 bool JSRUNCMDAgentState::HandleNetworkMessage(

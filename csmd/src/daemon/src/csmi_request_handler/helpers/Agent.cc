@@ -228,9 +228,16 @@ int ForkAndExecAllocationCGroup(char * const argv[], uint64_t allocation_id, uid
             try
             {
                 csm::daemon::helper::CGroup cgroup = csm::daemon::helper::CGroup( allocation_id );
-
+                
+                LOG(csmapi, trace) << "Waiting on pid #" << getpid() << " migration allocation: " << allocation_id;
                 if(cgroup.WaitPidMigration(getpid()))
-                    _Exit(execv(*argv, argv));
+                {
+                    LOG(csmapi, trace) << "Pid #" << getpid() << " migrated allocation: " << allocation_id;
+                    int exitCode = execv(*argv, argv);
+                    LOG(csmapi, trace) << "Pid #" << getpid() << " execution completed allocation: " << allocation_id;
+                   _Exit(exitCode);
+                    
+                }
             }
             catch ( const std::exception& e )
             {
