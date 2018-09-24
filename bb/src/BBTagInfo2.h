@@ -16,11 +16,11 @@
 
 #include "bbinternal.h"
 #include "BBJob.h"
+#include "BBLV_Metadata.h"
 #include "BBLVKey_ExtentInfo.h"
 #include "BBStatus.h"
 #include "BBTagID.h"
 #include "BBTagInfoMap.h"
-#include "BBTagInfoMap2.h"
 #include "ExtentInfo.h"
 #include "LVKey.h"
 

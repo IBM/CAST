@@ -20,11 +20,11 @@
 #include "time.h"
 
 #include "bbinternal.h"
+#include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
 #include "bbwrkqmgr.h"
 #include "identity.h"
 #include "BBTagInfo2.h"
-#include "BBTagInfoMap2.h"
 #include "Uuid.h"
 
 namespace bfs = boost::filesystem;

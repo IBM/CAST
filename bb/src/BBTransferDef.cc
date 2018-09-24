@@ -20,10 +20,10 @@ using namespace boost::archive;
 #include "bbflags.h"
 #include "bbinternal.h"
 #include "bbio.h"
+#include "BBLV_Metadata.h"
 #include "BBLVKey_ExtentInfo.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
-#include "BBTagInfoMap2.h"
 
 #include "connections.h"
 #include "ContribFile.h"

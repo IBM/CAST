@@ -19,7 +19,7 @@
 #include "bberror.h"
 #include "bbinternal.h"
 #include "bbwrkqmgr.h"
-#include "BBTagInfoMap2.h"
+#include "BBLV_Metadata.h"
 
 namespace bfs = boost::filesystem;
 

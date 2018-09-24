@@ -34,10 +34,10 @@ using namespace std;
 
 
 #include "bbinternal.h"
+#include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
 #include "BBTagID.h"
 #include "BBTagInfo2.h"
-#include "BBTagInfoMap2.h"
 #include "BBTransferDef.h"
 #include "bbwrkqmgr.h"
 #include "CnxSock.h"
