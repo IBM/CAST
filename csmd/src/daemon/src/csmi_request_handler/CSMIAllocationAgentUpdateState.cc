@@ -200,9 +200,11 @@ bool AllocationAgentUpdateState::InitNode(
         csm::daemon::helper::CGroup cgroup = 
                 csm::daemon::helper::CGroup(payload->allocation_id);
 
-        // If the payload was for a shared allocation
+        // If the payload was not for a shared allocation
         if (payload->shared != CSM_TRUE)
         {
+            // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
+            cgroup.ClearCGroups( payload->isolated_cores == 0 );
             cgroup.SetupCGroups( payload->isolated_cores );
         }
         else 
@@ -466,7 +468,7 @@ bool AllocationAgentUpdateState::InitNode(
         }
     } 
 
-    int AllocationAgentUpdateState::RegisterAllocation( int64_t allocationId, const char* username )
+    int AllocationAgentUpdateState::RegisterAllocation( int64_t allocationId, const char* username, bool shared )
     { 
         LOG( csmapi, trace ) << STATE_NAME ":RegisterAllocation; Enter";
 
@@ -477,10 +479,17 @@ bool AllocationAgentUpdateState::InitNode(
         int errorCode = 0;
         std::string allocationString(username);
         allocationString.append(";").append(std::to_string(allocationId)).append("\n");
+        
+        int openFlag = O_WRONLY | O_CLOEXEC;
+        
+        if ( shared )
+            openFlag |= O_APPEND;
+        else
+            openFlag |= O_TRUNC;
 
         // Open the file descriptor.
         errno=0;
-        int fileDescriptor = open(CSM_ACTIVELIST, O_WRONLY | O_APPEND | O_CLOEXEC );
+        int fileDescriptor = open(CSM_ACTIVELIST, openFlag );
         errorCode = errno;
 
         // Attempt to write the descriptor.

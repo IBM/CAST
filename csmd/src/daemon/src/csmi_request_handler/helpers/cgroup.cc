@@ -162,6 +162,11 @@ bool CGroup::RepairSMTChange()
     return true;
 }
 
+
+
+
+
+
 CGroup::CGroup( int64_t allocationId ):
        _CGroupName(ALLOC_CGROUP)
 {
@@ -278,6 +283,82 @@ void CGroup::SetupCGroups(int64_t cores)
     }
 
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Exit";
+}
+
+void CGroup::ClearCGroups(bool removeSystem)
+{
+    LOG( csmapi, trace ) << _LOG_PREFIX "ClearCGroups Enter";
+
+    // Iterate over the controllers.
+    for ( uint32_t controller = CG_CPUSET; 
+            controller < csm_enum_max(csmi_cgroup_controller_t);
+            ++controller )
+    {
+        // Build controller strings.
+        char* controllerStr;
+        asprintf( &controllerStr, "%s/", csmi_cgroup_controller_t_strs[controller]);
+
+        char* controllerDir;
+        asprintf( &controllerDir, "%s%s", CGroup::CONTROLLER_DIR, controllerStr);
+
+        DIR *cDir =  opendir(controllerDir);  // Open the directory to search for subdirs.
+        dirent *dirDetails;                         // Output struct for directory contents.
+    
+        // If cgroup directory couldn't be opened, continue.
+        if ( !cDir )
+        {
+            continue;
+        }
+        std::shared_ptr<DIR> cDirShared(cDir, closedir );
+
+        std::string groupPath(controllerDir); // The base group path.
+        while ( ( dirDetails = readdir( cDir ) ) )
+        {
+            bool isSystem = removeSystem && strcmp( dirDetails->d_name, CSM_SYSTEM ) == 0;
+            // Ignore all hidden files.
+            if ( dirDetails->d_name[0] != _HIDDEN_CHAR  && (
+                    strncmp( dirDetails->d_name, ALLOC, ALLOC_LEN) == 0 )
+                )
+            {
+                try 
+                {
+                    switch(dirDetails->d_type) 
+                    {
+                        case DT_DIR: // This is a valid directory.
+                        {
+                            LOG(csmapi, debug) << dirDetails->d_name;
+                            // Recurse
+                            DeleteCGroup(
+                                controllerStr,
+                                dirDetails->d_name,
+                                isSystem);
+                            break;
+                        }
+                        case DT_UNKNOWN: // This might be a directory.
+                        {
+                            // Verify the file is a directory.
+                            std::string file = groupPath  + dirDetails->d_name;
+                            if (CheckFile( file.c_str( ), _DIRECTORY ))
+                                DeleteCGroup(
+                                    controllerStr,
+                                    dirDetails->d_name,
+                                    isSystem);
+                            break;
+                        }
+                        default:
+                            // Do nothing
+                            break;
+                    }
+                }
+                catch ( const csm::daemon::helper::CSMHandlerException& e )
+                {
+                    LOG( csmapi, warning ) << "Unable to remove cgroup: " << 
+                        groupPath + dirDetails->d_name << "; error: " << e.what();
+                }
+            }
+        }
+    }
+    LOG( csmapi, trace ) << _LOG_PREFIX "ClearCGroups Exit";
 }
 
 void CGroup::CreateCGroup( const char* cgroupName, 

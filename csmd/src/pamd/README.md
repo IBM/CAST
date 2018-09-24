@@ -5,6 +5,7 @@ The `libcsmpam.so` module is installed by the rpm to `/usr/lib64/security/libcsm
 To enable the this module for sshd perform the following steps:
 1. Uncomment the following line in `/etc/pam.d/sshd`
     ```
+    #account    required     libcsmpam.so   
     #session    required     libcsmpam.so
     ```
     * **NOTE** The `libcsmpam.so` module is deliberately configured to be the last session in this file. If your configuration changes this
@@ -17,21 +18,21 @@ After the daemon has been restarted the modified pam sshd configuration should n
 
 ## Module Behavior ## 
 
-This module is designed for session authentication and cgroup assignment in the pam sshd utility.
+This module is designed for account authentication and cgroup session assignment in the pam sshd utility.
 The following checks are performed to verify that the user is allowed to access the system:
 
 1. The user is root.
     * Allow entry.
-    * Place the user in the default cgroup.
+    * Place the user in the default cgroup (session only).
     * Exit module with success.
 2. The user is defined in `/etc/pam.d/csm/activelist`.
     * Allow entry.
-    * Place the session in the cgroup that the user is associated with in the `activelist`.
+    * Place the session in the cgroup that the user is associated with in the `activelist` (session only).
     * *note:* The `activelist` is modified by csm, admins should not modify.
     * Exit module with success.
 3. The user is defined in `/etc/pam.d/csm/whitelist`.
     * Allow entry.
-    * Place the user in the default cgroup.
+    * Place the user in the default cgroup (session only).
     * *note:* The `whitelist` is modified by the admin.
     * Exit module with success.
 4. The user was not found.

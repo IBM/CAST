@@ -118,11 +118,12 @@ protected:
      *
      * @param [in] allocationId The allocation id to be registered.
      * @param [in] username The user associated with the allocation.
+     * @param [in] shared The allocation is shared.
      *
      * @return 0; The Registration was a success.
      * @return >0; The file write failed.
      */
-    int RegisterAllocation( int64_t allocationId, const char* username );
+    int RegisterAllocation( int64_t allocationId, const char* username, bool shared=false );
     
     /** @brief Removes the allocation from the local compute node.
      *

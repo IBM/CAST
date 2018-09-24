@@ -59,6 +59,7 @@ public:
      */
     static bool RepairSMTChange();
 
+
     /** @brief Constructs the cgroup string for the allocation/step and verifies the cgroup can function.
      *
      * @param[in] allocationId The allocation associated with the control group.
@@ -66,6 +67,7 @@ public:
      * @throw CSMHandlerException If the control group root directory could not be found/wasn't a directory.
      */
     explicit CGroup( int64_t allocationId );
+    
 
     /** @brief Deletes any cgroups associated with this object. 
      *
@@ -167,6 +169,14 @@ public:
      * @return  The maximum memory usage in bytes.
      */
     int64_t GetMemoryMaximum(const char* stepCGroupName = "") const;
+
+    /** 
+     * @brief Removes all old cgroups in the cgroup directories.
+     * @param[in] removeSystem If set this flag will remove the system cgroup as well.
+     *
+     * @throw CSMHandlerException If any of the cgroup deletes failed.
+     */
+    void ClearCGroups( bool removeSystem = false);
 
 
 private:

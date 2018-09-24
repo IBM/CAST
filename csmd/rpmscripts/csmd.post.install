@@ -6,6 +6,7 @@ p_al="activelist"
 
 if [ -f /etc/pam.d/sshd ]
 then
+    echo "#account    required     libcsmpam.so" >> /etc/pam.d/sshd
     echo "#session    required     libcsmpam.so" >> /etc/pam.d/sshd
 
     # Initialize the csm directory.
