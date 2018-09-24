@@ -12,9 +12,9 @@
  *******************************************************************************/
 
 #include "bbinternal.h"
+#include "BBLV_Info.h"
 #include "BBLVKey_ExtentInfo.h"
 #include "BBTagInfo.h"
-#include "BBTagInfo2.h"
 #include "BBTagInfoMap.h"
 #include "BBTransferDef.h"
 #include "HandleFile.h"

@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "BBJob.h"
-#include "BBTagInfo2.h"
+#include "BBLV_Info.h"
 #include "BBTransferDef.h"
 #include "LVKey.h"
 #include "xfer.h"

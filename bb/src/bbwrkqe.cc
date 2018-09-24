@@ -12,8 +12,8 @@
  *******************************************************************************/
 
 #include "bbinternal.h"
+#include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
-#include "BBTagInfo2.h"
 #include "bbwrkqe.h"
 #include "Extent.h"
 #include "ExtentInfo.h"

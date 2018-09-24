@@ -20,7 +20,7 @@ using namespace boost::archive;
 
 #include "bberror.h"
 #include "bbinternal.h"
-#include "BBTagInfo2.h"
+#include "BBLV_Info.h"
 #include "bbwrkqmgr.h"
 #include "HandleFile.h"
 #include "logging.h"
