@@ -74,7 +74,7 @@
 //       will be removed from the contribs file.
 #define BBTI_All_Contribs_Reported                    0x0000000100000000
 
-// NOTE: Low order tenth nibble of BBTagInfo2.flags
+// NOTE: Low order tenth nibble of BBLV_Info.flags
 #define BBTI2_Suspended                               0x0000001000000000
 
 // NOTE: Low order eleventh nibble of BBLVKey_ExtentInfo.flags and xbbServer metadata (LVUuidFile, first three bits only)

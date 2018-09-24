@@ -134,7 +134,7 @@ void BBTagInfo::accumulateTotalLocalContributorInfo(const uint64_t pHandle, size
     return;
 }
 
-int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, BBTagInfo2* pTagInfo2, const BBTagID pTagId, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef) {
+int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef) {
     int rc = 0;
     stringstream errorText;
 
@@ -146,7 +146,7 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle, LOCK_HANDLEFILE);
     if (!rc)
     {
-        rc = update_xbbServerAddData(pLVKey, pJob, pTagInfo2, pContribId, pHandle, pTransferDef);
+        rc = update_xbbServerAddData(pLVKey, pJob, pLV_Info, pContribId, pHandle, pTransferDef);
         if (rc >= 0)
         {
             // NOTE:  rc=0 means that the contribid was added to the ContribFile.
@@ -178,12 +178,12 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                     }
 
                     if (pTransferDef->allExtentsTransferred()) {
-                        pTagInfo2->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
+                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
 
                         int l_NewStatus = 0;
                         Extent l_Extent = Extent();
                         ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
-                        pTagInfo2->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
+                        pLV_Info->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
                         if (l_NewStatus) {
                             // Status changed for transfer handle...
                             // Send the transfer is complete for this handle message to bbProxy
@@ -193,7 +193,7 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
 
                             // Check/update the status for the LVKey
                             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message for the LVKey...
-                            pTagInfo2->updateTransferStatus(pConnectionName, pLVKey, 0);
+                            pLV_Info->updateTransferStatus(pConnectionName, pLVKey, 0);
                         }
                     }
                 } else {
@@ -462,7 +462,7 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
                     lockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
 
                     // Check to make sure the job still exists after releasing/re-acquiring the lock
-                    if (!jobStillExists(pConnectionName, pLVKey, (BBTagInfo2*)0, this, pJob.getJobId(), pContribId))
+                    if (!jobStillExists(pConnectionName, pLVKey, (BBLV_Info*)0, this, pJob.getJobId(), pContribId))
                     {
                         rc = -1;
                         l_Continue = 0;
@@ -556,11 +556,11 @@ int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentIn
     return rc;
 }
 
-void BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+void BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     if (pHandle == transferHandle)
     {
-        pTagInfo2->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
+        pLV_Info->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
     return;
@@ -707,7 +707,7 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
     return;
 }
 
-int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
 
@@ -726,7 +726,7 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const st
     return rc;
 }
 
-int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BBTagInfo2* pTagInfo2, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef)
+int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BBLV_Info* pLV_Info, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef)
 {
     int rc = 0;
     stringstream errorText;
@@ -821,7 +821,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
                     LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                 }
 
-                LVUuidFile l_LVUuidFile((*pLVKey).first, pTagInfo2->getHostName());
+                LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());
                 bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path(lv_uuid_str);
                 rc = l_LVUuidFile.save(l_LVUuidFilePathName.string());
                 if (rc) BAIL;

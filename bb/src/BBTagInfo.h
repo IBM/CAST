@@ -30,7 +30,7 @@ namespace bfs = boost::filesystem;
  | Forward declarations
  *******************************************************************************/
 class LVUuidFile;
-class BBTagInfo2;
+class BBLV_Info;
 class BBTagInfoMap;
 
 /*******************************************************************************
@@ -64,7 +64,7 @@ class BBTagInfo
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalContributors);
-    int addTransferDef(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, BBTagInfo2* pTagInfo2, const BBTagID pTagId, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
+    int addTransferDef(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
     void bumpTransferHandle(uint64_t& pHandle);
     void dump(const char* pSev);
     void expectContribToSS(stringstream& pSS) const;
@@ -74,14 +74,14 @@ class BBTagInfo
     int inExpectContrib(const uint32_t pContribId);
     int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* l_OrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass);
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus);
+    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus);
     void setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setFailed(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
-    int stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
-    int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BBTagInfo2* pTagInfo2, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
+    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
+    int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BBLV_Info* pLV_Info, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
     int xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle);
 
     inline int allContribsReported() {

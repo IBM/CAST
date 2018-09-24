@@ -1443,7 +1443,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     // Check to make sure the job still exists after releasing/re-acquiring the lock
                     // NOTE: The connection name is optional, and is potentially different for every
                     //       transfer definition that is being stopped from the retrieve transfer archive.
-                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBTagInfo2*)0, (BBTagInfo*)0, pJobId, pContribId))
+                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
                     {
                         rc = -1;
                         l_Attempts = 0;

@@ -44,17 +44,17 @@ class BBLV_Metadata
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
-    int addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
+    int addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBLV_Info& pLV_Info, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
     int cleanLVKeyOnly(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     void ensureStageOutEnded(const LVKey* pLVKey);
     void ensureStageOutEnded(const uint64_t pJobId);
     int getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId);
-    BBTagInfo2* getAnyTagInfo2ForUuid(const LVKey* pLVKey) const;
-    int getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBTagInfo2* &pTagInfo2, BBTagInfo* &pTagInfo, BBTagID& pTagId, const BBJob pJob, vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId);
+    BBLV_Info* getAnyTagInfo2ForUuid(const LVKey* pLVKey) const;
+    int getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID& pTagId, const BBJob pJob, vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId);
     int getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, const uint64_t pJobId, const uint32_t pContribId);
     int getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
-    BBTagInfo2* getTagInfo2(const LVKey* pLVKey) const;
+    BBLV_Info* getTagInfo2(const LVKey* pLVKey) const;
     size_t getTotalTransferSize(const LVKey& pLVKey);
     int getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
     void getTransferHandles(vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus);
@@ -67,7 +67,7 @@ class BBLV_Metadata
     int stopTransfer(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     int verifyJobIdExists(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId);
 
-    map<LVKey, BBTagInfo2> tagInfoMap2;
+    map<LVKey, BBLV_Info> tagInfoMap2;
 };
 
 #endif /* BB_BBLVMETADATA_H_ */

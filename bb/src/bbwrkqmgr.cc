@@ -878,7 +878,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 {
     int rc = 0;
     LVKey l_Key;
-    BBTagInfo2* l_TagInfo2 = 0;
+    BBLV_Info* l_LV_Info = 0;
 
     pWrkQE = 0;
     // NOTE: The HP work queue is always present, so there must be at least two work queues.
@@ -899,8 +899,8 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                     // This workqueue has at least one entry.
                     // Get the LVKey and taginfo2 for this work item...
                     l_Key = (qe->second->getWrkQ()->front()).getLVKey();
-                    l_TagInfo2 = metadata.getTagInfo2(&l_Key);
-                    if (l_TagInfo2 && ((l_TagInfo2->getNextExtentInfo().getTransferDef()->canceled())))
+                    l_LV_Info = metadata.getTagInfo2(&l_Key);
+                    if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
                     {
                         // Next extent is canceled...  Don't look any further
                         // and simply return this work queue.
@@ -1178,7 +1178,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
     return;
 }
 
-void WRKQMGR::processThrottle(LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay)
+void WRKQMGR::processThrottle(LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay)
 {
     WRKQE* l_WrkQE = 0;
     pThreadDelay = 0;
@@ -1196,7 +1196,7 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTagID& pTa
         {
             if(l_WrkQE)
             {
-                pThreadDelay = l_WrkQE->processBucket(pTagInfo2, pTagId, pExtentInfo);
+                pThreadDelay = l_WrkQE->processBucket(pLV_Info, pTagId, pExtentInfo);
                 pTotalDelay = (pThreadDelay ? ((double)(throttleTimerPoppedCount-throttleTimerCount-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
             }
         }

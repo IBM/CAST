@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBTagInfo2.h
+ |    BBLV_Info.h
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -11,8 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_BBTAGINFO2_H_
-#define BB_BBTAGINFO2_H_
+#ifndef BB_BBLV_INFO_H_
+#define BB_BBLV_INFO_H_
 
 #include "bbinternal.h"
 #include "BBJob.h"
@@ -45,27 +45,27 @@ const int REMOVE_TARGET_PFS_FILES = 1;
  | Classes
  *******************************************************************************/
 /**
- * \class BBTagInfo2
+ * \class BBLV_Info
  * Contains the extent information and map of BBTagID->BBTagInfo and used when transfer by_extent
  */
-class BBTagInfo2
+class BBLV_Info
 {
   public:
-    BBTagInfo2() :
+    BBLV_Info() :
         flags(0),
         jobid(0),
         connectionName(UNDEFINED_CONNECTION_NAME),
         hostname(UNDEFINED_HOSTNAME) {
     };
 
-    BBTagInfo2(const string& pConnectionName, const string& pHostName, const uint64_t pJobId) :
+    BBLV_Info(const string& pConnectionName, const string& pHostName, const uint64_t pJobId) :
         flags(0),
         jobid(pJobId),
         connectionName(pConnectionName),
         hostname(pHostName) {
     };
 
-    BBTagInfo2(const string& pConnectionName, const string& pHostName, const BBTagInfoMap& pTagInfoMap) :
+    BBLV_Info(const string& pConnectionName, const string& pHostName, const BBTagInfoMap& pTagInfoMap) :
         flags(0),
         jobid(0),
         connectionName(pConnectionName),
@@ -296,5 +296,5 @@ class BBTagInfo2
     BBTagInfoMap        tagInfoMap;
 };
 
-#endif /* BB_BBTAGINFO2_H_ */
+#endif /* BB_BBLV_INFO_H_ */
 

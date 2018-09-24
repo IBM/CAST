@@ -160,7 +160,7 @@ void BBLV_Metadata::accumulateTotalLocalContributorInfo(const uint64_t pHandle, 
     return;
 }
 
-int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBLV_Info& pLV_Info, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     int rc = 0;
     stringstream errorText;
@@ -219,8 +219,8 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
 
     if (!rc)
     {
-        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
-        tagInfoMap2[*pLVKey] = pTagInfo2;
+        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pLV_Info.getHostName() << " for jobid " << pJobId;
+        tagInfoMap2[*pLVKey] = pLV_Info;
         rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
         if (!rc)
         {
@@ -239,8 +239,8 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
 int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
     int rc = 0;
 
-    BBTagInfo2* l_TagInfo2 = getTagInfo2(pLVKey);
-    if (l_TagInfo2) {
+    BBLV_Info* l_LV_Info = getTagInfo2(pLVKey);
+    if (l_LV_Info) {
         tagInfoMap2.erase(*pLVKey);
     } else {
         rc = -1;
@@ -336,17 +336,17 @@ int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyI
     return rc;
 }
 
-BBTagInfo2* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
+BBLV_Info* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
     for(auto it =  tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         if ((it->first).second == pLVKey->second) {
-            return const_cast <BBTagInfo2*> (&(it->second));
+            return const_cast <BBLV_Info*> (&(it->second));
         }
     }
 
-    return (BBTagInfo2*)0;
+    return (BBLV_Info*)0;
 }
 
-int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBTagInfo2* &pTagInfo2, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {
+int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {
     int rc = 0;
     LVKey l_LVKey;
     BBTagID l_TagId;
@@ -370,7 +370,7 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
                 if((it->first).first == pConnectionName) {
                     // Correct LVKey...  Set the return data...
                     pLVKey = it->first;
-                    pTagInfo2 = &(it->second);
+                    pLV_Info = &(it->second);
                     pTagInfo = l_TagInfo;
                     pTagId = l_TagId;
                     pContrib = pTagInfo->getExpectContrib();
@@ -420,7 +420,7 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
             if((it->first).first == pConnectionName && (it->second).getJobId() == pJob.getJobId()) {
                 if(((it->second).getTagInfo(pHandle, pContribId, l_TagId, l_TagInfo))) {
                     pLVKey = it->first;
-                    pTagInfo2 = &(it->second);
+                    pLV_Info = &(it->second);
                     pTagInfo = l_TagInfo;
                     pTagId = l_TagId;
                     pContrib = pTagInfo->getExpectContrib();
@@ -472,14 +472,14 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
     return rc;
 }
 
-BBTagInfo2* BBLV_Metadata::getTagInfo2(const LVKey* pLVKey) const {
+BBLV_Info* BBLV_Metadata::getTagInfo2(const LVKey* pLVKey) const {
     for(auto it =  tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         if (it->first == *pLVKey) {
-            return const_cast <BBTagInfo2*> (&(it->second));
+            return const_cast <BBLV_Info*> (&(it->second));
         }
     }
 
-    return (BBTagInfo2*)0;
+    return (BBLV_Info*)0;
 }
 
 size_t BBLV_Metadata::getTotalTransferSize(const LVKey& pLVKey) {

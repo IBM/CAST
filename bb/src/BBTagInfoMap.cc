@@ -281,11 +281,11 @@ int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_Exten
     return rc;
 }
 
-void BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+void BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagInfo2, it->first, pHandle, pAppendAsyncRequestFlag, pStatus);
+        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pLV_Info, it->first, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
     return;
@@ -301,13 +301,13 @@ void BBTagInfoMap::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const
     return;
 }
 
-int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBTagInfo2* pTagInfo2, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
 
     for (auto it = tagInfoMap.begin(); ((!rc) && it != tagInfoMap.end()); ++it)
     {
-         rc = it->second.stopTransfer(pLVKey, pTagInfo2, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+         rc = it->second.stopTransfer(pLVKey, pLV_Info, pHostName, pJobId, pJobStepId, pHandle, pContribId);
     }
 
     return rc;

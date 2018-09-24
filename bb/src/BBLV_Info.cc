@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBTagInfo2.cc
+ |    BBLV_Info.cc
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -25,17 +25,17 @@
 #include "xfer.h"
 
 //
-// BBTagInfo2 class
+// BBLV_Info class
 //
 
-void BBTagInfo2::accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors)
+void BBLV_Info::accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors)
 {
     tagInfoMap.accumulateTotalLocalContributorInfo(pHandle, pTotalContributors, pTotalLocalReportingContributors);
 
     return;
 }
 
-int BBTagInfo2::allContribsReported(const uint64_t pHandle, const BBTagID& pTagId)
+int BBLV_Info::allContribsReported(const uint64_t pHandle, const BBTagID& pTagId)
 {
     int rc = 0;
 
@@ -60,7 +60,7 @@ int BBTagInfo2::allContribsReported(const uint64_t pHandle, const BBTagID& pTagI
     return rc;
 }
 
-int BBTagInfo2::allExtentsTransferred(const BBTagID& pTagId)
+int BBLV_Info::allExtentsTransferred(const BBTagID& pTagId)
 {
     int rc = 0;
 
@@ -74,7 +74,7 @@ int BBTagInfo2::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption)
+void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
@@ -95,7 +95,7 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
                 if ((l_Attempts % 15) == 0)
                 {
                     // Display this message every 15 seconds...
-                    LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo2::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                    LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
                                  << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
                 }
 
@@ -121,14 +121,14 @@ void BBTagInfo2::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t*
     return;
 }
 
-void BBTagInfo2::changeServer()
+void BBLV_Info::changeServer()
 {
 
     return;
 }
 
 
-void BBTagInfo2::cleanUpAll(const LVKey* pLVKey)
+void BBLV_Info::cleanUpAll(const LVKey* pLVKey)
 {
     // Cleanup the LVKey...
     tagInfoMap.cleanUpAll(pLVKey);
@@ -136,7 +136,7 @@ void BBTagInfo2::cleanUpAll(const LVKey* pLVKey)
     return;
 }
 
-void BBTagInfo2::dump(char* pSev, const char* pPrefix)
+void BBLV_Info::dump(char* pSev, const char* pPrefix)
 {
     if (!strcmp(pSev,"debug")) {
         LOG(bb,debug) << ">>>>> Start: TagInfo2 <<<<<";
@@ -157,7 +157,7 @@ void BBTagInfo2::dump(char* pSev, const char* pPrefix)
     return;
 }
 
-int BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
+int BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey)
 {
     int l_LockWasReleased = 0;
 
@@ -167,7 +167,7 @@ int BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
         // NOTE: if stageoutEnd() fails, it fills in errstate.  However, we are not setting a rc here...
         if (stageoutEnd(string(""), pLVKey, FORCED))
         {
-            LOG(bb,error) << "BBTagInfo2::ensureStageOutEnded():  Failure from stageoutEnd() for LVKey " << *pLVKey;
+            LOG(bb,error) << "BBLV_Info::ensureStageOutEnded():  Failure from stageoutEnd() for LVKey " << *pLVKey;
         }
     } else {
         uint32_t i = 0;
@@ -189,7 +189,7 @@ int BBTagInfo2::ensureStageOutEnded(const LVKey* pLVKey)
     return l_LockWasReleased;
 }
 
-BBSTATUS BBTagInfo2::getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo)
+BBSTATUS BBLV_Info::getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo)
 {
     BBSTATUS l_Status = BBNONE;
 
@@ -202,7 +202,7 @@ BBSTATUS BBTagInfo2::getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo)
     return l_Status;
 }
 
-BBSTATUS BBTagInfo2::getStatus(const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo)
+BBSTATUS BBLV_Info::getStatus(const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo)
 {
     BBSTATUS l_Status = BBNONE;
 
@@ -219,7 +219,7 @@ BBSTATUS BBTagInfo2::getStatus(const uint64_t pHandle, const uint32_t pContribId
     return l_Status;
 }
 
-int BBTagInfo2::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[])
+int BBLV_Info::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[])
 {
     int rc = 0;
     stringstream errorText;
@@ -255,11 +255,11 @@ int BBTagInfo2::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const 
     return rc;
 }
 
-int BBTagInfo2::prepareForRestart(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass)
+int BBLV_Info::prepareForRestart(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass)
 {
     int rc = 0;
 
-    LOG(bb,debug) << "BBTagInfo2::prepareForRestart(): Pass " << pPass;
+    LOG(bb,debug) << "BBLV_Info::prepareForRestart(): Pass " << pPass;
 
     // First, perform handle related processing to prepare for the restart
     rc = pTagInfo->prepareForRestart(pConnectionName, pLVKey, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
@@ -268,7 +268,7 @@ int BBTagInfo2::prepareForRestart(const string& pConnectionName, const LVKey* pL
     {
         // NOTE:  Today, the stageout started flag is NOT turned on for an LVKey/jobid/handle.
         //        Therefore we do not attempt to replicate that flag, and related ones,
-        //        in the BBLVKey_ExtentInfo flags data contained within BBTagInfo2.
+        //        in the BBLVKey_ExtentInfo flags data contained within BBLV_Info.
         //        Upon restart to a new bbServer, we *should* copy those flag values
         //        from the cross bbServer metadata to the newly constructed local
         //        metadata.
@@ -288,7 +288,7 @@ int BBTagInfo2::prepareForRestart(const string& pConnectionName, const LVKey* pL
     return rc;
 }
 
-int BBTagInfo2::recalculateFlags(const string& pConnectionName, const LVKey* pLVKey, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo, const int64_t pHandle, const int32_t pContribId)
+int BBLV_Info::recalculateFlags(const string& pConnectionName, const LVKey* pLVKey, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo, const int64_t pHandle, const int32_t pContribId)
 {
     int rc = 0;
 
@@ -298,7 +298,7 @@ int BBTagInfo2::recalculateFlags(const string& pConnectionName, const LVKey* pLV
     return rc;
 }
 
-void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo)
+void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo)
 {
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     bool l_UpdateTransferStatus = false;
@@ -421,7 +421,7 @@ void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* 
         // Update handle status
         if (HandleFile::update_xbbServerHandleStatus(pLVKey, pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getTransferDef()->getJobStepId(), pExtentInfo.getHandle(), 0))
         {
-            LOG(bb,error) << "BBTagInfo2::removeFromInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
+            LOG(bb,error) << "BBLV_Info::removeFromInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
                           << ", jobstepid " << pExtentInfo.getTransferDef()->getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib();
         }
     }
@@ -438,7 +438,7 @@ void BBTagInfo2::removeFromInFlight(const string& pConnectionName, const LVKey* 
     return;
 }
 
-int BBTagInfo2::retrieveTransfers(BBTransferDefs& pTransferDefs)
+int BBLV_Info::retrieveTransfers(BBTransferDefs& pTransferDefs)
 {
     int rc = 0;
 
@@ -469,7 +469,7 @@ int BBTagInfo2::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBTagInfo2::sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef)
+void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef)
 {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_CONTRIBID, l_Complete);
@@ -543,7 +543,7 @@ void BBTagInfo2::sendTransferCompleteForContribIdMsg(const string& pConnectionNa
     return;
 }
 
-void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef)
+void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef)
 {
     int rc = 0;
 
@@ -698,7 +698,7 @@ void BBTagInfo2::sendTransferCompleteForFileMsg(const string& pConnectionName, c
     return;
 }
 
-void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_HANDLE, l_Complete);
@@ -808,7 +808,7 @@ void BBTagInfo2::sendTransferCompleteForHandleMsg(const string& pHostName, const
     return;
 }
 
-void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
+void BBLV_Info::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
 {
     BBTagInfo* l_TagInfo = tagInfoMap.getTagInfo(pTagId);
     if (l_TagInfo)
@@ -821,7 +821,7 @@ void BBTagInfo2::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pH
     return;
 }
 
-void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption)
+void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption)
 {
     if (jobid == pJobId)
     {
@@ -836,7 +836,7 @@ void BBTagInfo2::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
     return;
 }
 
-int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue)
+int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue)
 {
     int rc = 0;
 
@@ -851,7 +851,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                 {
                     if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
                     {
-                        LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                        LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", connection " \
                                      << connectionName << ", " << *pLVKey << ", jobid " << jobid \
                                      << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
                     }
@@ -871,7 +871,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                         // Connection being suspended
                         l_Temp = "suspend";
                     }
-                    LOG(bb,info) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+                    LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", connection " \
                                  << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
                                  << ". Tolerated condition for a " << l_Temp << " operation.";
                 }
@@ -881,7 +881,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
                     break;
 
                 default:
-                    LOG(bb,info) << "BBTagInfo2::setSuspended(): Unexpected return code " << rc \
+                    LOG(bb,info) << "BBLV_Info::setSuspended(): Unexpected return code " << rc \
                                  << " received for hostname " << pHostName << ", connection " \
                                  << connectionName << ", jobid " << jobid << ", " << *pLVKey \
                                  << " when attempting the suspend or resume operation on the work queue.";
@@ -896,7 +896,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
             // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
             // Return an error message.
             rc = -1;
-            LOG(bb,error) << "BBTagInfo2::setSuspended(): For hostname " << pHostName << ", connection " \
+            LOG(bb,error) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", connection " \
                           << connectionName << ", jobid " << jobid \
                           << ", the remove logical volume request has been run, or is currently running" \
                           << " for " << *pLVKey << ". Suspend or resume operations are not allowed for this environment.";
@@ -910,7 +910,7 @@ int BBTagInfo2::setSuspended(const LVKey* pLVKey, const string& pHostName, const
     return rc;
 }
 
-int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId)
+int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId)
 {
     int rc = 0;
 
@@ -958,7 +958,7 @@ int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
             // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
             // Return an error message.
             rc = -1;
-            LOG(bb,error) << "BBTagInfo2::stopTransfer(): For hostname " << pHostName << ", connection " \
+            LOG(bb,error) << "BBLV_Info::stopTransfer(): For hostname " << pHostName << ", connection " \
                           << connectionName << ", jobid " << pJobId << ", jobidstep " << pJobStepId \
                           << ", handle " << pHandle << ", contribid " << pContribId \
                           << ", the remove logical volume request has been run, or is currently running for " << *pLVKey \
@@ -969,7 +969,7 @@ int BBTagInfo2::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
     return rc;
 }
 
-void BBTagInfo2::updateAllContribsReported(const LVKey* pLVKey)
+void BBLV_Info::updateAllContribsReported(const LVKey* pLVKey)
 {
     int l_AllContribsReported = 0;
     tagInfoMap.updateAllContribsReported(pLVKey, l_AllContribsReported);
@@ -980,7 +980,7 @@ void BBTagInfo2::updateAllContribsReported(const LVKey* pLVKey)
     return;
 }
 
-int BBTagInfo2::updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight)
+int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight)
 {
     int rc = 0;
 
@@ -1075,7 +1075,7 @@ int BBTagInfo2::updateAllTransferStatus(const string& pConnectionName, const LVK
     return rc;
 }
 
-void BBTagInfo2::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, const BBTagID& pTagId, const int32_t pContribId, int& pNewStatus, uint32_t pNumberOfExpectedInFlight)
+void BBLV_Info::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, const BBTagID& pTagId, const int32_t pContribId, int& pNewStatus, uint32_t pNumberOfExpectedInFlight)
 {
     // NOTE:  The following method retrieves its information from the xbbServer metadata...
     if (allContribsReported(pExtentInfo.getHandle(), pTagId)) {

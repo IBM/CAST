@@ -24,7 +24,7 @@
  | Forward declarations
  *******************************************************************************/
 class BBTagID;
-class BBTagInfo2;
+class BBLV_Info;
 class BBTransferDef;
 class Extent;
 
