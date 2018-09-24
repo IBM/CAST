@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBTagInfoMap2.h
+ |    BBLV_Metadata.h
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -11,8 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_BBTAGINFOMAP2_H_
-#define BB_BBTAGINFOMAP2_H_
+#ifndef BB_BBLVMETADATA_H_
+#define BB_BBLVMETADATA_H_
 
 #include <map>
 #include <vector>
@@ -32,10 +32,10 @@ class BBTagInfo;
 
 
 /**
- * \class BBTagInfoMap2
- * Defines the map of LVKey->BBTagInfo2
+ * \class BBLV_Metadata
+ * Defines the map of LVKey->BBLVInfo
  */
-class BBTagInfoMap2
+class BBLV_Metadata
 {
   public:
     // Static methods
@@ -70,4 +70,4 @@ class BBTagInfoMap2
     map<LVKey, BBTagInfo2> tagInfoMap2;
 };
 
-#endif /* BB_BBTAGINFOMAP2_H_ */
+#endif /* BB_BBLVMETADATA_H_ */

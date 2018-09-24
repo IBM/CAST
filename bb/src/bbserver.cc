@@ -54,7 +54,7 @@ namespace po = boost::program_options;
 
 
 // Metadata that is kept on each bbserver...
-BBTagInfoMap2 metadata;
+BBLV_Metadata metadata;
 WRKQMGR wrkqmgr;
 
 // Timer used to for resize SSD messages sent to bbproxy
