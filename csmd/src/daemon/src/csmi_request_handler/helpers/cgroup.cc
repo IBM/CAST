@@ -317,7 +317,7 @@ void CGroup::ClearCGroups(bool removeSystem)
             bool isSystem = removeSystem && strcmp( dirDetails->d_name, CSM_SYSTEM ) == 0;
             // Ignore all hidden files.
             if ( dirDetails->d_name[0] != _HIDDEN_CHAR  && (
-                    strncmp( dirDetails->d_name, ALLOC, ALLOC_LEN) == 0 || isSystem )
+                    strncmp( dirDetails->d_name, ALLOC, ALLOC_LEN) == 0 )
                 )
             {
                 try 
