@@ -80,10 +80,10 @@
 // NOTE: For stop transfers, these bits are not altered.  If new CNs will be introduced as part of the ensuing restart,
 //       new LVUuidFile(s) will be created and they will have their own set of bits.  If a new ESS is introduced as part
 //       of the ensuing restart, these bits will still apply.
-#define BBLVK_Stage_Out_Start                         0x0000010000000000
-#define BBLVK_Stage_Out_End                           0x0000020000000000
-#define BBLVK_Stage_Out_End_Complete                  0x0000040000000000
-#define BBLVK_Suspended                               0x0000080000000000
+#define BBLV_Stage_Out_Start                         0x0000010000000000
+#define BBLV_Stage_Out_End                           0x0000020000000000
+#define BBLV_Stage_Out_End_Complete                  0x0000040000000000
+#define BBLV_Suspended                               0x0000080000000000
 
 // NOTE: Low order twelfth nibble of BBTransferDef.flags
 // NOTE: BBTD_All_CN_CP_Transfers is set in the transfer definition by bbbproxy processing,

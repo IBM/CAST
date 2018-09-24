@@ -11,13 +11,13 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_BBLV_INFO_H_
-#define BB_BBLV_INFO_H_
+#ifndef BB_BBLVINFO_H_
+#define BB_BBLVINFO_H_
 
 #include "bbinternal.h"
 #include "BBJob.h"
-#include "BBLV_Metadata.h"
 #include "BBLV_ExtentInfo.h"
+#include "BBLV_Metadata.h"
 #include "BBStatus.h"
 #include "BBTagID.h"
 #include "BBTagInfoMap.h"
@@ -288,9 +288,9 @@ class BBLV_Info
     string              connectionName; //  NOTE: Currently only used to send handle completions messages back to
                                         //        bbProxy via the async message file
     string              hostname;
-    BBLV_ExtentInfo  extentInfo;
+    BBLV_ExtentInfo     extentInfo;
     BBTagInfoMap        tagInfoMap;
 };
 
-#endif /* BB_BBLV_INFO_H_ */
+#endif /* BB_BBLVINFO_H_ */
 

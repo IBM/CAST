@@ -149,7 +149,7 @@ class BBLV_ExtentInfo
     }
 
     inline int isSuspended() {
-        RETURN_FLAG(BBLVK_Suspended);
+        RETURN_FLAG(BBLV_Suspended);
     }
 
     inline void mergeFlags(const uint64_t pFlags) {
@@ -178,15 +178,15 @@ class BBLV_ExtentInfo
     }
 
     inline int stageOutEnded() {
-        RETURN_FLAG(BBLVK_Stage_Out_End);
+        RETURN_FLAG(BBLV_Stage_Out_End);
     }
 
     inline int stageOutEndedComplete() {
-        RETURN_FLAG(BBLVK_Stage_Out_End_Complete);
+        RETURN_FLAG(BBLV_Stage_Out_End_Complete);
     }
 
     inline int stageOutStarted() {
-        RETURN_FLAG(BBLVK_Stage_Out_Start);
+        RETURN_FLAG(BBLV_Stage_Out_Start);
     }
 
     uint64_t            flags;

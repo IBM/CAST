@@ -566,14 +566,14 @@ void BBLV_ExtentInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64
 
 void BBLV_ExtentInfo::setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
 {
-    if ((((flags & BBLVK_Stage_Out_End) == 0) && pValue) || ((flags & BBLVK_Stage_Out_End) && (!pValue)))
+    if ((((flags & BBLV_Stage_Out_End) == 0) && pValue) || ((flags & BBLV_Stage_Out_End) && (!pValue)))
     {
         LOG(bb,info) << "BBLV_ExtentInfo::setStageOutEnded(): For " << *pLVKey \
-                     << " -> Changing from: " << ((flags & BBLVK_Stage_Out_End) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                     << " -> Changing from: " << ((flags & BBLV_Stage_Out_End) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
-    SET_FLAG(BBLVK_Stage_Out_End, pValue);
+    SET_FLAG(BBLV_Stage_Out_End, pValue);
 
-    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLVK_Stage_Out_End, pValue);
+    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLV_Stage_Out_End, pValue);
     if (rc)
     {
         if (rc != -2)
@@ -591,14 +591,14 @@ void BBLV_ExtentInfo::setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobI
 
 void BBLV_ExtentInfo::setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
 {
-    if ((((flags & BBLVK_Stage_Out_End_Complete) == 0) && pValue) || ((flags & BBLVK_Stage_Out_End_Complete) && (!pValue)))
+    if ((((flags & BBLV_Stage_Out_End_Complete) == 0) && pValue) || ((flags & BBLV_Stage_Out_End_Complete) && (!pValue)))
     {
         LOG(bb,info) << "BBLV_ExtentInfo::setStageOutEndedComplete(): For " << *pLVKey \
-                    << " -> Changing from: " << ((flags & BBLVK_Stage_Out_End_Complete) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                    << " -> Changing from: " << ((flags & BBLV_Stage_Out_End_Complete) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
-    SET_FLAG(BBLVK_Stage_Out_End_Complete, pValue);
+    SET_FLAG(BBLV_Stage_Out_End_Complete, pValue);
 
-    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLVK_Stage_Out_End_Complete, pValue);
+    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLV_Stage_Out_End_Complete, pValue);
     if (rc)
     {
         if (rc != -2)
@@ -616,14 +616,14 @@ void BBLV_ExtentInfo::setStageOutEndedComplete(const LVKey* pLVKey, const uint64
 
 void BBLV_ExtentInfo::setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
 {
-    if ((((flags & BBLVK_Stage_Out_Start) == 0) && pValue) || ((flags & BBLVK_Stage_Out_Start) && (!pValue)))
+    if ((((flags & BBLV_Stage_Out_Start) == 0) && pValue) || ((flags & BBLV_Stage_Out_Start) && (!pValue)))
     {
         LOG(bb,info) << "BBLV_ExtentInfo::setStageOutStarted(): For " << *pLVKey \
-                     << " -> Changing from: " << ((flags & BBLVK_Stage_Out_Start) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                     << " -> Changing from: " << ((flags & BBLV_Stage_Out_Start) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
-    SET_FLAG(BBLVK_Stage_Out_Start, pValue);
+    SET_FLAG(BBLV_Stage_Out_Start, pValue);
 
-    if (LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLVK_Stage_Out_Start, pValue))
+    if (LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLV_Stage_Out_Start, pValue))
     {
         LOG(bb,error) << "BBLV_ExtentInfo::setStageOutStarted():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
     }
@@ -642,12 +642,12 @@ int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, 
         {
             case 0:
             {
-                if ((((flags & BBLVK_Suspended) == 0) && pValue) || ((flags & BBLVK_Suspended) && (!pValue)))
+                if ((((flags & BBLV_Suspended) == 0) && pValue) || ((flags & BBLV_Suspended) && (!pValue)))
                 {
                     LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", " << *pLVKey << ", jobid " << pJobId \
-                                 << " -> Changing from: " << ((flags & BBLVK_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                                 << " -> Changing from: " << ((flags & BBLV_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
                 }
-                SET_FLAG(BBLVK_Suspended, pValue);
+                SET_FLAG(BBLV_Suspended, pValue);
             }
             break;
 
@@ -655,7 +655,7 @@ int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, 
             {
                 // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
                 //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
-                SET_FLAG(BBLVK_Suspended, pValue);
+                SET_FLAG(BBLV_Suspended, pValue);
 
                 string l_Temp = "resume";
                 if (pValue)

@@ -20,8 +20,8 @@ using namespace boost::archive;
 #include "bbflags.h"
 #include "bbinternal.h"
 #include "bbio.h"
-#include "BBLV_Metadata.h"
 #include "BBLV_ExtentInfo.h"
+#include "BBLV_Metadata.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
 
@@ -116,7 +116,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                 rc = l_LVUuidFile.load(lvuuidfile.string());
                                                 if (!rc)
                                                 {
-                                                    if ((pTransferDefs.flags & ALL_DEFINITIONS) || (!(l_LVUuidFile.flags & BBLVK_Stage_Out_End)))
+                                                    if ((pTransferDefs.flags & ALL_DEFINITIONS) || (!(l_LVUuidFile.flags & BBLV_Stage_Out_End)))
                                                     {
                                                         // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
                                                         //       because we want to also include transfer definitions with files that are not all closed or have failed.
