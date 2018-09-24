@@ -113,6 +113,10 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERRO
            COMMIT;
 THE_END`
 )
+
+# Escape special characters
+sed -i "s:([\b\f\n\r\t\"\\):\\\1:g" ${swap_file}
+
 awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file} \
     >> ${json_file} 
 if [ $? -eq 0]
