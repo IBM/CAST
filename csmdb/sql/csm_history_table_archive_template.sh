@@ -106,7 +106,7 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname << THE_E
                         DROP COLUMN id;
 
                         COPY (select row_to_json(temp_$table_name) from temp_$table_name)
-                        to '$swap_file' CSV QUOTE '$';
+                        to '$swap_file';
 
                         COPY (select count(*) from temp_$table_name)
                         to '$cur_path/${parent_pid}_$table_name.count';
