@@ -842,65 +842,7 @@ int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, const 
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
-        if (!stageOutStarted())
-        {
-            rc = wrkqmgr.setSuspended(pLVKey, pValue);
-            switch (rc)
-            {
-                case 0:
-                {
-                    if ((((flags & BBTI2_Suspended) == 0) && pValue) || ((flags & BBTI2_Suspended) && (!pValue)))
-                    {
-                        LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", connection " \
-                                     << connectionName << ", " << *pLVKey << ", jobid " << jobid \
-                                     << " -> Changing from: " << ((flags & BBTI2_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
-                    }
-                    SET_FLAG(BBTI2_Suspended, pValue);
-                }
-                break;
-
-                case -2:
-                {
-                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
-                    //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
-                    SET_FLAG(BBTI2_Suspended, pValue);
-
-                    string l_Temp = "resume";
-                    if (pValue)
-                    {
-                        // Connection being suspended
-                        l_Temp = "suspend";
-                    }
-                    LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", connection " \
-                                 << connectionName << ", jobid " << jobid << ", work queue not present for " << *pLVKey \
-                                 << ". Tolerated condition for a " << l_Temp << " operation.";
-                }
-                break;
-
-                case 2:
-                    break;
-
-                default:
-                    LOG(bb,info) << "BBLV_Info::setSuspended(): Unexpected return code " << rc \
-                                 << " received for hostname " << pHostName << ", connection " \
-                                 << connectionName << ", jobid " << jobid << ", " << *pLVKey \
-                                 << " when attempting the suspend or resume operation on the work queue.";
-                    rc = -1;
-                    break;
-            }
-        }
-        else
-        {
-            // Stageout end processing has started.  Therefore, the ability to do anything using this LVKey
-            // will soon be, or has already, been removed.  (i.e. the local cache of data is being/or has been
-            // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
-            // Return an error message.
-            rc = -1;
-            LOG(bb,error) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", connection " \
-                          << connectionName << ", jobid " << jobid \
-                          << ", the remove logical volume request has been run, or is currently running" \
-                          << " for " << *pLVKey << ". Suspend or resume operations are not allowed for this environment.";
-        }
+        rc = extentInfo.setSuspended(pLVKey, pHostName, jobid, pValue);
     }
     else
     {

@@ -52,21 +52,18 @@ class BBLV_Info
 {
   public:
     BBLV_Info() :
-        flags(0),
         jobid(0),
         connectionName(UNDEFINED_CONNECTION_NAME),
         hostname(UNDEFINED_HOSTNAME) {
     };
 
     BBLV_Info(const string& pConnectionName, const string& pHostName, const uint64_t pJobId) :
-        flags(0),
         jobid(pJobId),
         connectionName(pConnectionName),
         hostname(pHostName) {
     };
 
     BBLV_Info(const string& pConnectionName, const string& pHostName, const BBTagInfoMap& pTagInfoMap) :
-        flags(0),
         jobid(0),
         connectionName(pConnectionName),
         hostname(pHostName),
@@ -196,7 +193,7 @@ class BBLV_Info
     };
 
     inline int isSuspended() {
-        RETURN_FLAG(BBTI2_Suspended);
+        return extentInfo.isSuspended();
     }
 
     inline void mergeFlags(const uint64_t pFlags) {
@@ -287,7 +284,6 @@ class BBLV_Info
         return extentInfo.updateTransferStatus(pLVKey, pExtentInfo, pTransferDef, pNewStatus, pExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
     }
 
-    uint64_t            flags;
     uint64_t            jobid;
     string              connectionName; //  NOTE: Currently only used to send handle completions messages back to
                                         //        bbProxy via the async message file

@@ -74,8 +74,7 @@
 //       will be removed from the contribs file.
 #define BBTI_All_Contribs_Reported                    0x0000000100000000
 
-// NOTE: Low order tenth nibble of BBLV_Info.flags
-#define BBTI2_Suspended                               0x0000001000000000
+// NOTE: Low order tenth nibble of Extent.flags and xbbServer metadata (ContribIdFile) (not defined)
 
 // NOTE: Low order eleventh nibble of BBLVKey_ExtentInfo.flags and xbbServer metadata (LVUuidFile, first three bits only)
 // NOTE: For stop transfers, these bits are not altered.  If new CNs will be introduced as part of the ensuing restart,
@@ -84,6 +83,7 @@
 #define BBLVK_Stage_Out_Start                         0x0000010000000000
 #define BBLVK_Stage_Out_End                           0x0000020000000000
 #define BBLVK_Stage_Out_End_Complete                  0x0000040000000000
+#define BBLVK_Suspended                               0x0000080000000000
 
 // NOTE: Low order twelfth nibble of BBTransferDef.flags
 // NOTE: BBTD_All_CN_CP_Transfers is set in the transfer definition by bbbproxy processing,

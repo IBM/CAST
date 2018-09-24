@@ -111,6 +111,7 @@ class BBLVKey_ExtentInfo
     void setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
     void setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
     void setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
+    int setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const int pValue=1);
     int sortExtents(const LVKey* pLVKey, uint64_t* pHandle=0, uint32_t* pContribId=0);
     void updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight);
     void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight);
@@ -145,6 +146,10 @@ class BBLVKey_ExtentInfo
         } else {
             return ExtentInfo();
         }
+    }
+
+    inline int isSuspended() {
+        RETURN_FLAG(BBLVK_Suspended);
     }
 
     inline void mergeFlags(const uint64_t pFlags) {
