@@ -121,9 +121,6 @@ void CSMI_FORWARD_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::v
       std::string payload=msg.GetData();
       if ( msg.GetErr() || (! msg.Validate()) )
       {
-        LOG(csmd, info) << "CSMI_FORWARD_HANDLER: Forwarding ErrorMsg to client "
-            << ( dst_addr != nullptr ? dst_addr->Dump() : "N/A" )
-            << " for cmd: " << csmi_cmds_to_str( msg.GetCommandType() );
         csmi_err_t *err = csmi_err_unpack(msg.GetData().c_str(), msg.GetDataLen());
         if (err) 
         {
@@ -140,6 +137,10 @@ void CSMI_FORWARD_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::v
               payload = std::string(buf, bufLen);
               free(buf);
             }
+            LOG(csmd, info) << csmi_cmds_to_str( msg.GetCommandType() )
+                << "[" << msg.GetReservedID() << "];"
+                << " CSMI_FORWARD_HANDLER: to client " << ( dst_addr != nullptr ? dst_addr->Dump() : "N/A" )
+                << "; ErrorMsg: " << err->errmsg;
           }
           csmi_err_free(err);
         }
