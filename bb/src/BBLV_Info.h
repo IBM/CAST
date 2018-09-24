@@ -17,7 +17,7 @@
 #include "bbinternal.h"
 #include "BBJob.h"
 #include "BBLV_Metadata.h"
-#include "BBLVKey_ExtentInfo.h"
+#include "BBLV_ExtentInfo.h"
 #include "BBStatus.h"
 #include "BBTagID.h"
 #include "BBTagInfoMap.h"
@@ -88,7 +88,7 @@ class BBLV_Info
     void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef);
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
-    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
+    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLV_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId);
@@ -136,7 +136,7 @@ class BBLV_Info
         return connectionName;
     }
 
-    inline BBLVKey_ExtentInfo* getExtentInfo() {
+    inline BBLV_ExtentInfo* getExtentInfo() {
         return &extentInfo;
     }
 
@@ -262,7 +262,7 @@ class BBLV_Info
         return extentInfo.stageOutStarted();
     }
 
-    inline int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLVKey_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight) {
+    inline int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight) {
         return tagInfoMap.updateAllTransferHandleStatus(pConnectionName, pLVKey, pJobId, pLVKey_ExtentInfo, pNumberOfExpectedInFlight);
     }
 
@@ -288,7 +288,7 @@ class BBLV_Info
     string              connectionName; //  NOTE: Currently only used to send handle completions messages back to
                                         //        bbProxy via the async message file
     string              hostname;
-    BBLVKey_ExtentInfo  extentInfo;
+    BBLV_ExtentInfo  extentInfo;
     BBTagInfoMap        tagInfoMap;
 };
 

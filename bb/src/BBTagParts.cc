@@ -181,7 +181,7 @@ BBTransferDef* BBTagParts::getTransferDef(const uint32_t pContribId) const {
     return (BBTransferDef*)0;
 }
 
-int BBTagParts::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo)
+int BBTagParts::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBLVKey_ExtentInfo.h
+ |    BBLV_ExtentInfo.h
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -11,8 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_BBLVKEY_EXTENTINFO_H_
-#define BB_BBLVKEY_EXTENTINFO_H_
+#ifndef BB_BBLVEXTENTINFO_H_
+#define BB_BBLVEXTENTINFO_H_
 
 #include <map>
 
@@ -35,18 +35,18 @@ typedef std::pair<uint32_t, BBTransferDef*> InFlightSubKey;     // First is targ
 typedef std::pair<uint64_t, InFlightSubKey> InFlightKey;        // First is lba.maxkey
 
 /**
- * \class BBLVKey_ExtentInfo
+ * \class BBLV_ExtentInfo
  * Defines the information related to all extents when transferring by_extent
  */
-class BBLVKey_ExtentInfo
+class BBLV_ExtentInfo
 {
   public:
-    BBLVKey_ExtentInfo() :
+    BBLV_ExtentInfo() :
         flags(0) {
 //        allExtents.reserve(4096);
     }
 
-    BBLVKey_ExtentInfo(const BBLVKey_ExtentInfo& src) {
+    BBLV_ExtentInfo(const BBLV_ExtentInfo& src) {
         flags = src.flags;
         allExtents = src.allExtents;
         inflight = src.inflight;
@@ -201,4 +201,4 @@ class BBLVKey_ExtentInfo
     map<InFlightKey, ExtentInfo> inflight;          ///< Map of in-flight extents
 };
 
-#endif /* BB_BBLVKEY_EXTENTINFO_H_ */
+#endif /* BB_BBLVEXTENTINFO_H_ */

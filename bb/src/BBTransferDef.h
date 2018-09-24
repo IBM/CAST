@@ -91,7 +91,7 @@
  | Forward declarations
  *******************************************************************************/
 class BBIO;
-class BBLVKey_ExtentInfo;
+class BBLV_ExtentInfo;
 
 /*******************************************************************************
  | Constants
@@ -319,8 +319,8 @@ class BBTransferDef
     void cleanUp();
     void cleanUpIOMap();
     #if BBSERVER
-    void copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLVKey_ExtentInfo* pExtentInfo);
-    int copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
+    void copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLV_ExtentInfo* pExtentInfo);
+    int copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
 #endif
     void dumpExtents(const char* pSev, const char* pPrefix=0) const;
     void dump(const char* pSev, const char* pPrefix=0);
@@ -343,7 +343,7 @@ class BBTransferDef
     uint64_t retrieveJobId();
     uint64_t retrieveJobStepId();
 #if BBSERVER
-    int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
+    int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);

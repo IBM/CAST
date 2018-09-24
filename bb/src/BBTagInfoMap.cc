@@ -22,7 +22,7 @@ namespace bfs = boost::filesystem;
 namespace bs = boost::system;
 
 #include "bberror.h"
-#include "BBLVKey_ExtentInfo.h"
+#include "BBLV_ExtentInfo.h"
 #include "BBTransferDef.h"
 #include "bbinternal.h"
 #include "bbwrkqmgr.h"
@@ -269,7 +269,7 @@ void BBTagInfoMap::removeTransferDef(const BBTagID& pTagId, const uint32_t pCont
     return;
 }
 
-int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo)
+int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
 
@@ -330,7 +330,7 @@ void BBTagInfoMap::updateAllContribsReported(const LVKey* pLVKey, int& pAllRepor
     return;
 }
 
-int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLVKey_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight)
+int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight)
 {
     int rc = 0;
 

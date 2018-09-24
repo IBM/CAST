@@ -268,7 +268,7 @@ int BBLV_Info::prepareForRestart(const string& pConnectionName, const LVKey* pLV
     {
         // NOTE:  Today, the stageout started flag is NOT turned on for an LVKey/jobid/handle.
         //        Therefore we do not attempt to replicate that flag, and related ones,
-        //        in the BBLVKey_ExtentInfo flags data contained within BBLV_Info.
+        //        in the BBLV_ExtentInfo flags data contained within BBLV_Info.
         //        Upon restart to a new bbServer, we *should* copy those flag values
         //        from the cross bbServer metadata to the newly constructed local
         //        metadata.
@@ -808,7 +808,7 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
     return;
 }
 
-void BBLV_Info::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
+void BBLV_Info::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLV_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue)
 {
     BBTagInfo* l_TagInfo = tagInfoMap.getTagInfo(pTagId);
     if (l_TagInfo)

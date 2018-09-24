@@ -31,7 +31,7 @@
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
-class BBLVKey_ExtentInfo;
+class BBLV_ExtentInfo;
 class BBTagParts;
 class ContribIdFile;
 class HandleFile;
@@ -70,12 +70,12 @@ class BBTagInfoMap
     int isUniqueHandle(uint64_t pHandle);
     void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
     void removeTransferDef(const BBTagID& pTagId, const uint32_t pContribId);
-    int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
+    int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     void updateAllContribsReported(const LVKey* pLVKey, int& pAllReported);
-    int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLVKey_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight);
+    int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight);
     int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo& pTagInfo);
 
     inline void removeTagInfo(const BBTagID& pTagId) {

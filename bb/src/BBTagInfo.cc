@@ -545,7 +545,7 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
     return rc;
 }
 
-int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo) {
+int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo) {
     int rc = 0;
 
     if (pTransferDefs.getHandle() == UNDEFINED_HANDLE || pTransferDefs.getHandle() == transferHandle)

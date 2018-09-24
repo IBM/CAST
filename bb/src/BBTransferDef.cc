@@ -21,7 +21,7 @@ using namespace boost::archive;
 #include "bbinternal.h"
 #include "bbio.h"
 #include "BBLV_Metadata.h"
-#include "BBLVKey_ExtentInfo.h"
+#include "BBLV_ExtentInfo.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
 
@@ -826,7 +826,7 @@ void BBTransferDef::cleanUp() {
 }
 
 #if BBSERVER
-void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLVKey_ExtentInfo* pExtentInfo)
+void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLV_ExtentInfo* pExtentInfo)
 {
     for (size_t i=0; i<files.size(); i=i+2)
     {
@@ -874,7 +874,7 @@ void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSo
     return;
 }
 
-int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo)
+int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
 
@@ -1238,7 +1238,7 @@ uint64_t BBTransferDef::retrieveJobStepId() {
 }
 
 #ifdef BBSERVER
-int BBTransferDef::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo)
+int BBTransferDef::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
     stringstream errorText;

@@ -76,7 +76,7 @@
 
 // NOTE: Low order tenth nibble of Extent.flags and xbbServer metadata (ContribIdFile) (not defined)
 
-// NOTE: Low order eleventh nibble of BBLVKey_ExtentInfo.flags and xbbServer metadata (LVUuidFile, first three bits only)
+// NOTE: Low order eleventh nibble of BBLV_ExtentInfo.flags and xbbServer metadata (LVUuidFile, first three bits only)
 // NOTE: For stop transfers, these bits are not altered.  If new CNs will be introduced as part of the ensuing restart,
 //       new LVUuidFile(s) will be created and they will have their own set of bits.  If a new ESS is introduced as part
 //       of the ensuing restart, these bits will still apply.
@@ -93,14 +93,14 @@
 #define BBTD_Built_Via_Retrieve_Transfer_Definition   0x0000400000000000
 #define BBTD_Extents_Enqueued                         0x0000800000000000
 
-// NOTE: Low order thirteenth nibble of BBTransferDef.flags and BBLVKey_ExtentInfo.flags
-// NOTE: BBLVKey_ExtentInfo::mergeFlags() is dependent on the nibble location of the flags shared
-//       between BBTransferDef.flags and BBLVKey_ExtentInfo.flags.  If these nibbles move, verify that the
+// NOTE: Low order thirteenth nibble of BBTransferDef.flags and BBLV_ExtentInfo.flags
+// NOTE: BBLV_ExtentInfo::mergeFlags() is dependent on the nibble location of the flags shared
+//       between BBTransferDef.flags and BBLV_ExtentInfo.flags.  If these nibbles move, verify that the
 //       merge code is still correct.
 #define BBTD_Resize_Logical_Volume_During_Stageout    0x0002000000000000
 #define BBTD_BSCFS_In_Request                         0x0004000000000000
 
-// NOTE: Low order fourteenth nibble of BBTransferDef.flags, BBTagInfo.flags, BBLVKey_ExtentInfo.flags, and
+// NOTE: Low order fourteenth nibble of BBTransferDef.flags, BBTagInfo.flags, BBLV_ExtentInfo.flags, and
 //       xbbServer metadata (ContribIdFile (contribid and each file) and HandleFile)
 // NOTE: 'All_Extents_Transferred' doesn't indicate success and/or failure for any of the
 //       individual extent transfers.  It only indicates that there are no additional extents
