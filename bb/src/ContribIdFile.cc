@@ -89,11 +89,11 @@ int ContribIdFile::isStopped(const BBJob pJob, const uint64_t pHandle, const uin
     // NOTE: The handle file does not have to be locked exclusive here because the stop transfer processsing 'waits'
     //       for the extents to be enqueued.  The processing of competing start/restart transfer definition processing is
     //       serialized via the transfer queue that should already be held when this method is invoked.
-    rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
-    if (rc >= 0)
+    int rc2 = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
+    if (rc2 >= 0)
     {
         // Process the contribid file
-        if (rc == 1 && l_ContribIdFile)
+        if (rc2 == 1 && l_ContribIdFile)
         {
             if (l_ContribIdFile->stopped())
             {
