@@ -1094,7 +1094,7 @@ void Configuration::CreateThreadPool()
     // Note: if a job runs for longer than MAX_JOB_IN_SECONDS, DCGM job stats collected will truncate the data collected
     // to the last MAX_JOB_IN_SECONDS seconds worth of data
     const uint64_t DEFAULT_UPDATE_INTERVAL_S(30);      // set in seconds here, it will be scaled later
-    const uint32_t MAX_JOB_IN_SECONDS(60*60*24*30);
+    const uint32_t MAX_JOB_IN_SECONDS(60*60*24*15);
 
     uint_val = GetValueInConfig( std::string("csm.tuning.dcgm_update_interval_s") );
     if( ! uint_val.empty() )
@@ -1113,7 +1113,7 @@ void Configuration::CreateThreadPool()
       enabled = true;
     }
     else
-      _Tweaks._DCGM_max_keep_age_s = (MAX_JOB_IN_SECONDS*3);  // Include some margin of error based on max expected job length
+      _Tweaks._DCGM_max_keep_age_s = (MAX_JOB_IN_SECONDS*2);  // Include some margin of error based on max expected job length
     
     // Use max_keep_samples to control sample purging in DCGM
     // Set based on the configured update interval and maximum supported job length
