@@ -419,6 +419,7 @@ bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepT
             if (isFound)
             {
                 controller++;
+                sleepTime=0;
             }
             else
             {
@@ -437,8 +438,8 @@ bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepT
     success= sleepAttempts != sleepCount;
     if (!success)
     {
-        LOG(csmapi, error) << "Pid was not migrated successfully: " << pidStr << " ; Failed on " << 
-            csmi_cgroup_controller_t_strs[controller];
+        LOG(csmapi, error) << "Pid was not migrated successfully: " << pidStr << " ; Failed on cgroup " << 
+            csmi_cgroup_controller_t_strs[controller] << " controller;";
     }
     return success;
 }

@@ -139,7 +139,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         ctx->SetErrorCode(CSMERR_JSRUN_CMD_ERROR);
         if ( error_code != INT_MAX ) 
         {
-            ctx->SetErrorMessage("Message: " + std::to_string(error_code));
+            ctx->SetErrorMessage("JSRUN command error code: " + std::to_string(error_code));
         }
         else
         {
@@ -171,7 +171,7 @@ void JSRUNCMDAgentState::HandleError(
     ctx->SetErrorMessage(csm::daemon::Configuration::Instance()->GetHostname() + "; " + ctx->GetErrorMessage());
     // ============================================================================
 
-    LOG( csmapi, error ) << STATE_NAME " Error Message: " << ctx->GetErrorCode() << " " <<ctx->GetErrorMessage();
+    LOG( csmapi, error ) << STATE_NAME " Error Code: " << ctx->GetErrorCode() << " ;Error Message: " <<ctx->GetErrorMessage() << ";";
 
 
     // FIXME Temporary fix for beta 1!
