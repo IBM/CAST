@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBLVKey_ExtentInfo.h
+ |    BBLV_ExtentInfo.h
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -11,8 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_BBLVKEY_EXTENTINFO_H_
-#define BB_BBLVKEY_EXTENTINFO_H_
+#ifndef BB_BBLVEXTENTINFO_H_
+#define BB_BBLVEXTENTINFO_H_
 
 #include <map>
 
@@ -24,7 +24,7 @@
  | Forward declarations
  *******************************************************************************/
 class BBTagID;
-class BBTagInfo2;
+class BBLV_Info;
 class BBTransferDef;
 class Extent;
 
@@ -35,18 +35,18 @@ typedef std::pair<uint32_t, BBTransferDef*> InFlightSubKey;     // First is targ
 typedef std::pair<uint64_t, InFlightSubKey> InFlightKey;        // First is lba.maxkey
 
 /**
- * \class BBLVKey_ExtentInfo
+ * \class BBLV_ExtentInfo
  * Defines the information related to all extents when transferring by_extent
  */
-class BBLVKey_ExtentInfo
+class BBLV_ExtentInfo
 {
   public:
-    BBLVKey_ExtentInfo() :
+    BBLV_ExtentInfo() :
         flags(0) {
 //        allExtents.reserve(4096);
     }
 
-    BBLVKey_ExtentInfo(const BBLVKey_ExtentInfo& src) {
+    BBLV_ExtentInfo(const BBLV_ExtentInfo& src) {
         flags = src.flags;
         allExtents = src.allExtents;
         inflight = src.inflight;
@@ -111,6 +111,7 @@ class BBLVKey_ExtentInfo
     void setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
     void setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
     void setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
+    int setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const int pValue=1);
     int sortExtents(const LVKey* pLVKey, uint64_t* pHandle=0, uint32_t* pContribId=0);
     void updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight);
     void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight);
@@ -147,6 +148,10 @@ class BBLVKey_ExtentInfo
         }
     }
 
+    inline int isSuspended() {
+        RETURN_FLAG(BBLV_Suspended);
+    }
+
     inline void mergeFlags(const uint64_t pFlags) {
         flags |= (pFlags & 0xFFFF000000000000);
 
@@ -173,15 +178,15 @@ class BBLVKey_ExtentInfo
     }
 
     inline int stageOutEnded() {
-        RETURN_FLAG(BBLVK_Stage_Out_End);
+        RETURN_FLAG(BBLV_Stage_Out_End);
     }
 
     inline int stageOutEndedComplete() {
-        RETURN_FLAG(BBLVK_Stage_Out_End_Complete);
+        RETURN_FLAG(BBLV_Stage_Out_End_Complete);
     }
 
     inline int stageOutStarted() {
-        RETURN_FLAG(BBLVK_Stage_Out_Start);
+        RETURN_FLAG(BBLV_Stage_Out_Start);
     }
 
     uint64_t            flags;
@@ -196,4 +201,4 @@ class BBLVKey_ExtentInfo
     map<InFlightKey, ExtentInfo> inflight;          ///< Map of in-flight extents
 };
 
-#endif /* BB_BBLVKEY_EXTENTINFO_H_ */
+#endif /* BB_BBLVEXTENTINFO_H_ */

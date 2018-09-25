@@ -75,6 +75,51 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     return rc;
 }
 
+int ContribIdFile::isStopped(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    ContribIdFile* l_ContribIdFile = 0;
+
+    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    l_HandleFilePath /= bfs::path(to_string(pJob.getJobId()));
+    l_HandleFilePath /= bfs::path(to_string(pJob.getJobStepId()));
+    l_HandleFilePath /= bfs::path(to_string(pHandle));
+
+    // NOTE: The handle file does not have to be locked exclusive here because the stop transfer processsing 'waits'
+    //       for the extents to be enqueued.  The processing of competing start/restart transfer definition processing is
+    //       serialized via the transfer queue that should already be held when this method is invoked.
+    rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
+    if (rc >= 0)
+    {
+        // Process the contribid file
+        if (rc == 1 && l_ContribIdFile)
+        {
+            if (l_ContribIdFile->stopped())
+            {
+                // Set rc to 1...
+                rc = 1;
+            }
+        }
+        else
+        {
+            // Could be normal...
+        }
+    }
+    else
+    {
+        // Could be normal...
+    }
+
+    if (l_ContribIdFile)
+    {
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+
+    return rc;
+}
+
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid)
 {
     int rc = 0;

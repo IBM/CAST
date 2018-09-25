@@ -20,10 +20,10 @@ using namespace boost::archive;
 #include "bbflags.h"
 #include "bbinternal.h"
 #include "bbio.h"
-#include "BBLVKey_ExtentInfo.h"
+#include "BBLV_ExtentInfo.h"
+#include "BBLV_Metadata.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
-#include "BBTagInfoMap2.h"
 
 #include "connections.h"
 #include "ContribFile.h"
@@ -116,7 +116,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                 rc = l_LVUuidFile.load(lvuuidfile.string());
                                                 if (!rc)
                                                 {
-                                                    if ((pTransferDefs.flags & ALL_DEFINITIONS) || (!(l_LVUuidFile.flags & BBLVK_Stage_Out_End)))
+                                                    if ((pTransferDefs.flags & ALL_DEFINITIONS) || (!(l_LVUuidFile.flags & BBLV_Stage_Out_End)))
                                                     {
                                                         // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
                                                         //       because we want to also include transfer definitions with files that are not all closed or have failed.
@@ -826,7 +826,7 @@ void BBTransferDef::cleanUp() {
 }
 
 #if BBSERVER
-void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLVKey_ExtentInfo* pExtentInfo)
+void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLV_ExtentInfo* pExtentInfo)
 {
     for (size_t i=0; i<files.size(); i=i+2)
     {
@@ -874,7 +874,7 @@ void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSo
     return;
 }
 
-int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo)
+int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
 
@@ -1238,7 +1238,7 @@ uint64_t BBTransferDef::retrieveJobStepId() {
 }
 
 #ifdef BBSERVER
-int BBTransferDef::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo)
+int BBTransferDef::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
     stringstream errorText;
@@ -1443,7 +1443,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     // Check to make sure the job still exists after releasing/re-acquiring the lock
                     // NOTE: The connection name is optional, and is potentially different for every
                     //       transfer definition that is being stopped from the retrieve transfer archive.
-                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBTagInfo2*)0, (BBTagInfo*)0, pJobId, pContribId))
+                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
                     {
                         rc = -1;
                         l_Attempts = 0;

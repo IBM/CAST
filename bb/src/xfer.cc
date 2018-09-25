@@ -37,15 +37,14 @@ namespace bs  = boost::system;
 #include "bbinternal.h"
 #include "bbio_regular.h"
 #include "bbio_BSCFS.h"
+#include "BBLV_Info.h"
+#include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
 #include "BBTagID.h"
 #include "BBTransferDef.h"
 #include "bbwrkqmgr.h"
 #include "BBTagID.h"
-#include "BBTagInfo.h"
-#include "BBTagInfo2.h"
 #include "BBTagInfoMap.h"
-#include "BBTagInfoMap2.h"
 #include "ContribIdFile.h"
 #include "ExtentInfo.h"
 #include "identity.h"
@@ -327,7 +326,7 @@ int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, cons
     return rc;
 }
 
-int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     stringstream errorText;
     int rc = 0;
@@ -561,7 +560,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                     {
                         // The prior bbServer is this same bbServer...
                         // Dump out the extents in question...
-                        pTagInfo2->getExtentInfo()->dump("info", "contribIdStopped(): Waiting for all extents to be processed");
+                        pLV_Info->getExtentInfo()->dump("info", "contribIdStopped(): Waiting for all extents to be processed");
                     }
                 }
                 unlockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
@@ -574,7 +573,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                 // NOTE: The connection name is optional, and is potentially different from what
                 //       is in our local metadata if we are processing this via the async request file.
                 string l_ConnectionName = string();
-                if (!jobStillExists(l_ConnectionName, pLVKey, pTagInfo2, (BBTagInfo*)0, pJobId, pContribId))
+                if (!jobStillExists(l_ConnectionName, pLVKey, pLV_Info, (BBTagInfo*)0, pJobId, pContribId))
                 {
                     rc = -1;
                     l_Continue = 0;
@@ -1030,7 +1029,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, const 
     return;
 }
 
-int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo,
+int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo,
                       const uint64_t pHandle, BBTagID pTagId, BBJob pJob, const int32_t pContribId, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1048,13 +1047,13 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
             //       to determine if this contribid has been successfully stopped.
             // NOTE: If the cross-bbServer metadata is used to determine the stopped state, this method call may block for a while
             //       waiting for another bbServer to set the stopped state for the transfer definition.
-            rc = contribIdStopped(pConnectionName, pLVKey, pTagInfo2, pOrigTransferDef, pRebuiltTransferDef, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
+            rc = contribIdStopped(pConnectionName, pLVKey, pLV_Info, pOrigTransferDef, pRebuiltTransferDef, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
             switch (rc)
             {
                 case 1:
                 {
                     // Restart this transfer definition
-                    rc = pTagInfo2->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
+                    rc = pLV_Info->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
                 }
                 break;
 
@@ -1078,14 +1077,14 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
     }
     else
     {
-        rc = pTagInfo2->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
+        rc = pLV_Info->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
     }
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
 
-int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
+int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
 {
     int rc = 0;
 
@@ -1096,7 +1095,7 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBTa
     {
         LOG(bb,info) << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
                      << ", " << *pLVKey << ", contribid " << pContribId \
-                     << ", BBTagInfo2* 0x" << pTagInfo2 << ", BBTagInfo* 0x" << pTagInfo;
+                     << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
     }
 
     return rc;
@@ -1182,32 +1181,32 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 
     // Process request...
     BBTagID l_TagId = pWorkItem.getTagId();
-    BBTagInfo2* l_TagInfo2 = metadata.getTagInfo2(&l_Key);
-    if (l_TagInfo2)
+    BBLV_Info* l_LV_Info = metadata.getTagInfo2(&l_Key);
+    if (l_LV_Info)
     {
         bool l_MarkFailed = false;
         bool l_MarkTransferDefinitionCanceled = false;
         l_Extent = pExtentInfo.extent;
         l_TransferDef = pExtentInfo.transferDef;
-        l_TagInfo = l_TagInfo2->getTagInfo(l_TagId);
+        l_TagInfo = l_LV_Info->getTagInfo(l_TagId);
         if (l_TagInfo)
         {
             try
             {
                 // Add this extent to the in-flight list...
-                l_TagInfo2->addToInFlight(l_ConnectionName, &l_Key, pExtentInfo);
+                l_LV_Info->addToInFlight(l_ConnectionName, &l_Key, pExtentInfo);
 
                 // Remove this extent from the vector of extents to work on...
-                l_TagInfo2->extentInfo.removeExtent(l_Extent);
+                l_LV_Info->extentInfo.removeExtent(l_Extent);
                 l_ExtentRemovedFromVectorOfExtents = true;
 
                 // NOTE: The code below determines if an extent will be passed to doTransfer().  If this code
                 //       is modified, the similar code in WRKQE::processBucket() should also be checked.  @DLH
                 // NOTE: We do not have to consider the 'stopped' flag here, as those transfer definitions are
                 //       also always marked as 'canceled'.
-                if (!l_TagInfo2->stageOutEnded())
+                if (!l_LV_Info->stageOutEnded())
                 {
-                    if (!(l_TagInfo2->resizeLogicalVolumeDuringStageOut() && l_TagInfo2->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
+                    if (!(l_LV_Info->resizeLogicalVolumeDuringStageOut() && l_LV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
                     {
                         if (l_TransferDef->failed()) bberror << bailout;
                         //  Transfer definition not marked as failed...
@@ -1287,7 +1286,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 #ifndef __clang_analyzer__
                     l_ExtentRemovedFromVectorOfExtents = true;
 #endif
-                    l_TagInfo2->extentInfo.removeExtent(l_Extent);
+                    l_LV_Info->extentInfo.removeExtent(l_Extent);
                 }
             }
             catch(ExceptionBailout& e) { }
@@ -1333,7 +1332,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
             try
             {
                 // Remove this extent from the in-flight list...
-                l_TagInfo2->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo);
+                l_LV_Info->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo);
             }
             catch(ExceptionBailout& e) { }
             catch(exception& e)
@@ -1349,15 +1348,15 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
                 //        the logical volume is to be resized during stageout
                 // NOTE:  \todo - Need to update this for multiple CN having different LVKeys...  @DLH
                 // NOTE:  \todo - Need to think about this processing WRT 'stopped' processing for a transfer definition...  @DLH
-                size_t l_NumberOfExtents = l_TagInfo2->getNumberOfExtents();
-                if (l_TagInfo2->resizeLogicalVolumeDuringStageOut() &&
-                    l_TagInfo2->stageOutStarted() &&
+                size_t l_NumberOfExtents = l_LV_Info->getNumberOfExtents();
+                if (l_LV_Info->resizeLogicalVolumeDuringStageOut() &&
+                    l_LV_Info->stageOutStarted() &&
                     ((!l_NumberOfExtents) || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
                 {
                     // NOTE:  getMinimumTrimExtent() returns a pointer to the extent with the LBA value that we can return to bbProxy.
                     //        Because it might be a pointer to an extent in the in-flight list, send the message here with the transfer queue
                     //        lock held...
-                    if (sendTransferProgressMsg(l_ConnectionName, &l_Key, l_TagInfo2->getJobId(), (uint32_t)l_NumberOfExtents, l_TagInfo2->extentInfo.getMinimumTrimExtent()))
+                    if (sendTransferProgressMsg(l_ConnectionName, &l_Key, l_LV_Info->getJobId(), (uint32_t)l_NumberOfExtents, l_LV_Info->extentInfo.getMinimumTrimExtent()))
                     {
                         LOG(bb,warning) << "Error occurred when sending transfer progress message back to bbproxy";
                     }
@@ -1397,7 +1396,7 @@ void* transferWorker(void* ptr)
     LVKey l_Key;
     BBTagID l_TagId;
     ExtentInfo l_ExtentInfo;
-    BBTagInfo2* l_TagInfo2;
+    BBLV_Info* l_LV_Info;
     stringstream errorText;
 
     double l_ThreadDelay = 0;
@@ -1414,7 +1413,7 @@ void* transferWorker(void* ptr)
 
         l_WrkQ = 0;
         l_WrkQE = 0;
-        l_TagInfo2 = 0;
+        l_LV_Info = 0;
         l_Repost = true;
 
         try
@@ -1440,15 +1439,15 @@ void* transferWorker(void* ptr)
                         {
                             // Workqueue entries exist...
                             l_WorkItem = l_WrkQE->getWrkQ()->front();
-                            l_TagInfo2 = metadata.getTagInfo2(&l_Key);
-                            if (l_TagInfo2)
+                            l_LV_Info = metadata.getTagInfo2(&l_Key);
+                            if (l_LV_Info)
                             {
                                 l_TagId = l_WorkItem.getTagId();
-                                l_ExtentInfo = l_TagInfo2->getNextExtentInfo();
+                                l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                                 l_Extent = l_ExtentInfo.extent;
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
-                                wrkqmgr.processThrottle(&l_Key, l_TagInfo2, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
+                                wrkqmgr.processThrottle(&l_Key, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
                                 if (l_ThreadDelay > 0)
                                 {
                                     LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
@@ -1458,7 +1457,7 @@ void* transferWorker(void* ptr)
                                         LOG(bb,info)  << ">>>>> DELAY <<<<< transferWorker(): For LVKey " << l_Key << " with " << l_WrkQE->getWrkQ()->size() \
                                                       << " work queue entrie(s) for " << (float)l_TotalDelay/1000000.0 << " seconds.";
                                         LOG(bb,debug) << "                                    Throttle rate is " << l_WrkQE->getRate() << " bytes/sec and current bucket value is " << l_WrkQE->getBucket() << ".";
-                                        LOG(bb,debug) << "                                    " << l_TagInfo2->getNumberOfExtents() << " extents are ready to transfer and the current length of extent to transfer is " \
+                                        LOG(bb,debug) << "                                    " << l_LV_Info->getNumberOfExtents() << " extents are ready to transfer and the current length of extent to transfer is " \
                                                       << l_Extent->getLength() << " bytes.";
                                         LOG(bb,debug) << "                                    Thread delay is " << (float)l_ThreadDelay/1000000.0 << " seconds.";
                                         if (wrkqmgr.getDumpOnDelay())
@@ -1522,7 +1521,7 @@ void* transferWorker(void* ptr)
                         // we would any other entry.  Because it is for a canceled
                         // transfer definition, the extent will simply be removed from the
                         // work queue and any metadata is updated as necessary.
-                        if (l_TagInfo2 && (!(l_TagInfo2->getNextExtentInfo().getTransferDef()->canceled())))
+                        if (l_LV_Info && (!(l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
                         {
                             // Not for a canceled transfer definition.  Do not process
                             // the next work item.
@@ -1702,7 +1701,7 @@ void startThreads(void)
     return;
 }
 
-int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTagInfoMap* pTagInfoMap,
+int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfoMap* pTagInfoMap,
                  BBTagID& pTagId, BBJob pJob, BBTransferDef* &pTransferDef, int32_t pContribId, uint64_t pNumContrib,
                  uint32_t pContrib[], uint64_t& pHandle, vector<struct stat*>* pStats, const uint32_t pPerformOperation,
                  uint32_t &pMarkFailedFromProxy)
@@ -1796,7 +1795,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                     //        by a different bbServer), then l_OrigTransferDef will be NULL.
                     // NOTE:  The ensuing method call ensures that the handle is at a stopped state.  This method call may block for a while
                     //        waiting for another bbServer to set the stopped state for the transfer handle.
-                    rc = prepareForRestart(pConnectionName, pLVKey, pTagInfo2, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, l_OrigTransferDef, pTransferDef, FIRST_PASS);
+                    rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, l_OrigTransferDef, pTransferDef, FIRST_PASS);
                     switch (rc)
                     {
                         case 1:
@@ -1820,7 +1819,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                             if (!pMarkFailedFromProxy)
                             {
                                 // We will restart this transfer definition
-                                rc = prepareForRestart(pConnectionName, pLVKey, pTagInfo2, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, l_OrigTransferDef, pTransferDef, SECOND_PASS);
+                                rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, l_OrigTransferDef, pTransferDef, SECOND_PASS);
                             }
 
                             break;
@@ -1868,7 +1867,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                         // NOTE:   transfer definition
                         // NOTE: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-                        rc = l_TagInfo->addTransferDef(pConnectionName, pLVKey, pJob, pTagInfo2, pTagId, (uint32_t)pContribId, l_TagInfo->transferHandle, pTransferDef);
+                        rc = l_TagInfo->addTransferDef(pConnectionName, pLVKey, pJob, pLV_Info, pTagId, (uint32_t)pContribId, l_TagInfo->transferHandle, pTransferDef);
                         if (rc)
                         {
                             // This condition overrides any failure detected on bbProxy...
@@ -2202,7 +2201,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBTagInfo2* 
                                 if (l_AtLeastOneFileRestarted)
                                 {
                                     // NOTE: For the third invocation of prepareForRestart(), pass pTransferDef as the 'old' transfer definition.
-                                    rc = prepareForRestart(pConnectionName, pLVKey, pTagInfo2, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, pTransferDef, l_OrigInputTransferDef, THIRD_PASS);
+                                    rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, pTransferDef, l_OrigInputTransferDef, THIRD_PASS);
                                 }
                                 else
                                 {
@@ -2281,22 +2280,22 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
 
     size_t l_CurrentNumberOfExtents = 0;
     BBTagID l_TagId(pJob, pTag);
-    BBTagInfo2* l_TagInfo2 = 0;;
+    BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
 
     // First, find the LVKey value...
-    l_TagInfo2 = metadata.getTagInfo2(pLVKey);
-    if (l_TagInfo2)
+    l_LV_Info = metadata.getTagInfo2(pLVKey);
+    if (l_LV_Info)
     {
         if (pTransferDef)
         {
-            if (l_TagInfo2->stageOutStarted())
+            if (l_LV_Info->stageOutStarted())
             {
                 // Stageout has already started for this LVKey...
-                if (pTransferDef->builtViaRetrieveTransferDefinition() && (!(l_TagInfo2->stageOutEnded())))
+                if (pTransferDef->builtViaRetrieveTransferDefinition() && (!(l_LV_Info->stageOutEnded())))
                 {
                     if (!pTransferDef->resizeLogicalVolumeDuringStageOut())
                     {
@@ -2339,10 +2338,10 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     if (!rc)
     {
         // Queue the taginfo...
-        rc = queueTagInfo(pConnectionName, pLVKey, l_TagInfo2, l_TagInfo2->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pStats, pPerformOperation, pMarkFailedFromProxy);
+        rc = queueTagInfo(pConnectionName, pLVKey, l_LV_Info, l_LV_Info->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pStats, pPerformOperation, pMarkFailedFromProxy);
         if (!rc)
         {
-            l_CurrentNumberOfExtents = l_TagInfo2->getNumberOfExtents();
+            l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
 
             if (!pMarkFailedFromProxy)
             {
@@ -2351,9 +2350,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                     if (pPerformOperation)
                     {
                         // Merge in the flags from the transfer definition to the extent info...
-                        l_TagInfo2->mergeFlags(pTransferDef->flags);
+                        l_LV_Info->mergeFlags(pTransferDef->flags);
 
-                        BBTagInfo* l_TagInfo = l_TagInfo2->getTagInfoMap()->getTagInfo(l_TagId);
+                        BBTagInfo* l_TagInfo = l_LV_Info->getTagInfoMap()->getTagInfo(l_TagId);
                         if (l_TagInfo)
                         {
                             l_TransferDef = l_TagInfo->getTransferDef((uint32_t)pContribId);
@@ -2365,7 +2364,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 //       Therefore, it is that transfer definition that is used when constructing the
                                 //       ExtentInfo() objects.
                                 size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
-                                rc = l_TagInfo2->addExtents(pHandle, (uint32_t)pContribId, l_TransferDef, pStats);
+                                rc = l_LV_Info->addExtents(pHandle, (uint32_t)pContribId, l_TransferDef, pStats);
                                 if (!rc)
                                 {
                                     LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
@@ -2373,7 +2372,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                                  << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
                                                  << " extents";
                                     // If necessary, sort the extents...
-                                    rc = l_TagInfo2->sortExtents(pLVKey);
+                                    rc = l_LV_Info->sortExtents(pLVKey);
                                     if (!rc)
                                     {
                                         WRKQE* l_WrkQE = 0;
@@ -2399,7 +2398,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                             // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
                                             if ((l_TransferDef->extents).size())
                                             {
-                                                l_TagInfo2->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
+                                                l_LV_Info->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
                                             }
                                         }
                                         else
@@ -2419,14 +2418,14 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                             // extents have been transferred for this LVKey.
                                             if (l_TagInfo->allContribsReported())
                                             {
-                                                if (!(l_TagInfo2->extentInfo.moreExtentsToTransfer((int64_t)l_TagInfo->getTransferHandle(), (int32_t)(-1), 0)))
+                                                if (!(l_LV_Info->extentInfo.moreExtentsToTransfer((int64_t)l_TagInfo->getTransferHandle(), (int32_t)(-1), 0)))
                                                 {
                                                     l_TagInfo->setAllExtentsTransferred(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
                                                 }
                                             }
 
                                             // Reset the extent for the minimum trim anchor point...
-                                            l_TagInfo2->resetMinTrimAnchorExtent();
+                                            l_LV_Info->resetMinTrimAnchorExtent();
 
                                             if (config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), 0))
                                             {
@@ -2490,13 +2489,13 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
             if (pPerformOperation)
             {
                 // NOTE: pHandle was either already set coming into this routine or set by queueTagInfo()...
-                LOG(bb,debug) << "Previously " << l_CurrentNumberOfExtents << ", now " << l_TagInfo2->getNumberOfExtents() << " extents queued on workqueue for " << *pLVKey;
+                LOG(bb,debug) << "Previously " << l_CurrentNumberOfExtents << ", now " << l_LV_Info->getNumberOfExtents() << " extents queued on workqueue for " << *pLVKey;
 
                 // Post each new extent...
                 WorkID l_WorkId;
                 if (!rc)
                 {
-                    size_t l_NewPosts = l_TagInfo2->getNumberOfExtents() - l_CurrentNumberOfExtents;
+                    size_t l_NewPosts = l_LV_Info->getNumberOfExtents() - l_CurrentNumberOfExtents;
                     wrkqmgr.post_multiple(l_NewPosts);
                 }
             }
@@ -2529,7 +2528,7 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
     try
     {
         // NOTE:  If a non-zero return code comes back, error information was also filled in...
-        BBTagInfo2 empty(pConnectionName, pHostName, pJobId);
+        BBLV_Info empty(pConnectionName, pHostName, pJobId);
         // NOTE:  The LVKey could already exist in the case where a given job spans the failover
         //        to a backup and then back to the primary bbServer.
         rc = metadata.addLVKey(pHostName, pMsg, pLVKey, pJobId, empty, pTolerateAlreadyExists);
@@ -2552,17 +2551,17 @@ int changeServer(const std::string& pConnectionName, const LVKey* pLVKey)
     // NOTE:  This command is used (currently) to change the rate of work performed by the server threads.
     int rc = 0;
     stringstream errorText;
-    BBTagInfo2* l_TagInfo2;
+    BBLV_Info* l_LV_Info;
 
     lockTransferQueue(pLVKey, "changeServer");
 
     try
     {
-        l_TagInfo2 = metadata.getTagInfo2(pLVKey);
-        if (l_TagInfo2)
+        l_LV_Info = metadata.getTagInfo2(pLVKey);
+        if (l_LV_Info)
         {
             // LVKey value found in taginfo2...
-            l_TagInfo2->changeServer();
+            l_LV_Info->changeServer();
             LOG(bb,info) << "Change Server: ";
         } else {
             // LVKey could not be found in taginfo2...
@@ -2771,19 +2770,19 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
-    BBTagInfo2* l_TagInfo2 = 0;
+    BBLV_Info* l_LV_Info = 0;
 
     lockTransferQueue(pLVKey, "removeLogicalVolume_1");
 
     try
     {
-        l_TagInfo2 = metadata.getAnyTagInfo2ForUuid(pLVKey);
-        if (l_TagInfo2)
+        l_LV_Info = metadata.getAnyTagInfo2ForUuid(pLVKey);
+        if (l_LV_Info)
         {
             // At least one LVKey value was found for the logical volume to be removed...
             // NOTE:  The same LV Uuid could have been registered multiple times with different
             //        connections.  All of those registrations will be for the same jobid.
-            uint64_t l_JobId = l_TagInfo2->getJobId();
+            uint64_t l_JobId = l_LV_Info->getJobId();
 
             // Remove the information for the logical volume
             string l_HostName;
@@ -2894,20 +2893,20 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     stringstream errorText;
     queue<WorkID>* l_WrkQ = 0;
     WRKQE* l_WrkQE = 0;
-    BBTagInfo2* l_TagInfo2;
+    BBLV_Info* l_LV_Info;
 
-    l_TagInfo2 = metadata.getTagInfo2(pLVKey);
-    if (l_TagInfo2)
+    l_LV_Info = metadata.getTagInfo2(pLVKey);
+    if (l_LV_Info)
     {
         // LVKey value found in taginfo2...
 
         // Check to see if stgout_start has been called...  If not, send warning and continue...
-        if (!l_TagInfo2->stageOutStarted()) {
+        if (!l_LV_Info->stageOutStarted()) {
             // Stageout start was never received...
             LOG(bb,debug) << "Stageout end received for " << *pLVKey << " without preceding stageout start.  Continuing...";
         }
 
-        if (!(l_TagInfo2->stageOutEnded())) {
+        if (!(l_LV_Info->stageOutEnded())) {
 
             // ** NOT USED **
             // In an attempt to make this stageoutEnd() processing look 'atomic' to other threads on THIS bbServer,
@@ -2928,13 +2927,13 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             {
                 // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
                 //        Doing so will ensure that such extents are not actually transferred.
-                l_TagInfo2->setStageOutEnded(pLVKey, l_TagInfo2->getJobId());
+                l_LV_Info->setStageOutEnded(pLVKey, l_LV_Info->getJobId());
 
                 // Next, wait for all in-flight I/O to complete
                 // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
                 //       \todo - What to do???  @DLH
                 uint32_t i = 0;
-                size_t l_CurrentNumberOfInFlightExtents = l_TagInfo2->getNumberOfInFlightExtents();
+                size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                 while (l_CurrentNumberOfInFlightExtents)
                 {
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << *pLVKey;
@@ -2944,19 +2943,19 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     if ((i++ % 40) == 4)
                     {
                         LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
-                        l_TagInfo2->getExtentInfo()->dumpInFlight("info");
-                        l_TagInfo2->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
+                        l_LV_Info->getExtentInfo()->dumpInFlight("info");
+                        l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
                     }
                     unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     {
                         usleep((useconds_t)250000);
                     }
                     lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                    l_CurrentNumberOfInFlightExtents = l_TagInfo2->getNumberOfInFlightExtents();
+                    l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                 }
 
                 // Now, process the remaining extents for this jobid
-                size_t l_CurrentNumberOfExtents = l_TagInfo2->getNumberOfExtents();
+                size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
                 if (l_CurrentNumberOfExtents) {
                     // Extents still left to be transferred...
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
@@ -2991,8 +2990,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         // in the original order.  This is important because the first/last extent flags
                         // need to be processed in the correct order.
                         LVKey l_Key;
-                        BBTagInfo2* l_WorkItemTagInfo2;
-                        uint64_t l_JobId = l_TagInfo2->getJobId();
+                        BBLV_Info* l_WorkItemTagInfo2;
+                        uint64_t l_JobId = l_LV_Info->getJobId();
                         bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
                         while (l_Temp.size()) {
                             LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
@@ -3069,7 +3068,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     }
                 }
 
-                LOG(bb,info) << "Stageout: Ended:   " << *pLVKey << " for jobid " << l_TagInfo2->getJobId();
+                LOG(bb,info) << "Stageout: Ended:   " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
 
                 // Remove the work queue
                 rc = wrkqmgr.rmvWrkQ(pLVKey);
@@ -3081,15 +3080,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 }
 
                 // Perform cleanup for the LVKey value
-                l_TagInfo2->cleanUpAll(pLVKey);
+                l_LV_Info->cleanUpAll(pLVKey);
 
                 if (!pForced) {
                     // Remove taginfo2 that is currently associated with this LVKey value...
-                    LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << *pLVKey << " for jobid = " << l_TagInfo2->getJobId();
+                    LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << *pLVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(pLVKey);
                 }
 
-                l_TagInfo2->setStageOutEndedComplete(pLVKey, l_TagInfo2->getJobId());
+                l_LV_Info->setStageOutEndedComplete(pLVKey, l_LV_Info->getJobId());
             }
             catch (ExceptionBailout& e) { }
             catch (exception& e)
@@ -3102,7 +3101,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
         } else {
             // Stageout end was already received...
             rc = -2;
-            if (!(l_TagInfo2->stageOutEndedComplete())) {
+            if (!(l_LV_Info->stageOutEndedComplete())) {
                 errorText << "Stageout end was received for " << *pLVKey << ", but stageout end has already been received and is currently being processed";
                 LOG_ERROR_TEXT(errorText);
             } else {
@@ -3128,28 +3127,28 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
     // NOTE:  This command is used to simulate when the file system has been unmounted on the CN for the LFKey value...
     int rc = 0;
     stringstream errorText;
-    BBTagInfo2* l_TagInfo2;
+    BBLV_Info* l_LV_Info;
 
     lockTransferQueue(pLVKey, "stageoutStart");
 
     try
     {
-        l_TagInfo2 = metadata.getTagInfo2(pLVKey);
-        if (l_TagInfo2)
+        l_LV_Info = metadata.getTagInfo2(pLVKey);
+        if (l_LV_Info)
         {
             // Key found in taginfo2...
-            if (!(l_TagInfo2->stageOutStarted()))
+            if (!(l_LV_Info->stageOutStarted()))
             {
-                LOG(bb,info) << "Stageout: Started: " << *pLVKey << " for jobid " << l_TagInfo2->getJobId();
-                l_TagInfo2->setStageOutStarted(pLVKey, l_TagInfo2->getJobId());
+                LOG(bb,info) << "Stageout: Started: " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
+                l_LV_Info->setStageOutStarted(pLVKey, l_LV_Info->getJobId());
 
                 // Update any/all transfer status
-                l_TagInfo2->updateAllTransferHandleStatus(pConnectionName, pLVKey, l_TagInfo2->jobid, l_TagInfo2->extentInfo, 0);
+                l_LV_Info->updateAllTransferHandleStatus(pConnectionName, pLVKey, l_LV_Info->jobid, l_LV_Info->extentInfo, 0);
 
-                size_t l_CurrentNumberOfExtents = l_TagInfo2->getNumberOfExtents();
+                size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
                 if (!l_CurrentNumberOfExtents)
                 {
-                    size_t l_CurrentNumberOfInFlightExtents = l_TagInfo2->getNumberOfInFlightExtents();
+                    size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                     if (l_CurrentNumberOfInFlightExtents)
                     {
                         // In-flight extents are still being transferred...
@@ -3162,10 +3161,10 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
                     //        the logical volume is to be resized during stageout -and-
                     //        BSCFS cannot be involved -and-
                     //        stageout has started
-                    if (l_TagInfo2->resizeLogicalVolumeDuringStageOut() &&
+                    if (l_LV_Info->resizeLogicalVolumeDuringStageOut() &&
                         ((!l_CurrentNumberOfExtents) || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
                     {
-                        if (sendTransferProgressMsg(pConnectionName, pLVKey, l_TagInfo2->getJobId(), (uint32_t)l_CurrentNumberOfExtents, NULL))
+                        if (sendTransferProgressMsg(pConnectionName, pLVKey, l_LV_Info->getJobId(), (uint32_t)l_CurrentNumberOfExtents, NULL))
                         {
                             LOG(bb,warning) << "stageoutStart: Error occurred when sending transfer progress message back to bbproxy";
                         }

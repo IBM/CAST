@@ -3549,7 +3549,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     // NOTE: No processing to perform for a local cp transfer...
     if (!((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSDSSD))
     {
-        bool l_StageoutStarted = (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBLVK_Stage_Out_Start ? true : false;
+        bool l_StageoutStarted = (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBLV_Stage_Out_Start ? true : false;
 
         if ((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSD ||
             (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS ||

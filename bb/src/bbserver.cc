@@ -34,10 +34,10 @@ using namespace std;
 
 
 #include "bbinternal.h"
+#include "BBLV_Info.h"
+#include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
 #include "BBTagID.h"
-#include "BBTagInfo2.h"
-#include "BBTagInfoMap2.h"
 #include "BBTransferDef.h"
 #include "bbwrkqmgr.h"
 #include "CnxSock.h"
@@ -54,7 +54,7 @@ namespace po = boost::program_options;
 
 
 // Metadata that is kept on each bbserver...
-BBTagInfoMap2 metadata;
+BBLV_Metadata metadata;
 WRKQMGR wrkqmgr;
 
 // Timer used to for resize SSD messages sent to bbproxy
@@ -240,34 +240,34 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         }
                     }
 
-                    //  NOTE:  We wait up to 2 minutes for the necessary BBTagInfo2 object to appear if we can't find
+                    //  NOTE:  We wait up to 2 minutes for the necessary BBLV_Info object to appear if we can't find
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the restarting of any transfer definitions to
                     //         the new server.
                     l_Continue = 120;
-                    BBTagInfo2* l_TagInfo2 = 0;
-                    while ((!l_TagInfo2) && l_Continue--)
+                    BBLV_Info* l_LV_Info = 0;
+                    while ((!l_LV_Info) && l_Continue--)
                     {
-                        l_TagInfo2 = metadata.getTagInfo2(l_LVKey);
-                        if (!l_TagInfo2)
+                        l_LV_Info = metadata.getTagInfo2(l_LVKey);
+                        if (!l_LV_Info)
                         {
-                            unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo2 to be registered");
+                            unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
                             {
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
-                            lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo2 to be registered");
+                            lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBLV_Info to be registered");
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
-                            if (!jobStillExists(pConnectionName, l_LVKey, (BBTagInfo2*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
+                            if (!jobStillExists(pConnectionName, l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
                             {
                                 rc = -1;
                                 l_Continue = 0;
                             }
                         }
                     }
-                    if (!l_TagInfo2)
+                    if (!l_LV_Info)
                     {
-                        errorText << "Could not resolve to BBTagInfo2 for " << *l_LVKey << ", jobid " << l_FromJobId << ", contribid " << l_ContribId;
+                        errorText << "Could not resolve to BBLV_Info for " << *l_LVKey << ", jobid " << l_FromJobId << ", contribid " << l_ContribId;
                         rc = -1;
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
@@ -281,7 +281,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     BBTagID l_TagId;
                     while ((!l_TagInfo) && l_Continue--)
                     {
-                        if (!l_TagInfo2->getTagInfo(l_Handle, l_ContribId, l_TagId, l_TagInfo))
+                        if (!l_LV_Info->getTagInfo(l_Handle, l_ContribId, l_TagId, l_TagInfo))
                         {
                             unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
                             {
@@ -290,7 +290,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                             lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo to be registered");
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
-                            if (!jobStillExists(pConnectionName, l_LVKey, l_TagInfo2, (BBTagInfo*)0, l_FromJobId, l_ContribId))
+                            if (!jobStillExists(pConnectionName, l_LVKey, l_LV_Info, (BBTagInfo*)0, l_FromJobId, l_ContribId))
                             {
                                 rc = -1;
                                 l_Continue = 0;
@@ -304,7 +304,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
 
-                    if (l_TagInfo2->getExtentInfo()->moreExtentsToTransfer(l_Handle, l_ContribId, 0))
+                    if (l_LV_Info->getExtentInfo()->moreExtentsToTransfer(l_Handle, l_ContribId, 0))
                     {
                         if (!l_TagInfo->allExtentsTransferred())
                         {
@@ -315,7 +315,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_TagInfo2->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
+                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -1525,7 +1525,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     LVKey l_LVKey;
     LVKey l_LVKey2;
     WRKQE* l_WrkQE = 0;
-    BBTagInfo2* l_TagInfo2 = 0;
+    BBLV_Info* l_LV_Info = 0;
     BBTagInfo* l_TagInfo = 0;
     BBTagID l_TagId;
     BBJob l_Job;
@@ -1619,50 +1619,18 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             {
                 // Second volley from bbProxy and not a restart scenario...
                 // First, ensure that this transfer definition is NOT marked as stopped in the cross bbServer metadata...
-                bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
-                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
-                l_HandleFilePath /= bfs::path(to_string(l_Handle));
-
-                // NOTE: The handle file does not have to be locked exclusive here because the stop transfer processsing 'waits'
-                //       for the extents to be enqueued.  The processing of competing start/restart transfer definition processing is
-                //       serialized via the transfer queue lock above...
-                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId);
-                if (rc >= 0)
+                rc = ContribIdFile::isStopped(l_Job, l_Handle, l_ContribId);
+                if (rc == 1)
                 {
-                    // Process the contribid file
-                    if (rc == 1 && l_ContribIdFile)
-                    {
-                        if (l_ContribIdFile->stopped())
-                        {
-                            // This condition overrides any failure detected on bbProxy...
-                            l_MarkFailedFromProxy = 0;
+                    // This condition overrides any failure detected on bbProxy...
+                    l_MarkFailedFromProxy = 0;
 
-                            // Set rc to 1 and this will be returned as a -2 back to bbProxy...
-                            rc = 1;
-                            errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                                      << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
-                                      << " This transfer definition can only be submitted via restart transfer definition processing.";
-                            LOG_ERROR_TEXT_AND_BAIL(errorText);
-                        }
-                    }
-                    else
-                    {
-                        // Could be normal...
-                    }
+                    // rc is already 1 and this will be returned as a -2 back to bbProxy...
+                    errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                              << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
+                              << " This transfer definition can only be submitted via restart transfer definition processing.";
+                    LOG_ERROR_TEXT_AND_BAIL(errorText);
                 }
-                else
-                {
-                    // Could be normal...
-                }
-
-                if (l_ContribIdFile)
-                {
-                    delete l_ContribIdFile;
-                    l_ContribIdFile = 0;
-                }
-
-                rc = 0;
             }
 
             if ((!l_PerformOperation) && l_TransferPtr->builtViaRetrieveTransferDefinition())
@@ -1674,7 +1642,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
             while ((!rc) && (!l_AllDone))
             {
-                rc = metadata.getInfo(pConnectionName, l_LVKey2, l_TagInfo2, l_TagInfo, l_TagId, l_Job, l_Contrib, l_Handle, l_ContribId);
+                rc = metadata.getInfo(pConnectionName, l_LVKey2, l_LV_Info, l_TagInfo, l_TagId, l_Job, l_Contrib, l_Handle, l_ContribId);
                 if (rc > 0)
                 {
                     // Check to see if the hostname is suspended.
@@ -1682,7 +1650,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                     //        Such a check would have to be in the else leg of getInfo().  We rely on bbProxy to prevent that from happening...
                     // NOTE:  The check for the suspend state is done on both volleys.  If a suspend operation is successful between
                     //        the two volleys, the start transfer will fail.
-                    if (!l_TagInfo2->isSuspended())
+                    if (!l_LV_Info->isSuspended())
                     {
                         // Not suspended...
                         // NOTE: We may have to spin for a while waiting for the work queue.
@@ -1703,7 +1671,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 lockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
 
                                 // Check to make sure the job still exists after releasing/re-acquiring the lock
-                                if (!jobStillExists(pConnectionName, &l_LVKey2, (BBTagInfo2*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
+                                if (!jobStillExists(pConnectionName, &l_LVKey2, (BBLV_Info*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
                                 {
                                     // Jobid no longer exists...
                                     // This condition overrides any failure detected on bbProxy
@@ -1813,14 +1781,14 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             if (!l_PerformOperation)
                             {
                                 // Start transfer request, first message volley...  Suggest to submit again...
-                                errorText << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
+                                errorText << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
                                           << " Suspended condition detected during the first message volley to bbServer.  Attempt to retry the start transfer request when the connection is not suspended.";
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                             else
                             {
                                 // Start transfer request, second message volley...  Indicate to not aubmit again, as restart logic will resubmit...
-                                errorText << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
+                                errorText << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
                                           << " Suspended condition detected during the second message volley to bbServer.  A following restart transfer request will resubmit this transfer definition.";
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
@@ -1829,7 +1797,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         {
                             // Restart transfer request...  Indicate to not restart this transfer definition...
                             rc = 1;
-                            LOG(bb,info) << "Hostname " << l_TagInfo2->getHostName() << " is currently suspended. Therefore, no transfer is allowed to restart at this time.";
+                            LOG(bb,info) << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to restart at this time.";
                             BAIL;
                         }
                     }
@@ -1996,7 +1964,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                     lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
 
                                                     // Check to make sure the job still exists after releasing/re-acquiring the lock
-                                                    if (!jobStillExists(pConnectionName, &l_LVKey, (BBTagInfo2*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
+                                                    if (!jobStillExists(pConnectionName, &l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
                                                     {
                                                         // Job no longer exists... Indicate to not restart this transfer definition.
                                                         rc = 1;

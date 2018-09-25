@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBTagInfoMap2.cc
+ |    BBLV_Metadata.cc
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -19,7 +19,7 @@
 #include "bberror.h"
 #include "bbinternal.h"
 #include "bbwrkqmgr.h"
-#include "BBTagInfoMap2.h"
+#include "BBLV_Metadata.h"
 
 namespace bfs = boost::filesystem;
 
@@ -28,10 +28,10 @@ namespace bfs = boost::filesystem;
 //
 
 //
-// BBTagInfoMap2 - Static members
+// BBLV_Metadata - Static members
 //
 
-int BBTagInfoMap2::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId)
+int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId)
 {
     int rc = 0;
     stringstream errorText;
@@ -107,7 +107,7 @@ int BBTagInfoMap2::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
     return rc;
 }
 
-int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
+int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
     int rc = 0;
 
     try
@@ -144,10 +144,10 @@ int BBTagInfoMap2::update_xbbServerRemoveData(const uint64_t pJobId) {
 }
 
 //
-// BBTagInfoMap2 - Non-static members
+// BBLV_Metadata - Non-static members
 //
 
-void BBTagInfoMap2::accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors)
+void BBLV_Metadata::accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors)
 {
     pTotalContributors = 0;
     pTotalLocalReportingContributors = 0;
@@ -160,7 +160,7 @@ void BBTagInfoMap2::accumulateTotalLocalContributorInfo(const uint64_t pHandle, 
     return;
 }
 
-int BBTagInfoMap2::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBTagInfo2& pTagInfo2, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
+int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBLV_Info& pLV_Info, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists)
 {
     int rc = 0;
     stringstream errorText;
@@ -219,8 +219,8 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
 
     if (!rc)
     {
-        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pTagInfo2.getHostName() << " for jobid " << pJobId;
-        tagInfoMap2[*pLVKey] = pTagInfo2;
+        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pLV_Info.getHostName() << " for jobid " << pJobId;
+        tagInfoMap2[*pLVKey] = pLV_Info;
         rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
         if (!rc)
         {
@@ -236,11 +236,11 @@ int BBTagInfoMap2::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
     return rc;
 }
 
-int BBTagInfoMap2::cleanLVKeyOnly(const LVKey* pLVKey) {
+int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
     int rc = 0;
 
-    BBTagInfo2* l_TagInfo2 = getTagInfo2(pLVKey);
-    if (l_TagInfo2) {
+    BBLV_Info* l_LV_Info = getTagInfo2(pLVKey);
+    if (l_LV_Info) {
         tagInfoMap2.erase(*pLVKey);
     } else {
         rc = -1;
@@ -249,7 +249,7 @@ int BBTagInfoMap2::cleanLVKeyOnly(const LVKey* pLVKey) {
     return rc;
 }
 
-void BBTagInfoMap2::dump(char* pSev, const char* pPrefix) {
+void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
     if (tagInfoMap2.size()) {
         char l_Temp[LENGTH_UUID_STR] = {'\0'};
         if (!strcmp(pSev,"debug")) {
@@ -280,7 +280,7 @@ void BBTagInfoMap2::dump(char* pSev, const char* pPrefix) {
     }
 }
 
-void BBTagInfoMap2::ensureStageOutEnded(const LVKey* pLVKey) {
+void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
 
     // Ensure stage-out ended for the given LVKey
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
@@ -293,7 +293,7 @@ void BBTagInfoMap2::ensureStageOutEnded(const LVKey* pLVKey) {
     return;
 }
 
-void BBTagInfoMap2::ensureStageOutEnded(const uint64_t pJobId) {
+void BBLV_Metadata::ensureStageOutEnded(const uint64_t pJobId) {
 
     // Ensure stage-out ended for all LVKeys under the job
     bool l_Restart = true;
@@ -320,7 +320,7 @@ void BBTagInfoMap2::ensureStageOutEnded(const uint64_t pJobId) {
 }
 
 // NOTE:  This method returns any LVKey with the input LV Uuid and jobid...
-int BBTagInfoMap2::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId) {
+int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId) {
     int rc = -2;    // LVKey not registered with bbserver
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
     {
@@ -336,17 +336,17 @@ int BBTagInfoMap2::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyI
     return rc;
 }
 
-BBTagInfo2* BBTagInfoMap2::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
+BBLV_Info* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
     for(auto it =  tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         if ((it->first).second == pLVKey->second) {
-            return const_cast <BBTagInfo2*> (&(it->second));
+            return const_cast <BBLV_Info*> (&(it->second));
         }
     }
 
-    return (BBTagInfo2*)0;
+    return (BBLV_Info*)0;
 }
 
-int BBTagInfoMap2::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBTagInfo2* &pTagInfo2, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {
+int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {
     int rc = 0;
     LVKey l_LVKey;
     BBTagID l_TagId;
@@ -370,7 +370,7 @@ int BBTagInfoMap2::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
                 if((it->first).first == pConnectionName) {
                     // Correct LVKey...  Set the return data...
                     pLVKey = it->first;
-                    pTagInfo2 = &(it->second);
+                    pLV_Info = &(it->second);
                     pTagInfo = l_TagInfo;
                     pTagId = l_TagId;
                     pContrib = pTagInfo->getExpectContrib();
@@ -420,7 +420,7 @@ int BBTagInfoMap2::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
             if((it->first).first == pConnectionName && (it->second).getJobId() == pJob.getJobId()) {
                 if(((it->second).getTagInfo(pHandle, pContribId, l_TagId, l_TagInfo))) {
                     pLVKey = it->first;
-                    pTagInfo2 = &(it->second);
+                    pLV_Info = &(it->second);
                     pTagInfo = l_TagInfo;
                     pTagId = l_TagId;
                     pContrib = pTagInfo->getExpectContrib();
@@ -435,7 +435,7 @@ int BBTagInfoMap2::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
 }
 
 // NOTE:  This method only returns the LVKey given the jobid and contribid...
-int BBTagInfoMap2::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, const uint64_t pJobId, const uint32_t pContribId) {
+int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, const uint64_t pJobId, const uint32_t pContribId) {
     int rc = -2;    // LVKey not registered with bbserver
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
     {
@@ -454,7 +454,7 @@ int BBTagInfoMap2::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 }
 
 // NOTE:  This method returns the LVKey and BBTagInfo given the jobid, jobstepid, tab, numcontrib and contrib[] values...
-int BBTagInfoMap2::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
+int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = -2;    // LVKey not registered with bbserver
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         if (((it->first).first == pConnectionName) && ((it->second).getJobId() == pJob.getJobId())) {
@@ -472,17 +472,17 @@ int BBTagInfoMap2::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
     return rc;
 }
 
-BBTagInfo2* BBTagInfoMap2::getTagInfo2(const LVKey* pLVKey) const {
+BBLV_Info* BBLV_Metadata::getTagInfo2(const LVKey* pLVKey) const {
     for(auto it =  tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         if (it->first == *pLVKey) {
-            return const_cast <BBTagInfo2*> (&(it->second));
+            return const_cast <BBLV_Info*> (&(it->second));
         }
     }
 
-    return (BBTagInfo2*)0;
+    return (BBLV_Info*)0;
 }
 
-size_t BBTagInfoMap2::getTotalTransferSize(const LVKey& pLVKey) {
+size_t BBLV_Metadata::getTotalTransferSize(const LVKey& pLVKey) {
     if (tagInfoMap2.find(pLVKey) != tagInfoMap2.end()) {
         return tagInfoMap2[pLVKey].getTotalTransferSize();
     } else {
@@ -490,7 +490,7 @@ size_t BBTagInfoMap2::getTotalTransferSize(const LVKey& pLVKey) {
     }
 }
 
-int BBTagInfoMap2::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
+int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = 0;
 
     if (tagInfoMap2.find(*pLVKey) != tagInfoMap2.end()) {
@@ -502,7 +502,7 @@ int BBTagInfoMap2::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, con
     return rc;
 }
 
-void BBTagInfoMap2::getTransferHandles(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus) {
+void BBLV_Metadata::getTransferHandles(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus) {
     for(auto it =  tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         it->second.getTransferHandles(pHandles, pJob, pMatchStatus, it->second.stageOutStarted());
     }
@@ -510,7 +510,7 @@ void BBTagInfoMap2::getTransferHandles(std::vector<uint64_t>& pHandles, const BB
     return;
 }
 
-void BBTagInfoMap2::removeAllLogicalVolumesForUuid(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId)
+void BBLV_Metadata::removeAllLogicalVolumesForUuid(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId)
 {
     int rc = 0;
     stringstream errorText;
@@ -590,7 +590,7 @@ void BBTagInfoMap2::removeAllLogicalVolumesForUuid(const string& pHostName, cons
     return;
 }
 
-void BBTagInfoMap2::removeLVKey(const uint64_t pJobId, const LVKey* pLVKey)
+void BBLV_Metadata::removeLVKey(const uint64_t pJobId, const LVKey* pLVKey)
 {
     LOG(bb,info) << "taginfo: Removing " << *pLVKey << " for jobid " << pJobId;
     tagInfoMap2.erase(*pLVKey);
@@ -598,7 +598,7 @@ void BBTagInfoMap2::removeLVKey(const uint64_t pJobId, const LVKey* pLVKey)
     return;
 }
 
-int BBTagInfoMap2::retrieveTransfers(BBTransferDefs& pTransferDefs)
+int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
 {
     int rc = 0;
 
@@ -644,7 +644,7 @@ int BBTagInfoMap2::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
+void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
 {
     int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
@@ -655,7 +655,7 @@ void BBTagInfoMap2::sendTransferCompleteForHandleMsg(const string& pHostName, co
     return;
 }
 
-void BBTagInfoMap2::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
+void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
 {
     for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
     {
@@ -665,7 +665,7 @@ void BBTagInfoMap2::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
     return;
 }
 
-int BBTagInfoMap2::setSuspended(const string& pHostName, const string& pCN_HostName, const int pValue)
+int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostName, const int pValue)
 {
     int rc = 0;
     uint32_t l_NumberAlreadySet = 0;
@@ -763,7 +763,7 @@ int BBTagInfoMap2::setSuspended(const string& pHostName, const string& pCN_HostN
     return rc;
 }
 
-int BBTagInfoMap2::stopTransfer(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
 
@@ -864,7 +864,7 @@ int BBTagInfoMap2::stopTransfer(const string& pHostName, const string& pCN_HostN
 }
 
 // NOTE:  This method verifies that the input jobid exists for some LVKey...
-int BBTagInfoMap2::verifyJobIdExists(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId)
+int BBLV_Metadata::verifyJobIdExists(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId)
 {
     int rc = 0;
     for (auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)

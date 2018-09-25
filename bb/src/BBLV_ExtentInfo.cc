@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBLVKey_ExtentInfo.cc
+ |    BBLV_ExtentInfo.cc
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -12,11 +12,12 @@
  *******************************************************************************/
 
 #include "bbinternal.h"
-#include "BBLVKey_ExtentInfo.h"
+#include "BBLV_Info.h"
+#include "BBLV_ExtentInfo.h"
 #include "BBTagInfo.h"
-#include "BBTagInfo2.h"
 #include "BBTagInfoMap.h"
 #include "BBTransferDef.h"
+#include "bbwrkqmgr.h"
 #include "HandleFile.h"
 #include "LVUuidFile.h"
 
@@ -27,18 +28,18 @@ typedef std::pair<uint64_t, uint64_t> BSCFS_SortValue;
 
 
 //
-// BBLVKey_ExtentInfo class
+// BBLV_ExtentInfo class
 //
 
 //
-// BBLVKey_ExtentInfo - Static methods
+// BBLV_ExtentInfo - Static methods
 //
 
 //
-// BBLVKey_ExtentInfo - Non-static methods
+// BBLV_ExtentInfo - Non-static methods
 //
 
-int BBLVKey_ExtentInfo::addExtents(const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, vector<struct stat*>* pStats) {
+int BBLV_ExtentInfo::addExtents(const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, vector<struct stat*>* pStats) {
     int rc = 0;
     stringstream errorText;
 
@@ -190,7 +191,7 @@ int BBLVKey_ExtentInfo::addExtents(const uint64_t pHandle, const uint32_t pContr
     return rc;
 }
 
-void BBLVKey_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
+void BBLV_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
     InFlightSubKey l_SubKey = make_pair((pExtentInfo.extent)->targetindex, pExtentInfo.getTransferDef());
     InFlightKey l_Key = make_pair((pExtentInfo.extent)->lba.maxkey, l_SubKey);
     inflight.insert(make_pair(l_Key, pExtentInfo));
@@ -207,7 +208,7 @@ void BBLVKey_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKe
     {
         if (HandleFile::update_xbbServerHandleStatus(pLVKey, pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getTransferDef()->getJobStepId(), pExtentInfo.getHandle(), 0))
         {
-            LOG(bb,error) << "BBLVKey_ExtentInfo::addToInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
+            LOG(bb,error) << "BBLV_ExtentInfo::addToInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
                           << ", jobstepid " << pExtentInfo.getTransferDef()->getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib();
         }
     }
@@ -215,7 +216,7 @@ void BBLVKey_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKe
     return;
 }
 
-void BBLVKey_ExtentInfo::dump(const char* pSev, const char* pPrefix) const {
+void BBLV_ExtentInfo::dump(const char* pSev, const char* pPrefix) const {
     if (!strcmp(pSev,"debug")) {
         LOG(bb,debug) << ">>>>> Start: ExtentInfo <<<<<";
         LOG(bb,debug) << hex << uppercase << setfill('0') << "Flags: 0x" << setw(4) << flags << setfill(' ') << nouppercase << dec;
@@ -243,7 +244,7 @@ void BBLVKey_ExtentInfo::dump(const char* pSev, const char* pPrefix) const {
     return;
 }
 
-void BBLVKey_ExtentInfo::dumpExtents(const char* pSev, const char* pPrefix) const {
+void BBLV_ExtentInfo::dumpExtents(const char* pSev, const char* pPrefix) const {
     if (allExtents.size()) {
         if (!strcmp(pSev,"debug")) {
             LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "AllExtents") << ", " \
@@ -271,7 +272,7 @@ void BBLVKey_ExtentInfo::dumpExtents(const char* pSev, const char* pPrefix) cons
     return;
 }
 
-void BBLVKey_ExtentInfo::dumpInFlight(const char* pSev) const {
+void BBLV_ExtentInfo::dumpInFlight(const char* pSev) const {
     if (inflight.size()) {
         int i = 1;
         if (!strcmp(pSev,"debug")) {
@@ -312,7 +313,7 @@ void BBLVKey_ExtentInfo::dumpInFlight(const char* pSev) const {
     return;
 }
 
-Extent* BBLVKey_ExtentInfo::getAnySourceExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex)
+Extent* BBLV_ExtentInfo::getAnySourceExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex)
 {
     Extent* l_Extent = 0;
 
@@ -328,7 +329,7 @@ Extent* BBLVKey_ExtentInfo::getAnySourceExtent(const uint64_t pHandle, const uin
     return l_Extent;
 }
 
-Extent* BBLVKey_ExtentInfo::getMaxInFlightExtent() {
+Extent* BBLV_ExtentInfo::getMaxInFlightExtent() {
     uint64_t l_MaxLBA = 0;
     Extent* l_MaxExtent = 0;
     for (auto it=inflight.begin(); it!=inflight.end(); ++it) {
@@ -342,7 +343,7 @@ Extent* BBLVKey_ExtentInfo::getMaxInFlightExtent() {
     return l_MaxExtent;
 }
 
-Extent* BBLVKey_ExtentInfo::getMinimumTrimExtent() {
+Extent* BBLV_ExtentInfo::getMinimumTrimExtent() {
     Extent* l_Extent = 0;
 
     //  NOTE: We cannot trim back to less than the minimum trim anchor point.  Therefore,
@@ -364,7 +365,7 @@ Extent* BBLVKey_ExtentInfo::getMinimumTrimExtent() {
     return l_Extent;
 }
 
-int BBLVKey_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight) {
+int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight) {
     int rc = 0;
     uint32_t l_NumberInFlight = 0;
 
@@ -396,7 +397,7 @@ int BBLVKey_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32
     return rc;
 }
 
-int BBLVKey_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const int32_t pContrib, const uint32_t pSourceIndex, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue) {
+int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const int32_t pContrib, const uint32_t pSourceIndex, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue) {
     int rc = 0;
     uint32_t l_NumberInFlight = 0;
 
@@ -436,7 +437,7 @@ int BBLVKey_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, cons
     return rc;
 }
 
-int BBLVKey_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib) {
+int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib) {
     int rc = 0;
 
     LOG(bb,debug) << "moreInFlightExtentsForTransferDefinition: pHandle: " << pHandle << ", pContrib: " << pContrib;
@@ -454,7 +455,7 @@ int BBLVKey_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t 
     return rc;
 }
 
-void BBLVKey_ExtentInfo::removeExtent(const Extent* pExtent) {
+void BBLV_ExtentInfo::removeExtent(const Extent* pExtent) {
     for (auto it=allExtents.begin(); it!=allExtents.end(); ++it) {
         if (it->extent == pExtent) {
             allExtents.erase(it);
@@ -465,7 +466,7 @@ void BBLVKey_ExtentInfo::removeExtent(const Extent* pExtent) {
     return;
 }
 
-void BBLVKey_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
+void BBLV_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
     Extent* l_Extent = pExtentInfo.extent;
 
     InFlightSubKey l_SubKey = make_pair(l_Extent->targetindex, pExtentInfo.getTransferDef());
@@ -495,7 +496,7 @@ void BBLVKey_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pEx
     return;
 }
 
-void BBLVKey_ExtentInfo::sendAllTransfersCompleteMsg(const string& pConnectionName, const LVKey* pLVKey) {
+void BBLV_ExtentInfo::sendAllTransfersCompleteMsg(const string& pConnectionName, const LVKey* pLVKey) {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_ALL_FILE_TRANSFERS_COMPLETE, l_Complete);
 
@@ -529,7 +530,7 @@ void BBLVKey_ExtentInfo::sendAllTransfersCompleteMsg(const string& pConnectionNa
     return;
 }
 
-void BBLVKey_ExtentInfo::setAllContribsReported(const LVKey* pLVKey, const int pValue)
+void BBLV_ExtentInfo::setAllContribsReported(const LVKey* pLVKey, const int pValue)
 {
     if (pValue) {
         LOG(bb,info) << "All contributors reported for " << *pLVKey;
@@ -537,13 +538,13 @@ void BBLVKey_ExtentInfo::setAllContribsReported(const LVKey* pLVKey, const int p
 
     if ((((flags & BBTI_All_Contribs_Reported) == 0) && pValue) || ((flags & BBTI_All_Contribs_Reported) && (!pValue)))
     {
-        LOG(bb,info) << "BBLVKey_ExtentInfo::setAllContribsReported(): For " << *pLVKey \
+        LOG(bb,info) << "BBLV_ExtentInfo::setAllContribsReported(): For " << *pLVKey \
                      << " -> Changing from: " << ((flags & BBTI_All_Contribs_Reported) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
     SET_FLAG_AND_RETURN(BBTI_All_Contribs_Reported, pValue);
 }
 
-void BBLVKey_ExtentInfo::setAllExtentsTransferred(const string& pConnectionName, const LVKey* pLVKey, const int pValue)
+void BBLV_ExtentInfo::setAllExtentsTransferred(const string& pConnectionName, const LVKey* pLVKey, const int pValue)
 {
     if (pValue && (!allExtentsTransferred())) {
         LOG(bb,debug) << "Processing complete for " << *pLVKey;
@@ -552,32 +553,32 @@ void BBLVKey_ExtentInfo::setAllExtentsTransferred(const string& pConnectionName,
 
     if ((((flags & BBTD_All_Extents_Transferred) == 0) && pValue) || ((flags & BBTD_All_Extents_Transferred) && (!pValue)))
     {
-        LOG(bb,info) << "BBLVKey_ExtentInfo::setAllExtentsTransferred(): For " << *pLVKey \
+        LOG(bb,info) << "BBLV_ExtentInfo::setAllExtentsTransferred(): For " << *pLVKey \
                      << " -> Changing from: " << ((flags & BBTD_All_Extents_Transferred) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
     SET_FLAG_AND_RETURN(BBTD_All_Extents_Transferred, pValue);
 }
 
-void BBLVKey_ExtentInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, const int pValue)
+void BBLV_ExtentInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, const int pValue)
 {
     return pTransferDef->setAllExtentsTransferred(pLVKey, pHandle, pContribId, pValue);
 }
 
-void BBLVKey_ExtentInfo::setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
+void BBLV_ExtentInfo::setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
 {
-    if ((((flags & BBLVK_Stage_Out_End) == 0) && pValue) || ((flags & BBLVK_Stage_Out_End) && (!pValue)))
+    if ((((flags & BBLV_Stage_Out_End) == 0) && pValue) || ((flags & BBLV_Stage_Out_End) && (!pValue)))
     {
-        LOG(bb,info) << "BBLVKey_ExtentInfo::setStageOutEnded(): For " << *pLVKey \
-                     << " -> Changing from: " << ((flags & BBLVK_Stage_Out_End) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,info) << "BBLV_ExtentInfo::setStageOutEnded(): For " << *pLVKey \
+                     << " -> Changing from: " << ((flags & BBLV_Stage_Out_End) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
-    SET_FLAG(BBLVK_Stage_Out_End, pValue);
+    SET_FLAG(BBLV_Stage_Out_End, pValue);
 
-    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLVK_Stage_Out_End, pValue);
+    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLV_Stage_Out_End, pValue);
     if (rc)
     {
         if (rc != -2)
         {
-            LOG(bb,error) << "BBLVKey_ExtentInfo::setStageOutEnded():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
+            LOG(bb,error) << "BBLV_ExtentInfo::setStageOutEnded():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
         }
         else
         {
@@ -588,21 +589,21 @@ void BBLVKey_ExtentInfo::setStageOutEnded(const LVKey* pLVKey, const uint64_t pJ
     return;
 }
 
-void BBLVKey_ExtentInfo::setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
+void BBLV_ExtentInfo::setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
 {
-    if ((((flags & BBLVK_Stage_Out_End_Complete) == 0) && pValue) || ((flags & BBLVK_Stage_Out_End_Complete) && (!pValue)))
+    if ((((flags & BBLV_Stage_Out_End_Complete) == 0) && pValue) || ((flags & BBLV_Stage_Out_End_Complete) && (!pValue)))
     {
-        LOG(bb,info) << "BBLVKey_ExtentInfo::setStageOutEndedComplete(): For " << *pLVKey \
-                    << " -> Changing from: " << ((flags & BBLVK_Stage_Out_End_Complete) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,info) << "BBLV_ExtentInfo::setStageOutEndedComplete(): For " << *pLVKey \
+                    << " -> Changing from: " << ((flags & BBLV_Stage_Out_End_Complete) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
-    SET_FLAG(BBLVK_Stage_Out_End_Complete, pValue);
+    SET_FLAG(BBLV_Stage_Out_End_Complete, pValue);
 
-    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLVK_Stage_Out_End_Complete, pValue);
+    int rc = LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLV_Stage_Out_End_Complete, pValue);
     if (rc)
     {
         if (rc != -2)
         {
-            LOG(bb,error) << "BBLVKey_ExtentInfo::setStageOutEndedComplete():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
+            LOG(bb,error) << "BBLV_ExtentInfo::setStageOutEndedComplete():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
         }
         else
         {
@@ -613,24 +614,87 @@ void BBLVKey_ExtentInfo::setStageOutEndedComplete(const LVKey* pLVKey, const uin
     return;
 }
 
-void BBLVKey_ExtentInfo::setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
+void BBLV_ExtentInfo::setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue)
 {
-    if ((((flags & BBLVK_Stage_Out_Start) == 0) && pValue) || ((flags & BBLVK_Stage_Out_Start) && (!pValue)))
+    if ((((flags & BBLV_Stage_Out_Start) == 0) && pValue) || ((flags & BBLV_Stage_Out_Start) && (!pValue)))
     {
-        LOG(bb,info) << "BBLVKey_ExtentInfo::setStageOutStarted(): For " << *pLVKey \
-                     << " -> Changing from: " << ((flags & BBLVK_Stage_Out_Start) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,info) << "BBLV_ExtentInfo::setStageOutStarted(): For " << *pLVKey \
+                     << " -> Changing from: " << ((flags & BBLV_Stage_Out_Start) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
-    SET_FLAG(BBLVK_Stage_Out_Start, pValue);
+    SET_FLAG(BBLV_Stage_Out_Start, pValue);
 
-    if (LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLVK_Stage_Out_Start, pValue))
+    if (LVUuidFile::update_xbbServerLVUuidFile(pLVKey, pJobId, BBLV_Stage_Out_Start, pValue))
     {
-        LOG(bb,error) << "BBLVKey_ExtentInfo::setStageOutStarted():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
+        LOG(bb,error) << "BBLV_ExtentInfo::setStageOutStarted():  Failure when attempting to update the cross bbServer LVUuid file for LVKey " << *pLVKey << ", jobid " << pJobId;
     }
 
     return;
 }
 
-int BBLVKey_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
+int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const int pValue)
+{
+    int rc = 0;
+
+    if (!stageOutStarted())
+    {
+        rc = wrkqmgr.setSuspended(pLVKey, pValue);
+        switch (rc)
+        {
+            case 0:
+            {
+                if ((((flags & BBLV_Suspended) == 0) && pValue) || ((flags & BBLV_Suspended) && (!pValue)))
+                {
+                    LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", " << *pLVKey << ", jobid " << pJobId \
+                                 << " -> Changing from: " << ((flags & BBLV_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                }
+                SET_FLAG(BBLV_Suspended, pValue);
+            }
+            break;
+
+            case -2:
+            {
+                // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
+                //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
+                SET_FLAG(BBLV_Suspended, pValue);
+
+                string l_Temp = "resume";
+                if (pValue)
+                {
+                    // Connection being suspended
+                    l_Temp = "suspend";
+                }
+                LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", jobid " << pJobId \
+                             << ", work queue not present for " << *pLVKey << ". Tolerated condition for a " << l_Temp << " operation.";
+            }
+            break;
+
+            case 2:
+                break;
+
+            default:
+                LOG(bb,info) << "BBLV_Info::setSuspended(): Unexpected return code " << rc \
+                             << " received for hostname " << pHostName << ", jobid " << pJobId << ", " << *pLVKey \
+                             << " when attempting the suspend or resume operation on the work queue.";
+                rc = -1;
+                break;
+        }
+    }
+    else
+    {
+        // Stageout end processing has started.  Therefore, the ability to do anything using this LVKey
+        // will soon be, or has already, been removed.  (i.e. the local cache of data is being/or has been
+        // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
+        // Return an error message.
+        rc = -1;
+        LOG(bb,error) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", jobid " << pJobId \
+                      << ", the remove logical volume request has been run, or is currently running" \
+                      << " for " << *pLVKey << ". Suspend or resume operations are not allowed for this environment.";
+    }
+
+    return rc;
+}
+
+int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
 {
     const uint64_t l_CanceledGroupKey = 1;
     const uint64_t l_CanceledFileKey = 1;
@@ -834,7 +898,7 @@ int BBLVKey_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint
     return rc;
 }
 
-void BBLVKey_ExtentInfo::updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight)
+void BBLV_ExtentInfo::updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight)
 {
     if (stageOutStarted()) {
         if (allContribsReported()) {
@@ -847,7 +911,7 @@ void BBLVKey_ExtentInfo::updateTransferStatus(const string& pConnectionName, con
     return;
 }
 
-void BBLVKey_ExtentInfo::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight)
+void BBLV_ExtentInfo::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight)
 {
     pNewStatus = 0;
 

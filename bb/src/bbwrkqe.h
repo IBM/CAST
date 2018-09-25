@@ -30,7 +30,7 @@ using namespace std;
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
-class BBTagInfo2;
+class BBLV_Info;
 class BBTransferDef;
 class Extent;
 class ExtentInfo;
@@ -194,7 +194,7 @@ class WRKQE
     void dump(const char* pSev, const char* pPrefix);
     void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void loadBucket();
-    double processBucket(BBTagInfo2* pTagInfo2, BBTagID& pTagId, ExtentInfo& pExtentInfo);
+    double processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo);
 
     // Data members
     LVKey               lvKey;

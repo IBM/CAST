@@ -34,7 +34,7 @@ using namespace std;
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
-class BBTagInfoMap2;
+class BBLV_Metadata;
 class WRKQMGR;
 class WRKQE;
 
@@ -53,7 +53,7 @@ typedef struct fiemap_extent fiemap_extent_t;
 extern string ProcessId;
 
 extern thread_local std::string bbconnectionName;
-extern BBTagInfoMap2 metadata;
+extern BBLV_Metadata metadata;
 
 #if BBSERVER
 extern WRKQMGR wrkqmgr;

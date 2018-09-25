@@ -45,7 +45,7 @@ class BBTagParts
     size_t getTotalTransferSize(const uint32_t pContribId, const uint32_t pSourceIndex);
     BBTransferDef* getTransferDef(const uint32_t pContribId) const;
     void removeTargetFiles(const LVKey* pLVKey, const uint32_t pContribId);
-    int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLVKey_ExtentInfo* pExtentInfo);
+    int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
     int setCanceled(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     int setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);

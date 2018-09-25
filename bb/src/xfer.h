@@ -64,7 +64,7 @@ extern int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob p
 
 extern int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t& pRate);
 
-extern int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBTagInfo2* pTagInfo2, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId);
+extern int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId);
 
 extern void lockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 

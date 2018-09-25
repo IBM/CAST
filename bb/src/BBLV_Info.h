@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    BBTagInfo2.h
+ |    BBLV_Info.h
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -11,16 +11,16 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_BBTAGINFO2_H_
-#define BB_BBTAGINFO2_H_
+#ifndef BB_BBLVINFO_H_
+#define BB_BBLVINFO_H_
 
 #include "bbinternal.h"
 #include "BBJob.h"
-#include "BBLVKey_ExtentInfo.h"
+#include "BBLV_ExtentInfo.h"
+#include "BBLV_Metadata.h"
 #include "BBStatus.h"
 #include "BBTagID.h"
 #include "BBTagInfoMap.h"
-#include "BBTagInfoMap2.h"
 #include "ExtentInfo.h"
 #include "LVKey.h"
 
@@ -45,28 +45,25 @@ const int REMOVE_TARGET_PFS_FILES = 1;
  | Classes
  *******************************************************************************/
 /**
- * \class BBTagInfo2
+ * \class BBLV_Info
  * Contains the extent information and map of BBTagID->BBTagInfo and used when transfer by_extent
  */
-class BBTagInfo2
+class BBLV_Info
 {
   public:
-    BBTagInfo2() :
-        flags(0),
+    BBLV_Info() :
         jobid(0),
         connectionName(UNDEFINED_CONNECTION_NAME),
         hostname(UNDEFINED_HOSTNAME) {
     };
 
-    BBTagInfo2(const string& pConnectionName, const string& pHostName, const uint64_t pJobId) :
-        flags(0),
+    BBLV_Info(const string& pConnectionName, const string& pHostName, const uint64_t pJobId) :
         jobid(pJobId),
         connectionName(pConnectionName),
         hostname(pHostName) {
     };
 
-    BBTagInfo2(const string& pConnectionName, const string& pHostName, const BBTagInfoMap& pTagInfoMap) :
-        flags(0),
+    BBLV_Info(const string& pConnectionName, const string& pHostName, const BBTagInfoMap& pTagInfoMap) :
         jobid(0),
         connectionName(pConnectionName),
         hostname(pHostName),
@@ -91,7 +88,7 @@ class BBTagInfo2
     void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef);
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
-    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLVKey_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
+    void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLV_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId);
@@ -139,7 +136,7 @@ class BBTagInfo2
         return connectionName;
     }
 
-    inline BBLVKey_ExtentInfo* getExtentInfo() {
+    inline BBLV_ExtentInfo* getExtentInfo() {
         return &extentInfo;
     }
 
@@ -196,7 +193,7 @@ class BBTagInfo2
     };
 
     inline int isSuspended() {
-        RETURN_FLAG(BBTI2_Suspended);
+        return extentInfo.isSuspended();
     }
 
     inline void mergeFlags(const uint64_t pFlags) {
@@ -265,7 +262,7 @@ class BBTagInfo2
         return extentInfo.stageOutStarted();
     }
 
-    inline int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLVKey_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight) {
+    inline int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight) {
         return tagInfoMap.updateAllTransferHandleStatus(pConnectionName, pLVKey, pJobId, pLVKey_ExtentInfo, pNumberOfExpectedInFlight);
     }
 
@@ -287,14 +284,13 @@ class BBTagInfo2
         return extentInfo.updateTransferStatus(pLVKey, pExtentInfo, pTransferDef, pNewStatus, pExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
     }
 
-    uint64_t            flags;
     uint64_t            jobid;
     string              connectionName; //  NOTE: Currently only used to send handle completions messages back to
                                         //        bbProxy via the async message file
     string              hostname;
-    BBLVKey_ExtentInfo  extentInfo;
+    BBLV_ExtentInfo     extentInfo;
     BBTagInfoMap        tagInfoMap;
 };
 
-#endif /* BB_BBTAGINFO2_H_ */
+#endif /* BB_BBLVINFO_H_ */
 
