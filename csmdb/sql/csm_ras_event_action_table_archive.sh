@@ -115,7 +115,7 @@ THE_END`
 )
 
 # Escape special characters
-sed -i "s:([\b\f\n\r\t\"\\):\\\1:g" ${swap_file}
+sed -i "s:([\b\f\n\r\t\"\\]):\\\1:g" ${swap_file}
 
 awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file} \
     >> ${json_file} 
