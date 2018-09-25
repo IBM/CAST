@@ -70,7 +70,7 @@ export class JobComponent extends Component
                 }
             };
 
-            end_time = allocation.data.history ? allocation.data.history.end_time : null;
+            var end_time = allocation.data.history ? allocation.data.history.end_time : null;
             this.props.handleTimeRange(allocation.data.begin_time, end_time);
             this.props.handleFilter(filter, this.props.search.id);
 
