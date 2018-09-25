@@ -28,6 +28,7 @@ typedef struct
 {
   unsigned _Interval;
   unsigned _Retry;
+  bool _Enabled;
 } SoftFailRecovery_t;
 
 class RecurringTasks
@@ -52,10 +53,11 @@ public:
   inline bool IsEnabled() const { return _Enabled; }
 
   inline SoftFailRecovery_t GetSoftFailRecovery() const { return _SFRecovery; }
-  inline void SetSoftFailRecovery( const unsigned i_Interval, const unsigned i_Retry )
+  inline void SetSoftFailRecovery( const unsigned i_Interval, const unsigned i_Retry, const bool i_Enabled )
   {
     _SFRecovery._Interval = i_Interval;
     _SFRecovery._Retry = i_Retry;
+    _SFRecovery._Enabled = i_Enabled;
   }
 
   inline void UpdateLCM()
