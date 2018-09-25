@@ -419,7 +419,8 @@ bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepT
             if (isFound)
             {
                 controller++;
-                sleepTime=0;
+                sleepCount=0;
+                //sleepCount=sleepAttempts;
             }
             else
             {
