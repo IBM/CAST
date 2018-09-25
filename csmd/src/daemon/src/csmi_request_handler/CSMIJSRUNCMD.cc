@@ -221,7 +221,6 @@ bool CSMIJSRUNCMD_Master::ParseAuthQuery(
             LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString()
                 << "; Message: User was successfully authorized to execute jsrun command";
         }
-
     }
     else
     {
