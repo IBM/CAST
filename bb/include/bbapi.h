@@ -71,19 +71,20 @@ extern int BB_TerminateLibrary();
 
 /**
  *  \brief Obtain error details of the last bbAPI call
+ *  \par Description
  *  The BB_GetLastErrorDetails routine provides contextual details of the last API call to help the
  *  caller determine the failure.  The failure information is returned in a C string in the format
  *  specified by the caller.
+ *
+ *  \note
  *  The last error details are _thread local_.  Each thread has its separate and distinct copy of a "last error" string.
  *  A thread invoking a burst buffer API will get a different "last error" string than another thread invoking burst buffer APIs.
- *
- *
  *
  *  Only details from the last bbAPI call performed on that software thread are returned.  If the process
  *  is multi-threaded, the error information is tracked separately between the threads.
  *
  *  \param[in]     format                   Format of data to return.  (See BBERRORFORMAT for possible values.)
- *  \param[out]    numBytesAvail            Number of bytes available to return.
+ *  \param[out]    numAvailBytes            Number of bytes available to return
  *  \param[in]     buffersize               Size of buffer
  *  \param[in/out] bufferForErrorDetails    Pointer to buffer
  *  \return Error code
