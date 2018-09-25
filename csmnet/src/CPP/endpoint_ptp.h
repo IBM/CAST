@@ -88,39 +88,9 @@ public:
 
   virtual int GetSocket() const { return _Socket; }
 
-protected:
-  virtual ssize_t SendMsgWrapper( const struct msghdr *aMsg, const int aFlags );
-  int SetGeneralSockopts();
-  void SetHeartbeatAddress( const Address_sptr &aAddr ) { _Heartbeat.setAddr( aAddr ); }
-
-  template<typename AddressClass>
-  int PrepareServerSocket()
-  {
-    int value = 1;
-    int rc = setsockopt( _Socket, SOL_SOCKET, SO_REUSEADDR, &value, sizeof( int ) );
-    if( rc )
-      throw csm::network::Exception("setsocket: SO_REUSEADDR");
-
-    rc = bind( _Socket,
-               (sockaddr*)&( dynamic_cast<AddressClass*>(_LocalAddr.get())->_SockAddr ),
-               sizeof( sockaddr_in ) );
-    if( rc )
-      throw csm::network::ExceptionEndpointDown("Bind error");
-
-    LOG(csmnet, debug) << "PrepareServerSocket(): bind to " << *dynamic_cast<AddressClass*>(_LocalAddr.get());
-
-    rc = listen( _Socket, 128 );
-    if( rc )
-      throw csm::network::Exception("Listen");
-    LOG(csmnet, debug) << "PrepareServerSocket(): Now listening on addr: "
-       << dynamic_cast<AddressClass*>(_LocalAddr.get())->Dump();
-
-    return rc;
-  }
-
   // checks if there's any available data on a socket
   // and retrieves and returns any errors via getsockopt
-  int CheckConnectActivity( int aSocket, bool aWithRead = false )
+  static inline int CheckConnectActivity( int aSocket, bool aWithRead = false )
   {
     int rc = 0;
 
@@ -153,6 +123,35 @@ protected:
     return rc;
   }
 
+protected:
+  virtual ssize_t SendMsgWrapper( const struct msghdr *aMsg, const int aFlags );
+  int SetGeneralSockopts();
+  void SetHeartbeatAddress( const Address_sptr &aAddr ) { _Heartbeat.setAddr( aAddr ); }
+
+  template<typename AddressClass>
+  int PrepareServerSocket()
+  {
+    int value = 1;
+    int rc = setsockopt( _Socket, SOL_SOCKET, SO_REUSEADDR, &value, sizeof( int ) );
+    if( rc )
+      throw csm::network::Exception("setsocket: SO_REUSEADDR");
+
+    rc = bind( _Socket,
+               (sockaddr*)&( dynamic_cast<AddressClass*>(_LocalAddr.get())->_SockAddr ),
+               sizeof( sockaddr_in ) );
+    if( rc )
+      throw csm::network::ExceptionEndpointDown("Bind error");
+
+    LOG(csmnet, debug) << "PrepareServerSocket(): bind to " << *dynamic_cast<AddressClass*>(_LocalAddr.get());
+
+    rc = listen( _Socket, 128 );
+    if( rc )
+      throw csm::network::Exception("Listen");
+    LOG(csmnet, debug) << "PrepareServerSocket(): Now listening on addr: "
+       << dynamic_cast<AddressClass*>(_LocalAddr.get())->Dump();
+
+    return rc;
+  }
 
   template<typename AddressClass>
   int ConnectPrep( const csm::network::Address_sptr aSrvAddr )
