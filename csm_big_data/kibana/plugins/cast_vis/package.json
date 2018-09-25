@@ -1,6 +1,6 @@
 {
   "name": "cast_visualizer",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A kibana plugin to facilitate visualization and control of CAST datasets.",
   "main": "index.js",
   "kibana": {
