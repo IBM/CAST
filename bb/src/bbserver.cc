@@ -1619,50 +1619,18 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             {
                 // Second volley from bbProxy and not a restart scenario...
                 // First, ensure that this transfer definition is NOT marked as stopped in the cross bbServer metadata...
-                bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
-                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
-                l_HandleFilePath /= bfs::path(to_string(l_Handle));
-
-                // NOTE: The handle file does not have to be locked exclusive here because the stop transfer processsing 'waits'
-                //       for the extents to be enqueued.  The processing of competing start/restart transfer definition processing is
-                //       serialized via the transfer queue lock above...
-                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId);
-                if (rc >= 0)
+                rc = ContribIdFile::isStopped(l_Job, l_Handle, l_ContribId);
+                if (rc == 1)
                 {
-                    // Process the contribid file
-                    if (rc == 1 && l_ContribIdFile)
-                    {
-                        if (l_ContribIdFile->stopped())
-                        {
-                            // This condition overrides any failure detected on bbProxy...
-                            l_MarkFailedFromProxy = 0;
+                    // This condition overrides any failure detected on bbProxy...
+                    l_MarkFailedFromProxy = 0;
 
-                            // Set rc to 1 and this will be returned as a -2 back to bbProxy...
-                            rc = 1;
-                            errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                                      << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
-                                      << " This transfer definition can only be submitted via restart transfer definition processing.";
-                            LOG_ERROR_TEXT_AND_BAIL(errorText);
-                        }
-                    }
-                    else
-                    {
-                        // Could be normal...
-                    }
+                    // rc is already 1 and this will be returned as a -2 back to bbProxy...
+                    errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                              << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
+                              << " This transfer definition can only be submitted via restart transfer definition processing.";
+                    LOG_ERROR_TEXT_AND_BAIL(errorText);
                 }
-                else
-                {
-                    // Could be normal...
-                }
-
-                if (l_ContribIdFile)
-                {
-                    delete l_ContribIdFile;
-                    l_ContribIdFile = 0;
-                }
-
-                rc = 0;
             }
 
             if ((!l_PerformOperation) && l_TransferPtr->builtViaRetrieveTransferDefinition())
