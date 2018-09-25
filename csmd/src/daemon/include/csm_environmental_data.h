@@ -48,6 +48,8 @@ public:
 
   bool HasData() const;
 
+  void GenerateTestData();
+
 private:
    friend class boost::serialization::access;
 
