@@ -74,7 +74,6 @@ class BBLV_Info
     int allContribsReported(const uint64_t pHandle, const BBTagID& pTagId);
     int allExtentsTransferred(const BBTagID& pTagId);
     void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption=DO_NOT_REMOVE_TARGET_PFS_FILES);
-    void changeServer();
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     int ensureStageOutEnded(const LVKey* pLVKey);

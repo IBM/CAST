@@ -61,7 +61,6 @@ extern inline int isMsgIdToLogAsInfo(txp::Id pId)
     switch (pId)
     {
         case CORAL_AUTHENTICATE:
-        case CORAL_CHANGESERVER:
         case CORAL_ERROR:
         case CORAL_GETVAR:
         case CORAL_GOODBYE:

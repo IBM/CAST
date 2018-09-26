@@ -383,46 +383,6 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 }
 
 
-void msgin_change_server(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
-{
-    ENTRY(__FILE__,__FUNCTION__);
-    int rc = 0;
-
-    bberror.clear(pConnectionName);
-
-    try
-    {
-        // Demarshall data from the message
-        Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
-        LVKey l_LVKey = std::make_pair(pConnectionName, l_lvuuid);
-
-        switchIds(msg);
-
-        // Process change server message
-
-        rc = changeServer(pConnectionName, &l_LVKey);
-        if (rc) {
-            LOG_RC_AND_BAIL(rc);
-        }
-    }
-    catch (ExceptionBailout& e) { }
-    catch (exception& e)
-    {
-        rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    // Build the response message
-    txp::Msg* response;
-    msg->buildResponseMsg(response);
-
-    addReply(msg, response);
-
-    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-}
-
-
 void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -2616,7 +2576,6 @@ int registerHandlers()
     registerMessageHandler(txp::BB_STARTTRANSFER, msgin_starttransfer);
     registerMessageHandler(txp::BB_SUSPEND, msgin_suspend);
     registerMessageHandler(txp::BB_STOP_TRANSFERS, msgin_stoptransfers);
-    registerMessageHandler(txp::CORAL_CHANGESERVER, msgin_change_server);
     registerMessageHandler(txp::CORAL_HELLO, msgin_hello);
     registerMessageHandler(txp::CORAL_STAGEOUT_START, msgin_stageout_start);
 

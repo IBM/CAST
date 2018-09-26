@@ -86,7 +86,7 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                          )
 
 CORAL_IDS = {'CORAL_AUTHENTICATE':1,
-             'CORAL_CHANGESERVER':2,
+#             'CORAL_CHANGESERVER':2,
              'CORAL_ERROR':3,
              'CORAL_GETVAR':4,
              'CORAL_GOODBYE':5,

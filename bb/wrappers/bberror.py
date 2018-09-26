@@ -276,10 +276,6 @@ class BB_SuspendError(BBError):
     def __init__(self, rc):
         BBError.__init__(self, rc)
 
-class Coral_ChangeServerError(BBError):
-    def __init__(self, rc):
-        BBError.__init__(self, rc)
-
 class Coral_StageOutStartError(BBError):
     def __init__(self, rc):
         BBError.__init__(self, rc)
