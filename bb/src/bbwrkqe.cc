@@ -35,7 +35,6 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         if (getWrkQ_Size() != l_LV_Info->getNumberOfExtents())
         {
             LOG(bb,error) << "WRKQE::addWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
-            // \todo - Need to figure out what to do here for production...  @DLH
             abort();
         }
     }
@@ -206,7 +205,6 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         if (getWrkQ_Size() != l_LV_Info->getNumberOfExtents())
         {
             LOG(bb,error) << "WRKQE::removeWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
-            // \todo - Need to figure out what to do here for production...  @DLH
             abort();
         }
     }

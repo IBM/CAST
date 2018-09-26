@@ -594,7 +594,7 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
             }
             else
             {
-                // \todo - Error case, but can't get here...
+                // Should not be able to get here...
             }
         }
     }
@@ -1078,7 +1078,6 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                     else
                     {
                         // Error case...  Just return this file...
-                        // \todo - Code error case @DLH
                     }
                 }
             }
@@ -1141,8 +1140,8 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
     HPWrkQE->dump("info", "processAllOutstandingHP_Requests(): ");
 
     // Now, process all enqueued high priority work items...
-    // NOTE: \todo - Is it possible for so many async requests to be appended (and continue to be appended...)
-    //               that we never process them all...  Seems unlikely...  Investigate...  @DLH
+    // NOTE: We assume it is not possible for so many async requests to be appended (and continue to be appended...)
+    //       that we never process them all...
     while (!l_AllDone)
     {
         // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
@@ -1246,10 +1245,6 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
         {
             incrementNumberOfWorkItemsProcessed();
         }
-    }
-    else
-    {
-        // \todo - Set error text...
     }
 
     return;

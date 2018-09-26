@@ -820,7 +820,6 @@ void BBTransferDef::cleanUpIOMap() {
 }
 
 void BBTransferDef::cleanUp() {
-    // \todo - Not sure what we want to do here...  @DLH
 
     return;
 }
@@ -1266,7 +1265,7 @@ void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t
     SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
-    // \todo - We do not handle the return code... @DLH
+    // NOTE: We do not handle the return code...
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Extents_Transferred, pValue);
 
     return;
@@ -1277,7 +1276,7 @@ void BBTransferDef::setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandl
     // NOTE: This attribute is NOT maintained in the transfer definition and only in the contribid file
 
     // Update the status for the ContribId and Handle files in the xbbServer data...
-    // \todo - We do not handle the return code... @DLH
+    // NOTE: We do not handle the return code...
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Files_Closed, pValue);
 
     return;
@@ -1306,7 +1305,7 @@ void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, con
     SET_FLAG(BBTD_Canceled, pValue);
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
-    // \todo - We do not handle the return code... @DLH
+    // NOTE: We do not handle the return code...
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Canceled, pValue);
 
     return;
@@ -1322,7 +1321,7 @@ void BBTransferDef::setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHand
     SET_FLAG(BBTD_Extents_Enqueued, pValue);
 
     // Now update the status for the ContribIdfiles in the xbbServer data...
-    // \todo - We do not handle the return code... @DLH
+    // NOTE: We do not handle the return code...
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Extents_Enqueued, pValue);
 
     return;
@@ -1346,7 +1345,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
     SET_FLAG(BBTD_Failed, pValue);
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
-    // \todo - We do not handle the return code... @DLH
+    // NOTE: We do not handle the return code...
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Failed, pValue);
 
     return;
@@ -1385,7 +1384,7 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
     SET_FLAG(BBTD_Stopped, pValue);
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
-    // \todo - We do not handle the return code... @DLH
+    // NOTE: We do not handle the return code...
     ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, pValue);
 
     return;

@@ -276,12 +276,8 @@ int BBLV_Info::prepareForRestart(const string& pConnectionName, const LVKey* pLV
         //        and stage out end completed flags as they should always be off
         //        for a restart scenario.  Those flags are only used as part of
         //        remove logical volume processing.
-        // \todo - If we ever become dependent upon these flags, need to copy those
-        //         values (not exactly sure where in the restart path...) -or-
-        //         never rely on the local cached flag values and always go out
-        //         to the cross bbServer metadata for those flag vlaues.
 
-        // If last pass, set the appropriate flags in the LVKey related local metadata
+        // Last pass, set the appropriate flags in the LVKey related local metadata
         extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
     }
 
@@ -304,8 +300,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     bool l_UpdateTransferStatus = false;
 
     // Check to see if this is the last extent to be transferred for the source file
-    // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp either locally on
-    //        the compute node or remotely I/O node to the PFS.
+    // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
+    //        the compute node or remotely on the I/O node.
     if ( (!(pExtentInfo.getExtent()->isCP_Transfer())) )
     {
         // An actual transfer of data was performed...
@@ -455,11 +451,9 @@ int BBLV_Info::retrieveTransfers(BBTransferDefs& pTransferDefs)
         //        for a given bbProxy.  For switch/failover, current design is to halt all
         //        requests to the 'original' bbServer before moving the work from that bbServer
         //        to the new bbServer.  Therefore, we should NOT be processing any retrieve transfer
-        //        request on the 'original' bbServer which could find some trnasfer information
+        //        request on the 'original' bbServer which could find some transfer information
         //        in its local metadata which will not reflect reality once the new bbServer
         //        starts processing the transfered work.
-        //        \todo - Need to verify and determine the exposure of having this local metadata
-        //                on the original bbServer...  @DLH
         if (!rc)
         {
             rc = 2;
@@ -988,11 +982,11 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     // Now, the l_NewStatus flag properly indicates if the ContribId complete message should be sent
     if (l_NewStatus)
     {
-        // NOTE: \todo - Not sure about the following long-term...  @DLH
         if (!l_TransferDef->stopped())
         {
             sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pExtentInfo.getHandle(), pExtentInfo.getContrib(), l_TransferDef);
         }
+
         // Status changed for transfer definition...
         // Check/update the status for the transferHandle
         l_NewStatus = 0;

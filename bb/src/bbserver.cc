@@ -2726,9 +2726,9 @@ int bb_main(std::string who)
         }
 
         // Log which jobs are currently known by the system in the cross bbServer metadata.
-        // NOTE:  This may not be an issue in the labs where job numbers are not to be resued,
-        //        but for test development, job numbers are reused which can cause issues.
-        // \todo - Long-term?  @DLH
+        // NOTE:  Our design depends on jobids NOT being reused, unless such jobids are first removed
+        //        from all local metadata caches and the cross-bbServer metadata.  This may occur in
+        //        test environments...
         uint32_t l_Count = 0;
         boost::filesystem::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
         if (boost::filesystem::is_directory(datastore))
