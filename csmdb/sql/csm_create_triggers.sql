@@ -26,8 +26,8 @@
 --            - Also removed the 'state' field from the UPDATE logic - as not needed.
 --            - fn_csm_node_delete_function - updated comment with appropriate content.
 --            - Update 'fn_csm_allocation_dead_records_on_lv' and 'fn_csm_allocation_dead_records_on_lv'
---            - cleaned up fn_csm_lv_history_dump with additional checks.
 --            - now clean up any lvs before we delete the allocations from csm_allocation_node and csm_allocation tables.
+--            - cleaned up fn_csm_lv_history_dump with additional checks.
 --     16.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
 --            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
@@ -4633,8 +4633,6 @@ BEGIN
         UPDATE csm_vg
         SET
             available_size = lv_current_size_before_delete + available_size
-        -- FROM
-            -- csm_lv
         WHERE (
                 vg_name_of_the_lv = csm_vg.vg_name
             AND
@@ -4649,7 +4647,7 @@ BEGIN
                 allocation_id = i_allocationid
             );
     ELSE
-        RAISE EXCEPTION using message = 'logical_volume_name and allocation_id does not exist';
+        RAISE EXCEPTION 'logical_volume_name and allocation_id does not exist % %', i_logical_volume_name, i_allocationid;
     END IF;
     EXCEPTION
         WHEN others THEN
