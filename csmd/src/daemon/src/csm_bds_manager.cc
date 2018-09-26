@@ -138,57 +138,47 @@ csm::daemon::EventManagerBDS::Connect()
       }
     }
 
-    bool keep_retrying = true;
-    while( keep_retrying )
+    int stored_errno = 0;
+    int rc = connect( _Socket, c->ai_addr, c->ai_addrlen );
+    if( rc ) stored_errno = errno;
+    CSMLOG( csmd, trace ) << "Connect returned: " << rc << " error: " << stored_errno << "(" << strerror( stored_errno ) << ")";
+    if( rc == 0 )
     {
-      int stored_errno = 0;
-      int rc = connect( _Socket, c->ai_addr, c->ai_addrlen );
-      if( rc ) stored_errno = errno;
-      CSMLOG( csmd, trace ) << "Connect returned: " << rc << " error: " << stored_errno << "(" << strerror( stored_errno ) << ")";
-      if( rc == 0 )
+      connected = true;
+      break;
+    }
+    else
+    {
+      switch( stored_errno )
       {
-        CSMLOG( csmd, info ) << "Connected to BDS at " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+        case EINPROGRESS: //  non-blocking socket condition, further check/action necessary
+          try
+          {
+            stored_errno = csm::network::EndpointPTP_base::CheckConnectActivity( _Socket );
+            CSMLOG( csmd, trace ) << "Connection still in progress... check error=" << stored_errno << "(" << strerror( stored_errno ) << ")";
+            if( stored_errno == 0 )
+              connected = true;
+          }
+          catch ( csm::network::ExceptionEndpointDown &e )
+          {
+            CSMLOG( csmd, warning ) << "CheckConnectActivity() timeout/other error: " << e.what();
+          }
+          break;
 
-        // return the socket to blocking after completion of the connect
-        current_setting = fcntl( _Socket, F_GETFL, NULL );
-        current_setting &= (~O_NONBLOCK);
-        fcntl( _Socket, F_SETFL, current_setting );
-
-        keep_retrying = false;
-        connected = true;
-        break;
-      }
-      else
-      {
-        switch( stored_errno )
-        {
-          case EINPROGRESS: //  non-blocking socket condition, further check/action necessary
-            try
-            {
-              stored_errno = csm::network::EndpointPTP_base::CheckConnectActivity( _Socket );
-              CSMLOG( csmd, trace ) << "Connection still in progress... check error=" << stored_errno << "(" << strerror( stored_errno ) << ")";
-              if(( stored_errno == EALREADY ) || ( stored_errno == EHOSTUNREACH ))
-                keep_retrying = false;
-              else
-              {
-                if( stored_errno != 0 )
-                  usleep( 1000 );
-                keep_retrying = true;
-              }
-            }
-            catch ( csm::network::ExceptionEndpointDown &e )
-            {
-              CSMLOG( csmd, warning ) << "CheckConnectActivity() timeout/other error: " << e.what();
-            }
-            break;
-
-          default:  // some other connection error, don't attempt to retry
-            keep_retrying = false;
-            break;
-        }
+        default:  // some other connection error, don't attempt to retry
+          break;
       }
     }
-    if( !connected )
+    if( connected )
+    {
+      CSMLOG( csmd, info ) << "Connected to BDS at " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+
+      // return the socket to blocking after completion of the connect
+      current_setting = fcntl( _Socket, F_GETFL, NULL );
+      current_setting &= (~O_NONBLOCK);
+      fcntl( _Socket, F_SETFL, current_setting );
+    }
+    else
     {
       close( _Socket );
       _Socket = 0;

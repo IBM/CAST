@@ -196,17 +196,16 @@ protected:
           // check if the non-blocking socket completed the connect() or not, if not, use select+getsockopt to go check completion or error
           if( stored_errno == EINPROGRESS )
           {
-            --retries; // this is an incomplete connect, so we cannot count it as a "retry"
             stored_errno = CheckConnectActivity( _Socket );
             if( stored_errno == 0 )
               rc = 0;
           }
           // there are some error cases where we just shouldn't retry immediately
-          if(( stored_errno == EALREADY ) || ( stored_errno == EHOSTUNREACH ))
+          if(( stored_errno == EALREADY ) || ( stored_errno == EHOSTUNREACH ) || ( stored_errno == ECONNABORTED ))
             throw csm::network::ExceptionEndpointDown("Error while connecting. Not retrying immediately", stored_errno );
 
           LOG(csmnet, debug ) << "Connection attempt " << retries << " to :" << aSrvAddr->Dump()
-              << " failed: rc/errno=" << rc << "/" << errno
+              << " failed: rc/errno=" << rc << "/" << stored_errno
               << " Retrying after "
               << retries * 100 << "ms.";
 
