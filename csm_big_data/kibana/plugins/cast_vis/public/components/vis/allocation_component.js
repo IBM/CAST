@@ -29,11 +29,14 @@ export class AllocationComponent extends Component
 
     handleSubmit()
     {
-       var query = { 
-        bool : { 
-         should : [ 
-          { match : 
-           { "data.allocation_id" :  this.props.search.allocation_id } }
+        
+        if (isNaN(this.props.search.allocation_id )) { return; }
+        
+        var query = { 
+            bool : { 
+                should : [ 
+                { match : 
+                    { "data.allocation_id" :  this.props.search.allocation_id } }
         ] } }  ;
 
         this.props.onSearch(query, this.props.search, this.handleResponse);

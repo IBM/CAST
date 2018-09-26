@@ -61,6 +61,7 @@ export class CastSearchVis extends Component {
         this.props.scope.API.timeFilter.time.mode = "absolute";
         this.props.scope.API.timeFilter.time.from = startTime ? startTime : "now";
         this.props.scope.API.timeFilter.time.to   = endTime ? endTime : "now";
+    }
     
 
     handleSearchBarFilter(filter, searchId)

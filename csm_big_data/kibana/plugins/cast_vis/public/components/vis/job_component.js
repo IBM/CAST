@@ -37,6 +37,12 @@ export class JobComponent extends Component
 
     handleSubmit()
     {
+        if (isNaN(this.props.search.primary_job_id) || 
+            isNaN(this.props.search.secondary_job_id)) 
+        {    
+            return;     
+        }
+
        var query = { 
         bool : { 
          should : [ 
