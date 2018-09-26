@@ -76,10 +76,6 @@ extern int bbcmd_resize(po::variables_map& vm);
 extern int bbcmd_sleep(po::variables_map& vm);
 extern int bbcmd_suspend(po::variables_map& vm);
 extern int bbcmd_resume(po::variables_map& vm);
-extern int bbcmd_retrievetransfers(po::variables_map& vm);
-extern int bbcmd_stoptransfers(po::variables_map& vm);
-extern int bbcmd_restarttransfers(po::variables_map& vm);
-extern int coral_cmd_chgserver(po::variables_map& vm);
 extern int coral_cmd_getvar(po::variables_map& vm);
 extern int coral_cmd_setvar(po::variables_map& vm);
 extern int coral_cmd_stageout_start(po::variables_map& vm);
@@ -114,11 +110,7 @@ map<string, CommandData_t> bbcmd_map =
     { "setserver",          { bbcmd_setserver,              list<string>    {"close","open","activate","offline"},                       0 }},
     { "suspend",            { bbcmd_suspend,                list<string>    {"hostname"},                                                0 }},
     { "resume",             { bbcmd_resume,                 list<string>    {"hostname"},                                                0 }},
-    { "retrievetransfers",  { bbcmd_retrievetransfers,      list<string>    {"hostname", "handle", "rtvoptions", "buffersize"},          0 }},
-    { "stoptransfers",      { bbcmd_stoptransfers,          list<string>    {"hostname", "handle", "transferdefs", "transferdefs_size"}, 0 }},
-    { "restarttransfers",   { bbcmd_restarttransfers,       list<string>    {"hostname", "handle", "transferdefs", "transferdefs_size"}, 0 }},
-    { "adminfailover",      { bbcmd_adminfailover,          list<string>    {"hostname", "resume" },                                               0 }},
-    { "chgserver",          { coral_cmd_chgserver,          list<string>    {"mount"},                                                   1 }},
+    { "adminfailover",      { bbcmd_adminfailover,          list<string>    {"hostname", "resume" },                                     0 }},
     { "getvar",             { coral_cmd_getvar,             list<string>    {"variable"},                                                1 }},
     { "setvar",             { coral_cmd_setvar,             list<string>    {"value", "variable"},                                       1 }},
     { "stgout_start",       { coral_cmd_stageout_start,     list<string>    {"mount"},                                                   1 }}
@@ -215,12 +207,6 @@ void usageWithoutCommand(const char* pProgram, const po::variables_map& pVariabl
 }
 
 // Admin/service commands
-int coral_cmd_chgserver(po::variables_map& vm)
-{
-    VMEXISTS("mount");
-    return Coral_ChangeServer(vm["mount"].as<string>().c_str());
-}
-
 int coral_cmd_getvar(po::variables_map& vm)
 {
     VMEXISTS("variable");
@@ -893,164 +879,6 @@ int bbcmd_resume(po::variables_map& vm)
 
     // NOTE: Any data to be returned is also inserted into bberror/errstate
     return BB_Resume(l_HostName);
-}
-
-int bbcmd_retrievetransfers(po::variables_map& vm)
-{
-    int rc = -1;
-    stringstream errorText;
-
-    const size_t DEFAULT_BUFFER_SIZE = 16384;
-    size_t l_BufferSize = DEFAULT_BUFFER_SIZE;
-    char* l_Buffer = 0;
-
-    std::string l_HostNameStr = UNDEFINED_HOSTNAME;
-    char l_HostName[64] = {'\0'};
-    std::string l_HandleStr = "";
-    BBTransferHandle_t l_Handle = UNDEFINED_HANDLE;
-    BB_RTV_TRANSFERDEFS_FLAGS l_Flags = DEFAULT_RTV_TRANSFERDEFS_FLAGS;
-
-    if (vm.count("hostname") > 0)
-    {
-        l_HostNameStr = (vm["hostname"].as<string>());
-        string l_Temp = boost::to_upper_copy<std::string>(l_HostNameStr);
-        if (l_Temp == ALL)
-        {
-            l_HostNameStr = NO_HOSTNAME;
-        }
-    }
-    strCpy(l_HostName, l_HostNameStr.c_str(), sizeof(l_HostName));
-
-    if (vm.count("handle") > 0)
-    {
-        l_HandleStr = (vm["handle"].as<string>());
-        string l_Temp = boost::to_upper_copy<std::string>(l_HandleStr);
-        if (l_Temp != ALL)
-        {
-            l_Handle = (BBTransferHandle_t)strtoull(l_HandleStr.c_str(), NULL, 10);
-        }
-        else
-        {
-            l_Handle = UNDEFINED_HANDLE;
-        }
-    }
-
-    if (vm.count("rtvoptions"))
-    {
-        l_Flags = get_rtvoptions(vm["rtvoptions"].as<string>().c_str());
-        if (check_retrieve_transfer_defs_flags(l_Flags))
-        {
-            rc = -1;
-            errorText << "rtvoptions value of " << vm["rtvoptions"].as<string>() << " is invalid";
-            LOG_ERROR_TEXT_RC(errorText, rc);
-            return rc;
-        }
-    }
-
-    if (vm.count("buffersize") > 0)
-    {
-        l_BufferSize = (size_t)(vm["buffersize"].as<int>());
-    }
-    l_Buffer = new char[l_BufferSize];
-    l_Buffer[0] = '\0';
-    uint32_t l_NumTransferDefs = 0;
-    size_t l_TransferDefsSize = 0;
-
-    // NOTE: Any data to be returned is also inserted into bberror/errstate
-    rc = BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags, &l_NumTransferDefs, &l_TransferDefsSize, l_BufferSize, l_Buffer);
-
-    delete[] l_Buffer;
-
-    return rc;
-}
-
-int bbcmd_stoptransfers(po::variables_map& vm)
-{
-    int rc = 0;
-    stringstream errorText;
-
-    VMEXISTS("transferdefs");
-
-    std::string l_HostNameStr = UNDEFINED_HOSTNAME;
-    char l_HostName[64] = {'\0'};
-    std::string l_HandleStr = "";
-    BBTransferHandle_t l_Handle = UNDEFINED_HANDLE;
-    std::string l_TransferDefs;
-    uint32_t l_NumStoppedTransferDefs= 0;
-
-    if (vm.count("hostname") > 0)
-    {
-        l_HostNameStr = (vm["hostname"].as<string>());
-        string l_Temp = boost::to_upper_copy<std::string>(l_HostNameStr);
-        if (l_Temp == ALL)
-        {
-            l_HostNameStr = NO_HOSTNAME;
-        }
-    }
-    strCpy(l_HostName, l_HostNameStr.c_str(), sizeof(l_HostName));
-
-    if (vm.count("handle") > 0)
-    {
-        l_HandleStr = (vm["handle"].as<string>());
-        string l_Temp = boost::to_upper_copy<std::string>(l_HandleStr);
-        if (l_Temp != ALL)
-        {
-            l_Handle = (BBTransferHandle_t)strtoull(l_HandleStr.c_str(), NULL, 10);
-        }
-        else
-        {
-            l_Handle = UNDEFINED_HANDLE;
-        }
-    }
-
-    l_TransferDefs = (vm["transferdefs"].as<string>());
-
-    rc = BB_StopTransfers(l_HostName, l_Handle, &l_NumStoppedTransferDefs, l_TransferDefs.c_str(), l_TransferDefs.size());
-
-    return rc;
-}
-
-int bbcmd_restarttransfers(po::variables_map& vm)
-{
-    stringstream errorText;
-
-    VMEXISTS("transferdefs");
-
-    std::string l_HostNameStr = UNDEFINED_HOSTNAME;
-    char l_HostName[64] = {'\0'};
-    std::string l_HandleStr = "";
-    BBTransferHandle_t l_Handle = UNDEFINED_HANDLE;
-    std::string l_TransferDefs;
-    uint32_t l_NumRestartedTransferDefs= 0;
-
-    if (vm.count("hostname") > 0)
-    {
-        l_HostNameStr = (vm["hostname"].as<string>());
-        string l_Temp = boost::to_upper_copy<std::string>(l_HostNameStr);
-        if (l_Temp == ALL)
-        {
-            l_HostNameStr = NO_HOSTNAME;
-        }
-    }
-    strCpy(l_HostName, l_HostNameStr.c_str(), sizeof(l_HostName));
-
-    if (vm.count("handle") > 0)
-    {
-        l_HandleStr = (vm["handle"].as<string>());
-        string l_Temp = boost::to_upper_copy<std::string>(l_HandleStr);
-        if (l_Temp != ALL)
-        {
-            l_Handle = (BBTransferHandle_t)strtoull(l_HandleStr.c_str(), NULL, 10);
-        }
-        else
-        {
-            l_Handle = UNDEFINED_HANDLE;
-        }
-    }
-
-    l_TransferDefs = (vm["transferdefs"].as<string>());
-
-    return BB_RestartTransfers(l_HostName, l_Handle, &l_NumRestartedTransferDefs, l_TransferDefs.c_str(), l_TransferDefs.size());
 }
 
 int bbcmd_adminfailover(po::variables_map& vm)
