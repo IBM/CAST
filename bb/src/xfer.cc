@@ -1242,7 +1242,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
                     {
                         // The job's logical volume is being resized during stageout and stageout has started.
                         // Therefore, the file system has been torn down and the current transfer operation
-                        // is to transfer data to the SSD.  Since the file systme has been torn down and
+                        // is to transfer data to the SSD.  Since the file system has been torn down and
                         // the target extent must be for the job's logical volume, there is no need to do
                         // this transfer any longer.
                         // NOTE:  \todo Is this a failure or cancel case??? @DLH
@@ -2535,43 +2535,6 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-
-    EXIT(__FILE__,__FUNCTION__);
-    return rc;
-}
-
-int changeServer(const std::string& pConnectionName, const LVKey* pLVKey)
-{
-    ENTRY(__FILE__,__FUNCTION__);
-
-    // NOTE:  This command is used (currently) to change the rate of work performed by the server threads.
-    int rc = 0;
-    stringstream errorText;
-    BBLV_Info* l_LV_Info;
-
-    lockTransferQueue(pLVKey, "changeServer");
-
-    try
-    {
-        l_LV_Info = metadata.getTagInfo2(pLVKey);
-        if (l_LV_Info)
-        {
-            // LVKey value found in taginfo2...
-            l_LV_Info->changeServer();
-            LOG(bb,info) << "Change Server: ";
-        } else {
-            // LVKey could not be found in taginfo2...
-            LOG(bb,info) << "Change server was received for " << *pLVKey << ", but this LVKey for the mountpoint could not be found.";
-        }
-    }
-    catch (ExceptionBailout& e) { }
-    catch (exception& e)
-    {
-        rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    unlockTransferQueue(pLVKey, "changeServer");
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;

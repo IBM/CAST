@@ -126,15 +126,15 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
         }
 
         char myjobid[256];
-        
+
         if(BBJOBID == 0)
         {
             char* jobid                    = getenv(config.get(who + ".env_jobid",    "LSF_STAGE_JOBID").c_str());
             if(jobid == NULL)    jobid     = getenv(config.get(who + ".env_jobid",    "LSB_JOBID").c_str());
-            
+
             char* jobindex                 = getenv(config.get(who + ".env_jobindex", "LSF_STAGE_JOBINDEX").c_str());
             if(jobindex == NULL)  jobindex = getenv(config.get(who + ".env_jobindex", "LSB_JOBINDEX").c_str());
-            
+
             if(jobid)
             {
                 BBJOBID = stoull(jobid);
@@ -147,7 +147,7 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
             }
         }
         snprintf(myjobid, sizeof(myjobid), "%ld", BBJOBID);
-        
+
         if(config.get(who + ".noproxyinit", false))
         {
             rc = 0;
@@ -174,14 +174,14 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
             errorText << "Unable to create bb.proxy connection";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-        
+
         rc = bbapi_SetVariable("jobid", myjobid);
         if(rc)
         {
             errorText << "bbProxy setVariable for jobid failed";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-        
+
         tmp = getenv(config.get(who + ".env_jobstepid", "PMIX_NAMESPACE").c_str());
         if(tmp == NULL) tmp = DEFAULT_JOBSTEPID_STR.c_str();
         rc = bbapi_SetVariable("jobstepid", tmp);
@@ -306,46 +306,6 @@ int Coral_InitLibrary(uint32_t contribId, const char* clientVersion, const char*
 /*******************************************************************************
  | BB API Test APIs
  *******************************************************************************/
-
-// NOTE: Coral_ChangeServer() is not currently used...
-int Coral_ChangeServer(const char* pMountpoint)
-{
-    int rc = 0;
-
-    bberror.clear();
-
-    ResponseDescriptor reply;
-    txp::Msg* msg = 0;
-
-    try
-    {
-        // Verify initialization
-        rc = ENODEV;
-        verifyInit(true);
-        rc = 0;
-
-        txp::Msg::buildMsg(txp::CORAL_CHANGESERVER, msg);
-        msg->addAttribute(txp::mountpoint, pMountpoint, strlen(pMountpoint)+1);
-
-        rc = sendMessage(ProcessId, msg, reply);
-        delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
-
-        rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
-
-        rc = bberror.merge(msg);
-        delete msg;
-    }
-    catch(ExceptionBailout& e) { }
-    catch(exception& e)
-    {
-        rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    return rc;
-}
 
 int Coral_GetVar(const char* pVariable)
 {

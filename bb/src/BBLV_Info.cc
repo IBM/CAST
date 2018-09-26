@@ -121,13 +121,6 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
     return;
 }
 
-void BBLV_Info::changeServer()
-{
-
-    return;
-}
-
-
 void BBLV_Info::cleanUpAll(const LVKey* pLVKey)
 {
     // Cleanup the LVKey...

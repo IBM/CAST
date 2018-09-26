@@ -15,7 +15,6 @@
 """
     This module provides wrappers to the following bbapi test functions.
 
-int Coral_ChangeServer(const char* pMountpoint, const int pTransferTimeInterval, const int pWorkItemsPerTransferTimeInterval);
 int Coral_GetVar(const char* pVariable);
 int Coral_SetVar(const char* pVariable, const char* pValue);
 int Coral_StageOutStart(const char* pMountpoint);
@@ -33,16 +32,6 @@ PRINT_VALUE = False
 #
 # Wrappers for test bbapi calls
 #
-
-def Coral_ChangeServer(pMountpoint):
-    l_Mountpoint = bb.cvar("mountpoint", pMountpoint)
-
-    print "%sCoral_ChangeServer issued for mountpoint %s" % (os.linesep, pMountpoint)
-    rc = bb.api.Coral_ChangeServer(l_Mountpoint)
-    if (rc):
-        raise Coral_ChangeServerError(rc)
-
-    return
 
 # // NOTE: Coral_G/SetVar currently only supports writing ascii values to be read as positive integers
 def Coral_GetVar(pVariable, pPrintValue=PRINT_VALUE):

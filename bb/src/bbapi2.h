@@ -50,7 +50,6 @@ extern void cleanupInit();
 extern void verifyInit(const bool pExpectedValue);
 
 // Test/service commands
-extern int Coral_ChangeServer(const char* pMountpoint);
 extern int Coral_InitLibrary(uint32_t contribId, const char* clientVersion, const char* configfile, const char* unixpath=0);
 extern int Coral_GetVar(const char* pVariable);
 // NOTE: Coral_SetVar currently only supports writing ascii values to be read as positive integers

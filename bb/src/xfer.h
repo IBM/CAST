@@ -56,8 +56,6 @@ extern int addLogicalVolume(const std::string& pConnectionName, const string& pH
 
 extern int cancelTransferForHandle(const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption);
 
-extern int changeServer(const std::string& pConnectionName, const LVKey* pLVKey);
-
 extern int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
 
 extern int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, const uint64_t pTag, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle, int pLockTransferQueueOption=LOCK_TRANSFER_QUEUE);
