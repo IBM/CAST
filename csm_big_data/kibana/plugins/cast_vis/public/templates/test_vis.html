@@ -1,0 +1,24 @@
+<div ng-controller="castSearch" className="cast-search-vis">
+
+    <div class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--responsive">
+        <div class="euiFlexItem" style="min-width: 250px;">
+            
+            <label class="euiFormLabel">Allocation ID: </label>
+            <input type="number" class="euiTextInput" ng-model="job.aid" />
+        </div>
+
+    </div>
+
+    <div class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--responsive">
+        <div class="euiFlexItem" style="min-width: 250px;">
+
+            <button class="euiButton euiButton--primary euiButton--fill" value="Search" ng-click="search(job)">Search</button>
+        </div>
+    </div ng-controller="castAllocation">
+    <kbn-agg-table-group
+        group="allocDetails"
+        export-title="test"
+        sort="sort"
+    >
+    </kbn-agg-table-group>
+</div>
