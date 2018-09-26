@@ -61,10 +61,10 @@ export class AllocationComponent extends Component
             var end_time = allocation.data.history ? allocation.data.history.end_time : null;
             this.props.handleTimeRange(allocation.data.begin_time, end_time);
             this.props.handleFilter(filter, this.props.search.id);
-            console.log(allocation.data);
-            console.log(this.props.search.displayFields);
-            console.log(_.get( allocation, this.props.search.displayFields));
-            console.log(this.props.search);
+            //console.log("Allocation Data: " , allocation.data);
+            //console.log("Display Fields: " , this.props.search.displayFields);
+            //console.log("Allocation Fields: " , _.get( allocation, this.props.search.displayFields));
+            //console.log("Props Search: " , this.props.search);
             var results = {}
             this.props.search.displayFields.map( (key) => {
                 const value = _.get(allocation, key, false);

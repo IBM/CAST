@@ -53,7 +53,6 @@ export class CastSearchVis extends Component {
                 });
 
         const resp = await searchSource.fetch().catch(e=>console.log(e));
-
         callback(resp);
     }
 
@@ -61,7 +60,7 @@ export class CastSearchVis extends Component {
     {
         this.props.scope.API.timeFilter.time.mode = "absolute";
         this.props.scope.API.timeFilter.time.from = startTime;
-        this.props.scope.API.timeFilter.time.to   = endTime ? endTime : Date.now;
+        this.props.scope.API.timeFilter.time.to   = endTime ? endTime : "now";
     }
 
     handleSearchBarFilter(filter, searchId)
