@@ -236,6 +236,8 @@ csm::daemon::EventManagerBDS::SendData( const std::string data )
       remain -= rc;
       done += rc;
     }
+    if(( rc == -1 ) && ( errno == EINTR ))
+      rc = 0;
   }
 
   return ((rc >= 0) && ( remain == 0 ));

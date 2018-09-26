@@ -103,12 +103,17 @@ public:
     FD_SET( aSocket, &fdsR );
 
     struct timeval timeout;
-    timeout.tv_sec = 1; timeout.tv_usec = 0;
+    int max_eintr = 3;
+    do
+    {
+      --max_eintr;
+      timeout.tv_sec = 1; timeout.tv_usec = 0; // resetting timeout regardless; not relying on any timeout modification in EINTR case
 
-    if( aWithRead )
-      rc = select( aSocket+1, &fdsR, &fdsW, NULL, &timeout );
-    else
-      rc = select( aSocket+1, NULL, &fdsW, NULL, &timeout );
+      if( aWithRead )
+        rc = select( aSocket+1, &fdsR, &fdsW, NULL, &timeout );
+      else
+        rc = select( aSocket+1, NULL, &fdsW, NULL, &timeout );
+    } while(( rc == -1 ) && ( errno == EINTR ) && ( max_eintr > 0 ));
 
     if( rc > 0 )
     {
