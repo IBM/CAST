@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.1
 --   create:                06-22-2016
---   last modified:         09-19-2018
+--   last modified:         09-26-2018
 --   change log:
 --     16.1   - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
 --            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
@@ -25,6 +25,9 @@
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
 --            - Also removed the 'state' field from the UPDATE logic - as not needed.
 --            - fn_csm_node_delete_function - updated comment with appropriate content.
+--            - Update 'fn_csm_allocation_dead_records_on_lv' and 'fn_csm_allocation_dead_records_on_lv'
+--            - cleaned up fn_csm_lv_history_dump with additional checks.
+--            - now clean up any lvs before we delete the allocations from csm_allocation_node and csm_allocation tables.
 --     16.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
 --            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
@@ -497,6 +500,9 @@ BEGIN
             DELETE FROM csm_step WHERE step_id=s.step_id AND allocation_id=allocationid;
         END LOOP;
     END IF;
+
+    -- first, make sure no lvs are mistakenly still around before the allocation delete
+        PERFORM fn_csm_allocation_dead_records_on_lv(allocationid);
     
     -- now we can proceed with the csm_allocation processing
     IF EXISTS (SELECT allocation_id FROM csm_allocation WHERE allocation_id=allocationid) THEN
@@ -869,6 +875,86 @@ $$ LANGUAGE 'plpgsql';
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
 COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+
+
+-----------------------------------------------------------
+-- fn_csm_allocation_dead_records_on_lv 
+-----------------------------------------------------------
+CREATE FUNCTION fn_csm_allocation_dead_records_on_lv(
+    i_allocation_id bigint
+)
+RETURNS void AS $$
+DECLARE
+    nn_count int;
+    lv_on_an int;
+    allocationids bigint[];
+    matching_node_names text[];
+    t_lv_name text;
+    t_node_name text;
+    t_allocation_id bigint;
+BEGIN
+
+    SELECT
+        count(node_name)
+    INTO nn_count
+    FROM
+        csm_allocation_node
+    WHERE (
+        allocation_id = i_allocation_id
+    );
+
+    IF ( nn_count > 0) THEN
+        -- look further
+        SELECT
+            array_agg(allocation_id), array_agg(node_name)
+        INTO
+            allocationids, matching_node_names
+        FROM
+            csm_allocation_node
+        WHERE (
+            allocation_id = i_allocation_id
+        );
+        --loop through that array
+        -- find any lvs on those allocation_nodes
+        FOR i IN 1..nn_count LOOP
+
+            SELECT
+                count(logical_volume_name)
+            INTO lv_on_an
+            FROM
+                csm_lv
+            WHERE (
+                allocation_id = allocationids[i] AND
+                node_name = matching_node_names[i]
+            );
+
+            IF (lv_on_an > 0) THEN
+
+                FOR j IN 1..lv_on_an LOOP
+                    SELECT
+                        logical_volume_name, node_name, allocation_id
+                    INTO
+                        t_lv_name, t_node_name, t_allocation_id
+                    FROM
+                        csm_lv
+                    WHERE (
+                        allocation_id = allocationids[i] AND
+                        node_name = matching_node_names[i]
+                    );
+
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                END LOOP;
+            END IF;
+        END LOOP;
+    END IF;
+END;
+$$ LANGUAGE 'plpgsql';
+
+-----------------------------------------------------------
+-- fn_csm_allocation_dead_records_on_lv comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION fn_csm_allocation_dead_records_on_lv( i_allocation_id bigint) is 'Delete any lvs on an allocation that is being deleted.';
 
 ---------------------------------------------------------------------------------------------------
 -- csm_node function to amend summarized column(s) on UPDATE and DELETE.
@@ -4500,6 +4586,7 @@ $$
 DECLARE
     l "csm_lv"%ROWTYPE;
     lv_current_size_before_delete bigint;
+    vg_name_of_the_lv text;
 BEGIN
     lv_current_size_before_delete := 0; 
     IF EXISTS (SELECT logical_volume_name, node_name, allocation_id 
@@ -4512,6 +4599,7 @@ BEGIN
                 LIMIT 1) 
     THEN
         SELECT current_size INTO lv_current_size_before_delete FROM csm_lv WHERE (logical_volume_name = i_logical_volume_name AND node_name = i_node_name AND allocation_id = i_allocationid);
+        SELECT vg_name INTO vg_name_of_the_lv FROM csm_lv WHERE (logical_volume_name = i_logical_volume_name AND node_name = i_node_name AND allocation_id = i_allocationid);
         SELECT * INTO l FROM csm_lv WHERE logical_volume_name = i_logical_volume_name AND allocation_id = i_allocationid AND node_name = i_node_name;
         -- copy the 'active' record into history, and fill in new post job data.
         INSERT INTO csm_lv_history VALUES(
@@ -4545,14 +4633,12 @@ BEGIN
         UPDATE csm_vg
         SET
             available_size = lv_current_size_before_delete + available_size
-        FROM
-            csm_lv
+        -- FROM
+            -- csm_lv
         WHERE (
-                csm_lv.vg_name = csm_vg.vg_name
+                vg_name_of_the_lv = csm_vg.vg_name
             AND
-                csm_lv.node_name = csm_vg.node_name
-            AND
-                csm_lv.logical_volume_name = i_logical_volume_name
+                i_node_name = csm_vg.node_name
         ); 
         -- Clean up the old 'active' record from 'csm_lv'
         DELETE 
@@ -4563,7 +4649,7 @@ BEGIN
                 allocation_id = i_allocationid
             );
     ELSE
-        RAISE EXCEPTION 'logical_volume_name and allocation_id does not exist % %', i_logical_volume_name, i_allocationid;
+        RAISE EXCEPTION using message = 'logical_volume_name and allocation_id does not exist';
     END IF;
     EXCEPTION
         WHEN others THEN

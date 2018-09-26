@@ -19,7 +19,7 @@
 #   current_version:    01.0
 #   migration_version:  16.1 # <--------example version after the DB upgrade
 #   create:             09-13-2018
-#   last modified:      09-14-2018
+#   last modified:      09-26-2018
 #================================================================================
 #set -x
 export PGOPTIONS='--client-min-messages=warning'
@@ -367,6 +367,7 @@ DROP FUNCTION IF EXISTS fn_csm_step_end(IN i_stepid bigint,IN i_allocationid big
 DROP FUNCTION IF EXISTS fn_csm_allocation_update() CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_allocation_state_history_state_change() CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_allocation_update_state(IN i_allocationid bigint,IN i_state text,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_nodes text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_shared boolean,OUT o_num_gpus integer,OUT o_num_processors integer,OUT o_projected_memory integer,OUT o_state text) CASCADE;
+DROP FUNCTION IF EXISTS fn_csm_allocation_dead_records_on_lv(i_allocation_id bigint) CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_lv_upsert(l_logical_volume_name text,l_node_name text,l_allocation_id bigint,l_vg_name text,l_state char(1),l_current_size bigint,l_max_size bigint,l_begin_time timestamp,l_updated_time timestamp,l_file_system_mount text,l_file_system_type text) CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_node_update() CASCADE;
 DROP FUNCTION IF EXISTS fn_csm_node_delete(i_node_names text[]) CASCADE;
