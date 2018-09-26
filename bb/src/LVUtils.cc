@@ -1015,7 +1015,7 @@ int createLogicalVolume(const uid_t pOwner, const gid_t pGroup, const char* pMou
                                     // attempt to remove that logical volume...
                                     rc2 = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
                                     if (rc2) {
-                                        // \todo - Cleanup failed...  what to do...  @@DLH
+                                        // Cleanup failed...
                                         LOG(bb,error) << "Logical volume name of " << l_DevName << " could not be removed from volume group " << l_VolumeGroupName;
                                     }
                                 }
@@ -1470,7 +1470,6 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                         rc = 0;
                         if (strncmp(l_DevName, l_VolumeGroupName, l_VolumeGroupNameLen) == 0) {
                             if ((strncmp(l_FileSysType, "ext4", l_FileSysTypeLength) == 0) || (strncmp(l_FileSysType, "xfs", l_FileSysTypeLength) == 0)) {
-                                // \todo - Need to code for the relative cases where the size would be below the minimum...  @@DLH
                                 if (pMountSize[0] != '-' && pMountSize[0] != '+') {
                                     ssize_t l_NumberOfSectors = getNumberOfSectors(l_MountSize);
                                     if (l_NumberOfSectors >= 0) {
@@ -1568,7 +1567,6 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                                 }
                                 rc = doResizeFileSystem(l_VolumeGroupName, l_DevName, l_FileSysType, NULL, l_MountSize, pFlags);
                                 if (rc) {
-                                    // \todo - Not sure about retries here...  @@DLH
                                     // NOTE: errstate filled in by doResizeFileSystem()
                                     LOG(bb,error) << "Could not resize file system for " << l_MountPoint;
                                 }
@@ -1634,7 +1632,6 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                                 //  NOTE:  We should never get into this leg when resizing an unmounted logical volume.
                                 rc = doResizeFileSystem(l_VolumeGroupName, l_DevName, l_FileSysType, l_MountPoint, l_MountSize, pFlags);
                                 if (rc) {
-                                    // \todo - Not sure about retries here...  @@DLH
                                     // NOTE: errstate filled in by doResizeFileSystem()
                                     LOG(bb,error) << "Could not resize file system for " << l_MountPoint;
                                 }

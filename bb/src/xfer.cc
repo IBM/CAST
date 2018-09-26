@@ -1114,7 +1114,6 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
     txp::Msg* l_Progress = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_PROGRESS, l_Progress);
 
-    // \todo - Add a payload...
     Uuid lv_uuid = pLVKey->second;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
@@ -1130,7 +1129,6 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
     l_Progress->addAttribute(txp::length, (pExtent ? (uint64_t)pExtent->len : 0));
 
     // Send the progress message
-
     try
     {
         rc = sendMessage(pConnectionName,l_Progress);
@@ -1158,11 +1156,9 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
 // will first unmount the file system from the logical volume.
 //
 // Also, once we make it to this method, it is imperative that we
-// remove the extent from vector of extents to transfer for this
+// remove the extent from the vector of extents to transfer for this
 // LVKey.  This is because we have already removed this extent
 // from the LVKey's work queue.
-//
-// \todo - Fix RAS messages...
 void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -2639,7 +2635,7 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
             }
 
             default:
-                // \todo - Should never get here...  @DLH
+                // Should never get here...
                 break;
         }
     }
@@ -2825,7 +2821,6 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
         //       bbServer before the activate code has registered all of the LVKeys for bbProxy.
         //       Thus, we wait for a total of 2 minutes if neither an LVKey (nor a work queue) is present
         //       for an LVKey.
-        // \todo - Not sure if this is the right duration...  @DLH
         while ((!rc) && l_Continue--)
         {
             rc = wrkqmgr.setThrottleRate(pLVKey, pRate);

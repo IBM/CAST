@@ -65,8 +65,6 @@ static mapBBTransferDef_t mapBBtransferDef;
 static volatile bool CRuntimeInitialized = false;
 
 BBTransferDefPTR getBBTransferDefPTR(BBTransferDef_tPTR pBBTransferDef_tPTR)
-
-
 {
 //need to lock on the map
     BBTransferDefPTR returnValue=NULL;
@@ -575,7 +573,6 @@ int BB_AddFiles(BBTransferDef_t* transfer, const char* source, const char* targe
             // Ensure that the bundle id and the associated 'BSCFS' bits are zero...
             // NOTE: The two high order bits in the low-order nibble are used in test
             //       to force 'stage-in' or 'stage-out' if both files are local...
-            // \todo - Long-term, need to remove...  @DLH
             if (l_Flags & 0xFFFFFFFFFFFFFFF2)
             {
                 rc = -1;
