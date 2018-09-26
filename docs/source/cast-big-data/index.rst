@@ -21,6 +21,5 @@ assumes the components of the stack are installed in the following order:
     data-aggregators.rst
     python-guide.rst
     csm-event-correlator.rst
-    timeline.rst
 
 
