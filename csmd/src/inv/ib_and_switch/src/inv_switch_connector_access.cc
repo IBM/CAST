@@ -97,7 +97,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
 	return compiled_with_support;
 }
 
-int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request)
+int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir)
 {
 	try
 	{	
@@ -171,7 +171,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		}
 		
 		// opening output file
-		std::string output_file_name = "output_file.txt";
+		std::string output_file_name = csm_inv_log_dir + "/ufm_switch_output_file.txt";
 		std::cout << "output file name: " << output_file_name << std::endl;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 
@@ -209,7 +209,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::string comparing_string;
 
 		// opening input file
-		std::string input_file_name = "output_file.txt";
+		std::string input_file_name = output_file_name;
 		std::cout << "input file name: " << input_file_name << std::endl;
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
 
