@@ -1195,15 +1195,27 @@ void Configuration::CreateThreadPool()
   void
   Configuration::SetRecurringTasks()
   {
-    std::string ckey_str = GetValueInConfig( "csm.recurring_tasks.soft_fail_recovery.interval" );
-    if( ckey_str.empty() )
+    std::string ckey_str = GetValueInConfig( "csm.recurring_tasks.enabled" );
+    boost::algorithm::to_lower( ckey_str );
+    if(( ckey_str.empty() ) || ( ckey_str.compare( "true") != 0 ))
     {
       _Cron.Disable();
-      CSMLOG( csmd, info ) << "No Recurring tasks defined in config. Disabling feature.";
+      CSMLOG( csmd, info ) << "Recurring tasks disabled or not defined in config. Disabling feature.";
     }
     else
     {
       _Cron.Enable();
+      ckey_str = GetValueInConfig( "csm.recurring_tasks.soft_fail_recovery.enabled" );
+      boost::algorithm::to_lower( ckey_str );
+      bool sfenabled = (( ! ckey_str.empty() ) && ( ckey_str.compare( "true") == 0 ));
+      if( ! sfenabled )
+      {
+        _Cron.Disable();
+        CSMLOG( csmd, info ) << "Recurring task: Soft-failure recovery is disabled. Disabling recurring tasks entirely.";
+        return;
+      }
+
+      ckey_str = GetValueInConfig( "csm.recurring_tasks.soft_fail_recovery.interval" );
       boost::posix_time::time_duration interval_time = boost::posix_time::duration_from_string(ckey_str);
       unsigned interval = interval_time.total_seconds();
 
@@ -1216,7 +1228,7 @@ void Configuration::CreateThreadPool()
         throw csm::daemon::Exception("Recurring Tasks configuration error. Interval/Retry invalid." );
       }
 
-      _Cron.SetSoftFailRecovery( interval, retry);
+      _Cron.SetSoftFailRecovery( interval, retry, sfenabled );
 
       _Cron.UpdateLCM();
     }
