@@ -18,7 +18,7 @@
 import sys
 
 #add the python library to the path 
-sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
+sys.path.append('/opt/ibm/csm/lib')
 
 # eventually append the path as part of an rpm install 
 
