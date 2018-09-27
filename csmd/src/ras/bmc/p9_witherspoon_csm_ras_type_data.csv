@@ -8,8 +8,38 @@ bmc.CommunicationFailure/Timeout.FQPSPCA0061M,FATAL,Unable to read GPU $(gpu) co
 bmc.CommunicationFailure/Timeout.FQPSPCA0062M,FATAL,Unable to read CPU $(cpu) core $(core) temperature.,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPCA0063M,FATAL,Unable to read CPU $(cpu) VCS voltage regulator temperature.,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPCR0024G,WARNING,Failed to read from I2C device,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0033G,WARNING,Failed to read from FSI Device,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0034G,WARNING,Failed to write to I2C Device,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0035G,WARNING,Failed to write to FSI Device,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0040F,WARNING,An error occurred working with an IPMI sensor,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0041F,WARNING,An error occurred on the I2C interface,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0042F,WARNING,An error occurred on the FSI interface,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0043F,WARNING,Failure to read from host CFAM interface,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0044F,WARNING,Failure to write to host CFAM interface,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0045M,FATAL,Failed to open OCC connection,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0046M,FATAL,Failed to read from OCC,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0047M,FATAL,Failed to write to OCC,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0048M,FATAL,Failure to configure OCC,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0049M,FATAL,Error working with OCC metric data,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0052F,WARNING,Failed to read from the ambient temperature sensor on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0053F,WARNING,Failed to read from the ambient temperature sensor on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0054F,WARNING,Failed to read from the CPU $(cpu) VDD/VCS VRM on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0055F,WARNING,Failed to read from the CPU $(cpu) VDN/VDDR VRM on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0056F,WARNING,Failed to read from the PCIE temperature sensor on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0057F,WARNING,Failed to read from the fan control device on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0058F,WARNING,Failed to write to the fan control device on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0059F,WARNING,Failed to read from the power sequencer chip on the system backplane,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0060F,WARNING,Failed to read from power supply $(powersupply),,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0061F,WARNING,Failed to write to CPU $(cpu) over FSI,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0062F,WARNING,Failed to read from CPU $(cpu) over FSI,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0063F,WARNING,Failed to read from the OCC on CPU $(cpu),,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPIN0000M,FATAL,Connection timed out. Ensure you have network connectivity to the BMC.,While trying to establish a connection with the specified BMC the BMC failed to respond in adequate time. Verify the BMC is functioning properly and the network connectivity to the BMC is stable.,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPIN0001M,FATAL,Connection Error. View additional details for more information,A connection error to the specified BMC occurred and additional details are provided. Review these details to resolve the issue.,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPIN0002M,FATAL,BMC address lookup failed,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPIN0003M,FATAL,Unable to establish LAN session with BMC,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPIN0004M,FATAL,Connection Error: Unable to establish IPMI v2 / RMCP+ session,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPPU0093M,FATAL,Unable to detect master processor on FSI bus,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPPU0094M,FATAL,Unable to detect slave processor on FSI bus,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPW0023M,FATAL,Unable to read the output current from power supply $(powersupply).,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPW0024M,FATAL,Unable to read GPU $(gpu) power.,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPW0025M,FATAL,Unable to read CPU $(cpu) I/O power.,,NONE,1,0,true,,true
@@ -30,8 +60,8 @@ bmc.CorrectableHardwareFailure.FQPSPMA0009I,INFO,$(dimm) has encountered a corre
 bmc.CorrectableHardwareFailure.FQPSPMA0010I,INFO,$(dimm) has encountered a parity error.,,NONE,1,0,true,,true
 bmc.CorrectableHardwareFailure.FQPSPMA0029I,INFO,Memory Buffer P$(cpu)M$(membuf) has encountered a correctable error.,,NONE,1,0,true,,true
 bmc.CorrectableHardwareFailure.FQPSPPU0032I,INFO,CPU $(cpu) has encountered a machine check error and corrected it.,,NONE,1,0,true,,true
-bmc.CorrectableHardwareFailure.FQPSPPU0044M,FATAL,CPU $(cpu) core $(core) has encountered an error.,,NONE,1,0,true,,true
-bmc.CorrectableHardwareFailure.FQPSPPU0054I,INFO,CPU $(cpu) core $(core) has encountered a machine check error and corrected it.,,NONE,1,0,true,,true
+bmc.CorrectableHardwareFailure.FQPSPPU0044M,FATAL,CPU core $(core) has encountered an error.,,NONE,1,0,true,,true
+bmc.CorrectableHardwareFailure.FQPSPPU0054I,INFO,CPU core $(core) has encountered a machine check error and corrected it.,,NONE,1,0,true,,true
 bmc.CorrectableHardwareFailure.FQPSPPU0064M,FATAL,A machine check event occurred,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPCA0009I,INFO,The system internal temperature is within the normal range.,The system internal temperature is within normal limits.,NONE,1,0,true,,true
 bmc.Environmental.FQPSPCA0010I,INFO,The system internal temperature is within the normal range.,The system internal temperature is within normal limits.,NONE,1,0,true,,true
@@ -68,6 +98,7 @@ bmc.Environmental.FQPSPCA0066M,FATAL,GPU $(gpu) suffered an over-temperature fau
 bmc.Environmental.FQPSPCA0068F,WARNING,The system was shut down due to a power fault being detected.,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPCA0069F,WARNING,The system was shut down due to a processor going over temperature,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPCA0070F,WARNING,The system was shut down due to a GPU going over temperature,,NONE,1,0,true,,true
+bmc.Environmental.FQPSPCA0072M,FATAL,Three or more CPU cores have gone over temperature initiating a thermal shutdown.,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPMA0013I,INFO,$(dimm) is at a critically high temperature,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPMA0039M,FATAL,Memory Buffer P$(cpu)M$(membuf) temperature is high,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPMA0040I,INFO,Memory Buffer P$(cpu)M$(membuf) temperature is normal,,NONE,1,0,true,,true
@@ -84,7 +115,7 @@ bmc.Environmental.FQPSPPU0022I,INFO,CPU $(cpu) temperature has reached a critica
 bmc.Environmental.FQPSPPU0041M,FATAL,GPU $(gpu) temperature is very high,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPU0042I,INFO,GPU $(gpu) Temperature is normal,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPU0043I,INFO,The temperature for CPU $(cpu) core $(core) is normal,,NONE,1,0,true,,true
-bmc.Environmental.FQPSPPU0055G,WARNING,CPU $(cpu) core $(core) temperature has reached a critical level,,NONE,1,0,true,,true
+bmc.Environmental.FQPSPPU0055G,WARNING,CPU core $(core) temperature has reached a critical level,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPU0073M,FATAL,GPU $(gpu) Temperature is critically high,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPU0076M,FATAL,GPU $(gpu) Temperature is critically high,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPU0077M,FATAL,The temperature for CPU core $(core) is critically high,,NONE,1,0,true,,true
@@ -104,6 +135,7 @@ bmc.Environmental.FQPSPPW0042M,FATAL,The power sequencer chip detected a PGOOD_5
 bmc.Environmental.FQPSPPW0043M,FATAL,The power sequencer chip detected a MEM_GOOD0 fault,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPW0044M,FATAL,The power sequencer chip detected a MEM_GOOD1 fault,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPW0045M,FATAL,The power sequencer chip detected a GPU_PGOOD fault for GPU $(gpu),,NONE,1,0,true,,true
+bmc.Environmental.FQPSPPW0046M,FATAL,The power sequencer chip detected a TH_OVERT fault,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPW0047M,FATAL,The power sequencer chip detected a fault on 5.0VCS rail.,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPW0048M,FATAL,The power sequencer chip detected a fault on 12.0V rail.,,NONE,1,0,true,,true
 bmc.Environmental.FQPSPPW0049M,FATAL,The power sequencer chip detected a fault on 3.3V rail.,,NONE,1,0,true,,true
@@ -152,6 +184,7 @@ bmc.Firmware/SoftwareFailure.FQPSPCR0011M,FATAL,The service processor detected a
 bmc.Firmware/SoftwareFailure.FQPSPCR0012M,FATAL,The system firmware boot progress is unknown,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0013M,FATAL,The system firmware has encountered an error during boot and cannot continue.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0014M,FATAL,The system firmware has hung during boot and cannot continue,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0020M,FATAL,IPMI tool encountered an error. See Additional Details,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0021F,WARNING,An internal failure has occurred while performing an operation.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0023M,FATAL,Hostboot has become unresponsive,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0025G,WARNING,Unable to read the manifest file,,NONE,1,0,true,,true
@@ -159,6 +192,13 @@ bmc.Firmware/SoftwareFailure.FQPSPCR0026G,WARNING,Unable to decompress the tar f
 bmc.Firmware/SoftwareFailure.FQPSPCR0027G,WARNING,Unable to process the image provided,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0029M,FATAL,A system firmware error occurred.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0030F,WARNING,An invalid argument was provided to a command,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0031G,WARNING,Internal error unable to associate LED to inventory,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0036F,WARNING,Unable to open a file in BMC filesystem.,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0037F,WARNING,Unable to seek a file in BMC filesystem.,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0038F,WARNING,Unable to write a file in BMC filesystem.,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0039F,WARNING,An invalid host system control command was provided.,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0050F,WARNING,Internal method error with LED Mapper.,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0051F,WARNING,Internal error. LED Mapper object not found.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPDM0000M,FATAL,Unable to create a BMC dump due to dumps being disabled on this system.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPDM0001M,FATAL,There is no more space available for dump files. Please delete some.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPEM0003G,WARNING,Failed to find an alert in the CSM RAS event types table,The CSM RAS Event Types Table is missing an entry for the alert forwarded from the BMC.,NONE,1,0,true,,true
@@ -166,15 +206,20 @@ bmc.Firmware/SoftwareNotValid.FQPSPCR0028M,FATAL,Unable to verify the system fir
 bmc.MonitoringAgent.FQPSPCR0001I,INFO,The Watchdog timer has expired.,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPCR0002M,FATAL,The Watchdog timer has encountered an interrupt,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPCR0020F,WARNING,An internal operation has timed out,,NONE,1,0,true,,true
-bmc.MonitoringAgent.FQPSPEM0000I,INFO,An auxillary log has been created.,,NONE,1,0,true,,true
+bmc.MonitoringAgent.FQPSPEM0000I,INFO,An auxiliary log has been created.,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPOS0000G,WARNING,The soft power off of the host has timed out,,NONE,1,0,true,,true
+bmc.PFA.FQPSPAA0013G,WARNING,The system backplane has exceeded a correctable error threshold,,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0011I,INFO,$(dimm) has reached the correctable error logging limit.,,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0024M,FATAL,A predictive failure has occurred on $(dimm),,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0028M,FATAL,Memory Buffer P$(cpu)M$(membuf) failed the memory scrub,,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0031N,WARNING,Memory Buffer P$(cpu)M$(membuf) has reached the logging limit for correctable errors.,,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0036I,INFO,Memory Buffer P$(cpu)M$(membuf) has been detected.,,NONE,1,0,true,,true
+bmc.PFA.FQPSPMA0059G,WARNING,DIMM $(dimm) has exceeded a correctable error threshold,,NONE,1,0,true,,true
 bmc.PFA.FQPSPPU0021M,FATAL,CPU $(cpu) has reached an correctable error threshold.,,NONE,1,0,true,,true
-bmc.PFA.FQPSPPU0046M,FATAL,CPU $(cpu) core $(core) has reached an error threshold.,,NONE,1,0,true,,true
+bmc.PFA.FQPSPPU0046M,FATAL,CPU core $(core) has reached an error threshold.,,NONE,1,0,true,,true
+bmc.PFA.FQPSPPU0093G,WARNING,CPU $(cpu) has exceeded a correctable error threshold,,NONE,1,0,true,,true
+bmc.PFA.FQPSPPU0094G,WARNING,CPU $(cpu) core $(core) has exceeded a correctable error threshold,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPAA0014I,INFO,The system backplane has recovered from an error,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCA0039I,INFO,Fan $(fan) speed is no longer in a critical state.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCA0040I,INFO,Fan $(fan) speed is no longer very low.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCA0041I,INFO,Fan $(fan) speed is no longer low.,,NONE,1,0,true,,true
@@ -185,7 +230,7 @@ bmc.Recovery.FQPSPCA0045I,INFO,The system internal temperature is no longer at a
 bmc.Recovery.FQPSPCA0046I,INFO,Fan $(fan) speed is no longer very high.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCA0047I,INFO,The ambient temperature is no longer at a high level.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCA0048I,INFO,The ambient temperature is no longer at a high level.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPCR0015I,INFO,The system firmware progess is now known,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPCR0015I,INFO,The system firmware progress is now known,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCR0016I,INFO,The system firmware error encountered during a system boot has recovered,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPCR0017I,INFO,The system firmware is no longer hung during boot,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPMA0014I,INFO,$(dimm) has been detected.,,NONE,1,0,true,,true
@@ -196,25 +241,28 @@ bmc.Recovery.FQPSPMA0046I,INFO,Memory Buffer P$(cpu)M$(membuf) temperature is no
 bmc.Recovery.FQPSPMA0047I,INFO,DIMM $(dimm) temperature is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPMA0052I,INFO,Memory Buffer P$(cpu)M$(membuf) temperature is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPMA0053I,INFO,DIMM $(dimm) temperature is no longer critically high,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPMA0060I,INFO,DIMM $(dimm) has recovered from an error,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0002I,INFO,The OCC service for CPU $(cpu) is running.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0003I,INFO,The OCC service for CPU $(cpu) is running.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0008I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0010I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0012I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0013I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0015I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0017I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0008I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0010I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0012I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0013I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0015I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0017I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0038I,INFO,CPU $(cpu) has been detected.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0056I,INFO,CPU $(cpu) core $(core) presence detected.,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0056I,INFO,CPU core $(core) presence detected.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0065I,INFO,CPU $(cpu) frequency is optimal.,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0067I,INFO,CPU $(cpu) frequency is optimal.,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0069I,INFO,The tempearture for CPU $(cpu) is no longer critically high,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0069I,INFO,The temperature for CPU $(cpu) is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0070I,INFO,GPU $(gpu) Temperature is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0071I,INFO,The temperature for CPU core $(core) is no longer critically high,,NONE,1,0,true,,true
-bmc.Recovery.FQPSPPU0072I,INFO,The tempearture for CPU $(cpu) is no longer critically high,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0072I,INFO,The temperature for CPU $(cpu) is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0073I,INFO,GPU $(gpu) Temperature is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0074I,INFO,The temperature for CPU core $(core) is no longer critically high,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPU0086I,INFO,CPU $(cpu) has been enabled,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0095I,INFO,CPU $(cpu) has recovered from an error,,NONE,1,0,true,,true
+bmc.Recovery.FQPSPPU0096I,INFO,CPU $(cpu) core $(core) has recovered from an error,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPW0016I,INFO,Power supply $(powersupply) AC connection restored,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPW0017I,INFO,Power supply $(powersupply) input is no longer out of range,,NONE,1,0,true,,true
 bmc.Recovery.FQPSPPW0018I,INFO,Power supply $(powersupply) is inactive.,,NONE,1,0,true,,true
@@ -236,6 +284,7 @@ bmc.Security.FQPSPCR0022F,WARNING,The user has insufficient privileges,,NONE,1,0
 bmc.Security.FQPSPNM0000F,WARNING,The system ethernet cable has been unplugged.,,NONE,1,0,true,,true
 bmc.Security.FQPSPSE0000G,WARNING,The chassis top cover has been removed.,,NONE,1,0,true,,true
 bmc.Security.FQPSPSE0001F,WARNING,The chassis PCIe cover has been removed.,,NONE,1,0,true,,true
+bmc.Security.FQPSPSE0004M,FATAL,Authentication Error. Ensure your BMC supports IPMI,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0006I,INFO,Fan $(fan) speed has increased.,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0007I,INFO,Fan $(fan) speed is high.,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0008I,INFO,Fan $(fan) speed is at maximum.,,NONE,1,0,true,,true
@@ -247,7 +296,7 @@ bmc.Status.FQPSPCA0053I,INFO,Fan $(fan) speed is critical but improving,,NONE,1,
 bmc.Status.FQPSPCA0054I,INFO,Fan $(fan) speed decreased,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0055I,INFO,Fan $(fan) speed has changed. Check nearby asserted fan speed alerts or read the sensor directly to determine current values.,,NONE,1,0,true,,true
 bmc.Status.FQPSPCR0018I,INFO,System boot has been started.,,NONE,1,0,true,,true
-bmc.Status.FQPSPCR0019I,INFO,Motherboard initialization has been started,,NONE,1,0,true,,true
+bmc.Status.FQPSPCR0019I,INFO,system backplane initialization has been started,,NONE,1,0,true,,true
 bmc.Status.FQPSPCR0031I,INFO,Host OS install has been started,,NONE,1,0,true,,true
 bmc.Status.FQPSPCR0032I,INFO,Host OS install has completed,,NONE,1,0,true,,true
 bmc.Status.FQPSPEM0002I,INFO,They system has filtered the events.,,NONE,1,0,true,,true
@@ -257,20 +306,20 @@ bmc.Status.FQPSPMA0005I,INFO,$(dimm) has been disabled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0012I,INFO,$(dimm) has been throttled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0015I,INFO,$(dimm) is configured as a spare.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0016I,INFO,$(dimm) had a sensor state assert,,NONE,1,0,true,,true
-bmc.Status.FQPSPMA0019I,INFO,$(dimm) has enterted a non-critical state,,NONE,1,0,true,,true
-bmc.Status.FQPSPMA0020I,INFO,$(dimm) has enterted a non-critical state from a more severe state,,NONE,1,0,true,,true
+bmc.Status.FQPSPMA0019I,INFO,$(dimm) has entered a non-critical state,,NONE,1,0,true,,true
+bmc.Status.FQPSPMA0020I,INFO,$(dimm) has entered a non-critical state from a more severe state,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0021I,INFO,$(dimm) is being actively monitored,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0026I,INFO,Memory Buffer P$(cpu)M$(membuf) has been disabled,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0030I,INFO,Memory Buffer P$(cpu)M$(membuf) has encountered a parity issue.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0034F,WARNING,The memory attached to CPU $(cpu) has been throttled due to an over temperature condition,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0037I,INFO,Memory Buffer P$(cpu)M$(membuf) is configured as a spare.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0054I,INFO,The temperature for $(dimm) has changed. Check nearby asserted temperatures or read the sensor directly to determine current values.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0007I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0009I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0011I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0014I,INFO,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0016M,FATAL,The tempearture for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0018M,FATAL,The tempearture for CPU $(cpu) is critically high,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0007I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0009I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0011I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0014I,INFO,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0016M,FATAL,The temperature for CPU $(cpu) is in the normal range.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0018M,FATAL,The temperature for CPU $(cpu) is critically high,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0023I,INFO,CPU $(cpu) has failed a built in self test,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0024I,INFO,CPU $(cpu) hung during boot.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0025I,INFO,CPU $(cpu) failed startup initialization,,NONE,1,0,true,,true
@@ -278,11 +327,11 @@ bmc.Status.FQPSPPU0028I,INFO,CPU $(cpu) has been disabled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0030I,INFO,CPU $(cpu) has been throttled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0039I,INFO,Turbo mode is enabled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0040I,INFO,Turbo mode is disabled.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0052F,WARNING,CPU $(cpu) core $(core) has been disabled.,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0057F,WARNING,CPU $(cpu) core $(core) has been throttled.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0052F,WARNING,CPU core $(core) has been disabled.,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0057F,WARNING,CPU core $(core) has been throttled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0066F,WARNING,CPU $(cpu) frequency has been throttled due to temperature,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0068F,WARNING,CPU $(cpu) frequency has been throttled due to insufficient power,,NONE,1,0,true,,true
-bmc.Status.FQPSPPU0075M,FATAL,The tempearture for CPU $(cpu) is critically high,,NONE,1,0,true,,true
+bmc.Status.FQPSPPU0075M,FATAL,The temperature for CPU $(cpu) is critically high,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0080I,INFO,The temperature for CPU $(cpu) has changed. Check nearby asserted temperatures or read the sensor directly to determine current values.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPU0084I,INFO,The temperature for CPU core $(core) has changed. Check nearby asserted temperatures or read the sensor directly to determine current values.,,NONE,1,0,true,,true
 bmc.Status.FQPSPPW0001I,INFO,The time of day battery voltage has changed,,NONE,1,0,true,,true
@@ -308,9 +357,13 @@ bmc.UncorrectableHardwareFailure.FQPSPPW0022M,FATAL,Power supply $(powersupply) 
 bmc.UncorrectableHardwareFailure.FQPSPSB0012M,FATAL,The system backplane could not be detected,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPAA0000M,FATAL,A vital system component has been disabled,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPAA0001M,FATAL,An unknown problem occurred,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPAA0003M,FATAL,The system FW was unable to isolate a problem to a specific component. This SEL entry contains extended data to help trained service personnel debug the issue further.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPAA0006M,FATAL,The system FW was unable to isolate a problem to a specific component. This SEL entry contains extended data to help trained service personnel debug the issue further.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPAA0003M,FATAL,The system firmware was unable to isolate a problem to a specific component. This SEL entry contains extended data to help trained service personnel debug the issue further.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPAA0006M,FATAL,The system firmware was unable to isolate a problem to a specific component. This SEL entry contains extended data to help trained service personnel debug the issue further.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPAA0007G,WARNING,A system checkstop occurred,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPAA0008M,FATAL,Hostboot procedure callout,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPAA0011M,FATAL,An error was detected with the base platform but was not able to be deciphered. Contact your next level of support.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPAA0012M,FATAL,The system was unable to boot. Check for a missing TPM.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPAA0013M,FATAL,The system backplane has failed,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPCA0064M,FATAL,Power supply $(powersupply) fan has failed.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPCA0067F,WARNING,The system shut down due to not having enough functional fans.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPMA0002I,INFO,$(dimm) has encountered an uncorrectable error.,,NONE,1,0,true,,true
@@ -336,14 +389,14 @@ bmc.UnrecoverableHardwareFailure.FQPSPPU0026I,INFO,CPU $(cpu) encountered a conf
 bmc.UnrecoverableHardwareFailure.FQPSPPU0027I,INFO,CPU $(cpu) has encountered an uncorrectable complex error.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0029I,INFO,CPU $(cpu) has detected a terminator signal,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0031I,INFO,CPU $(cpu) has encountered a Machine Check Exception,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0045M,FATAL,CPU $(cpu) core $(core) has encountered an unrecoverable error.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0047M,FATAL,CPU $(cpu) core $(core) has failed a built in self test,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0048M,FATAL,CPU $(cpu) core $(core) hung during boot.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0049M,FATAL,CPU $(cpu) core $(core) failed startup initialization,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0050G,WARNING,CPU $(cpu) core $(core) encountered a configuration error.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0051M,FATAL,CPU $(cpu) core $(core) has encountered an uncorrectable complex error.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0053I,INFO,CPU $(cpu) core $(core) has detected a terminator signal.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0058M,FATAL,CPU $(cpu) core $(core) has encountered a machine check exception,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0045M,FATAL,CPU core $(core) has encountered an unrecoverable error.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0047M,FATAL,CPU core $(core) has failed a built in self test,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0048M,FATAL,CPU core $(core) hung during boot.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0049M,FATAL,CPU core $(core) failed startup initialization,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0050G,WARNING,CPU core $(core) encountered a configuration error.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0051M,FATAL,CPU core $(core) has encountered an uncorrectable complex error.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0053I,INFO,CPU core $(core) has detected a terminator signal.,,NONE,1,0,true,,true
+bmc.UnrecoverableHardwareFailure.FQPSPPU0058M,FATAL,CPU core $(core) has encountered a machine check exception,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0059M,FATAL,A CPU problem was detected.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0060M,FATAL,A FSI path error has occurred.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0061M,FATAL,An external processor interface problem has occurred,,NONE,1,0,true,,true
