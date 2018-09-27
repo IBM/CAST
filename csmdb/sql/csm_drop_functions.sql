@@ -15,10 +15,12 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
---   current_version:   16.0
+--   current_version:   16.1
 --   create:            06-13-2016
---   last modified:     08-09-2018
+--   last modified:     09-26-2018
 --   change log:
+--     16.1  -  added 'fn_csm_ssd_dead_records'
+--           -  added 'fn_csm_allocation_dead_records_on_lv'
 --     16.0  -  Moving this version to sync with DB schema version.
 --           -  added fields to fn_csm_allocation_history_dump,fn_csm_allocation_create_data_aggregator, and fn_csm_allocation_finish_data_stats 
 --     04.28 -  fn_csm_allocation_delete_start and cleaned up some other data types.
@@ -75,14 +77,16 @@ BEGIN;
 
 -- CSM API database helper functions
 DROP FUNCTION IF EXISTS fn_csm_allocation_node_sharing_status(i_allocation_id bigint,i_type text,i_state text,i_shared boolean,variadic i_nodenames text[]);
-DROP FUNCTION IF EXISTS fn_csm_allocation_finish_data_stats(allocationid bigint,i_state text,node_names text[],ib_rx_list bigint[],ib_tx_list bigint[],gpfs_read_list bigint[],gpfs_write_list bigint[],energy_list bigint[],pc_hit_list bigint[],gpu_usage_list bigint[],cpu_usage_list bigint[],mem_max_list bigint[],gpu_energy_list  bigint[], out o_end_time timestamp, out o_final_state text);
-DROP FUNCTION IF EXISTS fn_csm_allocation_create_data_aggregator(i_allocation_id bigint,i_state text,i_node_names text[],i_ib_rx_list bigint[],i_ib_tx_list bigint[],i_gpfs_read_list bigint[],i_gpfs_write_list bigint[],i_energy bigint[],i_power_cap integer[],i_ps_ratio integer[],i_power_cap_hit bigint[],i_gpu_usage bigint[],i_cpu_usage bigint[],i_gpu_energy bigint[],out o_timestamp   timestamp);
+DROP FUNCTION IF EXISTS fn_csm_allocation_finish_data_stats(allocationid bigint, i_state text, node_names text[], ib_rx_list bigint[], ib_tx_list bigint[], gpfs_read_list bigint[], gpfs_write_list bigint[], energy_list bigint[], pc_hit_list bigint[], gpu_usage_list bigint[], cpu_usage_list bigint[], mem_max_list bigint[], gpu_energy_list bigint[], OUT o_end_time timestamp without time zone, OUT o_final_state text);
+DROP FUNCTION IF EXISTS fn_csm_allocation_create_data_aggregator(i_allocation_id bigint,i_state text,i_node_names text[],i_ib_rx_list bigint[],i_ib_tx_list bigint[],i_gpfs_read_list bigint[],i_gpfs_write_list bigint[],i_energy bigint[],i_power_cap integer[],i_ps_ratio integer[],i_power_cap_hit bigint[],i_gpu_usage bigint[], out o_timestamp timestamp);
 DROP FUNCTION IF EXISTS fn_csm_allocation_node_change();
+DROP FUNCTION IF EXISTS fn_csm_allocation_revert(allocationid bigint);
 DROP FUNCTION IF EXISTS fn_csm_step_begin(i_step_id bigint,i_allocation_id bigint,i_status text,i_executable text,i_working_directory text,i_argument text,i_environment_variable text,i_num_nodes integer,i_num_processors integer,i_num_gpus integer,i_projected_memory integer,i_num_tasks integer,i_user_flags text,i_node_names text[], OUT o_begin_time timestamp);
 DROP FUNCTION IF EXISTS fn_csm_step_end(IN i_stepid bigint,IN i_allocationid bigint,IN i_exitstatus int,IN i_errormessage text,IN i_cpustats text,IN i_totalutime double precision,IN i_totalstime double precision,IN i_ompthreadlimit text,IN i_gpustats text,IN i_memorystats text,IN i_maxmemory bigint,IN i_iostats text,OUT o_user_flags text,OUT o_num_nodes int,OUT o_nodes text, OUT o_end_time timestamp);
 DROP FUNCTION IF EXISTS fn_csm_allocation_update();
 DROP FUNCTION IF EXISTS fn_csm_allocation_state_history_state_change();
 DROP FUNCTION IF EXISTS fn_csm_allocation_update_state(IN i_allocationid bigint,IN i_state text,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_nodes text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_shared boolean,OUT o_num_gpus integer,OUT o_num_processors integer,OUT o_projected_memory integer,OUT o_state text);
+DROP FUNCTION IF EXISTS fn_csm_allocation_dead_records_on_lv(i_allocation_id bigint);
 DROP FUNCTION IF EXISTS fn_csm_lv_upsert(l_logical_volume_name text,l_node_name text,l_allocation_id bigint,l_vg_name text,l_state char(1),l_current_size bigint,l_max_size bigint,l_begin_time timestamp,l_updated_time timestamp,l_file_system_mount text,l_file_system_type text);
 DROP FUNCTION IF EXISTS fn_csm_node_update();
 DROP FUNCTION IF EXISTS fn_csm_node_delete(i_node_names text[]);
@@ -97,7 +101,7 @@ DROP TYPE IF EXISTS switch_details;
 DROP FUNCTION IF EXISTS fn_csm_vg_create(i_available_size bigint,i_node_name text,i_ssd_count int,i_ssd_serial_numbers text[],i_ssd_allocations bigint[],i_total_size bigint,i_vg_name text,i_is_scheduler boolean);
 DROP FUNCTION IF EXISTS fn_csm_vg_delete(i_node_name text,i_vg_name text);
 -- CSM database history dump functions
-DROP FUNCTION IF EXISTS fn_csm_allocation_history_dump(allocationid bigint,endtime timestamp,exitstatus int,i_state text,finalize boolean,node_names text[],ib_rx_list bigint[],ib_tx_list bigint[],gpfs_read_list bigint[],gpfs_write_list bigint[],energy_list bigint[],pc_hit_list bigint[],gpu_usage_list bigint[],cpu_usage_list bigint[],mem_max_list bigint[],gpu_energy_list bigint[],out o_end_time timestamp);
+DROP FUNCTION IF EXISTS fn_csm_allocation_history_dump(allocationid bigint, endtime timestamp without time zone, exitstatus integer, i_state text, finalize boolean, node_names text[], ib_rx_list bigint[], ib_tx_list bigint[], gpfs_read_list bigint[], gpfs_write_list bigint[], energy_list bigint[], pc_hit_list bigint[], gpu_usage_list bigint[], cpu_usage_list bigint[], mem_max_list bigint[], gpu_energy_list bigint[], OUT o_end_time timestamp without time zone);
 DROP FUNCTION IF EXISTS fn_csm_config_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_dimm_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_gpu_history_dump();
@@ -109,6 +113,7 @@ DROP FUNCTION IF EXISTS fn_csm_lv_update_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_lv_modified_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_processor_socket_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_ssd_wear();
+DROP FUNCTION IF EXISTS fn_csm_ssd_dead_records(i_sn text);
 DROP FUNCTION IF EXISTS fn_csm_ssd_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_step_history_dump(i_stepid bigint,i_allocationid bigint,i_endtime timestamp with time zone,i_exitstatus int,i_errormessage text,i_cpustats text,i_totalutime double precision,i_totalstime double precision,i_ompthreadlimit text,i_gpustats text,i_memorystats text,i_maxmemory bigint,i_iostats text);
 DROP FUNCTION IF EXISTS fn_csm_step_node_history_dump();

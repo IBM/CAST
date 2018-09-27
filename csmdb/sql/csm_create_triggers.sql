@@ -15,10 +15,19 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.0
+--   current_version:       16.1
 --   create:                06-22-2016
---   last modified:         08-09-2018
+--   last modified:         09-26-2018
 --   change log:
+--     16.1   - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
+--            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
+--            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
+--            - (Transactions were being recorded into the history table if a particular field was 'NULL')
+--            - Also removed the 'state' field from the UPDATE logic - as not needed.
+--            - fn_csm_node_delete_function - updated comment with appropriate content.
+--            - Update 'fn_csm_allocation_dead_records_on_lv' and 'fn_csm_allocation_dead_records_on_lv'
+--            - now clean up any lvs before we delete the allocations from csm_allocation_node and csm_allocation tables.
+--            - cleaned up fn_csm_lv_history_dump with additional checks.
 --     16.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_finish_data_stats - updated handling of gpu_usage and gpu_energy 
 --            - fn_csm_allocation_history_dump - updated handling of gpu_usage and gpu_energy
@@ -491,6 +500,9 @@ BEGIN
             DELETE FROM csm_step WHERE step_id=s.step_id AND allocation_id=allocationid;
         END LOOP;
     END IF;
+
+    -- first, make sure no lvs are mistakenly still around before the allocation delete
+        PERFORM fn_csm_allocation_dead_records_on_lv(allocationid);
     
     -- now we can proceed with the csm_allocation processing
     IF EXISTS (SELECT allocation_id FROM csm_allocation WHERE allocation_id=allocationid) THEN
@@ -863,6 +875,86 @@ $$ LANGUAGE 'plpgsql';
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
 COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+
+
+-----------------------------------------------------------
+-- fn_csm_allocation_dead_records_on_lv 
+-----------------------------------------------------------
+CREATE FUNCTION fn_csm_allocation_dead_records_on_lv(
+    i_allocation_id bigint
+)
+RETURNS void AS $$
+DECLARE
+    nn_count int;
+    lv_on_an int;
+    allocationids bigint[];
+    matching_node_names text[];
+    t_lv_name text;
+    t_node_name text;
+    t_allocation_id bigint;
+BEGIN
+
+    SELECT
+        count(node_name)
+    INTO nn_count
+    FROM
+        csm_allocation_node
+    WHERE (
+        allocation_id = i_allocation_id
+    );
+
+    IF ( nn_count > 0) THEN
+        -- look further
+        SELECT
+            array_agg(allocation_id), array_agg(node_name)
+        INTO
+            allocationids, matching_node_names
+        FROM
+            csm_allocation_node
+        WHERE (
+            allocation_id = i_allocation_id
+        );
+        --loop through that array
+        -- find any lvs on those allocation_nodes
+        FOR i IN 1..nn_count LOOP
+
+            SELECT
+                count(logical_volume_name)
+            INTO lv_on_an
+            FROM
+                csm_lv
+            WHERE (
+                allocation_id = allocationids[i] AND
+                node_name = matching_node_names[i]
+            );
+
+            IF (lv_on_an > 0) THEN
+
+                FOR j IN 1..lv_on_an LOOP
+                    SELECT
+                        logical_volume_name, node_name, allocation_id
+                    INTO
+                        t_lv_name, t_node_name, t_allocation_id
+                    FROM
+                        csm_lv
+                    WHERE (
+                        allocation_id = allocationids[i] AND
+                        node_name = matching_node_names[i]
+                    );
+
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                END LOOP;
+            END IF;
+        END LOOP;
+    END IF;
+END;
+$$ LANGUAGE 'plpgsql';
+
+-----------------------------------------------------------
+-- fn_csm_allocation_dead_records_on_lv comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION fn_csm_allocation_dead_records_on_lv( i_allocation_id bigint) is 'Delete any lvs on an allocation that is being deleted.';
 
 ---------------------------------------------------------------------------------------------------
 -- csm_node function to amend summarized column(s) on UPDATE and DELETE.
@@ -1251,7 +1343,7 @@ $$ LANGUAGE 'plpgsql';
 -- csm_node_delete_function_comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_node_delete(i_node_names text[]) is 'Function to delete a vg, and remove records in the csm_vg and csm_vg_ssd tables';
+COMMENT ON FUNCTION fn_csm_node_delete(i_node_names text[]) is 'Function to delete a node, and remove records in the csm_node, csm_ssd, csm_processor, csm_gpu, csm_hca, csm_dimm tables';
 
 ---------------------------------------------------------------------------------------------------
 -- csm_node_state function to amend summarized column(s) on UPDATE
@@ -2580,6 +2672,9 @@ CREATE FUNCTION fn_csm_ssd_history_dump()
      $$
      BEGIN
     IF (TG_OP = 'DELETE') THEN
+        -- clean up any possible vg and lv on this hard drive
+        PERFORM fn_csm_ssd_dead_records(OLD.serial_number); 
+        -- standard dump practice
         INSERT INTO csm_ssd_history(
             history_time,
             serial_number,
@@ -2702,6 +2797,89 @@ CREATE TRIGGER tr_csm_ssd_history_dump
 
 COMMENT ON FUNCTION fn_csm_ssd_history_dump() is 'csm_ssd function to amend summarized column(s) on UPDATE and DELETE.';
 COMMENT ON TRIGGER tr_csm_ssd_history_dump ON csm_ssd is 'csm_ssd trigger to amend summarized column(s) on UPDATE and DELETE.';
+
+-----------------------------------------------------------
+-- fn_csm_ssd_dead_records 
+-----------------------------------------------------------
+
+CREATE FUNCTION fn_csm_ssd_dead_records(
+    i_sn text
+)
+RETURNS void AS $$
+DECLARE
+    vg_count int;
+    lv_on_vg int;
+    vg_names_on_ssd text[];
+    matching_node_names text[];
+    t_lv_name text;
+    t_node_name text;
+    t_allocation_id bigint;
+BEGIN
+
+    SELECT 
+        count(vg_name)
+    INTO vg_count
+    FROM 
+        csm_vg_ssd
+    WHERE (
+        serial_number = i_sn
+    );
+
+    IF ( vg_count > 0) THEN
+        -- look further
+        SELECT
+            array_agg(vg_name), array_agg(node_name)
+        INTO
+            vg_names_on_ssd, matching_node_names
+        FROM
+            csm_vg_ssd
+        WHERE (
+            serial_number = i_sn
+        );
+        --loop through that array
+        -- find any lvs on those vgs
+        FOR i IN 1..vg_count LOOP
+
+            SELECT
+                count(logical_volume_name)
+            INTO lv_on_vg
+            FROM
+                csm_lv
+            WHERE (
+                vg_name = vg_names_on_ssd[i] AND
+                node_name = matching_node_names[i]
+            );
+
+            IF (lv_on_vg > 0) THEN 
+
+                FOR j IN 1..lv_on_vg LOOP
+                    SELECT
+                        logical_volume_name, node_name, allocation_id
+                    INTO
+                        t_lv_name, t_node_name, t_allocation_id
+                    FROM
+                        csm_lv
+                    WHERE (
+                        vg_name = vg_names_on_ssd[j] AND
+                        node_name = matching_node_names[j]
+                    );
+
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                END LOOP;
+            END IF;
+            -- once cleaned up all lvs on a vg, then we can remove the vg itself
+            PERFORM fn_csm_vg_delete(matching_node_names[i], vg_names_on_ssd[i]);
+        END LOOP;
+    END IF;
+END;
+$$
+LANGUAGE 'plpgsql';
+
+-----------------------------------------------------------
+-- fn_csm_ssd_dead_records comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION fn_csm_ssd_dead_records( i_sn text ) is 'Delete any vg and lv on an ssd that is being deleted.';
 
 ---------------------------------------------------------------------------------------------------
 -- csm_ssd_wear function to amend summarized column(s) on UPDATE
@@ -3389,33 +3567,34 @@ CREATE FUNCTION fn_csm_switch_history_dump()
         RETURN OLD;
      ELSEIF (TG_OP = 'UPDATE') THEN
         IF  (
-            OLD.serial_number = NEW.serial_number AND
-            OLD.comment = NEW.comment AND
-            OLD.description = NEW.description AND
-            OLD.fw_version = NEW.fw_version AND
-            OLD.gu_id = NEW.gu_id AND
-            OLD.has_ufm_agent = NEW.has_ufm_agent AND
-            OLD.hw_version = NEW.hw_version AND
-            OLD.ip = NEW.ip AND
-            OLD.model = NEW.model AND
-            OLD.num_modules = NEW.num_modules AND
-            OLD.ps_id = NEW.ps_id AND
-            OLD.role = NEW.role AND
-            OLD.server_operation_mode = NEW.server_operation_mode AND
-            OLD.sm_mode = NEW.sm_mode AND
-            OLD.state = NEW.state AND
-            OLD.sw_version = NEW.sw_version AND
-            OLD.system_guid = NEW.system_guid AND
-            OLD.system_name = NEW.system_name AND
-            OLD.total_alarms = NEW.total_alarms AND
-            OLD.type = NEW.type AND
-            OLD.vendor = NEW.vendor) THEN
+            (OLD.serial_number           = NEW.serial_number OR OLD.serial_number IS NULL) AND
+            (OLD.comment                 = NEW.comment OR OLD.comment IS NULL) AND
+            (OLD.description             = NEW.description OR OLD.description IS NULL) AND
+            (OLD.fw_version              = NEW.fw_version OR OLD.fw_version IS NULL) AND
+            (OLD.gu_id                   = NEW.gu_id OR OLD.gu_id IS NULL) AND
+            (OLD.has_ufm_agent           = NEW.has_ufm_agent OR OLD.has_ufm_agent IS NULL) AND
+            (OLD.hw_version              = NEW.hw_version OR OLD.hw_version IS NULL) AND
+            (OLD.ip                      = NEW.ip OR OLD.ip IS NULL) AND
+            (OLD.model                   = NEW.model OR OLD.model IS NULL) AND
+            (OLD.num_modules             = NEW.num_modules OR OLD.num_modules IS NULL) AND
+            (OLD.physical_frame_location = NEW.physical_frame_location OR OLD.physical_frame_location IS NULL) AND
+            (OLD.physical_u_location     = NEW.physical_u_location OR OLD.physical_u_location IS NULL) AND
+            (OLD.ps_id                   = NEW.ps_id OR OLD.ps_id IS NULL) AND
+            (OLD.role                    = NEW.role OR OLD.role IS NULL) AND
+            (OLD.server_operation_mode   = NEW.server_operation_mode OR OLD.server_operation_mode IS NULL) AND
+            (OLD.sm_mode                 = NEW.sm_mode OR OLD.sm_mode IS NULL) AND
+            (OLD.state                   = NEW.state OR OLD.state IS NULL) AND
+            (OLD.sw_version              = NEW.sw_version OR OLD.sw_version IS NULL) AND
+            (OLD.system_guid             = NEW.system_guid OR OLD.system_guid IS NULL) AND
+            (OLD.system_name             = NEW.system_name OR OLD.system_name IS NULL) AND
+            (OLD.total_alarms            = NEW.total_alarms OR OLD.total_alarms IS NULL) AND
+            (OLD.type                    = NEW.type OR OLD.type IS NULL) AND
+            (OLD.vendor                  = NEW.vendor OR OLD.vendor IS NULL)) THEN
             OLD.collection_time = now();
         ELSIF(
-            OLD.comment <> NEW.comment OR
+            OLD.comment                 <> NEW.comment OR
             OLD.physical_frame_location <> NEW.physical_frame_location OR
-            OLD.physical_u_location <> NEW.physical_u_location OR
-            OLD.state <> NEW.state) THEN
+            OLD.physical_u_location     <> NEW.physical_u_location) THEN
         INSERT INTO csm_switch_history(
             history_time,
             switch_name,
@@ -4407,6 +4586,7 @@ $$
 DECLARE
     l "csm_lv"%ROWTYPE;
     lv_current_size_before_delete bigint;
+    vg_name_of_the_lv text;
 BEGIN
     lv_current_size_before_delete := 0; 
     IF EXISTS (SELECT logical_volume_name, node_name, allocation_id 
@@ -4419,6 +4599,7 @@ BEGIN
                 LIMIT 1) 
     THEN
         SELECT current_size INTO lv_current_size_before_delete FROM csm_lv WHERE (logical_volume_name = i_logical_volume_name AND node_name = i_node_name AND allocation_id = i_allocationid);
+        SELECT vg_name INTO vg_name_of_the_lv FROM csm_lv WHERE (logical_volume_name = i_logical_volume_name AND node_name = i_node_name AND allocation_id = i_allocationid);
         SELECT * INTO l FROM csm_lv WHERE logical_volume_name = i_logical_volume_name AND allocation_id = i_allocationid AND node_name = i_node_name;
         -- copy the 'active' record into history, and fill in new post job data.
         INSERT INTO csm_lv_history VALUES(
@@ -4452,14 +4633,10 @@ BEGIN
         UPDATE csm_vg
         SET
             available_size = lv_current_size_before_delete + available_size
-        FROM
-            csm_lv
         WHERE (
-                csm_lv.vg_name = csm_vg.vg_name
+                vg_name_of_the_lv = csm_vg.vg_name
             AND
-                csm_lv.node_name = csm_vg.node_name
-            AND
-                csm_lv.logical_volume_name = i_logical_volume_name
+                i_node_name = csm_vg.node_name
         ); 
         -- Clean up the old 'active' record from 'csm_lv'
         DELETE 
@@ -4470,7 +4647,7 @@ BEGIN
                 allocation_id = i_allocationid
             );
     ELSE
-        RAISE EXCEPTION using message = 'logical_volume_name and allocation_id does not exist';
+        RAISE EXCEPTION 'logical_volume_name and allocation_id does not exist % %', i_logical_volume_name, i_allocationid;
     END IF;
     EXCEPTION
         WHEN others THEN

@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- delete data in the csm_db tables
---   current_version:   16.0
+--   current_version:   16.1
 --   create:            04-25-2015
---   last modified:     08-10-2018
+--   last modified:     09-14-2018
 --   change log:    
+--   16.1 -             Moving this version to sync with DB schema version
 --   16.0 -             Moving this version to sync with DB schema version
 --   03.8 -             removed map_tag + history from file
 --   03.7 -             modified or changed these tables
