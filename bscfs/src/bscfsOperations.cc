@@ -2591,6 +2591,20 @@ static void setup_local_flush(int start_transfer,
     }
 
     int mpath_len = strlen(bscfs_data.mount_path);
+
+	if(strncmp(request->mapfile, bscfs_data.mount_path, mpath_len) == 0)
+	{
+		LOG(bscfsagent,info) << "setup_local_flush() called with bscfs-based mapfile: " << request->mapfile;
+		request->return_code = ENOENT;
+		return;
+	}
+	if(strncmp(request->cleanup_script, bscfs_data.mount_path, mpath_len) == 0)
+	{
+		LOG(bscfsagent,info) << "setup_local_flush() called with bscfs-based cleanup script: " << request->cleanup_script;
+		request->return_code = ENOENT;
+		return;
+	}
+
     char *path = request->pathname + mpath_len;
     if(strncmp(path, "/./", 3)==0)
     {
