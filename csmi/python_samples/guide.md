@@ -24,17 +24,12 @@ Before writing your script and accessing CSM APIs, you must first import the CSM
 
 import sys
 
-#add the python library to the path 
-sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
-
-# eventually append the path as part of an rpm install 
+#add the python library to the path
+sys.path.append('/opt/ibm/csm/lib')
 
 import lib_csm_py as csm
 import lib_csm_inv_py as inv
 ```
-
-*ToDo:* 
-* The above import path: `'/u/nbuonar/repos/CAST/work/csm/lib'` is user relative. This should be replaces with the RPM install location when CSM determines where this libary is shipped. 
 
 First you should say where the library is located. Which is what we did above in the first section.
 ```Python
@@ -42,7 +37,7 @@ First you should say where the library is located. Which is what we did above in
 import sys
 
 #add the python library to the path 
-sys.path.append('/u/nbuonar/repos/CAST/work/csm/lib')
+sys.path.append('/opt/ibm/csm/lib')
 ```
 
 Second, you should import the main CSM library `lib_csm_py`. We did this and then nicknamed it `csm` for ease of use later in our script. 
