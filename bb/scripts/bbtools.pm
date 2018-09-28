@@ -28,6 +28,7 @@ require AutoLoader;
              getBBENVDir
              getBBENVName
              bbfail
+             bbwaitTransfersComplete
 );
 
 $VERSION = '0.01';
@@ -57,8 +58,8 @@ if((exists $ENV{"LSF_STAGE_HOSTFILE"}) && (-r $ENV{"LSF_STAGE_HOSTFILE"}))
     open(TMP, $ENV{"LSF_STAGE_HOSTFILE"});
     while($n = <TMP>)
     {
-	chomp($n);
-	push(@::HOSTLIST_ARRAY, $n);
+        chomp($n);
+        push(@::HOSTLIST_ARRAY, $n);
     }
     close(TMP);
     shift @::HOSTLIST_ARRAY;
@@ -75,14 +76,14 @@ elsif((exists $ENV{"LSB_DJOB_HOSTFILE"}) && (-r $ENV{"LSB_DJOB_HOSTFILE"}))
     open(TMP, $ENV{"LSB_DJOB_HOSTFILE"});
     while($n = <TMP>)
     {
-	chomp($n);
-	push(@::HOSTLIST_ARRAY, $n);
+        chomp($n);
+        push(@::HOSTLIST_ARRAY, $n);
     }
     close(TMP);
     if($::HOSTLIST_ARRAY[0] ne $::thishost)
     {
-	print "Launch node hostname is $::HOSTLIST_ARRAY[0], but this node is $::thishost.  Bailing\n";
-	exit(0);
+        print "Launch node hostname is $::HOSTLIST_ARRAY[0], but this node is $::thishost.  Bailing\n";
+        exit(0);
     }
     shift @::HOSTLIST_ARRAY;
 }
@@ -90,17 +91,17 @@ elsif(exists $ENV{"LSB_MCPU_HOSTS"})
 {
     $::SRMTYPE = "LSF";
     my @MHOSTS = split(/\s+/, $ENV{"LSB_MCPU_HOSTS"});
-    for($i=0; $i<$#MHOSTS+1; $i=$i+2)
+    for($i = 0 ; $i < $#MHOSTS + 1 ; $i = $i + 2)
     {
-	for($j=0; $j<$MHOSTS[$i+1]; $j++)
-	{
-	    push(@::HOSTLIST_ARRAY, $MHOSTS[$i]);
-	}
+        for($j = 0 ; $j < $MHOSTS[ $i + 1 ] ; $j++)
+        {
+            push(@::HOSTLIST_ARRAY, $MHOSTS[$i]);
+        }
     }
     if($::HOSTLIST_ARRAY[0] ne $::thishost)
     {
-	print "Launch node hostname is $::HOSTLIST_ARRAY[0], but this node is $::thishost.  Bailing\n";
-	exit(0);
+        print "Launch node hostname is $::HOSTLIST_ARRAY[0], but this node is $::thishost.  Bailing\n";
+        exit(0);
     }
     shift @::HOSTLIST_ARRAY;
 }
@@ -110,35 +111,36 @@ elsif(exists $ENV{"LSB_HOSTS"})
     @::HOSTLIST_ARRAY = split(/\s+/, $ENV{"LSB_HOSTS"});
     if($::HOSTLIST_ARRAY[0] ne $::thishost)
     {
-	print "Launch node hostname is $::HOSTLIST_ARRAY[0], but this node is $::thishost.  Bailing\n";
-	exit(0);
+        print "Launch node hostname is $::HOSTLIST_ARRAY[0], but this node is $::thishost.  Bailing\n";
+        exit(0);
     }
     shift @::HOSTLIST_ARRAY;
 }
 else
 {
     $::SRMTYPE = "shell";
-    
+
     my $hostlist = $::DEFAULT_HOSTLIST;
     use Getopt::Long;
-    
-    $::JOBID    = 0;
-    
+
+    $::JOBID = 0;
+
     GetOptions(
-	"hosts=s" => \$hostlist,
-	"jobid=i" => \$::JOBID,
-	@::GETOPS
-	);
+        "hosts=s" => \$hostlist,
+        "jobid=i" => \$::JOBID,
+        @::GETOPS
+    );
     if($hostlist ne "")
     {
-	@::HOSTLIST_ARRAY = split(/,/, $hostlist);
-    }    
+        @::HOSTLIST_ARRAY = split(/,/, $hostlist);
+    }
     else
     {
-	print "Valid HOSTLIST environment variable not defined.  Bailing\n";
-	exit(0);
+        print "Valid HOSTLIST environment variable not defined.  Bailing\n";
+        exit(0);
     }
 }
+
 
 if($::SRMTYPE eq "LSF")
 {
@@ -215,28 +217,48 @@ sub bbfail
 sub untaint
 {
     my($data) = @_;
-    if ($data =~ /^(.*)$/s)
+    if($data =~ /^(.*)$/s)
     {
-	return $1;
+        return $1;
     }
     else
     {
-	bbfail "Bad data in '$data'";
+        bbfail "Bad data in '$data'";
     }
 }
+
 
 sub bpost
 {
     my($desc, $mailbox) = @_;
     $bpostbin = $ENV{'LSF_BINDIR'};
-    if(($bpostbin ne "") && ($::SRMTYPE eq "LSF"))   # LSF available
+    if(($bpostbin ne "") && ($::SRMTYPE eq "LSF"))    # LSF available
     {
-	$mailbox = $::BPOSTMBOX if(!defined $mailbox);
-	cmd("$bpostbin/bpost -d '$desc' -i $mailbox $::JOBID");
+        $mailbox = $::BPOSTMBOX if(!defined $mailbox);
+        cmd("$bpostbin/bpost -d '$desc' -i $mailbox $::JOBID");
     }
     else
     {
-	print "Message: $desc\n";
+        print "Message: $desc\n";
+    }
+}
+
+sub bbwaitTransfersComplete
+{
+    my $timeout = 3600;
+    $timeout = $json->{"bb"}{"scripts"}{"transfertimeout"} if(exists $json->{"bb"}{"scripts"}{"transfertimeout"});
+
+    my $starttime  = time();
+    my $result     = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
+    my $numpending = $result->{"0"}{"out"}{"numavailhandles"};
+    while ($numpending > 0)
+    {
+        bpost("BB: Waiting for $numpending transfer(s) to complete");
+        sleep(5);
+        $result     = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
+        $numpending = $result->{"0"}{"out"}{"numavailhandles"};
+        my $curtime = time();
+        last if($curtime - $starttime > $timeout);
     }
 }
 
@@ -244,31 +266,39 @@ sub bbcmd
 {
     my($foo) = @_;
     $cmd = untaint($foo);
-    if (! $QUIET) {print "\ncmd: $BBCMDPATH/bbcmd $cmd\n"};
+    if(!$QUIET) { print "\ncmd: $BBCMDPATH/bbcmd $cmd\n" }
 
-    $oldpath = $ENV{'PATH'};
-    $ENV{'PATH'} = '/bin:/usr/bin';
-    $jsonoutput = `$BBCMDPATH/bbcmd $cmd`;
-    $jsonoutput = untaint($jsonoutput);
-    $ENV{'PATH'} = $oldpath;
+    my $timeout = 600;
+    $timeout = $json->{"bb"}{"scripts"}{"bbcmdtimeout"} if(exists $json->{"bb"}{"scripts"}{"bbcmdtimeout"});
 
-    if (! $QUIET) {print "json: $jsonoutput\n"};
-    eval
+    alarm($timeout);
+    eval 
     {
-	$result = decode_json($jsonoutput);
-	if (! $QUIET) {printf("rc = %s\n", $result->{"rc"})};
-	if($result->{"rc"})
-	{
-	    printf("Command failure.  rc=%s\n", $result->{"rc"});
-	}
+        $oldpath     = $ENV{'PATH'};
+        $ENV{'PATH'} = '/bin:/usr/bin';
+        $jsonoutput  = `$BBCMDPATH/bbcmd $cmd`;
+        $jsonoutput  = untaint($jsonoutput);
+        $ENV{'PATH'} = $oldpath;
+
+        if(!$QUIET) { print "json: $jsonoutput\n" }
+
+        $result = decode_json($jsonoutput);
+        if(!$QUIET) { printf("rc = %s\n", $result->{"rc"}) }
+        if($result->{"rc"})
+        {
+            printf("Command failure.  rc=%s\n", $result->{"rc"});
+        }
     };
+    alarm(0);
     if($@)
     {
-	print "Invalid JSON: $jsonoutput\n";
-	return decode_json('{ "rc":1 }');
+        print "bbcmd() eval error: $@\n";
+        $result = decode_json('{ "rc":1 }');
+        $result->{"evalerr"} = $@;
     }
     return $result;
 }
+
 
 sub bbgetrc
 {
@@ -279,17 +309,30 @@ sub bbgetrc
 
 sub cmd
 {
-    my($cmd) = @_;
+    my($cmd, $timeout) = @_;
     $cmd = untaint($cmd);
-    if (! $QUIET) {print "cmd: $cmd\n"};
+    if(!$QUIET) 
+    { 
+        print "cmd: $cmd\n";
+    }
     $oldpath = $ENV{'PATH'};
     $ENV{'PATH'} = '/bin:/usr/bin';
-    system($cmd);
+
+    alarm($timeout) if($timeout);
+    eval
+    {
+        system($cmd);
+    };
+    alarm(0) if($timeout);
+
     $rc = $?;
+    $rc = "TIMEOUT" if($@ =~ /alarm timeout/);
+
     print "command rc: $rc\n";
     $ENV{'PATH'} = $oldpath;
     return $rc;
 }
+
 
 sub defaultenv
 {
@@ -307,7 +350,7 @@ sub setupBSCFS
         eval
         {
             $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
-            $json = decode_json($jsondata);
+            $::jsoncfg = $json = decode_json($jsondata);
         };
         $ENV{BSCFS_WORK_PATH} = $json->{"bb"}{"bscfsagent"}{"workpath"} . "/$::JOBID." . $ENV{"BBHASH"};
     }
@@ -330,7 +373,7 @@ sub getBBENVDir
     eval
     {
         $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
-	    $json = decode_json($jsondata);
+	    $::jsoncfg = $json = decode_json($jsondata);
         $bbenvdir = $json->{"bb"}{"envdir"};
         $controller = $json->{"bb"}{"cmd"}{"controller"};
     };
@@ -367,22 +410,22 @@ sub setupBBPATH
     openBBENV();
     while($line = <BBENV>)
     {
-	if($line =~ /^BBPATH=/)
-	{
-	    chomp($line);
-	    ($key,$value) = $line =~ /(\S+)=(.*)/;
-	    if($value !~ /^\/mnt\/bb_[a-z0-9]+/)
-	    {
-	        bbfail "BBPATH appears to be corrupted or tainted.";
-	    }
-	    $ENV{"BBPATH"} = $value;
-	}
-	if($line =~ /^LSB_SUB_ADDITIONAL=/)
-	{
-	    chomp($line);
-	    ($key,$value) = $line =~ /(\S+)=(.*)/;
-	    $ENV{"LSB_SUB_ADDITIONAL"} = $value;
-	}
+        if($line =~ /^BBPATH=/)
+        {
+            chomp($line);
+            ($key, $value) = $line =~ /(\S+)=(.*)/;
+            if($value !~ /^\/mnt\/bb_[a-z0-9]+/)
+            {
+                bbfail "BBPATH appears to be corrupted or tainted.";
+            }
+            $ENV{"BBPATH"} = $value;
+        }
+        if($line =~ /^LSB_SUB_ADDITIONAL=/)
+        {
+            chomp($line);
+            ($key, $value) = $line =~ /(\S+)=(.*)/;
+            $ENV{"LSB_SUB_ADDITIONAL"} = $value;
+        }
     }
     close(BBENV);
     $::BBPATH = $ENV{"BBPATH"};
@@ -394,9 +437,9 @@ sub setupUserEnvironment
     openBBENV();
     while($line = <BBENV>)
     {
-	chomp($line);
-        ($key,$value) = $line =~ /(\S+)=(.*)/;
-	$ENV{$key} = $value;
+        chomp($line);
+        ($key, $value) = $line =~ /(\S+)=(.*)/;
+        $ENV{$key} = $value;
     }
     close(BBENV);
 }

@@ -54,6 +54,10 @@ Path to a file containing a customized NVMe over Fabrics JSON template.  The def
 
 Path to the location file to write the burst buffer configuration file.  The default path is /etc/ibm/bb.cfg
 
+=item B<--outputnvmecfg>
+
+Path to the location of the NVMe over Fabrics target JSON configuration file.  
+
 =item B<--[no]offload>
 
 Enable or disable NVMe over Fabrics hardware target offload support.  Target offload is disabled by default.
@@ -94,6 +98,14 @@ Specifies the scratch directory for BSCFS temporary files for communicating betw
 =item B<--metadata>
 
 Specifies the metadata directory used by the bbServer instances.  All bbServer nodes in the cluster must point to the same directory.
+
+=item B<--dryrun>
+
+bbactivate will output the commands that it would run, but it will not modify the system state.  Configuration files that would have been written are instead sent to stdout unless --drypath is specified.
+
+=item B<--drypath>
+
+When used in combination with --dryrun, the file system changes will be written to file(s) in the directory specified by --drypath instead of the actual file locations.  
 
 =item B<--scriptpath>
 
