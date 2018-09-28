@@ -27,14 +27,15 @@ BEGIN
     print "argv[0] = $ARGV[0]\n";
     if(isSetuid())
     {
-	unshift(@INC, '/opt/ibm/bb/scripts/');
+        unshift(@INC, '/opt/ibm/bb/scripts/');
     }
     else
     {
-	($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
-	unshift(@INC, abs_path($dir));
+        ($dir, $fn) = $0 =~ /(\S+)\/(\S+)/;
+        unshift(@INC, abs_path($dir));
     }
 }
+
 
 use bbtools;
 $::BPOSTMBOX = 120;
@@ -46,8 +47,8 @@ sub failureCleanAndExit()
     bpost("BB stage-in failure detected, cleaning up");
     foreach $cmd (reverse @cleanup)
     {
-	print("BB stage-in failure cleanup: $cmd\n");
-	bbcmd($cmd);
+        print("BB stage-in failure cleanup: $cmd\n");
+        bbcmd($cmd);
     }
     bpost("BB stage-in failure cleanup complete, exiting with $::BADEXITRC");
     exit($::BADEXITRC);
@@ -93,15 +94,19 @@ sub phase1()
 }
 
 sub phase2
-{    
+{
     $BADEXITRC = $BADNONRECOVEXITRC;
     &setupUserEnvironment();
+
+    my $timeout = 600;
+    $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
+
     foreach $bbscript (@STGIN)
     {
-	bpost("BB: Calling user stage-in script: $bbscript");
-	$rc = cmd("$bbscript 2>&1");
-	bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX+1);
-	failureCleanAndExit() if($rc != 0);
+        bpost("BB: Calling user stage-in script: $bbscript");
+        $rc = cmd("$bbscript 2>&1", $timeout);
+        bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX + 1);
+        failureCleanAndExit() if($rc != 0);
     }
 }
 
@@ -109,24 +114,16 @@ sub phase3
 {    
     if($#STGIN >= 0)
     {
-	$result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS");
-	$numpending = $result->{"0"}{"out"}{"numavailhandles"};
-	while ($numpending > 0)
-	{
-	    bpost("Waiting for $numpending transfer(s) to complete");
-	    sleep(5);
-	    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
-	    $numpending = $result->{"0"}{"out"}{"numavailhandles"};
-	}
-	
-	# Check for any failed transfers and halt job execution phase if found
-        $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBFAILED");
-	$numfailed = $result->{"0"}{"out"}{"numavailhandles"};
-	failureCleanAndExit() if($numfailed > 0);
+        &bbwaitTransfersComplete();
+        
+        # Check for any failed transfers and halt job execution phase if found
+        $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS,BBFAILED");
+        $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
+        failureCleanAndExit() if($numfailed > 0);
     }
     else
     {
-	bpost("BB: No user stage-in script specified");
+        bpost("BB: No user stage-in script specified");
     }
     bpost("BB: Stage-in admin script completed");
 }

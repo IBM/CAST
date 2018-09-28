@@ -26,14 +26,15 @@ BEGIN
 {
     if(isSetuid())
     {
-	unshift(@INC, '/opt/ibm/bb/scripts/');
+        unshift(@INC, '/opt/ibm/bb/scripts/');
     }
     else
     {
-	($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
-	unshift(@INC, abs_path($dir));
+        ($dir, $fn) = $0 =~ /(\S+)\/(\S+)/;
+        unshift(@INC, abs_path($dir));
     }
 }
+
 
 use bbtools;
 $::BPOSTMBOX = 122;
@@ -59,46 +60,37 @@ exit($exitstatus);
 
 sub phase1
 {
+    my $timeout = 600;
+    $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageout1timeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageout1timeout"});
+
     $BADEXITRC = $BADNONRECOVEXITRC;
     &setupUserEnvironment();
     foreach $bbscript (@STGOUT1)
     {
-	bpost("BB: Calling the user stage-out phase1 script: $bbscript");
-	$rc = cmd("$bbscript");
-	bpost("BB: User stage-out phase1 script completed with rc $rc.", $::BPOSTMBOX+1);
+        bpost("BB: Calling the user stage-out phase1 script: $bbscript");
+        $rc = cmd("$bbscript", $timeout);
+        bpost("BB: User stage-out phase1 script completed with rc $rc.", $::BPOSTMBOX + 1);
     }
 }
 
 sub phase2
 {
-# NOTE: If we bring down the file system, then we should issue the following command.
-#       This command tells bbserver to start sending 'progress' messages to bbproxy.
-#       If we were to resize/shrink the LV, bbproxy would use these progress messages
-#       to perform the resize.
-    
-# bbcmd("stgout_start --mount=$BBPATH");
-
-# jobstepid=0 means to query all transfers under jobid
-    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS");
-    $numpending = $result->{"0"}{"out"}{"numavailhandles"};
-    while ($numpending > 0)
-    {
-	bpost("BB: Waiting for $numpending transfer(s) to complete");
-	sleep(5);
-	$result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");  # All transfers should have started
-	$numpending = $result->{"0"}{"out"}{"numavailhandles"};
-    }
+    &bbwaitTransfersComplete();
 }
 
 sub phase3
 {
     $BADEXITRC = $BADNONRECOVEXITRC;
     &setupUserEnvironment();
+
+    my $timeout = 600;
+    $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageout2timeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageout2timeout"});
+
     foreach $bbscript (@STGOUT2)
     {
-	bpost("BB: Calling the user stage-out phase2 script: $bbscript");
-	$rc = cmd("$bbscript");
-	bpost("BB: User stage-out phase2 script completed with rc $rc.", $::BPOSTMBOX+2);
+        bpost("BB: Calling the user stage-out phase2 script: $bbscript");
+        $rc = cmd("$bbscript", $timeout);
+        bpost("BB: User stage-out phase2 script completed with rc $rc.", $::BPOSTMBOX + 2);
     }
 }
 
