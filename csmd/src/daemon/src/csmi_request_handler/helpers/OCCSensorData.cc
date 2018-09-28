@@ -23,6 +23,10 @@
 #include <math.h>
 #include <string.h>
 
+#include <dirent.h>       // Provides scandir()
+#include <glob.h>
+
+#include <fstream>
 
 #define OCC_INBAND_SENSORS "/sys/firmware/opal/exports/occ_inband_sensors"
 #define TO_FP(f)    ((f >> 8) * pow(10, (f & 0xFF)))
@@ -356,6 +360,62 @@ bool GetExtendedOCCSensorData( std::unordered_map<std::string,CsmOCCSensorRecord
     free(buffer);
     close(fd);
     return true;
+}
+
+/**
+ * @brief Resets the CSM min and max sensor values for all chips in the node.
+ */
+bool ResetOccCsmSensorMinMax()
+{
+    bool successful(true);
+
+    // Scan the OCC sensor groups to find all OCC CSM sensor groups
+    // Use globbing "*" for the occ-csm* portions of the directory names to find all OCC CSM sensor groups
+    // ls -d /sys/firmware/opal/sensor_groups/occ-csm*/clear
+    // /sys/firmware/opal/sensor_groups/occ-csm0/clear  
+    // /sys/firmware/opal/sensor_groups/occ-csm8/clear
+    const char OCC_CSM_GLOB_PATH[] = "/sys/firmware/opal/sensor_groups/occ-csm*/clear";
+
+    int32_t globflags(0);
+    glob_t csm_sensor_paths;
+    int32_t rc(0);
+
+    rc = glob(OCC_CSM_GLOB_PATH, globflags, nullptr, &csm_sensor_paths);
+    if (rc == 0)
+    {
+        if (csm_sensor_paths.gl_pathc < 1)
+        {
+            // No OCC CSM sensor groups found
+            successful = false;
+        }
+
+        // Reset each sensor group
+        // echo 1 > /sys/firmware/opal/sensor_groups/occ-csm0/clear
+        // echo 1 > /sys/firmware/opal/sensor_groups/occ-csm8/clear
+        for (uint32_t i = 0; i < csm_sensor_paths.gl_pathc; i++)
+        {
+            std::ofstream clear_out(csm_sensor_paths.gl_pathv[i]);
+
+            if (clear_out.is_open())
+            {
+                clear_out << "1" << std::endl;
+            }
+            else
+            {
+                // Failed to open the CSM sensor group clear file
+                successful = false;
+            }
+        }
+    }
+    else
+    {
+        // glob returned an error when looking for the CSM sensor group paths 
+        successful = false;
+    }
+
+    globfree(&csm_sensor_paths);
+
+    return successful;
 }
 
 } // helper
