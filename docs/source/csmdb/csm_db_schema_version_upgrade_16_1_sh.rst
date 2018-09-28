@@ -3,11 +3,11 @@ Using csm_db_schema_version_upgrade_16_1.sh
 
 .. important:: Prior steps before migrating to the newest DB schema version.
 
-#. *Stop all CSM daemons*
-#. *Run a cold backup of the csmdb or specified DB* (:ref:`csm_db_backup_script_v1.sh <csm_db_backup_script_v1.sh>`)
-#. *Install the newest RPMs*
-#. *Run the* :ref:`csm_db_schema_version_upgrade_16_1.sh <usage>`
-#. *Start CSM daemons*
+#. Stop all CSM daemons
+#. Run a cold backup of the csmdb or specified DB (:ref:`csm_db_backup_script_v1.sh <csm_db_backup_script_v1.sh>`)
+#. Install the newest RPMs
+#. Run the :ref:`csm_db_schema_version_upgrade_16_1.sh <usage>`
+#. Start CSM daemons
 
 .. attention:: To migrate the CSM database from ``15.0, 15.1, or 16.0`` to the newest schema version
 

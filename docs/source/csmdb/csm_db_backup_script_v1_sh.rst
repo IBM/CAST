@@ -1,40 +1,39 @@
 Using csm_db_backup_script_v1.sh
 ================================
 
-To (manually) cold backup a CSM database on the system
+To manually perform a cold backup a CSM database on the system the following script may be run.
 
 .. code-block:: bash
 
- run ./ csm_db_backup_script_v1.sh.
+    /opt/ibm/csm/db/csm_db_backup_script_v1.sh
  
-.. note:: This script can be run as a root or postgres user. As the root user, log into postgres: su – postgres if desired.
+.. note:: This script should be run as the root or postgres user. 
 
-The csm_db_backup_script_v1.sh creates a log file:
-``/var/lib/pgsql/backups/csm_db_backup_script.log`` or specified command line directory
- 
 .. attention:: There are a few step that should be taken before backing up a CSM or related DB on the system.
 
-Backup script steps
--------------------
+Backup script actions
+---------------------
 
- #. *Stop all CSM daemons.*
- #. *Run the backup script.*
-     a. *Example:* ``/opt/ibm/csm/db// csm_db_backup_script_v1.sh [DBNAME] [/DIR/]``
-     #. *If a directory is not specified then the log and backup file will be written to the default directory:* ``/var/lib/pgsql/backups/``
-     #. *The script will check the DB connections and if there are no active connections then the backup process will begin.*
-     #. *If there are any active connections to the DB, then an Error message will display the current connections and exit out of the program.*
-     #. *To terminate active connection please use the* :ref:`csm_db_connections_script.sh <csm_db_connections_script_usage>` ``–h. --help`` *script*
- #. *Once the DB been successfully backed-up then the admin can restart the daemons.* 
+The following steps are behaviors recommended for use of the back up script:
+
+1. Stop all CSM daemons.
+2. Run the backup script.
+
+:Invocation: ``/opt/ibm/csm/db/csm_db_backup_script_v1.sh [DBNAME] [/DIR/]``
+:Default Directory: */var/lib/pgsql/backups/*
+    
+The script will check the DB connections and if there are no active connections then the backup 
+process will begin. If there are any active connections to the DB, an Error message will be 
+displayed and the program will exit.
+
+To terminate active connections: :ref:`csm_db_connections_script.sh <csm_db_connections_script_usage>`
+
+3. Once the DB been successfully backed-up then the admin can restart the daemons. 
 
 .. _csm_db_backup_script_v1.sh:
 
 Running the csm_db_backup_script_v1.sh
 --------------------------------------
-
-.. code-block:: bash
-
- run ./csm_db_backup_script_v1.sh –h, --help
- for usage options/overview
 
 Example (-h, --help)
 ^^^^^^^^^^^^^^^^^^^^
@@ -63,6 +62,7 @@ Example (-h, --help)
 .. attention:: Common errors
 
 If the user tries to run the script as local user without PostgreSQL installed and does not provide a database name:
+
  #. An info message will prompt ([Info   ] Database name is required)
  #. The usage message will also prompt the usage help menu
 

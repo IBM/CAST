@@ -2,8 +2,9 @@ Using csm_db_archive_script.sh
 ==============================
 
 This section describes the archiving process associated with the CSM DB :ref:`history tables <history_tables>`.
-If ran alone it will archive all history tables including the :ref:`csm_ras_event_action table <csm_ras_event_action>`,
-which are apart of the CSM DB or specifies DB (in quiet mode: no screen results output).
+If run alone it will archive all history tables in the CSM Database, including the 
+:ref:`csm_ras_event_action table <csm_ras_event_action>`.
+
 
 Usage Overview
 --------------
@@ -31,47 +32,46 @@ Usage Overview
 
 Script overview
 ^^^^^^^^^^^^^^^
+The script may largely be broken into 
 
-**The wrapper script is broken down into three sections which include:**
- #. *Creating a temporary table to archive history data based on a condition.*
- #. *Copies all satisfied history data to a json file*
- #. *Then updates the archive_history_timestamp field, which can be later deleted during the purging process)*
+1. Create a temporary table to archive history data based on a condition.
 
-**Section 1:**
- #. *Connects to the DB with the postgres user*
- #. *Drops (if exists) and creates the temp table used in the archiving process*
- #. *The first query selects all the specific fields in the table*
- #. *The second and third query is a nested query that defines a particular row count that a user can pass in or can be set as a default value. The data is filter by using the history_time).*
- #. *The where clause defines whether the archive_history_time field is NULL*
- #. *The user will have the option to pass in a row count value (ex. 10,000 records)*
- #. *The data will be ordered by history_time ASC.*
+  a. Connect to the Database with the postgres user.
+  #. Drops and creates the temp table used in the archival process.
+  #. The first query selects all the fields in the table.
+  #. The second and third query is a nested query that defines a particular row count that a user can pass in or can be set as a default value. The data is filter by using the history_time)..
+  #. The where clause defines whether the *archive_history_time* field is *NULL*.
+  #. The user will have the option to pass in a row count value (ex. 10,000 records).
+  #. The data will be ordered by ``history_time ASC``.
 
-**Section 2:**
- #. *Copies all the results from the temp table and appends to a json file*
+2. Copies all satisfied history data to a json file.
+  
+  a. Copies all the results from the temp table and appends to a json file
 
-**Section 3:**
- #. *Updates the csm_[table_name]_history table*
- #. *Sets the archive_history_time = current timestamp*
- #. *From clause on the temp table*
- #. *WHERE (compares history_time, from history table to temp table) AND history.archive_history_time IS NULL*
+3. Then updates the *archive_history_timestamp* field, which can be later deleted during the purging process).
 
-The script argument options:
-""""""""""""""""""""""""""""
- #. *Database name (Default: "csmdb")*
- #. *Archive counter (how many records to be archived: Default: 100)*
- #. *Specified directory to be written to* (Default: ``/var/log/ibm/csm/archive``)
+  a. Updates the csm_[table_name]_history table
+  #. Sets the archive_history_time = current timestamp
+  #. From clause on the temp table
+  #. WHERE (compares history_time, from history table to temp table) AND history.archive_history_time IS NULL.
 
-Sample wrapper script:
-""""""""""""""""""""""
+Wrapper script
+--------------
 
-.. attention:: If this script below is ran manually it will display the results to the screen.  This script only handles per table archiving.
+ #. Database name. (Default: "csmdb")
+ #. Archive counter. (how many records to be archived: Default: 100)
+ #. Specified directory to be written to. (Default: ``/var/log/ibm/csm/archive``)
+
 
 .. code-block:: bash
 
 	[./csm_history_wrapper_archive_script_template.sh] [dbname] [archive_counter] [history_table_name] [/data_dir/]
 
-Script out results:
-"""""""""""""""""""
+.. attention:: If this script below is run manually it will display the results to the screen.  
+    This script only handles per table archiving.
+
+Script out results
+------------------
 
 .. code-block:: bash
 
@@ -97,8 +97,7 @@ Script out results:
 
 .. note:: Directory: Currently the scripts are setup to archive the results in a specified directory.
 
-| **Example output file:**
-| The history table data will be archived in a csv file along with the log file:
-| (example:)
-| ``csm_db_archive_script.log``
-| ``csm_node_history.archive.2018-07-30.json``
+The history table data will be archived in a csv file along with the log file:
+``csm_db_archive_script.log``
+``csm_node_history.archive.2018-07-30.json``
+

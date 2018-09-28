@@ -1,19 +1,18 @@
 Using csm_db_connections_script.sh
 ==================================
 
-.. note:: To list and or kill PostgreSQL database connection(s).
 
-The csm_db_connections_script.sh creates a log file ``/var/log/ibm/csm/csm_db_connections_script.log``
-(Each session is logged according to each query executed)
-For a quick overview of the script functionality:
+This script is designed to list and/or kill all active connections to a PostgreSQL database.
+Logging for this script is placed in */var/log/ibm/csm/csm_db_connections_script.log*
 
 Usage Overview
 --------------
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/./csm_db_connections_script.sh –h, --help.
- This help command (-h, --help) will specify each of the options available to use.
+    /opt/ibm/csm/db/./csm_db_connections_script.sh –h, --help.
+
+The help command (-h, --help) will specify each of the options available to use.
 
 +------------------------------------+--------------------------------------------+-------------------------------------------+
 |               Options              |                 Description                |                   Result                  |
@@ -43,7 +42,7 @@ Usage Overview
 .. _csm_db_connections_script_usage:
 
 Example (usage)
-"""""""""""""""
+^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -78,16 +77,15 @@ Example (usage)
 Listing all DB connections
 --------------------------
 
-3.)	To display all current DB connections:
+To display all current DB connections:
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_connections_script.sh (-l, --list).
+ /opt/ibm/csm/db/csm_db_connections_script.sh --list
  
-.. note:: The script will display all current sessions open.
 
 Example (-l, --list)
-""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -125,7 +123,7 @@ Example (-l, --list)
 .. note:: The script will display the total users connected along with total users.
 
 Example (-l, --list –u, --user)
-"""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -145,7 +143,7 @@ Example (-l, --list –u, --user)
  ==============================================================================================================
 
 Example (not specifying user or invalid user in the system)
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -172,7 +170,7 @@ The user has the ability to kill all DB connections by using the ``–k, --kill`
 ``/var/log/ibm/csm/csm_db_connections_script.log``
  
 Example (-k, --kill)
-""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -235,7 +233,7 @@ All responses are logged to the:
  /var/log/ibm/csm/csm_db_connections_script.log
 
 Example (-k, --kill –f, --force)
-""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -259,7 +257,7 @@ Example (-k, --kill –f, --force)
  =============================================================================================================
 
 Example (Log file output)
-"""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -302,7 +300,8 @@ All responses are logged to the:
  /var/log/ibm/csm/csm_db_kill_script.log
 
 Example (-k, --kill –u, --user <username>)
-""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. code-block:: bash
 
  -bash-4.2$ ./csm_db_connections_script.sh -k -u csmdb
@@ -314,7 +313,7 @@ Example (-k, --kill –u, --user <username>)
  ------------------------------------------------------------------------------------------------------
 
 Example (Single session user kill)
-""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -328,7 +327,7 @@ Example (Single session user kill)
  ------------------------------------------------------------------------------------------------------
 
 Example (Multiple session user kill)
-""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -361,7 +360,7 @@ The response is logged to the:
  /var/log/ibm/csm/csm_db_connections_script.log
 
 Example (-k, --kill –u, --pid <pidnumber>)
-""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 

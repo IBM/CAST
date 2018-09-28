@@ -1,7 +1,10 @@
 Using csm_db_history_delete.sh
 ==============================
 
-This section describes the deletion process associated with the CSM DB :ref:`history tables <history_tables>`.  If ran alone it will delete all history tables including the :ref:`csm_event_action table <csm_ras_event_action>`, which are apart of the CSM DB or specifies DB (in quiet mode: no screen results output) which contains an archive history time stamp.
+This section describes the deletion process associated with the CSM Database 
+:ref:`history tables <history_tables>`. If run alone it will delete all history tables 
+including the :ref:`csm_event_action table <csm_ras_event_action>`,  which contain a non-null
+archive history timestamp.
 
 Usage Overview
 --------------
@@ -26,14 +29,14 @@ Usage Overview
 .. note:: This is a general overview of the CSM DB deletion process using the ``csm_history_wrapper_delete_script_template.sh`` script.
 
 The ``csm_history_wrapper_delete_script_template.sh`` script (when called manually) will delete history records which have been
-archived with a archive_history_timestamp. Records in the history table that do not have an archived_history_timestamp
+archived with a *archive_history_timestamp*. Records in the history table that do not have an archived_history_timestamp
 will remain in the system until it has been archived.
 
-The ``csm_history_wrapper_delete_script_template.sh`` script will take in take in certain flags:
- #. *Database name*
- #. *Interval time (in minutes)*
- #. *History table name*
- #. *Specified directory to be written to*
+The ``csm_history_wrapper_delete_script_template.sh`` script will accept certain flags:
+ #. Database name
+ #. Interval time (in minutes)
+ #. History table name
+ #. Specified directory to be written to
 
 Example (wrapper script)
 ^^^^^^^^^^^^^^^^^^^^^^^^
