@@ -404,6 +404,13 @@ bool CSM_Environmental_Data::CollectEnvironmentalData()
       }
    }
 
+   // Reset the OCC CSM sensor min and max values for the next collection period
+   bool reset_successful = csm::daemon::helper::ResetOccCsmSensorMinMax();
+   if ( !reset_successful )
+   {
+      LOG(csmenv, warning) << "ResetOccCsmSensorMinMax() failed.";
+   }
+
    LOG(csmenv, debug) << "Finish CollectEnvironmentalData()";
 
    return success;
