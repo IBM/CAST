@@ -145,7 +145,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		}
 		
 		// opening output file
-		std::string output_file_name = "output_file.txt";
+		std::string output_file_name = csm_inv_log_dir + "/ufm_ib_cable_output_file.txt";
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 		
 		// checking if output file is open
@@ -178,7 +178,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::string comparing_string;
 		
 		// opening input file
-		std::string input_file_name = "output_file.txt";
+		std::string input_file_name = output_file_name;
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
 		
 		// checking if input file is open
