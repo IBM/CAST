@@ -13,6 +13,7 @@
 
 ================================================================================*/
 // USE UPPER CASE for each bucket item
+bucket_item(DEBUG)
 bucket_item(CPU)
 bucket_item(GPU)
 bucket_item(NETWORK)

@@ -419,6 +419,17 @@ void CSM_Environmental_Data::AddDataItem(const boost::property_tree::ptree &data
    _data_list.push_back(data_pt);
 }
 
+void CSM_Environmental_Data::GenerateTestData()
+{
+  boost::property_tree::ptree dpt;
+  dpt.put(CSM_BDS_KEY_TYPE, CSM_BDS_TYPE_TEST_ENV);
+  dpt.put(CSM_BDS_KEY_SOURCE, _source_node);
+  dpt.put(CSM_BDS_KEY_TIME_STAMP, _timestamp);
+  dpt.put("data.debug", "Fixed generated debug/test data" );
+  _data_list.push_back( dpt );
+
+}
+
 bool CSM_Environmental_Data::HasData() const
 {
   return !_data_list.empty();
