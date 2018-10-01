@@ -192,6 +192,13 @@ struct CsmOCCSensorRecord
 bool GetExtendedOCCSensorData( std::unordered_map<std::string,CsmOCCSensorRecord> &inMap, 
     std::vector<std::unordered_map<std::string,CsmOCCSensorRecord>> &outValues);
 
+/**
+ *  @brief Resets the CSM min and max sensor values for all chips in the node.
+ *
+ *  @return True if sensors were reset.
+ */
+bool ResetOccCsmSensorMinMax();
+
 } // helper
 } // daemon
 } // csm
