@@ -75,6 +75,7 @@ build_pathsetup(burstbuffer bb/bin)
 build_manpage(${CMAKE_CURRENT_SOURCE_DIR}/bbactivate.pod  8 "Burst Buffer" burstbuffer bb)
 build_manpage(${CMAKE_CURRENT_SOURCE_DIR}/bbhealth.pod    8 "Burst Buffer" burstbuffer bb)
 build_manpage(${CMAKE_CURRENT_SOURCE_DIR}/setServer.pod   8 "Burst Buffer" burstbuffer bb)
+build_manpage(${CMAKE_CURRENT_SOURCE_DIR}/bbcfg.pod       8 "Burst Buffer" burstbuffer bb)
 
 if(RPMBUILD)
   install(FILES nvme.conf COMPONENT burstbuffer DESTINATION /etc/modprobe.d)
