@@ -50,7 +50,7 @@ keywords before using this configuration:
 
 .. code-block:: bash
 
-    service start filebeat.service 
+    systemctl start filebeat.service 
 
 Filebeats should now be sending injested data  to the Logstash instances specified in the 
 configuation file.
