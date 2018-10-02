@@ -1,0 +1,340 @@
+=head1 NAME
+
+bb.cfg - provide configuration information for burst buffer daemons bbproxy and bbserver and for bbcmd and API
+
+=head1 SYNOPSIS
+
+bb.cfg is a JSON file configuring bbserver, bbproxy, and the burst buffer library for bbcmd and the burst buffer API
+
+=head1 DESCRIPTION
+
+A "bb.cfg" JSON file provides configuration for bbServer daemons and bbProxy daemons and for the burst buffer library used by bbcmd
+and the burst buffer API.  If a value is not set in the file, the burst buffer framework will typically assume a default but may throw
+an error message.
+
+=head2 Location of bb.cfg
+
+On a system node, the default location for bb.cfg is /etc/ibm/bb.cfg.  Invocations of bbserver, bbproxy, and bbcmd may override the default
+location using parameter "--config <pathname>".  Note that the bb.cfg contents will vary from system to system.
+
+=head2 JSON bb.<value>
+
+=over 8
+
+=item B<bb.nvmecliPath>
+
+Path to the executable "nvme" from the nvme cli package.  
+
+Default:  "/usr/sbin/nvme"
+
+=item B<bb.unixpath>
+
+Path to the unix socket for interprocess communications (IPC) between bbproxy and the API or bbcmd.
+
+Default: "/run/bb_socket"
+
+=item B<bb.bbserverMetadataPath>
+
+The path within the parallel file system to the metadata shared across the bbServer daemons.
+Strongly recommended to be in the IBM Spectrum Scale parallel file system (previously known as GPFS).
+
+Default:  "/gpfs/gpfs0/bbmetadata"
+
+=item B<bb.bbserverFileIOwarnSeconds>
+
+The amount of time in seconds to warn with RAS about a monitored file-system syscall not returning to the caller.
+The monitoring is typically done by the daemons.  The value of 0 will result in suppression of the warning.
+
+Default: 300
+
+=item B<bb.bbserverFileIOStuckSeconds>
+
+The amount of time in seconds to deliver RAS that a syscall seems to be stuck.
+The monitoring is typically done by the daemons.  The value of 0 will result in suppression of the RAS.
+
+Default: 600
+
+=item B<bb.usekeepalive>
+
+If true, use TCP keep alive.  Also refer to setsockopt option SO_KEEPALIVE for SOL_SOCKET.
+
+Default:  true
+
+=item B<bb.keepaliveidle>
+The value in seconds to use for TCP keep alive idle.  Also refer to setsockopt option TCP_KEEPIDLE for SOL_TCP.
+
+Default: 60
+
+=item B<bb.keepalivecount>
+
+The value to set for the TCP keep alive count.  Also refer to setsockopt option TCP_KEEPCNT for SOL_TCP.
+
+Default:  12 
+
+=item B<bb.keepaliveinterval>
+
+The seconds for TCP keep alive interval.  Also refer to setsockopt option TCP_KEEPINTVL for SOL_TCP.
+
+Default: 5
+
+=item B<bb.cmd>  
+
+The bb.cmd handler section is for the configuration of the  bb_cmd comand-line interfaxe.
+
+=item B<bb.<bbserver-name>>
+
+This is a section describing or configuring a bbserver. 
+
+For bbserver, the default value may be overridden by the whoami parameter mentioned 
+in the bbserver man page. 
+
+Default:  bb.server0
+
+=item B<bb.<bbproxy-name>>
+
+This is a section describing or configuring a bbproxy.
+
+For bbproxy, the default value may be overridden by the whoami parameter mentioned 
+in the bbproxy man page.  
+
+Default:  bb.proxy
+
+=item B<bb.<bscfs-agent-name>>
+
+This is a section describing or configuring a bscfs agent.  
+
+Default:  bscfsagent
+
+=item B<bb.api>  
+
+The bb.api handler section is for the configuration of the burst buffer API.
+
+=back
+
+=head2 JSON values under bb.bbserver-name.
+
+The "dot" values under the JSON level follow.
+
+=over 8  
+
+=item B<ssladdress>
+
+The SSL address and port in format ipv4address:port.
+
+Default:  NO_CONFIG_VALUE and an error will result if not set.
+
+=item B<numRequestThreads>
+
+The number of threads handling requests to the bbserver.
+
+Default:  8
+
+=item B<numTransferThreads>
+
+The number of worker threads handling burst buffer file transfers.
+
+Default: 1
+
+=item B<numTransferBuffers>
+
+The number of transfer buffers for burst buffer file transfers.
+
+Default:  bb.<bbserver-name>.numTransferThreads 
+
+=item B<workerBufferSize>
+
+This is the transfer buffer size for bbserver.
+
+Default:  16777216
+
+=item B<flightlog>
+
+Default:  "none"
+
+=item B<sslcertif>
+
+The path to the SSL certificate for the SSL session when using ssladdress.
+Must be the same certificate on the bbproxy node and bbserver node.
+
+Default:  NO_CONFIG_VALUE and an error will result if not set.
+
+=item B<sslpriv>
+
+The path to the SSL private key for the ceriticate specified in ".sslcertif"
+on bbserver node (only) for the SSL session when using ssladdress.
+
+Default:  NO_CONFIG_VALUE and an error will result if not set.
+
+=item B<log>
+
+See heading "Values under .log"
+
+=back
+
+=head2 JSON values under bb.bbproxy-name.
+
+The "dot" values under the JSON level follow.
+
+=over 8
+
+=item B<servercfg>
+
+This may be configured by the burst buffer "bbactivate" script.  This points to a JSON section 
+describing a bbserver in a meaningful way for bbproxy obtain a connection to a bbserver.  
+The bbproxy daemon uses the bbserver section to set up a secure SSL connection or nonsecure 
+connection.
+
+Default:  "bb.server0"
+
+=item B<volumegroup>
+
+The name of the volume group.
+
+Default:  "bb"
+
+=item B<numRequestThreads>
+
+Default:  8
+
+=item B<ssdusagepollrate>
+
+The seconds between polls to check SSD use.
+
+Default:  60
+
+=item B<use_export_layout>
+
+If true, use the device /dev/export_layout for burstbuffer SSD handling.
+
+Default:  false
+
+=item B<lvreadahead>
+
+The SSD logical volume readahead setting.  A value of "-1" sets the readahead to auto.  
+The readahead value is set on the lvcreate which creates the logical volume on the SSD.
+
+Default:  -1
+
+=item B<ras_max_rss_size>
+
+For RSS growth, set the threshold for issuing a RAS event.
+
+Default: 2097152
+
+=item B<flightlog>
+
+Default:  "none"
+
+=item B<log>
+See heading "Values under .log"
+
+=back
+
+=head2 JSON values under bb.bscfsagent.
+
+The "dot" values under the JSON level follow.
+
+=over 8
+
+=item B<workpath>
+
+Default:  "/gpfs/gpfs0/bscfswork"
+
+=item B<flightlog>
+
+Default:  "none"
+
+=item B<log>
+
+See heading "Values under .log"
+
+=back
+
+=head2 JSON values under bb.cmd
+
+The "dot" values under the JSON level follow.
+
+=over 8
+
+=item B<controller>
+
+Default:  "csm".
+
+=item B<flightlog>
+
+Default:  "none"
+
+=item B<log>
+
+See heading "Values under .log"
+
+=back
+
+=head2 JSON values under bb.api.
+
+The "dot" values under the JSON level follow.
+
+=over 8
+
+=item B<flightlog>
+
+Default:  "none"
+
+=item B<log>
+
+See heading "Values under .log"
+
+=back
+
+=head2 Values under .log
+
+The "dot" values under the JSON level follow.
+
+=over 8
+
+=item B<consoleLog>
+
+Keep a console log of activity according to log severity level.
+
+Default:  true
+
+=item B<default_sev>
+
+Console log severity level.
+
+Default:  "info"
+
+=item B<rotationSize>
+
+When rotationSize (bytes) of the log file occurs, rotate.
+The value of "-1" is no rotation.
+
+Default:  -1 
+
+=item B<fileLog>
+
+Path to the console log.  For example:
+
+=over 8
+
+=item "/var/log/bbproxy/console_%Y%m%d.%N.log" 
+
+=item "/var/log/bbserver/console_%Y%m%d.%N.log" 
+
+=back
+
+Default:  "none"
+
+=item B<format>
+
+The format string for the log.
+
+Default:  "%TimeStamp% %SubComponent%::%Severity% | %Message%"
+
+=item B<archiveLogs>
+
+Default:  "none"
+
+=back
+
+
