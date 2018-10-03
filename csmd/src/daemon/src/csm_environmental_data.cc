@@ -345,9 +345,9 @@ bool CSM_Environmental_Data::CollectEnvironmentalData()
             for (auto sensor_itr = gpu_itr->begin(); sensor_itr != gpu_itr->end(); sensor_itr++)
             {
                auto occ_itr = current_values[chip].find(*sensor_itr);
-               if (occ_itr != current_values[chip].end())
+               if ( (occ_itr != current_values[chip].end()) && (occ_itr->second.sample != 0))
                {
-                  if ( (*sensor_itr == "TEMPGPU0") || (*sensor_itr == "TEMPGPU1") || (*sensor_itr == "TEMPGPU2") ) 
+                  if ( (*sensor_itr == "TEMPGPU0") || (*sensor_itr == "TEMPGPU1") || (*sensor_itr == "TEMPGPU2") )
                   {
                      check_and_insert_gpu_id_fields();
                      gpu_pt.put( "data.gpu_temp", std::to_string(occ_itr->second.sample) );
