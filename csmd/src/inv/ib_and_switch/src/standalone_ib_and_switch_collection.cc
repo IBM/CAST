@@ -340,8 +340,8 @@ int main(int argc, char *argv[])
 	std::cout << std::endl;
 	
 	// cleaning
-	//command = "rm " + temp_file_name;
-	//std::system(command.c_str());
+	command = "rm " + temp_file_name;
+	system(command.c_str());
 	
 	// gathering flags
 	int ib_flag = INV_IB_CONNECTOR_ACCESS::GetInstance()->GetCompiledWithSupport();
