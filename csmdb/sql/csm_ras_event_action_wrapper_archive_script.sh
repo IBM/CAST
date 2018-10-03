@@ -53,6 +53,8 @@ dbname=$DEFAULT_DB
 now=$(date '+%Y-%m-%d')
 start_time=`date +%s%N`
 
+source ./csm_db_utils.sh
+
 line1_out="------------------------------------------------------------------------------------------------------------------------"
 line2_log="------------------------------------------------------------------------------------"
 line3_log="---------------------------------------------------------------------------------------------------------------------------"
@@ -285,14 +287,17 @@ declare -A avg_data
 # These are the individual history tables being archived
 #----------------------------------------------------------------
 
-./csm_ras_event_action_table_archive.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results" | tee -a "$all_results" | \
-        awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' | tee -a >>"${logfile}"
+start_timer
+./csm_ras_event_action_table_archive.sh $dbname $archive_counter $table_name1 $data_dir >>"$all_results" 2>&1
+awk '/trace/ {print $0}
+/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' ${all_results}  >>"${logfile}"
+end_timer "template time" 2>> ${logfile}
 
-runtime="$(($(date +%s%N)-$start_time))"
-sec="$((runtime/1000000000))"
-min="$((runtime/1000000))"
-
-t_time=`printf "%02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
+#runtime="$(($(date +%s%N)-$start_time))"
+#sec="$((runtime/1000000000))"
+#min="$((runtime/1000000))"
+#
+#t_time=`printf "%02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
 
 #-------------------------------------------------------------------------------------------------------------------
 # Waits for the process to finish before calculating and trimming the results
@@ -409,7 +414,9 @@ echo "${line3_log}" >> $logfile
 # Temp file to master log file and clean up
 #----------------------------------------------------------------
 
+start_timer
 filesize
+end_timer "filesize run" 2>> ${logfile}
 #cat ${data_dir}$tmp_logname >> ${data_dir}$logname
 wait
 rm ${data_dir}$tmp_logname

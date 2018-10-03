@@ -21,6 +21,69 @@
 #   last modified: 06-20-2018
 #================================================================================
 
+#-------------------------------------------------------------------------------
+# Log Message
+#-------------------------------------------------------------------------------
+
+function LogMsg () {
+    LogTime=$(date '+%Y-%m-%d.%H:%M:%S')
+    echo "$LogTime ($pid) ($current_user) $1" >> $logfile 2>&1
+}
+
+#-------------------------------------------------------------------------------
+# Log Message File Size
+#-------------------------------------------------------------------------------
+
+function filesize () {
+    touch ${data_dir}$logname
+    MaxFileSize=1000000000
+    now2=$(date '+%Y-%m-%d.%H.%M.%S')
+
+    cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+
+    #--------------------
+    #Get size in bytes
+    #--------------------
+    file_size=`du -b ${data_dir}$logname | tr -s '\t' ' ' | cut -d' ' -f1`
+    if [ $file_size -gt $MaxFileSize ];then   
+        mv ${data_dir}$logname ${data_dir}$logname.$now2
+        touch ${data_dir}$logname
+    fi
+}
+
+#-------------------------------------------------------------------------------
+# Error Log Message
+#-------------------------------------------------------------------------------
+
+function finish () {
+    echo   "${line1_out}"
+    echo   "[Info   ] Archiving process for $table_name1 has been interrupted or terminated."
+    echo   "[Info   ] Please see log file for more details"
+    LogMsg "[Info  ] Arch process for:    |  $table_name1 has been interrupted or terminated."
+    LogMsg "[Info  ] Exiting:             |  csm_history_wrapper_archive_script_template.sh."
+    LogMsg "${line2_log}"
+    LogMsg "[End   ] Archiving Process:   |  $table_name1"
+    echo   "${line1_out}"
+    echo "${line3_log}" >> $logfile
+
+    filesize
+    
+    #-------------------------------------------------
+    # Clean up any failed archiving runs
+    #-------------------------------------------------
+    
+    rm -rf ${data_dir}$tmp_logname
+
+    if [[ ! -f ${data_dir}${pid}_${table_name1}_archive_results* ]]; then
+        rm -f ${data_dir}${pid}_${table_name1}_archive_results*
+    fi
+    
+    if [[ ! -f ${data_dir}${pid}_${table_name1}.count* ]]; then
+        rm -f ${data_dir}${pid}_${table_name1}.count*
+    fi
+    exit $?
+}
+
 #----------------------------------------------------------------
 # Traps any interrupted or terminated sessions 
 # (see finish function below)
@@ -52,6 +115,8 @@ cd "${BASH_SOURCE%/*}" || exit
 dbname=$DEFAULT_DB
 now=$(date '+%Y-%m-%d')
 start_time=`date +%s%N`
+
+source ./csm_db_utils.sh
 
 line1_out="------------------------------------------------------------------------------------------------------------------------"
 line2_log="------------------------------------------------------------------------------------"
@@ -141,97 +206,8 @@ else
 fi
 logfile="${logdir}/${tmp_logname}"
 
-#-------------------------------------------------------------------------------
-# Log Message
-#-------------------------------------------------------------------------------
-
-function LogMsg () {
-    LogTime=$(date '+%Y-%m-%d.%H:%M:%S')
-    echo "$LogTime ($pid) ($current_user) $1" >> $logfile 2>&1
-}
-
 LogMsg "[Start ] Archiving Process:   |  $table_name1"
 LogMsg "${line2_log}"
-
-#-------------------------------------------------------------------------------
-# Log Message File Size
-#-------------------------------------------------------------------------------
-
-function filesize () {
-    touch ${data_dir}$logname
-    MaxFileSize=1000000000
-    now2=$(date '+%Y-%m-%d.%H.%M.%S')
-
-    cat ${data_dir}$tmp_logname >> ${data_dir}$logname
-
-    #--------------------
-    #Get size in bytes
-    #--------------------
-    file_size=`du -b ${data_dir}$logname | tr -s '\t' ' ' | cut -d' ' -f1`
-    if [ $file_size -gt $MaxFileSize ];then   
-        mv ${data_dir}$logname ${data_dir}$logname.$now2
-        touch ${data_dir}$logname
-    fi
-}
-
-#-------------------------------------------------------------------------------
-# Error Log Message
-#-------------------------------------------------------------------------------
-
-function finish () {
-    echo   "${line1_out}"
-    echo   "[Info   ] Archiving process for $table_name1 has been interrupted or terminated."
-    echo   "[Info   ] Please see log file for more details"
-    LogMsg "[Info  ] Arch process for:    |  $table_name1 has been interrupted or terminated."
-    LogMsg "[Info  ] Exiting:             |  csm_history_wrapper_archive_script_template.sh."
-    LogMsg "${line2_log}"
-    LogMsg "[End   ] Archiving Process:   |  $table_name1"
-    echo   "${line1_out}"
-    echo "${line3_log}" >> $logfile
-
-    filesize
-    
-    #-------------------------------------------------
-    # Clean up any failed archiving runs
-    #-------------------------------------------------
-    
-    rm -rf ${data_dir}$tmp_logname
-
-    if [[ ! -f ${data_dir}${pid}_${table_name1}_archive_results* ]]; then
-        rm -f ${data_dir}${pid}_${table_name1}_archive_results*
-    fi
-    
-    if [[ ! -f ${data_dir}${pid}_${table_name1}.count* ]]; then
-        rm -f ${data_dir}${pid}_${table_name1}.count*
-    fi
-    exit $?
-}
-
-#----------------------------------------------------------------
-# Check if postgresql exists already
-#----------------------------------------------------------------
-
-string1="$now1 ($pid) ($current_user) [Info  ] DB Names:            |"
-psql -l 2>>/dev/null $logfile
-
-if [ $? -ne 127 ]; then       #<------------This is the error return code
-    db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-\set ON_ERROR_STOP true
-select string_agg(datname,', ') from pg_database;
-EOF`
-
-    echo "$string1 $db_query" | sed "s/.\{40\},/&\n$string1 /g" >> $logfile 2>&1
-    LogMsg "[Info  ] DB install check:    |  PostgreSQL is installed"
-else
-    echo "${line1_out}"
-    echo "[Error ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "[Error ] PostgreSQL:          |  Might not be installed."
-    LogMsg "[Info  ] Additional Message:  |  Please check configuration settings"
-    finish
-    exit 1
-fi
-
-LogMsg "[Info  ] Script name:         |  csm_history_wrapper_archive_script_template.sh"
 
 #----------------------------------------------------------------
 # Check if database exists
@@ -269,8 +245,7 @@ declare -A avg_data
 # This should be in the order of each of the child history scripts
 #----------------------------------------------------------------
 
-table_name=()
-table_name+=(${3}                  )
+table_name=(${3})
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
@@ -282,14 +257,19 @@ all_results="$data_dir/${pid}_${table_name1}_archive_results.$now.timings"
 # These are the individual history tables being archived
 #----------------------------------------------------------------
 
-./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir 2>&1 >>"$all_results"
-awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' ${all_results}  >>"${logfile}"
+start_timer
 
-runtime="$(($(date +%s%N)-$start_time))"
-sec="$((runtime/1000000000))"
-min="$((runtime/1000000))"
+./csm_history_table_archive_template.sh $dbname $archive_counter $table_name1 $data_dir  >>"$all_results" 2>&1
+awk '/trace/ {print $0} 
+/^ERROR:.*$/ {$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' ${all_results}  >>"${logfile}"
 
-t_time=`printf "%02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
+end_timer "template time" 2>> ${logfile}
+
+#runtime="$(($(date +%s%N)-$start_time))"
+#sec="$((runtime/1000000000))"
+#min="$((runtime/1000000))"
+#
+#t_time=`printf "%02d:%02d:%02d:%02d.%03d\n" "$((sec/86400))" "$((sec/3600%24))" "$((sec/60%60))" "$((sec%60))" "${min}"`
 
 #----------------------------------------------------------------
 # Create the archive count array from external file
@@ -342,7 +322,11 @@ for i in $(grep real $all_results | awk '{ print substr($2,3,5) }'); do
     ((j++))
 done
 
-average=$(echo "scale=6; $total / $count" | bc | awk '{printf "%.3f\n", $0}')
+average=0
+if [[ $count -gt 0 ]]
+then
+    average=$(echo "scale=6; $total / $count" | bc | awk '{printf "%.3f\n", $0}')
+fi
 
 #------------------------------------------------------------------------------------------
 # Archiving results output 
@@ -399,7 +383,8 @@ echo "${line3_log}" >> $logfile
 # Temp file to master log file and clean up
 #----------------------------------------------------------------
 
+start_timer
 filesize
-#cat ${data_dir}$tmp_logname >> ${data_dir}$logname
-wait
+end_timer "filesize run" 2>> ${logfile}
+
 rm ${data_dir}$tmp_logname
