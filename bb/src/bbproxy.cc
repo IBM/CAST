@@ -420,9 +420,31 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         LOG(bb,info) << "msgin_removedirectory: pathname=" << pathname;
 
+        // NOTE: If l_ErrorCode.value() is returned as 16 (Device or resource busy), we delay
+        //       for 3 seconds and retry.  For this error, we will attempt the bfs::remove_all()
+        //       for 1 minute before we fail the operation.
         bfs::path l_PathName(pathname);
         bs::error_code l_ErrorCode;
-        bfs::remove_all(l_PathName, l_ErrorCode);
+        int l_Continue = 20;
+        while (l_Continue--)
+        {
+            bfs::remove_all(l_PathName, l_ErrorCode);
+            switch (l_ErrorCode.value())
+            {
+                case 16:
+                {
+                    usleep((useconds_t)3000000);    // Delay 3 seconds
+                }
+                break;
+
+                case 0:
+                default:
+                {
+                    l_Continue = 0;
+                }
+                break;
+            }
+        }
 
         if (l_ErrorCode.value())
         {
@@ -2197,7 +2219,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             if (rc)
             {
                 errorText << "sendMessage to server failed";
-                LOG_ERROR_TEXT_RC(errorText, rc);
+                LOG_ERROR_TEXT(errorText);
             }
             else {
                 // Wait for the response
@@ -2205,25 +2227,29 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 if (rc)
                 {
                     errorText << "waitReply failure";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    LOG_ERROR_TEXT(errorText);
                 }
                 else if (!msgserver)
                 {
-                    rc = -1;
                     errorText << "waitReply failure - null message returned";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    LOG_ERROR_TEXT(errorText);
                 }
                 else
                 {
                     // Process response data
                     bberror << err("out.lvuuid", l_lvuuid_str);
+                    // NOTE: We catch the return code, but do not put it in bberror.
+                    //       The final return code will be determined by the processing below.
                     rc = bberror.merge(msgserver);
-                    LOG(bb,info) << "Removed logical volume associated with " << mountpoint;
+                    if (rc)
+                    {
+                        errorText << "Return code " << rc << " returned from bbServer for remove logical volume operation.  Continuing...";
+                        LOG_ERROR_TEXT(errorText);
+                    }
                     delete msgserver;
                     msgserver=NULL;
                 }
             }
-
 
             proxy_GetUsage(l_MountPoint, usage);
 
