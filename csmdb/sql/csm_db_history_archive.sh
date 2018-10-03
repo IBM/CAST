@@ -90,7 +90,7 @@ do
     start_timer
     ./csm_history_wrapper_archive_script_template.sh ${DATABASE} ${NUM_ENTRIES} ${table} ${TARGET_DIRECTORY} \
         > /dev/null 
-    end_timer "${table} archive time"
+    end_timer "${table} archive time" 2>>${TARGET_DIRECTORY}/csm_db_archive_script.log
 done
 
 #---------------------------------------------
@@ -102,5 +102,5 @@ do
     start_timer
     ./csm_ras_event_action_wrapper_archive_script.sh ${DATABASE} ${NUM_ENTRIES} ${table} ${TARGET_DIRECTORY} \
         > /dev/null 2>&1
-    end_timer "${table} archive time"
+    end_timer "${table} archive time" 2>>${TARGET_DIRECTORY}/csm_db_archive_script.log
 done
