@@ -1496,7 +1496,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     vector<struct stat*> l_Stats;
     vector<txp::CharArray> l_StatArray;
     vector<txp::CharArray> l_StatArray2;
-    stringstream l_ContribSS;
     char l_Empty = '\0';
 
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};

@@ -96,7 +96,7 @@ int NodeController::gethostlist(string& hostlist)
             replace(hostlist.begin(), hostlist.end(), ' ', ',');
         }
     }
-    
+
     if(gethostlist)
     {
         string line;
@@ -114,19 +114,19 @@ int NodeController::gethostlist(string& hostlist)
 
 int NodeController::lvcreate(const std::string& lvname, enum LVState state, size_t current_size, const std::string& mountpath, const std::string& fstype)
 {
-    LOG(bb,info) << "Created logical volume '" << lvname << "'  size=" << current_size << "  state=" << state << "  mountpath=" << mountpath << "   fstype=" << fstype;
+    LOG(bb,info) << "Created logical volume for Uuid '" << lvname << "'  size=" << current_size << "  state=" << state << "  mountpath=" << mountpath << "   fstype=" << fstype;
     return 0;
 }
 
 int NodeController::lvremove(const std::string& lvname, const BBUsage_t& usage)
 {
-    LOG(bb,info) << "Remove logical volume '" << lvname;
+    LOG(bb,info) << "Removed logical volume for Uuid '" << lvname << "'";
     return 0;
 }
 
 int NodeController::lvupdate(const std::string& lvname, enum LVState state, size_t current_size)
 {
-    LOG(bb,info) << "Updated logical volume '" << lvname << "'  size=" << current_size << "  state=" << state;
+    LOG(bb,info) << "Updated logical volume having Uuid '" << lvname << "'  size=" << current_size << "  state=" << state;
     return 0;
 }
 

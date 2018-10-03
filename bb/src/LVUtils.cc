@@ -1518,7 +1518,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                             }
                         } else {
                             rc = -1;
-                            errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " which is not associated with volume group " << l_VolumeGroupName;
+                            errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " but the device does not have a name that would have been created by the burst buffer service";
                             LOG_ERROR_TEXT_RC(errorText, rc);
                         }
                     } else {
@@ -1756,7 +1756,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
             } else {
                 rc = -1;
                 if (pOnErrorFillInErrState) {
-                    errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " which is not associated with volume group " << l_VolumeGroupName;
+                    errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " but the device does not have a name that would have been created by the burst buffer service";
                     LOG(bb,error) << errorText.str();
                     bberror << err("error.text", errorText.str()) << errloc(rc);
                 }

@@ -2571,7 +2571,7 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
             case -1:
             {
                 // Contrib list did not match...
-                errorText << "LVKey could be found, but the contrib list did not match for this tag value.  Correct the contrib list or a different tag value must be specified.";
+                errorText << "LVKey could be found for " << l_JobStr.str() << ", but the contrib list did not match for this tag value.  Correct the contrib list or a different tag value must be specified.";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 break;
             }
@@ -2584,7 +2584,7 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
                 rc = queueTransfer(pConnectionName, pLVKey, pJob, pTag, l_TransferDef, (int32_t)(-1), pNumContrib, pContrib, pHandle, 0, l_Dummy, (vector<struct stat*>*)0);
                 if (rc) {
                     // NOTE:  errstate already filled in...
-                    errorText << "Handle " << pHandle << " could not be added to " << *pLVKey << " for the compute node.";
+                    errorText << "For " << l_JobStr.str() << ", handle " << pHandle << " could not be added to " << *pLVKey << " for the compute node.";
                     LOG_ERROR_AND_BAIL(errorText);
                 }
                 break;
