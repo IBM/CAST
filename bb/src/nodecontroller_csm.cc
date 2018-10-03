@@ -111,7 +111,7 @@ int NodeController_CSM::gethostlist(string& hostlist)
         input.allocation_id    = 0;
         input.primary_job_id   = stol(jobid);
         input.secondary_job_id = stol(jobindex);
-    }   
+    }
     else if(allocid)
     {
         input.allocation_id    = stol(allocid);
@@ -242,7 +242,7 @@ int NodeController_CSM::lvcreate(const string& lvname, enum LVState state, size_
     csmi_allocation_t allocinfo;
     char statechar;
 
-    LOG(bb,info) << "Created logical volume '" << lvname << "'  size=" << current_size << "  state=" << state << "  mountpath=" << mountpath << "   fstype=" << fstype;
+    LOG(bb,info) << "Created logical volume for Uuid '" << lvname << "'  size=" << current_size << "  state=" << state << "  mountpath=" << mountpath << "   fstype=" << fstype;
 
     convertState(state, statechar);
     rc = getAllocationInfo(allocinfo);
@@ -275,7 +275,7 @@ int NodeController_CSM::lvremove(const string& lvname, const BBUsage_t& usage)
     csm_bb_lv_delete_input_t bbargs;
     csmi_allocation_t allocinfo;
 
-    LOG(bb,info) << "Remove logical volume '" << lvname;
+    LOG(bb,info) << "Removed logical volume for Uuid '" << lvname << "'";
     rc = getAllocationInfo(allocinfo);
     if(rc)
         return rc;
@@ -304,7 +304,7 @@ int NodeController_CSM::lvupdate(const string& lvname, enum LVState state, size_
     csm_bb_lv_update_input_t bbargs;
     csmi_allocation_t allocinfo;
 
-    LOG(bb,info) << "Updated logical volume '" << lvname << "'  size=" << current_size << "  state=" << state;
+    LOG(bb,info) << "Updated logical volume having Uuid '" << lvname << "'  size=" << current_size << "  state=" << state;
 
     convertState(state, statechar);
     rc = getAllocationInfo(allocinfo);
@@ -408,22 +408,22 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
         list<string> tmparguments;
         list<uint32_t> csmbbranklist;
         list<string> host2rank;
-        
+
         tmparguments.clear();
         in.node_names_count = 0;
-        
+
         map<string, bool> inarray;
         inarray.clear();
-        
+
         do
         {
             auto rank = ranklistqueue.front();
             ranklistqueue.pop();
-            
+
             if(rank < nodelist.size())
             {
                 csmbbranklist.push_back(rank);
-                
+
                 if(inarray[nodelist[rank]] == false)
                 {
                     inarray[nodelist[rank]] = true;
@@ -434,7 +434,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             }
         }
         while((in.node_names_count < MAXNODESPERCSMCALL) && (ranklistqueue.size() > 0));
-        
+
         args = "";
         for(const auto& arg : arguments)
         {
@@ -442,19 +442,19 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             args += arg;
         }
         args += "^--csmcommand=";
-        
+
         bool first = true;
         for(const auto& arg : tmparguments)
         {
             if(first) first = false;
             else      args += ",";
-            
+
             args += arg;
         }
-        
+
         in.command_arguments = (char*)args.c_str();
         in.node_names = (char**)nodenames;
-        
+
         LOG(bb,info) << "csm_bb_cmd:  arguments=" << args;
         for(uint32_t x=0; x<in.node_names_count; x++)
         {
@@ -464,7 +464,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
         FL_Write(FLCSM, CSMBBCMD, "CSM: call csm_bb_cmd",0,0,0,0);
         rc = csm_bb_cmd(&csmhandle, &in, &out);
         FL_Write(FLCSM, CSMBBCMDRC, "CSM: call csm_bb_cmd.  rc=%ld",rc,0,0,0);
-        
+
         LOG(bb,info) << "csm_bb_rc: " << rc;
         if(rc == 0)
         {

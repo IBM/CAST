@@ -420,9 +420,31 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         LOG(bb,info) << "msgin_removedirectory: pathname=" << pathname;
 
+        // NOTE: If l_ErrorCode.value() is returned as 16 (Device or resource busy), we delay
+        //       for 3 seconds and retry.  For this error, we will attempt the bfs::remove_all()
+        //       for 1 minute before we fail the operation.
         bfs::path l_PathName(pathname);
         bs::error_code l_ErrorCode;
-        bfs::remove_all(l_PathName, l_ErrorCode);
+        int l_Continue = 20;
+        while (l_Continue--)
+        {
+            bfs::remove_all(l_PathName, l_ErrorCode);
+            switch (l_ErrorCode.value())
+            {
+                case 16:
+                {
+                    usleep((useconds_t)3000000);    // Delay 3 seconds
+                }
+                break;
+
+                case 0:
+                default:
+                {
+                    l_Continue = 0;
+                }
+                break;
+            }
+        }
 
         if (l_ErrorCode.value())
         {
@@ -1362,7 +1384,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
             bberror << err("in.parms.contrib", l_ContribStr.str());
         }
 
-        LOG(bb,info) << "msgin_gettransferhandle: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", tag=" << l_Tag << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr;
+        LOG(bb,debug) << "msgin_gettransferhandle: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", tag=" << l_Tag << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str();
 
         // NOTE: If processContrib() fails, it fills in errstate...
         rc = processContrib(l_NumContrib, l_Contrib);
@@ -1413,8 +1435,16 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
             l_Handle = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::transferHandle))->getData();
             char l_lvuuid_str[LENGTH_UUID_STR] = {'\0'};
             l_lvuuid.copyTo(l_lvuuid_str);
-            LOG(bb,info) << "msgin_gettransferhandle: LVUuid " << l_lvuuid_str << ", job(" << l_JobId << "," << l_JobStepId << "), tag " << l_Tag << ", numcontrib " << l_NumContrib << ", contrib " << l_ContribStr.str() << ", returning handle = " << l_Handle << " jobid="<< l_JobId<<" jobstepid="<<l_JobStepId<<", rc = " << rc;
+            LOG(bb,info) << "msgin_gettransferhandle: LVUuid " << l_lvuuid_str << ", job(" << l_JobId << "," << l_JobStepId << "), tag " << l_Tag << ", numcontrib " << l_NumContrib << ", contrib " << l_ContribStr.str() << ", returning handle " << l_Handle <<", rc " << rc;
             bberror << err("out.lvuuid", l_lvuuid_str) << err("out.handle", l_Handle);
+        }
+        else if (rc == -2)
+        {
+            LOG(bb,info) << "msgin_gettransferhandle: Handle not returned for jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", tag=" << l_Tag << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str() <<", rc = " << rc;
+        }
+        else
+        {
+            LOG(bb,error) << "msgin_gettransferhandle: Failed for jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", tag=" << l_Tag << ", numcontrib=" << l_NumContrib << ", contrib=" << l_ContribStr.str() <<", rc = " << rc;
         }
 
         delete msgserver;
@@ -1898,7 +1928,8 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
-        LOG(bb,info) << "msgin_gettransferlist: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", numhandles=" << l_NumHandles << ", matchstatus=" << l_MatchStatus;
+        LOG(bb,debug) << "msgin_gettransferlist: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", numhandles=" << l_NumHandles << ", matchstatus=0x" \
+                      << std::hex << std::uppercase << setfill('0') << (uint64_t)l_MatchStatus << setfill(' ') << std::nouppercase << std::dec;
 
         // Build the message to send to bbserver
         txp::Msg::buildMsg(txp::BB_GETTRANSFERLIST, msgserver);
@@ -1951,7 +1982,6 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         bberror << err("out.numhandles", l_NumHandles) << err("out.numavailhandles", l_NumAvailHandles);
 
-
         delete msgserver;
         msgserver=NULL;
 
@@ -1971,7 +2001,9 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
 
     EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
 
-    LOG(bb,info) << "msgin_gettransferlist handles: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", numhandles=" << l_NumHandles << ", matchstatus=" << l_MatchStatus;
+    LOG(bb,info) << "msgin_gettransferlist: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", numavailhandles=" << l_NumAvailHandles << ", numhandles=" << l_NumHandles << ", matchstatus=0x" \
+                 << std::hex << std::uppercase << setfill('0') << (uint64_t)l_MatchStatus << setfill(' ') << std::nouppercase << std::dec << ", rc=" << rc;
+
     uint64_t* l_Temp = l_Handles;
     for(size_t i=0; i<l_NumHandles; ++i) {
         string l_TempStr = to_string(i);
@@ -1987,7 +2019,6 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         response->addAttribute(txp::numavailhandles, l_NumAvailHandles);
         response->addAttribute(txp::handles, (const char*)l_Handles, sizeof(uint64_t) * l_NumHandles);
     }
-
 
     sendMessage(pConnectionName,response);
     delete response;
@@ -2197,7 +2228,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             if (rc)
             {
                 errorText << "sendMessage to server failed";
-                LOG_ERROR_TEXT_RC(errorText, rc);
+                LOG_ERROR_TEXT(errorText);
             }
             else {
                 // Wait for the response
@@ -2205,25 +2236,29 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 if (rc)
                 {
                     errorText << "waitReply failure";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    LOG_ERROR_TEXT(errorText);
                 }
                 else if (!msgserver)
                 {
-                    rc = -1;
                     errorText << "waitReply failure - null message returned";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    LOG_ERROR_TEXT(errorText);
                 }
                 else
                 {
                     // Process response data
                     bberror << err("out.lvuuid", l_lvuuid_str);
+                    // NOTE: We catch the return code, but do not put it in bberror.
+                    //       The final return code will be determined by the processing below.
                     rc = bberror.merge(msgserver);
-                    LOG(bb,info) << "Removed logical volume associated with " << mountpoint;
+                    if (rc)
+                    {
+                        errorText << "Return code " << rc << " returned from bbServer for remove logical volume operation.  Continuing...";
+                        LOG_ERROR_TEXT(errorText);
+                    }
                     delete msgserver;
                     msgserver=NULL;
                 }
             }
-
 
             proxy_GetUsage(l_MountPoint, usage);
 
@@ -2872,7 +2907,7 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
                     }
                 } else {
                     rc = -1;
-                    errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " which is not associated with volume group " << l_VolumeGroupName;
+                    errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " but the device does not have a name that would have been created by the burst buffer service";
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             } else {

@@ -390,11 +390,14 @@ int doRemoveLogicalVolume(const char* pVolumeGroupName, const char* pDevName) {
     int rc = -2;
 
     char* l_DevName = 0;
-    if (pVolumeGroupName) {
+    if (pVolumeGroupName)
+    {
         int l_Length = 1+strlen(pVolumeGroupName)+1+strlen(DEVICE_DIRECTORY)+1+strlen(pDevName)+1;
         l_DevName = new char[l_Length];
         snprintf(l_DevName, l_Length, "/%s/%s/%s", DEVICE_DIRECTORY, pVolumeGroupName, pDevName);
-    } else {
+    }
+    else
+    {
         l_DevName = new char[strlen(pDevName)+1];
         strCpy(l_DevName, pDevName, strlen(pDevName)+1);
     }
@@ -405,31 +408,56 @@ int doRemoveLogicalVolume(const char* pVolumeGroupName, const char* pDevName) {
     char l_Cmd[1024] = {'\0'};
     snprintf(l_Cmd, sizeof(l_Cmd), "lvremove %s %s;", l_Options, l_DevName);
 
+    // NOTE: If the logical volume is not removed (i.e., rc is not set to zero below), we delay
+    //       for 3 seconds and retry.  For this error, we will attempt the remove operation
+    //       for 1 minute before we return.
     //  NOTE: Cannot search for "Failed to find logical volume" as the output is preceded by null characters
     //        and runCommand will not return those output strings.  In that case, rc is set to -2 as
     //        not being able to remove a logical volume, for any reason, may be tolerable by our invoker.
-    for (auto& l_Line : runCommand(l_Cmd)) {
-        vector<std::string> l_Error = {ERROR_PREFIX};
-        if (!fuzzyMatch(l_Line, l_Error)) {
-            vector<std::string> l_Output1 = {"File descriptor", "leaked on lvremove invocation."};
-            if (!fuzzyMatch(l_Line, l_Output1)) {
-                LOG(bb,info) << l_Line;
+    int l_Continue = 20;
+    while (l_Continue--)
+    {
+        for (auto& l_Line : runCommand(l_Cmd))
+        {
+            vector<std::string> l_Error = {ERROR_PREFIX};
+            if (!fuzzyMatch(l_Line, l_Error))
+            {
+                vector<std::string> l_Output1 = {"File descriptor", "leaked on lvremove invocation."};
+                if (!fuzzyMatch(l_Line, l_Output1))
+                {
+                    LOG(bb,info) << l_Line;
 
-                // Expected output...
-                vector<std::string> l_Output4 = {"Logical volume", "successfully removed"};
-                if (fuzzyMatch(l_Line, l_Output4)) {
-                    rc = 0;
+                    // Expected output...
+                    vector<std::string> l_Output4 = {"Logical volume", "successfully removed"};
+                    if (fuzzyMatch(l_Line, l_Output4))
+                    {
+                        rc = 0;
+                    }
                 }
-            } else {
-                // Just skip over leaked file descriptors...
+                else
+                {
+                    // Just skip over leaked file descriptors...
+                }
             }
-        } else {
-            LOG(bb,error) << l_Line;
-            break;
+            else
+            {
+                LOG(bb,error) << l_Line;
+                break;
+            }
+        }
+
+        if (!rc)
+        {
+            l_Continue = 0;
+        }
+        else
+        {
+            usleep((useconds_t)3000000);    // Delay 3 seconds
         }
     }
 
-    if (l_DevName) {
+    if (l_DevName)
+    {
         delete[] l_DevName;
     }
 
@@ -1490,7 +1518,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                             }
                         } else {
                             rc = -1;
-                            errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " which is not associated with volume group " << l_VolumeGroupName;
+                            errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " but the device does not have a name that would have been created by the burst buffer service";
                             LOG_ERROR_TEXT_RC(errorText, rc);
                         }
                     } else {
@@ -1728,7 +1756,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
             } else {
                 rc = -1;
                 if (pOnErrorFillInErrState) {
-                    errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " which is not associated with volume group " << l_VolumeGroupName;
+                    errorText << "Mount point " << l_MountPoint << " is associated with device " << l_DevName << " but the device does not have a name that would have been created by the burst buffer service";
                     LOG(bb,error) << errorText.str();
                     bberror << err("error.text", errorText.str()) << errloc(rc);
                 }
