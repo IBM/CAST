@@ -27,7 +27,8 @@ endfunction()
 add_custom_target(man ALL)
 
 function(build_manpage podfile section subject component installroot)
-  get_filename_component(basename ${podfile} NAME_WE)
+  get_filename_component(rawname ${podfile} NAME)
+  string(REPLACE ".pod" "" basename ${rawname})
   set(MANNAME ${CMAKE_CURRENT_BINARY_DIR}/${basename}.${section})
   
   add_custom_command(
