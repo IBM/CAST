@@ -149,7 +149,7 @@ def BB_CreateLogicalVolume(pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
             raise BB_CreateLogicalVolumeError(rc)
 
     bb.printLastErrorDetailsSummary()
-    if (rc == 0):
+    if (rc in l_NormalRCs):
         print "Logical volume created with size %s, directory %s mounted, file system flag %s" % (pSize, pMountpoint, BBCREATEFLAGS[l_Flags.value])
 
     return
@@ -274,7 +274,8 @@ def BB_RemoveLogicalVolume(pMountpoint):
             rc = bb.api.BB_RemoveLogicalVolume(l_Mountpoint)
 
     bb.printLastErrorDetailsSummary()
-    print "Logical volume associated with mountpoint %s removed" % (pMountpoint)
+    if (rc in l_NormalRCs):
+        print "Logical volume associated with mountpoint %s removed" % (pMountpoint)
 
     return
 
@@ -324,7 +325,7 @@ def BB_RestartTransfers(pHostName, pHandle, pTransferDefs, pTransferDefsSize):
     bb.printLastErrorDetailsSummary()
     print '%sBB_RestartTransfers completed' % (os.linesep)
 
-    if (rc == 0):
+    if (rc in l_NormalRCs):
         return l_NumberOfRestartedTransferDefs.value
 
 def BB_Resume(pHostHame):
