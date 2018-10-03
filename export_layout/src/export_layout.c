@@ -55,7 +55,7 @@
 #include <linux/iomap.h>
 #endif
 
-#define EXP_VERSION "1.2"
+#define EXP_VERSION "1.3"
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bryan Rosenburg");
 MODULE_DESCRIPTION("Provides access to block layout functionality");
@@ -361,8 +361,11 @@ static long transfer_setup(struct file *filep,
 
 		rc = ops->map_blocks(inode, offset, length, map, t->writing,
 				     &devgen);
-		if (rc)
+		if (rc){
+			printk(KERN_DEBUG "%s: rc=map_blocks fd=%d, file=%p name=%pd rc=%d iomap_count=%d offset=%llx length=%llx\n",
+		       __func__, t->fd, t->target, t->target->f_path.dentry,rc,t->iomap_count,offset,length);
 			goto error_free_iomap;
+		}
 
 		if (map->offset < offset) {
 			u64 delta = offset - map->offset;
