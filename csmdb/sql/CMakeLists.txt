@@ -34,6 +34,8 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_backup_script_v1.sh"
   "csm_db_history_archive.sh"
   "csm_db_history_delete.sh"
+  "csm_db_utils.sh"
+  "csm_db_clear_archive_time.sh"
 )
 
 # Files that should not be executable when shipped

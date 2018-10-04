@@ -39,6 +39,8 @@ logname="csm_db_archive_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 now=$(date '+%Y-%m-%d')
 
+source ./csm_db_utils.sh
+
 #-------------------------------------------------------------------------------
 # Current user connected
 #-------------------------------------------------------------------------------
@@ -76,6 +78,7 @@ logpath=$data_dir   #<----- This file will live in "/var/log/ibm/csm/db"
 return_code=0
 if [ $? -ne 127 ]; then
 
+start_timer
 json_file="$cur_path/$table_name.archive.$now.json"
 swap_file="$cur_path/.$table_name.archive.$now.swp"
 archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERROR_STOP=1" << THE_END
@@ -113,12 +116,16 @@ archive_count_$table_name=$(`time psql -q -t -U $db_username -d $dbname "ON_ERRO
            COMMIT;
 THE_END`
 )
+end_timer "SQL runtime"
 
+start_timer
 # Escape special characters
 sed -i "s:([\b\f\n\r\t\"\\]):\\\1:g" ${swap_file}
 
 awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file} \
     >> ${json_file} 
+end_timer "tbl process"
+
 if [ $? -eq 0]
 then
     rm -f ${swap_file}

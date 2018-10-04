@@ -35,6 +35,7 @@ EOF
 # Change to the directory housing the script.
 #---------------------------------------------
 cd $( dirname "${BASH_SOURCE[0]}" )
+source ./csm_db_utils.sh
 
 #---------------------------------------------
 # The optstring for input.
@@ -86,8 +87,10 @@ done
 
 for table in "${TABLES[@]}"
 do
+    start_timer
     ./csm_history_wrapper_archive_script_template.sh ${DATABASE} ${NUM_ENTRIES} ${table} ${TARGET_DIRECTORY} \
-        > /dev/null 2>&1
+        > /dev/null 
+    end_timer "${table} archive time" 2>>${TARGET_DIRECTORY}/csm_db_archive_script.log
 done
 
 #---------------------------------------------
@@ -96,7 +99,8 @@ done
 
 for table in "${RAS_TABLES[@]}"
 do
+    start_timer
     ./csm_ras_event_action_wrapper_archive_script.sh ${DATABASE} ${NUM_ENTRIES} ${table} ${TARGET_DIRECTORY} \
         > /dev/null 2>&1
-
+    end_timer "${table} archive time" 2>>${TARGET_DIRECTORY}/csm_db_archive_script.log
 done

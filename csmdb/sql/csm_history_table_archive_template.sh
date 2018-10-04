@@ -38,6 +38,8 @@ logname="csm_db_archive_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 now=$(date '+%Y-%m-%d')
 
+source ./csm_db_utils.sh
+
 #-------------------------------------------------------------------------------
 # Current user connected
 #-------------------------------------------------------------------------------
@@ -56,6 +58,8 @@ cur_path=$data_dir
 #-------------------------------------------------------------------------------
 json_file="$cur_path/$table_name.archive.$now.json"
 swap_file="$cur_path/.$table_name.archive.$now.swp"
+
+start_timer
 psql -q -t -U $db_username -d $dbname > /dev/null << THE_END
             \set AUTOCOMMIT off
             \set ON_ERROR_ROLLBACK on
@@ -90,9 +94,15 @@ psql -q -t -U $db_username -d $dbname > /dev/null << THE_END
                         to '$cur_path/${parent_pid}_$table_name.count';
            COMMIT;
 THE_END
+end_timer "SQL runtime"
+
+start_timer
+sed -i "s:([\b\f\n\r\t\"]):\\\1:g" ${swap_file}
 
 awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file}\
     >> ${json_file}
+end_timer "tbl process"
+
 if [ $? -eq 0 ]
 then
     rm -f ${swap_file}

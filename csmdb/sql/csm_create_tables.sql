@@ -229,7 +229,7 @@ BEGIN;
 CREATE TABLE csm_allocation (
 ---------------------------------------------------------------------------------------------------
     allocation_id                   bigserial,
-    primary_job_id                  bigint      not null,	
+    primary_job_id                  bigint      not null,    
     secondary_job_id                int,
     ssd_file_system_name            text,
     launch_node_name                text        not null,
@@ -259,7 +259,7 @@ CREATE TABLE csm_allocation (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
-	
+    
     -- resource_comments            tbd     not null,
     -- health_check_allocation      tbd     not null,
     -- health_check_deallocation    tbd     not null,
@@ -284,7 +284,7 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.allocation_id is 'unique identifier for this allocation';
     COMMENT ON COLUMN csm_allocation.primary_job_id is 'primary job id (for lsf this will be the lsf job id)';
     COMMENT ON COLUMN csm_allocation.secondary_job_id is 'secondary job id (for lsf this will be the lsf job index for job arrays)';
-    COMMENT ON COLUMN csm_allocation.ssd_file_system_name is 'the filesystem name that the user wants (ssd)';	
+    COMMENT ON COLUMN csm_allocation.ssd_file_system_name is 'the filesystem name that the user wants (ssd)';    
     COMMENT ON COLUMN csm_allocation.launch_node_name is 'launch node name';
     COMMENT ON COLUMN csm_allocation.isolated_cores is 'cgroup: 0 - No cgroups, 1 - Allocation Cgroup, 2 - Allocation and Core Isolation Cgroup, >2 || <0 unsupported';
     COMMENT ON COLUMN csm_allocation.user_flags is 'user space prolog/epilog flags';
@@ -300,8 +300,8 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.job_type is 'the type of job (batch or interactive)';
     COMMENT ON COLUMN csm_allocation.user_name is 'username';
     COMMENT ON COLUMN csm_allocation.user_id is 'user identification';
-    COMMENT ON COLUMN csm_allocation.user_group_id is 'user group identification';	
-    COMMENT ON COLUMN csm_allocation.user_group_name is 'user group name';	
+    COMMENT ON COLUMN csm_allocation.user_group_id is 'user group identification';    
+    COMMENT ON COLUMN csm_allocation.user_group_name is 'user group name';    
     COMMENT ON COLUMN csm_allocation.user_script is 'user script information';
     COMMENT ON COLUMN csm_allocation.begin_time is 'timestamp when this allocation was created';
     COMMENT ON COLUMN csm_allocation.account is 'account the job ran under';
@@ -341,7 +341,7 @@ CREATE INDEX ix_csm_allocation_state_history_a
     COMMENT ON COLUMN csm_allocation_state_history.allocation_id is 'uniquely identify this allocation';
     COMMENT ON COLUMN csm_allocation_state_history.exit_status is 'the error code returned at the end of the allocation state';
     COMMENT ON COLUMN csm_allocation_state_history.state is 'state of this allocation (stage-in, running, stage-out)';
-    COMMENT ON COLUMN csm_allocation_state_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';	
+    COMMENT ON COLUMN csm_allocation_state_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
     COMMENT ON INDEX ix_csm_allocation_state_history_a IS 'index on history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -393,7 +393,7 @@ CREATE INDEX ix_csm_allocation_history_a
     on csm_allocation_history (history_time);
 
 -- CREATE UNIQUE INDEX uk_csm_allocation_history_b
---	on csm_allocation_history (primary_job_id, secondary_job_id);
+--    on csm_allocation_history (primary_job_id, secondary_job_id);
 
 -------------------------------------------------
 -- csm_allocation_history_comments
@@ -433,7 +433,7 @@ CREATE INDEX ix_csm_allocation_history_a
     COMMENT ON COLUMN csm_allocation_history.requeue is 'identifies (requeue) if the allocation is requeued it will attempt to have the previous allocation id';
     COMMENT ON COLUMN csm_allocation_history.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation_history.wc_key is 'arbitrary string for grouping orthogonal accounts together';
-    COMMENT ON COLUMN csm_allocation_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';	
+    COMMENT ON COLUMN csm_allocation_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
     COMMENT ON INDEX ix_csm_allocation_history_a IS 'index on history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -498,7 +498,7 @@ CREATE INDEX ix_csm_node_a
 -------------------------------------------------
 -- csm_node_comments
 -------------------------------------------------
-    COMMENT ON TABLE csm_node is 'logical extension of the xcat node table';	
+    COMMENT ON TABLE csm_node is 'logical extension of the xcat node table';    
     COMMENT ON COLUMN csm_node.node_name is 'identifies which node this information is for';
     COMMENT ON COLUMN csm_node.machine_model is 'machine type model information for this node';
     COMMENT ON COLUMN csm_node.serial_number is 'witherspoon boards serial number';
@@ -683,7 +683,7 @@ CREATE UNIQUE INDEX uk_csm_allocation_node_b
 -------------------------------------------------
 -- csm_allocation_node_comments
 -------------------------------------------------
-    COMMENT ON TABLE csm_allocation_node is 'maps active allocations to the compute nodes that make up the allocation';	 
+    COMMENT ON TABLE csm_allocation_node is 'maps active allocations to the compute nodes that make up the allocation';     
     COMMENT ON COLUMN csm_allocation_node.allocation_id is 'allocation that node_name is part of';
     COMMENT ON COLUMN csm_allocation_node.node_name is 'identifies which node this is';
     COMMENT ON COLUMN csm_allocation_node.state is 'state can be: stage in allocation, running allocation, stage out allocation';
