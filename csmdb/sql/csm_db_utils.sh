@@ -28,6 +28,6 @@ function end_timer () {
     log_time=$(date '+%Y-%m-%d.%H:%M:%S')
 
 
-    echoe "${log_time} ($$) ($(whoami)) [trace] TIMING ($@) | $(( $duration / 60 )):${seconds}"
+    echoe "${log_time} ($$) ($(whoami)) [trace ] TIMING ($@) | $(( $duration / 60 )):${seconds}"
 }
 

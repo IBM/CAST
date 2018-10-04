@@ -101,7 +101,7 @@ sed -i "s:([\b\f\n\r\t\"]):\\\1:g" ${swap_file}
 
 awk -v table="$table_name" '{print "{\"type\":\"db-"table"\",\"data\":"$0"}" }' ${swap_file}\
     >> ${json_file}
-end_timer "table processing"
+end_timer "tbl process"
 
 if [ $? -eq 0 ]
 then

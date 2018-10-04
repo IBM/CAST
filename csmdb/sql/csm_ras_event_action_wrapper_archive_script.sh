@@ -291,7 +291,7 @@ start_timer
 ./csm_ras_event_action_table_archive.sh $dbname $archive_counter $table_name1 $data_dir >>"$all_results" 2>&1
 awk '/trace/ {print $0}
 /^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($pid) ($current_user) [Error ] DB Message:          |  "'"$0}' ${all_results}  >>"${logfile}"
-end_timer "template time" 2>> ${logfile}
+end_timer "templt time" 2>> ${logfile}
 
 #runtime="$(($(date +%s%N)-$start_time))"
 #sec="$((runtime/1000000000))"
