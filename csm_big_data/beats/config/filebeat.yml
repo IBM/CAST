@@ -10,7 +10,6 @@ filebeat.prospectors:
   enabled: true
   paths:
     - "/var/log/ibm/csm/archive/*.json"
-    - /var/log/ibm/csm/csm_ras_events.log
   tags: ["archive"]
 
 - type: log 
