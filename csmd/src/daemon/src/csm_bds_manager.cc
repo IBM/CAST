@@ -95,6 +95,7 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
     Connect();
   Unfreeze();
   _LastConnect = std::chrono::system_clock::now();
+  _LastConnectInterval = 1;
 
 }
 
@@ -107,11 +108,18 @@ csm::daemon::EventManagerBDS::Connect()
   hints.ai_socktype = SOCK_STREAM;
   int tmp_errno = 0;
 
-  if( std::chrono::system_clock::now() - _LastConnect < std::chrono::seconds( 10 ) )
+  std::chrono::seconds last_conn = std::chrono::duration_cast<std::chrono::seconds>( std::chrono::system_clock::now() - _LastConnect );
+  if( last_conn.count() < _LastConnectInterval )
   {
-    CSMLOG( csmd, debug ) << "Last connect attempt was within the past 10s, skipping...";
+    CSMLOG( csmd, debug ) << "Last connect attempt (" << last_conn.count()
+        << "s ago ) was within the past "<< _LastConnectInterval
+        << "s (max=" << _BDS_Info.GetReconnectIntervalMax() << "), skipping...";
     return false;
   }
+
+  _LastConnectInterval = std::min( _LastConnectInterval+1, _BDS_Info.GetReconnectIntervalMax() );
+  CSMLOG( csmd, trace ) << "New Interval " << _LastConnectInterval;
+
 
   if( (tmp_errno = getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist )) != 0 )
   {
@@ -184,6 +192,7 @@ csm::daemon::EventManagerBDS::Connect()
       current_setting = fcntl( _Socket, F_GETFL, NULL );
       current_setting &= (~O_NONBLOCK);
       fcntl( _Socket, F_SETFL, current_setting );
+      _LastConnectInterval = 1;
     }
     else
     {

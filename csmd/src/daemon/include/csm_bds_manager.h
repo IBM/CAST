@@ -52,6 +52,7 @@ class EventManagerBDS : public EventManager
   csm::daemon::RetryBackOff _IdleRetryBackOff;
 
   TimeType _LastConnect;
+  unsigned _LastConnectInterval;
   int _Socket;
 
 public:

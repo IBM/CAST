@@ -1173,9 +1173,14 @@ void Configuration::CreateThreadPool()
     if( port_val.empty() )
       enabled = false;
 
+    std::string rci_max_val = GetValueInConfig( std::string("csm.bds.reconnect_interval_max") );
+    if( rci_max_val.empty() )
+      rci_max_val = "5";
+
     if( enabled )
     {
-      _BDS_Info.Init( host_val, port_val );
+      unsigned rci_max = (unsigned)std::strtoul( rci_max_val.c_str(), nullptr, 10 );
+      _BDS_Info.Init( host_val, port_val, rci_max );
       CSMLOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
     }
     else
