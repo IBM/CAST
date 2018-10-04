@@ -94,6 +94,7 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   if( BDSActive() )
     Connect();
   Unfreeze();
+  _LastConnect = std::chrono::system_clock::now();
 
 }
 
@@ -105,6 +106,12 @@ csm::daemon::EventManagerBDS::Connect()
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   int tmp_errno = 0;
+
+  if( std::chrono::system_clock::now() - _LastConnect < std::chrono::seconds( 10 ) )
+  {
+    CSMLOG( csmd, debug ) << "Last connect attempt was within the past 10s, skipping...";
+    return false;
+  }
 
   if( (tmp_errno = getaddrinfo( _BDS_Info.GetHostname().c_str(), _BDS_Info.GetPort().c_str(), &hints, &clist )) != 0 )
   {
@@ -180,6 +187,7 @@ csm::daemon::EventManagerBDS::Connect()
     }
     else
     {
+      _LastConnect = std::chrono::system_clock::now();
       close( _Socket );
       _Socket = 0;
     }

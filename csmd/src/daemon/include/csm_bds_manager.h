@@ -19,6 +19,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <memory>
+#include <chrono>
 
 #include <signal.h>
 #include <time.h>
@@ -41,6 +42,7 @@ namespace daemon {
 
 class EventManagerBDS : public EventManager
 {
+  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
   BDS_Info _BDS_Info;
   boost::thread * _Thread;
   volatile std::atomic<bool> _KeepThreadRunning;
@@ -49,6 +51,7 @@ class EventManagerBDS : public EventManager
   std::atomic_bool _ReadyToRun;
   csm::daemon::RetryBackOff _IdleRetryBackOff;
 
+  TimeType _LastConnect;
   int _Socket;
 
 public:
