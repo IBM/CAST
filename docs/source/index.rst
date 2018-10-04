@@ -1,7 +1,7 @@
-Cluster Administration Service Tools 
+Cluster Administration Storage Tools 
 ====================================
 
-CAST stands for **C**\ luster **A**\ dministration **S**\ ervice **T**\ ools.
+CAST stands for **C**\ luster **A**\ dministration **S**\ torage **T**\ ools.
 
 CAST is comprised of several open source components:
 
