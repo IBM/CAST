@@ -27,6 +27,12 @@ Path to the executable "nvme" from the nvme cli package.
 
 Default:  "/usr/sbin/nvme"
 
+=item B<bb.nvmfConnectPath>
+
+Calls an executable to set up the connection for nvme over fabrics (nvmf).  
+
+Default:  "/opt/ibm/bb/scripts/nvmfConnect.sh"
+
 =item B<bb.unixpath>
 
 Path to the unix socket for interprocess communications (IPC) between bbproxy and the API or bbcmd.
@@ -149,7 +155,8 @@ Default:  16777216
 
 =item B<flightlog>
 
-Default:  "none"
+Path of directory to contain flightlog files.  For example, "/var/log/bbserver"
+
 
 =item B<sslcertif>
 
@@ -223,7 +230,8 @@ Default: 2097152
 
 =item B<flightlog>
 
-Default:  "none"
+Path of directory to contain flightlog files.  For example, "/var/log/bbproxy"
+
 
 =item B<log>
 See heading "Values under .log"
@@ -242,7 +250,7 @@ Default:  "/gpfs/gpfs0/bscfswork"
 
 =item B<flightlog>
 
-Default:  "none"
+Path of directory to contain flightlog files.
 
 =item B<log>
 
@@ -258,11 +266,11 @@ The "dot" values under the JSON level follow.
 
 =item B<controller>
 
-Default:  "csm".
+Normally set to "csm" for the node controller.
 
 =item B<flightlog>
 
-Default:  "none"
+Path of directory to contain flightlog files.
 
 =item B<log>
 
@@ -278,7 +286,7 @@ The "dot" values under the JSON level follow.
 
 =item B<flightlog>
 
-Default:  "none"
+Path of directory to contain flightlog files.
 
 =item B<log>
 
@@ -286,7 +294,7 @@ See heading "Values under .log"
 
 =back
 
-=head2 Values under .log
+=head3 Values under .log
 
 The "dot" values under the JSON level follow.
 
@@ -300,16 +308,22 @@ Default:  true
 
 =item B<default_sev>
 
-Console log severity level.
+Console log severity level.  
+
+Values: "disable" or "off", critical", "error","warning", "info", "debug", "trace",  and "always".
 
 Default:  "info"
 
 =item B<rotationSize>
 
-When rotationSize (bytes) of the log file occurs, rotate.
+When rotationSize (bytes) of the console log file occurs, rotate.
 The value of "-1" is no rotation.
 
 Default:  -1 
+
+=back
+
+=over
 
 =item B<fileLog>
 
@@ -334,6 +348,25 @@ Default:  "%TimeStamp% %SubComponent%::%Severity% | %Message%"
 =item B<archiveLogs>
 
 Default:  "none"
+
+=item B<syslog>
+
+Whether to send the log information to syslog.
+
+Default:  false
+
+=item B<server>
+
+If doing syslog, the IPv4 address destination of the syslog.
+
+Default:  "127.0.0.1"
+
+=item B<port>
+
+If doing syslog, the port destination of the syslog transmission.
+
+Default:  514
+
 
 =back
 
