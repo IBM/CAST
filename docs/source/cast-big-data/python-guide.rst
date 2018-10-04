@@ -6,6 +6,20 @@ Python Guide
    :local:
 
 
+Elasticsearch API
+-----------------
+CAST leverages the `Elasticsearch API`_ python library to interact with Elasticsearch. 
+If the API is being run on a node with internet access the following process may be used to install this
+library:
+
+.. code-block:: bash
+
+   pip install elasticsearch
+
+If the node doesn't have access to the internet please refer to the official python documentation for the installation
+of wheels: `Installing Packages`_.
+
+
 Big Data Use Cases
 ------------------
 
@@ -310,5 +324,5 @@ This script performs 3 key operations:
 3. Opens a socket to a target logstash instance and writes the payload.
 
 .. _Elastic Tests: https://github.com/IBM/CAST/tree/master/csm_big_data/Python/elastic_tests
-
-
+.. _Elasticsearch API: https://pypi.org/project/elasticsearch/
+.. _Installing Packages: https://packaging.python.org/tutorials/installing-packages/#source-distributions-vs-wheels
