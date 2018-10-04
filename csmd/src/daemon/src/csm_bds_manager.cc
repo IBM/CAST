@@ -19,6 +19,7 @@
 #define logprefix "BDSMGR"
 #include "csm_pretty_log.h"
 
+#include "csmnet/src/CPP/endpoint_ptp.h"
 #include "csm_daemon_config.h"
 #include "include/csm_bds_manager.h"
 
@@ -113,7 +114,8 @@ csm::daemon::EventManagerBDS::Connect()
   }
 
   _Socket = 0;
-  for( struct addrinfo *c = clist; c != nullptr; c = c->ai_next )
+  bool  connected = false;
+  for( struct addrinfo *c = clist; (c != nullptr) && (! connected ); c = c->ai_next )
   {
     _Socket = socket( c->ai_family, c->ai_socktype, c->ai_protocol );
     if( _Socket <= 0 )
@@ -123,14 +125,64 @@ csm::daemon::EventManagerBDS::Connect()
       return false;
     }
 
-    if( connect( _Socket, c->ai_addr, c->ai_addrlen ) == 0 )
+    // make/check the socket is non-blocking for the time of the connect
+    // we cannot afford a long timeout of a blocking socket here
+    long current_setting = fcntl( _Socket, F_GETFL, NULL );
+    if( (current_setting & O_NONBLOCK) == 0 )
     {
-      CSMLOG( csmd, info ) << "Connected to BDS at " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
-      break;
+      current_setting |= O_NONBLOCK;
+      if( fcntl(_Socket, F_SETFL, current_setting ) != 0 )
+      {
+        CSMLOG( csmd, warning ) << "Unable to change BDS socket to non-blocking: " << strerror( errno );
+        return false;
+      }
     }
 
-    close( _Socket );
-    _Socket = 0;
+    int stored_errno = 0;
+    int rc = connect( _Socket, c->ai_addr, c->ai_addrlen );
+    if( rc ) stored_errno = errno;
+    CSMLOG( csmd, trace ) << "Connect returned: " << rc << " error: " << stored_errno << "(" << strerror( stored_errno ) << ")";
+    if( rc == 0 )
+    {
+      connected = true;
+      break;
+    }
+    else
+    {
+      switch( stored_errno )
+      {
+        case EINPROGRESS: //  non-blocking socket condition, further check/action necessary
+          try
+          {
+            stored_errno = csm::network::EndpointPTP_base::CheckConnectActivity( _Socket );
+            CSMLOG( csmd, trace ) << "Connection still in progress... check error=" << stored_errno << "(" << strerror( stored_errno ) << ")";
+            if( stored_errno == 0 )
+              connected = true;
+          }
+          catch ( csm::network::ExceptionEndpointDown &e )
+          {
+            CSMLOG( csmd, warning ) << "CheckConnectActivity() timeout/other error: " << e.what();
+          }
+          break;
+
+        default:  // some other connection error, don't attempt to retry
+          break;
+      }
+    }
+    if( connected )
+    {
+      CSMLOG( csmd, info ) << "Connected to BDS at " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+
+      // return the socket to blocking after completion of the connect
+      current_setting = fcntl( _Socket, F_GETFL, NULL );
+      current_setting &= (~O_NONBLOCK);
+      fcntl( _Socket, F_SETFL, current_setting );
+    }
+    else
+    {
+      close( _Socket );
+      _Socket = 0;
+    }
   }
 
   freeaddrinfo( clist );
@@ -184,6 +236,8 @@ csm::daemon::EventManagerBDS::SendData( const std::string data )
       remain -= rc;
       done += rc;
     }
+    if(( rc == -1 ) && ( errno == EINTR ))
+      rc = 0;
   }
 
   return ((rc >= 0) && ( remain == 0 ));

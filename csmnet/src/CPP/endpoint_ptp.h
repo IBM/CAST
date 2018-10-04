@@ -88,6 +88,46 @@ public:
 
   virtual int GetSocket() const { return _Socket; }
 
+  // checks if there's any available data on a socket
+  // and retrieves and returns any errors via getsockopt
+  static inline int CheckConnectActivity( int aSocket, bool aWithRead = false )
+  {
+    int rc = 0;
+
+    fd_set fdsW;
+    FD_ZERO( &fdsW );
+    FD_SET( aSocket, &fdsW );
+
+    fd_set fdsR;
+    FD_ZERO( &fdsR );
+    FD_SET( aSocket, &fdsR );
+
+    struct timeval timeout;
+    int max_eintr = 3;
+    do
+    {
+      --max_eintr;
+      timeout.tv_sec = 1; timeout.tv_usec = 0; // resetting timeout regardless; not relying on any timeout modification in EINTR case
+
+      if( aWithRead )
+        rc = select( aSocket+1, &fdsR, &fdsW, NULL, &timeout );
+      else
+        rc = select( aSocket+1, NULL, &fdsW, NULL, &timeout );
+    } while(( rc == -1 ) && ( errno == EINTR ) && ( max_eintr > 0 ));
+
+    if( rc > 0 )
+    {
+      socklen_t vallen = sizeof( int );
+      if( getsockopt( aSocket, SOL_SOCKET, SO_ERROR, &rc, &vallen ) != 0 )
+        throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
+      LOG( csmnet, trace) << "ConnectionActivity: status returned: " << rc;
+    }
+    else
+      throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", rc );
+
+    return rc;
+  }
+
 protected:
   virtual ssize_t SendMsgWrapper( const struct msghdr *aMsg, const int aFlags );
   int SetGeneralSockopts();
@@ -117,42 +157,6 @@ protected:
 
     return rc;
   }
-
-  // checks if there's any available data on a socket
-  // and retrieves and returns any errors via getsockopt
-  int CheckConnectActivity( int aSocket, bool aWithRead = false )
-  {
-    int rc = 0;
-
-    fd_set fdsW;
-    FD_ZERO( &fdsW );
-    FD_SET( aSocket, &fdsW );
-
-    fd_set fdsR;
-    FD_ZERO( &fdsR );
-    FD_SET( aSocket, &fdsR );
-
-    struct timeval timeout;
-    timeout.tv_sec = 1; timeout.tv_usec = 0;
-
-    if( aWithRead )
-      rc = select( aSocket+1, &fdsR, &fdsW, NULL, &timeout );
-    else
-      rc = select( aSocket+1, NULL, &fdsW, NULL, &timeout );
-
-    if( rc > 0 )
-    {
-      socklen_t vallen = sizeof( int );
-      if( getsockopt( aSocket, SOL_SOCKET, SO_ERROR, &rc, &vallen ) != 0 )
-        throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
-      LOG( csmnet, trace) << "ConnectionActivity: status returned: " << rc;
-    }
-    else
-      throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", rc );
-
-    return rc;
-  }
-
 
   template<typename AddressClass>
   int ConnectPrep( const csm::network::Address_sptr aSrvAddr )
@@ -197,17 +201,16 @@ protected:
           // check if the non-blocking socket completed the connect() or not, if not, use select+getsockopt to go check completion or error
           if( stored_errno == EINPROGRESS )
           {
-            --retries; // this is an incomplete connect, so we cannot count it as a "retry"
             stored_errno = CheckConnectActivity( _Socket );
             if( stored_errno == 0 )
               rc = 0;
           }
           // there are some error cases where we just shouldn't retry immediately
-          if(( stored_errno == EALREADY ) || ( stored_errno == EHOSTUNREACH ))
+          if(( stored_errno == EALREADY ) || ( stored_errno == EHOSTUNREACH ) || ( stored_errno == ECONNABORTED ))
             throw csm::network::ExceptionEndpointDown("Error while connecting. Not retrying immediately", stored_errno );
 
           LOG(csmnet, debug ) << "Connection attempt " << retries << " to :" << aSrvAddr->Dump()
-              << " failed: rc/errno=" << rc << "/" << errno
+              << " failed: rc/errno=" << rc << "/" << stored_errno
               << " Retrying after "
               << retries * 100 << "ms.";
 
