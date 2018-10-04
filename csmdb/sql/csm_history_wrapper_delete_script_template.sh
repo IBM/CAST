@@ -106,64 +106,64 @@ logpath=$data_dir #<----- This file will live in "/var/log/ibm/csm/db"
 # directory given path. If not then it is added
 #----------------------------------------------------------------
 
-    if [[ "${data_dir: -1}" != "/" ]]; then
-        data_dir="${data_dir}/"
-    fi
+if [[ "${data_dir: -1}" != "/" ]]; then
+    data_dir="${data_dir}/"
+fi
 
-    if [[ ! -e $data_dir ]]; then
-        mkdir -p $data_dir 2>>/dev/null
-        if [ $? -ne 0 ]; then
-            echo "${line1_out}"
-            echo "[Error  ] make directory failed for: $data_dir"
-            echo "[Info   ] mkdir: cannot create directory ‘$data_dir’: Permission denied"
-            echo "[Info   ] please provide a valid writable directory"
-            echo "${line1_out}"
-            exit 1
-        else
-            chown postgres:postgres $data_dir 2>>/dev/null
-            chmod 755 $data_dir
-        fi
-    elif [[ ! -d $data_dir ]]; then
+if [[ ! -e $data_dir ]]; then
+    mkdir -p $data_dir 2>>/dev/null
+    if [ $? -ne 0 ]; then
         echo "${line1_out}"
-        echo "$data_dir already exists but is not a directory" 1>&2
+        echo "[Error  ] make directory failed for: $data_dir"
+        echo "[Info   ] mkdir: cannot create directory ‘$data_dir’: Permission denied"
+        echo "[Info   ] please provide a valid writable directory"
         echo "${line1_out}"
         exit 1
+    else
+        chown postgres:postgres $data_dir 2>>/dev/null
+        chmod 755 $data_dir
     fi
+elif [[ ! -d $data_dir ]]; then
+    echo "${line1_out}"
+    echo "$data_dir already exists but is not a directory" 1>&2
+    echo "${line1_out}"
+    exit 1
+fi
 
 #-------------------------------------------------------------------------------
 # This checks the existence of the default log directory.
 # If the default doesn't exist it will write the log files to /tmp directory
 #-------------------------------------------------------------------------------
 
-     if [ -d "$logpath" -a -w "$logpath" ]; then #<--- if logpath exist and u have permission
-         logdir="$logpath"
-     else
-         logdir="/tmp"
-     fi
-     logfile="${logdir}/${tmp_logname}"
+if [ -d "$logpath" -a -w "$logpath" ]; then #<--- if logpath exist and u have permission
+    logdir="$logpath"
+else
+    logdir="/tmp"
+fi
+logfile="${logdir}/${tmp_logname}"
 
 #-------------------------------------------------------------------------------
 # Log Message
 #-------------------------------------------------------------------------------
 
-     function LogMsg () {
-     LogTime=$(date '+%Y-%m-%d %H:%M:%S')
-     echo "$LogTime ($pid) ($current_user) $1" >> $logfile
-     }
+function LogMsg () {
+    LogTime=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "$LogTime ($pid) ($current_user) $1" >> $logfile
+}
 
-    LogMsg "[Start ] Deletion Process:    |  $table_name1" 
-    LogMsg "${line2_log}"
+LogMsg "[Start ] Deletion Process:    |  $table_name1" 
+LogMsg "${line2_log}"
 
 #-------------------------------------------------------------------------------
 # Log Message File Size
 #-------------------------------------------------------------------------------
 
 function filesize () {
-touch ${data_dir}$logname
-MaxFileSize=1000000000
-now2=$(date '+%Y-%m-%d.%H.%M.%S')
+    touch ${data_dir}$logname
+    MaxFileSize=1000000000
+    now2=$(date '+%Y-%m-%d.%H.%M.%S')
 
-     cat ${data_dir}$tmp_logname >> ${data_dir}$logname
+    cat ${data_dir}$tmp_logname >> ${data_dir}$logname
 
     #--------------------
     #Get size in bytes
@@ -179,7 +179,7 @@ now2=$(date '+%Y-%m-%d.%H.%M.%S')
 # Error Log Message
 #-------------------------------------------------------------------------------
 
-    function finish () {
+function finish () {
 
     echo   "${line1_out}"
     echo   "[Info   ] Deletion process for $table_name1 has been interrupted or terminated."
@@ -220,7 +220,7 @@ string1="$now1 ($pid) ($current_user) [Info  ] DB Names:            |"
 psql -l 2>>/dev/null $logfile
 
 if [ $? -ne 127 ]; then       #<------------This is the error return code
-db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+    db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
 \set ON_ERROR_STOP true
 select string_agg(datname,', ') from pg_database;
 EOF`
@@ -235,33 +235,33 @@ else
     exit 1
 fi
 
-     LogMsg "[Info  ] Script name:         |  $table_name1.wrapper_delete_script.sh"
+LogMsg "[Info  ] Script name:         |  $table_name1.wrapper_delete_script.sh"
 
 #----------------------------------------------------------------
 # Check if database exists
 #----------------------------------------------------------------
 
-    db_exists="no"
-    psql -lqt | cut -d \| -f 1 | grep -qw $dbname
-        if [ $? -eq 0 ]; then
-        db_exists="yes"
-        fi
+db_exists="no"
+psql -lqt | cut -d \| -f 1 | grep -qw $dbname
+if [ $? -eq 0 ]; then
+    db_exists="yes"
+fi
 
 #----------------------------------------------------------------
 # End it if the input argument requires an existing database
 # (Database does not exist)
 #----------------------------------------------------------------
 
-    if [ $db_exists == "no" ]; then
-    
-        echo "${line1_out}"
-        echo "[Error   ] Cannot perform: $dbname database does not exist"
-        echo "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
-        LogMsg "[Error ] Cannot perform:      |  $dbname database does not exist"
-        LogMsg "[Info  ] Please provide:      |  A valid DB that exists on the system (hint: psql -l)."
-        finish
-        exit 1
-    fi
+if [ $db_exists == "no" ]; then
+
+    echo "${line1_out}"
+    echo "[Error   ] Cannot perform: $dbname database does not exist"
+    echo "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
+    LogMsg "[Error ] Cannot perform:      |  $dbname database does not exist"
+    LogMsg "[Info  ] Please provide:      |  A valid DB that exists on the system (hint: psql -l)."
+    finish
+    exit 1
+fi
 
 #-----------------------------------------------
 # csm_table_name & csm_table_data_array
@@ -274,15 +274,15 @@ declare -A delete_array
 # This should be in the order of each of the child history scripts
 #----------------------------------------------------------------
 
-    table_name=()
-    table_name+=(${3}                          )
+table_name=()
+table_name+=(${3}                          )
 
 #----------------------------------------------------------------
 # All the raw combined timing results before trimming
 #----------------------------------------------------------------
 
-    all_results="$data_dir/${pid}_${table_name1}_delete_results.$now.timings"
-    delete_avg_results="delete_avg_results_$count_$now.csv"
+all_results="$data_dir/${pid}_${table_name1}_delete_results.$now.timings"
+delete_avg_results="delete_avg_results_$count_$now.csv"
 
 #-------------------------------------------------------------------------------------------------------------------
 # This is the script that deletes the Beta 1 history tables
