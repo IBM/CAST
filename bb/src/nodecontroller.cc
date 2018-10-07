@@ -179,11 +179,12 @@ void* bbcmd_thread(void* ptr)
     return NULL;
 }
 
-int NodeController::bbcmd(vector<uint32_t> ranklist,
-                          vector<string> nodelist,
-                          string executable,
-                          vector<string> arguments,
-                          boost::property_tree::ptree& output)
+int NodeController::bbcmd(  vector<uint32_t> ranklist,
+                            vector<string> nodelist,
+                            string executable,
+                            vector<string> arguments,
+                            boost::property_tree::ptree& output,
+                            bool nodebcast)
 {
     int rc = 0;
     int rank_rc;
@@ -265,6 +266,15 @@ int setupNodeController(const std::string& who)
         activecontroller = new NodeController_CSM();
     }
 #endif
+    return 0;
+}
+
+int teardownNodeController()
+{
+    if(activecontroller != &defaultcontroller)
+    {
+        delete activecontroller;
+    }
     return 0;
 }
 
