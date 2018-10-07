@@ -21,8 +21,8 @@ use Sys::Syslog;
 
 BEGIN 
 { 
-    ($dir) = $0 =~ /(\S+)\//;
-    unshift(@INC, $SCRIPTPATH=abs_path($dir));
+    my ($dir) = $0 =~ /(\S+)\//;
+    unshift(@INC, $::SCRIPTPATH=abs_path($dir));
 }
 
 sub isRoot { return ($>==0); }
@@ -152,6 +152,7 @@ GetOptions(
     "drypath=s"             => \$CFG{"drypath"},
     "scriptpath=s"          => \$SCRIPTPATH,
     "metadata=s"            => \$CFG{"metadata"},
+    "skip=s"                => \$CFG{"skip"},
     "help!"                 => \$CFG{"help"}
     );
 setDefaults();
@@ -162,6 +163,7 @@ if($CFG{"help"})
     exit(0);
 }
 
+output("Running: $0 @ARGV");
 if(! isRoot())
 {
     output("$0 must be run under root authority.  Exiting");
@@ -171,21 +173,21 @@ if(! isRoot())
 getNodeName();
 if($CFG{"bbServer"})
 {
-    makeServerConfigFile();
-    filterLVM();
-    startServer();
+    makeServerConfigFile() if($CFG{"skip"} !~ /config/i);
+    filterLVM()            if($CFG{"skip"} !~ /lvm/i);
+    startServer()          if($CFG{"skip"} !~ /start/i);
 }
 elsif($CFG{"bbcmd"})
 {
-    makeLNConfigFile();
-    copyBBFilesToLSF();
+    makeLNConfigFile()     if($CFG{"skip"} !~ /config/i);
+    copyBBFilesToLSF()     if($CFG{"skip"} !~ /lsf/i);
 }
 elsif($CFG{"bbProxy"})
 {
-    makeProxyConfigFile();
-    configureNVMeTarget();
-    configureVolumeGroup();
-    startProxy();
+    makeProxyConfigFile()  if($CFG{"skip"} !~ /config/i);
+    configureNVMeTarget()  if($CFG{"skip"} !~ /nvme/i);
+    configureVolumeGroup() if($CFG{"skip"} !~ /lvm/i);
+    startProxy()           if($CFG{"skip"} !~ /start/i);
 }
 else
 {
@@ -216,6 +218,7 @@ sub setDefaults
     &def("bbcmd",            1, 0);
     &def("metadata",         1, "");
     &def("bscfswork",        1, "");
+    &def("skip",             1, "");
     &def("configtempl",      2, "$SCRIPTPATH/bb.cfg");
     &def("nvmetempl",        2, "$SCRIPTPATH/nvmet.json");
 
