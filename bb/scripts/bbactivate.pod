@@ -111,4 +111,12 @@ When used in combination with --dryrun, the file system changes will be written 
 
 Specifies an alternative path for the default configuration file locations.
 
+=item B<--help>
+
+Displays the bbactivate man page
+
+=item B<--skip>
+
+Skips one or more steps of the bbactivate sequence, comma-separated.  Steps:  config,lsf,lvm,nvme,start
+
 =back
