@@ -60,11 +60,13 @@ class NodeController
                       std::vector<std::string> nodelist,
                       std::string executable,
                       std::vector<std::string> arguments,
-                      boost::property_tree::ptree& output);
+                      boost::property_tree::ptree& output,
+                      bool nodebcast);
 };
 
 extern NodeController* activecontroller;
 
 int setupNodeController(const std::string& who);
+int teardownNodeController();
 
 #endif
