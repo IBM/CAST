@@ -249,8 +249,12 @@ int bbcmd_rmdir(po::variables_map& vm)
 int bbcmd_sleep(po::variables_map& vm)
 {
     int rc = 0;
-    VMEXISTS("delay");
-    sleep(vm["delay"].as<int>());
+    int delay = 0;
+    if(vm.count("delay") == 0)
+    {
+        delay = vm["delay"].as<int>();
+    }
+    sleep(delay);
 
     return rc;
 }
@@ -1044,6 +1048,7 @@ int main(int argc, const char** argv)
         ("hostlist", po::value<string>()->default_value(DEFAULT_HOSTLIST), "Comma separated Node list")
 	    ("sendto", po::value<string>()->default_value(DEFAULT_PROXY_NAME), "bbProxy to use")
         ("csmcommand", po::value<string>(), "Format response for csm_bb_cmd")
+        ("bcast", "Broadcast identical command to all targets")
         ("admin", "Display admin-level commands and options")
         ("xml", "Output via XML")
         ("pretty", "Output pretty-printed")
@@ -1144,17 +1149,7 @@ int main(int argc, const char** argv)
 
         if (vm.count("jobid") > 0)
         {
-            string tmp = boost::to_upper_copy<std::string>(vm["jobid"].as<string>());
-            if ((command == "restarttransfers" && tmp == ALL) ||
-                (command == "retrievetransfers" && tmp == ALL) ||
-                (command == "stoptransfers" && tmp == ALL))
-            {
-                tmp = string("LSB_JOBID=") + std::to_string(UNDEFINED_JOBID);
-            }
-            else
-            {
-                tmp = string("LSF_STAGE_JOBID=") + vm["jobid"].as<string>();
-            }
+            string tmp = string("LSF_STAGE_JOBID=") + vm["jobid"].as<string>();
             char* newenv = (char*)malloc(tmp.size()+1);
             memcpy(newenv, tmp.c_str(), tmp.size()+1);
             putenv(newenv); // pointer ownership is transferred to putenv
@@ -1175,17 +1170,7 @@ int main(int argc, const char** argv)
         
         if (vm.count("jobstepid") > 0)
         {
-            string tmp = boost::to_upper_copy<std::string>(vm["jobstepid"].as<string>());
-            if ((command == "restarttransfers" && tmp == ALL) ||
-                (command == "retrievetransfers" && tmp == ALL) ||
-                (command == "stoptransfers" && tmp == ALL))
-            {
-                tmp = string("PMIX_NAMESPACE=") + std::to_string(UNDEFINED_JOBSTEPID);
-            }
-            else
-            {
-                tmp = string("PMIX_NAMESPACE=") + vm["jobstepid"].as<string>();
-            }
+            string tmp = string("PMIX_NAMESPACE=") + vm["jobstepid"].as<string>();
             char* newenv = (char*)malloc(tmp.size()+1);
             memcpy(newenv, tmp.c_str(), tmp.size()+1);
             putenv(newenv); // pointer ownership is transferred to putenv
@@ -1193,19 +1178,8 @@ int main(int argc, const char** argv)
         
         if (vm.count("contribid") > 0)
         {
-            string tmp = boost::to_upper_copy<std::string>(vm["contribid"].as<string>());
-            if ((command == "restarttransfers" && tmp == ALL) ||
-                (command == "retrievetransfers" && tmp == ALL) ||
-                (command == "stoptransfers" && tmp == ALL))
-            {
-                contribid = NO_CONTRIBID;
-                contribidlist.push_back(contribid);
-            }
-            else
-            {
-                contribid = atoi(vm["contribid"].as<string>().c_str());
-                contribidlist.push_back(contribid);
-            }
+            contribid = atoi(vm["contribid"].as<string>().c_str());
+            contribidlist.push_back(contribid);
         }
         
         if(vm.count("csmcommand") > 0)
@@ -1217,7 +1191,7 @@ int main(int argc, const char** argv)
             for(string host : buildTokens(vm["csmcommand"].as<string>(), ","))
             {
                 vector<string> tok = buildTokens(host, ":");
-                if(tok[0] == hostname)
+                if((tok[0] == hostname) || (tok[0] == "localhost"))
                 {
                     contribid = stoi(tok[1]);
                     contribidlist.push_back(contribid);
@@ -1289,7 +1263,7 @@ int main(int argc, const char** argv)
             for (const auto& it : vm)
             {
                 if((it.first == "target") || (it.first == "command") || (it.first == "pretty") || 
-                   (it.first == "jobid") || (it.first == "jobindex") || (it.first == "bbid") ||
+                   (it.first == "jobid") || (it.first == "jobindex") || (it.first == "bbid") || (it.first == "bcast") ||
                    (it.first == "contribid") || (it.first == "separator") || (it.first == "hostlist") || (it.first == "sendto"))
                     continue;
                 
@@ -1311,7 +1285,11 @@ int main(int argc, const char** argv)
                     arg += "error";
                 args.push_back(arg);
             }
-            rc = activecontroller->bbcmd(ranks, hosts, executable, args, cmdoutput);
+            bool usebcast = false;
+            if (vm.count("bcast"))
+                usebcast = true;
+
+            rc = activecontroller->bbcmd(ranks, hosts, executable, args, cmdoutput, usebcast);
             bberror << err("rc", rc);
 
             std::ostringstream result_stream;
@@ -1333,6 +1311,11 @@ int main(int argc, const char** argv)
                 
                 if(vm.count("csmcommand") > 0)
                 {
+                    if (!rc)
+                    {
+                        bberror.prune();
+                    }
+
                     contribResults[contribid] = bberror.get("json");
                     bberror.resetToClear();
                     bberror.clear();
@@ -1347,11 +1330,6 @@ int main(int argc, const char** argv)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (!rc)
-    {
-        bberror.prune();
-    }
-
     if(vm.count("csmcommand") > 0)
     {
         bool first = true;
@@ -1362,10 +1340,16 @@ int main(int argc, const char** argv)
             cout << "\"" << result.first << "\":" << result.second;
         }
         cout << endl;
+        teardownNodeController();
         exit(0);
     }
     else
     {
+        if (!rc)
+        {
+            bberror.prune();
+        }
+
         std::string result;
         if (vm.count("xml"))
         {
@@ -1382,6 +1366,7 @@ int main(int argc, const char** argv)
         }
         cout << result << endl;
     }
+    teardownNodeController();
     exit(rc);
     return 0;
 }

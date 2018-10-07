@@ -372,26 +372,26 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
                               std::vector<std::string> nodelist,
                               std::string executable,
                               std::vector<std::string> arguments,
-                              boost::property_tree::ptree& output)
+                              boost::property_tree::ptree& output,
+                              bool nodebcast)
 {
     int rc;
-    int cuml_rc=0;
-    int rank_rc;
     csm_bb_cmd_input_t   in;
     csm_bb_cmd_output_t* out = NULL;
-    string cmdoutput;
     string args;
     boost::property_tree::ptree pt;
     queue<uint32_t> ranklistqueue;
+    vector<boost::property_tree::ptree> results;
+    string cuml_rank = "-1";
+    int    cuml_rankrc = 0;
+    string exception_text = "";
 
-    executable = "bbcmd";
-    for(const auto& arg : arguments)
+    unsigned int MAXNODESPERCSMCALL = 32;
+    if(nodebcast)
     {
-        if(args != "") args += "^";
-        args += arg;
+        MAXNODESPERCSMCALL = nodelist.size();
     }
 
-#define MAXNODESPERCSMCALL 32
     const char** nodenames = (const char**)malloc(sizeof(const char*) * MAXNODESPERCSMCALL);
     if(nodenames == NULL)
     {
@@ -441,19 +441,26 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             if(args != "") args += "^";
             args += arg;
         }
-        args += "^--csmcommand=";
-        
-        bool first = true;
-        for(const auto& arg : tmparguments)
+        if(nodebcast)
         {
-            if(first) first = false;
-            else      args += ",";
+            args += "^--csmcommand=localhost:0";
+        }
+        else
+        {
+            args += "^--csmcommand=";
             
-            args += arg;
+            bool first = true;
+            for(const auto& arg : tmparguments)
+            {
+                if(first) first = false;
+                else      args += ",";
+                
+                args += arg;
+            }
         }
         
         in.command_arguments = (char*)args.c_str();
-        in.node_names = (char**)nodenames;
+        in.node_names        = (char**)nodenames;
         
         LOG(bb,info) << "csm_bb_cmd:  arguments=" << args;
         for(uint32_t x=0; x<in.node_names_count; x++)
@@ -461,75 +468,82 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             LOG(bb,info) << "csm_bb_cmd:  node[" << x << "]=" << in.node_names[x];
         }
 
-        FL_Write(FLCSM, CSMBBCMD, "CSM: call csm_bb_cmd",0,0,0,0);
+        FL_Write(FLCSM, CSMBBCMD, "CSM: call csm_bb_cmd to %ld compute nodes",in.node_names_count,0,0,0);
         rc = csm_bb_cmd(&csmhandle, &in, &out);
         FL_Write(FLCSM, CSMBBCMDRC, "CSM: call csm_bb_cmd.  rc=%ld",rc,0,0,0);
         
-        LOG(bb,info) << "csm_bb_rc: " << rc;
+        LOG(bb,info) << "csm_bb_cmd return code=" << rc;
         if(rc == 0)
         {
-            LOG(bb,info) << "csm_bb_output: " << out->command_output;
-            for(const auto& line : buildTokens(out->command_output, "\n"))
+            LOG(bb,info) << "csm_bb_output: " << out->command_output << "#";
+            try
             {
-                size_t off = line.find(" : ");
-                if(off != string::npos)
+                for(const auto& line : buildTokens(out->command_output, "\n"))
                 {
-                    cmdoutput += line.substr(off+3) + ",";
+                    size_t off = line.find(" : ");
+                    if(off != string::npos)
+                    {
+                        istringstream resultstream(string("{") + line.substr(off+3) + string("}"));
+                        results.emplace_back();
+                        boost::property_tree::read_json(resultstream, results.back());
+                    }
                 }
             }
+            catch(exception& e)
+            {
+                rc = -1;
+                exception_text = e.what();
+            }
         }
-        else
+        if(rc)
         {
-            pt.clear();
             for(const auto& rank: csmbbranklist)
             {
-                pt.put(to_string(rank) + ".rc", rc);
-                pt.put(to_string(rank) + ".error.text", "csm_bb_cmd failure");
+                results.emplace_back();
+                results.back().put(to_string(rank) + ".rc", rc);
+                results.back().put(to_string(rank) + ".error.text", "csm_bb_cmd failure");
             }
-            ostringstream result_stream;
-            boost::property_tree::write_json(result_stream, pt, false);
-            string tmp = result_stream.str();
-            tmp.erase(0,1);
-            tmp.pop_back();
-            tmp.pop_back();
-            cmdoutput += tmp + ",";
-            LOG(bb,info) << "output: " << cmdoutput;
         }
     }
     free(nodenames);
 
-    cmdoutput = "{" + cmdoutput + " \"rc\":\"0\" }";
-
     try
     {
-        istringstream resultstream(cmdoutput);
-        boost::property_tree::read_json(resultstream, pt);
-
-        for(auto& e : pt)
+        int    index = 0;
+        int    rank_rc;
+        for (auto &e : results)
         {
-            output.boost::property_tree::ptree::put_child(e.first, e.second);
-        }
-
-        for(auto& rank : ranklist)
-        {
-            rank_rc = output.get(to_string(rank) + "." + "rc", 0);
-            if(rank_rc)
+            string rank = e.front().first;
+            LOG(bb,info) << "processing results from rank " << rank;
+            if (nodebcast)
+                rank = to_string(ranklist[index++]);
+            output.boost::property_tree::ptree::put_child(rank, e.front().second);
+            rank_rc = e.get(e.front().first + ".rc", 0);
+            if ((cuml_rankrc == 0) && (rank_rc != 0))
             {
-                if(cuml_rc == 0)
-                {
-                    cuml_rc = rank_rc;
-                    output.put("error.firstFailRank", rank);
-                    output.put("rc", cuml_rc);
-                }
+                cuml_rankrc = rank_rc;
+                cuml_rank   = rank;
             }
         }
     }
     catch(exception& e)
     {
-        output.put("rc", -1);
-        output.put("error.exception", e.what());
-        output.put("error.output", cmdoutput);
+        cuml_rankrc = -1;
+        exception_text = e.what();
     }
+    if(cuml_rank != "-1")
+    {
+        output.put("error.firstFailRank", stoi(cuml_rank));
+    }
+    if(exception_text.size() > 0)
+    {
+        output.put("error.exception", exception_text);
+    }
+    if(cuml_rankrc)
+    {
+        output.put("error.command", args);
+    }
+    output.put("rc", cuml_rankrc);
 
     return 0;
 };

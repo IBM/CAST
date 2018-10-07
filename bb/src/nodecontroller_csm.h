@@ -43,7 +43,8 @@ class NodeController_CSM : public NodeController
                       std::vector<std::string> nodelist,
                       std::string executable,
                       std::vector<std::string> arguments,
-                      boost::property_tree::ptree& output);
+                      boost::property_tree::ptree& output,
+                      bool nodebcast);
 };
 
 #endif
