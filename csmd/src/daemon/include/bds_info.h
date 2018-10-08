@@ -29,13 +29,15 @@ class BDS_Info
 {
   std::string _Hostname;
   std::string _Port;
+  unsigned _Reconnect_interval_max;
 
 public:
   BDS_Info( const std::string host = "",
-            const std::string port = "" )
+            const std::string port = "",
+            const unsigned reconn_interval_max = 0 )
   {
     if(( host != "" ) && ( port != "" ))
-      Init( host, port );
+      Init( host, port, reconn_interval_max );
     else
     {
       _Hostname = "";
@@ -47,9 +49,11 @@ public:
 
   std::string GetHostname() const { return _Hostname; }
   std::string GetPort() const { return _Port; }
+  unsigned GetReconnectIntervalMax() const { return _Reconnect_interval_max; }
 
   void Init( const std::string host,
-            const std::string port )
+             const std::string port,
+             const unsigned reconn_interval_max )
   {
     _Hostname = host;
 
@@ -63,6 +67,11 @@ public:
       throw csm::daemon::Exception("Invalid port found while initializing BDS_info");
 
     _Port = port;
+
+    _Reconnect_interval_max = reconn_interval_max;
+    if( _Reconnect_interval_max > 300 )
+      LOG( csmd, warning ) << "BDS reconnection interval is set to a long interval (" << _Reconnect_interval_max
+        << "s). This may cause unnecessary env-data not recorded in BDS.";
   }
 
   bool Active() const { return ! ( _Hostname.empty() || _Port.empty() ) ; }
