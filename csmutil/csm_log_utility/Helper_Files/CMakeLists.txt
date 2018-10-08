@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    csmutil/CMakeLists.txt
+#    csmutil/csm_log_utility/Helper_Files/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,7 +13,12 @@
 #
 #================================================================================
 
-add_subdirectory(src)
-add_subdirectory(include)
-add_subdirectory(tests)
-add_subdirectory(csm_log_utility)
+file(GLOB INSTALL_HELPER_SCRIPTS
+    "Master_Stat.py"
+    "Aggregator_Stat.py"
+    "Utility_Stat.py"
+    "Computer_Stat.py"
+    "Log_Object.py"
+)
+
+install(FILES ${INSTALL_HELPER_SCRIPTS} COMPONENT csm-core DESTINATION csm/tools/Helper_Files)

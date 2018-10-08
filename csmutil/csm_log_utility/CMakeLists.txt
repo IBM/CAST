@@ -1,6 +1,6 @@
 #================================================================================
 #
-#    csmutil/CMakeLists.txt
+#    csmutil/csm_log_utility/CMakeLists.txt
 #
 #  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,7 +13,14 @@
 #
 #================================================================================
 
-add_subdirectory(src)
-add_subdirectory(include)
-add_subdirectory(tests)
-add_subdirectory(csm_log_utility)
+add_subdirectory(Helper_Files)
+add_subdirectory(Logs)
+add_subdirectory(Reports)
+
+
+file(GLOB INSTALL_SCRIPTS
+    "ReadMe.md"
+    "API_Statistics.py"
+)
+
+install(FILES ${INSTALL_SCRIPTS} COMPONENT csm-core DESTINATION csm/tools)
