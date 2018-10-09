@@ -148,12 +148,10 @@ check_all_output () {
 
 
 # DEVEL - DELETE LOG if it exists
-ls ${LOG}
-RC=$?
-if [ ${RC} -eq 0 ]
+if [ -e ${LOG} ]
 then
-        # Delete pre-existing log
-	rm -f ${LOG}
+   # Delete pre-existing log
+   rm -f ${LOG}
 fi
 
 echo "------------------------------------------------------------" >> ${LOG}
