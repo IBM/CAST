@@ -556,7 +556,7 @@ bool Configuration::ParseCommandLineOptions( int argc, char **argv )
   {
       std::cerr << usage << std::endl;
       errno = 0;
-      throw csm::daemon::Exception("Invalid command line Option.");
+      exit(0);
   }
 
   // add cmd-line options to property_tree

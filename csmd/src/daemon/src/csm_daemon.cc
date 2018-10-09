@@ -63,7 +63,9 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
 
   csm::daemon::EventManagerPool evMgrPool;
   csm::daemon::ThreadManager *threadMgr = nullptr;
-  
+
+  setLoggingLevel(csmd, info); // start with info level logging until it's changed by config
+
   csm::daemon::RetryBackOff ConnectRetry( "ConnectMain",
                                           RetryBackOff::SleepType::MICRO_SLEEP,
                                           RetryBackOff::SleepType::MICRO_SLEEP,
