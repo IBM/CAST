@@ -35,7 +35,7 @@ def main(args):
 
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    parser.add_argument( '--starttime', metavar='YYYY-MM-DDTHH:MM:SS', dest='starttime', default=None,
+    parser.add_argument( '--starttime', metavar='YYYY-MM-DD HH:MM:SS', dest='starttime', default=None,
         help='A timestamp representing the beginning of the absolute range to look for failed jobs, if not set no lower bound will be imposed on the search.')
     parser.add_argument( '--endtime', metavar='YYYY-MM-DD HH:MM:SS', dest='endtime', default=None,
         help='A timestamp representing the ending of the absolute range to look for failed jobs, if not set no upper bound will be imposed on the search.')
