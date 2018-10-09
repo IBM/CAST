@@ -37,11 +37,11 @@ history_tables["csm_processor_socket"]="csm_processor_socket_history"
 # If any of these exceptions change value, correct behavior is to NOT create an entry in the history table.
 declare -AA exception_columns
 exception_columns["csm_node"]="node_name collection_time update_time state"
-exception_columns["csm_dimm"]="node_name"
+exception_columns["csm_dimm"]="node_name serial_number"
 exception_columns["csm_gpu"]="node_name gpu_id"
 exception_columns["csm_hca"]="node_name"
 exception_columns["csm_ssd"]="node_name update_time wear_lifespan_used wear_total_bytes_written wear_total_bytes_read wear_percent_spares_remaining"
-exception_columns["csm_processor_socket"]="node_name"
+exception_columns["csm_processor_socket"]="node_name serial_number"
 
 # Uncommenting out any line below will remove checking of that table from the tests
 #unset -v 'tables[csm_node]' 'history_tables[csm_node]' 'exception_columns[csm_node]' 
