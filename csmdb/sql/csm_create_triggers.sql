@@ -15,12 +15,12 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.1.1
+--   current_version:       16.1
 --   create:                06-22-2016
 --   last modified:         10-09-2018
 --   change log:
---     16.1.1 - Added more verbose err_text to allocation dumped steps.
---     16.1   - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
+--     16.1   - Added more verbose err_text to allocation dumped steps.
+--            - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
 --            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
 --            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
