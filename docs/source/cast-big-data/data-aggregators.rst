@@ -377,8 +377,8 @@ be started on the nodes.
 
 .. code-block:: bash
 
-    $ systemctl start pmsensor
-    $ systemctl enable pmsensor
+    $ systemctl start pmsensors
+    $ systemctl enable pmsensors
 
 .. attention:: To detect failures of the power hardware the following must be prepared on the 
    management node of the GPFS cluster.
