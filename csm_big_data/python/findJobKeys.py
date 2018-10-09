@@ -114,14 +114,14 @@ def main(args):
     start_time=datetime.strptime(tr_data.get("begin_time"), date_format)
 
     timestamp_range={
-        "gte"    : "{0}000".format(start_time.strftime('%s')), 
+        "gte"    : start_time.strftime('%s000'), 
         "format" : search_format
     }    
 
     # If a history is present end_time is end_time, otherwise it's now.
     if "history" in tr_data:
         end_time=datetime.strptime(tr_data.get("history").get("end_time"), date_format)
-        timestamp_range["lte"] = "{0}999".format(end_time.strftime('%s'))
+        timestamp_range["lte"] = end_time.strftime('%s999')
     
     timerange={
         "range" : {
