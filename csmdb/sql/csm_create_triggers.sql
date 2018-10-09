@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.1
+--   current_version:       16.1.1
 --   create:                06-22-2016
---   last modified:         09-26-2018
+--   last modified:         10-09-2018
 --   change log:
+--     16.1.1 - Added more verbose err_text to allocation dumped steps.
 --     16.1   - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
 --            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
 --            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
@@ -486,15 +487,15 @@ BEGIN
                 s.num_tasks,
                 s.user_flags,
                 0,      -- exit_status
-                '-999', -- err_text
-                '',     -- cpu_stats
+                'Removed by Allocation.', -- err_text
+                'NA',     -- cpu_stats
                 0.0,    -- total_u_time
                 0.0,    -- total_s_time
-                '',     -- total_num_threads
-                '',     -- gpu_stats
-                '',     -- memory_stats
+                'NA',     -- total_num_threads
+                'NA',     -- gpu_stats
+                'NA',     -- memory_stats
                 0,      -- max_memory
-                ''      -- io_stats
+                'NA'      -- io_stats
                         -- archive_history_time not added
             );
             DELETE FROM csm_step WHERE step_id=s.step_id AND allocation_id=allocationid;
