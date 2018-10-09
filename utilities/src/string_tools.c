@@ -311,7 +311,7 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 
 		//find the dash
 		char* dash_pointer = NULL;
-		dash_pointer = strchr(myString,'-');
+		dash_pointer = strchr(bracket_pointer,'-');
 
 		if(dash_pointer == NULL)
 		{
