@@ -105,213 +105,221 @@ void findSerials(void)
 {
     string cmd;
     map<string, bool> validDrives;
-
+    pthread_once(&findSerialInit, findSerials);
     pthread_mutex_lock(&findSerialMutex);
     
-    // clear structures
-    DriveBySerial.clear();
-    SerialOrder.clear();
-    SerialByDrive.clear();
-    nvme_devices.clear();
-    nvmeDeviceInfo.clear();
-    
-    // find valid drives
-    cmd = config.get("bb.lsblkPath", "lsblk") + " -n --nodeps -o name,type,serial";
-    for(auto line : runCommand(cmd))
-    {
-        vector<string> tok = buildTokens(line, " ");
-        LOG(bb,info) << "Device " << tok[0] << " found, type=" << tok[1];
-        if(tok[1] == "disk")
+    try{
+        // clear structures
+        DriveBySerial.clear();
+        SerialOrder.clear();
+        SerialByDrive.clear();
+        nvme_devices.clear();
+        nvmeDeviceInfo.clear();
+        
+        // find valid drives
+        cmd = config.get("bb.lsblkPath", "lsblk") + " -n --nodeps -o name,type,serial";
+        for(auto line : runCommand(cmd))
         {
-            validDrives[string("/dev/") + tok[0]] = true;
-            if(tok.size() > 2)  // lsblk is also providing the serial number.  (3.10 kernels may not provide NVMe serials on lsblk)
+            vector<string> tok = buildTokens(line, " ");
+            LOG(bb,info) << "Device " << tok[0] << " found, type=" << tok[1];
+            if(tok[1] == "disk")
             {
-                SerialOrder.push_back(tok[2]);
-                DriveBySerial[tok[2]] = string("/dev/") + tok[0];
-                LOG(bb,info) << "Device " << tok[0] << " has serial '" << tok[2] << "'";
+                validDrives[string("/dev/") + tok[0]] = true;
+                if(tok.size() > 2)  // lsblk is also providing the serial number.  (3.10 kernels may not provide NVMe serials on lsblk)
+                {
+                    SerialOrder.push_back(tok[2]);
+                    DriveBySerial[tok[2]] = string("/dev/") + tok[0];
+                    LOG(bb,info) << "Device " << tok[0] << " has serial '" << tok[2] << "'";
+                }
             }
         }
-    }
 
 
-    if (bb_nvmecliPath.size()) //nvme command is available?
-    {
-            // obtain list of NVMe devices (both PCIe-attached or RDMA-attached)
-	    cmd = bb_nvmecliPath + " list 2>&1; echo rc=$?";
-	    for(auto line : runCommand(cmd,false,false))//run cmd as flatfile = false, bool noException=false
-	    {
-		vector<string> tok = buildTokens(line, " ");
-		if(tok[0].at(0) != '/') continue;
-		if(validDrives.find(tok[0]) == validDrives.end())
-		{
-		    LOG(bb,info) << "NVMe device '" << tok[0] << "', but does not appear to be a block device";
-		    continue;
-		}
-		LOG(bb,info) << "NVMe device found: '" << tok[0] << "'";
-		nvme_devices.push_back(tok[0]);
-	    }
-
-	    // obtain details on each NVMe device
-	    for(auto device: nvme_devices)
-	    {
-            cmd = bb_nvmecliPath + " id-ctrl " + device;
-            for(auto line : runCommand(cmd,false,false)) //run cmd as flatfile = false, bool noException=false
+        if (bb_nvmecliPath.size()) //nvme command is available?
+        {
+                // obtain list of NVMe devices (both PCIe-attached or RDMA-attached)
+            cmd = bb_nvmecliPath + " list 2>&1; echo rc=$?";
+            for(auto line : runCommand(cmd,false,false))//run cmd as flatfile = false, bool noException=false
             {
-                if(line.find(": ") == string::npos) continue;   // \todo:  switch to nvme-cli's json format  --output=json
-
-                string name  = line.substr(0,line.find(" "));
-                string value = line.substr(line.find(":")+2, line.find_last_not_of(" \t") - line.find(":")-1);
-                LOG(bb,info) << "NVMe device " << device << " : " << name << " = " << value;
-                nvmeDeviceInfo[device][name] = value;
+            vector<string> tok = buildTokens(line, " ");
+            if(tok[0].at(0) != '/') continue;
+            if(validDrives.find(tok[0]) == validDrives.end())
+            {
+                LOG(bb,info) << "NVMe device '" << tok[0] << "', but does not appear to be a block device";
+                continue;
+            }
+            LOG(bb,info) << "NVMe device found: '" << tok[0] << "'";
+            nvme_devices.push_back(tok[0]);
             }
 
-            // This is an NVMe over Fabrics device.  Fabricate a serial number using connectivity info.
+            // obtain details on each NVMe device
+            for(auto device: nvme_devices)
+            {
+                cmd = bb_nvmecliPath + " id-ctrl " + device;
+                for(auto line : runCommand(cmd,false,false)) //run cmd as flatfile = false, bool noException=false
+                {
+                    if(line.find(": ") == string::npos) continue;   // \todo:  switch to nvme-cli's json format  --output=json
+
+                    string name  = line.substr(0,line.find(" "));
+                    string value = line.substr(line.find(":")+2, line.find_last_not_of(" \t") - line.find(":")-1);
+                    LOG(bb,info) << "NVMe device " << device << " : " << name << " = " << value;
+                    nvmeDeviceInfo[device][name] = value;
+                }
+
+                // This is an NVMe over Fabrics device.  Fabricate a serial number using connectivity info.
+                if(nvmeDeviceInfo[device]["mn"] != "Linux")
+                {
+                    LOG(bb,info) << "device:" << device << "   sn='" << nvmeDeviceInfo[device]["sn"] << "'";
+                    SerialOrder.push_back(nvmeDeviceInfo[device]["sn"]);
+                    DriveBySerial[nvmeDeviceInfo[device]["sn"]] = device;
+                }
+            }
+        }
+        else
+        {
+        LOG(bb,info) << "No valid nvme command to do nvme list. Reference the configuration for bb.nvmecliPath.";
+        }
+
+    #if BBSERVER
+        LOG(bb, debug) << "Searching for iSCSI initiator devices";
+
+        string target;
+        for(const auto& line : runCommand("iscsiadm -m session -o show -P 3"))
+        {
+        if(line.find("Target:") != string::npos)
+        {
+                vector<string> values = buildTokens(line, " ");
+            target = values[1];
+        }
+        if(line.find("Attached scsi disk") != string::npos)
+        {
+                vector<string> values = buildTokens(line, " \t");
+            string drive = values[3];
+                SerialOrder.push_back(target);
+                DriveBySerial[target] = string("/dev/") + drive;
+                LOG(bb, info) << "Found iSCSI device (" << target << ") associated with /dev/" << drive;
+        }
+        }
+    #endif
+
+    #if BBPROXY
+        LOG(bb, debug) << "Searching for iSCSI target devices";
+        string target;
+        for(auto line : runCommand("tgtadm --lld iscsi --mode target --op show"))
+        {
+        if(line.find("Target ") != string::npos)
+            {
+                vector<string> values = buildTokens(line, " \t");
+                target = values[2];
+            }
+        if(line.find("Backing store path:") != string::npos)
+        {
+                vector<string> values = buildTokens(line, " \t");
+            string drive = values[3];
+                SerialOrder.push_back(target);
+                DriveBySerial[target]  = drive;
+                LOG(bb, info) << "Found iSCSI drive: " << target << " associated with " << drive;
+        }
+        }
+    #endif
+
+    #if BBSERVER
+        LOG(bb, debug) << "Searching for NVMe over Fabrics initiator block devices";
+        for(auto device: nvme_devices)
+        {
+            if(nvmeDeviceInfo[device]["mn"] == "Linux")
+            {
+            // NVMe over Fabrics device
+            string nvmet_pseudoserial;
+            vector<string> files = {"subsysnqn", "transport"};
+            for(unsigned int index=0; index<files.size(); index++)
+            {
+            cmd = string("/sys/block/") + device.substr(5) + string("/device/") + files[index];
+            for(auto line : runCommand(cmd, true))
+            {
+                if(files[index] == "transport")
+                {
+                if(line == string("loop"))
+                {
+                }
+                else if(line == string("rdma"))
+                {
+                    files.push_back("address");
+                }
+                }
+                if(files[index] == "address")
+                {
+                line.erase(line.find("traddr="), 7);
+                line.erase(line.find("trsvcid="), 8);
+                }
+                nvmet_pseudoserial += ((nvmet_pseudoserial != "") ? ",": "") + line;
+            }
+            }
+            nvmeDeviceInfo[device]["pseudosn"]                = nvmet_pseudoserial;
+                SerialOrder.push_back(nvmet_pseudoserial);
+            DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
+            LOG(bb,info) << "NVMe device " << device << " : pseudosn=" << nvmet_pseudoserial;
+            }
+        }
+    #endif
+
+    #if BBPROXY
+        LOG(bb, debug) << "Searching for NVMe over Fabrics target block devices";
+        if (USE_NVMF) // \TODO remove in an updated
+        for(auto device: nvme_devices)
+        {
             if(nvmeDeviceInfo[device]["mn"] != "Linux")
             {
-                LOG(bb,info) << "device:" << device << "   sn='" << nvmeDeviceInfo[device]["sn"] << "'";
-                SerialOrder.push_back(nvmeDeviceInfo[device]["sn"]);
-                DriveBySerial[nvmeDeviceInfo[device]["sn"]] = device;
+                // This is a potential target device for NVMe over Fabrics.
+                // If NVMe over Fabrics target is configured, fabricate a serial number using connectivity info.
+                cmd = string("grep -l ") + device + string(" /sys/kernel/config/nvmet/ports/*/subsystems/*/namespaces/*/device_path");
+                for(auto line : runCommand(cmd))
+                {
+                vector<string> values = buildTokens(line, "/");
+
+                string port = values[5];
+                string subsysnqn = values[7];
+                string nvmenamespace = values[9];
+                string nvmet_pseudoserial = subsysnqn;
+                vector<string> files = {"addr_trtype"};
+                for(unsigned int index=0; index<files.size(); index++)
+                {
+                    cmd = string("/sys/kernel/config/nvmet/ports/") + port + string("/") + files[index];
+                    for(auto line : runCommand(cmd, true))
+                    {
+                    if(files[index] == "addr_trtype")
+                    {
+                        if(line == string("loop"))
+                        {
+                        }
+                        else if(line == string("rdma"))
+                        {
+                        files.push_back("addr_traddr");
+                        files.push_back("addr_trsvcid");
+                        }
+                    }
+                    nvmet_pseudoserial = nvmet_pseudoserial + "," + line;
+                    }
+                }
+                LOG(bb,info) << "NVMe device " << device << " : port=" << port << "  subsystem=" << subsysnqn << "   namespace=" << nvmenamespace << "   pseudosn=" << nvmet_pseudoserial;
+
+                nvmeDeviceInfo[device]["pseudosn"] = nvmet_pseudoserial;
+                        SerialOrder.push_back(nvmeDeviceInfo[device]["pseudosn"]);
+                DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
+                }
             }
-	    }
-    }
-    else
-    {
-       LOG(bb,info) << "No valid nvme command to do nvme list. Reference the configuration for bb.nvmecliPath.";
-    }
-
-#if BBSERVER
-    LOG(bb, debug) << "Searching for iSCSI initiator devices";
-
-    string target;
-    for(const auto& line : runCommand("iscsiadm -m session -o show -P 3"))
-    {
-	if(line.find("Target:") != string::npos)
-	{
-            vector<string> values = buildTokens(line, " ");
-	    target = values[1];
-	}
-	if(line.find("Attached scsi disk") != string::npos)
-	{
-            vector<string> values = buildTokens(line, " \t");
-	    string drive = values[3];
-            SerialOrder.push_back(target);
-            DriveBySerial[target] = string("/dev/") + drive;
-            LOG(bb, info) << "Found iSCSI device (" << target << ") associated with /dev/" << drive;
-	}
-    }
-#endif
-
-#if BBPROXY
-    LOG(bb, debug) << "Searching for iSCSI target devices";
-    string target;
-    for(auto line : runCommand("tgtadm --lld iscsi --mode target --op show"))
-    {
-	if(line.find("Target ") != string::npos)
-        {
-            vector<string> values = buildTokens(line, " \t");
-            target = values[2];
         }
-	if(line.find("Backing store path:") != string::npos)
-	{
-            vector<string> values = buildTokens(line, " \t");
-	    string drive = values[3];
-            SerialOrder.push_back(target);
-            DriveBySerial[target]  = drive;
-            LOG(bb, info) << "Found iSCSI drive: " << target << " associated with " << drive;
-	}
+    #endif
+
+        genSerialByDrive();
+        pthread_mutex_unlock(&findSerialMutex);
+    }//end try block
+    catch(exception& e){
+        pthread_mutex_unlock(&findSerialMutex);
+        int rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        throw;
     }
-#endif
-
-#if BBSERVER
-    LOG(bb, debug) << "Searching for NVMe over Fabrics initiator block devices";
-    for(auto device: nvme_devices)
-    {
-        if(nvmeDeviceInfo[device]["mn"] == "Linux")
-        {
-	    // NVMe over Fabrics device
-	    string nvmet_pseudoserial;
-	    vector<string> files = {"subsysnqn", "transport"};
-	    for(unsigned int index=0; index<files.size(); index++)
-	    {
-		cmd = string("/sys/block/") + device.substr(5) + string("/device/") + files[index];
-		for(auto line : runCommand(cmd, true))
-		{
-		    if(files[index] == "transport")
-		    {
-			if(line == string("loop"))
-			{
-			}
-			else if(line == string("rdma"))
-			{
-			    files.push_back("address");
-			}
-		    }
-		    if(files[index] == "address")
-		    {
-			line.erase(line.find("traddr="), 7);
-			line.erase(line.find("trsvcid="), 8);
-		    }
-		    nvmet_pseudoserial += ((nvmet_pseudoserial != "") ? ",": "") + line;
-		}
-	    }
-	    nvmeDeviceInfo[device]["pseudosn"]                = nvmet_pseudoserial;
-            SerialOrder.push_back(nvmet_pseudoserial);
-	    DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
-	    LOG(bb,info) << "NVMe device " << device << " : pseudosn=" << nvmet_pseudoserial;
-        }
-    }
-#endif
-
-#if BBPROXY
-    LOG(bb, debug) << "Searching for NVMe over Fabrics target block devices";
-    if (USE_NVMF) // \TODO remove in an updated
-    for(auto device: nvme_devices)
-    {
-        if(nvmeDeviceInfo[device]["mn"] != "Linux")
-        {
-	    // This is a potential target device for NVMe over Fabrics.
-	    // If NVMe over Fabrics target is configured, fabricate a serial number using connectivity info.
-	    cmd = string("grep -l ") + device + string(" /sys/kernel/config/nvmet/ports/*/subsystems/*/namespaces/*/device_path");
-	    for(auto line : runCommand(cmd))
-	    {
-		vector<string> values = buildTokens(line, "/");
-
-		string port = values[5];
-		string subsysnqn = values[7];
-		string nvmenamespace = values[9];
-		string nvmet_pseudoserial = subsysnqn;
-		vector<string> files = {"addr_trtype"};
-		for(unsigned int index=0; index<files.size(); index++)
-		{
-		    cmd = string("/sys/kernel/config/nvmet/ports/") + port + string("/") + files[index];
-		    for(auto line : runCommand(cmd, true))
-		    {
-			if(files[index] == "addr_trtype")
-			{
-			    if(line == string("loop"))
-			    {
-			    }
-			    else if(line == string("rdma"))
-			    {
-				files.push_back("addr_traddr");
-				files.push_back("addr_trsvcid");
-			    }
-			}
-			nvmet_pseudoserial = nvmet_pseudoserial + "," + line;
-		    }
-		}
-		LOG(bb,info) << "NVMe device " << device << " : port=" << port << "  subsystem=" << subsysnqn << "   namespace=" << nvmenamespace << "   pseudosn=" << nvmet_pseudoserial;
-
-		nvmeDeviceInfo[device]["pseudosn"] = nvmet_pseudoserial;
-                SerialOrder.push_back(nvmeDeviceInfo[device]["pseudosn"]);
-		DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
-	    }
-	}
-    }
-#endif
-
-    genSerialByDrive();
-    pthread_mutex_unlock(&findSerialMutex);
 }
 
 bool foundDeviceBySerial(const string& serial)
