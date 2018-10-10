@@ -165,10 +165,12 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int t
         strcpy(*output, fd_out.c_str());
 
         // Wait for either the timeout or the exec.
-        pid_t finished_pid = wait(&status);
-        if( finished_pid != execPid)
+        int rc = waitpid(execPid, &status, 0);
+
+        // Kill any return code to make sure it goes down.
+        if (rc != -1) 
         {
-            kill(execPid, SIGKILL);
+            kill(rc, SIGKILL);
         }
     }
 
