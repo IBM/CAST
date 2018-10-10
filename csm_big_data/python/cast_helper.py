@@ -95,6 +95,9 @@ def convert_timestamp( timestamp ):
 
         elif timestamp is "now":
             new_timestamp=datetime.strftime(datetime.now(), "%s000")
+
+        elif timestamp.isdigit() :
+            new_timestamp="{0}000".format(timestamp)
         
         else:
             raise ValueError('"%s" is not a legal timestamp.' % timestamp)
