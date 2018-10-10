@@ -105,20 +105,20 @@ def main(args):
     # ---------------------------------------------------------------------------------------------
     date_format= '%Y-%m-%d %H:%M:%S.%f'
     print_format='%Y-%m-%d %H:%M:%S:%f'
-    search_format='yyyy-MM-dd HH:mm:ss:SSS'
+    search_format='epoch_millis'
 
     # Determine the timerange:
     start_time=datetime.strptime(allocation.get("begin_time"), date_format)
 
     timestamp_range= {
-        "gte"    : start_time.strftime(print_format)[:-3],
+        "gte"    : "{0}000".format(start_time.strftime('%s')),
         "format" : search_format
     }
 
     # If a history is present end_time is end_time, otherwise it's now.
     if "history" in allocation:
         end_time=datetime.strptime(allocation.get("history").get("end_time"), date_format)
-        timestamp_range["lte"] = end_time.strftime(print_format)[:-3] 
+        timestamp_range["lte"] = "{0}999".format(end_time.strftime('%s'))
     
     timerange={
         "range" : {

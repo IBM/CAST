@@ -36,7 +36,8 @@ TARGET_ENV='CAST_ELASTIC'
 
 DATE_FORMAT        = '(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
 DATE_FORMAT_PRINT  = '%Y-%m-%d %H:%M:%S'
-TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
+#TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
+TIME_SEARCH_FORMAT = "epoch_millis"
 
 USER_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
     "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
@@ -74,7 +75,7 @@ def convert_timestamp( timestamp ):
     :param string timestamp: A timestamp in the @ref DATE_FORMAT format (yyyy-MM-dd[ .]HH:mm:ss).
         Everything from precision hour and higher is optional as an input.
 
-    :returns string: A datetime formatted string using the @ref DATE_FORMAT_PRINT. The now string
+    :returns string: A datetime formatted string in epoch milliseconds. The now string
         will be rendered as the output from datetime.now().
 
     :raises ValueError: If the timestamp is not formatted legally a value error will be raised.
@@ -90,15 +91,18 @@ def convert_timestamp( timestamp ):
                 hour=int(hour if hour else  0),
                 minute=int(minute if minute else 0),
                 second=int(second if second else 0) )
-            new_timestamp=datetime.strftime(date, DATE_FORMAT_PRINT)
+            new_timestamp=datetime.strftime(date, "%s000")
 
         elif timestamp is "now":
-            new_timestamp=datetime.strftime(datetime.now(), DATE_FORMAT_PRINT)
+            new_timestamp=datetime.strftime(datetime.now(), "%s000")
+
+        elif timestamp.isdigit() :
+            new_timestamp="{0}000".format(timestamp)
         
         else:
             raise ValueError('"%s" is not a legal timestamp.' % timestamp)
     else:
-        new_timestamp=datetime.strftime(datetime.now(), DATE_FORMAT_PRINT)
+        new_timestamp=datetime.strftime(datetime.now(), "%s000")
 
     
     return new_timestamp
