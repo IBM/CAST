@@ -75,7 +75,7 @@ def collision_error(Api_Id, start_api, end_api):
 
 def calculate_statistics(filename, Api_Statistics):
     print ("Utility Log").center(print_padding, '+')
-    print filename[2:].center(print_padding, '-')
+    print filename.center(print_padding, '-')
     file_opened = open(filename, 'r')
     file_lines = file_opened.readlines()
     file_start = file_lines[0].split("csm")[0][5:].strip()
@@ -85,7 +85,7 @@ def calculate_statistics(filename, Api_Statistics):
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     # print Api_Statistics.keys()
     total_calls = 0
-    stats = ("Utility Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') + '\n' + file_time +'\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
+    stats = ("Utility Log").center(print_padding, '+') + '\n' + filename.center(print_padding, '-') + '\n' + file_time +'\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     for key in Api_Statistics.keys():
         stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(
             key, 
