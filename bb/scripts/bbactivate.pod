@@ -6,7 +6,7 @@ bbactivate - setup burst buffer on the node
 
 /opt/ibm/bb/scripts/bbactivate --cn
 
-/opt/ibm/bb/scripts/bbactivate --ln --bscfswork=/gpfs/gpfs0/bscfswork --envdir= --lsfdir=$LSF_SERVERDIR
+/opt/ibm/bb/scripts/bbactivate --ln --bscfswork=/gpfs/gpfs0/bscfswork --envdir=HOME --lsfdir=$LSF_SERVERDIR
 
 /opt/ibm/bb/scripts/bbactivate --server --metadata=/gpfs/gpfs0/bbmetadata 
 
@@ -19,8 +19,91 @@ For a server node (--server), it will setup the configuration files and start bb
 
 For a launch node (--ln), it will setup the configuration files for bbcmd.
 
+=head2 Files:
+
+bbactivate will by default generate a configuration file in /etc/ibm/bb.cfg.  This configuration file will be consumed by burst buffer 
+services when the service is started.
 
 =over 8
+
+=item B<esslist>  (Compute Node)
+
+The esslist file contains a list of IP addresses and ports for each bbServer.  In the planned configuration, this would be the ESS I/O node VM IP address 
+plus a well-known port (e.g., 9001).  To express ESS redundancy, place the two ESS's I/O nodes within the same ESS should be 
+placed on the same line.  The default location for the esslist file is /etc/ibm/esslist.  The default can be overridden using the --esslist option.
+
+=item B<nodelist>  (Compute Node)
+
+The nodelist file is a list of the xCAT names for all compute nodes - one compute node per line.  The default location for the nodelist file is /etc/ibm/nodelist.  The default can be overridden using the --nodelist option.
+
+=item B<X.509 Security Certificate>  (Compute and I/O nodes)
+
+An X.509 certificate file (e.g., cert.pem) must be placed on all bbServer and compute nodes.  The default location for the certificate file is /etc/ibm/cert.pem.  The default can be overridden using the --sslcert option.  
+
+=item B<X.509 Security Private Key>  (I/O nodes)
+
+An X.509 private key must be placed on all bbServer nodes to authenticate incomming requests from the compute node(s).  The default location for the private key is /etc/ibm/key.pem.  The default can be overridden using the --sslpriv option.  
+
+=back
+
+=head2 Generic options:
+
+=over 8
+
+=item B<--configtempl>
+
+Path to a file containing a customized bb.cfg template.  The default path is /opt/ibm/bb/scripts/bb.cfg
+
+=item B<--outputconfig>
+
+Path to the location file to write the burst buffer configuration file.  The default path is /etc/ibm/bb.cfg
+
+=item B<--[no]csm>
+
+Enable or disable utilizing CSM infrastructure.  CSM agents must be active on the node in order to use CSM.  
+
+On login/launch node, CSM infrastructure will be used to send bbcmd rather than using passwordless ssh.
+On bbProxy, volume group and logical volumes will be tracked in CSM databases.  RAS messages will also be sent to CSM.  
+
+
+=item B<--sslcert>
+
+Path to the X.509 security certificate used to authenticate the connection between bbProxy and bbServer.
+
+=item B<--sslpriv>
+
+Path to the X.509 security private key used to authenticate the connection between bbProxy and bbServer.  
+
+=item B<--skip>
+
+This parameter allow skipping one or more steps of the bbactivate sequence, comma-separated.  Steps:  config,lsf,lvm,nvme,start,health,cleanup
+
+=item B<--dryrun>
+
+bbactivate will output the commands that it would run, but it will not modify the system state.  Configuration files that would have been written are instead sent to stdout unless --drypath is specified.
+
+=item B<--drypath>
+
+When used in combination with --dryrun, the file system changes will be written to file(s) in the directory specified by --drypath instead of the actual file locations.  
+
+=item B<--scriptpath>
+
+Specifies an alternative path for the default configuration file locations.
+
+=item B<--help>
+
+Displays the bbactivate man page
+
+=back
+
+=head2 Compute Node specific options:
+
+=over 8
+
+=item B<--[no]cn>
+
+Specifies bbactivate should configure burst buffer on the compute node.
+
 
 =item B<--nodelist>
 
@@ -40,52 +123,49 @@ The format of the esslist should be one or two IP address per line.  Multiple ad
 
 The default path is /etc/ibm/esslist
 
-=item B<--configtempl>
-
-Path to a file containing a customized bb.cfg template.  The default path is /opt/ibm/bb/scripts/bb.cfg
-
 
 =item B<--nvmetempl>
 
 Path to a file containing a customized NVMe over Fabrics JSON template.  The default path is /opt/ibm/bb/scripts/nvmet.json
 
 
-=item B<--outputconfig>
-
-Path to the location file to write the burst buffer configuration file.  The default path is /etc/ibm/bb.cfg
-
-=item B<--outputnvmecfg>
-
-Path to the location of the NVMe over Fabrics target JSON configuration file.  
-
 =item B<--[no]offload>
 
 Enable or disable NVMe over Fabrics hardware target offload support.  Target offload is disabled by default.
 
-=item B<--[no]csm>
 
-Enable or disable utilizing CSM infrastructure.  CSM agents must be active on the node in order to use CSM.  
+=item B<--[no]health>
 
-On login/launch node, CSM infrastructure will be used to send bbcmd rather than using passwordless ssh.
-On bbProxy, volume group and logical volumes will be tracked in CSM databases.  RAS messages will also be sent to CSM.  
-On bbServer, RAS messages will be sent to CSM.
+Specifies bbactivate should configure burst buffer health monitor on the compute node.
 
-=item B<--[no]cn>
+=back
 
-Specifies bbactivate should configure burst buffer on a compute node.
+=head2 Server node options:
+
+=over 8
 
 =item B<--[no]server>
 
-Specifies bbactivate should configure burst buffer on a server node.
+Specifies bbactivate should configure burst buffer on the server node.
+
+=item B<--metadata>
+
+Specifies the metadata directory used by the bbServer instances.  All bbServer nodes in the cluster must point to the same directory.
+
+=back
+
+=head2 Login/Launch node options:
+
+=over 8
 
 =item B<--[no]ln>
 
-Specifies bbactivate should configure burst buffer on a login/launch node.
+Specifies bbactivate should configure burst buffer on the login/launch node.
 
 =item B<--envdir>
 
 Specifies the scratch directory to store user temporary files used for communicating between stage-in, running, and stage-out phases of an LSF job.  
-The path should be accessible by both the user and root.  If --envdir is NULL, then the user's home directory (as indicated by getpwnam) will be used.  
+The path should be accessible by both the user and root.  If --envdir=HOME, then the user's home directory (as indicated by getpwnam) will be used.  
 
 =item B<--lsfdir>
 
@@ -94,29 +174,5 @@ When specified, bbactivate will update the LSF's etc/ directory with the esub/ep
 =item B<--bscfswork>
 
 Specifies the scratch directory for BSCFS temporary files for communicating between the job on the compute node with the BSCFS stage-out scripts regarding pending transfers.  
-
-=item B<--metadata>
-
-Specifies the metadata directory used by the bbServer instances.  All bbServer nodes in the cluster must point to the same directory.
-
-=item B<--dryrun>
-
-bbactivate will output the commands that it would run, but it will not modify the system state.  Configuration files that would have been written are instead sent to stdout unless --drypath is specified.
-
-=item B<--drypath>
-
-When used in combination with --dryrun, the file system changes will be written to file(s) in the directory specified by --drypath instead of the actual file locations.  
-
-=item B<--scriptpath>
-
-Specifies an alternative path for the default configuration file locations.
-
-=item B<--help>
-
-Displays the bbactivate man page
-
-=item B<--skip>
-
-Skips one or more steps of the bbactivate sequence, comma-separated.  Steps:  config,lsf,lvm,nvme,start
 
 =back

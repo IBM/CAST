@@ -199,7 +199,7 @@ if($controller !~ /csm/i)
     $hl = " --hostlist=$::HOSTLIST";
 }
 $::TARGET_NODE0 = "--jobstepid=1$hl --target=0";
-$::TARGET_ALL   = "--jobstepid=1$hl --target=0-";
+$::TARGET_ALL   = "--jobstepid=1$hl --target=0- --bcast";
 $::TARGET_QUERY = "--jobstepid=0$hl --target=0";
 
 if(exists $ENV{"BSCFS_MNT_PATH"})
@@ -326,7 +326,7 @@ sub cmd
     alarm(0) if($timeout);
 
     $rc = $?;
-    $rc = "TIMEOUT" if($@ =~ /alarm timeout/);
+    $rc = 110 if($@ =~ /alarm timeout/);  # ETIMEDOUT=110
 
     print "command rc: $rc\n";
     $ENV{'PATH'} = $oldpath;

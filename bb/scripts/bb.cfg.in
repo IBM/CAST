@@ -4,16 +4,21 @@
 		"nvmecliPath"                : "/usr/sbin/nvme",
 		"unixpath"                   : "/run/bb_socket@USERSUFFIX@",
 		"bbserverMetadataPath"       : "@METADATAPATH@",
-                "bbserverFileIOwarnSeconds"  : 20,
-                "bbserverFileIOStuckSeconds" : 60,
-				"usekeepalive"               : true,
-				"keepaliveidle"              : 60,
-				"keepalivecount"             : 12,
-				"keepaliveinterval"          :  5,
-              
+		"bbserverFileIOwarnSeconds"  : 20,
+		"bbserverFileIOStuckSeconds" : 60,
+		"usekeepalive"               : true,
+		"keepaliveidle"              : 60,
+		"keepalivecount"             : 12,
+		"keepaliveinterval"          :  5,
+        
+		"scripts" :
+		{
+			"transfertimeout" : 3600,
+			"bbcmdtimeout"    : 600
+		},
 		"server0" :
-		{		
-                        "ssladdress"         : "0.0.0.0:@SSLPORT@",
+		{
+			"ssladdress"         : "0.0.0.0:@SSLPORT@",
 			"numRequestThreads"  : 16,
 			"numTransferThreads" : 16,
 			"numTransferBuffers" : 16,
@@ -21,14 +26,14 @@
 			"flightlog"          : "/var/log/bbserver@USERSUFFIX@",
 			"sslcertif"          : "/etc/ibm/cert.pem",
 			"sslpriv"            : "/etc/ibm/key.pem",
-			"log" 		     :
-					     {
-						"consoleLog"   : @USECONSOLE@,
-						"default_sev"  : "info",
-						"rotationSize" : 67108864,
-						"fileLog"      : "/var/log/bbserver@USERSUFFIX@/console_%Y%m%d.%N.log",
-						"archiveLogs"  : "/var/log/bbserver@USERSUFFIX@/oldlogs"
-					     }
+			"log" :
+			{
+				"consoleLog"   : @USECONSOLE@,
+				"default_sev"  : "info",
+				"rotationSize" : 67108864,
+				"fileLog"      : "/var/log/bbserver@USERSUFFIX@/console_%Y%m%d.%N.log",
+				"archiveLogs"  : "/var/log/bbserver@USERSUFFIX@/oldlogs"
+			}
 		},
 		"proxy" :
 		{

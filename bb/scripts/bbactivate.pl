@@ -18,6 +18,7 @@ use Carp qw( croak );
 use Getopt::Long;
 use POSIX;
 use Sys::Syslog;
+use File::Temp qw/ tempfile /;
 
 BEGIN 
 { 
@@ -134,27 +135,29 @@ sub writeConfiguration
 
 setDefaults();
 GetOptions(
-    "nodelist=s"            => \$CFG{"nodelist"},
-    "esslist=s"             => \$CFG{"esslist"},
-    "configtempl=s"         => \$CFG{"configtempl"},
-    "nvmetempl=s"           => \$CFG{"nvmetempl"},
-    "outputconfig=s"        => \$CFG{"outputconfig"},
-    "outputnvmecfg=s"       => \$CFG{"outputnvmecfg"},
-    "offload!"              => \$CFG{"USE_NVMF_OFFLOAD"},
-    "csm!"                  => \$CFG{"USE_CSM"},
-    "cn!"                   => \$CFG{"bbProxy"},
-    "server!"               => \$CFG{"bbServer"},
-    "ln!"                   => \$CFG{"bbcmd"},
-    "envdir=s"              => \$CFG{"envdir"},
-    "lsfdir=s"              => \$CFG{"lsfdir"},
-    "bscfswork=s"           => \$CFG{"bscfswork"},
-    "dryrun!"               => \$CFG{"dryrun"},
-    "drypath=s"             => \$CFG{"drypath"},
-    "scriptpath=s"          => \$SCRIPTPATH,
-    "metadata=s"            => \$CFG{"metadata"},
-    "skip=s"                => \$CFG{"skip"},
-    "help!"                 => \$CFG{"help"}
-    );
+    "nodelist=s"      => \$CFG{"nodelist"},
+    "esslist=s"       => \$CFG{"esslist"},
+    "configtempl=s"   => \$CFG{"configtempl"},
+    "nvmetempl=s"     => \$CFG{"nvmetempl"},
+    "outputconfig=s"  => \$CFG{"outputconfig"},
+    "offload!"        => \$CFG{"USE_NVMF_OFFLOAD"},
+    "csm!"            => \$CFG{"USE_CSM"},
+    "cn!"             => \$CFG{"bbProxy"},
+    "server!"         => \$CFG{"bbServer"},
+    "ln!"             => \$CFG{"bbcmd"},
+    "health!"         => \$CFG{"bbhealth"},
+    "envdir=s"        => \$CFG{"envdir"},
+    "lsfdir=s"        => \$CFG{"lsfdir"},
+    "bscfswork=s"     => \$CFG{"bscfswork"},
+    "sslcert=s"       => \$CFG{"sslcert"},
+    "sslpriv=s"       => \$CFG{"sslpriv"},
+    "dryrun!"         => \$CFG{"dryrun"},
+    "drypath=s"       => \$CFG{"drypath"},
+    "scriptpath=s"    => \$SCRIPTPATH,
+    "metadata=s"      => \$CFG{"metadata"},
+    "skip=s"          => \$CFG{"skip"},
+    "help!"           => \$CFG{"help"}
+);
 setDefaults();
 
 if($CFG{"help"})
@@ -171,27 +174,23 @@ if(! isRoot())
 }
 
 getNodeName();
+makeConfigFile() if($CFG{"skip"} !~ /config/i);
+
 if($CFG{"bbServer"})
 {
-    makeServerConfigFile() if($CFG{"skip"} !~ /config/i);
-    filterLVM()            if($CFG{"skip"} !~ /lvm/i);
-    startServer()          if($CFG{"skip"} !~ /start/i);
+    filterLVM()   if($CFG{"skip"} !~ /lvm/i);
+    startServer() if($CFG{"skip"} !~ /start/i);
 }
-elsif($CFG{"bbcmd"})
+if($CFG{"bbcmd"})
 {
-    makeLNConfigFile()     if($CFG{"skip"} !~ /config/i);
-    copyBBFilesToLSF()     if($CFG{"skip"} !~ /lsf/i);
+    copyBBFilesToLSF() if($CFG{"skip"} !~ /lsf/i);
 }
-elsif($CFG{"bbProxy"})
+if($CFG{"bbProxy"})
 {
-    makeProxyConfigFile()  if($CFG{"skip"} !~ /config/i);
     configureNVMeTarget()  if($CFG{"skip"} !~ /nvme/i);
     configureVolumeGroup() if($CFG{"skip"} !~ /lvm/i);
     startProxy()           if($CFG{"skip"} !~ /start/i);
-}
-else
-{
-    output("Valid node type was not specified");
+    startHealth()          if($CFG{"skip"} !~ /health/i);
 }
 exit(0);
 
@@ -209,13 +208,15 @@ sub setDefaults
     &def("nodelist",         1, "/etc/ibm/nodelist");
     &def("esslist",          1, "/etc/ibm/esslist");
     &def("outputconfig",     1, "/etc/ibm/bb.cfg");
-    &def("outputnvmecfg",    1, "/etc/ibm/nvmet.json");
     &def("drypath",          1, "&STDOUT");
     &def("USE_NVMF_OFFLOAD", 1, 0);
     &def("USE_CSM",          1, 1);
     &def("bbProxy",          1, 0);
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
+    &def("health",           1, 1);
+    &def("sslcert",          1, "default");
+    &def("sslpriv",          1, "default");
     &def("metadata",         1, "");
     &def("bscfswork",        1, "");
     &def("skip",             1, "");
@@ -278,21 +279,35 @@ sub copyBBFilesToLSF
     cmd("cp $SCRIPTPATH/bb_post_exec.sh $lsfdir/.");
 }
 
+sub makeConfigFile
+{
+    setprefix("makeConfigFile: ");
+    requireFile($CFG{"configtempl"});
+
+    my $bbcfgtemplate = cat($CFG{"configtempl"});
+    local $json = decode_json($bbcfgtemplate);
+
+    &makeServerConfigFile();
+    &makeProxyConfigFile();
+    &makeLNConfigFile();
+
+    $cfgfile = $json;    # make global
+
+    my $jsonoo = JSON->new->allow_nonref->canonical;
+    my $out    = $jsonoo->pretty->encode($json);
+    writeConfiguration($CFG{"outputconfig"}, $out);
+}
+
 sub makeLNConfigFile
 {
     setprefix("makeLNConfigFile: ");
-    requireFile($CFG{"configtempl"});
-    
-    my $bbcfgtemplate = cat($CFG{"configtempl"});
-    my $json = decode_json($bbcfgtemplate);
-    
     if($CFG{"USE_CSM"})
     {
-	    $json->{"bb"}{"cmd"}{"controller"} = "csm";
+        $json->{"bb"}{"cmd"}{"controller"} = "csm";
     }
     else
     {
-	    $json->{"bb"}{"cmd"}{"controller"} = "none";
+        $json->{"bb"}{"cmd"}{"controller"} = "none";
     }
     if($CFG{"envdir"} eq "HOME")
     {
@@ -306,41 +321,37 @@ sub makeLNConfigFile
     {
         $json->{"bb"}{"bscfsagent"}{"workpath"} = $CFG{"bscfswork"};
     }
-    
-    my $jsonoo = JSON->new->allow_nonref;
-    my $out = $jsonoo->pretty->encode( $json );
-    writeConfiguration($CFG{"outputconfig"}, $out);
 }
 
 sub makeServerConfigFile
 {
     setprefix("makeServerConfigFile: ");
-    requireFile($CFG{"configtempl"});
-
-    my $bbcfgtemplate = cat($CFG{"configtempl"});
-    my $json          = decode_json($bbcfgtemplate);
-
     if($CFG{"metadata"} =~ /\S/)
     {
         $json->{"bb"}{"bbserverMetadataPath"} = $CFG{"metadata"};
     }
-
-    my $jsonoo = JSON->new->allow_nonref;
-    my $out    = $jsonoo->pretty->encode($json);
-    writeConfiguration($CFG{"outputconfig"}, $out);
 }
-
 
 sub makeProxyConfigFile
 {
     setprefix("makeProxyConfigFile: ");
+
+    if($CFG{"USE_CSM"})
+    {
+        $json->{"bb"}{"proxy"}{"controller"} = "csm";
+    }
+    $json->{"bb"}{"cmd"}{"controller"} = "none";    # disable on compute nodes
+
+    $json->{"bb"}{"server0"}{"sslcertif"} = $CFG{"sslcert"} if($CFG{"sslcert"} ne "default");
+    $json->{"bb"}{"server0"}{"sslpriv"}   = $CFG{"sslpriv"} if($CFG{"sslpriv"} ne "default");
+
+    return if(!$CFG{"bbProxy"});
+
     requireFile($CFG{"nodelist"});
     requireFile($CFG{"esslist"});
     requireFile($CFG{"configtempl"});
 
-    my $bbcfgtemplate = cat($CFG{"configtempl"});
-    my $json          = decode_json($bbcfgtemplate);
-    my $numnodes      = 0;
+    my $numnodes = 0;
     open(TMP, $CFG{"nodelist"});
     while($node = <TMP>)
     {
@@ -413,18 +424,8 @@ sub makeProxyConfigFile
         output("Backup: $ESS[$backupServer] (bb.proxy.backupcfg=bb.$ESSNAME[$backupServer])");
     }
 
-    if($CFG{"USE_CSM"})
-    {
-        $json->{"bb"}{"proxy"}{"controller"} = "csm";
-    }
-    $json->{"bb"}{"cmd"}{"controller"} = "none";    # disable on compute nodes
-
-    $cfgfile = $json;                               # make global
-    my $jsonoo = JSON->new->allow_nonref;
-    my $out    = $jsonoo->pretty->encode($json);
-    writeConfiguration($CFG{"outputconfig"}, $out);
+    delete $json->{"bb"}{"server0"} if(!$CFG{"bbServer"});
 }
-
 
 sub configureNVMeTarget
 {
@@ -462,7 +463,7 @@ sub configureNVMeTarget
     my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
     {
-        output("NVMe over Fabrics target has already been configured");
+        output("NVMe erer Fabrics target has already been configured");
         return;
     }
 
@@ -486,9 +487,14 @@ sub configureNVMeTarget
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"USE_NVMF_OFFLOAD"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"USE_NVMF_OFFLOAD"};    # workaround
 
-    my $out = encode_json($json);
-    writeConfiguration($CFG{"outputnvmecfg"}, $out);
-    cmd("nvmetcli restore " . $CFG{"outputnvmecfg"});
+    my $jsonoo = JSON->new->allow_nonref->canonical;
+    my $out    = $jsonoo->pretty->encode($json);
+
+    my $cleanup = 1;
+    $cleanup    = 0 if($CFG{"skip"} =~ /cleanup/);
+    my ($fh, $tmpfilename) = tempfile(SUFFIX => ".nvmet.json", UNLINK => $cleanup);
+    writeConfiguration($tmpfilename, $out);
+    cmd("nvmetcli restore " . $tmpfilename);
 
     if($CFG{"USE_NVMF_OFFLOAD"})                                                        # workaround
     {
@@ -553,6 +559,12 @@ sub startProxy
 {
     setprefix("Starting bbProxy: ");
     cmd("service bbproxy restart");
+}
+
+sub startHealth
+{
+    setprefix("Starting bbHealth: ");
+    cmd("service bbhealth restart") if($CFG{"health"});
 }
 
 sub isNVMeTargetOffloadCapable
