@@ -2497,8 +2497,8 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
     try
     {
         time_t remote_epoch = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::epochtimeinseconds))->getData();
-        LOG(bb,info) << "msgin_hello local epoch time in seconds: " << l_seconds << " GMT="<<  asctime(gmtime(&l_seconds));
-        LOG(bb,info) << "msgin_hello remote epoch time in seconds: " << remote_epoch << " GMT="<<  asctime(gmtime((const time_t*)&remote_epoch));
+        LOG(bb,info) << "Local epoch time in seconds: " << l_seconds << " GMT="<<  asctime(gmtime(&l_seconds));
+        LOG(bb,info) << "Remote epoch time in seconds: " << remote_epoch << " GMT="<<  asctime(gmtime((const time_t*)&remote_epoch));
         const uint64_t l_MAXDIFFSECONDS=1;
         const uint64_t l_DIFFSECONDS= abs(l_seconds - remote_epoch);
         if ( l_DIFFSECONDS > l_MAXDIFFSECONDS ){

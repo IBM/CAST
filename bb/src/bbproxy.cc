@@ -160,7 +160,9 @@ int bbproxy_SayHello(const string& pConnectionName)
         rc = bberror.merge(msg);
         if (rc)
         {
-            errorText << "error in responseto hello message";
+            errorText << "error in response to hello message";
+            delete msg;
+            msg=NULL;
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
