@@ -78,7 +78,7 @@ void ProcessExit(int sig)
     while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 }
 
-int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id)
+int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int timeout_seconds)
 {
     #define FROM_CHILD 0
     #define TO_PARENT 1
@@ -139,13 +139,15 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id)
         dup2(uni_pipe[TO_PARENT], STDOUT_FILENO);
         dup2(uni_pipe[TO_PARENT], STDERR_FILENO);
         close(uni_pipe[TO_PARENT]);
-
+        alarm(timeout_seconds);
+        
         _Exit(execv(*argv, argv));
     }
     else // Save the output.
     {
         *output = nullptr;
         close(uni_pipe[TO_PARENT]);
+        
 
         size_t buffer_read= 0,buffer_total= 1;
         char buffer[BUFFER_SIZE];
@@ -161,12 +163,15 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id)
 
         *output = (char*)malloc(buffer_total);
         strcpy(*output, fd_out.c_str());
-        
-        if (waitpid(execPid, &status, 0) == -1) 
-        {
-            ; // TODO error.
-        }
 
+        // Wait for either the timeout or the exec.
+        int rc = waitpid(execPid, &status, 0);
+
+        // Kill any return code to make sure it goes down.
+        if (rc != -1) 
+        {
+            kill(rc, SIGKILL);
+        }
     }
 
     return WEXITSTATUS(status);

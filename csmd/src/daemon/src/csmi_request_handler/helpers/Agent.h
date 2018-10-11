@@ -54,8 +54,9 @@ namespace helper {
  *                      The first index is the script with its full path.
  * @param[in] output  The output of the of the forked process.
  * @param[in] user_id The user to execut the forked process as.
+ * @param[in] timeout_seconds A timeout in seconds, if set to zero no timeout occurs.
  */
-int ForkAndExecCapture(  char * const argv[], char** output, uid_t user_id);
+int ForkAndExecCapture(  char * const argv[], char** output, uid_t user_id, int timeout_seconds=0 );
 
 /**
  * @brief Forks the supplied argv then moves the forked pid into the supplied allocation id.
@@ -127,10 +128,10 @@ inline int SetSMTLevelCSM( int smtLevel )
 }
 
 
-inline int ExecuteBB( char* command_args, char ** output, uid_t user_id )
+inline int ExecuteBB( char* command_args, char ** output, uid_t user_id, int timeout)
 {
     char* scriptArgs[] = { (char*)CSM_BB_CMD, command_args, NULL };
-    int errCode = ForkAndExecCapture( scriptArgs, output, user_id  );
+    int errCode = ForkAndExecCapture( scriptArgs, output, user_id, timeout );
     return errCode;
 }
 

@@ -22,8 +22,7 @@
 #include "csmi/include/csm_api.h"
 #include <syslog.h>
 
-
-
+#define CMD_ID CSM_CMD_bb_cmd
 #define STATE_NAME "BBCMDAgentState:"
 
 bool BBCMDAgentState::HandleNetworkMessage(
@@ -74,7 +73,9 @@ bool BBCMDAgentState::HandleNetworkMessage(
         strdup( csm::daemon::Configuration::Instance()->GetHostname().c_str() );
     
     char* cmd_out = nullptr;
-    bb_cmd->bb_cmd_int = csm::daemon::helper::ExecuteBB(bb_cmd->bb_cmd_str, &cmd_out, bb_cmd->bb_cmd_int);
+    bb_cmd->bb_cmd_int = csm::daemon::helper::ExecuteBB(
+        bb_cmd->bb_cmd_str, &cmd_out, bb_cmd->bb_cmd_int,
+        csm_get_agent_timeout(CMD_ID)/1000);
     
     // Copy the command string.
     if (bb_cmd->bb_cmd_str) free(bb_cmd->bb_cmd_str);

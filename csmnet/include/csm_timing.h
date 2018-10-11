@@ -172,6 +172,9 @@ int csm_update_timeouts( const char *data,
 #define csm_get_agg_timeout( api ) \
     ( csm_get_master_timeout( api ) - CSM_MASTER_TO_AGG_FUDGE_MILLISECONDS )
 
+#define csm_get_agent_timeout( api ) \
+    ( csm_get_agg_timeout(api) - CSM_CLIENT_TO_MASTER_FUDGE_MILLISECONDS )
+
 /** @brief Determines the appropriate timeout time for a context.
  *
  *  @param[in] api    The API type the timeout is for. 
