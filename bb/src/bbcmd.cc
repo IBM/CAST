@@ -250,7 +250,7 @@ int bbcmd_sleep(po::variables_map& vm)
 {
     int rc = 0;
     int delay = 0;
-    if(vm.count("delay") == 0)
+    if(vm.count("delay") > 0)
     {
         delay = vm["delay"].as<int>();
     }
