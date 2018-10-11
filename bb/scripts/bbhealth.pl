@@ -83,6 +83,8 @@ BEGIN
 
 use bbtools;
 
+$bbtools::QUIET = 1;
+
 do
 {
     $rc = monitor();
