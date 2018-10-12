@@ -53,7 +53,7 @@ sub output
 
 sub setDefaults
 {
-    $pollrate           = 5;
+    $pollrate           = 30;
     $::DEFAULT_HOSTLIST = "localhost";
     @::GETOPS           = ("pollrate=i" => \$pollrate);
 }

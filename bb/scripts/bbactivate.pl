@@ -140,8 +140,8 @@ GetOptions(
     "configtempl=s"   => \$CFG{"configtempl"},
     "nvmetempl=s"     => \$CFG{"nvmetempl"},
     "outputconfig=s"  => \$CFG{"outputconfig"},
-    "offload!"        => \$CFG{"USE_NVMF_OFFLOAD"},
-    "csm!"            => \$CFG{"USE_CSM"},
+    "offload!"        => \$CFG{"useOffload"},
+    "csm!"            => \$CFG{"useCSM"},
     "cn!"             => \$CFG{"bbProxy"},
     "server!"         => \$CFG{"bbServer"},
     "ln!"             => \$CFG{"bbcmd"},
@@ -156,11 +156,11 @@ GetOptions(
     "scriptpath=s"    => \$SCRIPTPATH,
     "metadata=s"      => \$CFG{"metadata"},
     "skip=s"          => \$CFG{"skip"},
-    "help!"           => \$CFG{"help"}
+    "help!"           => \$showhelp
 );
 setDefaults();
 
-if($CFG{"help"})
+if($showhelp)
 {
     system("man bbactivate");
     exit(0);
@@ -208,17 +208,20 @@ sub setDefaults
     &def("nodelist",         1, "/etc/ibm/nodelist");
     &def("esslist",          1, "/etc/ibm/esslist");
     &def("outputconfig",     1, "/etc/ibm/bb.cfg");
+    &def("dryrun",           1, 0);
     &def("drypath",          1, "&STDOUT");
-    &def("USE_NVMF_OFFLOAD", 1, 0);
-    &def("USE_CSM",          1, 1);
+    &def("useOffload",       1, 0);
+    &def("useCSM",           1, 1);
     &def("bbProxy",          1, 0);
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
-    &def("health",           1, 1);
+    &def("bbhealth",         1, 1);
     &def("sslcert",          1, "default");
     &def("sslpriv",          1, "default");
     &def("metadata",         1, "");
     &def("bscfswork",        1, "");
+    &def("envdir",           1, "HOME");
+    &def("lsfdir",           1, "");
     &def("skip",             1, "");
     &def("configtempl",      2, "$SCRIPTPATH/bb.cfg");
     &def("nvmetempl",        2, "$SCRIPTPATH/nvmet.json");
@@ -287,6 +290,13 @@ sub makeConfigFile
     my $bbcfgtemplate = cat($CFG{"configtempl"});
     local $json = decode_json($bbcfgtemplate);
 
+    foreach $key (keys %CFG)
+    {
+        $json->{"bb"}{"bbactivate"}{$key} = $CFG{$key};
+    }
+    chomp(my $dt = `date`);
+    $json->{"bb"}{"bbactivate"}{"activatetime"} = $dt;
+    
     &makeServerConfigFile();
     &makeProxyConfigFile();
     &makeLNConfigFile();
@@ -336,7 +346,7 @@ sub makeProxyConfigFile
 {
     setprefix("makeProxyConfigFile: ");
 
-    if($CFG{"USE_CSM"})
+    if($CFG{"useCSM"})
     {
         $json->{"bb"}{"proxy"}{"controller"} = "csm";
     }
@@ -477,15 +487,15 @@ sub configureNVMeTarget
     if(!isNVMeTargetOffloadCapable())
     {
         output("Node is not capable of NVMe over Fabrics target offload");
-        $CFG{"USE_NVMF_OFFLOAD"} = 0;
+        $CFG{"useOffload"} = 0;
     }
     my $state = "disabled";
-    $state = "enabled" if($CFG{"USE_NVMF_OFFLOAD"});
+    $state = "enabled" if($CFG{"useOffload"});
     output("NVMe over Fabrics target offload is $state");
 
     $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
-    $json->{"subsystems"}[0]{"offload"}                 = $CFG{"USE_NVMF_OFFLOAD"};
-    $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"USE_NVMF_OFFLOAD"};    # workaround
+    $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
+    $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
 
     my $jsonoo = JSON->new->allow_nonref->canonical;
     my $out    = $jsonoo->pretty->encode($json);
@@ -496,7 +506,7 @@ sub configureNVMeTarget
     writeConfiguration($tmpfilename, $out);
     cmd("nvmetcli restore " . $tmpfilename);
 
-    if($CFG{"USE_NVMF_OFFLOAD"})                                                        # workaround
+    if($CFG{"useOffload"})                                                        # workaround
     {
         cmd("rm -f $configfs/nvmet/ports/1/subsystems/$nqn");
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/attr_offload");
@@ -564,7 +574,7 @@ sub startProxy
 sub startHealth
 {
     setprefix("Starting bbHealth: ");
-    cmd("service bbhealth restart") if($CFG{"health"});
+    cmd("service bbhealth restart") if($CFG{"bbhealth"});
 }
 
 sub isNVMeTargetOffloadCapable
