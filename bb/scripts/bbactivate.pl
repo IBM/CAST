@@ -146,6 +146,7 @@ GetOptions(
     "server!"         => \$CFG{"bbServer"},
     "ln!"             => \$CFG{"bbcmd"},
     "health!"         => \$CFG{"bbhealth"},
+    "shutdown!"       => \$CFG{"shutdown"},
     "envdir=s"        => \$CFG{"envdir"},
     "lsfdir=s"        => \$CFG{"lsfdir"},
     "bscfswork=s"     => \$CFG{"bscfswork"},
@@ -174,6 +175,13 @@ if(! isRoot())
 }
 
 getNodeName();
+
+if($CFG{"shutdown"})
+{
+    stopServices();
+    exit(0);
+}
+
 makeConfigFile() if($CFG{"skip"} !~ /config/i);
 
 if($CFG{"bbServer"})
@@ -216,6 +224,7 @@ sub setDefaults
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
     &def("bbhealth",         1, 1);
+    &def("shutdown",         1, 0);
     &def("sslcert",          1, "default");
     &def("sslpriv",          1, "default");
     &def("metadata",         1, "");
@@ -575,6 +584,14 @@ sub startHealth
 {
     setprefix("Starting bbHealth: ");
     cmd("service bbhealth restart") if($CFG{"bbhealth"});
+}
+
+sub stopServices
+{
+    setprefix("Stop Services: ");
+    cmd("service bbhealth stop");
+    cmd("service bbproxy stop");
+    cmd("service bbserver stop");
 }
 
 sub isNVMeTargetOffloadCapable
