@@ -34,7 +34,7 @@ def main(args):
         description='''A tool for finding jobs running at the specified time.''')
     parser.add_argument( '-t', '--target', metavar='hostname:port', dest='target', default=None, 
         help='An Elasticsearch server to be queried. This defaults to the contents of environment variable "CAST_ELASTIC".')
-    parser.add_argument( '-T', '--time', metavar='YYYY-MM-DD HH:MM:SS', dest='timestamp', default="now",
+    parser.add_argument( '-T', '--time', metavar='YYYY-MM-DDTHH:MM:SS', dest='timestamp', default="now",
         help='A timestamp representing a point in time to search for all running CSM Jobs. HH, MM, SS are optional, if not set they will be initialized to 0. (default=now)')
     parser.add_argument( '-s', '--size', metavar='size', dest='size', default=1000,
         help='The number of results to be returned. (default=1000)')

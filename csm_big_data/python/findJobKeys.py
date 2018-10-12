@@ -33,7 +33,7 @@ def main(args):
 
     # Specify the arguments.
     parser = argparse.ArgumentParser(
-        description='''A tool for finding keywords during the run time of a job.''')
+        description='''A tool for finding keywords in the "message" field during the run time of a job.''')
     
     parser.add_argument( '-a', '--allocationid', metavar='int', dest='allocation_id', default=-1,
         help='The allocation ID of the job.')
@@ -50,7 +50,7 @@ def main(args):
     parser.add_argument( '--size', metavar='size', dest='size', default=30,
         help='The number of results to be returned. (default=30)')
     parser.add_argument( '-H', '--hostnames', metavar='host', dest='hosts', nargs='*', default=None,
-        help='A list of hostnames to filter the results to ')
+        help='A list of hostnames to filter the results to (filters on the "hostname" field, job independent).')
 
     args = parser.parse_args()
 
