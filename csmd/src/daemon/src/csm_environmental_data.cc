@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <stdint.h>
 
+#include <boost/regex.hpp>
 
 CSM_Environmental_Data::CSM_Environmental_Data() :
   _version(CSM_ENVIRONMENTAL_DATA_V1),
@@ -99,6 +100,7 @@ bool CopyPtSubtree(const boost::property_tree::ptree &src_pt, boost::property_tr
 std::string CSM_Environmental_Data::GetJsonString()
 {
   std::string json("");
+  const boost::regex numeric_fix (":\\w*\"([0-9]*(\\.[0-9]*)?)\"");
 
   // This function will return a series of json documents in a single string
   // Each json document has a set of common parent fields followed by fields specific to 
@@ -127,6 +129,7 @@ std::string CSM_Environmental_Data::GetJsonString()
       if (copy_success == true)
       {
         std::ostringstream data_oss;
+        //CSMWriteJSON(data_oss, data_pt);
         boost::property_tree::json_parser::write_json(data_oss, data_pt, false);
         data_oss << std::endl;
         json += data_oss.str();
@@ -137,10 +140,13 @@ std::string CSM_Environmental_Data::GetJsonString()
       }
     }
   }
- 
-  //LOG(csmenv, debug) << json;
- 
-  return json;
+
+  std::ostringstream t(std::ios::out | std::ios::binary);
+  std::ostream_iterator<char, char> oi(t);
+  boost::regex_replace(oi, json.begin(), json.end(), numeric_fix, ":$1", 
+    boost::match_default | boost::format_all);
+
+  return t.str();
 }
 
 void CSM_Environmental_Data::CollectNodeData()
