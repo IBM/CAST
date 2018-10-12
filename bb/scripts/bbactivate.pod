@@ -65,6 +65,9 @@ Enable or disable utilizing CSM infrastructure.  CSM agents must be active on th
 On login/launch node, CSM infrastructure will be used to send bbcmd rather than using passwordless ssh.
 On bbProxy, volume group and logical volumes will be tracked in CSM databases.  RAS messages will also be sent to CSM.  
 
+=item B<--shutdown>
+
+Shutdown all burst buffer services running on the node.  
 
 =item B<--sslcert>
 
