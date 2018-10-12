@@ -35,8 +35,11 @@ history_tables["csm_processor_socket"]="csm_processor_socket_history"
 # whenever a value in the active table changes.
 # However, there are some columns that are exceptions to this rule.
 # If any of these exceptions change value, correct behavior is to NOT create an entry in the history table.
+# In the case of non-inventory fields in the csm_node table, they should create history entries, 
+# but are not covered by these inventory tests.
 declare -AA exception_columns
-exception_columns["csm_node"]="node_name collection_time update_time state"
+exception_columns["csm_node"]="node_name collection_time update_time state comment secondary_agg primary_agg" 
+exception_columns["csm_node"]+=" feature_1 feature_2 feature_3 feature_4 hard_power_cap physical_u_location physical_frame_location"
 exception_columns["csm_dimm"]="node_name serial_number"
 exception_columns["csm_gpu"]="node_name gpu_id"
 exception_columns["csm_hca"]="node_name"
@@ -673,7 +676,9 @@ for i_tbl in "${tables[@]}" ; do
             if [ "$o_tbl" = "$i_tbl" ] ; then
                # We made a change to this active table, so we expect an updated history table
                check_table_new_history "Test Case 6" $o_tbl
-               (( rc=rc+$? ))
+               tbl_rc=$?
+               (( rc=rc+$tbl_rc ))
+               ((tbl_rc)) && echo "check_table_new_history returned $tbl_rc" 1>> ${TEMP_LOG} 2>&1
 
                if [ "${history_rows_after[$o_tbl]}" -gt "${history_rows_before[$o_tbl]}" ] ; then
                   :
@@ -691,7 +696,9 @@ for i_tbl in "${tables[@]}" ; do
             else
                # o_tbl != i_tbl, no history change expected
                check_table_no_new_history "Test Case 6" $o_tbl
-               (( rc=rc+$? ))
+               tbl_rc=$?
+               (( rc=rc+$tbl_rc ))
+               ((tbl_rc)) && echo "check_table_no_new_history returned $tbl_rc" 1>> ${TEMP_LOG} 2>&1
             fi        # o_tbl = i_tbl
          done      # o_tbl loop
 
