@@ -62,7 +62,7 @@ def collision_error(Api_Id, start_api, end_api):
 
 def calculate_statistics(filename, Api_Statistics):
     print ("Aggregator Log").center(print_padding, '+')
-    print filename[2:].center(print_padding, '-')
+    print filename.center(print_padding, '-')
     file_opened = open(filename, 'r')
     file_lines = file_opened.readlines()
     file_start = file_lines[0].split("csm")[0][5:].strip()
@@ -70,7 +70,7 @@ def calculate_statistics(filename, Api_Statistics):
     file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     total_calls = 0
-    stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename[2:].center(print_padding, '-') +'\n' + file_time + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
+    stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename.center(print_padding, '-') +'\n' + file_time + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     if not Api_Statistics['responses']:
         pass
     else:

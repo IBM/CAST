@@ -17,7 +17,7 @@ file(GLOB INSTALL_HELPER_SCRIPTS
     "Master_Stat.py"
     "Aggregator_Stat.py"
     "Utility_Stat.py"
-    "Computer_Stat.py"
+    "Compute_Stat.py"
     "Log_Object.py"
 )
 
