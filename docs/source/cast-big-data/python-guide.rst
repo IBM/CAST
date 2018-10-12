@@ -53,7 +53,7 @@ all entries matching the keyword.
                           [-k [key [key ...]]] [-v] [--size size]
                           [-H [host [host ...]]]
     
-    A tool for finding keywords during the run time of a job.
+    A tool for finding keywords in the "message" field during the run time of a job.
     
     optional arguments:
       -h, --help            show this help message and exit
@@ -74,7 +74,7 @@ all entries matching the keyword.
       -v, --verbose         Displays any logs that matched the keyword search.
       --size size           The number of results to be returned. (default=30)
       -H [host [host ...]], --hostnames [host [host ...]]
-                            A list of hostnames to filter the results to
+                            A list of hostnames to filter the results to (filters on the "hostname" field, job independent).
 
 findJobsRunning.py
 ^^^^^^^^^^^^^^^^^^
@@ -85,7 +85,7 @@ or an end time greater than the supplied time.
 
 .. code-block:: none
 
-    usage: findJobsRunning.py [-h] [-t hostname:port] [-T YYYY-MM-DD HH:MM:SS]
+    usage: findJobsRunning.py [-h] [-t hostname:port] [-T YYYY-MM-DDTHH:MM:SS]
                               [-s size] [-H [host [host ...]]]
     
     A tool for finding jobs running at the specified time.
@@ -96,7 +96,7 @@ or an end time greater than the supplied time.
                             An Elasticsearch server to be queried. This defaults
                             to the contents of environment variable
                             "CAST_ELASTIC".
-      -T YYYY-MM-DD HH:MM:SS, --time YYYY-MM-DD HH:MM:SS
+      -T YYYY-MM-DDTHH:MM:SS, --time YYYY-MM-DDTHH:MM:SS
                             A timestamp representing a point in time to search for
                             all running CSM Jobs. HH, MM, SS are optional, if not
                             set they will be initialized to 0. (default=now)
@@ -155,8 +155,8 @@ The colliding nodes will be sorted by number of jobs they participated in.
 .. code-block:: none
     
     usage: findUserJobs.py [-h] [-u username] [-U userid] [--size size]
-                           [--state state] [--starttime YYYY-MM-DD HH:MM:SS]
-                           [--endtime YYYY-MM-DD HH:MM:SS]
+                           [--state state] [--starttime YYYY-MM-DDTHH:MM:SS]
+                           [--endtime YYYY-MM-DDTHH:MM:SS]
                            [--commonnodes threshold] [-v] [-t hostname:port]
     
     A tool for finding a list of the supplied user's jobs.
@@ -171,11 +171,11 @@ The colliding nodes will be sorted by number of jobs they participated in.
                             must be set.
       --size size           The number of results to be returned. (default=1000)
       --state state         Searches for jobs matching the supplied state.
-      --starttime YYYY-MM-DD HH:MM:SS
+      --starttime YYYY-MM-DDTHH:MM:SS
                             A timestamp representing the beginning of the absolute
                             range to look for failed jobs, if not set no lower
                             bound will be imposed on the search.
-      --endtime YYYY-MM-DD HH:MM:SS
+      --endtime YYYY-MM-DDTHH:MM:SS
                             A timestamp representing the ending of the absolute
                             range to look for failed jobs, if not set no upper
                             bound will be imposed on the search.
