@@ -391,10 +391,6 @@ check_all_tables_new_history()
    return $rc
 }   
 
-# 
-
-
-
 ##################################################################################################################
 # Test Case 0: Clean table data; confirm all tables are empty
 ##################################################################################################################
@@ -647,7 +643,7 @@ done      # i_tbl loop
             
 check_return_flag $rc "Test Case 6: History table entries unexpectedly created or unexpectedly missing."
 
-#rm -f ${TEMP_LOG}
+rm -f ${TEMP_LOG}
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "             Node Inventory DB History Bucket Passed" >> ${LOG}
