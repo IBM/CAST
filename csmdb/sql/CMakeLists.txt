@@ -36,6 +36,7 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_history_delete.sh"
   "csm_db_utils.sh"
   "csm_db_clear_archive_time.sh"
+  "csm_db_history_archive.py"
 )
 
 # Files that should not be executable when shipped
