@@ -46,9 +46,9 @@ def main(args):
     parser.add_argument( '--state', metavar='state', dest='state', default=None, 
         help='Searches for jobs matching the supplied state.')
 
-    parser.add_argument( '--starttime', metavar='YYYY-MM-DD HH:MM:SS', dest='starttime', default=None,
+    parser.add_argument( '--starttime', metavar='YYYY-MM-DDTHH:MM:SS', dest='starttime', default=None,
         help='A timestamp representing the beginning of the absolute range to look for failed jobs, if not set no lower bound will be imposed on the search.')
-    parser.add_argument( '--endtime', metavar='YYYY-MM-DD HH:MM:SS', dest='endtime', default=None,
+    parser.add_argument( '--endtime', metavar='YYYY-MM-DDTHH:MM:SS', dest='endtime', default=None,
         help='A timestamp representing the ending of the absolute range to look for failed jobs, if not set no upper bound will be imposed on the search.')
 
     # TODO should this be a percentage?

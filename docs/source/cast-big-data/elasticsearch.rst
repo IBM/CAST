@@ -53,11 +53,14 @@ in `/opt/ibm/csm/bigdata/elasticsearch/`.
     systemctl enable elasticsearch
     systemctl start elasticsearch
 
-5. (Optional) Run the index template creator script:
+5. Run the index template creator script:
 
 .. code-block:: bash
 
    /opt/ibm/csm/bigdata/elasticsearch/createIndices.sh
+
+.. note:: This is technically optional, however, data will have limited use. This script 
+    configures Elasticsearch to properly parse timestamps.
 
 Elasticsearch should now be operational. If Logstash was properly configured there should already
 be data being written to your index.
