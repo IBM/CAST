@@ -3385,6 +3385,8 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_inventory_collection(
         IN i_vendor                  text[]
 )
 RETURNS void AS $$
+DECLARE
+    guids text[];
 BEGIN
     FOR i IN 1..i_record_count LOOP
         IF EXISTS (SELECT switch_name FROM csm_switch WHERE switch_name = i_switch_name[i]) THEN
@@ -3422,6 +3424,10 @@ BEGIN
                 (i_switch_name[i], i_serial_number[i], now()         , now()          , i_comment[i], i_description[i], i_fw_version[i], i_gu_id[i], i_has_ufm_agent[i], i_hw_version[i], i_ip[i], i_model[i], i_num_modules[i], i_physical_frame_location[i], i_physical_u_location[i], i_ps_id[i], i_role[i], i_server_operation_mode[i], i_sm_mode[i], i_state[i], i_sw_version[i], i_system_guid[i], i_system_name[i], i_total_alarms[i], i_type[i], i_vendor[i]);
         END IF;
     END LOOP;
+    -- Remove old records.
+    SELECT array_agg(gu_id) INTO guids FROM csm_switch WHERE collection_time < now();
+    DELETE FROM csm_switch_inventory WHERE host_system_guid = ANY(guids);
+    DELETE FROM csm_switch WHERE gu_id = ANY(guids);
 END;
 $$ LANGUAGE 'plpgsql';
 
@@ -3478,7 +3484,6 @@ BEGIN
             (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
         END IF;
     END LOOP;
-    
 END;
 $$ LANGUAGE 'plpgsql';
 
