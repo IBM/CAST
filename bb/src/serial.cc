@@ -458,7 +458,7 @@ string getDeviceBySerial(string serial)
             //remove device and then throw
             DriveBySerial.erase(serial);
             SerialByDrive.erase(tmp);
-            throw runtime_error(string("unable to stat getDeviceBySerial(\"") + serial + "\") " + strerror(errno) ) ;
+            throw runtime_error(string("unable to stat getDeviceBySerial(\"") + serial + "\") " + strerror(errno) + " drive: " + tmp.c_str ) ;
         }
         pthread_mutex_unlock(&findSerialMutex);
         return tmp;
