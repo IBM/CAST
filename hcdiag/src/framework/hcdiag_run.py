@@ -71,7 +71,8 @@ def list_available_test_bucket(tconfig, alist) :
 #------------------------------------------------------------------------------ 
 
 VERBOSE_LEVEL= {
-   'info'       : logging.INFO, 
+   'info'       : logging.INFO,
+   'warn'       : logging.WARN,
    'error'      : logging.ERROR,
    'critical'   : logging.CRITICAL,
    'debug'      : logging.DEBUG,
