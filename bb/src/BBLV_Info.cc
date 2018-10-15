@@ -95,6 +95,8 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
                 if ((l_Attempts % 15) == 0)
                 {
                     // Display this message every 15 seconds...
+                    FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
+                             (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
                     LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
                                  << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
                 }
@@ -171,7 +173,9 @@ int BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey)
                 l_LockWasReleased = 1;
                 if (!(i++ % 30))
                 {
-                    LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey;
+                    FL_Write(FLDelay, StageOutEnd, "Waiting for stageout end processing to complete for jobid %ld.",
+                             (uint64_t)jobid, 0, 0, 0);
+                    LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey << ", jobid " << jobid;
                 }
                 usleep((useconds_t)2000000);
            }
@@ -317,6 +321,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                     // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
                     if ((i++ % 40) == 4)
                     {
+                        FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
+                                 pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< removeFromInFlight(): Processing last extent, waiting for in-flight queue to clear of extents for handle " << pExtentInfo.getHandle() \
                                      << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " << pExtentInfo.getSourceIndex();
                     }
@@ -861,7 +867,9 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
                     // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
                     if ((i++ % 40) == 4)
                     {
-                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer():Waiting for in-flight queue to clear of extents for handle " << pHandle \
+                        FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
+                                 pHandle, pContribId, 0, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
                                      << ", contribid " << pContribId;
                     }
                     usleep((useconds_t)250000);

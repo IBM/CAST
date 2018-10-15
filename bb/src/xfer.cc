@@ -66,6 +66,9 @@ string getNVMeByIndex(uint32_t index);
 FL_SetName(FLXfer, "Transfer Flightlog")
 FL_SetSize(FLXfer, 16384)
 
+FL_SetName(FLDelay, "Server Delay Flightlog")
+FL_SetSize(FLDelay, 16384)
+
 void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -551,6 +554,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                 // NOTE: Currently set to log after 1 second of not being able to clear, and every 15 seconds thereafter...
                 if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
                 {
+                    FL_Write6(FLDelay, RestartWaitForStop2, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                              (uint64_t)pJobId, (uint64_t)pJobStepId, (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
                     LOG(bb,info) << ">>>>> DELAY <<<<< contribIdStopped(): Attempting to restart a transfer definition for jobid " << pJobId \
                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
                                  << ". Waiting for all extents to finish being processed on the prior bbServer" \
@@ -716,6 +721,8 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                                                         // NOTE: Currently set to log after 1 second of not being able to clear, and every 10 seconds thereafter...
                                                         if ((i++ % 40) == 4)
                                                         {
+                                                            FL_Write(FLDelay, BundleId, "Attempting to transfer extent from bundle id %ld with a transfer order of %ld. Waiting for the source file with a source index of %ld and transfer order of %ld to be closed. Delay of 250 milliseconds.",
+                                                                     (uint64_t)l_BundleId, (uint64_t)l_TransferOrder, (uint64_t)l_SourceIndex, (uint64_t)l_TransferOrder2);
                                                             LOG(bb,info) << ">>>>> DELAY <<<<< doTransfer(): Attempting to transfer extent from bundle id " << l_BundleId << " with a transfer order of " << l_TransferOrder << ". Waiting for the source file with a source index of " << l_SourceIndex \
                                                                          << " and transfer order of " << l_TransferOrder2 << " to be closed. Delay of 250 milliseconds.";
                                                         }
@@ -1450,12 +1457,14 @@ void* transferWorker(void* ptr)
                                     if (!wrkqmgr.delayMessageSent())
                                     {
                                         wrkqmgr.setDelayMessageSent(true);
-                                        LOG(bb,info)  << ">>>>> DELAY <<<<< transferWorker(): For LVKey " << l_Key << " with " << l_WrkQE->getWrkQ()->size() \
-                                                      << " work queue entrie(s) for " << (float)l_TotalDelay/1000000.0 << " seconds.";
-                                        LOG(bb,debug) << "                                    Throttle rate is " << l_WrkQE->getRate() << " bytes/sec and current bucket value is " << l_WrkQE->getBucket() << ".";
-                                        LOG(bb,debug) << "                                    " << l_LV_Info->getNumberOfExtents() << " extents are ready to transfer and the current length of extent to transfer is " \
-                                                      << l_Extent->getLength() << " bytes.";
-                                        LOG(bb,debug) << "                                    Thread delay is " << (float)l_ThreadDelay/1000000.0 << " seconds.";
+                                        FL_Write6(FLDelay, Throttle, "Total delay for %ld usecs, thread delay for %ld usecs, %ld work queues, throttled work queue %p currently has %ld entries. Throttle rate is %ld bytes/sec.",
+                                                  (uint64_t)l_TotalDelay, (uint64_t)l_ThreadDelay, (uint64_t)wrkqmgr.getNumberOfWorkQueues(), (uint64_t)l_WrkQE, (uint64_t)l_WrkQE->getWrkQ()->size(), (uint64_t)l_WrkQE->getRate());
+                                        LOG(bb,debug)  << ">>>>> DELAY <<<<< transferWorker(): For LVKey " << l_Key << " with " << l_WrkQE->getWrkQ()->size() \
+                                                       << " work queue entrie(s) for " << (float)l_TotalDelay/1000000.0 << " seconds.";
+                                        LOG(bb,debug)  << "                                    Throttle rate is " << l_WrkQE->getRate() << " bytes/sec and current bucket value is " << l_WrkQE->getBucket() << ".";
+                                        LOG(bb,debug)  << "                                    " << l_LV_Info->getNumberOfExtents() << " extents are ready to transfer and the current length of extent to transfer is " \
+                                                       << l_Extent->getLength() << " bytes.";
+                                        LOG(bb,debug)  << "                                    Thread delay is " << (float)l_ThreadDelay/1000000.0 << " seconds.";
                                         if (wrkqmgr.getDumpOnDelay())
                                         {
                                             wrkqmgr.dump("info", " Work Queue Mgr @ Delay", DUMP_ALWAYS);
@@ -1604,6 +1613,7 @@ void* transferWorker(void* ptr)
                         Throttle_Timer.setSnooze(true);
                         unlockTransferQueue(&l_Key, "%transferWorker - Before snoozing");
                         {
+//                            FL_Write(FLDelay, Snooze, "Snoozing for %ld usecs waiting for additional work", (uint64_t)l_Delay, 0, 0, 0);
                             LOG(bb,off) << ">>>>> DELAY <<<<< transferWorker(): Snoozing for " << (float)l_Delay/1000000.0 << " seconds waiting for additional work";
                             usleep((unsigned int)l_Delay);
                         }
@@ -2900,6 +2910,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     // NOTE: Currently set to log after 1 second of not being able to clear, and every 10 seconds thereafter...
                     if ((i++ % 40) == 4)
                     {
+                        FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
+                                 (uint64_t)l_CurrentNumberOfInFlightExtents, (uint64_t)l_LV_Info->getJobId(), 0, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
                         l_LV_Info->getExtentInfo()->dumpInFlight("info");
                         l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");

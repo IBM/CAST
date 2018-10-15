@@ -21,6 +21,7 @@ using namespace boost::archive;
 #include "bberror.h"
 #include "bbinternal.h"
 #include "BBLV_Info.h"
+#include "bbserver_flightlog.h"
 #include "bbwrkqmgr.h"
 #include "HandleFile.h"
 #include "logging.h"
@@ -450,6 +451,8 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
                     if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
                     {
                         // Display this message every 15 seconds...
+                        FL_Write6(FLDelay, PrepareForRestart, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                                  (uint64_t)pJob.getJobId(), (uint64_t)pJob.getJobStepId(), (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo::prepareForRestart: Attempting to restart a transfer definition for jobid " << pJob.getJobId() \
                                      << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
                                      << ". Waiting for the handle to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
