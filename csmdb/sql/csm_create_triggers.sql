@@ -17,9 +17,11 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.1
 --   create:                06-22-2016
---   last modified:         10-09-2018
+--   last modified:         10-15-2018
 --   change log:
---     16.1   - Added more verbose err_text to allocation dumped steps.
+--     16.1   - Updated fn_csm_ib_cable_inventory_collection to remove old records from database
+--            - Updated fn_csm_switch_inventory_collection to remove old records from database
+--            - Added more verbose err_text to allocation dumped steps.
 --            - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
 --            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
 --            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
@@ -3955,6 +3957,9 @@ BEGIN
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
+
+    -- Remove old records
+    DELETE FROM csm_ib_cable WHERE collection_time < now();
 
 END;
 $$ LANGUAGE 'plpgsql';
