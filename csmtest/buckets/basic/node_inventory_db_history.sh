@@ -54,66 +54,6 @@ exception_columns["csm_processor_socket"]="node_name serial_number"
 #unset -v 'tables[csm_ssd]'  'history_tables[csm_ssd]' 'exception_columns[csm_ssd]' 
 #unset -v 'tables[csm_processor_socket]' 'history_tables[csm_processor_socket]' 'exception_columns[csm_processor_socket]' 
 
-
-# Valid test data used for Test Case 6
-#declare -AA test_values
-#test_values["csm_hca,serial_number"]="TEST_DATA"
-#test_values["csm_hca,device_name"]="TEST_DATA"
-#test_values["csm_hca,board_id"]="TEST_DATA"
-#test_values["csm_hca,part_number"]="TEST_DATA"
-#test_values["csm_hca,hw_rev"]="TEST_DATA"
-#test_values["csm_hca,node_name"]="TEST_DATA"
-#test_values["csm_hca,fw_ver"]="TEST_DATA"
-#test_values["csm_hca,pci_bus_id"]="TEST_DATA"
-#test_values["csm_hca,guid"]="TEST_DATA"
-#test_values["csm_gpu,hbm_memory"]="7777777"
-#test_values["csm_gpu,serial_number"]="TEST_DATA"
-#test_values["csm_gpu,uuid"]="TEST_DATA"
-#test_values["csm_gpu,device_name"]="TEST_DATA"
-#test_values["csm_gpu,inforom_image_version"]="TEST_DATA"
-#test_values["csm_gpu,node_name"]="TEST_DATA"
-#test_values["csm_gpu,gpu_id"]="7777777"
-#test_values["csm_gpu,pci_bus_id"]="TEST_DATA"
-#test_values["csm_gpu,vbios"]="TEST_DATA"
-#test_values["csm_node,installed_memory"]="7777777"
-#test_values["csm_node,discovered_hcas"]="7777777"
-#test_values["csm_node,comment"]="TEST_DATA"
-#test_values["csm_node,os_image_name"]="TEST_DATA"
-#test_values["csm_node,os_image_uuid"]="TEST_DATA"
-#test_values["csm_node,serial_number"]="TEST_DATA"
-#test_values["csm_node,machine_model"]="TEST_DATA"
-#test_values["csm_node,discovered_cores"]="7777777"
-#test_values["csm_node,discovered_gpus"]="7777777"
-#test_values["csm_node,installed_swap"]="7777777"
-#test_values["csm_node,kernel_version"]="TEST_DATA"
-#test_values["csm_node,secondary_agg"]="TEST_DATA"
-#test_values["csm_node,kernel_release"]="TEST_DATA"
-#test_values["csm_node,feature_3"]="TEST_DATA"
-#test_values["csm_node,hard_power_cap"]="TEST_DATA"
-#test_values["csm_node,feature_2"]="TEST_DATA"
-#test_values["csm_node,discovered_sockets"]="7777777"
-#test_values["csm_node,feature_1"]="TEST_DATA"
-#test_values["csm_node,physical_u_location"]="TEST_DATA"
-#test_values["csm_node,primary_agg"]="TEST_DATA"
-#test_values["csm_node,node_name"]="TEST_DATA"
-#test_values["csm_node,feature_4"]="TEST_DATA"
-#test_values["csm_node,type"]="TEST_DATA"
-#test_values["csm_node,physical_frame_location"]="TEST_DATA"
-#test_values["csm_processor_socket,physical_location"]="TEST_DATA"
-#test_values["csm_processor_socket,serial_number"]="TEST_DATA"
-#test_values["csm_processor_socket,discovered_cores"]="7777777"
-#test_values["csm_processor_socket,node_name"]="TEST_DATA"
-#test_values["csm_dimm,physical_location"]="TEST_DATA"
-#test_values["csm_dimm,size"]="7777777"
-#test_values["csm_dimm,serial_number"]="TEST_DATA"
-#test_values["csm_dimm,node_name"]="TEST_DATA"
-#test_values["csm_ssd,size"]="7777777"
-#test_values["csm_ssd,serial_number"]="TEST_DATA"
-#test_values["csm_ssd,device_name"]="TEST_DATA"
-#test_values["csm_ssd,node_name"]="TEST_DATA"
-#test_values["csm_ssd,fw_ver"]="TEST_DATA"
-#test_values["csm_ssd,pci_bus_id"]="TEST_DATA"
-
 # Input = return code from command, expected return code.  This will exit script on unexpected return code
 check_return_exit () {
         if [ $1 -ne $2 ]
@@ -630,7 +570,6 @@ for i_tbl in "${tables[@]}" ; do
          # Only try to modify the normal columns
          # Use a value that is valid for both text and integer columns, timestamp columns are all exception columns 
          test_value="7777777" 
-         #echo "Test Case 6: changing $i_tbl,$i_col to ${test_values[$i_tbl,$i_col]}" 1>> ${TEMP_LOG} 2>&1
          echo "Test Case 6: changing $i_tbl,$i_col to $test_value" 1>> ${TEMP_LOG} 2>&1
 
          #######################################################################
