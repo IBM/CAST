@@ -726,8 +726,9 @@ const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_input_t= {
     cast_csm_ib_cable_inventory_collection_input_t
 };
 
-const csmi_struct_node_t csm_ib_cable_inventory_collection_output_tree[2] = {{"insert_count",offsetof(csm_ib_cable_inventory_collection_output_t,insert_count),0,NULL,0x7bae7a22,36},
-{"update_count",offsetof(csm_ib_cable_inventory_collection_output_t,update_count),0,NULL,0x191a1ab0,36}}
+const csmi_struct_node_t csm_ib_cable_inventory_collection_output_tree[3] = {{"update_count",offsetof(csm_ib_cable_inventory_collection_output_t,update_count),0,NULL,0x191a1ab0,36},
+{"delete_count",offsetof(csm_ib_cable_inventory_collection_output_t,delete_count),0,NULL,0x103b6a80,36},
+{"insert_count",offsetof(csm_ib_cable_inventory_collection_output_t,insert_count),0,NULL,0x7bae7a22,36}}
 ;
 
 void* cast_csm_ib_cable_inventory_collection_output_t(void* ptr,size_t index, char isArray) { 
@@ -735,7 +736,7 @@ void* cast_csm_ib_cable_inventory_collection_output_t(void* ptr,size_t index, ch
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_output_t= {
-    2,
+    3,
     csm_ib_cable_inventory_collection_output_tree,
     cast_csm_ib_cable_inventory_collection_output_t
 };

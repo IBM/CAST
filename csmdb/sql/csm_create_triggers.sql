@@ -3427,8 +3427,11 @@ BEGIN
         END IF;
     END LOOP;
     -- Remove old records.
+    -- Collect a list of switches that are old
     SELECT array_agg(gu_id) INTO guids FROM csm_switch WHERE collection_time < now();
+    -- delete the children of these switches
     DELETE FROM csm_switch_inventory WHERE host_system_guid = ANY(guids);
+    -- delete the switches in the list
     DELETE FROM csm_switch WHERE gu_id = ANY(guids);
 END;
 $$ LANGUAGE 'plpgsql';
@@ -3486,6 +3489,8 @@ BEGIN
             (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
         END IF;
     END LOOP;
+    -- Remove old records. 
+    DELETE FROM csm_switch_inventory WHERE collection_time < now();
 END;
 $$ LANGUAGE 'plpgsql';
 
@@ -3923,12 +3928,14 @@ CREATE OR REPLACE FUNCTION fn_csm_ib_cable_inventory_collection(
     IN i_type          text[],
     IN i_width         text[],
     OUT o_insert_count int,
-    OUT o_update_count int
+    OUT o_update_count int,
+    OUT o_delete_count int
 )
 RETURNS record AS $$
 BEGIN
     o_insert_count := 0;
     o_update_count := 0;
+    o_delete_count := 0;
     FOR i IN 1..i_record_count LOOP
         IF EXISTS (SELECT serial_number FROM csm_ib_cable WHERE serial_number = i_serial_number[i]) THEN
             UPDATE csm_ib_cable
@@ -3958,6 +3965,8 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- Set return data.
+    SELECT count(serial_number) INTO o_delete_count FROM csm_ib_cable WHERE collection_time < now();
     -- Remove old records
     DELETE FROM csm_ib_cable WHERE collection_time < now();
 

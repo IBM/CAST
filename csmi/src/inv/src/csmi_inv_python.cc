@@ -716,7 +716,8 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 
     class_<csm_ib_cable_inventory_collection_output_t,csm_ib_cable_inventory_collection_output_t*>("ib_cable_inventory_collection_output_t")
 		.add_property("insert_count", &csm_ib_cable_inventory_collection_output_t::insert_count,&csm_ib_cable_inventory_collection_output_t::insert_count," number of new records inserted into the database. ")
-		.add_property("update_count", &csm_ib_cable_inventory_collection_output_t::update_count,&csm_ib_cable_inventory_collection_output_t::update_count," number of old records updated in the database. ");
+		.add_property("update_count", &csm_ib_cable_inventory_collection_output_t::update_count,&csm_ib_cable_inventory_collection_output_t::update_count," number of old records updated in the database. ")
+		.add_property("delete_count", &csm_ib_cable_inventory_collection_output_t::delete_count,&csm_ib_cable_inventory_collection_output_t::delete_count," number of old records removed from the database. ");
 
     class_<csm_ib_cable_query_input_t,csm_ib_cable_query_input_t*>("ib_cable_query_input_t")
 		.add_property("limit", &csm_ib_cable_query_input_t::limit,&csm_ib_cable_query_input_t::limit," SQL 'LIMIT' numeric value. API will ignore values less than 1.")

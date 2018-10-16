@@ -572,6 +572,7 @@ int main(int argc, char *argv[])
 			std::cout << "# total ib inventory collected: " << IBinput->inventory_count << std::endl;
 			std::cout << "# new ib records inserted into database: " << IBoutput->insert_count << std::endl;
 			std::cout << "# old ib records updated in database: " << IBoutput->update_count << std::endl;
+			std::cout << "# old ib records removed from the database: " << IBoutput->delete_count << std::endl;
 			
 			if(((unsigned)IBoutput->insert_count + IBoutput->update_count) != IBinput->inventory_count){
 				std::cout <<  "# WARNING: inserted records and updated records do not match total inventory collected."  << std::endl;
