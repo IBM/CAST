@@ -3384,12 +3384,20 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_inventory_collection(
         IN i_system_name             text[],
         IN i_total_alarms            int[],
         IN i_type                    text[],
-        IN i_vendor                  text[]
+        IN i_vendor                  text[],
+        OUT o_insert_count int,
+        OUT o_update_count int,
+        OUT o_delete_count int,
+        OUT o_delete_module_count int
 )
-RETURNS void AS $$
+RETURNS record AS $$
 DECLARE
     guids text[];
 BEGIN
+    o_insert_count := 0;
+    o_update_count := 0;
+    o_delete_count := 0;
+    o_delete_module_count := 0;
     FOR i IN 1..i_record_count LOOP
         IF EXISTS (SELECT switch_name FROM csm_switch WHERE switch_name = i_switch_name[i]) THEN
             UPDATE csm_switch
@@ -3420,15 +3428,21 @@ BEGIN
                 vendor = i_vendor[i]
             WHERE
                 switch_name = i_switch_name[i];
+            o_update_count := o_update_count + 1;
         ELSE
             INSERT INTO csm_switch
                 (switch_name     , serial_number     , discovery_time, collection_time, comment     , description     , fw_version     , gu_id     , has_ufm_agent     , hw_version     , ip     , model     , num_modules     , physical_frame_location     , physical_u_location     , ps_id     , role     , server_operation_mode     , sm_mode     , state     , sw_version     , system_guid     , system_name     , total_alarms     , type     , vendor     ) VALUES
                 (i_switch_name[i], i_serial_number[i], now()         , now()          , i_comment[i], i_description[i], i_fw_version[i], i_gu_id[i], i_has_ufm_agent[i], i_hw_version[i], i_ip[i], i_model[i], i_num_modules[i], i_physical_frame_location[i], i_physical_u_location[i], i_ps_id[i], i_role[i], i_server_operation_mode[i], i_sm_mode[i], i_state[i], i_sw_version[i], i_system_guid[i], i_system_name[i], i_total_alarms[i], i_type[i], i_vendor[i]);
+            o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
     -- Remove old records.
     -- Collect a list of switches that are old
     SELECT array_agg(gu_id) INTO guids FROM csm_switch WHERE collection_time < now();
+    -- Set return data.
+    SELECT count(switch_name) INTO o_delete_count FROM csm_switch WHERE collection_time < now();
+    -- Set return data.
+    SELECT count(name) INTO o_delete_module_count FROM csm_switch_inventory WHERE host_system_guid = ANY(guids);
     -- delete the children of these switches
     DELETE FROM csm_switch_inventory WHERE host_system_guid = ANY(guids);
     -- delete the switches in the list
