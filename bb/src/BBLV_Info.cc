@@ -74,43 +74,54 @@ int BBLV_Info::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, const int pRemoveOption)
+void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
-    extentInfo.sortExtents(pLVKey, pHandle, pContribId);
 
-    // Indicate that next findWork() needs to look for canceled extents
-    wrkqmgr.setCheckForCanceledExtents(1);
+    // NOTE: pLockWasReleased intentially not initialized
+
+    size_t l_NumberOfNewExtentsCanceled = 0;
+    extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);
+
+    // If new extents canceled, indicate that next findWork() needs to look for canceled extents
+    if (l_NumberOfNewExtentsCanceled)
+    {
+        wrkqmgr.setCheckForCanceledExtents(1);
+    }
 
     // If we are to perform remove operations for target PFS files, do so now...
     if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
     {
-        // Wait for the canceled extents to be processed
-        uint64_t l_Attempts = 1;
-        while (1)
+        if (l_NumberOfNewExtentsCanceled)
         {
-            if (wrkqmgr.getCheckForCanceledExtents())
+            // Wait for the canceled extents to be processed
+            uint64_t l_Attempts = 1;
+            while (1)
             {
-                if ((l_Attempts % 15) == 0)
+                if (wrkqmgr.getCheckForCanceledExtents())
                 {
-                    // Display this message every 15 seconds...
-                    FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
-                             (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
-                    LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
-                                 << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
-                }
+                    if ((l_Attempts % 15) == 0)
+                    {
+                        // Display this message every 15 seconds...
+                        FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
+                                 (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                                     << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                    }
 
-                unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
-                {
-                    usleep((useconds_t)1000000);    // Delay 1 second
+                    unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                    {
+                        pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                        usleep((useconds_t)1000000);    // Delay 1 second
+                    }
+                    lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                    ++l_Attempts;
                 }
-                lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
-                ++l_Attempts;
-            }
-            else
-            {
-                break;
+                else
+                {
+                    break;
+                }
             }
         }
 
@@ -152,11 +163,12 @@ void BBLV_Info::dump(char* pSev, const char* pPrefix)
     return;
 }
 
-int BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey)
+void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
-    int l_LockWasReleased = 0;
+    // NOTE: pLockWasReleased intentially not initialized
 
-    if (!stageOutEnded()) {
+    if (!stageOutEnded())
+    {
         LOG(bb,info) << "taginfo: Stageout end processing being initiated for jobid " << jobid << ", for " << *pLVKey;
 
         // NOTE: if stageoutEnd() fails, it fills in errstate.  However, we are not setting a rc here...
@@ -164,13 +176,15 @@ int BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey)
         {
             LOG(bb,error) << "BBLV_Info::ensureStageOutEnded():  Failure from stageoutEnd() for LVKey " << *pLVKey;
         }
-    } else {
+    }
+    else
+    {
         uint32_t i = 0;
         while (!stageOutEndedComplete())
         {
             unlockTransferQueue(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
             {
-                l_LockWasReleased = 1;
+                pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
                 if (!(i++ % 30))
                 {
                     FL_Write(FLDelay, StageOutEnd, "Waiting for stageout end processing to complete for jobid %ld.",
@@ -183,7 +197,7 @@ int BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey)
         }
     }
 
-    return l_LockWasReleased;
+    return;
 }
 
 BBSTATUS BBLV_Info::getStatus(const uint64_t pHandle, BBTagInfo* pTagInfo)
@@ -814,8 +828,10 @@ void BBLV_Info::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHa
     return;
 }
 
-void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, const int pRemoveOption)
+void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, TRANSFER_QUEUE_RELEASED& pLockWasReleased, const int pRemoveOption)
 {
+    // NOTE: pLockWasReleased intentially not initialized
+
     if (jobid == pJobId)
     {
         tagInfoMap.setCanceled(pLVKey, pJobId, pJobStepId, pHandle);
@@ -823,7 +839,7 @@ void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(pLVKey, &pHandle, &l_ContribId, pRemoveOption);
+        cancelExtents(pLVKey, &pHandle, &l_ContribId, pLockWasReleased, pRemoveOption);
     }
 
     return;
@@ -845,9 +861,11 @@ int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, const 
     return rc;
 }
 
-int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId)
+int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
+
+    // NOTE: pLockWasReleased intentially not initialized
 
     if ((pHostName == UNDEFINED_HOSTNAME || pHostName == hostname) && (pJobId == UNDEFINED_JOBID || pJobId == jobid))
     {
@@ -864,6 +882,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
             {
                 unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
                 {
+                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
                     // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
                     if ((i++ % 40) == 4)
                     {
@@ -877,7 +896,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
                 lockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
             }
 
-            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
 
             if (rc == 1)
             {
@@ -885,7 +904,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
                 //
                 // Sort the extents, moving the canceled extents to the front of
                 // the work queue so they are immediately removed...
-                cancelExtents(pLVKey, &pHandle, &pContribId, DO_NOT_REMOVE_TARGET_PFS_FILES);
+                cancelExtents(pLVKey, &pHandle, &pContribId, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
             }
         }
         else

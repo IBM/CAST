@@ -315,7 +315,8 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
+                            TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {

@@ -1390,10 +1390,12 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
     return;
 }
 
-int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
     stringstream errorText;
+
+    // NOTE: pLockWasReleased intentially not initialized
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1435,6 +1437,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
                     unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                     {
+                        pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
                         usleep((useconds_t)1000000);    // Delay 1 second
                     }
                     lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");

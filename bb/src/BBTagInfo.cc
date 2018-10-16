@@ -710,14 +710,15 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
     return;
 }
 
-int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
+    // NOTE: pLockWasReleased intentially not initialized
 
     if (pHandle == transferHandle)
     {
-        rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+        rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
         if (rc == 1)
         {
             int l_Value = 1;
