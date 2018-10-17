@@ -512,7 +512,6 @@ rm -f ${TEMP_LOG}
 #################################################################################################################
 # Test Case 6: Change individual inventory fields and recollect inventory, confirm expected history is created
 #################################################################################################################
-echo "Test Case 6: Change individual inventory fields and recollect inventory, confirm expected history is created." >> ${LOG}
 
 # This test is two sets of double loops
 # The outer two loops loop through all tables, all columns and modify the value for each "normal" column, one by one
