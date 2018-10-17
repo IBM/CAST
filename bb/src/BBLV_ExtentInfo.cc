@@ -694,13 +694,15 @@ int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, 
     return rc;
 }
 
-int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId)
+int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtentsCanceled, uint64_t* pHandle, uint32_t* pContribId)
 {
     const uint64_t l_CanceledGroupKey = 1;
     const uint64_t l_CanceledFileKey = 1;
     const uint64_t l_NonCanceledGroupKey = 2;
     const uint64_t l_NonCanceledFileKey = 1;
     int rc = 0;
+
+    pNumberOfNewExtentsCanceled = 0;
 
     if ((pHandle && pContribId) || resizeLogicalVolumeDuringStageOut() || BSCFS_InRequest())
     {
@@ -722,7 +724,6 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_
                 // When entering, we are assured there are no in-flight extents for this LVKey
 
                 size_t l_AlreadyMarkedAsCanceled = 0;
-                size_t l_MarkedAsCanceled = 0;
                 size_t l_NotMarkedAsCanceled = 0;
                 size_t l_NotMarkedAsCanceledBSCFS = 0;
                 bool l_CheckForNewlyCanceledExtents = ((pHandle && pContribId) ? true : false);
@@ -760,7 +761,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_
                         l_Extent->lba.filekey = l_CanceledFileKey;
 
                         l_Extent->setCanceled();
-                        ++l_MarkedAsCanceled;
+                        ++pNumberOfNewExtentsCanceled;
                     }
                     else if (l_Extent->isRegularExtent())
                     {
@@ -866,7 +867,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_
                 }
 
                 LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", " << l_AlreadyMarkedAsCanceled << " extent(s) were already marked as canceled, " \
-                             << l_MarkedAsCanceled << " additional extent(s) were newly marked as canceled, " \
+                             << pNumberOfNewExtentsCanceled << " additional extent(s) were newly marked as canceled, " \
                              << l_NotMarkedAsCanceled << " regular and " << l_NotMarkedAsCanceledBSCFS << " BSCFS extent(s) remain to be transfered";
             }
             else

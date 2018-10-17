@@ -238,16 +238,18 @@ int BBTagParts::setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t 
     return rc;
 }
 
-int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
+
+    // NOTE: pLockWasReleased intentially not initialized
 
     for (auto it = tagParts.begin(); ((!rc) && it != tagParts.end()); ++it)
     {
         if (pContribId == UNDEFINED_CONTRIBID || it->first == pContribId)
         {
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
-            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
         }
     }
 

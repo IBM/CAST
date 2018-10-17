@@ -315,7 +315,8 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, REMOVE_TARGET_PFS_FILES);
+                            TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -1911,6 +1912,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                     if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
                                                     {
                                                         // Display this message every 15 seconds...
+                                                        FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                                                                  (uint64_t)l_Job.getJobId(), (uint64_t)l_Job.getJobStepId(), (uint64_t)l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
                                                         LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
                                                                      << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
                                                                      << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
