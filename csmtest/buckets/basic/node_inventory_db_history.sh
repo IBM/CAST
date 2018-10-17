@@ -13,6 +13,13 @@ LOG=${LOG_PATH}/buckets/basic/node_inventory_db_history.log
 TEMP_LOG=${LOG_PATH}/buckets/basic/node_inventory_db_history_tmp.log
 SBIN_PATH=/opt/ibm/csm/sbin
 
+if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
+then
+        . "${BASH_SOURCE%/*}/../../include/functions.sh"
+else
+        echo "Could not find functions file expected at /../../include/functions.sh, exiting."
+fi
+
 # The list of the node inventory active tables, indexed by table name
 declare -AA tables
 tables["csm_node"]="csm_node"
