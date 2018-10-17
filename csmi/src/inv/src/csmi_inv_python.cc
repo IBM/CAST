@@ -895,7 +895,10 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		ARRAY_STRUCT_PROPERTY(csm_switch_children_inventory_collection_input_t, csmi_switch_details_t**, inventory, inventory_count, NULL, csmi_switch_details_t);
 
     class_<csm_switch_children_inventory_collection_output_t,csm_switch_children_inventory_collection_output_t*>("switch_children_inventory_collection_output_t")
-		.add_property("TBD", &csm_switch_children_inventory_collection_output_t::TBD,&csm_switch_children_inventory_collection_output_t::TBD," TBD. ");
+		.add_property("TBD", &csm_switch_children_inventory_collection_output_t::TBD,&csm_switch_children_inventory_collection_output_t::TBD," TBD. ")
+		.add_property("insert_count", &csm_switch_children_inventory_collection_output_t::insert_count,&csm_switch_children_inventory_collection_output_t::insert_count," number of new records inserted into the database. ")
+		.add_property("update_count", &csm_switch_children_inventory_collection_output_t::update_count,&csm_switch_children_inventory_collection_output_t::update_count," number of old records updated in the database. ")
+		.add_property("delete_count", &csm_switch_children_inventory_collection_output_t::delete_count,&csm_switch_children_inventory_collection_output_t::delete_count," number of old records removed from the database. ");
 
     class_<csm_cluster_query_state_input_t,csm_cluster_query_state_input_t*>("cluster_query_state_input_t")
 		.add_property("limit", &csm_cluster_query_state_input_t::limit,&csm_cluster_query_state_input_t::limit," SQL 'LIMIT' numeric value. API will ignore values less than 1.")

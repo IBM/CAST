@@ -757,7 +757,7 @@ int main(int argc, char *argv[])
 		//prevent a reading from output if API fails
 		if(return_value == CSMI_SUCCESS)
 		{
-			std::cout << "# total switch inventory collected: " << SWITCHinput->inventory_count << std::endl;
+            std::cout << "# total switch inventory collected: " << SWITCHinput->inventory_count << std::endl;
 			std::cout << "# new switch records inserted into database: " << SWITCHoutput->insert_count << std::endl;
 			std::cout << "# old switch records updated in database: " << SWITCHoutput->update_count << std::endl;
 			std::cout << "# old switch records removed from the database: " << SWITCHoutput->delete_count << std::endl;
@@ -790,6 +790,34 @@ int main(int argc, char *argv[])
 				break;
 			default:
 				printf("%s FAILED: errcode: %d errmsg: %s\n",argv[0], return_value,  csm_api_object_errmsg_get(csm_obj));
+		}
+
+		//prevent a reading from output if API fails
+		if(return_value == CSMI_SUCCESS)
+		{
+			//Get the total number of switch modules.
+			//Go through each switch and count their modules. 
+            uint32_t total_modules = 0;
+            for(uint32_t i = 0; i < SWITCHinput->inventory_count; i++)
+            {
+            	//switch modules inventory begin
+			    uint32_t j = 0; // module
+                //loop through modules inventory on this switch
+			    for(j = 0; j < SWITCHinput->inventory[i]->inventory_count; j++){
+                    total_modules++;
+                }
+            }
+
+
+			std::cout << "# total switch module inventory collected: " << total_modules << std::endl;
+			std::cout << "# new switch module records inserted into database: " << SWITCHoutput_children->insert_count << std::endl;
+			std::cout << "# old switch module records updated in database: " << SWITCHoutput_children->update_count << std::endl;
+			std::cout << "# old switch module records removed from the database: " << SWITCHoutput_children->delete_count << std::endl;
+			
+			if(((unsigned)SWITCHoutput_children->insert_count + SWITCHoutput_children->update_count) != total_modules){
+				std::cout <<  "# WARNING: inserted records and updated records do not match total inventory collected."  << std::endl;
+				std::cout <<  "# records dropped: " << total_modules - SWITCHoutput_children->insert_count - SWITCHoutput_children->update_count << std::endl;
+			}
 		}
 		
 		// Use CSM API free to release arguments. We no longer need them.
