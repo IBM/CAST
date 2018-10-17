@@ -16,6 +16,11 @@
 #ifndef CSMD_SRC_DAEMON_INCLUDE_CSM_BDS_EVENT_H_
 #define CSMD_SRC_DAEMON_INCLUDE_CSM_BDS_EVENT_H_
 
+#include "csm_core_event.h"
+
+#include <string>
+#include <deque>
+
 namespace csm {
 namespace daemon {
 
