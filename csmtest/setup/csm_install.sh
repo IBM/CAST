@@ -209,6 +209,13 @@ if [ ${AGGREGATOR_A} == ${AGGREGATOR_B} ]
 		sed -i -- "s/__AGGREGATOR_A__/${AGGREGATOR_B}/g" csm_compute_B.cfg
 		sed -i -- "s/__AGGREGATOR_B__/${AGGREGATOR_A}/g" csm_compute_B.cfg
 fi
+if [ ! -z $LOGSTASH ]
+	then
+		sed -i -- "s/__LOGSTASH__/${LOGSTASH}/g" csm_aggregator_A.cfg
+		sed -i -- "s/__LOGSTASH__/${LOGSTASH}/g" csm_aggregator_B.cfg
+	else
+		echo "LOGSTASH not defined in csm_test.cfg.  Skipping BDS setup" 
+fi
 
 # Configuration file distribution
 xdsh csm_comp,utility "mkdir -p /etc/ibm/csm"
