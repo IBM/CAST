@@ -420,7 +420,6 @@ rm -f ${TEMP_LOG}
 ##################################################################################################################
 # Test Case 1: Start the compute daemon; confirm inventory entries are created in the active and history tables 
 ##################################################################################################################
-echo "Test Case 1: Start the compute daemon; confirm inventory entries are created in the active and history tables." >> ${LOG}
 read_db_before
 
 xdsh $SINGLE_COMPUTE "systemctl start csmd-compute" 1>> ${TEMP_LOG} 2>&1
