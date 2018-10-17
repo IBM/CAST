@@ -469,7 +469,6 @@ rm -f ${TEMP_LOG}
 #################################################################################################################
 # Test Case 4: Stop the compute daemon and delete it from the DB; confirm entries are created in the history tables 
 #################################################################################################################
-echo "Test Case 4: Stop the compute daemon and delete it from the DB; confirm entries are created in the history tables." >> ${LOG}
 read_db_before
 
 xdsh $SINGLE_COMPUTE "systemctl stop csmd-compute" 1>> ${TEMP_LOG} 2>&1
