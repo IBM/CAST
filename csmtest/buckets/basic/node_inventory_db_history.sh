@@ -416,7 +416,6 @@ check_all_tables_empty
 check_return_exit $? 0 "Test Case 0: Clean table data; confirm all tables are empty"
 
 rm -f ${TEMP_LOG}
-echo "------------------------------------------------------------" >> ${LOG}
 
 ##################################################################################################################
 # Test Case 1: Start the compute daemon; confirm inventory entries are created in the active and history tables 
