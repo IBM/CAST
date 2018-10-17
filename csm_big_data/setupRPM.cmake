@@ -20,8 +20,9 @@ set( CPACK_RPM_csm-bds_PRE_UNINSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.pre.uninstall" )
 
 # Setup Kibana RPM
-SET(CPACK_RPM_csm-kibana_PACKAGE_ARCHITECTURE "noarch")
-set( CPACK_RPM_csm-kibana_POST_UNINSTALL_SCRIPT_FILE
+SET(CPACK_RPM_csm-bds-kibana_PACKAGE_ARCHITECTURE "noarch")
+set( CPACK_RPM_csm-bds-kibana_POST_UNINSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/kibana.post.uninstall")
-set( CPACK_RPM_csm-kibana_POST_INSTALL_SCRIPT_FILE
+set( CPACK_RPM_csm-bds-kibana_POST_INSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/kibana.post.install")
+set(CPACK_RPM_csm-bds-kibana_PACKAGE_REQUIRES "kibana >= 6.2.3")
