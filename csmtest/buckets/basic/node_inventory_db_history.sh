@@ -400,7 +400,6 @@ check_all_tables_new_history()
 ##################################################################################################################
 # Test Case 0: Clean table data; confirm all tables are empty
 ##################################################################################################################
-echo "Test Case 0: Clean table data; confirm all tables are empty" >> ${LOG}
 read_db_before
 
 xdsh $SINGLE_COMPUTE "systemctl stop csmd-compute" 1>> ${TEMP_LOG} 2>&1
