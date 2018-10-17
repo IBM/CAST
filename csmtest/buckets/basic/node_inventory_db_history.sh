@@ -487,7 +487,6 @@ check_all_tables_new_history "Test Case 4"
 check_return_flag $rc "Test Case 4: Active tables are not empty or new history entries were not created."
 
 rm -f ${TEMP_LOG}
-echo "------------------------------------------------------------" >> ${LOG}
 
 #################################################################################################################
 # Test Case 5: Start the compute daemon; confirm active tables are populated and new history entries are created 
