@@ -399,7 +399,7 @@ check_all_tables_populated "Test Case 1"
 check_all_tables_new_history "Test Case 1"
 (( rc=rc+$? ))
 
-check_return_flag $rc "Test Case 1: Not all tables were populated with inventory data."
+check_return_flag $rc "Test Case 1: Start the compute daemon; confirm entries are created in the active and history tables"
 
 rm -f ${TEMP_LOG}
 
@@ -413,7 +413,7 @@ sleep 1
 
 read_db_after
 check_all_tables_no_new_history "Test Case 2"
-check_return_flag $? "Test Case 2: New history entries were created incorrectly."
+check_return_flag $? "Test Case 2: Change the compute node state; confirm no entries are created in the history tables"
 
 rm -f ${TEMP_LOG}
 
@@ -427,7 +427,7 @@ sleep 1
 
 read_db_after
 check_all_tables_no_new_history "Test Case 3"
-check_return_flag $? "Test Case 3: New history entries were created incorrectly."
+check_return_flag $? "Test Case 3: Restart the compute daemon; confirm no entries are created in the history tables"
 
 rm -f ${TEMP_LOG}
 
@@ -449,7 +449,7 @@ check_all_active_tables_empty "Test Case 4"
 check_all_tables_new_history "Test Case 4"
 (( rc=rc+$? ))
 
-check_return_flag $rc "Test Case 4: Active tables are not empty or new history entries were not created."
+check_return_flag $rc "Test Case 4: Stop the compute daemon, delete it from DB; confirm history table entries are created"
 
 rm -f ${TEMP_LOG}
 
@@ -470,7 +470,7 @@ check_all_tables_populated "Test Case 5"
 check_all_tables_new_history "Test Case 5"
 (( rc=rc+$? ))
 
-check_return_flag $rc "Test Case 5: Not all tables were populated with inventory data or new history entries were not created."
+check_return_flag $rc "Test Case 5: Start the compute daemon; confirm entries are created in the active and history tables"
 
 rm -f ${TEMP_LOG}
 
@@ -599,7 +599,7 @@ for i_tbl in "${tables[@]}" ; do
    done      # i_col loop 
 done      # i_tbl loop
             
-check_return_flag $rc "Test Case 6: History table entries unexpectedly created or unexpectedly missing."
+check_return_flag $rc "Test Case 6: Change inventory fields and recollect inventory, confirm expected history is created"
 
 rm -f ${TEMP_LOG}
 
