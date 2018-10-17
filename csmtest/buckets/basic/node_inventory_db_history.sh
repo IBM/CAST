@@ -61,41 +61,6 @@ exception_columns["csm_processor_socket"]="node_name serial_number"
 #unset -v 'tables[csm_ssd]'  'history_tables[csm_ssd]' 'exception_columns[csm_ssd]' 
 #unset -v 'tables[csm_processor_socket]' 'history_tables[csm_processor_socket]' 'exception_columns[csm_processor_socket]' 
 
-check_return_exit () {
-        if [ $1 -ne $2 ]
-        then
-                echo "FAILED" >> ${LOG}
-                exit 1
-        else
-                echo "PASS" >> ${LOG}
-        fi
-}
-
-# Input = return code from command.  This will flag the test case as failed on a non-zero return code
-check_return_flag () {
-        if [ $1 -ne 0 ]
-        then
-                FLAGS+="\n$2"
-                echo "FAILED" >> ${LOG}
-        else
-                echo "PASS" >> ${LOG}
-        fi
-}
-
-# Input = set of strings expected in command output.  This will return 1 if any of the input strings are not found, 0 if they are all found
-check_all_output () {
-        for arg in "$@"
-        do
-                cat ${TEMP_LOG} | grep "${arg}"
-                if [ $? -ne 0 ]
-                then
-                        return 1
-                fi
-        done
-        return 0
-}
-
-
 # DEVEL - DELETE LOG if it exists
 if [ -e ${LOG} ]
 then
