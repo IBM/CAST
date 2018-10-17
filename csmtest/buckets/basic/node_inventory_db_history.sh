@@ -455,7 +455,6 @@ rm -f ${TEMP_LOG}
 #################################################################################################################
 # Test Case 3: Restart the compute daemon; confirm no entries are created in the history tables 
 #################################################################################################################
-echo "Test Case 3: Restart the compute daemon; confirm no entries are created in the history tables." >> ${LOG}
 read_db_before
 
 xdsh $SINGLE_COMPUTE "systemctl restart csmd-compute" 1>> ${TEMP_LOG} 2>&1
