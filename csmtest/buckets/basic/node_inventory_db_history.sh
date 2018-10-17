@@ -413,7 +413,7 @@ done
 read_db_after
 
 check_all_tables_empty
-check_return_exit $? 0
+check_return_exit $? 0 "Test Case 0: Clean table data; confirm all tables are empty"
 
 rm -f ${TEMP_LOG}
 echo "------------------------------------------------------------" >> ${LOG}
