@@ -437,7 +437,6 @@ check_all_tables_new_history "Test Case 1"
 check_return_flag $rc "Test Case 1: Not all tables were populated with inventory data."
 
 rm -f ${TEMP_LOG}
-echo "------------------------------------------------------------" >> ${LOG}
 
 #################################################################################################################
 # Test Case 2: Change the compute node state; confirm no entries are created in the history tables 
