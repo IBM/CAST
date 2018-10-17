@@ -491,7 +491,6 @@ rm -f ${TEMP_LOG}
 #################################################################################################################
 # Test Case 5: Start the compute daemon; confirm active tables are populated and new history entries are created 
 #################################################################################################################
-echo "Test Case 5: Start the compute daemon; confirm active tables are populated and new history entries are created." >> ${LOG}
 read_db_before
 
 xdsh $SINGLE_COMPUTE "systemctl start csmd-compute" 1>> ${TEMP_LOG} 2>&1
