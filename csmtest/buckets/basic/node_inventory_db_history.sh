@@ -508,7 +508,6 @@ check_all_tables_new_history "Test Case 5"
 check_return_flag $rc "Test Case 5: Not all tables were populated with inventory data or new history entries were not created."
 
 rm -f ${TEMP_LOG}
-echo "------------------------------------------------------------" >> ${LOG}
 
 #################################################################################################################
 # Test Case 6: Change individual inventory fields and recollect inventory, confirm expected history is created
