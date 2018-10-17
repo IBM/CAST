@@ -61,7 +61,6 @@ exception_columns["csm_processor_socket"]="node_name serial_number"
 #unset -v 'tables[csm_ssd]'  'history_tables[csm_ssd]' 'exception_columns[csm_ssd]' 
 #unset -v 'tables[csm_processor_socket]' 'history_tables[csm_processor_socket]' 'exception_columns[csm_processor_socket]' 
 
-# Input = return code from command, expected return code.  This will exit script on unexpected return code
 check_return_exit () {
         if [ $1 -ne $2 ]
         then
