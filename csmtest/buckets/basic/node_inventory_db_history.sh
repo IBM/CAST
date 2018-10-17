@@ -451,7 +451,6 @@ check_all_tables_no_new_history "Test Case 2"
 check_return_flag $? "Test Case 2: New history entries were created incorrectly."
 
 rm -f ${TEMP_LOG}
-echo "------------------------------------------------------------" >> ${LOG}
 
 #################################################################################################################
 # Test Case 3: Restart the compute daemon; confirm no entries are created in the history tables 
