@@ -441,7 +441,6 @@ rm -f ${TEMP_LOG}
 #################################################################################################################
 # Test Case 2: Change the compute node state; confirm no entries are created in the history tables 
 #################################################################################################################
-echo "Test Case 2: Change the compute node state; confirm no entries are created in the history tables." >> ${LOG}
 read_db_before
 
 ${CSM_PATH}/csm_node_attributes_update -n "$SINGLE_COMPUTE" -s "IN_SERVICE" 1>> ${TEMP_LOG} 2>&1
