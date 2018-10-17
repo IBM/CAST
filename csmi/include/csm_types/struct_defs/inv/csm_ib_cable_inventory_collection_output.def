@@ -53,6 +53,11 @@ CSMI_STRUCT_MEMBER(int32_t, insert_count, BASIC, , -1, ) /**< number of new reco
 CSMI_STRUCT_MEMBER(int32_t, update_count, BASIC, , -1, ) /**< number of old records updated in the database. */
 
 CSMI_VERSION_END(3809391c168b0a0a6298b0247c923b22)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int32_t, delete_count, BASIC, , -1, ) /**< number of old records removed from the database. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER
