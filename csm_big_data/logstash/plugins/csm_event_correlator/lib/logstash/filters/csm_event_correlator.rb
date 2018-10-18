@@ -115,8 +115,7 @@ class LogStash::Filters::CSMEventCorrelator < LogStash::Filters::Base
 
     # Posts a RAS event and moves on. 
     def post_ras(message_id, location, timestamp, raw_data, retry_attempt=0)
-        # TODO move to debug.
-        @logger.debug("Posting ras message: #{message_id}; #{timestamp}; #{location}; #{raw_data}") 
+        @logger.info("Posting ras message: #{message_id}; #{timestamp}; #{location}; #{raw_data}") 
         header= {'Content-Type': 'text/json'}
 
         ras_event = { 
