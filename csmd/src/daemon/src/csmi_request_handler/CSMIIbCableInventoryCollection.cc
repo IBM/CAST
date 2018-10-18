@@ -204,6 +204,7 @@ bool CSMIIbCableInventoryCollection::CreateByteArray(
 		//good case
         output->insert_count = strtol(tuples[0]->data[0], nullptr, 10);
 		output->update_count = strtol(tuples[0]->data[1], nullptr, 10);
+		output->delete_count = strtol(tuples[0]->data[2], nullptr, 10);
     }else {
 		//bad case
 		LOG(csmapi, error) << STATE_NAME ":CreateByteArray: Unexpected records returned from database. Expected: 1 Got: " << numberOfRecords;
