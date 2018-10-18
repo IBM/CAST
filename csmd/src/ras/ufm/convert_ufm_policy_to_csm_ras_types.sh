@@ -17,16 +17,17 @@
 # print the header to match the csm_ras_type_data.csv format 
 echo "#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users"
 
-while IFS=, read -r AlarmId
+while IFS=, read -r AlarmId Description
 do
 
   # Generate msg_id from AlarmId 
   MsgId="ufm.$AlarmId"
   
+  #Description=""
+  
   # Default all of these for now
   Severity="INFO"
   Message=""
-  Description=""
   ControlAction="NONE"
   ThresholdCount="1"
   ThresholdPeriod="0"
@@ -37,5 +38,5 @@ do
   #msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users
   echo "$MsgId,$Severity,$Message,$Description,$ControlAction,$ThresholdCount,$ThresholdPeriod,$Enabled,$SetState,$VisibleToUsers"
   
-done < <( cat /opt/ufm/scripts/policy.csv | awk -F, '{print $1}' ) | sort
+done < <( cat /opt/ufm/scripts/policy.csv | awk -F, '{print $1","$2}' ) | sort
 
