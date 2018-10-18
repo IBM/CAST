@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_stats.sh
 #   current_version:    01.7
 #   create:             08-02-2016
-#   last modified:      10-12-2018
+#   last modified:      10-18-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -103,6 +103,7 @@ echo "[Examples]"
 echo "-------------------------------------------------------------------------------------------------"
 echo "   $BASENAME -t, --tableinfo          [dbname]    | Database table stats"
 echo "   $BASENAME -i, --indexinfo          [dbname]    | Database index stats"
+echo "   $BASENAME -x, --indexanalysisinfo  [dbname]    | Database index usage analysis stats"
 echo "   $BASENAME -l, --lockinfo           [dbname]    | Database lock stats"
 echo "   $BASENAME -s, --schemaversion      [dbname]    | Database schema version (CSM_DB only)"
 echo "   $BASENAME -c, --connectionsdb      [dbname]    | Database connections stats"
