@@ -1,0 +1,8 @@
+if [ -f /usr/share/logstash/bin/logstash-plugin ] 
+then 
+    /usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator
+    /usr/share/logstash/bin/logstash-plugin install \
+        file:///opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator.zip
+
+fi
+

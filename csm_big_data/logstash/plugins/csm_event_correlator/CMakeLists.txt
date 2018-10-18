@@ -15,14 +15,14 @@
 
 
 execute_process(
-    COMMAND bash  "-c" "pwd; rm -rf *.gem; gem build logstash-filter-csm_event_correlator.gemspec"
+    COMMAND bash  "-c" "pwd; ./build.sh"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SUBDIR logstash/plugins/)
 
 # Files that should not be executable when shipped
 file(GLOB INSTALL_FILES
-    "logstash-filter-csm-event-correlator-*.gem"
+    "logstash-filter-csm-event-correlator*.zip"
 )
 
-install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
+install(FILES ${INSTALL_FILES} COMPONENT ${LOGSTASH_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})

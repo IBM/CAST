@@ -26,3 +26,13 @@ set( CPACK_RPM_csm-bds-kibana_POST_UNINSTALL_SCRIPT_FILE
 set( CPACK_RPM_csm-bds-kibana_POST_INSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/kibana.post.install")
 set(CPACK_RPM_csm-bds-kibana_PACKAGE_REQUIRES "kibana >= 6.2.3")
+
+
+# Setup Logstash RPM
+SET(CPACK_RPM_csm-bds-logstash_PACKAGE_ARCHITECTURE "noarch")
+set( CPACK_RPM_csm-bds-logstash_POST_UNINSTALL_SCRIPT_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/logstash.post.uninstall")
+set( CPACK_RPM_csm-bds-logstash_POST_INSTALL_SCRIPT_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/logstash.post.install")
+set(CPACK_RPM_csm-bds-logstash_PACKAGE_REQUIRES "logstash >= 6.2.3")
+
