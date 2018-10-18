@@ -23,6 +23,9 @@ do
   # Remove quotes
   Description="${Description//\"}"
 
+  # Replace (%) with Percent
+  Description="${Description//(%)/Percent}"
+
   # Generate msg_id from AlarmId 
   MsgId="ufm.$AlarmId"
   
