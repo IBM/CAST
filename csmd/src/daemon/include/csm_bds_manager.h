@@ -36,13 +36,23 @@
 #include "include/csm_event_manager.h"
 
 #include "include/csm_retry_backoff.h"
+#include "throttle.h" // timetype definition
 
 namespace csm {
 namespace daemon {
 
+typedef csm::daemon::TimeType BDSTimeType;
+
+typedef struct
+{
+  BDSTimeType _TimeStamp;
+  std::string _BDSMsg;
+} BDSRetryEntry_t;
+
+typedef std::deque<const BDSRetryEntry_t*> BDSRetryCacheQueue;
+
 class EventManagerBDS : public EventManager
 {
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
   BDS_Info _BDS_Info;
   boost::thread * _Thread;
   volatile std::atomic<bool> _KeepThreadRunning;
@@ -51,9 +61,12 @@ class EventManagerBDS : public EventManager
   std::atomic_bool _ReadyToRun;
   csm::daemon::RetryBackOff _IdleRetryBackOff;
 
-  TimeType _LastConnect;
+  BDSTimeType _LastConnect;
   unsigned _LastConnectInterval;
   int _Socket;
+
+  BDSRetryCacheQueue _CachedMsgQueue;
+  BDSTimeType _CurrentTime;
 
 public:
   EventManagerBDS( const BDS_Info &i_BDS_Info,
@@ -96,6 +109,13 @@ public:
   bool Connect();
   bool SendData( const std::string data );
 
+
+  bool AddToCache( const std::string bsd_msg );
+
+private:
+  inline void UpdateCurrentTime() { _CurrentTime = std::chrono::system_clock::now(); }
+  inline BDSTimeType GetTimestamp() { return _CurrentTime; };
+  void CheckCachedData();
 };
 
 }   // namespace daemon

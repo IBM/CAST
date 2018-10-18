@@ -30,14 +30,16 @@ class BDS_Info
   std::string _Hostname;
   std::string _Port;
   unsigned _Reconnect_interval_max;
+  unsigned _Data_cache_expiration;
 
 public:
   BDS_Info( const std::string host = "",
             const std::string port = "",
-            const unsigned reconn_interval_max = 0 )
+            const unsigned reconn_interval_max = 0,
+            const unsigned data_cache_expiration = 0 )
   {
     if(( host != "" ) && ( port != "" ))
-      Init( host, port, reconn_interval_max );
+      Init( host, port, reconn_interval_max, data_cache_expiration );
     else
     {
       _Hostname = "";
@@ -50,10 +52,12 @@ public:
   std::string GetHostname() const { return _Hostname; }
   std::string GetPort() const { return _Port; }
   unsigned GetReconnectIntervalMax() const { return _Reconnect_interval_max; }
+  unsigned GetDataCacheExpiration() const { return _Data_cache_expiration; }
 
   void Init( const std::string host,
              const std::string port,
-             const unsigned reconn_interval_max )
+             const unsigned reconn_interval_max,
+             const unsigned data_cache_expiration )
   {
     _Hostname = host;
 
@@ -72,6 +76,12 @@ public:
     if( _Reconnect_interval_max > 300 )
       LOG( csmd, warning ) << "BDS reconnection interval is set to a long interval (" << _Reconnect_interval_max
         << "s). This may cause unnecessary env-data not recorded in BDS.";
+
+    _Data_cache_expiration = data_cache_expiration;
+    if( _Data_cache_expiration > 1000 )
+      LOG( csmd, warning ) << "BDS data cache expiration is set to a long interval (" << _Data_cache_expiration
+        << "s). This may cause high memory usage in csmd.";
+
   }
 
   bool Active() const { return ! ( _Hostname.empty() || _Port.empty() ) ; }
