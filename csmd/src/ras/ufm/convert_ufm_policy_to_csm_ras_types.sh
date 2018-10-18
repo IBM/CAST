@@ -22,6 +22,7 @@ do
   
   # Remove quotes
   Description="${Description//\"}"
+  Severity="${Severity//\"}"
 
   # Replace (%) with Percent
   Description="${Description//(%)/Percent}"
