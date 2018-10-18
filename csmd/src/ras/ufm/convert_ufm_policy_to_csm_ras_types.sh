@@ -19,6 +19,9 @@ echo "#msg_id,severity,message,description,control_action,threshold_count,thresh
 
 while IFS=, read -r AlarmId Description
 do
+  
+  # Remove quotes
+  Description="${Description//\"}"
 
   # Generate msg_id from AlarmId 
   MsgId="ufm.$AlarmId"
