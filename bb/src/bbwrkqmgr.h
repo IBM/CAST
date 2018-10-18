@@ -353,6 +353,11 @@ class WRKQMGR
         return dumpTimerPoppedCount;
     }
 
+    inline size_t getNumberOfWorkQueues()
+    {
+        return wrkqs.size();
+    }
+
     inline void getOffsetToNextAsyncRequest(int &pSeqNbr, uint64_t &pOffset)
     {
         pSeqNbr = asyncRequestFileSeqNbr;

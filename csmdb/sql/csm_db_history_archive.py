@@ -91,6 +91,7 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
                     table_name, json.dumps(dict(zip(colnames, row)), default=str)))
     except Exception as e:
         print( "Exception caught: {0}".format(e)
+        cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
         db_conn.rollback()
         db_conn.close()
         return

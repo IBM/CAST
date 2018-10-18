@@ -51,6 +51,13 @@ CSMI_VERSION_START(CSM_VERSION_0_4_1)
 CSMI_STRUCT_MEMBER(char, TBD, BASIC, , '\0', ) /**< TBD. */
 
 CSMI_VERSION_END(1bb12386525c43d4f3d1f91897562c4b)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int32_t, insert_count       , BASIC, , -1, ) /**< number of new records inserted into the database. */
+CSMI_STRUCT_MEMBER(int32_t, update_count       , BASIC, , -1, ) /**< number of old records updated in the database. */
+CSMI_STRUCT_MEMBER(int32_t, delete_count       , BASIC, , -1, ) /**< number of old records removed from the database. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

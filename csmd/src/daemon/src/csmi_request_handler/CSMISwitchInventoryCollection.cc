@@ -269,22 +269,22 @@ bool CSMISwitchInventoryCollection::CreateByteArray(
     *stringBuffer = nullptr;
     bufferLength = 0;
 
-    //uint32_t numberOfRecords = tuples.size();
+    uint32_t numberOfRecords = tuples.size();
 
     API_PARAMETER_OUTPUT_TYPE* output = nullptr;
     csm_init_struct_ptr(API_PARAMETER_OUTPUT_TYPE, output);
 
-    /* output->failure_count = numberOfRecords;
-
-    if(numberOfRecords > 0)
+    if(numberOfRecords == 1)
     {
-        output->failure_ib_cables = (char**)malloc(numberOfRecords * sizeof(char*));
-        
-        for(uint32_t i = 0; i < numberOfRecords; ++i )
-        {
-            output->failure_ib_cables[i] = strdup(tuples[i]->data[0]);
-        }
-    } */
+		//good case
+        output->insert_count = strtol(tuples[0]->data[0], nullptr, 10);
+		output->update_count = strtol(tuples[0]->data[1], nullptr, 10);
+		output->delete_count = strtol(tuples[0]->data[2], nullptr, 10);
+		output->delete_module_count = strtol(tuples[0]->data[3], nullptr, 10);
+    }else {
+		//bad case
+		LOG(csmapi, error) << STATE_NAME ":CreateByteArray: Unexpected records returned from database. Expected: 1 Got: " << numberOfRecords;
+	}
 
     csm_serialize_struct(API_PARAMETER_OUTPUT_TYPE, output, stringBuffer, &bufferLength);
     csm_free_struct_ptr(API_PARAMETER_OUTPUT_TYPE, output);
