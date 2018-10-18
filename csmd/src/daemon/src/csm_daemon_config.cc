@@ -1178,9 +1178,6 @@ void Configuration::CreateThreadPool()
       rci_max_val = "5";
 
     std::string dce_val = GetValueInConfig( std::string("csm.bds.data_cache_expiration") );
-    if( rci_max_val.empty() )
-      rci_max_val = "25";
-
 
     if( enabled )
     {
@@ -1193,14 +1190,21 @@ void Configuration::CreateThreadPool()
         return;
       }
 
-      errno = 0;
-      unsigned dce = (unsigned)std::strtoul( dce_val.c_str(), nullptr, 10 );
-      if( errno != 0 )
+      unsigned dce = 0;
+      if( dce_val.empty() ) // if not configured, the default is 5x of rci
+        dce = rci_max * 5;
+      else
       {
-        CSMLOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made. ("
-          << host_val << ":" << port_val << ")";
-        return;
+        errno = 0;
+        dce = (unsigned)std::strtoul( dce_val.c_str(), nullptr, 10 );
+        if( errno != 0 )
+        {
+          CSMLOG( csmd, warning ) << "Invalid or missing BDS configuration. No attempts to access BDS will be made. ("
+            << host_val << ":" << port_val << ")";
+          return;
+        }
       }
+
       if(( dce > 0 ) && ( dce < rci_max ))
         CSMLOG( csmd, warning ) << "BDS data cache expires faster than the maximum reconnection interval. This might cause data loss when BDS is restarted.";
 
