@@ -4,17 +4,3 @@ The following document has been automatically generated to act as a change log f
 # Enum Types
 
 # Struct Types
-
-## Inventory 
-### csmi_cluster_query_state_record_t
-**New Data Type**
-  * char* node_name 
-  * char* collection_time 
-  * char* update_time 
-  * csmi_node_state_t state 
-  * csmi_node_type_t type 
-  * uint32_t num_allocs 
-  * int64_t* allocs 
-  * char** states 
-  * char** shared
-

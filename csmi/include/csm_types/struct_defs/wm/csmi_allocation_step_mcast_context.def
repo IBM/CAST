@@ -60,7 +60,7 @@ CSMI_STRUCT_MEMBER( char*   , user_flags   , STRING, , NULL, ) /**< User prolog/
 CSMI_STRUCT_MEMBER( char**  , compute_nodes, ARRAY_STR, num_nodes, NULL, ) /**< The list of nodes associated with this step. Used to populate the *csm_step_node* table of the CSM DB. Size stored in @ref num_nodes.*/
 CSMI_VERSION_END(ccb4e1a553467dc4e56938f393e9b5da)
 
-CSMI_VERSION_START(CSM_VERSION_1_1_0)
+CSMI_VERSION_START(CSM_VERSION_1_3_0)
 CSMI_STRUCT_MEMBER(char*, json_str, STRING, ,NULL,) /**< A JSON string for use in transaction logging. */
 CSMI_VERSION_END(523870ae65e99aadbfdc149c3c5c500a)
 #undef CSMI_VERSION_START
