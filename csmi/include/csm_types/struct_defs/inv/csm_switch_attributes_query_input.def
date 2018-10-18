@@ -61,9 +61,9 @@ CSMI_VERSION_START(CSM_VERSION_1_0_0)
 CSMI_STRUCT_MEMBER(char*, serial_number, STRING, , NULL, ) /**< Optionally filter results to only a specific serial_number - unique identifier for a switch */
 CSMI_VERSION_END(9a26d6863bb01b596b21b9d651383fba)
 
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_1_0)
 CSMI_STRUCT_MEMBER(char, order_by, BASIC, , '\0', ) /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' */
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(0c461722fc61db2f8a2f658e77d8d450)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

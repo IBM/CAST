@@ -325,7 +325,7 @@ process_verision_delta()
         sed -i "s:.*define ${MIN_VERSION}.*:#define ${MIN_VERSION} ${active_version}:1" \
             ${VERSION_HEADER}
          
-    elif [[ ${minor_delta} -eq 1 ]]
+    elif [[ ${minor_delta} -ge 1 ]]
     then 
         if ! [[ ${major_delta} -eq 0 && ${ptf_vers} -eq 0 ]]
         then
