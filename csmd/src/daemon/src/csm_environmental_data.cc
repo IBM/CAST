@@ -100,7 +100,7 @@ bool CopyPtSubtree(const boost::property_tree::ptree &src_pt, boost::property_tr
 std::string CSM_Environmental_Data::GetJsonString()
 {
   std::string json("");
-  const boost::regex numeric_fix (":\\w*\"([0-9]*(\\.[0-9]*)?)\"");
+  const boost::regex numeric_fix (":\\s*\"(([-]{0,1}(0)|([1-9]+[0-9]*))(\\.[0-9]*)?)\"");
 
   // This function will return a series of json documents in a single string
   // Each json document has a set of common parent fields followed by fields specific to 

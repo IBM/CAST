@@ -1166,6 +1166,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
                 // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
                 if ((i++ % 20) == 10)
                 {
+                    FL_Write(FLDelay, OutstandingHP_Requests, "Processing all outstanding async requests. %ld of %ld work items processed.", (uint64_t)HPWrkQE->getNumberOfWorkItemsProcessed(), (uint64_t)l_NumberToProcess, 0, 0);
                     LOG(bb,info) << ">>>>> DELAY <<<<< processAllOutstandingHP_Requests(): Processing all outstanding async requests...";
                 }
                 usleep((useconds_t)500000);

@@ -184,6 +184,12 @@ enum FIND_BB_DEVNAMES_OPTION
 };
 typedef enum FIND_BB_DEVNAMES_OPTION FIND_BB_DEVNAMES_OPTION;
 
+enum TRANSFER_QUEUE_RELEASED
+{
+    TRANSFER_QUEUE_LOCK_NOT_RELEASED    = 0,
+    TRANSFER_QUEUE_LOCK_RELEASED        = 1
+};
+typedef enum TRANSFER_QUEUE_RELEASED TRANSFER_QUEUE_RELEASED;
 
 /*******************************************************************************
  | Macro definitions

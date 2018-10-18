@@ -315,6 +315,7 @@ sub makeConfigFile
     my $jsonoo = JSON->new->allow_nonref->canonical;
     my $out    = $jsonoo->pretty->encode($json);
     writeConfiguration($CFG{"outputconfig"}, $out);
+    cmd("chmod u=rw,go=r " . $CFG{"outputconfig"});
 }
 
 sub makeLNConfigFile

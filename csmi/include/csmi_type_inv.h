@@ -516,6 +516,7 @@ typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t insert_count; /**< number of new records inserted into the database. */
     int32_t update_count; /**< number of old records updated in the database. */
+    int32_t delete_count; /**< number of old records removed from the database. */
 } csm_ib_cable_inventory_collection_output_t;
 /**
  * @brief An input wrapper for @ref csm_ib_cable_query.
@@ -804,6 +805,10 @@ typedef struct {
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char TBD; /**< TBD. */
+    int32_t insert_count; /**< number of new records inserted into the database. */
+    int32_t update_count; /**< number of old records updated in the database. */
+    int32_t delete_count; /**< number of old records removed from the database. */
+    int32_t delete_module_count; /**< number of old module records removed from the database because of removed switches. */
 } csm_switch_inventory_collection_output_t;
 /**
  * @brief Used to contain the input parameters for the csm_switch_inventory_collection API.
@@ -824,6 +829,9 @@ typedef struct {
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char TBD; /**< TBD. */
+    int32_t insert_count; /**< number of new records inserted into the database. */
+    int32_t update_count; /**< number of old records updated in the database. */
+    int32_t delete_count; /**< number of old records removed from the database. */
 } csm_switch_children_inventory_collection_output_t;
 /**
  * @brief An input wrapper for @ref csm_cluster_query_state.

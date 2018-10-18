@@ -17,9 +17,12 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.1
 --   create:                06-22-2016
---   last modified:         10-09-2018
+--   last modified:         10-17-2018
 --   change log:
---     16.1   - Added more verbose err_text to allocation dumped steps.
+--     16.1   - Updated fn_csm_switch_children_inventory_collection to remove old records from database and have more user feedback data to CSM API
+--            - Updated fn_csm_ib_cable_inventory_collection to remove old records from database and have more user feedback data to CSM API
+--            - Updated fn_csm_switch_inventory_collection to remove old records from database and have more user feedback data to CSM API
+--            - Added more verbose err_text to allocation dumped steps.
 --            - Update 'fn_csm_ssd_dead_records' and 'fn_csm_ssd_history_dump'
 --            - now clean up any lvs and vgs on an ssd before we delete the ssd from table.
 --            - Included additional logic to fn_csm_switch_history_dump to handle 'NULL' fields during inventory collection UPDATES.
@@ -3382,10 +3385,20 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_inventory_collection(
         IN i_system_name             text[],
         IN i_total_alarms            int[],
         IN i_type                    text[],
-        IN i_vendor                  text[]
+        IN i_vendor                  text[],
+        OUT o_insert_count int,
+        OUT o_update_count int,
+        OUT o_delete_count int,
+        OUT o_delete_module_count int
 )
-RETURNS void AS $$
+RETURNS record AS $$
+DECLARE
+    guids text[];
 BEGIN
+    o_insert_count := 0;
+    o_update_count := 0;
+    o_delete_count := 0;
+    o_delete_module_count := 0;
     FOR i IN 1..i_record_count LOOP
         IF EXISTS (SELECT switch_name FROM csm_switch WHERE switch_name = i_switch_name[i]) THEN
             UPDATE csm_switch
@@ -3416,12 +3429,25 @@ BEGIN
                 vendor = i_vendor[i]
             WHERE
                 switch_name = i_switch_name[i];
+            o_update_count := o_update_count + 1;
         ELSE
             INSERT INTO csm_switch
                 (switch_name     , serial_number     , discovery_time, collection_time, comment     , description     , fw_version     , gu_id     , has_ufm_agent     , hw_version     , ip     , model     , num_modules     , physical_frame_location     , physical_u_location     , ps_id     , role     , server_operation_mode     , sm_mode     , state     , sw_version     , system_guid     , system_name     , total_alarms     , type     , vendor     ) VALUES
                 (i_switch_name[i], i_serial_number[i], now()         , now()          , i_comment[i], i_description[i], i_fw_version[i], i_gu_id[i], i_has_ufm_agent[i], i_hw_version[i], i_ip[i], i_model[i], i_num_modules[i], i_physical_frame_location[i], i_physical_u_location[i], i_ps_id[i], i_role[i], i_server_operation_mode[i], i_sm_mode[i], i_state[i], i_sw_version[i], i_system_guid[i], i_system_name[i], i_total_alarms[i], i_type[i], i_vendor[i]);
+            o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
+    -- Remove old records.
+    -- Collect a list of switches that are old
+    SELECT array_agg(gu_id) INTO guids FROM csm_switch WHERE collection_time < now();
+    -- Set return data.
+    SELECT count(switch_name) INTO o_delete_count FROM csm_switch WHERE collection_time < now();
+    -- Set return data.
+    SELECT count(name) INTO o_delete_module_count FROM csm_switch_inventory WHERE host_system_guid = ANY(guids);
+    -- delete the children of these switches
+    DELETE FROM csm_switch_inventory WHERE host_system_guid = ANY(guids);
+    -- delete the switches in the list
+    DELETE FROM csm_switch WHERE gu_id = ANY(guids);
 END;
 $$ LANGUAGE 'plpgsql';
 
@@ -3448,10 +3474,16 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_children_inventory_collection(
         IN i_path             text[],
         IN i_serial_number    text[],
         IN i_severity         text[],
-        IN i_status           text[]
+        IN i_status           text[],
+        OUT o_insert_count int,
+        OUT o_update_count int,
+        OUT o_delete_count int
 )
-RETURNS void AS $$
+RETURNS record AS $$
 BEGIN
+    o_insert_count := 0;
+    o_update_count := 0;
+    o_delete_count := 0;
     FOR i IN 1..i_record_count LOOP
         IF EXISTS (SELECT name FROM csm_switch_inventory WHERE name = i_name[i]) THEN
             UPDATE csm_switch_inventory
@@ -3472,13 +3504,18 @@ BEGIN
                 status           = i_status[i] 
             WHERE 
                 name = i_name[i];
+            o_update_count := o_update_count + 1;
         ELSE 
             INSERT INTO csm_switch_inventory 
             (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
             (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
+            o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
-    
+    -- Set return data.
+    SELECT count(name) INTO o_delete_count FROM csm_switch_inventory WHERE collection_time < now();
+    -- Remove old records. 
+    DELETE FROM csm_switch_inventory WHERE collection_time < now();
 END;
 $$ LANGUAGE 'plpgsql';
 
@@ -3916,12 +3953,14 @@ CREATE OR REPLACE FUNCTION fn_csm_ib_cable_inventory_collection(
     IN i_type          text[],
     IN i_width         text[],
     OUT o_insert_count int,
-    OUT o_update_count int
+    OUT o_update_count int,
+    OUT o_delete_count int
 )
 RETURNS record AS $$
 BEGIN
     o_insert_count := 0;
     o_update_count := 0;
+    o_delete_count := 0;
     FOR i IN 1..i_record_count LOOP
         IF EXISTS (SELECT serial_number FROM csm_ib_cable WHERE serial_number = i_serial_number[i]) THEN
             UPDATE csm_ib_cable
@@ -3950,6 +3989,11 @@ BEGIN
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
+
+    -- Set return data.
+    SELECT count(serial_number) INTO o_delete_count FROM csm_ib_cable WHERE collection_time < now();
+    -- Remove old records
+    DELETE FROM csm_ib_cable WHERE collection_time < now();
 
 END;
 $$ LANGUAGE 'plpgsql';
