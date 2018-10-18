@@ -118,7 +118,7 @@ Example (successful DB creation):
  [Complete] csmdb database functions and triggers created.
  [Complete] csmdb table data loaded successfully into csm_db_schema_version
  [Complete] csmdb table data loaded successfully into csm_ras_type
- [Info    ] csmdb DB schema version <16.0>
+ [Info    ] csmdb DB schema version <16.1>
  ------------------------------------------------------------------------------------------------------
 
 .. note::
@@ -163,7 +163,7 @@ Example (Default DB creation without loaded data option)
  [Complete] csmdb database functions and triggers created.
  [Info    ] csmdb skipping data load process.  <----------[when running the -x, --nodata option]
  [Complete] csmdb initialized csm_db_schema_version data
- [Info    ] csmdb DB schema version <16.0>
+ [Info    ] csmdb DB schema version <16.1>
  ------------------------------------------------------------------------------------------------------
 
 Existing DB Options
@@ -222,7 +222,7 @@ Example (Force DB receation)
  [Complete] csmdb database functions and triggers recreated.
  [Complete] csmdb table data loaded successfully into csm_db_schema_version
  [Complete] csmdb table data loaded successfully into csm_ras_type
- [Info    ] csmdb DB schema version <16.0>
+ [Info    ] csmdb DB schema version <16.1>
  ------------------------------------------------------------------------------------------------------
 
 4.    Force a total overwrite of the database <drops tables and recreates them without
@@ -245,7 +245,7 @@ Example (Force DB recreation without preloaded table data)
  [Complete] csmdb database functions and triggers recreated.
  [Complete] csmdb skipping data load process.
  [Complete] csmdb table data loaded successfully into csm_db_schema_version
- [Info    ] csmdb DB schema version <16.0>
+ [Info    ] csmdb DB schema version <16.1>
  ------------------------------------------------------------------------------------------------------
 
 CSMDB user info.

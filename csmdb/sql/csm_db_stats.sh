@@ -16,9 +16,9 @@
 
 #================================================================================
 #   usage:              ./csm_db_stats.sh
-#   current_version:    01.6
+#   current_version:    01.7
 #   create:             08-02-2016
-#   last modified:      10-02-2018
+#   last modified:      10-18-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -89,6 +89,7 @@ echo "                         |           | Live Row Count, Inserts, Updates, D
 echo " -i, --indexinfo         | [db_name] | Populates Database Index Stats:                           "
 echo "                         |           | tablename, indexname, num_rows, tbl_size, ix_size, uk,    "
 echo "                         |           | num_scans, tpls_read, tpls_fetched                        "
+echo " -x, --indexanalysis     | [db_name] | Displays the index usage analysis                         "
 echo " -l, --lockinfo          | [db_name] | Displays any locks that might be happening within the DB  "
 echo " -s, --schemaversion     | [db_name] | Displays the current CSM DB version                       "
 echo " -c, --connectionsdb     | [db_name] | Displays the current DB connections                       "
@@ -102,6 +103,7 @@ echo "[Examples]"
 echo "-------------------------------------------------------------------------------------------------"
 echo "   $BASENAME -t, --tableinfo          [dbname]    | Database table stats"
 echo "   $BASENAME -i, --indexinfo          [dbname]    | Database index stats"
+echo "   $BASENAME -x, --indexanalysisinfo  [dbname]    | Database index usage analysis stats"
 echo "   $BASENAME -l, --lockinfo           [dbname]    | Database lock stats"
 echo "   $BASENAME -s, --schemaversion      [dbname]    | Database schema version (CSM_DB only)"
 echo "   $BASENAME -c, --connectionsdb      [dbname]    | Database connections stats"
@@ -126,6 +128,7 @@ connectionsdb="no"
 usernamedb="no"
 postgresqlversion="no"
 archivecount="no"
+indexanalysis="no"
 
 #==============================================
 # long options to short along with fixed length
@@ -139,34 +142,36 @@ do
       set --      # this resets the "$@" array
     fi
     case "$arg" in
-        --tableinfo)                set -- "$@" -t ;;
-        -tableinfo)                 usage && exit 0 ;;
-        --indexinfo)                set -- "$@" -i ;;
-        -indexinfo)                 usage && exit 0 ;;
-        --lockinfo)                 set -- "$@" -l ;;
-        -lockinfo)                  usage && exit 0 ;;
-        --schemaversion)            set -- "$@" -s ;;
-        -schemaversion)             usage && exit 0 ;;
-        --connectionsdb)            set -- "$@" -c ;;
-        -connectionsdb)             usage && exit 0 ;;
-        --usernamedb)               set -- "$@" -c ;;
-        -usernamedb)                usage && exit 0 ;;
-        --postgresqlversion)        set -- "$@" -v ;;
-        -postgresqlversion)         usage && exit 0 ;;
-        --archivecount)             set -- "$@" -a ;;
-        -archivecount)              usage && exit 0 ;;
-        --help)                     set -- "$@" -h ;;
-        -help)                      usage && exit 0 ;;
-        -t|-i|-l|-s|-c|-u|-v|-a|-h) set -- "$@" "$arg" ;;
-        #-*)                        usage && exit 0 ;;
-        -*)                         usage
-                                    LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
-                                    LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
-                                    LogMsg "[End   ] Please choose another option"
-                                    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-                                    exit 0 ;;
+        --tableinfo)                    set -- "$@" -t ;;
+        -tableinfo)                     usage && exit 0 ;;
+        --indexinfo)                    set -- "$@" -i ;;
+        -indexinfo)                     usage && exit 0 ;;
+        --lockinfo)                     set -- "$@" -l ;;
+        -lockinfo)                      usage && exit 0 ;;
+        --schemaversion)                set -- "$@" -s ;;
+        -schemaversion)                 usage && exit 0 ;;
+        --connectionsdb)                set -- "$@" -c ;;
+        -connectionsdb)                 usage && exit 0 ;;
+        --usernamedb)                   set -- "$@" -c ;;
+        -usernamedb)                    usage && exit 0 ;;
+        --postgresqlversion)            set -- "$@" -v ;;
+        -postgresqlversion)             usage && exit 0 ;;
+        --archivecount)                 set -- "$@" -a ;;
+        -archivecount)                  usage && exit 0 ;;
+        --indexanalysis)                set -- "$@" -x ;;
+        -indexanalysis)                 usage && exit 0 ;;
+        --help)                         set -- "$@" -h ;;
+        -help)                          usage && exit 0 ;;
+        -t|-i|-l|-s|-c|-u|-v|-a|-x|-h)  set -- "$@" "$arg" ;;
+        #-*)                            usage && exit 0 ;;
+        -*)                             usage
+                                        LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
+                                        LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
+                                        LogMsg "[End   ] Please choose another option"
+                                        echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+                                        exit 0 ;;
        # pass through anything else
-       *)                           set -- "$@" "$arg" ;;
+       *)                               set -- "$@" "$arg" ;;
     esac
 done
 
@@ -178,7 +183,7 @@ done
 # error message will prompt and will be logged.
 #==============================================
 
-while getopts "t:i:l:s:c:u:v:a:h" arg; do
+while getopts "t:i:l:s:c:u:v:a:x:h" arg; do
     case ${arg} in
         t)
             #============================================================================
@@ -239,6 +244,13 @@ while getopts "t:i:l:s:c:u:v:a:h" arg; do
             # Display current postgresql DB archive record counts
             #============================================================================
             archivecount="yes"
+            dbname=$OPTARG
+            ;;
+        x)
+            #============================================================================
+            # Display current postgresql DB index analysis
+            #============================================================================
+            indexanalysis="yes"
             dbname=$OPTARG
             ;;
         #h|*)
@@ -391,6 +403,40 @@ ORDER BY pg_relation_size(quote_ident(indexrelname)::text) desc;" | grep -v "^$"
     fi
 LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -i, --indexinfo (db_name): $dbname"
 LogMsg "[End   ] Table index query executed"
+echo "---------------------------------------------------------------------------------------------------------------------------------------------"
+echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+exit $return_code
+fi
+
+#==============================================
+# CSM_DB_Index_Analysis
+#==============================================
+# return code added to ensure it was successful or failed during this step
+#-------------------------------------------------------------------------
+return_code=0
+if [ $indexanalysis == "yes" ]; then
+echo "---------------------------------------------------------------------------------------------------------------------------------------------"
+psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
+       relname,
+       seq_scan - idx_scan AS too_much_seq,
+       CASE
+           WHEN seq_scan - idx_scan > 0 THEN 'Missing Index?'
+           ELSE 'OK'
+       END,
+       Pg_relation_size(relid :: regclass) AS rel_size,
+       seq_scan,
+       idx_scan
+FROM pg_stat_all_tables
+WHERE schemaname = 'public'
+  AND Pg_relation_size(relid :: regclass) > 0
+ORDER BY too_much_seq DESC;" | grep -v "^$" 2>>/dev/null
+    if [ $? -ne 0 ]; then
+    echo "[Error ] Table and or database does not exist in the system"
+    LogMsg "[Error ] Table and or database does not exist in the system" 
+    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    fi
+LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -x, --indexanalysis (db_name): $dbname"
+LogMsg "[End   ] Table index analysis query executed"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
 exit $return_code
