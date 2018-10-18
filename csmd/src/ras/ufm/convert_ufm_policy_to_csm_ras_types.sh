@@ -29,7 +29,18 @@ do
 
   # Generate msg_id from AlarmId 
   MsgId="ufm.$AlarmId"
-  
+ 
+  # Map UFM Severity to CSM RAS Severity
+  # UFM supports Info, Warning, Minor, Critical
+  # CSM RAS supports INFO, WARNING, FATAL
+  if [ "$Severity" == "Info" ] ; then
+    Severity="INFO"
+  elif [ "$Severity" == "Critical" ] ; then
+    Severity="FATAL"
+  else
+    Severity="WARNING"
+  fi
+ 
   #Description=""
   #Severity="INFO"
   
