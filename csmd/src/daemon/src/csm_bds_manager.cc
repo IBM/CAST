@@ -300,7 +300,7 @@ csm::daemon::EventManagerBDS::CheckCachedData()
     CSMLOG( csmd, trace ) << "@: " << GetTimestamp().time_since_epoch().count() << "; Found entry with age: " << expired.count();
     if( expired.count() > _BDS_Info.GetDataCacheExpiration() )
     {
-      CSMLOG( csmd, debug ) << "Dropping expired BDS msg: " << BDS_TRUNCATED_MSG( e->_BDSMsg );
+      CSMLOG( csmd, warning ) << "Dropping expired BDS msg: " << BDS_TRUNCATED_MSG( e->_BDSMsg );
       _CachedMsgQueue.pop_front(); // drop expired entry
       delete e;
     }
@@ -321,7 +321,7 @@ csm::daemon::EventManagerBDS::AddToCache( const std::string bds_msg )
     e->_TimeStamp = GetTimestamp();
     _CachedMsgQueue.push_back( e );
     CSMLOG( csmd, trace ) << "Create cache entry with timestamp: " << e->_TimeStamp.time_since_epoch().count();
-    CSMLOG( csmd, info ) << "Caching msg: " << BDS_TRUNCATED_MSG( bds_msg );
+    CSMLOG( csmd, debug ) << "Caching msg: " << BDS_TRUNCATED_MSG( bds_msg );
     CheckCachedData();
   }
   catch( ... )

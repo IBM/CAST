@@ -78,7 +78,7 @@ public:
         << "s). This may cause unnecessary env-data not recorded in BDS.";
 
     _Data_cache_expiration = data_cache_expiration;
-    if( _Data_cache_expiration > 1000 )
+    if( _Data_cache_expiration > 3600 )
       LOG( csmd, warning ) << "BDS data cache expiration is set to a long interval (" << _Data_cache_expiration
         << "s). This may cause high memory usage in csmd.";
 
