@@ -17,7 +17,7 @@
 # print the header to match the csm_ras_type_data.csv format 
 echo "#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users"
 
-while IFS=, read -r AlarmId Message Severity Category
+while IFS=, read -r AlarmId Message Severity Category Description
 do
  
   # Remove quotes
@@ -25,12 +25,14 @@ do
   Message="${Message//\"}"
   Severity="${Severity//\"}"
   Category="${Category//\"}"
+  Description="${Description//\"}"
 
   # Trim leading and trailing whitespace
   read -rd '' AlarmId <<<"$AlarmId"
   read -rd '' Message <<<"$Message"
   read -rd '' Severity <<<"$Severity"
   read -rd '' Category <<<"$Category"
+  read -rd '' Description <<<"$Description"
 
   # Replace (%) with Percent
   Message="${Message//(%)/Percent}"
@@ -53,7 +55,7 @@ do
   fi
  
   #Message=""
-  Description=""
+  #Description=""
   #Severity="INFO"
   
   # Default all of these for now
@@ -72,5 +74,5 @@ do
 # Replace commas contained within quoted fields with spaces:
 # awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}'
  
-done < <( cat /opt/ufm/scripts/policy.csv | sed 's/[*]//g' | awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}' | awk -F, '{print $1","$2","$15","$21}' ) | sort
+done < <( cat /opt/ufm/scripts/policy.csv | sed 's/[*]//g' | awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}' | awk -F, '{print $1","$2","$15","$21","$23}' ) | sort
 
