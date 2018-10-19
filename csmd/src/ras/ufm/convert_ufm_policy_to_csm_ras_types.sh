@@ -58,6 +58,9 @@ do
 
   #msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users
   echo "$MsgId,$Severity,$Message,$Description,$ControlAction,$ThresholdCount,$ThresholdPeriod,$Enabled,$SetState,$VisibleToUsers"
-  
-done < <( cat /opt/ufm/scripts/policy.csv | awk -F, '{print $1","$2","$15}' ) | sort
+ 
+# Replace commas contained within quoted fields with spaces:
+# awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}'
+ 
+done < <( cat /opt/ufm/scripts/policy.csv | awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}' | awk -F, '{print $1","$2","$15}' ) | sort
 
