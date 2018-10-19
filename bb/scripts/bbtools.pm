@@ -249,13 +249,13 @@ sub bbwaitTransfersComplete
     $timeout = $json->{"bb"}{"scripts"}{"transfertimeout"} if(exists $json->{"bb"}{"scripts"}{"transfertimeout"});
 
     my $starttime  = time();
-    my $result     = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
+    my $result     = bbcmd("$::TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
     my $numpending = $result->{"0"}{"out"}{"numavailhandles"};
     while ($numpending > 0)
     {
         bpost("BB: Waiting for $numpending transfer(s) to complete");
         sleep(5);
-        $result     = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
+        $result     = bbcmd("$::TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
         $numpending = $result->{"0"}{"out"}{"numavailhandles"};
         my $curtime = time();
         last if($curtime - $starttime > $timeout);
