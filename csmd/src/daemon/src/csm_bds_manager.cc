@@ -23,6 +23,18 @@
 #include "csm_daemon_config.h"
 #include "include/csm_bds_manager.h"
 
+/*
+ * max display length of BDS msgs in the csm log
+ */
+#define BDS_MSG_TRUNCATION (80)
+
+/*
+ * truncate long BDS msg and add '...' to the end if truncation happened
+ */
+#define BDS_TRUNCATED_MSG( msg ) (msg).substr(0, BDS_MSG_TRUNCATION ) << ( (msg).length() > (BDS_MSG_TRUNCATION-1)? "..." : "" )
+
+
+
 void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
 {
   aMgr->GreenLightWait();
@@ -64,13 +76,12 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
         continue;
 
       // send string to bds connection
-      if( aMgr->SendData( content ) )
+      if( ! aMgr->SendData( content ) )
       {
-        CSMLOG( csmd, trace ) << "Sent data to BDS: " << content;
-      }
-      else
-      {
-        CSMLOG( csmd, warning ) << "Failed sending to BDS: " << content.substr(0, 50 ) << ( content.length() > 49 ? "..." : "" );
+        if( ! aMgr->AddToCache( content ) )
+        {
+          CSMLOG( csmd, warning ) << "Failed sending to BDS: " << BDS_TRUNCATED_MSG( content );
+        }
       }
     }
   }
@@ -82,7 +93,9 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   _IdleRetryBackOff( "BDSMgr", csm::daemon::RetryBackOff::SleepType::CONDITIONAL,
                      csm::daemon::RetryBackOff::SleepType::INTERRUPTIBLE_SLEEP,
                      0, 10000000, 1 ),
-  _Socket( 0 )
+  _Socket( 0 ),
+  _CachedMsgQueue(),
+  _CurrentTime( std::chrono::system_clock::now() )
 {
   _Sink = new csm::daemon::EventSinkBDS( &_IdleRetryBackOff );
 
@@ -96,7 +109,6 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   Unfreeze();
   _LastConnect = std::chrono::system_clock::now();
   _LastConnectInterval = 1;
-
 }
 
 bool
@@ -108,7 +120,8 @@ csm::daemon::EventManagerBDS::Connect()
   hints.ai_socktype = SOCK_STREAM;
   int tmp_errno = 0;
 
-  std::chrono::seconds last_conn = std::chrono::duration_cast<std::chrono::seconds>( std::chrono::system_clock::now() - _LastConnect );
+  UpdateCurrentTime();
+  std::chrono::seconds last_conn = std::chrono::duration_cast<std::chrono::seconds>( GetTimestamp() - _LastConnect );
   if( last_conn.count() < _LastConnectInterval )
   {
     CSMLOG( csmd, debug ) << "Last connect attempt (" << last_conn.count()
@@ -211,6 +224,16 @@ csm::daemon::EventManagerBDS::Connect()
     return false;
   }
 
+  // now that we're connected, go and send the cached msgs
+  while( ! _CachedMsgQueue.empty() )
+  {
+    const BDSRetryEntry_t *e = _CachedMsgQueue.front();
+    if( SendData( e->_BDSMsg ) == false )
+      break; // stop trying to send if it fails
+    _CachedMsgQueue.pop_front();
+    delete e;
+  }
+
   return true;
 }
 
@@ -257,9 +280,56 @@ csm::daemon::EventManagerBDS::SendData( const std::string data )
       rc = 0;
   }
 
+  if( remain == 0 )
+  {
+    CSMLOG( csmd, debug ) << "Sent data to BDS: " << BDS_TRUNCATED_MSG( data );
+  }
+
   return ((rc >= 0) && ( remain == 0 ));
 }
 
+void
+csm::daemon::EventManagerBDS::CheckCachedData()
+{
+//  csm::daemon::TimeType deadline = _DaemonState->GetTimestamp() - std::chrono::seconds( 10 );
+
+  while( ! _CachedMsgQueue.empty() )
+  {
+    const BDSRetryEntry_t *e = _CachedMsgQueue.front();
+    std::chrono::seconds expired = std::chrono::duration_cast<std::chrono::seconds>( GetTimestamp() - e->_TimeStamp );
+    CSMLOG( csmd, trace ) << "@: " << GetTimestamp().time_since_epoch().count() << "; Found entry with age: " << expired.count();
+    if( expired.count() > _BDS_Info.GetDataCacheExpiration() )
+    {
+      CSMLOG( csmd, warning ) << "Dropping expired BDS msg: " << BDS_TRUNCATED_MSG( e->_BDSMsg );
+      _CachedMsgQueue.pop_front(); // drop expired entry
+      delete e;
+    }
+    else
+      break; // since queue is sorted by time, stop on first encounter of non-expired entry
+  }
+}
+
+bool
+csm::daemon::EventManagerBDS::AddToCache( const std::string bds_msg )
+{
+  if( _BDS_Info.GetDataCacheExpiration() == 0 )
+    return false;
+  try
+  {
+    BDSRetryEntry_t *e = new BDSRetryEntry_t;
+    e->_BDSMsg = bds_msg;
+    e->_TimeStamp = GetTimestamp();
+    _CachedMsgQueue.push_back( e );
+    CSMLOG( csmd, trace ) << "Create cache entry with timestamp: " << e->_TimeStamp.time_since_epoch().count();
+    CSMLOG( csmd, debug ) << "Caching msg: " << BDS_TRUNCATED_MSG( bds_msg );
+    CheckCachedData();
+  }
+  catch( ... )
+  {
+    return false;
+  }
+  return true;
+}
 
 csm::daemon::EventManagerBDS::~EventManagerBDS()
 {
@@ -272,4 +342,5 @@ csm::daemon::EventManagerBDS::~EventManagerBDS()
   _Thread->join();
   CSMLOG( csmd, info ) << "Terminating BDSMgr complete";
   delete _Thread;
+  _CachedMsgQueue.clear();
 }

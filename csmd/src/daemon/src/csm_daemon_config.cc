@@ -1177,11 +1177,44 @@ void Configuration::CreateThreadPool()
     if( rci_max_val.empty() )
       rci_max_val = "5";
 
+    std::string dce_val = GetValueInConfig( std::string("csm.bds.data_cache_expiration") );
+
     if( enabled )
     {
-      unsigned rci_max = (unsigned)std::strtoul( rci_max_val.c_str(), nullptr, 10 );
-      _BDS_Info.Init( host_val, port_val, rci_max );
-      CSMLOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort();
+      char *strend;
+      errno = 0;
+      unsigned rci_max = (unsigned)std::strtoul( rci_max_val.c_str(), &strend, 10 );
+      if(( errno != 0 ) || (*strend != '\0' ) || ( rci_max_val.c_str()[0] == '-' ) )
+      {
+        CSMLOG( csmd, warning ) << "Invalid BDS configuration entry reconnect_interval_max. No attempts to access BDS will be made. ("
+          << host_val << ":" << port_val << ")";
+        return;
+      }
+
+      unsigned dce = 0;
+      if( dce_val.empty() )
+        dce = 600;
+      else
+      {
+        errno = 0;
+        dce = (unsigned)std::strtoul( dce_val.c_str(), &strend, 10 );
+        if(( errno != 0 ) || (*strend != '\0' ) || ( dce_val.c_str()[0] == '-' ))
+        {
+          CSMLOG( csmd, warning ) << "Invalid BDS configuration entry data_cache_expiration. No attempts to access BDS will be made. ("
+            << host_val << ":" << port_val << ")";
+          return;
+        }
+      }
+
+      if(( dce > 0 ) && ( dce < rci_max ))
+        CSMLOG( csmd, warning ) << "BDS data cache expires faster than the maximum reconnection interval. This might cause data loss when BDS is restarted.";
+
+      if( dce == 0 )
+        CSMLOG( csmd, warning ) << "BDS data caching is disabled. (expiration set to 0)";
+
+      _BDS_Info.Init( host_val, port_val, rci_max, dce );
+      CSMLOG( csmd, info ) << "Configuring BDS access with: " << _BDS_Info.GetHostname() << ":" << _BDS_Info.GetPort()
+          << " intervals: " << _BDS_Info.GetReconnectIntervalMax() << ":" << _BDS_Info.GetDataCacheExpiration();
     }
     else
     {

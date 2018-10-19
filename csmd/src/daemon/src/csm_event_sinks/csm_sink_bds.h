@@ -16,10 +16,10 @@
 #ifndef CSMD_SRC_DAEMON_SRC_CSM_EVENT_SINKS_CSM_SINK_BDS_H_
 #define CSMD_SRC_DAEMON_SRC_CSM_EVENT_SINKS_CSM_SINK_BDS_H_
 
-#include <mutex>
-#include <deque>
-
 #include "include/csm_bds_event.h"
+#include "include/csm_event_sink.h"
+
+#include <mutex>
 
 namespace csm {
 namespace daemon {
