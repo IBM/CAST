@@ -40,11 +40,11 @@ CAST recommends the following four values be set before starting Kibana:
 |                        | this must be set to false on ppc64le installations.         |                         |
 +------------------------+-------------------------------------------------------------+-------------------------+
 
-3. Install the `CAST Search`_ plugin:
+3. Install the `CAST Search`_ rpm:
 
 .. code:: bash
 
-    /usr/share/kibana/bin/kibana-plugin install file:////path/to/cast_visualizer-6.3.2.zip
+    rpm -ivh ibm-csm-bds-kibana-*.noarch.rpm
 
 4. Start Kibana:
 
@@ -60,7 +60,8 @@ CAST Search
 -----------
 
 CAST Search is a React plugin designed for interfacing with elastic search an building filters for 
-Kibana Dashboards.
+Kibana Dashboards. To maxmize the value of the plugin the `cast-allocation` index pattern should be 
+specified.
 
 .. TODO describe funciton and feature in greater depth.
 

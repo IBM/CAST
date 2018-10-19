@@ -12,13 +12,13 @@
             {    
                 "field" : "message",
                 "value" : "kdump",
-                "boost" : 60
+                "boost" : 30
             },
             {    
                 "field" : "message",
-                "value" : "kernel",
-                "boost" : 10
-            }
+                "value" : "xid",
+                "boost" : 60
+            },
         ]
     },
     {
@@ -40,5 +40,17 @@
             }
 
         ]
-    }
+    },
+    {
+        "index"    : "cast-log-ras*",
+        "source"   : "location_name",
+        "category" : "CSM RAS",
+        "mapping"  : [
+            {
+                "field"     : "msg_id",
+                "value"     : ".*",
+                "boost"     : 1000
+            }
+        ]
+     }
 ]

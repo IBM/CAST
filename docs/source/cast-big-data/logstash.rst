@@ -73,11 +73,13 @@ in `/opt/ibm/csm/bigdata/logstash/`.
    queue.type: persisted
    ...
 
-3. Install the `CSM Event Correlator`_
+3. Install the `CSM Event Correlator`_ 
     
 .. code:: bash
 
-   bin/logstash-plugin install logstash-filter-csm-event-correlator-*.gem
+    rpm -ivh ibm-csm-bds-logstash*.noarch.rpm
+
+.. note:: This change is effective in the 1.3.0 release of the CAST rpms.
 
 Please refer to `Installing CEC`_ for more details.
 

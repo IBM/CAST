@@ -6,6 +6,7 @@ CSM Event Correlator Filter Plugin
 .. attention:: The following document is a work in progress! The CSM Event Correlator is currently
     under development and the interface is subject to change. 
 
+
 Parses arbitrary text and structures the results of the parse into actionable events.
 
 The CSM Event Correlator is a utility by which a system administrator may specify a collection
@@ -19,38 +20,9 @@ actions (ruby scripts).
 Installation
 ------------
 
-The CSM Event Correlator comes bundled in the `ibm-csm-bds-*.noarch.rpm` rpm. Installation
-with this currently bundled version requires an external internet connection. If there are nodes in
-your cluster that are not exposed to the internet CAST recommends following the steps in 
-`Offline Installation`_.
-
-.. code:: bash
-    
-    /usr/share/logstash/bin/logstash-plugin install \
-        /opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator-*.gem
-
-
-.. _offline-cec-install:
-
-Offline Installation
-^^^^^^^^^^^^^^^^^^^^
-
-As Logstash requires an internet connection to install the CSM Event Correlator for clusters
-that have logstash instances CAST recommends creating an offline plugin on a node which has
-followed the `Installation`_ process.
-
-1. Build the offline package:
-
-.. code-block:: bash
-
-    /usr/share/logstash/bin/logstash-plugin prepare-offline-pack --output CEC.zip \
-        logstash-filter-csm-event-correlator
-
-2. Deploy the offline package on nodes with no internet connection:
-
-.. code-block:: bash
-    
-    /usr/share/logstash/bin/logstash-plugin install file:///root/CEC.zip
+The CSM Event Correlator comes bundled in the `ibm-csm-bds-logstash*.noarch.rpm` rpm. 
+When installing the rpm, any old versions of the plugin will be removed and the bundled version
+will be installed.
 
 CSM Event Correlator Pipeline Configuration Options
 ---------------------------------------------------
@@ -555,6 +527,44 @@ All together it becomes:
 
 This action script is then compiled and stored by the plugin at load time then executed when
 actions are triggered by events.
+
+
+Debugging Issues
+----------------
+
+Perform the following checks in order, when a matching condition is found, exit the 
+debug process and handle that condition. Numbered sequences assume that the user performs 
+each step in order.
+
+RAS Event Not Firing
+^^^^^^^^^^^^^^^^^^^^
+
+If RAS events haven't been firing for conditions matching `.send_ras` perform the following
+diagnostic steps:
+
+*Check the `/var/log/logstash/logstash-plain.log`*
+
+1. Search for the phrase "`Unable send RAS event`" :
+
+    This indicates that the corelator was unable to connect to the CSM REST Daemon. Verify that 
+    Daemon is running on the specified hostname and port.
+
+2. Search for the phrase "`Posting ras message`" :
+
+    This indicates that the corelator connected to the CSM REST Daemon, but the RAS events were
+    malconfigured. Verify that the message id sent has an analog in the list of RAS events registered
+    in CSM.
+
+    The RAS mesage id may be checked using the following utility:
+
+    .. code-block:: bash
+
+        csm_ras_msg_type_query -m "MESSAGE_ID"
+
+3. Neither of these strings were found:
+
+    Review `CSM Event Correlator Event Configuration File`_.
+
 
 .. Links
 .. _common-options: https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html
