@@ -47,12 +47,12 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_3_0)
 
 CSMI_STRUCT_MEMBER(uint32_t, results_count, BASIC, , 0, ) /**< Number of records retrieved, size of @ref results. */
 CSMI_STRUCT_MEMBER(csmi_cluster_query_state_record_t**, results, ARRAY_STRUCT, results_count, NULL, csmi_cluster_query_state_record_t) /**< A list of records retrieved from the queries, size defined by @ref results_count.*/
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(0af08843e8f6187b13e5996d5ba3d210)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

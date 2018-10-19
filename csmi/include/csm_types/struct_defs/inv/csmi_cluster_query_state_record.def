@@ -47,7 +47,7 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_3_0)
 
 CSMI_STRUCT_MEMBER(char*            , node_name      , STRING   ,           , NULL            ,        ) /**< The node hostname the record represents. */
 CSMI_STRUCT_MEMBER(char*            , collection_time, STRING   ,           , NULL            ,        ) /**< replacement for 'discovery_time' after CSM_VERSION_0_4_1. the inventory information for this node was last collected at this time. */
@@ -59,7 +59,7 @@ CSMI_STRUCT_MEMBER(int64_t*         , allocs         , ARRAY    , num_allocs, NU
 CSMI_STRUCT_MEMBER(char**           , states         , ARRAY_STR, num_allocs, NULL            ,        ) /**< Array of states the allocations on this node are in (order matches the allocation ids). */
 CSMI_STRUCT_MEMBER(char**           , shared         , ARRAY_STR, num_allocs, NULL            ,        ) /**< Array of "is this allocation shared" . */
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(403d01ae7be5dab548e390a98bb0d8d0)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

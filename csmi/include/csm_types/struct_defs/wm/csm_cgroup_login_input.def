@@ -56,9 +56,9 @@ CSMI_STRUCT_MEMBER(pid_t,             pid,  BASIC, ,    0, ) /**< The process id
 CSMI_STRUCT_MEMBER(char*,       user_name, STRING, , NULL, ) /**< User name for logging in. */
 CSMI_VERSION_END(7abc0fd516f773957ae20e5d59fa90e2)
 
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_3_0)
 CSMI_STRUCT_MEMBER(char,      migrate_pid,  BASIC, ,    0, ) /**< Flag to migrate pid in to cgroup if true. */
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(b041648551fce6d74e8cc0d3690b6c32)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

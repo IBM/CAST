@@ -46,7 +46,7 @@
     #define CSMI_NONE                0
 #endif 
 
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_3_0)
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
 CSMI_STRUCT_MEMBER(int32_t , limit                  , BASIC    ,                 , -1  , ) /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
 CSMI_STRUCT_MEMBER(int32_t , offset                 , BASIC    ,                 , -1  , ) /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
@@ -63,7 +63,7 @@ CSMI_STRUCT_MEMBER(char*   , search_range_begin     , STRING   ,                
 CSMI_STRUCT_MEMBER(char*   , search_range_end       , STRING   ,                 , NULL, ) /**< A time used to filter results of the SQL query and only include records that were active during or before this time. */
 CSMI_STRUCT_MEMBER(char*   , user_name              , STRING   ,                 , NULL, ) /**< Filter results to only include this user_name. */
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(d7fb1b4bd6632472b36b30ca21d56670)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
