@@ -1,0 +1,214 @@
+#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users
+ufm.Communication_Error.116,WARNING,Port Xmit Discards,Total number of outbound packets discarded by the port when the port is down or congested,NONE,1,0,true,,true
+ufm.Communication_Error.117,WARNING,Port Xmit Constraint Errors,Total number of packets not transmitted from the switch physical port,NONE,1,0,true,,true
+ufm.Communication_Error.118,WARNING,Port Receive Constraint Errors,Port Receive Constraint Errors,NONE,1,0,true,,true
+ufm.Communication_Error.120,WARNING,Excessive Buffer Overrun Errors,The number of times that OverrunErrors consecutive flow control update periods occurred - each having at least one overrun error,NONE,1,0,true,,true
+ufm.Communication_Error.121,WARNING,VL15 Dropped,Number of incoming VL15 packets dropped because of resource limitations in the port,NONE,1,0,true,,true
+ufm.Communication_Error.122,WARNING,Congested Bandwidth Percent Threshold Reached,Percent of Congested Bandwidth has exceeded defined threshold,NONE,1,0,true,,true
+ufm.Communication_Error.123,WARNING,Port Bandwidth Percent Threshold Reached,Percent of Port Transmit Bandwidth has exceeded defined threshold,NONE,1,0,true,,true
+ufm.Communication_Error.133,WARNING,Port Normalized Transmit Wait,Percent of Port Normalized Transmit Wait has exceeded defined threshold,NONE,1,0,true,,true
+ufm.Communication_Error.134,WARNING,T4 Port Congested Bandwidth,Percent of T4 Port Congested Bandwidth has exceeded defined threshold,NONE,1,0,true,,true
+ufm.Communication_Error.135,WARNING,T4 Port Normalized Transmit Wait,Percent of T4 Port Normalized Transmit Wait has exceeded defined threshold,NONE,1,0,true,,true
+ufm.Communication_Error.145,INFO,System Image GUID changed,System GUID is changed for the specific LID,NONE,1,0,true,,true
+ufm.Communication_Error.358,WARNING,VMM bad access credentials,VMM bad access credentials,NONE,1,0,true,,true
+ufm.Communication_Error.375,WARNING,Vcenter is Down,Vcenter is Down,NONE,1,0,true,,true
+ufm.Communication_Error.376,WARNING,Vcenter bad access credentials,Vcenter bad access credentials,NONE,1,0,true,,true
+ufm.Communication_Error.404,WARNING,System Information is missing,System Information for switch is missing,NONE,1,0,true,,true
+ufm.Communication_Error.405,WARNING,Switch Identity Validation Failed,System Information for switch is missing,NONE,1,0,true,,true
+ufm.Communication_Error.801,WARNING,Drop Events,Drop Events,NONE,1,0,true,,true
+ufm.Communication_Error.802,WARNING,CRC Align Errors,CRC Align Errors,NONE,1,0,true,,true
+ufm.Communication_Error.803,WARNING,Undersize Pkts,Undersize Pkts,NONE,1,0,true,,true
+ufm.Communication_Error.804,WARNING,Oversize Pkts,Oversize Pkts,NONE,1,0,true,,true
+ufm.Communication_Error.805,WARNING,Fragments,Fragments,NONE,1,0,true,,true
+ufm.Communication_Error.806,WARNING,Jabbers,Jabbers,NONE,1,0,true,,true
+ufm.Communication_Error.807,WARNING,Collisions,Collisions,NONE,1,0,true,,true
+ufm.Communication_Error.808,WARNING,Alignment Errors,Alignment Errors,NONE,1,0,true,,true
+ufm.Communication_Error.809,WARNING,FCS Errors,FCS Errors,NONE,1,0,true,,true
+ufm.Communication_Error.810,WARNING,Single Collision Frames,Single Collision Frames,NONE,1,0,true,,true
+ufm.Communication_Error.811,WARNING,Multiple Collision Frames,Multiple Collision Frames,NONE,1,0,true,,true
+ufm.Communication_Error.812,WARNING,SQE Test Errors,SQE Test Errors,NONE,1,0,true,,true
+ufm.Communication_Error.813,WARNING,Deferred Transmissions,Deferred Transmissions,NONE,1,0,true,,true
+ufm.Communication_Error.814,WARNING,Late Collisions,Late Collisions,NONE,1,0,true,,true
+ufm.Communication_Error.815,WARNING,Excessive Collisions,Excessive Collisions,NONE,1,0,true,,true
+ufm.Communication_Error.816,WARNING,Internal Mac Transmit Errors,Internal Mac Transmit Errors,NONE,1,0,true,,true
+ufm.Communication_Error.817,WARNING,Internal Mac Receive Errors,Internal Mac Receive Errors,NONE,1,0,true,,true
+ufm.Communication_Error.818,WARNING,Carrier Sense Errors,Carrier Sense Errors,NONE,1,0,true,,true
+ufm.Communication_Error.819,WARNING,Frame Too Longs,Frame Too Longs,NONE,1,0,true,,true
+ufm.Communication_Error.820,WARNING,Symbol Errors,Symbol Errors,NONE,1,0,true,,true
+ufm.Fabric_Configuration.115,WARNING,Port Receive Switch Relay Errors,Total number of packets received on the port that were discarded because they could not be forwarded by the switch relay,NONE,1,0,true,,true
+ufm.Fabric_Configuration.256,WARNING,Bad M_Key,Found bad Management key. Check your HCA driver or partition settings. Management Key: Enforces the control of a master subnet manager,NONE,1,0,true,,true
+ufm.Fabric_Configuration.257,WARNING,Bad P_Key,Found a bad Partition key. Check your partitioning settings. Partition Key: Enforces membership. Administered through the subnet manager by the partition manager (PM).,NONE,1,0,true,,true
+ufm.Fabric_Configuration.258,WARNING,Bad Q_Key,Found bad Queue key. Security error. Queue Key: Enforces access rights for reliable and unreliable datagram service (RAW datagram service type not included),NONE,1,0,true,,true
+ufm.Fabric_Configuration.259,WARNING,Bad P_Key Switch External Port,Found a bad Partition key. Check your partitioning settings. Partition Key: Enforces membership. Administered through the subnet manager by the partition manager (PM),NONE,1,0,true,,true
+ufm.Fabric_Notification.144,INFO,Capability Mask Modified,Capability Mask of the specific LID is modified,NONE,1,0,true,,true
+ufm.Fabric_Notification.156,FATAL,Link Speed Enforcement Disabled,Link speed enforcement is disabled in the fabric,NONE,1,0,true,,true
+ufm.Fabric_Notification.271,INFO,ISBL LAG Port Up,ISBL LAG Port Up,NONE,1,0,true,,true
+ufm.Fabric_Notification.272,FATAL,ISBL LAG Port Down,ISBL LAG Port Down,NONE,1,0,true,,true
+ufm.Fabric_Notification.273,INFO,LAG Port Up,LAG Port Up,NONE,1,0,true,,true
+ufm.Fabric_Notification.274,WARNING,LAG Port Down,LAG Port Down,NONE,1,0,true,,true
+ufm.Fabric_Notification.275,INFO,Port Up,Port Up,NONE,1,0,true,,true
+ufm.Fabric_Notification.276,WARNING,Port Down,Port Down,NONE,1,0,true,,true
+ufm.Fabric_Notification.277,INFO,Port of LAG Up,Port of LAG Up,NONE,1,0,true,,true
+ufm.Fabric_Notification.278,WARNING,Port of LAG Down,Port of LAG Down,NONE,1,0,true,,true
+ufm.Fabric_Notification.279,INFO,Port of ISBL Up,Port of ISBL Up,NONE,1,0,true,,true
+ufm.Fabric_Notification.280,WARNING,Port of ISBL Down,Port of ISBL Down,NONE,1,0,true,,true
+ufm.Fabric_Notification.391,INFO,Switch Module Removed,Module (line card - FAN or PS) is removed from the switch,NONE,1,0,true,,true
+ufm.Fabric_Notification.393,INFO,Switch Module Added,Switch Module Added,NONE,1,0,true,,true
+ufm.Fabric_Notification.398,INFO,Switch Chip Added,Switch Chip Added,NONE,1,0,true,,true
+ufm.Fabric_Notification.399,FATAL,Switch Chip Removed,Switch Chip Removed,NONE,1,0,true,,true
+ufm.Fabric_Notification.510,INFO,SM UP,SM is UP,NONE,1,0,true,,true
+ufm.Fabric_Notification.512,FATAL,SM Failover,SM Failover,NONE,1,0,true,,true
+ufm.Fabric_Notification.513,WARNING,SM System Log Message,SM System Log Message,NONE,1,0,true,,true
+ufm.Fabric_Notification.514,WARNING,SM LID Change,SM lid is changed,NONE,1,0,true,,true
+ufm.Fabric_Notification.515,INFO,Fabric Health Report Info,Fabric Health Report Info,NONE,1,0,true,,true
+ufm.Fabric_Notification.516,WARNING,Fabric Health Report Warning,Fabric Health Report Warning,NONE,1,0,true,,true
+ufm.Fabric_Notification.517,FATAL,Fabric Health Report Error,Fabric Health Report Error,NONE,1,0,true,,true
+ufm.Fabric_Notification.602,FATAL,UFM Server Failover,UFM Server Failover,NONE,1,0,true,,true
+ufm.Fabric_Notification.606,WARNING,Correction Attempts Paused,Correction Attempts Paused,NONE,1,0,true,,true
+ufm.Fabric_Notification.622,WARNING,Monitoring History Purge DB Occurred,Monitoring History Purge DB Occurred,NONE,1,0,true,,true
+ufm.Fabric_Notification.64,INFO,GID Address In Service,New GID is connected to the Fabric,NONE,1,0,true,,true
+ufm.Fabric_Notification.65,WARNING,GID Address Out of Service,Existing GID is disconnected from the Fabric,NONE,1,0,true,,true
+ufm.Fabric_Notification.66,INFO,New MCast Group Created,New Multicast Group is created in SM,NONE,1,0,true,,true
+ufm.Fabric_Notification.67,INFO,MCast Group Deleted,Multicast Group is removed from SM,NONE,1,0,true,,true
+ufm.Fabric_Notification.901,INFO,Fabric Configuration Started,Fabric Configuration Started,NONE,1,0,true,,true
+ufm.Fabric_Notification.902,INFO,Fabric Configuration Completed,Fabric Configuration Completed,NONE,1,0,true,,true
+ufm.Fabric_Notification.903,FATAL,Fabric Configuration Failed,Fabric Configuration Failed,NONE,1,0,true,,true
+ufm.Fabric_Notification.904,FATAL,Device Configuration Failure,Device Configuration Failure,NONE,1,0,true,,true
+ufm.Fabric_Notification.905,FATAL,Device Configuration Timeout,Device Configuration Timeout,NONE,1,0,true,,true
+ufm.Fabric_Notification.906,FATAL,Provisioning Validation Failure,Provisioning Validation Failure,NONE,1,0,true,,true
+ufm.Fabric_Topology.328,INFO,Link is Up,Event is sent upon discovery of a new link,NONE,1,0,true,,true
+ufm.Fabric_Topology.329,WARNING,Link is Down,Event is sent when exiting link is removed,NONE,1,0,true,,true
+ufm.Fabric_Topology.331,WARNING,Node is Down,Node is disconnected or down,NONE,1,0,true,,true
+ufm.Fabric_Topology.332,INFO,Node is Up,Node is connected or up,NONE,1,0,true,,true
+ufm.Fabric_Topology.359,INFO,VM Created,VM Created,NONE,1,0,true,,true
+ufm.Fabric_Topology.360,INFO,VM Removed,VM Removed,NONE,1,0,true,,true
+ufm.Fabric_Topology.361,WARNING,VMM is Down,VMM is Down,NONE,1,0,true,,true
+ufm.Fabric_Topology.362,INFO,VMM is Up,VMM is Up,NONE,1,0,true,,true
+ufm.Fabric_Topology.364,INFO,VM state changed,VM state changed,NONE,1,0,true,,true
+ufm.Fabric_Topology.365,INFO,VM is Down,VM is Down,NONE,1,0,true,,true
+ufm.Fabric_Topology.366,INFO,VM is Up,VM is Up,NONE,1,0,true,,true
+ufm.Fabric_Topology.367,INFO,VM migration failed,VM migration failed,NONE,1,0,true,,true
+ufm.Fabric_Topology.368,INFO,VM has been migrated,VM has been migrated,NONE,1,0,true,,true
+ufm.Fabric_Topology.369,WARNING,VM alarm status has changed,VM alarm status has changed,NONE,1,0,true,,true
+ufm.Fabric_Topology.907,FATAL,Switch is Down,Switch is disconnected or down,NONE,1,0,true,,true
+ufm.Fabric_Topology.908,INFO,Switch is Up,Switch is connected or up,NONE,1,0,true,,true
+ufm.Fabric_Topology.909,FATAL,Director Switch is Down,Director Switch is disconnected or down,NONE,1,0,true,,true
+ufm.Fabric_Topology.910,INFO,Director Switch is Up,Director Switch is connected or up,NONE,1,0,true,,true
+ufm.Gateway.370,WARNING,Gateway Ethernet Link State Changed,Gateway Ethernet Physical link has changed state,NONE,1,0,true,,true
+ufm.Gateway.371,WARNING,Gateway Re-register Event Received,10GbE Gateway received a re-register event from the SM.,NONE,1,0,true,,true
+ufm.Gateway.372,WARNING,Number of Gateways is Changed,Change in the number of 10GbE Gateways has been detected,NONE,1,0,true,,true
+ufm.Gateway.373,WARNING,Gateway will be Rebooted,10GbE Gateway is about to reboot,NONE,1,0,true,,true
+ufm.Gateway.374,INFO,Gateway Reloading Finished,10GbE Gateway has finished reloading,NONE,1,0,true,,true
+ufm.Hardware.110,WARNING,Symbol Error,Total number of minor link errors detected on one or more physical lanes,NONE,1,0,true,,true
+ufm.Hardware.111,WARNING,Link Error Recovery,Total number of times the Port Training state machine has successfully completed the link error recovery process,NONE,1,0,true,,true
+ufm.Hardware.112,WARNING,Link Downed,Total number of times the Port Training state machine has failed the link error recovery process and downed the link,NONE,1,0,true,,true
+ufm.Hardware.113,WARNING,Port Receive Errors,Total number of packets containing an error that were received on a port,NONE,1,0,true,,true
+ufm.Hardware.114,WARNING,Port Receive Remote Physical Errors,Total number of packets marked with the EBP delimiter received on the port,NONE,1,0,true,,true
+ufm.Hardware.119,WARNING,Local Link Integrity Errors,The number of times that the frequency of packets containing local physical errors has exceeded LocalPhyErrors,NONE,1,0,true,,true
+ufm.Hardware.130,WARNING,Non-optimal link width,Non-optimal link width,NONE,1,0,true,,true
+ufm.Hardware.141,WARNING,Flow Control Update Watchdog Timer Expired,SM Trap. The error indicates a failure of the flow control machine at the other end of the link. If the timer expires without receiving an update - a flow control update error has occurred,NONE,1,0,true,,true
+ufm.Hardware.392,WARNING,Module Temperature Threshold Reached,Temperature detected by module sensor is too high - has exceeded the defined threshold,NONE,1,0,true,,true
+ufm.Hardware.701,WARNING,Non-optimal Link Speed,Non-optimal Link Speed,NONE,1,0,true,,true
+ufm.Hardware.702,WARNING,Unhealthy IB Port,Unhealthy IB Port,NONE,1,0,true,,true
+ufm.Hardware.750,WARNING,High data retransmission count on port,High number of data retransmissions,NONE,1,0,true,,true
+ufm.Hardware.911,WARNING,Module Temperature Low Threshold Reached,Temperature detected by module sensor is too high - has exceeded the low threshold,NONE,1,0,true,,true
+ufm.Hardware.912,FATAL,Module Temperature High Threshold Reached,Temperature detected by module sensor is too high - has exceeded the high threshold,NONE,1,0,true,,true
+ufm.Logical_Model.301,INFO,Logical Server State Changed,Logical Server state is changed,NONE,1,0,true,,true
+ufm.Logical_Model.302,WARNING,Logical Server State Change Failed,Indicates error in Logical Server state change. This error might be caused by any error condition related to the Logical Server resources allocation,NONE,1,0,true,,true
+ufm.Logical_Model.306,INFO,Logical Server Added,New Logical Server or Logical Servers Group is created,NONE,1,0,true,,true
+ufm.Logical_Model.307,INFO,Logical Server Removed,Logical Server or Logical Servers Group is deleted,NONE,1,0,true,,true
+ufm.Logical_Model.308,INFO,Logical Server Resources Allocated,New resources are allocated to the Logical Server,NONE,1,0,true,,true
+ufm.Logical_Model.312,INFO,Compute Resource Released,A resource is released from the Logical Server,NONE,1,0,true,,true
+ufm.Logical_Model.313,INFO,Compute Resource Allocated,A resource is allocated to the Logical Server,NONE,1,0,true,,true
+ufm.Logical_Model.314,INFO,Logical Server Additional Resources Allocated,Additional resources are allocated to the Logical Server,NONE,1,0,true,,true
+ufm.Logical_Model.315,INFO,Logical Server Resources Released,Resources were released from the Logical Server,NONE,1,0,true,,true
+ufm.Logical_Model.316,FATAL,Logical Server Compute Resource is Down,An allocated resource is Down or Disconnected,NONE,1,0,true,,true
+ufm.Logical_Model.317,INFO,Logical Server Compute Resource is Up,An allocated resources is Up or Connected back,NONE,1,0,true,,true
+ufm.Logical_Model.340,INFO,Network Interface Added,New Network Interface is created,NONE,1,0,true,,true
+ufm.Logical_Model.341,INFO,Network Interface Removed,Network Interface is deleted,NONE,1,0,true,,true
+ufm.Logical_Model.350,INFO,Environment Added,New Logical Environment is created,NONE,1,0,true,,true
+ufm.Logical_Model.351,INFO,Environment Removed,Logical Environment is deleted,NONE,1,0,true,,true
+ufm.Logical_Model.352,INFO,Network Added,New Network is created,NONE,1,0,true,,true
+ufm.Logical_Model.353,INFO,Network Removed,Network is deleted,NONE,1,0,true,,true
+ufm.Maintenance.252,WARNING,License expired,License has expired,NONE,1,0,true,,true
+ufm.Maintenance.253,FATAL,Duplicated licenses,Duplicate Serial Number is detected on installed licenses,NONE,1,0,true,,true
+ufm.Maintenance.254,FATAL,License Limit Exceeded,Managed fabric size has exceeded size permitted by license,NONE,1,0,true,,true
+ufm.Maintenance.255,WARNING,License Expiration Date,License has expired,NONE,1,0,true,,true
+ufm.Maintenance.336,INFO,Port Action Succeeded,Port Management Action (reset - disable) succeeded,NONE,1,0,true,,true
+ufm.Maintenance.337,WARNING,Port Action Failed,Port Management Action (reset - disable) failed,NONE,1,0,true,,true
+ufm.Maintenance.338,INFO,Device Action Succeeded,Device Management Action succeeded,NONE,1,0,true,,true
+ufm.Maintenance.339,WARNING,Device Action Failed,Device Management Action failed,NONE,1,0,true,,true
+ufm.Maintenance.381,FATAL,Switch Upgrade Error,Software upgrade on switch has failed,NONE,1,0,true,,true
+ufm.Maintenance.383,WARNING,Host Upgrade Failed,Host Upgrade has failed,NONE,1,0,true,,true
+ufm.Maintenance.385,INFO,Switch FW Upgrade Started,Switch FW Upgrade process has started,NONE,1,0,true,,true
+ufm.Maintenance.386,INFO,Switch SW Upgrade Started,Switch SW Upgrade process has started,NONE,1,0,true,,true
+ufm.Maintenance.387,INFO,Switch Upgrade Finished,Switch Upgrade Finished,NONE,1,0,true,,true
+ufm.Maintenance.388,INFO,Host FW Upgrade Started,Host FW Upgrade process has started,NONE,1,0,true,,true
+ufm.Maintenance.389,INFO,Host SW Upgrade Started,Host SW Upgrade process has started,NONE,1,0,true,,true
+ufm.Maintenance.395,INFO,Device Action Started,Device Action Started,NONE,1,0,true,,true
+ufm.Maintenance.396,INFO,Site Action Started,Site Action Started,NONE,1,0,true,,true
+ufm.Maintenance.397,WARNING,Site Action Failed,Site Action Failed,NONE,1,0,true,,true
+ufm.Maintenance.403,WARNING,Device Pending Reboot,Reboot device after software updated,NONE,1,0,true,,true
+ufm.Maintenance.502,INFO,Device Upgrade Finished,Device SW or FW Upgrade has finished,NONE,1,0,true,,true
+ufm.Maintenance.503,INFO,UFM BackUp Started,UFM backup has started,NONE,1,0,true,,true
+ufm.Maintenance.504,INFO,UFM BackUp Finished,UFM backup has finished,NONE,1,0,true,,true
+ufm.Maintenance.505,INFO,UFM BackUp Finished With Error,UFM backup has finished with error,NONE,1,0,true,,true
+ufm.Maintenance.508,INFO,Core Dump Created,Core dump was created,NONE,1,0,true,,true
+ufm.Maintenance.518,FATAL,UFM-related process is down,UFM related process is down,NONE,1,0,true,,true
+ufm.Maintenance.519,WARNING,Logs purge failure,Failed purging database logs,NONE,1,0,true,,true
+ufm.Maintenance.520,INFO,Restart of UFM-related process succeeded,UFM-related process was restarted successfully,NONE,1,0,true,,true
+ufm.Maintenance.521,FATAL,UFM is being stopped,Stopping UFM server,NONE,1,0,true,,true
+ufm.Maintenance.522,FATAL,UFM is being restarted,Restarting UFM server,NONE,1,0,true,,true
+ufm.Maintenance.523,INFO,UFM failover is being attempted,Attempting UFM failover,NONE,1,0,true,,true
+ufm.Maintenance.524,FATAL,UFM cannot connect to DB,Connection to the database failed,NONE,1,0,true,,true
+ufm.Maintenance.525,FATAL,Disk utilization threshold reached,Disk utilization threshold reached,NONE,1,0,true,,true
+ufm.Maintenance.526,FATAL,Memory utilization threshold reached,Memory utilization threshold reached,NONE,1,0,true,,true
+ufm.Maintenance.527,FATAL,CPU utilization threshold reached,CPU utilization threshold reached,NONE,1,0,true,,true
+ufm.Maintenance.528,FATAL,Fabric interface is down,Fabric interface is down,NONE,1,0,true,,true
+ufm.Maintenance.529,FATAL,UFM standby server problem,UFM standby server problem,NONE,1,0,true,,true
+ufm.Maintenance.530,FATAL,SM is down,SM is down,NONE,1,0,true,,true
+ufm.Maintenance.531,FATAL,DRBD Bad Condition,DRBD Bad Condition,NONE,1,0,true,,true
+ufm.Maintenance.532,INFO,Remote UFM-SM Sync,Remote UFM-SM Sync,NONE,1,0,true,,true
+ufm.Maintenance.533,FATAL,Remote UFM-SM problem,Remote UFM-SM problem,NONE,1,0,true,,true
+ufm.Maintenance.535,WARNING,MH Purge Failed,MH Purge Failed,NONE,1,0,true,,true
+ufm.Maintenance.536,INFO,UFM Health Watchdog Info,UFM Health Watchdog Info,NONE,1,0,true,,true
+ufm.Maintenance.537,FATAL,UFM Health Watchdog Critical,UFM Health Watchdog Critical,NONE,1,0,true,,true
+ufm.Maintenance.538,WARNING,Time Diff Between HA Servers,Time Diff Between HA Servers,NONE,1,0,true,,true
+ufm.Maintenance.539,WARNING,DRBD TCP Connection Performance,DRBD TCP Connection Performance,NONE,1,0,true,,true
+ufm.Maintenance.540,INFO,Daily Report Completed successfully,Daily Report Completed successfully,NONE,1,0,true,,true
+ufm.Maintenance.541,WARNING,Daily Report Completed with Error,Daily Report Completed with Error,NONE,1,0,true,,true
+ufm.Maintenance.542,FATAL,Daily Report Failed,Daily Report Failed,NONE,1,0,true,,true
+ufm.Maintenance.543,INFO,Daily Report Mail Sent successfully,Daily Report Mail Sent successfully,NONE,1,0,true,,true
+ufm.Maintenance.544,WARNING,Daily Report Mail Sent Failed,Daily Report Mail Sent Failed,NONE,1,0,true,,true
+ufm.Maintenance.545,FATAL,SM is not responding,SM is not responding,NONE,1,0,true,,true
+ufm.Maintenance.551,INFO,General External Event Notification,General External Event Notification,NONE,1,0,true,,true
+ufm.Maintenance.552,WARNING,General External Event Notice,General External Event Notice,NONE,1,0,true,,true
+ufm.Maintenance.553,WARNING,General External Event Alert,General External Event Alert,NONE,1,0,true,,true
+ufm.Maintenance.554,FATAL,General External Event Error,General External Event Error,NONE,1,0,true,,true
+ufm.Maintenance.603,FATAL,Events Suppression,Events Suppression,NONE,1,0,true,,true
+ufm.Maintenance.604,INFO,Report Succeeded,Report Succeeded,NONE,1,0,true,,true
+ufm.Maintenance.605,FATAL,Report Failed,Report Failed,NONE,1,0,true,,true
+ufm.Maintenance.610,INFO,Monitoring History Enabled,Monitoring History Enabled,NONE,1,0,true,,true
+ufm.Maintenance.611,INFO,Monitoring History Disabled,Monitoring History Disabled,NONE,1,0,true,,true
+ufm.Maintenance.612,FATAL,Monitoring History Bad Connection,Monitoring History Bad Connection,NONE,1,0,true,,true
+ufm.Maintenance.613,INFO,Monitoring History Connection Established,Monitoring History Connection Established,NONE,1,0,true,,true
+ufm.Maintenance.614,FATAL,Monitoring History Inconsistent Version,Monitoring History Inconsistent Version,NONE,1,0,true,,true
+ufm.Maintenance.615,FATAL,Monitoring History Failed save metadata,Monitoring History Failed save metadata,NONE,1,0,true,,true
+ufm.Maintenance.616,FATAL,Monitoring History Failed update metadata,Monitoring History Failed update metadata,NONE,1,0,true,,true
+ufm.Maintenance.617,FATAL,Monitoring History Failed save data,Monitoring History Failed save data,NONE,1,0,true,,true
+ufm.Maintenance.618,FATAL,Monitoring History Failed get metadata,Monitoring History Failed get metadata,NONE,1,0,true,,true
+ufm.Maintenance.619,FATAL,Monitoring History Failed get data,Monitoring History Failed get data,NONE,1,0,true,,true
+ufm.Maintenance.620,FATAL,Monitoring History Failed remove file,Monitoring History Failed remove file,NONE,1,0,true,,true
+ufm.Maintenance.621,FATAL,Monitoring History version not matches UFM version,Monitoring History version not matches UFM version,NONE,1,0,true,,true
+ufm.Maintenance.623,WARNING,Monitoring History Migration is not completed,Monitoring History Migration is not completed,NONE,1,0,true,,true
+ufm.Maintenance.624,FATAL,Monitoring History partition utilization threshold reached,Monitoring History partition utilization threshold reached,NONE,1,0,true,,true
+ufm.Maintenance.625,INFO,Monitoring History local report files are about to be cleaned,Monitoring History local report files are about to be cleaned,NONE,1,0,true,,true
+ufm.Maintenance.626,INFO,Monitoring History oldest DB table is about to be removed,Monitoring History oldest DB table is about to be removed,NONE,1,0,true,,true
+ufm.Maintenance.627,FATAL,Monitoring History partition is not mounted,Monitoring History partition is not mounted,NONE,1,0,true,,true
+ufm.Maintenance.703,INFO,Fabric Collector Connected,Fabric Collector Connected,NONE,1,0,true,,true
+ufm.Maintenance.704,FATAL,Fabric Collector Disconnected,Fabric Collector Disconnected,NONE,1,0,true,,true
+ufm.Module_Status.394,FATAL,Module status FAULT,Module status FAULT,NONE,1,0,true,,true
+ufm.Module_Status.913,WARNING,Module High Voltage,Sensor Voltage Threshold Exceeded,NONE,1,0,true,,true
+ufm.Module_Status.914,WARNING,Module High Current,Sensor Current Threshold Exceeded,NONE,1,0,true,,true
+ufm.UFM_Server.560,INFO,User Connected,User Connected,NONE,1,0,true,,true
+ufm.UFM_Server.561,INFO,User Disconnected,User Disconnected,NONE,1,0,true,,true
