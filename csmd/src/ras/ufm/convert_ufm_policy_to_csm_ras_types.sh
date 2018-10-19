@@ -19,8 +19,11 @@ echo "#msg_id,severity,message,description,control_action,threshold_count,thresh
 
 while IFS=, read -r AlarmId Description Severity
 do
-  
-  # Remove quotes
+ 
+  # Remove trailing spaces followed by quotes
+  Description="${Description// \"}"
+ 
+  # Remove all other quotes
   Description="${Description//\"}"
   Severity="${Severity//\"}"
 
