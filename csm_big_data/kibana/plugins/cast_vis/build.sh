@@ -1,6 +1,7 @@
+#!/bin/bash
 #================================================================================
 #
-#    csm_big_data/CMakeLists.txt
+#    csm_big_data/kibana/plugins/cast_vis/build.sh
 #
 #    © Copyright IBM Corporation 2015-2018. All Rights Reserved
 #
@@ -13,22 +14,7 @@
 #
 #================================================================================
 
-set(BDS_BASE_NAME csm/bigdata)
-set(BDS_RPM_NAME csm-bds)
-set(KIBANA_RPM_NAME csm-bds-kibana)
-set(LOGSTASH_RPM_NAME csm-bds-logstash)
+npm install
 
-add_subdirectory(elasticsearch)
-add_subdirectory(logstash)
-add_subdirectory(data-aggregators)
-add_subdirectory(beats)
-add_subdirectory(config-scripts)
-add_subdirectory(python)
-add_subdirectory(kibana)
-
-set(SCRIPTDIR scripts)
-
-
-#install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME})
-
+npm run build
 

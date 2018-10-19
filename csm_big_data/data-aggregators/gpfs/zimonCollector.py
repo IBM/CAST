@@ -24,6 +24,7 @@ logger=logging.basicConfig(level=logging.DEBUG,
         format='%(asctime)s %(name)s.%(funcName)s +%(lineno)s: %(levelname)-8s [%(process)d] %(message)s')
 
 # Add zimon query handlers.
+sys.path.insert(0, '/usr/lpp/mmfs/lib')
 sys.path.insert(0, '/usr/lpp/mmfs/lib/mmsysmon')
 sys.path.insert(0, '/usr/lpp/mmfs/lib/mmsysmon/threshold')
 from Query import Query
