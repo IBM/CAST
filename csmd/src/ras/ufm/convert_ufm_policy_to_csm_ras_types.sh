@@ -20,13 +20,17 @@ echo "#msg_id,severity,message,description,control_action,threshold_count,thresh
 while IFS=, read -r AlarmId Message Severity Category
 do
  
-  # Remove trailing spaces followed by quotes
-  Message="${Message// \"}"
- 
-  # Remove all other quotes
+  # Remove quotes
+  AlarmId="${AlarmId//\"}"
   Message="${Message//\"}"
   Severity="${Severity//\"}"
   Category="${Category//\"}"
+
+  # Trim leading and trailing whitespace
+  read -rd '' AlarmId <<<"$AlarmId"
+  read -rd '' Message <<<"$Message"
+  read -rd '' Severity <<<"$Severity"
+  read -rd '' Category <<<"$Category"
 
   # Replace (%) with Percent
   Message="${Message//(%)/Percent}"
