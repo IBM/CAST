@@ -1192,8 +1192,8 @@ void Configuration::CreateThreadPool()
       }
 
       unsigned dce = 0;
-      if( dce_val.empty() ) // if not configured, the default is 5x of rci
-        dce = rci_max * 5;
+      if( dce_val.empty() )
+        dce = 600;
       else
       {
         errno = 0;
