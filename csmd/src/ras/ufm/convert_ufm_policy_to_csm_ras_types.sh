@@ -73,6 +73,8 @@ do
 # sed 's/[*]//g' 
 # Replace commas contained within quoted fields with spaces:
 # awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}'
+# Combine multiple spaces into a single space
+# tr -s ' '
  
-done < <( cat /opt/ufm/scripts/policy.csv | sed 's/[*]//g' | awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}' | awk -F, '{print $1","$2","$15","$21","$23}' ) | sort
+done < <( cat /opt/ufm/scripts/policy.csv | sed 's/[*]//g' | awk -F'"' -v OFS='"' '{ for (i=2; i<=NF; i+=2) gsub(",", " ", $i) } {print $0}' | tr -s ' ' | awk -F, '{print $1","$2","$15","$21","$23}' ) | sort
 
