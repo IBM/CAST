@@ -26,6 +26,7 @@ do
   # Remove all other quotes
   Message="${Message//\"}"
   Severity="${Severity//\"}"
+  Category="${Category//\"}"
 
   # Replace (%) with Percent
   Message="${Message//(%)/Percent}"
