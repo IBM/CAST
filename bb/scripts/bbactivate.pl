@@ -256,17 +256,25 @@ sub getNodeName
     output("node: $nodename");
 }
 
-
 sub requireFile
 {
     my($file) = @_;
     if(!-f $file)
     {
-        output("Specified file does not exist '$file'", LOG_ERR);
+        output("Error:  Specified file ($file) does not exist", LOG_ERR);
         exit(2);
     }
 }
 
+sub requireBlockDevice
+{
+    my($file) = @_;
+    if((!-b $file) && ($CFG{"dryrun"} == 0))
+    {
+        output("Error:  Specified block device ($file) does not exist", LOG_ERR);
+        exit(2);
+    }
+}
 
 sub copyBBFilesToLSF
 {
@@ -479,6 +487,8 @@ sub configureNVMeTarget
     my $json      = decode_json($nvmetjson);
     my $ns        = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
     my $nqn       = $json->{"subsystems"}[0]{"nqn"};
+
+    requireBlockDevice($json->{"subsystems"}[0]{"namespaces"}[0]{"device"}{"path"});
 
     my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
