@@ -35,14 +35,20 @@ def build_mapping_query(es, body, ranges, error):
 
     (index, source, mapping, category) = (
         error.get("index", "_all"),
-        error.get("source", ""),
+        error.get("source", None),
         error.get("mapping", []),
         error.get("category", None ))
     
     # TODO Error reporting. 
     if category is None:
         return (None, None)
-
+    
+    #  Adjust the source.
+    if ranges and source:
+        mm = ranges[1].get("multi_match")
+        if mm :
+            mm["fields"] = [source]
+    
     # Set up some aggregations.
     fields=sets.Set([source])
     agg_filters={}
