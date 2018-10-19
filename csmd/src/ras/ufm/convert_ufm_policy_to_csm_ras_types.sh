@@ -35,6 +35,9 @@ do
   # Replace (%) with Percent
   Message="${Message//(%)/Percent}"
 
+  # Replace internal spaces with _
+  Category="${Category// /_}"
+
   # Generate msg_id from AlarmId 
   MsgId="ufm.$Category.$AlarmId"
  
