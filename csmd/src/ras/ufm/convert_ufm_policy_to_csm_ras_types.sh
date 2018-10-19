@@ -17,18 +17,18 @@
 # print the header to match the csm_ras_type_data.csv format 
 echo "#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users"
 
-while IFS=, read -r AlarmId Description Severity
+while IFS=, read -r AlarmId Message Severity
 do
  
   # Remove trailing spaces followed by quotes
-  Description="${Description// \"}"
+  Message="${Message// \"}"
  
   # Remove all other quotes
-  Description="${Description//\"}"
+  Message="${Message//\"}"
   Severity="${Severity//\"}"
 
   # Replace (%) with Percent
-  Description="${Description//(%)/Percent}"
+  Message="${Message//(%)/Percent}"
 
   # Generate msg_id from AlarmId 
   MsgId="ufm.$AlarmId"
@@ -44,11 +44,11 @@ do
     Severity="WARNING"
   fi
  
-  #Description=""
+  #Message=""
+  Description=""
   #Severity="INFO"
   
   # Default all of these for now
-  Message=""
   ControlAction="NONE"
   ThresholdCount="1"
   ThresholdPeriod="0"
