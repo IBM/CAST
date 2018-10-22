@@ -9,5 +9,5 @@ discovery.zen.minimum_master_nodes: MIN-NODES
 gateway.recover_after_nodes: REC-NODES
 xpack.ml.enabled: false
 xpack.license.self_generated.type: basic
-#bootstrap.system_call_filter: false
+bootstrap.system_call_filter: false
 
