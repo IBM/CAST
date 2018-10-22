@@ -172,7 +172,7 @@ void csmiGenerateJSON(
     }
 
     if (json.size() > 1 ) json.pop_back();
-    json.append("}");
+    json.append("} ");
     free(token_str);
 }
 
