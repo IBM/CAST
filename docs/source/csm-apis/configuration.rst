@@ -1,5 +1,5 @@
-CSM Configuration
-=================
+Configuration
+=============
 
 
 
