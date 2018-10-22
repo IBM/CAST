@@ -1,7 +1,7 @@
-CSM API
-=======
+CSM
+===
 
-CSM is an API for managing a large cluster. 
+CSM is an tool for managing a large cluster. 
 
 .. toctree::
     :maxdepth: 2
