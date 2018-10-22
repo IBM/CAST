@@ -1,0 +1,21 @@
+## JVM configuration
+
+# On a standalone make this huge. (initial and max heap space)
+-Xms50g
+-Xmx50g
+
+## GC configuration
+-XX:+UseParNewGC
+-XX:+UseConcMarkSweepGC
+-XX:CMSInitiatingOccupancyFraction=75
+-XX:+UseCMSInitiatingOccupancyOnly
+-XX:+DisableExplicitGC
+-XX:+HeapDumpOnOutOfMemoryError
+
+# Make sure it's in headless mode.
+-Djava.awt.headless=true
+
+# ensure UTF-8 encoding by default (e.g. filenames)
+-Dfile.encoding=UTF-8
+
+-Des.max-open-files=true

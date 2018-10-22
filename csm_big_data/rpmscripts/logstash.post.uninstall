@@ -1,5 +1,7 @@
 if [ -f /usr/share/logstash/bin/logstash-plugin ] 
 then 
-    /usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator
+    /usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator 2>/dev/nul
+
+    echo "Event Correlator has been removed from logstash plugins."
 fi
 
