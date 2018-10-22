@@ -51,15 +51,17 @@ fi
 service logstash stop >/dev/null 2>&1
 
 # Copy the configuration to the local configuration.
-cp -r ${RPM_SRC}config/* "${LOGSTASH_TARGET}conf.d"
+cp -r ${RPM_SRC}config/logstash.conf "${LOGSTASH_TARGET}conf.d"
+cp -r ${RPM_SRC}config/jvm.options "${LOGSTASH_TARGET}"
+
 cp -r ${RPM_SRC}patterns/* "${LOGSTASH_TARGET}patterns"
 chown -R logstash:logstash ${LOGSTASH_TARGET}
 
 echoe "Installing csm-event-correlator"
-# Install the logstash plugin.
-/usr/share/logstash/bin/logstash-plugin install \
-    `ls ${RPM_SRC}plugins/logstash-filter-csm-event-correlator-*.gem` 1>&2
-
+## Install the logstash plugin.
+#/usr/share/logstash/bin/logstash-plugin install \
+#    `ls ${RPM_SRC}plugins/logstash-filter-csm-event-correlator-*.gem` 1>&2
+#
 # Restart the logstash service.
 service logstash start >/dev/null 2>&1
 
