@@ -475,7 +475,7 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                      << l_HostNamePrt2 << ", jobid " << jobid << ", jobstepid " << jobstepid << ", handle " << handle << ", and " << l_ContribIdPrt2 \
                      << ", a restart operation was completed for " << l_NumberRestarted << " transfer definition(s), " << l_NotInStoppedState \
                      << " transfer definition(s) were not in a stopped state, and a restart was attempted but failed for " \
-                     << l_NumberFailed << " transfer definition(s) . See previous messages for additional details.";
+                     << l_NumberFailed << " transfer definition(s). See previous messages for additional details.";
 
         pNumRestartedTransferDefs = l_NumberRestarted;
     }

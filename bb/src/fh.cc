@@ -279,7 +279,7 @@ void removeNextFilehandleByJobId(filehandle* &fh, uint64_t jobid)
     return;
 }
 
-int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index)
+int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index, const CHECK_FOR_RESTART_INDICATOR pCheckForRestart)
 {
     int rc = 0;
 
@@ -295,7 +295,16 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
         if(fhregistry.find(fl) != fhregistry.end())
         {
             fh = fhregistry[fl];
-            fhregistry.erase(fl);
+            if (!((pCheckForRestart == CHECK_FOR_RESTART) && (fh->isRestartInProgress())))
+            {
+                fhregistry.erase(fl);
+            }
+            else
+            {
+                LOG(bb,info) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc \
+                             << ". File handle found but is for restart transfer processing. The original file handle has already been closed.";
+                rc = -2;
+            }
         }
         else
         {
@@ -305,7 +314,10 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
 
     FileHandleRegistryUnlock();
 
-    LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
+    if (!((pCheckForRestart == CHECK_FOR_RESTART) && (fh->isRestartInProgress())))
+    {
+        LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
+    }
 
     return rc;
 }
@@ -323,6 +335,7 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
     numWritesNoSync = 0;
     totalSizeWritesNoSync = 0;
     isdevzero = false;
+    restartInProgress = false;
 
     LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=" << std::oct << mode << std::dec;
 

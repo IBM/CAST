@@ -2038,6 +2038,14 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
 
                 if (!rc)
                 {
+                    if (transfer->builtViaRetrieveTransferDefinition())
+                    {
+                        // Protect this newly opened file handle for restart from being removed/closed
+                        // by an asynchronous final close/status message received from the 'old' bbServer.
+                        // The 'original' file handle was already closed above as part of the restart
+                        // transfer processing.
+                        srcfile_ptr->setRestartInProgress();
+                    }
                     addFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
 
                     if (l_SourceFileIsLocal && (!l_SimulateFileStageIn))
@@ -2116,6 +2124,12 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                 {
                                     rc = -1;
                                     LOG(bb,error) << "Creating the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+
+                                    // No longer need to protect this file handle from being removed by
+                                    // an asynchronous final close/status message received from an 'old'
+                                    // bbServer
+                                    srcfile_ptr->setRestartInProgress(false);
+
                                     break;
                                 }
                             }
@@ -2140,6 +2154,14 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
 
                 if (transfer->builtViaRetrieveTransferDefinition())
                 {
+                    if (srcfile_ptr)
+                    {
+                        // No longer need to protect this file handle from being removed by
+                        // an asynchronous final close/status message received from an 'old'
+                        // bbServer
+                        srcfile_ptr->setRestartInProgress(false);
+                    }
+
                     char l_TransferType[64] = {'\0'};
                     if (!l_SkipFile)
                     {

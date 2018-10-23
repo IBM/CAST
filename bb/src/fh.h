@@ -108,6 +108,8 @@ class filehandle
     volatile uint32_t   numWritesNoSync;
     volatile size_t     totalSizeWritesNoSync;
     bool                isdevzero;
+    bool                restartInProgress;  // Only honored when attempting to remove a source file handle
+                                            // as part of msgin_file_transfer_complete_for_file() processing
     filehandleData*     privateData;
     int openErrno;
 
@@ -122,6 +124,7 @@ class filehandle
             numWritesNoSync = 0;
             totalSizeWritesNoSync = 0;
             isdevzero = false;
+            restartInProgress = false;
             privateData = NULL;
             openErrno = 0;
         };
@@ -135,6 +138,7 @@ class filehandle
             numWritesNoSync = 0;
             totalSizeWritesNoSync = 0;
             isdevzero = false;
+            restartInProgress = false;
             privateData = NULL;
             openErrno = 0;
         };
@@ -155,7 +159,9 @@ class filehandle
     inline uint32_t getTotalSizeWritesNoSync() { return totalSizeWritesNoSync; };
     inline void incrNumWritesNoSync(const uint32_t pValue=1) { numWritesNoSync += pValue; return; }
     inline void incrTotalSizeWritesNoSync(const size_t pValue) { totalSizeWritesNoSync += pValue; return; }
+    inline bool isRestartInProgress() { return restartInProgress; }
     inline void setNumWritesNoSync(const uint32_t pValue) { numWritesNoSync = pValue; return; }
+    inline void setRestartInProgress(const bool pValue=true) { restartInProgress = pValue; return; }
     inline void setTotalSizeWritesNoSync(const size_t pValue) { totalSizeWritesNoSync = pValue; return; }
     inline void setPrivate(filehandleData* ptr) { privateData = ptr; };
     inline filehandleData* getPrivate() { return privateData; };
@@ -175,7 +181,7 @@ extern int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32
 extern void dumpFileHandleMap(const char* pSev, const char* pPrefix);
 extern int fileHandleCount();
 extern int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index);
-extern int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index);
+extern int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index, const CHECK_FOR_RESTART_INDICATOR pCheckForRestart=DO_NOT_CHECK_FOR_RESTART);
 extern void removeNextFilehandleByJobId(filehandle* &fh, uint64_t jobid);
 
 #endif /* BB_FH_H_ */
