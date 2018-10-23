@@ -81,7 +81,7 @@ in `/opt/ibm/csm/bigdata/logstash/`.
 
 .. note:: This change is effective in the 1.3.0 release of the CAST rpms.
 
-Please refer to `Installing CEC`_ for more details.
+Please refer to `CSM Event Correlator`_ for more details.
 
 .. note:: The bin directory is relative to your logstash install location.
 
@@ -210,21 +210,6 @@ section of the document.
 There's an extensive asciidoc for usage of the `CSM Event Correlator plugin`_. The following 
 documentation is an abridged version.
 
-
-Installing CEC
-^^^^^^^^^^^^^^
-
-CEC should be bundled in the `ibm-csm-bds-*.noarch.rpm` rpm. Installation at
-the current time requires an external connection to the internet or an exported 
-copy of the plugin (this process is described in :ref:`offline-cec-install`).
-
-.. code:: bash
-
-    /usr/share/logstash/bin/logstash-plugin install \
-        /opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator-*.gem
-
-After the plugin has been installed it may then be configured with the steps described in 
-:ref:`csm-event-correlator-config`
 
 
 .. Links
