@@ -158,6 +158,13 @@ int bbproxy_SayHello(const string& pConnectionName)
 
         // Process response data
         rc = bberror.merge(msg);
+        if (rc)
+        {
+            errorText << "error in response to hello message";
+            delete msg;
+            msg=NULL;
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
 
         l_seconds = time(NULL);
         time_t remote_epoch = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::epochtimeinseconds))->getData();

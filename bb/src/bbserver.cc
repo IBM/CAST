@@ -2552,6 +2552,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
 
     addBBErrorToMsg(response);
     sendMessage(pConnectionName,response);
+    LOG(bb,info) << __FUNCTION__ <<" response to "<<pConnectionName;
     delete response;
 }
 
