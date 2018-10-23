@@ -3456,26 +3456,42 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
         {
             try
             {
-                // Remove source file (if open)
-                if (!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_SourceIndex))
+                // Remove source file (if open and not in progress for restart transfer)
+                int rc2 = removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_SourceIndex, CHECK_FOR_RESTART);
+                switch (rc2)
                 {
-                    LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
-                    if (fh->release(l_FileStatus))
+                    case 0:
                     {
-                        throw runtime_error(string("Unable to release filehandle"));
+                        LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
+                        if (fh->release(l_FileStatus))
+                        {
+                            throw runtime_error(string("Unable to release filehandle"));
+                        }
                     }
-                }
-                else
-                {
-                    // NOTE:  fh will be NULL in this leg
-                    if (!l_StageoutStarted)
+                    break;
+
+                    case -2:
                     {
-                        LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", source index " << l_SourceIndex;
+                        // File handle found, but not removed because restart transfer processing is
+                        // in progress for this file.  The file handle found is the newly opened
+                        // handle for restart processing.  The original file handle has already been
+                        // closed by the restart processing.
                     }
-                    else
+                    break;
+
+                    default:
                     {
-                        // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                        // NOTE:  fh will be NULL in this leg
+                        if (!l_StageoutStarted)
+                        {
+                            LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", source index " << l_SourceIndex;
+                        }
+                        else
+                        {
+                            // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                        }
                     }
+                    break;
                 }
             }
             catch(exception& e)

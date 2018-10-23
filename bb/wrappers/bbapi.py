@@ -37,6 +37,7 @@ from ctypes import *
 
 import bb
 from bberror import *
+import re
 import time
 
 
@@ -310,13 +311,26 @@ def BB_AddKeys(pTransferDef, pKey, pValue):
     return
 
 def BB_CancelTransfer(pHandle, pCancelScope=DEFAULT_BBCANCELSCOPE):
+    l_NormalRCs = BB_CancelTransferError(BBError(Exception())).getNormalRCs()
+    l_ToleratedErrorRCs = BB_CancelTransferError(BBError(Exception())).getToleratedErrorRCs()
+
     l_Handle = bb.cvar("handle", pHandle)
     l_CancelScope = bb.cvar("cancelscope", pCancelScope)
 
     print "%sBB_CancelTransfer issued to initiate cancel for handle %s, with cancel scope of %s" % (os.linesep, pHandle, BBCANCELSCOPE[l_CancelScope.value])
     rc = bb.api.BB_CancelTransfer(l_Handle, l_CancelScope)
-    if (rc):
-        raise BB_CancelTransferError(rc)
+    while ((rc not in l_NormalRCs) and (rc not in l_ToleratedErrorRCs)):
+        dummy = BBError()
+        FIND_INCORRECT_BBSERVER = re.compile(".*A cancel request for an individual transfer definition must be directed to the bbServer servicing that jobid and contribid")
+        l_ErrorSummary = dummy.getLastErrorDetailsSummary()
+        l_Success = FIND_INCORRECT_BBSERVER.search(l_ErrorSummary)
+        if ((not l_Success) or (pCancelScope == DEFAULT_BBCANCELSCOPE)):
+            raise BB_CancelTransferError(rc)
+        else:
+            # NOTE: This could be a 'normal' case where the cancel operation is running simultaneously with a failover operation
+            #       to a new bbServer.  Retry the cancel operation...
+            print "Cancel operation with a cancel scope of BBSCOPETRANSFER was issued to the incorrect bbServer due to concurrent failover processing.  Exception was tolerated and cancel operation will not be retried."
+            rc = -2
 
     bb.printLastErrorDetailsSummary()
     print "Cancel initiated for handle %s, with cancel scope of %s" % (pHandle, l_CancelScope.value)

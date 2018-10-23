@@ -162,6 +162,13 @@ const char MOUNTS_DIRECTORY[] = "/proc/mounts";
 /*******************************************************************************
  | Enumerators
  *******************************************************************************/
+enum CHECK_FOR_RESTART_INDICATOR
+{
+    DO_NOT_CHECK_FOR_RESTART    = 0,
+    CHECK_FOR_RESTART           = 1
+};
+typedef enum CHECK_FOR_RESTART_INDICATOR CHECK_FOR_RESTART_INDICATOR;
+
 enum CLEAR_METADATA_ON_CANCEL
 {
     DO_NOT_CLEAR_METADATA   = 0,
