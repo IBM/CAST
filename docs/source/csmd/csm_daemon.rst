@@ -51,8 +51,8 @@ The csm block
   }
 
 
-
 Beginning with the top-level configuration section `csm`.
+
   * ``role`` is setting the role of the daemon the same way as via the command line.
     Note that if the role is provided in both command line and config file, the command line setting overrides what's in the config.
 
@@ -104,6 +104,7 @@ The log block
         }
 
 The log block determines what amount of logging goes to which files and/or console and also specifies log rotation options.
+
   * ``format`` defines a template for the format of the CSM log lines. In the given example, a log `Message` is prefixed with
     the `TimeStamp` followed the name of the `SubComponent` and the `Severity`. The `SubComponent` helps to identify the source
     of the message (e.g. the csmnet = Network component; csmapi = CSM API call processing).
@@ -300,6 +301,7 @@ Listening socket configurations for some daemons:
         }
 
 Connection destinations for some daemons:
+
   * ``master`` configures the coordinates of the master daemon. (utility and aggregator only)
   * ``aggregatorA`` configures the coordinates of the primary aggregator (compute only)
   * ``aggregatorB`` configures the coordinates of the secondary aggregator (compute only)
@@ -317,7 +319,9 @@ The UFM block
             "rest_password" : "123456"
         }
 
+
 The ufm block configures the location and access to ufm.
+
   * ``rest_address`` tbd
   * ``rest_port`` tbd
   * ``rest_user`` tbd
@@ -334,6 +338,7 @@ The BDS block
                 "reconnect_interval_max" : 5,
                 "data_cache_expiration" : 600
         }
+
 
 The BDS block configures the access to the Big Data Store. The settings are only relevant
 on the aggregator daemon at the moment.
