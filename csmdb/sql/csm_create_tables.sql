@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   16.1
+--   current_version:   16.2
 --   create:            12-14-2015
---   last modified:     09-27-2018
+--   last modified:     10-24-2018
 --   change log:    
+--   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE
 --   16.1   upgraded and added function to support API inventory
 --          added in csm_db_schema_version history_time comment.
 --   16.0   upgrade to functions to support API changes
@@ -446,7 +447,8 @@ CREATE TYPE compute_node_states AS ENUM (
   'ADMIN_RESERVED',
   'MAINTENANCE',
   'SOFT_FAILURE',
-  'OUT_OF_SERVICE'
+  'OUT_OF_SERVICE',
+  'HARD_FAILURE'
 );
 
 ---------------------------------------------------------------------------------------------------
