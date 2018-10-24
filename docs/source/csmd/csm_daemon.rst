@@ -73,7 +73,7 @@ Beginning with the top-level configuration section `csm`.
   * ``inventory`` configures the inventory collection component. See `The inventory block`_.
   * ``net`` configures the network collection component to define the interconnectivity of the CSM infrastructure. See `The network block`_.
   * ``ras`` tbd
-  * ``ufm`` tbd
+  * ``ufm`` configure access to UFM. See `The UFM block`_.
   * ``bds`` addresses, ports, and other settings for BDS access. See `The BDS block`.
   * ``recurring_tasks`` setting up intervals and types of predefined recurring tasks to be triggered by the daemon. See `The recurring tasks block`_.
   * ``data_collection`` enable and configure predefined buckets for environmental data collection. See `The data collection block`_.
@@ -304,6 +304,24 @@ Connection destinations for some daemons:
   * ``aggregatorA`` configures the coordinates of the primary aggregator (compute only)
   * ``aggregatorB`` configures the coordinates of the secondary aggregator (compute only)
 
+
+The UFM block
+^^^^^^^^^^^^^
+
+.. code-block:: json
+
+        {
+            "rest_address"  : "__UFM_REST_ADDRESS__",
+            "rest_port"     : 80,
+            "rest_user"     : "admin",
+            "rest_password" : "123456"
+        }
+
+The ufm block configures the location and access to ufm.
+  * ``rest_address`` tbd
+  * ``rest_port`` tbd
+  * ``rest_user`` tbd
+  * ``rest_password`` tbd
 
 The BDS block
 ^^^^^^^^^^^^^
