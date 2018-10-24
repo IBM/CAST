@@ -72,8 +72,8 @@ Beginning with the top-level configuration section `csm`.
   * ``db`` is a master-specfic block to set up the data base connection. See `The database block`_.
   * ``inventory`` configures the inventory collection component. See `The inventory block`_.
   * ``net`` configures the network collection component to define the interconnectivity of the CSM infrastructure. See `The network block`_.
-  * ``ras`` defines the locations and settings RAS actions and events. See `The RAS block`_.
-  * ``ufm`` configure access to UFM. See `The UFM block`_.
+  * ``ras`` tbd
+  * ``ufm`` tbd
   * ``bds`` addresses, ports, and other settings for BDS access. See `The BDS block`.
   * ``recurring_tasks`` setting up intervals and types of predefined recurring tasks to be triggered by the daemon. See `The recurring tasks block`_.
   * ``data_collection`` enable and configure predefined buckets for environmental data collection. See `The data collection block`_.
@@ -149,7 +149,7 @@ The database block
 
 The database block configures the location and access parameters of the CSM database.
 The settings are specific and relevant to the master daemon only.
- 
+
   * ``connection_pool_size`` configures the number of connections to the database.
     The number also specifies the number of database worker thread for concurrent access
     and parallel processing of requests. The number should be empirically adjusted to the
@@ -161,7 +161,7 @@ The settings are specific and relevant to the master daemon only.
   * ``password`` the password to access the database. Having this setting in the file obviously
     makes it important to adjust the permissions to prevent unathorized users from viewing the
     config file
-  * ``schema_name`` in case there are named schemas in use, this configures the name 
+  * ``schema_name`` in case there are named schemas in use, this configures the name
 
 
 The inventory block
@@ -305,50 +305,6 @@ Connection destinations for some daemons:
   * ``aggregatorB`` configures the coordinates of the secondary aggregator (compute only)
 
 
-The RAS block
-^^^^^^^^^^^^^
-
-.. code-block:: json
-
-        {
-            "action" :
-            {
-                "fatal_event": "fatal_event.sh",
-                "scriptdir" : "/opt/ibm/csm/ras/actions",
-                "logdir" : "/var/log/ibm/csm/ras/actions",
-                "maxactions" : 1000,
-                "timeout" : 30
-            }
-        }
-
-The RAS block specifies actions and parameters for handling RAS events.
-  * ``action`` currently the only subsection of RAS with locations and limits of RAS actions
-
-    * ``fatal_event`` tbd
-    * ``scriptdir`` tbd
-    * ``logdir`` tbd
-    * ``maxactions`` tbd
-    * ``timeout`` tbd
-
-
-The UFM block
-^^^^^^^^^^^^^
-
-.. code-block:: json
-
-        {
-            "rest_address"  : "__UFM_REST_ADDRESS__",
-            "rest_port"     : 80,
-            "rest_user"     : "admin",
-            "rest_password" : "123456"
-        }
-
-The ufm block configures the location and access to ufm.
-  * ``rest_address`` tbd
-  * ``rest_port`` tbd
-  * ``rest_user`` tbd
-  * ``rest_password`` tbd
-
 The BDS block
 ^^^^^^^^^^^^^
 
@@ -373,7 +329,7 @@ on the aggregator daemon at the moment.
     service is not reachable. If the aggregator daemon is unable to connect, it will delay the next
     attempt for 1s. If that next attempt fails, it will wait 2s before retrying. It will keep
     increasing this reconnect delay until the configured maximum (in seconds) is reached.
-    
+
   * ``data_cache_expiration`` allows to specify the number of seconds the daemon will keep any
     environmental data that failed to get send to Logstash. To limit the loss of environmental data,
     it is recommended to set the expiration to be longer than the maximum reconnect interval.
