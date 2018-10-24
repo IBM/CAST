@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.1
+--   current_version:       16.2
 --   create:                06-22-2016
---   last modified:         10-17-2018
+--   last modified:         10-24-2018
 --   change log:
+--     16.2   - Moving this version to sync with DB schema version
 --     16.1   - Updated fn_csm_switch_children_inventory_collection to remove old records from database and have more user feedback data to CSM API
 --            - Updated fn_csm_ib_cable_inventory_collection to remove old records from database and have more user feedback data to CSM API
 --            - Updated fn_csm_switch_inventory_collection to remove old records from database and have more user feedback data to CSM API
