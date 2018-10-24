@@ -317,10 +317,7 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
 
     FileHandleRegistryUnlock();
 
-    if (!((pCheckForRestart == CHECK_FOR_RESTART) && (fh->isRestartInProgress())))
-    {
-        LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
-    }
+    LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
 
     return rc;
 }
