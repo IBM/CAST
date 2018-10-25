@@ -35,7 +35,7 @@ Wait Transfer Complete and Check
 Run a file transfer
     [Arguments]  ${tagid}  ${filelist}  ${expect_rc}=0
     ${handle}=  Get transfer handle  ${tagid}
-    Start file transfer  ${handle}  ${MOUNTPT}/filelist  ${expect_rc}
+    Start file transfer  ${handle}  ${filelist}  ${expect_rc}
     [return]  ${handle}
 
 API_Run parameterized transfer
