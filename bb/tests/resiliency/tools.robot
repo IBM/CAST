@@ -28,7 +28,7 @@ Failover back to primary
 Setup LV
      Start job
      Run as root
-     Setup logical volume  ${MOUNTPT}  16G
+     Setup logical volume  ${MOUNTPT}  64G
      Run as user
      set test variable  ${numiter}   1
      set test variable  ${maxfiles}  1
