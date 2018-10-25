@@ -1306,12 +1306,19 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                     msg->addAttribute(txp::version, BBAPI_CLIENTVERSIONSTR, strlen(BBAPI_CLIENTVERSIONSTR)+1);
                     usock->write(msg);
                     delete msg;
-
-                    waitReply(resp, msg);
-                    connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
-                    if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
-
-                    delete msg;
+                    msg=NULL;
+                    connect_rc = waitReply(resp, msg);
+                    if (msg){
+                        connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
+                        if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
+                        delete msg;
+                    }
+                    else {//need to remove connection
+                       unlockConnectionWrite("makeConnection - CLEAR");
+                       closeConnectionFD(name);
+                       LOG(bb,error) << "makeConnection disconnect while waiting for auth reply for connection=" << name;
+                       return -1;
+                    }
                 }
                 else
                 {
