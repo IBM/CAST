@@ -29,7 +29,7 @@ from pprint import pprint
 csm.init_lib()
 
 input = inv.node_attributes_query_input_t()
-nodes=["c650f99p18"]
+nodes=[str(sys.argv[1])]
 input.set_node_names(nodes)
 input.limit=-1
 input.offset=-1
