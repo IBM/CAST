@@ -1,6 +1,5 @@
-Configuration
-=============
-
+Configuring the CSM PAM module
+==============================
 
 
 CSM Pam Daemon Module
@@ -52,7 +51,6 @@ The following checks are performed to verify that the user is allowed to access 
 
 Module Configuration
 --------------------
-
 Configuration may occur in either a pam configuration file (e.g. `/etc/pam.d/sshd`) or the
 csm pam `whitelist`.
 
@@ -100,7 +98,7 @@ If the user has an active allocation they will be placed into the appropriate cg
 described above.
 
 activelist
-^^^^^^^^^^
+----------
 
 :File location: `/etc/pam.d/csm/whitelist` 
 :Configurable: No                         
