@@ -64,7 +64,9 @@ public:
         if ( !csm::daemon::helper::InspectDBResult(aEvent, err_code, err_msg ) )
         {
             ctx->SetErrorCode(CSMERR_DB_ERROR);
+            ctx->SetDBErrorCode(err_code);
             ctx->SetErrorMessage("Database Error Message: " + err_msg);
+
             HandleError( ctx, *(ctx->GetReqEvent()), postEventList );
             return;
         }
@@ -74,9 +76,10 @@ public:
         csm::db::DBResult_sptr db_res = db_event->GetContent().GetDBResult(); 
         std::vector<csm::db::DBTuple *> tuples;                              
     
-        if( !(csm::daemon::helper::GetTuplesFromDBResult(db_res, tuples)) )
+        if( db_res && !(csm::daemon::helper::GetTuplesFromDBResult(db_res, tuples)) )
         {
             ctx->SetErrorCode(CSMERR_DB_ERROR);
+            //ctx->SetDBErrorCode(db_res.GetErrCode())
             ctx->SetErrorMessage("Unable to parse the tuples from the database.");
             HandleError( ctx, *(ctx->GetReqEvent()), postEventList );
             return;

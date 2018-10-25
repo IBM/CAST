@@ -1576,6 +1576,11 @@ DECLARE
     bad_nodes text[];
     missing_nodes text[];
     running_nodes text[];
+    error_code integer;
+    INVALID_NODES  CONSTANT integer := 1;
+    ABSENT_NODES  CONSTANT integer := 2;
+    OCCUPIED_NODES CONSTANT integer := 3;
+    BAD_STATE CONSTANT integer := 4;
 BEGIN
     --LOCK TABLE csm_allocation_node IN EXCLUSIVE MODE;
     PERFORM 1 FROM csm_allocation_node WHERE allocation_id=i_allocation_id FOR UPDATE;
@@ -1603,10 +1608,18 @@ BEGIN
     -- OR there were nodes that couldn't be found, raise an exception.
     ELSIF (array_length(bad_nodes, 1) > 0 )
         OR  array_length(missing_nodes,1) > 0 THEN
-        RAISE EXCEPTION 'The following nodes were not available: % 
-The following nodes were not found: %',
+        
+        IF( array_length(bad_nodes, 1) > 0 ) 
+        THEN
+            error_code := INVALID_NODES;
+        ELSE
+            error_code := ABSENT_NODES;
+        END IF;
+
+        RAISE EXCEPTION 'The following nodes were not available: % ;The following nodes were not found: %',
                 array_to_string(bad_nodes, ', ', '*' ),
-                array_to_string(missing_nodes, ', ', '*');
+                array_to_string(missing_nodes, ', ', '*')
+            USING HINT = error_code;
     END IF;
 
     -- If the allocation is being created in the running state.
@@ -1624,7 +1637,8 @@ The following nodes were not found: %',
                     WHERE node_name = ANY(i_nodenames) AND state!='staging-in' AND state!='staging-out');
 
                 RAISE EXCEPTION 'Node(s) are currently busy, unable to request exclusive job. Active Nodes: %',
-                        array_to_string(running_nodes, ', ', '*');
+                        array_to_string(running_nodes, ', ', '*')
+                        USING HINT = OCCUPIED_NODES;
             END IF;
 
         ELSIF EXISTS (
@@ -1638,10 +1652,12 @@ The following nodes were not found: %',
                 WHERE node_name = ANY(i_nodenames) AND state!='staging-in' AND state!='staging-out');
 
             RAISE EXCEPTION 'Node(s) can not be shared because an exclusive job currently active. Active Nodes: %',
-                array_to_string(running_nodes, ', ', '*');
+                array_to_string(running_nodes, ', ', '*')
+                USING HINT = OCCUPIED_NODES;
         END IF;
     ELSIF i_state!='staging-in' THEN
-        RAISE EXCEPTION using message = 'Inserting into invalid state';
+        RAISE EXCEPTION 'Inserting into invalid state'
+            USING HINT = BAD_STATE;
     --ELSIF i_state='stage-out' THEN
         --RAISE EXCEPTION using message = 'Inserting into the stage-out state';
     END IF;
@@ -1656,11 +1672,13 @@ The following nodes were not found: %',
         i_allocation_id, i_shared, i_state, node
     FROM
         unnest(i_nodenames) as n(node);
-    EXCEPTION
-        WHEN others THEN
-            RAISE EXCEPTION
-            USING ERRCODE = sqlstate,
-                MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+
+    --EXCEPTION
+    --    WHEN others THEN
+    --        RAISE EXCEPTION
+    --        USING ERRCODE = sqlstate,
+    --            HINT = ?
+    --            MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
 END; -- releases all locks
 $$ LANGUAGE plpgsql;
 

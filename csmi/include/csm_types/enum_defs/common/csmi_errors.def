@@ -79,6 +79,13 @@ CSMI_ENUM_MEMBER(              CSMERR_STATE_CHANGE_FAILED, "The allocation state
 CSMI_ENUM_MEMBER(                 CSMERR_DELETE_STATE_BAD, "The allocation delete was performed in an illegal state."       ,,) ///< Indicates an allocation delete operation failed due to an invalid state.
 CSMI_ENUM_MEMBER(                  CSMERR_JSRUN_CMD_ERROR, "Indicates JSRUN could not be started by the CSM infrastructure."       ,,) ///< Indicates a JSRUN start failed.
 CSMI_VERSION_END(9bbb17a023c5a0bb1d19a367e1809c4e)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_INVALID_NODES, "Nodes specified for allocation create were not in the database.",,) ///< Indicates one or more nodes were not in the CSM database for the allocation create.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_OCCUPIED_NODES, "Nodes specified for allocation create were in use by other allocations.",,) ///< Indicates nodes in the list were in use by another allocation.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_UNAVIL_NODES,   "Allocation create had nodes that were not available.",,) ///< Indicates the allocation create failed due to nodes that were not avaliable.
+CSMI_VERSION_END(0)
 #undef CSMI_ENUM_MEMBER
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

@@ -93,7 +93,10 @@ typedef enum {
    CSMERR_STATE_CHANGE_FAILED=43, ///< 43 - Indicates an allocation update state operation failed to be completed, usually a problem in the compute nodes.
    CSMERR_DELETE_STATE_BAD=44, ///< 44 - Indicates an allocation delete operation failed due to an invalid state.
    CSMERR_JSRUN_CMD_ERROR=45, ///< 45 - Indicates a JSRUN start failed.
-   csmi_cmd_err_t_MAX=46 ///< 46 - Bounding Value
+   CSMERR_ALLOC_INVALID_NODES=46, ///< 46 - Indicates one or more nodes were not in the CSM database for the allocation create.
+   CSMERR_ALLOC_OCCUPIED_NODES=47, ///< 47 - Indicates nodes in the list were in use by another allocation.
+   CSMERR_ALLOC_UNAVIL_NODES=48, ///< 48 - Indicates the allocation create failed due to nodes that were not avaliable.
+   csmi_cmd_err_t_MAX=49 ///< 49 - Bounding Value
 } csmi_cmd_err_t;
 
 

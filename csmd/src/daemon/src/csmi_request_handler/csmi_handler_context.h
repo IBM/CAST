@@ -58,6 +58,9 @@ private:
     // General Data.
     int           _ErrorCode;                    ///< Holds the error code for error events.
     std::mutex    _ErrorCodeMutex;               ///< A mutex lock for the error code.
+    
+    int           _DBErrorCode;                  ///< Holds the error code for database error events.
+    std::mutex    _DBErrorCodeMutex;             ///< A mutex lock for the database error code.
 
     std::string   _ErrorMessage;                 ///< Holds the error message for error events.
     std::mutex    _ErrorMessageMutex;            ///< A mutex lock for the error string.
@@ -160,6 +163,16 @@ public:
      *  @return The current error code for the context.
      */
     int GetErrorCode( );
+
+    /** @brief Sets the database error code of the context, retrieves a mutex lock.
+     *  @param[in] errorCode The new error code.
+     */
+    void SetDBErrorCode( int errorCode );
+
+    /** @brief Retrieves the database error code of the context.
+     *  @return The current database error code for the context, 0 is no error.
+     */
+    int GetDBErrorCode( );
 
     /** @brief Set the error message, retrieves a mutex lock.
      *  @param[in] message The message to set for the error.
