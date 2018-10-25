@@ -22,8 +22,15 @@ CSMD Command line options
 CSMD Configuration
 ------------------
 
-Each type of daemon is set up via a dedicated configuration file (default location: `/etc/ibm/csm/csm_*.cfg`).
-The format of the config file is json. Which means you'll get json parsing errors in case there are formatting problems in the config file.
+Each type of daemon is set up via a dedicated configuration file
+(default location: `/etc/ibm/csm/csm_*.cfg`).  The format of the
+config file is json. Which means you'll get json parsing errors in
+case there are formatting problems in the config file.
+
+.. warning::
+  The CSM daemon needs to be restarted for any changes to the
+  configuration to take effect.
+
 Below, the sections of the configuration file are explained in detail:
 
 The csm block
@@ -69,7 +76,7 @@ Beginning with the top-level configuration section `csm`.
     an API requires a non-default timeout, it might be configured in that file. See `API Configuration`_ for details.
 
   * ``log`` is a subsection that defines the logging level of various components of the daemon. See `The log block`_.
-  * ``db`` is a master-specfic block to set up the data base connection. See `The database block`_.
+  * ``db`` is a master-specific block to set up the data base connection. See `The database block`_.
   * ``inventory`` configures the inventory collection component. See `The inventory block`_.
   * ``net`` configures the network collection component to define the interconnectivity of the CSM infrastructure. See `The network block`_.
   * ``ras`` tbd
@@ -121,7 +128,7 @@ The log block determines what amount of logging goes to which files and/or conso
       * ``warning`` to log warnings and everything above
       * ``info`` log info messages and everything above
       * ``debug`` log debug level messages and everything above; very verbose.
-      * ``trace`` very detailled logging including everything. Intended for tracing analysis. Will create a lot of output.
+      * ``trace`` very detailed logging including everything. Intended for tracing analysis. Will create a lot of output.
 
   * ``csmdb`` log level of the database component. Includes messages about database access and request handling.
   * ``csmnet`` log level of the network component. Includes messages about the network interaction between daemons and daemons and client processes.
@@ -160,9 +167,9 @@ The settings are specific and relevant to the master daemon only.
   * ``name`` the name of the database in your postgresql server
   * ``user`` the username that CSM should use to access the database
   * ``password`` the password to access the database. Having this setting in the file obviously
-    makes it important to adjust the permissions to prevent unathorized users from viewing the
+    makes it important to adjust the permissions to prevent unauthorized users from viewing the
     config file
-  * ``schema_name`` in case there are named schemas in use, this configures the name
+  * ``schema_name`` in case there is a named schema in use, this configures the name
 
 
 The inventory block
@@ -219,7 +226,9 @@ General settings available for all daemon roles:
     connection will be the minimum interval of the 2 peers of that connection. For example If one daemon
     initiates the connection with an interval of 60s while the peer daemon is configured to use 15s,
     both daemons will use a 15s interval for this connection. Note that it takes about 3 intervals
-    for a daemon to consider a connection as dead.
+    for a daemon to consider a connection as dead. Because each
+    connections' heartbeat is the minimum one can run different
+    intervals between different daemons if necessary or desired.
 
   * ``local_client_listen`` subsection configures a unix domain socket where the daemon will receive
     requests from local clients. This subsection is available for all daemon roles. Note that if you
@@ -233,13 +242,37 @@ General settings available for all daemon roles:
   * ``ssl`` subsection allows to enable SSL encryption and authentication between daemons.
     Note: Since there's only one certificate entry in the configuration, the same certificate has to serve
     as client and server certificate at the same time. This puts some limitations on the configuration of
-    the certificate infrastructure.
+    the certificate infrastructure. If any of the two settings below
+    are non-empty strings, the CSM daemon will enable SSL for
+    daemon-to-daemon connections by using the specified files.
 
     * ``ca_file`` specifies the file that contains the CA to check the validity of certificates
     * ``cred_pem`` specifies the file that contains the signed credentials/the certificate in PEM format.
       This certificate is presented to the passive/listening peer to proof that the daemon is allowed to
       connect to the infrastructure. And it is presented to the active/connecting peer to proof that the
       infrastructure is the one the daemon is looking for.
+
+.. note::
+  Explaining the detail of the heartbeat mechanism to show why it
+  takes about 3 intervals to detect a dead connection.  The heartbeat
+  between daemons works as follows:
+
+  * After creating the connection, the daemons negotiate the smallest
+    interval and start the timer.
+  * Whenever there's a message arriving at one daemon, the timer is
+    reset.
+  * If the timer triggers, the daemon sends a heartbeat message to the
+    peer and sets the connection status as `UNSURE` (as in unsure
+    whether the peer is still alive) and resets the timer.
+  * If the peer receives the heartbeat, it will reset its timer. And
+    after the timer triggers, it will send a heartbeat back.
+  * If the peer responds, the timer is reset and the connection status
+    is `HAPPY`.
+  * If the peer doesn't respond and the timer triggers again, the
+    daemon will send a second heartbeat, reset the timer, and change
+    the status to `MISSING_RECV`.
+  * If the timer triggers without a response, the connection will be
+    considered `DEAD` and is torn down.
 
 
 The following subsections are specific to certain daemon roles with each of them requiring the following settings:
@@ -302,9 +335,19 @@ Listening socket configurations for some daemons:
 
 Connection destinations for some daemons:
 
-  * ``master`` configures the coordinates of the master daemon. (utility and aggregator only)
-  * ``aggregatorA`` configures the coordinates of the primary aggregator (compute only)
-  * ``aggregatorB`` configures the coordinates of the secondary aggregator (compute only)
+  * ``master`` configures the coordinates of the master
+    daemon. (utility and aggregator only)
+
+  * ``aggregatorA`` configures the coordinates of the primary
+    aggregator (compute only). The primary aggregator must be
+    configured to allow the compute node to work. Therefore the `host`
+    setting of this section neither can be left as
+    ``__AGGREGATOR_A__`` nor can be set to ``NONE``.
+
+  * ``aggregatorB`` configures the coordinates of the secondary
+    aggregator (compute only). Setting the `host` of this section to
+    ``NONE`` will disable the compute daemons' attempt to create and
+    maintain a redundant path through a secondary aggregator.
 
 
 The UFM block
@@ -348,7 +391,7 @@ on the aggregator daemon at the moment.
 
   * ``port`` defines the port of the Logstash service
 
-  * ``reconnect_interval_max`` limits the frequency of reconnection attempts in case the Logstash
+  * ``reconnect_interval_max`` limits the frequency of reconnect attempts in case the Logstash
     service is not reachable. If the aggregator daemon is unable to connect, it will delay the next
     attempt for 1s. If that next attempt fails, it will wait 2s before retrying. It will keep
     increasing this reconnect delay until the configured maximum (in seconds) is reached.
@@ -393,6 +436,21 @@ effect on other daemon roles.
 ACL Configuration
 -----------------
 
+To use the CSM API with proper security an ACL file is configured.
+Using a combination of user privilege level and API access level, CSM
+determines what the actions to perform when an API is called by a
+user. For example, if the user doesn't have the proper privilege on a
+private API, the returned information will be limited or denied at all
+together.
+
+A user can be either privileged or non-privileged.  To become a
+privileged user, either the user name must be listed as a privileged
+user in the ACL file or the user needs to be a member of a group
+that's listed as a privileged group.
+
+A template or default ACL file is included in the installation and can
+be found under ``/opt/ibm/share/etc/csm_api.acl``.
+
 .. code-block:: json
 
   {
@@ -429,11 +487,19 @@ The CSM API ACL configuration is done through the file pointed at by the
 setting in the csm config file (``csm.api_permission_file``). It is required
 to be in json format. The main entries are:
 
-  * ``privileged_user_id`` lists a number of users that will be allowed to perform administrator
-    tasks in terms of calling privileged CSM APIs.
+  * ``privileged_user_id`` lists a number of users that will be
+    allowed to perform administrator tasks in terms of calling
+    privileged CSM APIs. The user root will always be able to call
+    APIs regardless of the configured privilege level. If more than
+    one user needs to be listed, use the ``[..,..]``-format for json
+    lists.
 
-  * ``privileged_user_group`` lists a number of groups that will be allowed to perform administrator
-    tasks in terms of calling privileged CSM APIs.
+  * ``privileged_user_group`` lists a number of groups that will be
+    allowed to perform administrator tasks in terms of calling
+    privileged CSM APIs. Users in group `root` will always be able to
+    call APIs independent of the configured privilege level. If more
+    than one user needs to be listed, use the ``[..,..]``-format for
+    json lists.
 
   * ``private`` specifies a list of CSM APIs that are private. A private API can only be called by
     privileged users or owners of the corresponding resources. For example, `csm_allocation_query_details`
@@ -445,7 +511,7 @@ to be in json format. The main entries are:
   * ``privileged`` explicitly configure a list of CSM APIs as privileged APIs. The section is not present in
     the template ACL file because any API will be `privileged` unless it's listed as `private` or `public`.
 
-.. note::
+.. warning::
   The ACL files should be synchronized between all nodes of the CSM infrastructure. Each daemon will attempt
   to enforce as many of the permissions as possible before routing the request to other daemons for further
   processing. For example, if a user calls an API on a utility node where the API is configured `public`,
@@ -479,7 +545,7 @@ is defined in the CSM config file setting ``csm.api_configuration_file``.
 
 The timeout is given in seconds.
 
-.. note::
+.. warning::
   The API configuration files should be synchronized between all nodes of the CSM infrastructure to avoid unexpected
   API timeout behavior. The current version of CSM calculates daemon-role-specific, fixed API timeouts based on the
   configuration file. That means the actual timeouts will be different (lower) than the configured time to account for
@@ -488,5 +554,8 @@ The timeout is given in seconds.
   a timeout of 119s accounting for network and processing delays. If the request requires the master to reach out to compute nodes
   the aggregators will enforce a timeout of 58s because the aggregator accounts for some APIs requiring 2 round trips and 1
   additional network hop.
-  Generally, you should expect the actually enforced timeout to be: <value> / 2 - 2s.
+  Generally, you should expect the actually enforced timeout to be:
+  <value> / 2 - 2s.
+
+
 
