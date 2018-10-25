@@ -809,13 +809,15 @@ int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &p
         // Wait for the response
         txp::Msg* l_ReplyMsg = 0;
         rc = waitReply(reply, l_ReplyMsg);
-        txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
-        if (l_Attribute)
-        {
-            rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
+        if (l_ReplyMsg){
+            txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
+            if (l_Attribute)
+            {
+                rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
+            }
+            delete l_ReplyMsg;
         }
-
-        delete l_ReplyMsg;
+        else rc = -107;   
     }
 
     return rc;
