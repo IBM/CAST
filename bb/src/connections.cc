@@ -817,7 +817,7 @@ int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &p
             }
             delete l_ReplyMsg;
         }
-        else rc = -107;   
+        else rc = ENOTCONN;   
     }
 
     return rc;
