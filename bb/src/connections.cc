@@ -809,15 +809,14 @@ int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &p
         // Wait for the response
         txp::Msg* l_ReplyMsg = 0;
         rc = waitReply(reply, l_ReplyMsg);
-        if (l_ReplyMsg){
+        if (!rc){
             txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
             if (l_Attribute)
             {
                 rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
             }
             delete l_ReplyMsg;
-        }
-        else rc = ENOTCONN;   
+        } 
     }
 
     return rc;
@@ -1308,7 +1307,7 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                     delete msg;
                     msg=NULL;
                     connect_rc = waitReply(resp, msg);
-                    if (msg){
+                    if (!connect_rc){
                         connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
                         if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
                         delete msg;
@@ -1317,7 +1316,7 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                        unlockConnectionWrite("makeConnection - CLEAR");
                        closeConnectionFD(name);
                        LOG(bb,error) << "makeConnection disconnect while waiting for auth reply for connection=" << name;
-                       return -1;
+                       return connect_rc;
                     }
                 }
                 else
