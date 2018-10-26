@@ -411,9 +411,9 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
     // Add optional section to SQL to update the state in the csm_node table if set_state is valid
     string set_state = rasEvent.getValue(CSM_RAS_FKEY_SET_STATE);
     bool add_set_state_sql(false);
-    if (set_state == CSM_NODE_STATE_SOFT_FAILURE)
+    if ((set_state == CSM_NODE_STATE_SOFT_FAILURE) || (set_state == CSM_NODE_STATE_HARD_FAILURE))
     {
-        // Only change the node state if set_state=SOFT_FAILURE and
+        // Only change the node state if set_state=SOFT_FAILURE/HARD_FAILURE and
         // the node state is currently DISCOVERED or IN_SERVICE
         LOG(csmras, debug) << "Generating SQL for set_state=" << set_state << endl;
         add_set_state_sql = true;
