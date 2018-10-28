@@ -494,7 +494,8 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
         {
             // Positive rc...
             // Send -2 back to bbProxy as a possible tolerated exception...
-            LOG_RC(-2);
+            rc = -2;
+            LOG_RC(rc);
         }
     }
 
@@ -2254,7 +2255,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             // NOTE:  Shouldn't be possible to have a positive rc
             //        and l_MarkFailedFromProxy still be set on at this
             //        point in the code...  @DLH
-            LOG_RC(-2);
+            rc = -2;
+            LOG_RC(rc);
         }
     }
 
