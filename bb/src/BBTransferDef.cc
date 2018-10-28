@@ -584,6 +584,13 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                     break;
                 }
             }
+            if (rc && rc != -1)
+            {
+                // Clear bberror of any possible tolerated condition
+                bberror.resetToClear();
+                bberror.clear();
+                bberror.setToNotClear();
+            }
         }
         else
         {
