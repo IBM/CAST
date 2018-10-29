@@ -564,11 +564,11 @@ BEGIN
     ELSE
         RAISE EXCEPTION using message = 'allocation_id does not exist.';
     END IF;
-    EXCEPTION
-        WHEN others THEN
-            RAISE EXCEPTION
-            USING ERRCODE = sqlstate,
-                     MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+    --EXCEPTION
+    --    WHEN others THEN
+    --        RAISE EXCEPTION
+    --        USING ERRCODE = sqlstate,
+    --                 MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
 --    RETURN NULL;
 
 END;

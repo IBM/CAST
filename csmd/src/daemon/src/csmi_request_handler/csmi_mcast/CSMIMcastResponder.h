@@ -308,6 +308,16 @@ protected:
         
         // FIXME if something times out then returns an error, this breaks things.
         ctx->SetReceivedNumResponses(ctx->GetReceivedNumResponses() + 1);
+
+        PayloadType* mcastProps = nullptr;
+        std::unique_lock<std::mutex>dataLock = 
+            ctx->GetUserData<PayloadType*>(&mcastProps);
+
+        if ( mcastProps )
+        {
+            // Push the errorcode onto the heap to be sure
+            mcastProps->PushError(ctx->GetErrorCode());
+        }
         
         // First verify that all of the nodes have responded.
         // If all the nodes have responded attempt to recover (dependant on implementation).
@@ -318,9 +328,9 @@ protected:
                 ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR);
             
             // Get the multicast properties first.
-            PayloadType* mcastProps = nullptr;
-            std::unique_lock<std::mutex>dataLock = 
-                ctx->GetUserData<PayloadType*>(&mcastProps);
+            //PayloadType* mcastProps = nullptr;
+            //std::unique_lock<std::mutex>dataLock = 
+            //    ctx->GetUserData<PayloadType*>(&mcastProps);
 
             // Helper Variables.
             bool success = mcastProps != nullptr;
@@ -335,10 +345,16 @@ protected:
 
                 // Attempt to build the payload.
                 mcastProps->BuildMcastPayload(&buffer, &bufferLength);
+
+                // Push the errorcode onto the heap to be sure
+                mcastProps->PushError(ctx->GetErrorCode());
                 
                 // Append additional errors.
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                 ctx->AppendErrorMessage(mcastProps->GetErrorMessage());
+             
+                // Set the Error Code.
+                ctx->SetErrorCode(mcastProps->GetMainErrorCode());
             }
 
             ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
@@ -439,6 +455,16 @@ protected:
         
         // FIXME if something times out then returns an error, this breaks things.
         ctx->SetReceivedNumResponses(ctx->GetReceivedNumResponses() + 1);
+
+        PayloadType* mcastProps = nullptr;
+        std::unique_lock<std::mutex>dataLock = 
+            ctx->GetUserData<PayloadType*>(&mcastProps);
+
+        if ( mcastProps )
+        {
+            // Push the errorcode onto the heap to be sure
+            mcastProps->PushError(ctx->GetErrorCode());
+        }
         
         // First verify that all of the nodes have responded.
         // If all the nodes have responded attempt to recover (dependant on implementation).
@@ -448,10 +474,6 @@ protected:
             if ( ctx->GetErrorCode() == CSMI_SUCCESS ) 
                 ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR);
             
-            PayloadType* mcastProps = nullptr;
-            std::unique_lock<std::mutex>dataLock = 
-                ctx->GetUserData<PayloadType*>(&mcastProps);
-
             if ( mcastProps )
             {
                 // Generate the RAS event for the failure cases.
@@ -461,6 +483,10 @@ protected:
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                 ctx->AppendErrorMessage(mcastProps->GetErrorMessage());
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
+
+
+                // Set the Error Code.
+                ctx->SetErrorCode(mcastProps->GetMainErrorCode());
                
                 // Attempt the database recovery function.
                 csm::db::DBReqContent *dbReq = DBRecover(ctx, mcastProps);

@@ -96,7 +96,8 @@ typedef enum {
    CSMERR_ALLOC_INVALID_NODES=46, ///< 46 - Indicates one or more nodes were not in the CSM database for the allocation create.
    CSMERR_ALLOC_OCCUPIED_NODES=47, ///< 47 - Indicates nodes in the list were in use by another allocation.
    CSMERR_ALLOC_UNAVIL_NODES=48, ///< 48 - Indicates the allocation create failed due to nodes that were not avaliable.
-   csmi_cmd_err_t_MAX=49 ///< 49 - Bounding Value
+   CSMERR_ALLOC_BAD_FLAGS=49, ///< 49 - Indicates the allocation create failed due to the prolog having bad allocation flags.
+   csmi_cmd_err_t_MAX=50 ///< 50 - Bounding Value
 } csmi_cmd_err_t;
 
 

@@ -15,8 +15,9 @@
 #include "CSMIMcastAllocation.h"
 #define STRUCT_TYPE csmi_allocation_mcast_context_t
 
+
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
+CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::~CSMIMcast()
 {
     if(_Data)
     {
@@ -26,7 +27,7 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
 }
 
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
+void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
 {
     // Generate the leaner allocation payload.
     csmi_allocation_mcast_payload_request_t *allocPayload = nullptr;
@@ -80,7 +81,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
 }
 
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString()
+std::string CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::GenerateIdentifierString()
 {
     std::string idString = "Allocation ID: ";
     if ( _Data )
@@ -105,6 +106,7 @@ bool ParseResponseCreate(
     
     // Track whether or not the received payload is valid.
     bool success = false;
+
     
     // If this is not in recovery and the message length is greater than zero parse the content.
     if( mcastProps && content._Msg.GetDataLen() > 0 )
@@ -122,8 +124,13 @@ bool ParseResponseCreate(
             {
                 success = true;
                 std::string hostname(allocPayload->hostname);
-                uint32_t hostIdx = mcastProps->SetHostError(hostname);
+                uint32_t hostIdx = mcastProps->SetHostError(hostname, 
+                    allocPayload->error_code, 
+                    allocPayload->error_message);
                 
+                if( allocPayload->error_code )
+                    mcastProps->PushError(allocPayload->error_code);
+
                 if (  hostIdx < allocation->num_nodes )
                 {
                     allocation->ib_rx[hostIdx]          = allocPayload->ib_rx;
@@ -173,6 +180,9 @@ bool ParseResponseDelete(
                 uint32_t hostIdx = mcastProps->SetHostError(hostname, 
                     allocPayload->error_code, 
                     allocPayload->error_message);
+                
+                if( allocPayload->error_code )
+                    mcastProps->PushError(allocPayload->error_code);
 
                 if ( hostIdx < allocation->num_nodes )
                 {
@@ -200,12 +210,11 @@ bool ParseResponseRecover(
     CSMIMcastAllocation* mcastProps,
     const csm::network::MessageAndAddress content )
 {
-
     LOG(csmapi,trace) << "Parsing Mcast Response Recover";
 
     // Track whether or not the received payload is valid.
     bool success = false;
-    
+   
     // If this is not in recovery and the message length is greater than zero parse the content.
     if( mcastProps && content._Msg.GetDataLen() > 0 )
     {

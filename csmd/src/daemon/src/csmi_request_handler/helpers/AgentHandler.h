@@ -60,7 +60,17 @@ inline bool ExecutePrivileged(
     int errCode = ForkAndExec( scriptArgs );
 
     // Report any failure.
-    if ( errCode != 0 )
+    if ( errCode== 255 )
+    {
+        LOG( csmapi, error ) << "Privileged script execution failed. Invalid allocation flags.";
+        ctx->SetErrorCode( CSMERR_ALLOC_BAD_FLAGS );
+
+        std::string err = "Privileged script execution failure detected. Invalid allocation flags.";
+        ctx->SetErrorMessage( err );
+
+        return false;
+    }
+    else if ( errCode != 0 )
     {
         LOG( csmapi, error ) << "Privileged script execution failed. Error Code: " << errCode;
         ctx->SetErrorCode( CSMERR_SCRIPT_FAILURE );
