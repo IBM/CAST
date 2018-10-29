@@ -395,7 +395,9 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                                      << " because transfers for all extents had already completed.  See prior messages for this handle.";
 
                         // Clear bberror for the tolerated exception
+                        bberror.resetToClear();
                         bberror.clear();
+                        bberror.setToNotClear();
 
                         break;
                     }
