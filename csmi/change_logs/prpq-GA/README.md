@@ -80,7 +80,7 @@ The user can then make assumptions about their upgrade paths from these details.
 ### Release
 Represents a collection of fixes that may resolve bugs, introduce new (major) features, and may perform changes to the public API interfaces.
 This is considered a **MAJOR** version change, indicating a large degree of changes. Due to the
-nature of the changes CSM makes no guarantee of compatibilty across release levels.
+nature of the changes CSM makes no guarantee of compatibility across release levels.
 
 ### Cumulative Fix
 Represents a collection of fixes that may resolve bugs, introduce new features, and changes to the public interface are non destructive.
