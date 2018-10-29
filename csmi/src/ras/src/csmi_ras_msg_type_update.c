@@ -61,7 +61,7 @@ int csm_ras_msg_type_update(
         (input->severity < CSM_RAS_NO_SEV || input->severity >=csm_enum_max(csmi_ras_severity_t))
 		|| 
 		(input->set_state < CSM_NODE_NO_DEF
-			|| (input->set_state != CSM_NODE_NO_DEF && input->set_state != CSM_NODE_SOFT_FAILURE && input->set_state != CSM_NODE_DATABASE_NULL)
+			|| (input->set_state != CSM_NODE_NO_DEF && input->set_state != CSM_NODE_SOFT_FAILURE && input->set_state != CSM_NODE_DATABASE_NULL && input->set_state != CSM_NODE_HARD_FAILURE)
 			|| input->set_state >=csm_enum_max(csmi_node_state_t) )
         )
     {  
@@ -82,7 +82,7 @@ int csm_ras_msg_type_update(
 			|| (input->set_state != CSM_NODE_NO_DEF && input->set_state != CSM_NODE_SOFT_FAILURE && input->set_state != CSM_NODE_DATABASE_NULL)
 			|| input->set_state >=csm_enum_max(csmi_node_state_t)
 		){
-			csmutil_logging(error,  "Invalid parameter: 'set_state' must be 'undefined', 'SOFT_FAILURE', or 'CSM_DATABASE_NULL' , API received: %s", csm_get_string_from_enum(csmi_node_state_t, input->set_state));
+			csmutil_logging(error,  "Invalid parameter: 'set_state' must be 'undefined', 'SOFT_FAILURE', 'HARD_FAILURE', or 'CSM_DATABASE_NULL' , API received: %s", csm_get_string_from_enum(csmi_node_state_t, input->set_state));
 		}else{
 			csmutil_logging(error,  "Invalid parameter: default");
 		}

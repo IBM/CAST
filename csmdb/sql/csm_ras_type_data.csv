@@ -459,7 +459,7 @@ gpu.xid.29,WARNING,Video processor exception,,NONE,1,0,true,,true
 gpu.xid.2,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,,true
 gpu.xid.30,WARNING,GPU semaphore access error,,NONE,1,0,true,,true
 gpu.xid.31,WARNING,GPU memory page fault,Indicates a fault reported by the MMU such as an illegal address access.,NONE,1,0,true,,true
-gpu.xid.32,FATAL,Invalid or corrupted push buffer stream,Typically indicates quality issues on PCI. Not typically caused by user applications.,NONE,1,0,true,SOFT_FAILURE,true
+gpu.xid.32,FATAL,Invalid or corrupted push buffer stream,Typically indicates quality issues on PCI. Not typically caused by user applications.,NONE,1,0,true,HARD_FAILURE,true
 gpu.xid.33,WARNING,Internal micro-controller error,,NONE,1,0,true,,true
 gpu.xid.34,WARNING,Video processor exception,,NONE,1,0,true,,true
 gpu.xid.35,WARNING,Video processor exception,,NONE,1,0,true,,true
@@ -476,7 +476,7 @@ gpu.xid.44,WARNING,Graphics Engine fault during context switch,,NONE,1,0,true,,t
 gpu.xid.45,WARNING,Preemptive cleanup due to previous errors,Logged when the user application aborts and the kernel driver tears down the GPU application running on the GPU.,NONE,1,0,true,,true
 gpu.xid.46,WARNING,GPU stopped processing,,NONE,1,0,true,,true
 gpu.xid.47,WARNING,Video processor exception,,NONE,1,0,true,,true
-gpu.xid.48,FATAL,Double Bit ECC Error,Indicates that an uncorrectable error occurred on the GPU.,NONE,1,0,true,SOFT_FAILURE,true
+gpu.xid.48,FATAL,Double Bit ECC Error,Indicates that an uncorrectable error occurred on the GPU.,NONE,1,0,true,HARD_FAILURE,true
 gpu.xid.49,WARNING,Unused,,NONE,1,0,true,,true
 gpu.xid.4,WARNING,Invalid or corrupted push buffer stream,,NONE,1,0,true,,true
 gpu.xid.50,WARNING,Unused,,NONE,1,0,true,,true
@@ -494,7 +494,7 @@ gpu.xid.60,WARNING,Video processor exception,,NONE,1,0,true,,true
 gpu.xid.61,WARNING,Internal micro-controller breakpoint/warning,A typical XID 61 warning might occur during a kernel panic.,NONE,1,0,true,,true
 gpu.xid.62,WARNING,Internal micro-controller halt,,NONE,1,0,true,,true
 gpu.xid.63,INFO,ECC page retirement recording event,ECC page retirement after an ECC error was successful.,NONE,1,0,true,,true
-gpu.xid.64,FATAL,ECC page retirement recording failure,ECC page retirement after an ECC error was unsuccessful.,NONE,1,0,true,SOFT_FAILURE,true
+gpu.xid.64,FATAL,ECC page retirement recording failure,ECC page retirement after an ECC error was unsuccessful.,NONE,1,0,true,HARD_FAILURE,true
 gpu.xid.65,WARNING,Video processor exception,,NONE,1,0,true,,true
 gpu.xid.66,WARNING,Illegal access by driver,,NONE,1,0,true,,true
 gpu.xid.67,WARNING,Illegal access by driver,,NONE,1,0,true,,true
@@ -505,12 +505,12 @@ gpu.xid.70,WARNING,CE3: Unknown Error,,NONE,1,0,true,,true
 gpu.xid.71,WARNING,CE4: Unknown Error,,NONE,1,0,true,,true
 gpu.xid.72,WARNING,CE5: Unknown Error,,NONE,1,0,true,,true
 gpu.xid.73,WARNING,NVENC2 Error,,NONE,1,0,true,,true
-gpu.xid.74,FATAL,NVLINK Error,Indicates an NVLINK error has occurred.,NONE,1,0,true,SOFT_FAILURE,true
+gpu.xid.74,FATAL,NVLINK Error,Indicates an NVLINK error has occurred.,NONE,1,0,true,HARD_FAILURE,true
 gpu.xid.75,WARNING,Reserved,,NONE,1,0,true,,true
 gpu.xid.76,WARNING,Reserved,,NONE,1,0,true,,true
 gpu.xid.77,WARNING,Reserved,,NONE,1,0,true,,true
 gpu.xid.78,WARNING,vGPU Start Error,,NONE,1,0,true,,true
-gpu.xid.79,FATAL,GPU has fallen off the bus,Indicates that the GPU is no longer accessible on the bus.,NONE,1,0,true,SOFT_FAILURE,true
+gpu.xid.79,FATAL,GPU has fallen off the bus,Indicates that the GPU is no longer accessible on the bus.,NONE,1,0,true,HARD_FAILURE,true
 gpu.xid.7,WARNING,Invalid or corrupted push buffer address,,NONE,1,0,true,,true
 gpu.xid.80,WARNING,Corrupted data sent to GPU,,NONE,1,0,true,,true
 gpu.xid.81,WARNING,VGA Subsystem Error,,NONE,1,0,true,,true

@@ -75,10 +75,11 @@
 // Valid values for csm_node.state
 // CSM_NODE_STATE_DISCOVERED is the initial state set by CSM inventory when the node is discovered for the first time
 // CSM_NODE_STATE_IN_SERVICE is set by the sysadmin to make the node available for general cluster use
-// CSM_NODE_STATE_SOFT_FAILURE is set by CSM RAS when a RAS event occurs with set_not_ready='t'
+// CSM_NODE_STATE_SOFT_FAILURE is set by CSM RAS when a RAS event occurs with set_state=SOFT_FAILURE
 // CSM_NODE_STATE_OUT_OF_SERVICE is set by the sysadmin, possibly to indicate a node with a pending hardware repair
 // CSM_NODE_STATE_MAINTENANCE is set by the sysadmin to remove a node from the scheduler and stop processing of RAS events
 // CSM_NODE_STATE_ADMIN_RESERVED is set by the sysadmin to remove a node from the scheduler and allow processing of RAS events
+// CSM_NODE_STATE_HARD_FAILURE is set by CSM RAS when a RAS event occurs with set_state=HARD_FAILURE
 //
 // CSM internal states that can only be set by CSM: 
 // CSM_NODE_STATE_DISCOVERED, CSM_NODE_STATE_SOFT_FAILURE
@@ -95,6 +96,7 @@
 #define CSM_NODE_STATE_OUT_OF_SERVICE "OUT_OF_SERVICE"
 #define CSM_NODE_STATE_MAINTENANCE "MAINTENANCE"
 #define CSM_NODE_STATE_ADMIN_RESERVED "ADMIN_RESERVED"
+#define CSM_NODE_STATE_HARD_FAILURE "HARD_FAILURE"
 
 // Valid values for csm_node.type
 #define CSM_NODE_TYPE_MANAGEMENT "management"
