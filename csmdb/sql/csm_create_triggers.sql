@@ -358,6 +358,8 @@ DECLARE
     real_allocation_id bigint;
     time_since_change  double precision;
     allocations_found  integer;
+    INVALID_STATE       CONSTANT integer := 1;
+    INVALID_ALLOCATION  CONSTANT integer := 2;
 BEGIN
     IF (i_primary_job_id > 0) THEN
         SELECT allocation_id INTO real_allocation_id
@@ -404,7 +406,8 @@ BEGIN
         -- Test the state, raising an exception is not valid.
         IF ( (o_state = 'deleting-mcast' OR o_state = 'to-staging-out' OR o_state = 'to-running') 
             AND time_since_change < i_timeout_time ) THEN
-            RAISE EXCEPTION 'Detected a multicast operation in progress for allocation, rejecting delete.';
+            RAISE EXCEPTION 'Detected a multicast operation in progress for allocation, rejecting delete.'
+                USING HINT = INVALID_STATE;
         END IF;
 
         -- TODO should this use an in ANY instead?
@@ -416,7 +419,8 @@ BEGIN
             UPDATE csm_allocation SET state = 'deleting' WHERE allocation_id=real_allocation_id;
         END IF;
     ELSE
-        RAISE EXCEPTION 'Allocation unable to be found matching the supplied criteria, unable to delete.';
+        RAISE EXCEPTION 'Allocation unable to be found matching the supplied criteria, unable to delete.'
+            USING HINT = INVALID_ALLOCATION;
     END IF;
 
 END;
