@@ -74,7 +74,7 @@ void help(){
 	puts("                           |                          | Valid Values: \"INFO\", \"WARNING\", or \"FATAL\"");
 	puts("                           |                          | (default = \"INFO\")");
 	puts("    -S, --set_state        | \"SOFT_FAILURE\"           | (STRING) resources associated with the event will be set to this node state when the event hits threshold. setting 'undefined' or not setting this flag will have the node keep its current state.");
-	puts("                           |                          | Valid Values: \"undefined\", \"SOFT_FAILURE\" ");
+	puts("                           |                          | Valid Values: \"undefined\", \"SOFT_FAILURE\", \"HARD_FAILURE\" ");
 	puts("                           |                          | (default = \"undefined\")");
 	puts("    -t, --threshold_count  | 1                        | (INTEGER) Number of times this event has to occur during the 'threshold_period' before taking action on the RAS event. Values less than 0 will be set to 0.");
 	puts("                           |                          | (default = 1)");
@@ -216,7 +216,8 @@ int main(int argc, char *argv[])
 			{
                 csm_optarg_test( "-S, --set_state", optarg, USAGE )
 				if( strcmp(optarg,"undefined")    == 0 || 
-                    strcmp(optarg,"SOFT_FAILURE") == 0  
+                    strcmp(optarg,"SOFT_FAILURE") == 0 ||
+                    strcmp(optarg,"HARD_FAILURE") == 0 
                 )
                 {
 					int temp_state = csm_get_enum_from_string(csmi_node_state_t, optarg);
