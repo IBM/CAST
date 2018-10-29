@@ -428,7 +428,8 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
 		.value("CSM_USER_MANAGED",CSM_USER_MANAGED)
 		.value("CSM_JSM",CSM_JSM)
 		.value("CSM_JSM_CGROUP_STEP",CSM_JSM_CGROUP_STEP)
-		.value("CSM_DIAGNOSTICS",CSM_DIAGNOSTICS);
+		.value("CSM_DIAGNOSTICS",CSM_DIAGNOSTICS)
+		.value("CSM_CGROUP_STEP",CSM_CGROUP_STEP);
 
     enum_<csmi_job_type_t>("csmi_job_type_t")
 		.value("CSM_BATCH",CSM_BATCH)

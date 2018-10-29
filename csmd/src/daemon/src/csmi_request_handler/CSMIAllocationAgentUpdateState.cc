@@ -187,7 +187,10 @@ bool AllocationAgentUpdateState::InitNode(
         "; Message: Allocation enter running;";
     
     // 0. Get the data before any operations.
+    // TODO Should this trigger an allocation failure on failure?
     DataAggregators(respPayload);
+
+    // TODO should this fail the allocation?
     csm::daemon::INV_DCGM_ACCESS::GetInstance()->StartAllocationStats(payload->allocation_id);
 
     // 1. Create the cgroup for the allocation.
@@ -219,6 +222,7 @@ bool AllocationAgentUpdateState::InitNode(
     }
     catch(const csm::daemon::helper::CSMHandlerException& e)
     {
+        // TODO is there a way to get a more granular error code?
         std::string error = "Message: ";
         error.append(e.what());
         ctx->SetErrorMessage(error);
@@ -248,6 +252,7 @@ bool AllocationAgentUpdateState::InitNode(
     #endif
     
     // 2. Register the allocation.
+    // TODO Error code for registration failing?
     RegisterAllocation(payload->allocation_id, payload->user_name);
    
     // 3. Export Environment Variables.
@@ -259,6 +264,8 @@ bool AllocationAgentUpdateState::InitNode(
 
     // 4. Run the Prolog.
     // EARLY RETURN!
+    
+    // TODO Test for epilog.
     LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
         "; user_flags: " << payload->user_flags <<
         "; system_flags: " << payload->system_flags << 
@@ -296,6 +303,7 @@ bool AllocationAgentUpdateState::InitNode(
     }
     
     // 5. Get the data that can be set in the prolog.
+    // TODO should a failure trigger an error code?
     AfterPrologDataAggregators(respPayload);
 
     // Set the Daemon Run Mode interaction.
@@ -336,6 +344,7 @@ bool AllocationAgentUpdateState::RevertNode(
         payload->user_name)
     
     // 1. Executes epilog.
+    // TODO Kill Prologs
     LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
         "; user_flags: " << payload->user_flags <<
         "; system_flags: " << payload->system_flags << 
@@ -353,7 +362,6 @@ bool AllocationAgentUpdateState::RevertNode(
     }
     else 
     {
-
         LOG( csmapi, error ) << ctx << "Allocation ID: " << payload->allocation_id <<
             "; user_flags: " << payload->user_flags <<
             "; system_flags: " << payload->system_flags << 
@@ -364,6 +372,7 @@ bool AllocationAgentUpdateState::RevertNode(
     }
 
     // 2. Remove the allocation from the active list.
+    // TODO Should a failure be reported?
     RemoveAllocation(payload->allocation_id);
     
     // 3. Remove the cgroup.
@@ -415,6 +424,7 @@ bool AllocationAgentUpdateState::RevertNode(
     #endif
     
     // 4. In a delete get a snapshot after everything.
+    // TODO Should a failure trigger an error?
     DataAggregators(respPayload);
 
     bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(payload->allocation_id, respPayload->gpu_usage);
