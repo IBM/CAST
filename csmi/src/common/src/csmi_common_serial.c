@@ -25,7 +25,7 @@ const char* csmi_cmd_err_t_strs [] = {"NO ERROR","An undefined error was detecte
 
 const char* csmi_node_type_t_strs [] = {"no type","management","service","login","workload-manager","launch","compute","utility","aggregator",""};
 
-const char* csmi_node_state_t_strs [] = {"undefined","DISCOVERED","IN_SERVICE","OUT_OF_SERVICE","ADMIN_RESERVED","SOFT_FAILURE","MAINTENANCE","CSM_DATABASE_NULL",""};
+const char* csmi_node_state_t_strs [] = {"undefined","DISCOVERED","IN_SERVICE","OUT_OF_SERVICE","ADMIN_RESERVED","SOFT_FAILURE","MAINTENANCE","CSM_DATABASE_NULL","HARD_FAILURE",""};
 
 const char* csmi_ras_severity_t_strs [] = {"undefined","INFO","WARNING","FATAL",""};
 
