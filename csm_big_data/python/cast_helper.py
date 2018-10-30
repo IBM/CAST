@@ -113,7 +113,7 @@ def build_time_range(start_time, end_time,
     start_field and end_field) collides with the range defined by start_time and end_time.
 
     The logic used in these time range queries is : 
-        `start_field <= end_time && ( end_field >= start_time || end_field == None)`
+        `start_field <= end_time && ( end_field >= start_time || end_field is None)`
 
     :param string start_time:  The start of the time range to find records in.
     :param string end_time:    The end of the time range to find records in.

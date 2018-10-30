@@ -237,7 +237,7 @@ class BaseHarness(object):
    def run_test(self, test):
       stime= datetime.now()
       cmd = self.prepare_run(test)
-      if cmd == None: return 89, stime.strftime("%Y-%m-%d-%H:%M:%S.%f")   
+      if cmd is None: return 89, stime.strftime("%Y-%m-%d-%H:%M:%S.%f")
       # open log files
       self.open_logfile(test)   
                                      
@@ -398,7 +398,7 @@ class BaseHarness(object):
          return False   
       # if bucket exists, test(s) exist and is valid
       self.tests = self.tconfig.get_bucket_tests(b)
-      if self.tests == None:
+      if self.tests is None:
          return False
       return True
 

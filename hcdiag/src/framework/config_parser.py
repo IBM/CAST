@@ -382,7 +382,7 @@ class TestProperties(DiagProperties):
             # it is a bucket, make sure it has tests
             try:
                ts=self.get_bucket_tests(section[len(self.bucket_prefix):])
-               if ts == None:
+               if ts is None:
                   print 'ERROR: ', file, ' contains ', section, ' with no tests attribute or it is empty. Exiting...'
                   sys.exit(98)
                

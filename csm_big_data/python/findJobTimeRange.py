@@ -54,7 +54,7 @@ def main(args):
     args = parser.parse_args()
 
     # If the target wasn't specified check the environment for the target value, printing help on failure.
-    if args.target == None:
+    if args.target is None:
         if TARGET_ENV in os.environ:
             args.target = os.environ[TARGET_ENV]
         else:

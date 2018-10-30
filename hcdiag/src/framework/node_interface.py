@@ -52,7 +52,7 @@ class NodeInterface(TargetInterface):
    #------------------------------------------------------------------- 
    def get_node_info(self, nodes, target):
       nodelist=validate_noderange(nodes)
-      if nodelist == None:
+      if nodelist is None:
          self.logger.error('Could not validate the target. When running in Node mode, only comma separated nodes syntax is accepted.')
          return False
 
