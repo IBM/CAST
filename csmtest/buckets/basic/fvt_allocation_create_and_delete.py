@@ -61,11 +61,11 @@ else:
 # Allocation Delete
 alloc_delete_input=wm.allocation_delete_input_t()
 alloc_delete_input.allocation_id=aid
-rc,handler,alloc_output=wm.allocation_delete(alloc_delete_input)
+rc,handler=wm.allocation_delete(alloc_delete_input)
 if (rc == 0):
-    print("Allocation " + str(alloc_delete_input.allocation.allocation_id) + " successfully deleted")
+    print("Allocation " + str(alloc_delete_input.allocation_id) + " successfully deleted")
 else:
-    print("Failed to delete allocation " + str(alloc_delete_input.allocation.allocation_id))
+    print("Failed to delete allocation " + str(alloc_delete_input.allocation_id))
     csm.api_object_destroy(handler)
     csm.term_lib()
     sys.exit(rc)

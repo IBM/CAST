@@ -43,6 +43,9 @@ if(rc == csm.csmi_cmd_err_t.CSMI_SUCCESS):
         print("node_state_value: " + str(node.state))
 else:
     print("No matching records found.")
+    csm.api_object_destroy(handler)
+    csm.term_lib()
+    sys.exit(rc)
 
 if(str(node.state) == "CSM_NODE_DISCOVERED"):
     print("node state is DISCOVERED. Updating to IN_SERVICE")
@@ -57,6 +60,16 @@ if(str(node.state) == "CSM_NODE_DISCOVERED"):
         node = output.get_results(0)
         print("node: " + str(node.node_name))
         print("node_state_value: " + str(node.state))
+        if (str(node.state) != str(csm.csmi_node_state_t.CSM_NODE_IN_SERVICE)):
+            print("Error: Node not IN_SERVICE after update")
+            csm.api_object_destroy(handler)
+            csm.term_lib()
+            sys.exit(rc)
+    else:
+        print("Error updating node.")
+        csm.api_object_destroy(handler)
+        csm.term_lib()
+        sys.exit(rc)
 
 csm.api_object_destroy(handler)
 
