@@ -18,7 +18,7 @@ set(RESTAPI_SRC
 add_executable(csmrestd ${RESTAPI_SRC} )
 install(TARGETS csmrestd COMPONENT csm-restd DESTINATION csm/sbin)
 target_link_libraries(csmrestd ${Boost_LIBRARIES} csmi csm_network_c csmutil fsutil -lpthread -lssl -lcrypto)
-
+target_include_directories(csmrestd PRIVATE ${PROJECT_SOURCE_DIR}/csmd/src/daemon/include )
 
 
 

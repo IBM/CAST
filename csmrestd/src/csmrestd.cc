@@ -65,6 +65,7 @@
 #include "csm_api_common.h"
 #include "csm_api_ras.h"
 #include "logging.h"
+#include "csm_daemon_exception.h"
 
 //
 // todo, add signal handler that then kills off the server...
@@ -124,7 +125,8 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
     RestApiReply::status_type rc = RestApiReply::ok;
     try 
     {
-    
+
+        LOG( csmd, debug ) << "csmRasEventCreate: Start processing.";
         std::stringstream ss; 
         ss << jsonIn;
         //extract all fields...
@@ -160,21 +162,21 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
         if  (csmrc != 0) {
             char *errmsg = csm_api_object_errmsg_get(csmobj);
             jsonOut = string("{\"error\":\"") + "CSMRESTD csm_ras_event_create = " + errmsg + "\"}";
-            LOG(csmrestd, info) << "CSMRESTD csm_ras_event_create = " << rc << " " << errmsg << endl << flush;
+            LOG(csmrestd, error) << "CSMRESTD csm_ras_event_create = " << rc << " " << errmsg << endl << flush;
             rc = RestApiReply::internal_server_error;
             // put this into an error return too...
         }
         csm_api_object_destroy(csmobj);
-    
+
+        LOG( csmd, debug ) << "csmRasEventCreate: Complete.";
     }
     catch (std::exception & e)
     {
-        LOG(csmrestd, info) <<  "error parsing json data: " << e.what();
+        LOG(csmrestd, warning) <<  "csmRasEventCreate: error parsing json data: " << e.what();
 
         // need to return some sort of error here... internal_server_error and some extra text...?
         rc = RestApiReply::internal_server_error;
         jsonOut = string("{\"error\":\"") + "exception = " + e.what() + "\"}";
-        
     }
 
     // no output...
@@ -191,6 +193,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
     try 
     {
 
+        LOG( csmd, debug ) << "csmRasEventQuery: Start processing.";
         std::stringstream ss; 
         ss << jsonIn;
         //extract all fields...
@@ -312,6 +315,8 @@ RestApiReply::status_type CsmRestApiServer::csmLoopbackTest(
 {
    jsonOut = jsonIn;       // loop back the json data...
  
+   LOG( csmd, debug ) << "csmLoopbackTest: Start processing.";
+
    return(RestApiReply::ok);
 }
 
@@ -489,21 +494,21 @@ int CsmRestdMain::main (int argc, char *argv[])
    string listen_ip = GetValueInConfig(CONFIG_FILE_KEY_LISTENIP);
    if (listen_ip.empty())
    {
-      cerr << "Error: " << CONFIG_FILE_KEY_LISTENIP << " not set in " << config_file << endl;
+      LOG(csmd, critical) << "Error: " << CONFIG_FILE_KEY_LISTENIP << " not set in " << config_file << endl;
       return 9;
    }
    
    string port = GetValueInConfig(CONFIG_FILE_KEY_PORT);
    if (port.empty())
    {
-      cerr << "Error: " << CONFIG_FILE_KEY_PORT << " not set in " << config_file << endl;
+      LOG(csmd, critical) << "Error: " << CONFIG_FILE_KEY_PORT << " not set in " << config_file << endl;
       return 9;
    }
    
    int rc = csm_init_lib();     // singleton csmi initialization..
    if (rc != 0) 
    {
-      cerr << "csm_init_lib failed" << endl;
+      LOG(csmd, critical) << "csm_init_lib failed: rc=" << rc << " (" << strerror( rc ) << ")" << endl;
       return(1);
    }
    _csminit = true;
@@ -560,12 +565,11 @@ bool CsmRestdMain::LoadConfigFromFile( const std::string & config_file_name )
        return false;
     }
 
-#ifdef REMOVED 
     try
     {
        // set up the logging component in csm
-       std::string component("csm.log");
-       initializeLogging(component);
+       std::string component("csmrestd.log");
+       initializeLogging(component, _config );
     }
     catch (csm::daemon::Exception& e)
     {
@@ -573,6 +577,7 @@ bool CsmRestdMain::LoadConfigFromFile( const std::string & config_file_name )
           << " (continuing with default settings...)";
     }
 
+#ifdef REMOVED
   try
   {
     // checking if csm.role is specified
