@@ -31,61 +31,41 @@ fi
 
 source /etc/profile.d/xcat.sh
 
-check_return () {
-	if [ $1 -ne 0 ]
+run_bucket () {
+	bucket_type=$1
+	bucket_name=$2
+	${FVT_PATH}/buckets/${bucket_type}/${bucket_name}.sh
+	rc=$?
+	if [ "$rc" -ne 0 ]
 	then
 		exit 1
 	fi
 }
 
-
-${FVT_PATH}/buckets/basic/node.sh
-check_return $?
-${FVT_PATH}/buckets/basic/allocation.sh
-check_return $?
-${FVT_PATH}/buckets/basic/jsrun_cmd.sh
-check_return $?
-${FVT_PATH}/buckets/basic/ras.sh
-check_return $?
-${FVT_PATH}/buckets/basic/step.sh
-check_return $?
-${FVT_PATH}/buckets/basic/bb.sh
-check_return $?
-${FVT_PATH}/buckets/basic/db_script.sh
-check_return $?
-${FVT_PATH}/buckets/basic/ib_inventory.sh
-check_return $?
-${FVT_PATH}/buckets/basic/switch_inventory.sh
-check_return $?
-${FVT_PATH}/buckets/basic/inventory_collection.sh
-check_return $?
-${FVT_PATH}/buckets/basic/compute_node.sh
-check_return $?
-${FVT_PATH}/buckets/advanced/allocation.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/allocation.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/bb.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/node.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/ib_inventory.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/switch_inventory.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/messaging.sh
-check_return $?
-#${FVT_PATH}/buckets/timing/allocation.sh
-#check_return $?
-${FVT_PATH}/buckets/basic/hcdiag.sh
-check_return $?
-${FVT_PATH}/buckets/basic/csm_ctrl_cmd.sh
-check_return $?
+run_bucket "basic" "node"
+run_bucket "basic" "allocation"
+run_bucket "basic" "jsrun_cmd"
+run_bucket "basic" "ras"
+run_bucket "basic" "step"
+run_bucket "basic" "bb"
+run_bucket "basic" "db_script"
+run_bucket "basic" "ib_inventory"
+run_bucket "basic" "switch_inventory"
+run_bucket "basic" "inventory_collection"
+run_bucket "basic" "compute_node"
+run_bucket "advanced" "allocation"
+run_bucket "error_injection" "allocation"
+run_bucket "error_injection" "bb"
+run_bucket "error_injection" "node"
+run_bucket "error_injection" "ib_inventory"
+run_bucket "error_injection" "switch_inventory"
+run_bucket "error_injection" "messaging"
+run_bucket "basic" "hcdiag"
+run_bucket "basic" "csm_ctrl_cmd"
 ${FVT_PATH}/tools/dual_aggregator/shutdown_daemons.sh
 sleep 5
 ${FVT_PATH}/setup/csm_setup.sh
-${FVT_PATH}/buckets/error_injection/infrastructure.sh
-check_return $?
-${FVT_PATH}/buckets/error_injection/versioning.sh
-check_return $?
-${FVT_PATH}/setup/csm_setup.sh
+run_bucket "error_injection" "infrastructure"
+run_bucket "error_injection" "versioning"
+${FVT_PATH}/setup/csm_uninstall.sh
+${FVT_PATH}/setup/csm_install.sh
