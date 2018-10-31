@@ -17,14 +17,14 @@
 /*! \file
   \brief
   csmrestd
-  
+
   Restful api for recording daemon for inserting RAS events into the CSM system
   for CORAL based systems.
- 
+
   POST /csmi/V1.0/ras/event/create
- 
+
   Create a Ras Event.
- 
+
     POST data:
     {
       "msg_id": "test.testcat01.test01",
@@ -33,18 +33,18 @@
       "raw_data":"raw data"
       "kvcsv": "key_value_csv data"
     }
- 
+
     msg_id -- message id string.
     time_stamp -- timestamp string.
     location_name -- location name string.
     raw_data -- raw data string.
     kvcsv -- comma separated keyvalue data..
- 
+
   POST /csmi/V1.0/ras/event/query
- 
+
   POST /csmi/V1.0/loopback/test
 
-  
+
 */
 
 
@@ -103,16 +103,16 @@ public:
       _mytext("myText") {};
   int setCallbacks();
 protected:
-    RestApiReply::status_type csmRasEventCreate(string const &method, 
-                   string const &url, 
+    RestApiReply::status_type csmRasEventCreate(string const &method,
+                   string const &url,
                    string const &jsondata,
                    string &jsonOut);
-    RestApiReply::status_type csmRasEventQuery(string const &method, 
-                   string const &url, 
+    RestApiReply::status_type csmRasEventQuery(string const &method,
+                   string const &url,
                    string const &jsondata,
                    string &jsonOut);
-    RestApiReply::status_type csmLoopbackTest(string const &method, 
-                   string const &url, 
+    RestApiReply::status_type csmLoopbackTest(string const &method,
+                   string const &url,
                    string const &jsondata,
                    string &jsonOut);
 private:
@@ -123,23 +123,23 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
    string const &method, string const &url, string const &jsonIn, string &jsonOut)
 {
     RestApiReply::status_type rc = RestApiReply::ok;
-    try 
+    try
     {
 
-        LOG( csmd, debug ) << "csmRasEventCreate: Start processing.";
+        LOG( csmrestd, debug ) << "csmRasEventCreate: Start processing.";
         std::stringstream ss; 
         ss << jsonIn;
         //extract all fields...
         boost::property_tree::ptree pt;
         boost::property_tree::read_json(ss, pt);
-        
+
         // parse all the json fields...
         string msg_id;
         string time_stamp;
         string location_name;
         string raw_data;
         string kvcsv;
-        
+
         for(boost::property_tree::ptree::iterator iter = pt.begin(); iter != pt.end(); iter++)
         {
             if (iter->first == CSM_RAS_FKEY_MSG_ID) msg_id = iter->second.data();
@@ -151,8 +151,11 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
                 // ignore other fields...  or maybe do some sor tof error..
             }
         }
-    
+
         csm_api_object *csmobj = NULL;
+        LOG( csmrestd, info ) << "csmRasEventCreate: data( msgID=" << msg_id
+            << "time=" << time_stamp
+            << "location=" << location_name;
         int csmrc = csm_ras_event_create(&csmobj,
                                           msg_id.c_str(),
                                           time_stamp.c_str(),
@@ -168,7 +171,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
         }
         csm_api_object_destroy(csmobj);
 
-        LOG( csmd, debug ) << "csmRasEventCreate: Complete.";
+        LOG( csmrestd, debug ) << "csmRasEventCreate: Complete.";
     }
     catch (std::exception & e)
     {
@@ -181,7 +184,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
 
     // no output...
     //    unless we had an error...
-    
+
     return(rc);
 }
 
@@ -190,11 +193,11 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
 {
     RestApiReply::status_type rc = RestApiReply::ok;
 
-    try 
+    try
     {
 
-        LOG( csmd, debug ) << "csmRasEventQuery: Start processing.";
-        std::stringstream ss; 
+        LOG( csmrestd, debug ) << "csmRasEventQuery: Start processing.";
+        std::stringstream ss;
         ss << jsonIn;
         //extract all fields...
         boost::property_tree::ptree pt;
@@ -235,33 +238,33 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
         if (pt.count(CSM_RAS_FKEY_MESSAGE)) message=pt.get<string>(CSM_RAS_FKEY_MESSAGE);
         if (pt.count(CSM_RAS_FKEY_LIMIT)) limit=pt.get<int>(CSM_RAS_FKEY_LIMIT);
         if (pt.count(CSM_RAS_FKEY_OFFSET)) offset=pt.get<int>(CSM_RAS_FKEY_OFFSET);
-		
-		/*Set up data to call API*/
-		csm_ras_event_query_input_t* input = NULL;
-		/* CSM API initialize and malloc function*/
-		csm_init_struct_ptr(csm_ras_event_query_input_t, input);
-		csm_ras_event_query_output_t* output = NULL;
-		
-		input->msg_id = strdup(msg_id.c_str());
-		//input->severity = strdup(severity.c_str());
-		//get enum value of the severity.
-		int temp_severity = csm_get_enum_from_string(csmi_ras_severity_t, (char*)severity.c_str());
-		input->severity = temp_severity != -1 ? (csmi_ras_severity_t) temp_severity : csm_enum_max(csmi_ras_severity_t);
-		
-		input->start_time_stamp = strdup(start_time_stamp.c_str());
-		input->end_time_stamp = strdup(end_time_stamp.c_str());
-		input->location_name = strdup(location_name.c_str());
-		input->control_action = strdup(control_action.c_str());
-		input->message = strdup(message.c_str());
-		input->limit = limit;
-		input->offset = offset;
-		input->offset = 'd';
+
+        /*Set up data to call API*/
+        csm_ras_event_query_input_t* input = NULL;
+        /* CSM API initialize and malloc function*/
+        csm_init_struct_ptr(csm_ras_event_query_input_t, input);
+        csm_ras_event_query_output_t* output = NULL;
+
+        input->msg_id = strdup(msg_id.c_str());
+        //input->severity = strdup(severity.c_str());
+        //get enum value of the severity.
+        int temp_severity = csm_get_enum_from_string(csmi_ras_severity_t, (char*)severity.c_str());
+        input->severity = temp_severity != -1 ? (csmi_ras_severity_t) temp_severity : csm_enum_max(csmi_ras_severity_t);
+
+        input->start_time_stamp = strdup(start_time_stamp.c_str());
+        input->end_time_stamp = strdup(end_time_stamp.c_str());
+        input->location_name = strdup(location_name.c_str());
+        input->control_action = strdup(control_action.c_str());
+        input->message = strdup(message.c_str());
+        input->limit = limit;
+        input->offset = offset;
+        input->offset = 'd';
 
         csm_api_object *csmobj = NULL;
         //csmi_ras_event_vector_t *event_vect = NULL;
         int csmrc = csm_ras_event_query(&csmobj, input, &output);
-		//Use CSM API free to release arguments. We no longer need them.
-		csm_free_struct_ptr(csm_ras_event_query_input_t, input);
+        //Use CSM API free to release arguments. We no longer need them.
+        csm_free_struct_ptr(csm_ras_event_query_input_t, input);
         if  (csmrc != 0) {
             char *errmsg = csm_api_object_errmsg_get(csmobj);
             jsonOut = string("{\"error\":\"") + "CSMRESTD csm_ras_event_create = " + errmsg + "\"}";
@@ -271,7 +274,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
         else {
 
             boost::property_tree::ptree ev_vect;
-            
+
             // todo: print out the event rec before formatting the reply...
             //csmi_ras_event_t **p = event_vect->events;
             for (uint32_t n = 0; n < output->results_count; n++) {
@@ -289,16 +292,17 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
             boost::property_tree::ptree evw;
             evw.put("num_ras_events",output->results_count); 
             evw.add_child("events", ev_vect);
-            
+
             ostringstream ss;
             boost::property_tree::json_parser::write_json(ss, evw);
             jsonOut = ss.str();
         }
         csm_api_object_destroy(csmobj);
         rc = RestApiReply::ok;
+        LOG( csmrestd, debug ) << "csmRasEventQuery: Complete.";
     }
     catch (std::exception & e) {
-        std::cerr << "error parsing json data: " << e.what() << "\n";
+        LOG( csmrestd, error ) << "error parsing json data: " << e.what() << "\n";
 
         // need to return some sort of error here... internal_server_error and some extra text...?
         rc = RestApiReply::internal_server_error;
@@ -307,15 +311,15 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
     }
 
     return(rc);
-     
+
 }
 
 RestApiReply::status_type CsmRestApiServer::csmLoopbackTest(
    string const &method, string const &url, string const &jsonIn, string &jsonOut)
 {
    jsonOut = jsonIn;       // loop back the json data...
- 
-   LOG( csmd, debug ) << "csmLoopbackTest: Start processing.";
+
+   LOG( csmrestd, info ) << "csmLoopbackTest: Start processing.";
 
    return(RestApiReply::ok);
 }
@@ -324,29 +328,29 @@ RestApiReply::status_type CsmRestApiServer::csmLoopbackTest(
 int CsmRestApiServer::setCallbacks() 
 {
     int rc = 0;
-    rc = setUrlCallback("POST", "^/csmi/V1.0/ras/event/create$", 
+    rc = setUrlCallback("POST", "^/csmi/V1.0/ras/event/create$",
                         std::bind(&CsmRestApiServer::csmRasEventCreate, this,
-                                  std::placeholders::_1, 
-                                  std::placeholders::_2, 
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
                                   std::placeholders::_3,
                                   std::placeholders::_4));
     if (rc != 0) {
         LOG(csmrestd, info) << "setUrlCallback Failed" << endl << flush;
     }
-    
-    rc = setUrlCallback("POST", "^/csmi/V1.0/ras/event/query$", 
+
+    rc = setUrlCallback("POST", "^/csmi/V1.0/ras/event/query$",
                         std::bind(&CsmRestApiServer::csmRasEventQuery, this,
-                                  std::placeholders::_1, 
-                                  std::placeholders::_2, 
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
                                   std::placeholders::_3,
                                   std::placeholders::_4));
     if (rc != 0) {
         LOG(csmrestd, info) << "setUrlCallback Failed" << endl << flush;
     }
-    rc = setUrlCallback("POST", "^/csmi/V1.0/loopback/test$", 
+    rc = setUrlCallback("POST", "^/csmi/V1.0/loopback/test$",
                         std::bind(&CsmRestApiServer::csmLoopbackTest, this,
-                                  std::placeholders::_1, 
-                                  std::placeholders::_2, 
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
                                   std::placeholders::_3,
                                   std::placeholders::_4));
     if (rc != 0) {
@@ -358,20 +362,20 @@ int CsmRestApiServer::setCallbacks()
 
 
 
-class CsmRestdMain 
+class CsmRestdMain
 {
 public:
     CsmRestdMain();
-    
+
     virtual ~CsmRestdMain();
     /**
      * main test framework entrypoint.
-     * 
-     * 
+     *
+     *
      * @param argc -- c arg count
      * @param argv -- c arg values
-     * 
-     * @return int 
+     *
+     * @return int
      */
     int main (int argc, char *argv[]);
 
@@ -396,13 +400,13 @@ public:
 protected:
     bool _csminit;
     bool _config_init;
-    
+
     boost::property_tree::ptree _config;
 
 private:
 
 };
-    
+
 CsmRestdMain::CsmRestdMain() :
    _csminit(false),
    _config_init(false),
@@ -453,7 +457,7 @@ int CsmRestdMain::main (int argc, char *argv[])
    try
    {
       po::store( po::parse_command_line(argc, argv, usage), vm);
-   
+
       if (vm.count(CSM_OPT_HELP_LONG))
       {
          std::cerr << usage << std::endl;
@@ -473,7 +477,7 @@ int CsmRestdMain::main (int argc, char *argv[])
    if (vm.count(CSM_OPT_FILE_LONG))
    {
       config_file = vm[CSM_OPT_FILE_LONG].as<string>();
-      LOG(csmd, info) << "Using command line provided config: " << config_file;
+      LOG(csmrestd, info) << "Using command line provided config: " << config_file;
    }
 
 
@@ -482,8 +486,8 @@ int CsmRestdMain::main (int argc, char *argv[])
    success = LoadConfigFromFile(config_file);
    if (success == true)
    {
-      //cout << "Successfully parsed configuration file." << endl; 
-      LOG(csmd, info) << "Successfully parsed configuration file.";
+      //cout << "Successfully parsed configuration file." << endl;
+      LOG(csmrestd, info) << "Successfully parsed configuration file.";
    }
    else
    {
@@ -494,21 +498,21 @@ int CsmRestdMain::main (int argc, char *argv[])
    string listen_ip = GetValueInConfig(CONFIG_FILE_KEY_LISTENIP);
    if (listen_ip.empty())
    {
-      LOG(csmd, critical) << "Error: " << CONFIG_FILE_KEY_LISTENIP << " not set in " << config_file << endl;
+      LOG(csmrestd, critical) << "Error: " << CONFIG_FILE_KEY_LISTENIP << " not set in " << config_file << endl;
       return 9;
    }
-   
+
    string port = GetValueInConfig(CONFIG_FILE_KEY_PORT);
    if (port.empty())
    {
-      LOG(csmd, critical) << "Error: " << CONFIG_FILE_KEY_PORT << " not set in " << config_file << endl;
+      LOG(csmrestd, critical) << "Error: " << CONFIG_FILE_KEY_PORT << " not set in " << config_file << endl;
       return 9;
    }
-   
+
    int rc = csm_init_lib();     // singleton csmi initialization..
-   if (rc != 0) 
+   if (rc != 0)
    {
-      LOG(csmd, critical) << "csm_init_lib failed: rc=" << rc << " (" << strerror( rc ) << ")" << endl;
+      LOG(csmrestd, critical) << "csm_init_lib failed: rc=" << rc << " (" << strerror( rc ) << ")" << endl;
       return(1);
    }
    _csminit = true;
@@ -518,7 +522,7 @@ int CsmRestdMain::main (int argc, char *argv[])
    // of supervisory daemon that will attempt to keep things up all the time...
    //
 
-   try 
+   try
    {
       // Initialise the server.
       CsmRestApiServer server(listen_ip, port);
@@ -542,8 +546,8 @@ int CsmRestdMain::main (int argc, char *argv[])
 
       // Run the server until stopped.
       server.run();
-   } 
-   catch (std::exception& e) 
+   }
+   catch (std::exception& e)
    {
       cerr << "exception: " << e.what() << endl;
    }
@@ -555,13 +559,13 @@ bool CsmRestdMain::LoadConfigFromFile( const std::string & config_file_name )
 {
    try
    {
-      LOG(csmd,info) << "Reading configuration: " << config_file_name;
+      LOG(csmrestd,info) << "Reading configuration: " << config_file_name;
       pt::read_json(config_file_name, _config);
       _config_init = true;
     }
     catch (pt::json_parser_error& f)
     { 
-       LOG(csmd, error) << "in config file: " << config_file_name << " ERROR: " << f.what();
+       LOG(csmrestd, error) << "in config file: " << config_file_name << " ERROR: " << f.what();
        return false;
     }
 
@@ -573,7 +577,7 @@ bool CsmRestdMain::LoadConfigFromFile( const std::string & config_file_name )
     }
     catch (csm::daemon::Exception& e)
     {
-       LOG(csmd,error) << "Error loading configuration: " << e.what()
+       LOG(csmrestd,error) << "Error loading configuration: " << e.what()
           << " (continuing with default settings...)";
     }
 
@@ -592,14 +596,14 @@ bool CsmRestdMain::LoadConfigFromFile( const std::string & config_file_name )
       else if (role == (ss_c << CSM_DAEMON_ROLE_AGENT).str() ) _Role = CSM_DAEMON_ROLE_AGENT;
       else
       {
-        LOG(csmd,error) << "csm.role (=" << role << ") is not valid";
+        LOG(csmrestd,error) << "csm.role (=" << role << ") is not valid";
         throw csm::daemon::Exception("Invalid daemon role in config file.", EINVAL);
       }
     }
   }
   catch (csm::daemon::Exception& e)
   {
-    LOG(csmd,error) << "The value in csm.role is not recognized: " << e.what();
+    LOG(csmrestd,error) << "The value in csm.role is not recognized: " << e.what();
     throw;
   }
 #endif
@@ -637,5 +641,3 @@ int main(int argc, char* argv[])
 
    return(rc);
 }
-
-

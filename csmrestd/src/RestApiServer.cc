@@ -32,7 +32,7 @@ RestApiServer::RestApiServer(const std::string& address, const std::string& port
     new_connection_(),
     request_handler_(doc_roots) */
 {
-  LOG(csmd, debug ) << "RestApiServer: Initializing...";
+  LOG(csmrestd, debug ) << "RestApiServer: Initializing...";
 
   // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
   boost::asio::ip::tcp::resolver resolver(_io_service);
@@ -51,7 +51,7 @@ RestApiServer::RestApiServer(const std::string& address, const std::string& port
                               boost::asio::ssl::verify_fail_if_no_peer_cert | 
                               boost::asio::ssl::verify_client_once);       // require client cert...
 
-  LOG( csmd, debug ) << "RestApiServer: Initializiation complete";
+  LOG( csmrestd, debug ) << "RestApiServer: Initializiation complete";
 }
 
 
@@ -59,7 +59,7 @@ void RestApiServer::setSslParms(const std::string &certFile,
                                 const std::string &keyFile,
                                 const std::string &certAuthFile)
 {
-    LOG( csmd, debug ) << "RestApiServer: setting SSL parameters";
+    LOG( csmrestd, debug ) << "RestApiServer: setting SSL parameters";
     _sslContext.use_certificate_chain_file(certFile);
     _sslContext.use_private_key_file(keyFile, boost::asio::ssl::context::pem);
     _sslContext.load_verify_file(certAuthFile);
@@ -100,7 +100,7 @@ void RestApiServer::handleAccept(const boost::system::error_code& e)
   if (!e)
       _connMgr.start(nc);
 
-  LOG( csmd, info ) << "RestApiServer: Accepted new connection.";
+  LOG( csmrestd, info ) << "RestApiServer: Accepted new connection.";
 }
 
 void RestApiServer::handleStop()
@@ -110,7 +110,7 @@ void RestApiServer::handleStop()
   // will exit.
   _acceptor.close();
   _connMgr.stopAll();
-  LOG( csmd, info ) << "RestApiServer: Closed all connections for shutdown.";
+  LOG( csmrestd, info ) << "RestApiServer: Closed all connections for shutdown.";
 }
 
 
