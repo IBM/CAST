@@ -153,9 +153,9 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
         }
 
         csm_api_object *csmobj = NULL;
-        LOG( csmrestd, info ) << "csmRasEventCreate: data( msgID=" << msg_id
+        LOG( csmrestd, debug ) << "csmRasEventCreate: msgID=" << msg_id
             << "time=" << time_stamp
-            << "location=" << location_name;
+            << "; location=" << location_name;
         int csmrc = csm_ras_event_create(&csmobj,
                                           msg_id.c_str(),
                                           time_stamp.c_str(),
