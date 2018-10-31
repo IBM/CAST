@@ -141,7 +141,7 @@ def BB_CreateLogicalVolume(pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
                     print "Logical volume cannot be created because of a suspended condition.  This create logical volume request will be attempted again in three seconds."
                     time.sleep(3)
                 else:
-                    print "Logical volume cannot be created now. See error details."
+                    print "Logical volume cannot be created now, rc %d. See error details." % (rc)
                     break
             else:
                 break
