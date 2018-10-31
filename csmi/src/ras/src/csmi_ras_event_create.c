@@ -2,7 +2,7 @@
 
     csmi/src/ras/src/csmi_ras_event_create.c
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -46,7 +46,10 @@ int csm_ras_event_create(
     // EARLY RETURN
     // Create a csm_api_object and sets its csmi cmd and the destroy function
     create_csm_api_object(csm_obj, expected_cmd, NULL);
-    
+   
+    // CSM API initialize struct 
+    csm_init_struct(API_PARAMETER_INPUT_TYPE, input);
+ 
     // Populate the struct.
     input.msg_id        = msg_id        ? strdup(msg_id)        : NULL;
     input.time_stamp    = time_stamp    ? strdup(time_stamp)    : NULL;
