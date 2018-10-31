@@ -519,3 +519,7 @@ gpu.xid.9,WARNING,Driver error programming GPU,,NONE,1,0,true,,true
 gpu.xid.unknown,WARNING,A GPU XID error has been detected but the type could not be determined.,,NONE,1,0,true,,true
 hcdiag.test.fail,WARNING,$(test) FAIL on node $(node) serial number: $(sn) (details in $(file)).,NONE,NONE,1,5,true,,true
 spectrumscale.node.nodeLeave,WARNING,$(location_name) has left the cluster.,The specified node has left the cluster.,NONE,1,0,true,,true
+csm.api.prolog_prolog_collision,FATAL, $(location_name) with rc=$(rc),CSM daemon was unable to start a prolog and signaled its failure.,NONE,1,0,true,SOFT_FAILURE,true
+csm.api.prolog_epilog_collision,FATAL, $(location_name) with rc=$(rc),CSM daemon was unable to start a prolog and signaled its failure.,NONE,1,0,true,SOFT_FAILURE,true
+csm.api.epilog_prolog_collision,FATAL, $(location_name) with rc=$(rc),CSM daemon was unable to start a prolog and signaled its failure.,NONE,1,0,true,SOFT_FAILURE,true
+csm.api.epilog_epilog_collision,FATAL, $(location_name) with rc=$(rc),CSM daemon was unable to start a prolog and signaled its failure.,NONE,1,0,true,SOFT_FAILURE,true

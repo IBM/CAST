@@ -50,6 +50,10 @@
 
 #endif
 
+
+#define PROLOG_RAS(message)  this->PushRASEvent(ctx, postEventList, message,\
+    respPayload->hostname, ctx->GetErrorMessage(), "rc=" + std::to_string(ctx->GetErrorCode()));
+
 const char* CSM_ACTIVELIST = "/etc/pam.d/csm/activelist";
 const char* CSM_ACTIVELIST_SWAP = "/etc/pam.d/csm/activelist.swp";
 
@@ -271,15 +275,6 @@ bool AllocationAgentUpdateState::InitNode(
         "; system_flags: " << payload->system_flags << 
         "; Message: Prolog start;";
 
-    if ( !csm::daemon::helper::ExecutePrivileged(
-            payload->user_flags, payload->system_flags, ctx, true, false ) )
-    {
-        LOG( csmapi, error ) << ctx << "Allocation ID: " << payload->allocation_id <<
-            "; user_flags: " << payload->user_flags <<
-            "; system_flags: " << payload->system_flags << 
-            "; Message: Prolog failure;";
-        return false;
-    }
     success = csm::daemon::helper::ExecutePrivileged(
                 payload->user_flags, payload->system_flags, ctx, true, false );
 
@@ -292,6 +287,23 @@ bool AllocationAgentUpdateState::InitNode(
     }
     else 
     {
+        switch (ctx->GetErrorCode())
+        {
+            case CSMERR_EPILOG_PROLOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_EPILOG_PROLOG_COLLISION)
+                break;
+            case CSMERR_EPILOG_EPILOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_EPILOG_EPILOG_COLLISION)
+                break;
+            case CSMERR_PROLOG_EPILOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_PROLOG_EPILOG_COLLISION)
+                break;
+            case CSMERR_PROLOG_PROLOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_PROLOG_PROLOG_COLLISION)
+                break;
+            default:
+                break;
+        }
 
         LOG( csmapi, error ) << ctx << "Allocation ID: " << payload->allocation_id <<
             "; user_flags: " << payload->user_flags <<
@@ -344,7 +356,6 @@ bool AllocationAgentUpdateState::RevertNode(
         payload->user_name)
     
     // 1. Executes epilog.
-    // TODO Kill Prologs
     LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
         "; user_flags: " << payload->user_flags <<
         "; system_flags: " << payload->system_flags << 
@@ -362,6 +373,25 @@ bool AllocationAgentUpdateState::RevertNode(
     }
     else 
     {
+
+        switch (ctx->GetErrorCode())
+        {
+            case CSMERR_EPILOG_PROLOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_EPILOG_PROLOG_COLLISION)
+                break;
+            case CSMERR_EPILOG_EPILOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_EPILOG_EPILOG_COLLISION)
+                break;
+            case CSMERR_PROLOG_EPILOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_PROLOG_EPILOG_COLLISION)
+                break;
+            case CSMERR_PROLOG_PROLOG_COLLISION:
+                PROLOG_RAS(CSM_RAS_PROLOG_PROLOG_COLLISION)
+                break;
+            default:
+                break;
+        }
+
         LOG( csmapi, error ) << ctx << "Allocation ID: " << payload->allocation_id <<
             "; user_flags: " << payload->user_flags <<
             "; system_flags: " << payload->system_flags << 
@@ -427,7 +457,8 @@ bool AllocationAgentUpdateState::RevertNode(
     // TODO Should a failure trigger an error?
     DataAggregators(respPayload);
 
-    bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(payload->allocation_id, respPayload->gpu_usage);
+    bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
+        payload->allocation_id, respPayload->gpu_usage);
     if ( gpu_usage_success == false )
     {
         respPayload->gpu_usage = -1;  
@@ -444,7 +475,6 @@ void AllocationAgentUpdateState::DataAggregators(
     {
         // Grab any cromulent OCC Accounting.
         csm::daemon::helper::GetOCCAccounting( payload->energy, payload->pc_hit, payload->gpu_energy);
-
         csm::daemon::helper::GetIBUsage  ( payload->ib_rx,     payload->ib_tx      );
         csm::daemon::helper::GetGPFSUsage( payload->gpfs_read, payload->gpfs_write );
     }

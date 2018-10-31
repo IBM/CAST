@@ -98,7 +98,11 @@ typedef enum {
    CSMERR_ALLOC_UNAVIL_NODES=48, ///< 48 - Indicates the allocation create failed due to nodes that were not avaliable.
    CSMERR_ALLOC_BAD_FLAGS=49, ///< 49 - Indicates the allocation create failed due to the prolog having bad allocation flags.
    CSMERR_ALLOC_MISSING=50, ///< 50 - Indicates the allocation delete failed due to a missing allocation.
-   csmi_cmd_err_t_MAX=51 ///< 51 - Bounding Value
+   CSMERR_EPILOG_EPILOG_COLLISION=51, ///< 51 - Indicates an epilog collided with an epilog.
+   CSMERR_EPILOG_PROLOG_COLLISION=52, ///< 52 - Indicates an epilog collided with a prolog.
+   CSMERR_PROLOG_EPILOG_COLLISION=53, ///< 53 - Indicates a prolog collided with an epilog.
+   CSMERR_PROLOG_PROLOG_COLLISION=54, ///< 54 - Indicates a prolog collided with a prolog.
+   csmi_cmd_err_t_MAX=55 ///< 55 - Bounding Value
 } csmi_cmd_err_t;
 
 
