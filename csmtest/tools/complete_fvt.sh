@@ -69,3 +69,4 @@ run_bucket "error_injection" "infrastructure"
 run_bucket "error_injection" "versioning"
 ${FVT_PATH}/setup/csm_uninstall.sh
 ${FVT_PATH}/setup/csm_install.sh
+run_bucket "basic" "python_libraries"
