@@ -62,91 +62,91 @@ def IssueCmd(pCmd):
 #       to the console for the BB environments setup via the functions in this module...   @DLH
 
 def sudo_ChangeMode(pEnv, pPathName, pMode):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "ChangeMode", pPathName, pMode)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ChangeMode", pPathName, pMode)
     return IssueCmd(l_Cmd)
 
 def sudo_ChangeOwner(pEnv, pPathName, pOwner, pGroup):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "ChangeOwner", pPathName, pOwner, pGroup)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ChangeOwner", pPathName, pOwner, pGroup)
     return IssueCmd(l_Cmd)
 
 # def sudo_CloseServer(pEnv, pName):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "CloseServer", pName)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CloseServer", pName)
 #     return IssueCmd(l_Cmd)
 
 def sudo_CreateDirectory(pEnv, pNewPathName):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "CreateDirectory", pNewPathName)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CreateDirectory", pNewPathName)
     return IssueCmd(l_Cmd)
 
 def sudo_CreateLogicalVolume(pEnv, pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "CreateLogicalVolume", pMountpoint, pSize, pFlags)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CreateLogicalVolume", pMountpoint, pSize, pFlags)
     return IssueCmd(l_Cmd)
 
 # def sudo_GetServer(pEnv, pType):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "GetServer", pType)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "GetServer", pType)
 #     return IssueCmd(l_Cmd)
 
 # def sudo_OpenServer(pEnv, pName):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "OpenServer", pName)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "OpenServer", pName)
 #     return IssueCmd(l_Cmd)
 
 def sudo_RemoveDirectory(pEnv, pPathName):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "RemoveDirectory", pPathName)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveDirectory", pPathName)
     return IssueCmd(l_Cmd)
 
 def sudo_RemoveJobInfo(pEnv):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "RemoveJobInfo", "None")
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveJobInfo", "None")
     return IssueCmd(l_Cmd)
 
 def sudo_RemoveLogicalVolume(pEnv, pMountpoint):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "RemoveLogicalVolume", pMountpoint)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveLogicalVolume", pMountpoint)
     return IssueCmd(l_Cmd)
 
 def sudo_ResizeMountPoint(pEnv, pMountpoint, pSize, pFlags=DEFAULT_BBRESIZEFLAGS):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "ResizeMountPoint", pMountpoint, pSize, pFlags)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ResizeMountPoint", pMountpoint, pSize, pFlags)
     return IssueCmd(l_Cmd)
 
 def sudo_RestartTransfers(pEnv, pHostName, pHandle, pTransferDefs, pTransferDefsSize):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "RestartTransfers", pEnv["procedure_args"], pHostName, pHandle, pTransferDefs, pTransferDefsSize)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s,%s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RestartTransfers", pEnv["procedure_args"], pHostName, pHandle, pTransferDefs, pTransferDefsSize)
     return IssueCmd(l_Cmd)
 
 # def sudo_Resume(pEnv, pHostHame):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "Resume", pHostName)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "Resume", pHostName)
 #     return IssueCmd(l_Cmd)
 
 # def sudo_RetrieveTransfers(pEnv, pHostHame, pHandle, pFlags=DEFAULT_sudo_RTV_TRANSFERDEFS_FLAGS):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "RetrieveTransfers", pHostHame, pHandle, pFlags)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RetrieveTransfers", pHostHame, pHandle, pFlags)
 #     return IssueCmd(l_Cmd)%s" % (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER
 
 # def sudo_SetServer(pEnv, pType, pName):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "SetServer", pType, pName)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "SetServer", pType, pName)
 #     return IssueCmd(l_Cmd)
 
 def sudo_StageOutStart(pEnv, pMountpoint):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "StageOutStart", pMountpoint)
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "StageOutStart", pMountpoint)
     return IssueCmd(l_Cmd)
 
 # def sudo_StopTransfers(pEnv, pHostName, pHandle, pTransferDefs, pTransferDefsSize):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s,%s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "StopServer", pHostName, pHandle, pTransferDefs, pTransferDefsSize)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s,%s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "StopServer", pHostName, pHandle, pTransferDefs, pTransferDefsSize)
 #     return IssueCmd(l_Cmd)
 
 # def sudo_Suspend(pEnv, pHostHame):
-#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], "Suspend", pHostHame)
+#     l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+#             (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "Suspend", pHostHame)
 #     return IssueCmd(l_Cmd)
