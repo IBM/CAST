@@ -31,6 +31,8 @@ namespace csm {
 namespace daemon {
 namespace helper {
 
+int ScanForPrivleged(bool isProlog, int64_t allocationId=0, bool isShared=false);
+
 /**
  * @brief Executes either a privileged prolog or epilog as either a step or allocation.
  *
@@ -56,8 +58,22 @@ inline bool ExecutePrivileged(
                             (char*)CSM_P_SYSTEM_FLAG, systemFlags,
                             (char*)CSM_P_TYPE, (char*)(isStep ? CSM_P_STEP : CSM_P_ALLOCATION),
                             NULL };
+    int errCode = 0;
 
-    int errCode = ForkAndExec( scriptArgs );
+    // TODO Check for prolog/epilog.
+    if ( !isStep )
+    {
+        errCode = ScanForPrivleged( isProlog );
+        
+        if (errCode != 0)
+        {
+            LOG( csmapi, error ) << "Privileged script execution failed. Another script was running.";
+            ctx->SetErrorCode( errCode );
+            return false;
+        }
+    }
+
+    errCode = ForkAndExec( scriptArgs );
 
     // Report any failure.
     if ( errCode== 255 )
