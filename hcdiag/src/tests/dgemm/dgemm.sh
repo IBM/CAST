@@ -27,38 +27,79 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
    exec 2>$THIS_LOG 1>&2
 fi
 
+
 # spectrum mpi install
-S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm
-#S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/mpirun_scripts/dgemm
+SMPI_ROOT=/opt/ibm/spectrum_mpi/healthcheck
+verbose=false
 
+usage()
+{
+cat << EOF
+        Usage: `basename $0` [options]
+        Runs DGEMM
+        Optional arguments:
+              [-s]  Runs dgemm per socket
+              [-v]  Set verbose mode
+              [-m]  Use mpirun instead of jsrun
+              [-h]  This help screen
+EOF
+}
 
+tmpdir=/tmp/$$
+args="-d $tmpdir"
+
+thisdir=`dirname $0`
 readonly me=${0##*/}
 thishost=`hostname -s`
-thisdir=`dirname $0`
-
 source $thisdir/../common/functions
 
 supported_machine
 if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
-
 echo "Running $me on $thishost, machine type $model."          
-
-
-eye_catcher="PERFORMANCE SUCCESS:"
-tmpdir=/tmp/$$
-tmpout=/tmp/$$.out
-hostfile=/tmp/host.list$$
-
-trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
-
 read_basics 
 slots=$core_present
+
+MPI_DIR=""
+while [[ $# -gt 0 ]]; do
+  opt="$1"
+  case $opt in
+      -s)
+        args+=" $opt"
+        slots=$((slots/2))
+        ;;
+      -v)
+        verbose=true
+        ;;
+      -m)
+        # use mpirun instead of jsrun
+        MPI_DIR="mpirun_scripts"
+        ;;
+      -h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument: $opt"
+        exit 1
+        ;;
+  esac
+  shift
+done
+
+
+
+hostfile=/tmp/host.list$$
+#trap 'rm -rf $tmpdir; rm -f $hostfile' EXIT
 
 
 # It is the dgemm version that comes with spectrum mpi
 #------------------------------------------------------      
-if [ ! -x $S_BINDIR/run.dgemm ]; then 
-   echo "Can not find the dgemm installation."          
+get_processor
+if [ "$ret" -ne "0" ]; then echo -e "Processor not supported: $processor.\n$me test FAIL, rc=1"; exit 1; fi
+DGEMM_DIR="${SMPI_ROOT}/POWER${processor:1:1}/${MPI_DIR}/dgemm"
+
+if [ ! -x ${DGEMM_DIR}/run.dgemm ]; then 
+   echo "Can not find the dgemm installation ${SMPI_ROOT}/POWER${processor:1:1}/dgemm."          
    echo "$me test FAIL, rc=$rc"
    exit 1
 fi
@@ -66,13 +107,11 @@ fi
 mkdir $tmpdir
 output_dir=$tmpdir
 
-
 # check if we are in jsm land
-need_jsmd=`grep -c "jsrun" $S_BINDIR/run.dgemm`
+need_jsmd=`grep -c "jsrun" $DGEMM_DIR/run.dgemm`
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
    # check if we there is jsm daemon running
-   run_flag=""
    is_running=`/usr/bin/pgrep jsmd`
    if [ -z "$is_running" ]; then 
       # not running, need to create a host.file, with just the hostname
@@ -82,60 +121,40 @@ if [ "$need_jsmd" -ne "0" ]; then
       echo "hostfile $hostfile content is:"
       cat $hostfile
       stopd=1
-      run_flag="-c"
+      args+=" -c"
    fi
-   cmd="cd $S_BINDIR; ./run.dgemm $run_flag -d $tmpdir >$tmpout 2>&1"
 else
    # need to create a host.file, with slots="
    echo "$thishost slots=$slots" > $hostfile
    echo "hostfile $hostfile content is:"
    cat $hostfile
-   cmd="cd $S_BINDIR; ./run.dgemm -f $hostfile -d $tmpdir >$tmpout 2>&1"
+   args+=" -f $hostfile"
 fi
 
-
+cmd="cd ${DGEMM_DIR}; ./run.dgemm ${args}"
 echo -e "\nRunning: $cmd"
+#echo -e "\n================================================================"
+#echo -e "\nResults:\n"
 eval $cmd
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
 
-echo -e "\n================================================================"
-echo -e "\nPrinting dgemm raw output file(s) in $output_dir"
-if [ -d $output_dir ]; then
-   for file in `ls $output_dir`; do
-     echo -e "\nFile: $output_dir/$file"
-     cat $output_dir/$file
-     rm $output_dir/$file
-   done
-fi
-
-
-echo -e "\n================================================================"
-echo -e "\nResults:\n"
-trc=3
-if [ -f $tmpout ]; then
-   cat $tmpout
-   echo -e "\n"
-   trc=0
-fi
-
-if [ $rc -eq 0 ]; then
-   if [ $trc -eq 0 ]; then 
-      ok=`grep "$eye_catcher" $tmpout`
-      if [ -n "$ok" ]; then
-         echo "$me test PASS, rc=0"
-         exit 0
-      else 
-         rc=2
-      fi
-   else
-     rc=$trc
+if $verbose; then
+   echo -e "\n================================================================"
+   echo -e "\nPrinting dgemm raw output file(s) in $output_dir"
+   if [ -d $output_dir ]; then
+      for file in `ls $output_dir`; do
+        echo -e "\nFile: $output_dir/$file"
+        cat $output_dir/$file
+        rm $output_dir/$file
+      done
    fi
+   echo -e "\n================================================================"
 fi
+
+if [ $rc -eq 0 ]; then echo "$me test PASS, rc=0"; exit 0; fi
 
 echo "$me test FAIL, rc=$rc"
-
-
 exit $rc
 

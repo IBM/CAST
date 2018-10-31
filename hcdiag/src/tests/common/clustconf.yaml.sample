@@ -51,7 +51,7 @@ node_info:
       password: "123456"
 
     software:
-        - ibm-csm: 1.2.1-768
+        - ibm-csm: 1.3.0-1401
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
 
 
@@ -116,12 +116,12 @@ node_info:
       user: "admin"
       password: "123456"
     software:
-        - ibm-csm: 1.2.1-768
-        - gpfs.base: 5.0.1.0
+        - ibm-csm: 1.3.0-1401
+        - gpfs.base: 5.0.1-0.18
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
         - datacenter: 1.4.2-1
         - cuda: 9-2-9.2.148-1 
-        - ibm_smpi: 10.02.00.07rtm0
+        - ibm_smpi: 10.02.00.09rtm5
 
   - case: (c699login\d+)
     rvitals: wspoon_dd2
@@ -179,12 +179,12 @@ node_info:
       user: "admin"
       password: "123456"
     software:
-        - ibm-csm: 1.2.1-768
-        - gpfs.base: 5.0.1-0
+        - ibm-csm: 1.3.0-1401
+        - gpfs.base: 5.0.1-0.18
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
         - datacenter: 1.4.2-1
         - cuda: 9-2-9.2.148-1 
-        - ibm_smpi: 10.02.00.07rtm0
+        - ibm_smpi: 10.02.00.09rtm5
     temp:
       celsius_high: "35.0"
       celsius_low: "14.0"
@@ -245,12 +245,12 @@ node_info:
       user: "admin"
       password: "123456"
     software:
-        - ibm-csm: 1.2.1-768
-        - gpfs.base: 5.0.1-0
+        - ibm-csm: 1.3.0-1401
+        - gpfs.base: 5.0.1-0.18
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
         - datacenter: 1.4.2-1
         - cuda: 9-2-9.2.148-1 
-        - ibm_smpi: 10.02.00.07rtm0
+        - ibm_smpi: 10.02.00.09rtm5
     temp:
       celsius_high: "35.0"
       celsius_low: "14.0"
@@ -258,7 +258,7 @@ node_info:
 #
 # 6 gpus
 #
-  - case: (c699c0([0-5]+[0-9]))
+  - case: (c699c0([0-4]+[0-9])|c699c05(0|1|2|3))
     rvitals: wspoon_dd2
     ncpus: 176
     memory: 
@@ -309,19 +309,90 @@ node_info:
     os:
       pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
     kernel:
-      release: "4.14.0-49.11.1.el7a.ppc64le"
+      release: "4.14.0-49.15.1.el7a.jitter.ppc64le"
 
     ufm:
       ip_address: "10.7.0.41"
       user: "admin"
       password: "123456"
     software:
-        - ibm-csm: 1.2.1-768
-        - gpfs.base: 5.0.1-0
+        - ibm-csm: 1.3.0-1401
+        - gpfs.base: 5.0.1-0.18
         - lm_sensors: 3.4.0-4.20160601gitf9185e5
         - datacenter: 1.4.2-1
         - cuda: 9-2-9.2.148-1 
-        - ibm_smpi: 10.02.00.07rtm0
+        - ibm_smpi: 10.02.00.09rtm5
+    nvme:
+      vendor: "Samsung"
+      firmware_rev: "MN12MN12"
+    temp:
+      celsius_high: "35.0"
+      celsius_low: "14.0"
+
+  - case: c699c05(4|5|6|7)
+    rvitals: wspoon_dd2
+    ncpus: 176
+    memory: 
+      total: 606
+      banks: 16
+      bank_size:  32
+    clock: 
+      max: 3.50
+      min: 2.0
+    firmware:
+      name: 1742FxRev13
+      versions:
+        - 'BMC Firmware Product:   ibm-v2.0-0-r46-0-gbed584c (Active)*'
+        - 'HOST Firmware Product:   IBM-witherspoon-ibm-OP9_v1.19_1.192 (Active)*'
+        - 'HOST Firmware Product: -- additional info: buildroot-2018.02.1-6-ga8d1126'
+        - 'HOST Firmware Product: -- additional info: capp-ucode-p9-dd2-v4'
+        - 'HOST Firmware Product: -- additional info: hostboot-4bd54cb-p8235b67'
+        - 'HOST Firmware Product: -- additional info: hostboot-binaries-d01b024'
+        - 'HOST Firmware Product: -- additional info: linux-4.16.13-openpower1-p4213cac'
+        - 'HOST Firmware Product: -- additional info: machine-xml-94a137f'
+        - 'HOST Firmware Product: -- additional info: occ-f796766'
+        - 'HOST Firmware Product: -- additional info: petitboot-v1.7.2-p439439e'
+        - 'HOST Firmware Product: -- additional info: sbe-defe254'
+        - 'HOST Firmware Product: -- additional info: skiboot-v6.0.8'
+
+    gpu:
+      pciids:
+        - '0004:04:00.0'
+        - '0004:05:00.0'
+        - '0004:06:00.0'
+        - '0035:03:00.0'
+        - '0035:04:00.0'
+        - '0035:05:00.0'
+      device: "Tesla V100-SXM2-16GB"
+      vbios: "88.00.13.00.02"
+      clocks_applications_gr: 1312
+      clocks_applications_mem: 877
+      persistence_mode: Enabled
+      link_speed : 25
+      nlinks     : 6
+    ib:
+      slot_rx: "00(03|33):01:00.(0|1)"
+      board_id: "IBM0000000002"
+      firmware: "16.22.8038"
+      link_speed: 16
+      link_width: 8 
+
+    os:
+      pretty_name: "Red Hat Enterprise Linux Server 7.5 (Maipo)"
+    kernel:
+      release: "4.14.0-49.15.1.el7a.jitter.ppc64le"
+
+    ufm:
+      ip_address: "10.7.0.41"
+      user: "admin"
+      password: "123456"
+    software:
+        - ibm-csm: 1.3.0-1401
+        - gpfs.base: 5.0.1-0.18
+        - lm_sensors: 3.4.0-4.20160601gitf9185e5
+        - datacenter: 1.4.2-1
+        - cuda: 9-2-9.2.148-1 
+        - ibm_smpi: 10.02.00.09rtm5
     nvme:
       vendor: "Samsung"
       firmware_rev: "MN12MN12"
