@@ -1,3 +1,6 @@
+.. image:: ../images/CSM_Logo.png
+
+
 CSM APIs
 ========
 
