@@ -395,9 +395,7 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                                      << " because transfers for all extents had already completed.  See prior messages for this handle.";
 
                         // Clear bberror for the tolerated exception
-                        bberror.resetToClear();
-                        bberror.clear();
-                        bberror.setToNotClear();
+                        bberror.forceClear();
 
                         break;
                     }
@@ -587,9 +585,7 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
             if (rc && rc != -1)
             {
                 // Clear bberror of any possible tolerated condition
-                bberror.resetToClear();
-                bberror.clear();
-                bberror.setToNotClear();
+                bberror.forceClear();
             }
         }
         else
