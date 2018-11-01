@@ -161,6 +161,21 @@ int BBHandler::clear(const std::string& pConnectionName)
     return 0;
 };
 
+void BBHandler::forceClear()
+{
+    // NOTE: If coming through the API interface, the ok2Clear indicator will be off.
+    //       Otherwise, it will be on.  Preserve this attribute on exit.
+    bool l_Ok2Clear = ok2Clear;
+    resetToClear();
+    clear();
+    if (!l_Ok2Clear)
+    {
+        bberror.setToNotClear();
+    }
+
+    return;
+}
+
 void BBHandler::prune()
 {
     string l_Path;

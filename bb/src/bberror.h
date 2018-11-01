@@ -293,13 +293,13 @@ class BBHandler : public TSHandler
         };
 
         // Constructor
-    BBHandler() :
-    TSHandler(),
-    connectionName("")
-    {
-        ok2Clear=true;
-        init();
-    };
+        BBHandler() :
+        TSHandler(),
+        connectionName("")
+        {
+            ok2Clear=true;
+            init();
+        };
 
         // Destructor
         ~BBHandler() {};
@@ -313,11 +313,14 @@ class BBHandler : public TSHandler
         int clear(){ return clear(std::string("")); }
         int clear(const char* name);
         int clear(const std::string& pConnectionName);
+        // NOTE: Use forceClear() if you want to clear the contents of bberror and
+        //       preserve the current ok2Clear value.
+        void forceClear();
         void prune();
         int pruneChildren(pt::ptree& pTree, const std::string& pPath, int pDepth);
-    bool ok2Clear;
-    void setToNotClear(){ok2Clear=false;}
-    void resetToClear(){ok2Clear=true;}
+        bool ok2Clear;
+        void setToNotClear(){ok2Clear=false;}
+        void resetToClear(){ok2Clear=true;}
 
     public:
         int rc() const
