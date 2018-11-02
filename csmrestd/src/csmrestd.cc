@@ -165,7 +165,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
         if  (csmrc != 0) {
             char *errmsg = csm_api_object_errmsg_get(csmobj);
             jsonOut = string("{\"error\":\"") + "CSMRESTD csm_ras_event_create = " + errmsg + "\"}";
-            LOG(csmrestd, error) << "CSMRESTD csm_ras_event_create = " << rc << " " << errmsg << endl << flush;
+            LOG(csmrestd, error) << "CSMRESTD csm_ras_event_create error. Is CSMD running? rc=" << csmrc << " (" << errmsg << ")";
             rc = RestApiReply::internal_server_error;
             // put this into an error return too...
         }
@@ -268,7 +268,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
         if  (csmrc != 0) {
             char *errmsg = csm_api_object_errmsg_get(csmobj);
             jsonOut = string("{\"error\":\"") + "CSMRESTD csm_ras_event_create = " + errmsg + "\"}";
-            LOG(csmrestd, info)  << "CSMRESTD csm_ras_event_query = " << rc << " " << errmsg << endl << flush;
+            LOG( csmrestd, error ) << "CSMRESTD csm_ras_event_query error. Is CSMD running? rc=" << csmrc << " (" << errmsg << ")";
             rc = RestApiReply::internal_server_error;
         } 
         else {
@@ -417,8 +417,7 @@ CsmRestdMain::CsmRestdMain() :
 
 CsmRestdMain::~CsmRestdMain()
 {
-    if (_csminit)
-        csm_term_lib();
+  csm_term_lib();
 }
 
 void CsmRestdMain::displayUsage() 
@@ -498,24 +497,24 @@ int CsmRestdMain::main (int argc, char *argv[])
    string listen_ip = GetValueInConfig(CONFIG_FILE_KEY_LISTENIP);
    if (listen_ip.empty())
    {
-      LOG(csmrestd, critical) << "Error: " << CONFIG_FILE_KEY_LISTENIP << " not set in " << config_file << endl;
+      LOG(csmrestd, critical) << "Error: " << CONFIG_FILE_KEY_LISTENIP << " not set in " << config_file;
       return 9;
    }
 
    string port = GetValueInConfig(CONFIG_FILE_KEY_PORT);
    if (port.empty())
    {
-      LOG(csmrestd, critical) << "Error: " << CONFIG_FILE_KEY_PORT << " not set in " << config_file << endl;
+      LOG(csmrestd, critical) << "Error: " << CONFIG_FILE_KEY_PORT << " not set in " << config_file;
       return 9;
    }
 
    int rc = csm_init_lib();     // singleton csmi initialization..
    if (rc != 0)
    {
-      LOG(csmrestd, critical) << "csm_init_lib failed: rc=" << rc << " (" << strerror( rc ) << ")" << endl;
-      return(1);
+      LOG(csmrestd, warning) << "csm_init_lib: rc=" << rc << " (" << strerror( rc ) << ") Please check CSM Daemon status! Will try to contact daemon at next request.";
    }
-   _csminit = true;
+   else
+     _csminit = true;
 
    //
    // todo, make the connection here much more robust, or move this into some sort
@@ -549,7 +548,7 @@ int CsmRestdMain::main (int argc, char *argv[])
    }
    catch (std::exception& e)
    {
-      cerr << "exception: " << e.what() << endl;
+     LOG( csmrestd, error ) << "exception: " << e.what();
    }
 
    return(0);
