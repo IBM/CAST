@@ -20,6 +20,21 @@
 --   last modified:         11-2-2018
 --   change log:
 --     16.2   - Moving this version to sync with DB schema version
+--            fn_csm_allocation_delete_start -              Added in
+--                                                        INVALID_STATE       CONSTANT integer := 1;
+--                                                        INVALID_ALLOCATION  CONSTANT integer := 2;
+--                                                        USING HINT = INVALID_STATE;
+--                                                        USING HINT = INVALID_ALLOCATION;                                 
+--            fn_csm_allocation_history_dump -             Removed Older exception message.
+--            fn_csm_allocation_node_sharing_status -     error_code integer;
+--                                                        INVALID_NODES  CONSTANT integer := 1;
+--                                                        ABSENT_NODES  CONSTANT integer := 2;
+--                                                        OCCUPIED_NODES CONSTANT integer := 3;
+--                                                        BAD_STATE CONSTANT integer := 4;
+--                                                        Included new error logic releted to the existence of nodes.
+--                                                        USING HINT = OCCUPIED_NODES;
+--                                                        USING HINT = BAD_STATE;
+--                                                        Removed Older exception message
 --     16.1   - Updated fn_csm_switch_children_inventory_collection to remove old records from database and have more user feedback data to CSM API
 --            - Updated fn_csm_ib_cable_inventory_collection to remove old records from database and have more user feedback data to CSM API
 --            - Updated fn_csm_switch_inventory_collection to remove old records from database and have more user feedback data to CSM API
