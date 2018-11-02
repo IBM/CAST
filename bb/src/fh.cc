@@ -303,6 +303,9 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
             {
                 LOG(bb,info) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc \
                              << ". File handle found but is for restart transfer processing. The original file handle has already been closed.";
+                // NOTE:  If we do not remove the registry entry, set the file handle to NULL
+                //        so our invoker cannot erase/destroy it...
+                fh = NULL;
                 rc = -2;
             }
         }
@@ -314,10 +317,7 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
 
     FileHandleRegistryUnlock();
 
-    if (!((pCheckForRestart == CHECK_FOR_RESTART) && (fh->isRestartInProgress())))
-    {
-        LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
-    }
+    LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
 
     return rc;
 }

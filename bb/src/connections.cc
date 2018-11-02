@@ -809,13 +809,14 @@ int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &p
         // Wait for the response
         txp::Msg* l_ReplyMsg = 0;
         rc = waitReply(reply, l_ReplyMsg);
-        txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
-        if (l_Attribute)
-        {
-            rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
-        }
-
-        delete l_ReplyMsg;
+        if (!rc){
+            txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
+            if (l_Attribute)
+            {
+                rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
+            }
+            delete l_ReplyMsg;
+        } 
     }
 
     return rc;
@@ -1304,12 +1305,19 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                     msg->addAttribute(txp::version, BBAPI_CLIENTVERSIONSTR, strlen(BBAPI_CLIENTVERSIONSTR)+1);
                     usock->write(msg);
                     delete msg;
-
-                    waitReply(resp, msg);
-                    connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
-                    if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
-
-                    delete msg;
+                    msg=NULL;
+                    connect_rc = waitReply(resp, msg);
+                    if (!connect_rc){
+                        connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
+                        if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
+                        delete msg;
+                    }
+                    else {//need to remove connection
+                       unlockConnectionWrite("makeConnection - CLEAR");
+                       closeConnectionFD(name);
+                       LOG(bb,error) << "makeConnection disconnect while waiting for auth reply for connection=" << name;
+                       return connect_rc;
+                    }
                 }
                 else
                 {

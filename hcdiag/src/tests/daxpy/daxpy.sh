@@ -26,27 +26,26 @@ fi
 
 # DAXPY test measures aggregate memory bandwidth in MB/s.
 # spectrum mpi install
-S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/daxpy
-# clean up os caches as root 1: yes, 0: no
-CLEANUP_OS_CACHES=0
+SMPI_ROOT=/opt/ibm/spectrum_mpi/healthcheck
+CLEANUP_OS_CACHES=false     # requires sudo
+verbose=false
 
-readonly me=${0##*/}
-thishost=`hostname -s`
-thisdir=`dirname $0`
-
-source $thisdir/../common/functions
-supported_machine
-if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
-
-echo "Running daxpy on `hostname -s`, machine type $model."          
-
-
-eye_catcher="PERFORMANCE SUCCESS:"
-trap 'rm -rf /tmp/$$*' EXIT
+usage()
+{
+cat << EOF
+        Usage: `basename $0` [options]
+        Runs DGEMM
+        Optional arguments:
+              [-c]  Clean up OS caches 
+              [-s]  Runs daxpy per socket
+              [-v]  Set verbose mode
+              [-m]  Use mpirun instead of jsrun
+              [-h]  This help screen
+EOF
+}
 
 function read_basics_daxpy()
 {
-
    echo -e "\nReading configuration that might affect the result of the test."
 
    ## check if the SMT is set to 8
@@ -73,6 +72,52 @@ function read_basics_daxpy()
 
 }         
 
+
+MPI_DIR=""
+tmpdir=/tmp/$$
+trap 'rm -rf $tmpdir' EXIT
+args="-d $tmpdir"
+
+while [[ $# -gt 0 ]]; do
+  opt="$1"
+  case $opt in
+      -s)
+        args+=" $opt"
+        ;;
+      -v)
+        verbose=true
+        ;;
+      -c)
+        CLEANUP_OS_CACHES=true
+        ;;
+      -m)
+        # use mpirun instead of jsrun
+        MPI_DIR="mpirun_scripts"
+        ;;
+      -h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument: $opt"
+        exit 1
+        ;;
+  esac
+  shift
+done
+
+readonly me=${0##*/}
+thishost=`hostname -s`
+thisdir=`dirname $0`
+
+source $thisdir/../common/functions
+supported_machine
+if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
+
+echo "Running daxpy on `hostname -s`, machine type $model."          
+
+
+
 ## main
 
 echo -e "\n================================================================"
@@ -80,96 +125,45 @@ read_basics_daxpy
 read_basics 
 
 
-tmpdir=/tmp/$$
-tmpout=/tmp/$$.out
-tmperr=/tmp/$$.err
+#tmpout=/tmp/$$.out
 
 # cleanup OS caches
-if [ "$CLEANUP_OS_CACHES" == "1" ]; then
+if $CLEANUP_OS_CACHES; then
    echo -e "\nCleaning up OS caches"
    sudo -s eval 'free && sync && echo 3 > /proc/sys/vm/drop_caches && echo  && free'
 fi
 
 # daxpy version comes with spectrum mpi
 #------------------------------------------------------
-if [ ! -x $S_BINDIR/run.daxpy ]; then echo -e "Can not find the daxpy installation.\n$me test FAIL, rc=$rc"; exit 1; fi
+DAXPY_DIR="${SMPI_ROOT}/POWER${processor:1:1}/${MPI_DIR}/daxpy"
+if [ ! -x ${DAXPY_DIR}/run.daxpy ]; then echo -e "Can not find the daxpy installation ${DAXPY_DIR}/run.daxpy.\n$me test FAIL, rc=$rc"; exit 1; fi
 
 mkdir $tmpdir
-level=1
-if [ $# -gt 0 ]; then level=$1; fi 
 
-#### level 1
-rc=0
-if [ $level -eq 1 ]; then
-   echo -e "\nRunning: cd $S_BINDIR; ./run.daxpy -d $tmpdir >$tmpout 2>&1"
-   cd $S_BINDIR; ./run.daxpy -d $tmpdir >$tmpout 2>&1
-
-   echo -e "\n================================================================"
-   echo -e "\nPrinting daxpy raw output file(s)"
-   if [ -d $tmpdir ]; then
-     for file in `ls $tmpdir`; do
-        echo -e "\nFile: $tmpdir/$file"
-        cat $tmpdir/$file
-     done
-   fi
-   
-   echo -e "\n================================================================"
-   echo -e "\nResults:\n"
-   
-   if [ -f $tmpout ]; then
-      cat $tmpout
-      ok=`grep "$eye_catcher" $tmpout`
-      if [ ! -n "$ok" ]; then rc=2; fi
-   else
-      rc=3
-   fi
-#### level 2
-#### this should go to the run.daxpy (smpi)
-elif [ $level -eq 2 ]; then 
-   ncpu=`grep processor /proc/cpuinfo|wc -l`
-   half=$((ncpu / 2))
-   EXPECTED_PERF=133000
-   re='^[0-9]+([.][0-9]+)?$'
-   if [ $# -gt 1 ]; then EXPECTED_PERF=$2; fi 
-   cd $S_BINDIR
-
-   export GOMP_CPU_AFFINITY="`echo $(seq 0 $((half -1)))`"
-   export OMP_NUM_THREADS=$half
-   for i in 0 8; do
-     if [ $i -eq 8 ]; then export GOMP_CPU_AFFINITY="`echo $(seq $half $((ncpu - 1)))`"; fi
-     cmd="numactl --membind $i ./daxpy -N 100 -M 128 -b 8 > $tmpout 2> $tmperr"
-     echo "Issuing: $cmd"
-     #echo "GOMP_CPU_ACTIVIRY=$GOMP_CPU_AFFINITY"
-     eval ${cmd}
-     if [ -s $tmperr ]; then cat $tmperr; fi 
-     if [ -s $tmpout ]; then cat $tmpout; fi 
-
-     perf=`grep DAXPY $tmpout | awk '{printf $3}'`
-     if  [[ $perf =~ $re ]]; then 
-       perf=`echo ${perf%.*}` 
-       if [[ $perf -lt "$EXPECTED_PERF" ]] ; then
-           echo "$thishost: PERFORMANCE FAILURE: $perf MB/s; EXPECTED PERFORMANCE: $EXPECTED_PERF MB/s "
-           rc=99
-       else
-           echo "$thishost: PERFORMANCE SUCCESS: $perf MB/s; EXPECTED PERFORMANCE: $EXPECTED_PERF MB/s "
-       fi
-     else
-        echo "ERROR parsing the daxpy output file."
-        rc=98
-     fi
-     echo -e "\n\n"
-  done
-else 
-   echo -e "Invalid level $level. Level must be 1 or 2." 
-   rc=1
-fi
+echo -e "\nRunning: cd ${DAXPY_DIR}; ./run.daxpy $args"
+cd ${DAXPY_DIR}; ./run.daxpy ${args}
+rc=$?
+#cd ${DAXPY_DIR}; ./run.daxpy ${args} > ${tmpout}
 
 
-if [ $rc -eq 0 ]; then
-  echo "$me test PASS, rc=$rc"
-else
-  echo "$me test FAIL, rc=$rc"
-fi
+
+if $verbose; then
+  echo -e "\nPrinting daxpy raw output file(s)"
+  echo -e "\n================================================================"
+  if [ -d $tmpdir ]; then
+    for file in `ls ${tmpdir}`; do
+      echo -e "\nFile: ${tmpdir}/${file}"
+      cat $tmpdir/$file
+    done
+  fi
+  echo -e "\n================================================================"
+fi 
+
+if [ $rc -eq 0 ]; then echo "$me test PASS, rc=0"; exit 0; fi
+
+echo "$me test FAIL, rc=$rc"
+exit $rc
+
 
 exit $rc
 

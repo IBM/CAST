@@ -3479,6 +3479,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
 
                     case -2:
                     {
+                        // NOTE:  fh will be NULL in this leg
+
                         // File handle found, but not removed because restart transfer processing is
                         // in progress for this file.  The file handle found is the newly opened
                         // handle for restart processing.  The original file handle has already been

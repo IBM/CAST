@@ -160,7 +160,8 @@ typedef enum {
    CSM_NODE_SOFT_FAILURE=5, ///< 5 - Node has been placed into a soft failure.
    CSM_NODE_MAINTENANCE=6, ///< 6 - Node is in Maintenance mode.
    CSM_NODE_DATABASE_NULL=7, ///< 7 - Used to represent a NULL value for CSM Database.
-   csmi_node_state_t_MAX=8 ///< 8 - Bounding Value
+   CSM_NODE_HARD_FAILURE=8, ///< 8 - Node has been placed into a hard failure.
+   csmi_node_state_t_MAX=9 ///< 9 - Bounding Value
 } csmi_node_state_t;
 
 

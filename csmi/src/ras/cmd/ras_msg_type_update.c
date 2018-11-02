@@ -68,7 +68,7 @@ void help(){
 	puts("    -s, --severity         | \"FATAL\"                  | (STRING) Severity of the RAS event.");
 	puts("                           |                          | Valid Values: \"INFO\", \"WARNING\", or \"FATAL\"");
 	puts("    -S, --set_state        | \"SOFT_FAILURE\"           | (STRING) resources associated with the event will be set to this node state when the event hits threshold. setting 'CSM_DATABASE_NULL' will clear this field and have the node keep its current state when it hits the threshold.");
-	puts("                           |                          | Valid Values: \"SOFT_FAILURE\", \"CSM_DATABASE_NULL\" ");
+	puts("                           |                          | Valid Values: \"SOFT_FAILURE\", \"CSM_DATABASE_NULL\", \"HARD_FAILURE\" ");
 	puts("    -t, --threshold_count  | 1                        | (INTEGER) Number of times this event has to occur during the 'threshold_period' before taking action on the RAS event.");
 	puts("    -T, --threshold_period | 5                        | (INTEGER) Period in seconds over which to count the 'threshold_count'.");
 	puts("    -V, --visible_to_users | 't'                      | (CHAR) If visible_to_users = 't' is configured, then these events will be returned in the output of csm_ras_event_query_allocation.");
@@ -204,7 +204,8 @@ int main(int argc, char *argv[])
 			{
                 csm_optarg_test( "-S, --set_state", optarg, USAGE )
 				if( strcmp(optarg,"SOFT_FAILURE")      == 0 || 
-                    strcmp(optarg,"CSM_DATABASE_NULL") == 0 
+                    strcmp(optarg,"CSM_DATABASE_NULL") == 0 ||
+                    strcmp(optarg,"HARD_FAILURE")      == 0
                 )
                 {
 					int temp_state = csm_get_enum_from_string(csmi_node_state_t, optarg);

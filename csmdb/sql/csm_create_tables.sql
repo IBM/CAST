@@ -15,10 +15,16 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   16.1
+--   current_version:   16.2
 --   create:            12-14-2015
---   last modified:     09-27-2018
+--   last modified:     10-24-2018
 --   change log:    
+--   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
+--          COMMENT ON COLUMN csm_node.state
+--          COMMENT ON COLUMN csm_node_history.state
+--          COMMENT ON COLUMN csm_node_state_history.state
+--          COMMENT ON COLUMN csm_ras_type.set_state
+--          COMMENT ON COLUMN csm_ras_type_audit.set_state
 --   16.1   upgraded and added function to support API inventory
 --          added in csm_db_schema_version history_time comment.
 --   16.0   upgrade to functions to support API changes
@@ -446,8 +452,15 @@ CREATE TYPE compute_node_states AS ENUM (
   'ADMIN_RESERVED',
   'MAINTENANCE',
   'SOFT_FAILURE',
-  'OUT_OF_SERVICE'
+  'OUT_OF_SERVICE',
+  'HARD_FAILURE'
 );
+
+-----------------------------------------------------------
+-- compute_node_states TYPE comments
+-----------------------------------------------------------
+
+COMMENT ON TYPE compute_node_states IS 'compute_node_states type to help identify the states of the compute nodes';
 
 ---------------------------------------------------------------------------------------------------
 CREATE TABLE csm_node (
@@ -504,7 +517,7 @@ CREATE INDEX ix_csm_node_a
     COMMENT ON COLUMN csm_node.serial_number is 'witherspoon boards serial number';
     COMMENT ON COLUMN csm_node.collection_time is 'the time the node was collected at inventory';
     COMMENT ON COLUMN csm_node.update_time is 'the time the node was updated';
-    COMMENT ON COLUMN csm_node.state is 'state of the node - DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE';
+    COMMENT ON COLUMN csm_node.state is 'state of the node - DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE, HARD_FAILURE';
     COMMENT ON COLUMN csm_node.type is 'management, service, login, workload manager, launch, compute';
     COMMENT ON COLUMN csm_node.primary_agg is 'primary aggregate';
     COMMENT ON COLUMN csm_node.secondary_agg is 'secondary aggregate';
@@ -588,7 +601,7 @@ CREATE INDEX ix_csm_node_history_b
     COMMENT ON COLUMN csm_node_history.serial_number is 'witherspoon boards serial number';
     COMMENT ON COLUMN csm_node_history.collection_time is 'the time the node was collected at inventory';
     COMMENT ON COLUMN csm_node_history.update_time is 'the time the node was updated';
-    COMMENT ON COLUMN csm_node_history.state is 'state of the node - DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE';
+    COMMENT ON COLUMN csm_node_history.state is 'state of the node - DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE, HARD_FAILURE';
     COMMENT ON COLUMN csm_node_history.type is 'management, service, login, workload manager, launch, compute';
     COMMENT ON COLUMN csm_node_history.primary_agg is 'primary aggregate';
     COMMENT ON COLUMN csm_node_history.secondary_agg is 'secondary aggregate';
@@ -642,7 +655,7 @@ CREATE INDEX ix_csm_node_state_history_b
     COMMENT ON TABLE csm_node_state_history is 'historical information related to node state';
     COMMENT ON COLUMN csm_node_state_history.history_time is 'time when the node ready status is entered into the history table';
     COMMENT ON COLUMN csm_node_state_history.node_name is 'identifies which node this information is for';
-    COMMENT ON COLUMN csm_node_state_history.state is 'state of the node - DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE';
+    COMMENT ON COLUMN csm_node_state_history.state is 'state of the node - DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE, HARD_FAILURE';
     COMMENT ON COLUMN csm_node_state_history.operation is 'operation of transaction (I - INSERT), (U - UPDATE), (D - DELETE)';
     COMMENT ON COLUMN csm_node_state_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_node_state_history_a is 'index on history_time';
@@ -1145,7 +1158,7 @@ CREATE TABLE csm_ras_type (
     COMMENT ON COLUMN csm_ras_type.threshold_count is 'number of times this event has to occur during the (threshold_period) before taking action on the RAS event.';
     COMMENT ON COLUMN csm_ras_type.threshold_period is 'period in seconds over which to compare the number of event occurences to the threshold_count ).';
     COMMENT ON COLUMN csm_ras_type.enabled is 'events will be processed if enabled=true and suppressed if enabled=false';
-    COMMENT ON COLUMN csm_ras_type.set_state is 'setting the state according to the node, DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE';
+    COMMENT ON COLUMN csm_ras_type.set_state is 'setting the state according to the node, DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE, HARD_FAILURE';
     COMMENT ON COLUMN csm_ras_type.visible_to_users is 'when visible_to_users=true, RAS events of this type will be returned in the response to csm_ras_event_query_allocation';
     COMMENT ON INDEX csm_ras_type_pkey IS 'pkey index on msg_id';
 
@@ -1183,7 +1196,7 @@ CREATE TABLE csm_ras_type_audit (
     COMMENT ON COLUMN csm_ras_type_audit.threshold_count is 'number of times this event has to occur during the (threshold_period) before taking action on the RAS event.';
     COMMENT ON COLUMN csm_ras_type_audit.threshold_period is 'period in seconds over which to compare the number of event occurences to the threshold_count ).';
     COMMENT ON COLUMN csm_ras_type_audit.enabled is 'events will be processed if enabled=true and suppressed if enabled=false';
-    COMMENT ON COLUMN csm_ras_type_audit.set_state is 'setting the state according to the node, DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE';
+    COMMENT ON COLUMN csm_ras_type_audit.set_state is 'setting the state according to the node, DISCOVERED, IN_SERVICE, ADMIN_RESERVED, MAINTENANCE, SOFT_FAILURE, OUT_OF_SERVICE, HARD_FAILURE';
     COMMENT ON COLUMN csm_ras_type_audit.visible_to_users is 'when visible_to_users=true, RAS events of this type will be returned in the response to csm_ras_event_query_allocation';
     COMMENT ON INDEX csm_ras_type_audit_pkey IS 'pkey index on msg_id_seq';
     COMMENT ON SEQUENCE csm_ras_type_audit_msg_id_seq_seq IS 'used to generate primary keys on msg ids';

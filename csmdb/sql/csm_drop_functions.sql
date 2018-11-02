@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
---   current_version:   16.1
+--   current_version:   16.2
 --   create:            06-13-2016
---   last modified:     09-26-2018
+--   last modified:     10-24-2018
 --   change log:
+--     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
 --     16.0  -  Moving this version to sync with DB schema version.

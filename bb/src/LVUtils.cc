@@ -2745,10 +2745,10 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
             {
                 string l_FileName = fh->getfn();
                 LOG(bb,info) << "Releasing filehandle '" << l_FileName << "'";
-                rc = fh->release(BBFILE_FAILED);
-                if (rc)
+                int rc2 = fh->release(BBFILE_FAILED);
+                if (rc2)
                 {
-                    errorText << "Releasing the filehandle " << l_FileName << " failed, rc " << rc;
+                    errorText << "Releasing the filehandle " << l_FileName << " failed, rc " << rc2;
                     LOG_ERROR_TEXT(errorText);
                 }
                 delete fh;
