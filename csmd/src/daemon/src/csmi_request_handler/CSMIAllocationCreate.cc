@@ -42,6 +42,14 @@
 #define MCAST_PROPS_PAYLOAD CSMIMcastAllocation
 #define EXTRA_STATES 6
 #define SPAWN_STATE STATEFUL_DB_RECV_DB + 1
+const int MCAST_SPAWN    = SPAWN_STATE;                     // 3 - Spawns a multicast message.
+const int MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 2;         // 4 - Handles a multicast response, continuing on receiving all the events or a timeout.
+
+const int UNDO_MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 3;    // 5 - Handles a recovery multicast responses.
+const int UNDO_INSERT    = STATEFUL_DB_RECV_DB + 4;         // 6 - Reverts the Allocation in the database. TERMINAL STATE
+
+const int UPDATE_STATS   = STATEFUL_DB_RECV_DB + 5;         // 7 - Updates The aggregated statistics.
+const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES + 1; // Beyond the final state of the state machine, a context placed in this state is done.
 
 #define DATA_STRING "allocation_id,begin_time,primary_job_id,secondary_job_id,ssd_file_system_name,"\
     "launch_node_name,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,"\
@@ -53,14 +61,6 @@ CSMIAllocationCreate_Master::CSMIAllocationCreate_Master(csm::daemon::HandlerOpt
 {
     // State id for the multicast spawner.    
     const int RESERVE_NODES  = STATEFUL_DB_RECV_DB;             // 2 - Reserves nodes in the database.
-    const int MCAST_SPAWN    = SPAWN_STATE;                     // 3 - Spawns a multicast message.
-    const int MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 2;         // 4 - Handles a multicast response, continuing on receiving all the events or a timeout.
-
-    const int UNDO_MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 3;    // 5 - Handles a recovery multicast responses.
-    const int UNDO_INSERT    = STATEFUL_DB_RECV_DB + 4;         // 6 - Reverts the Allocation in the database. TERMINAL STATE
-
-    const int UPDATE_STATS   = STATEFUL_DB_RECV_DB + 5;         // 7 - Updates The aggregated statistics.
-    const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES + 1; // Beyond the final state of the state machine, a context placed in this state is done.
     
     const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
 
@@ -376,6 +376,38 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(
     LOG(csmapi,trace) << STATE_NAME ":UndoAllocationDB: Enter";
     csm::db::DBReqContent *dbReq = nullptr;
     std::string error = "";
+    //MCAST_SPAWN
+    
+
+
+    switch ( ctx->GetAuxiliaryId() )
+    {
+        case MCAST_SPAWN:
+            #define INVALID_NODES  1
+            #define ABSENT_NODES   2
+            #define OCCUPIED_NODES 3
+            #define BAD_STATE      4
+            switch (ctx->GetDBErrorCode())
+            {
+                case INVALID_NODES:
+                    ctx->SetErrorCode(CSMERR_ALLOC_UNAVIL_NODES);
+                    break;
+                case ABSENT_NODES:
+                    ctx->SetErrorCode(CSMERR_ALLOC_INVALID_NODES);
+                    break;
+                case OCCUPIED_NODES:
+                    ctx->SetErrorCode(CSMERR_ALLOC_OCCUPIED_NODES);
+                    break;
+                case BAD_STATE:
+                    break;
+                default:
+                    break;
+            }
+
+            break;
+        default:
+            break;
+    }
 
     MCAST_STRUCT* allocation = mcastProps->GetData();
     if (allocation)

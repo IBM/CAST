@@ -104,7 +104,8 @@ typedef enum {
    CSM_JSM=1, ///< 1 - Denotes an allocation managed by JSM.
    CSM_JSM_CGROUP_STEP=2, ///< 2 - Denotes an allocation managed by JSM with step cgroups. 
    CSM_DIAGNOSTICS=3, ///< 3 - Denotes a diagnostic allocation run.
-   csmi_allocation_type_t_MAX=4 ///< 4 - Bounding Value
+   CSM_CGROUP_STEP=4, ///< 4 - Denotes an allocation with step cgroups.
+   csmi_allocation_type_t_MAX=5 ///< 5 - Bounding Value
 } csmi_allocation_type_t;
 
 

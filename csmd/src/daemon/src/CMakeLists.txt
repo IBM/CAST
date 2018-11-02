@@ -136,6 +136,7 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/helpers/EventHelpers.cc
   csmi_request_handler/helpers/cgroup.cc
   csmi_request_handler/helpers/Agent.cc
+  csmi_request_handler/helpers/AgentHandler.cc
   csmi_request_handler/helpers/DataAggregators.cc
 
   # Stateful Classes:

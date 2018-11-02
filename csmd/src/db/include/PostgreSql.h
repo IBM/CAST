@@ -22,7 +22,9 @@
 #define PQ_CONN_SUCCESS(conn) (PQstatus(conn) == CONNECTION_OK)
 #define PQ_CONN_FREE(conn) PQfinish(conn)
 
-#define PQ_RES_ERROR_MSG(res) PQresultErrorMessage(res)
+#define PQ_RES_ERROR_MSG(res) PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY)
+//PQresultErrorMessage(res)
+#define PQ_RES_ERROR_CODE(res) PQresultErrorField(res, PG_DIAG_MESSAGE_HINT)
 #define PQ_RES_STATUS_CODE(res) PQresultStatus(res)
 #define PQ_RES_SUCCESS(res) (PQresultStatus(res) == PGRES_COMMAND_OK \
                              || PQresultStatus(res) == PGRES_TUPLES_OK)

@@ -193,7 +193,7 @@ bool CSMIAllocationDelete_Master::CompareDataForPrivateCheck(
     }
     else
     {
-        ctx->SetErrorCode(CSMERR_DB_ERROR);
+        ctx->SetErrorCode(CSMERR_ALLOC_MISSING);
         ctx->AppendErrorMessage("Database check failed for user id " + std::to_string(msg.GetUserID()) + ";" );
     }
 
@@ -369,6 +369,21 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
     MCAST_STRUCT* allocation = mcastProps->GetData();
 
     // Early return if a transitory state was found.
+
+    #define INVALID_STATE 1
+    #define INVALID_ALLOCATION 2
+    switch ( ctx->GetDBErrorCode() )
+    {
+        case INVALID_STATE:
+            ctx->SetErrorCode(CSMERR_DELETE_STATE_BAD);
+            break;
+        case INVALID_ALLOCATION: 
+            ctx->SetErrorCode(CSMERR_ALLOC_MISSING);
+            break;
+        default:
+            break;
+    }
+    
 
     if (allocation && allocation->primary_job_id > 0)
     {

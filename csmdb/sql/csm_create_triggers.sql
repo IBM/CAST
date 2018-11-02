@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.2
 --   create:                06-22-2016
---   last modified:         10-24-2018
+--   last modified:         11-2-2018
 --   change log:
 --     16.2   - Moving this version to sync with DB schema version
 --     16.1   - Updated fn_csm_switch_children_inventory_collection to remove old records from database and have more user feedback data to CSM API
@@ -359,6 +359,8 @@ DECLARE
     real_allocation_id bigint;
     time_since_change  double precision;
     allocations_found  integer;
+    INVALID_STATE       CONSTANT integer := 1;
+    INVALID_ALLOCATION  CONSTANT integer := 2;
 BEGIN
     IF (i_primary_job_id > 0) THEN
         SELECT allocation_id INTO real_allocation_id
@@ -405,7 +407,8 @@ BEGIN
         -- Test the state, raising an exception is not valid.
         IF ( (o_state = 'deleting-mcast' OR o_state = 'to-staging-out' OR o_state = 'to-running') 
             AND time_since_change < i_timeout_time ) THEN
-            RAISE EXCEPTION 'Detected a multicast operation in progress for allocation, rejecting delete.';
+            RAISE EXCEPTION 'Detected a multicast operation in progress for allocation, rejecting delete.'
+                USING HINT = INVALID_STATE;
         END IF;
 
         -- TODO should this use an in ANY instead?
@@ -417,7 +420,8 @@ BEGIN
             UPDATE csm_allocation SET state = 'deleting' WHERE allocation_id=real_allocation_id;
         END IF;
     ELSE
-        RAISE EXCEPTION 'Allocation unable to be found matching the supplied criteria, unable to delete.';
+        RAISE EXCEPTION 'Allocation unable to be found matching the supplied criteria, unable to delete.'
+            USING HINT = INVALID_ALLOCATION;
     END IF;
 
 END;
@@ -565,11 +569,11 @@ BEGIN
     ELSE
         RAISE EXCEPTION using message = 'allocation_id does not exist.';
     END IF;
-    EXCEPTION
-        WHEN others THEN
-            RAISE EXCEPTION
-            USING ERRCODE = sqlstate,
-                     MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+    --EXCEPTION
+    --    WHEN others THEN
+    --        RAISE EXCEPTION
+    --        USING ERRCODE = sqlstate,
+    --                 MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
 --    RETURN NULL;
 
 END;
@@ -1577,6 +1581,11 @@ DECLARE
     bad_nodes text[];
     missing_nodes text[];
     running_nodes text[];
+    error_code integer;
+    INVALID_NODES  CONSTANT integer := 1;
+    ABSENT_NODES  CONSTANT integer := 2;
+    OCCUPIED_NODES CONSTANT integer := 3;
+    BAD_STATE CONSTANT integer := 4;
 BEGIN
     --LOCK TABLE csm_allocation_node IN EXCLUSIVE MODE;
     PERFORM 1 FROM csm_allocation_node WHERE allocation_id=i_allocation_id FOR UPDATE;
@@ -1604,10 +1613,18 @@ BEGIN
     -- OR there were nodes that couldn't be found, raise an exception.
     ELSIF (array_length(bad_nodes, 1) > 0 )
         OR  array_length(missing_nodes,1) > 0 THEN
-        RAISE EXCEPTION 'The following nodes were not available: % 
-The following nodes were not found: %',
+        
+        IF( array_length(bad_nodes, 1) > 0 ) 
+        THEN
+            error_code := INVALID_NODES;
+        ELSE
+            error_code := ABSENT_NODES;
+        END IF;
+
+        RAISE EXCEPTION 'The following nodes were not available: % ;The following nodes were not found: %',
                 array_to_string(bad_nodes, ', ', '*' ),
-                array_to_string(missing_nodes, ', ', '*');
+                array_to_string(missing_nodes, ', ', '*')
+            USING HINT = error_code;
     END IF;
 
     -- If the allocation is being created in the running state.
@@ -1625,7 +1642,8 @@ The following nodes were not found: %',
                     WHERE node_name = ANY(i_nodenames) AND state!='staging-in' AND state!='staging-out');
 
                 RAISE EXCEPTION 'Node(s) are currently busy, unable to request exclusive job. Active Nodes: %',
-                        array_to_string(running_nodes, ', ', '*');
+                        array_to_string(running_nodes, ', ', '*')
+                        USING HINT = OCCUPIED_NODES;
             END IF;
 
         ELSIF EXISTS (
@@ -1639,10 +1657,12 @@ The following nodes were not found: %',
                 WHERE node_name = ANY(i_nodenames) AND state!='staging-in' AND state!='staging-out');
 
             RAISE EXCEPTION 'Node(s) can not be shared because an exclusive job currently active. Active Nodes: %',
-                array_to_string(running_nodes, ', ', '*');
+                array_to_string(running_nodes, ', ', '*')
+                USING HINT = OCCUPIED_NODES;
         END IF;
     ELSIF i_state!='staging-in' THEN
-        RAISE EXCEPTION using message = 'Inserting into invalid state';
+        RAISE EXCEPTION 'Inserting into invalid state'
+            USING HINT = BAD_STATE;
     --ELSIF i_state='stage-out' THEN
         --RAISE EXCEPTION using message = 'Inserting into the stage-out state';
     END IF;
@@ -1657,11 +1677,13 @@ The following nodes were not found: %',
         i_allocation_id, i_shared, i_state, node
     FROM
         unnest(i_nodenames) as n(node);
-    EXCEPTION
-        WHEN others THEN
-            RAISE EXCEPTION
-            USING ERRCODE = sqlstate,
-                MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+
+    --EXCEPTION
+    --    WHEN others THEN
+    --        RAISE EXCEPTION
+    --        USING ERRCODE = sqlstate,
+    --            HINT = ?
+    --            MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
 END; -- releases all locks
 $$ LANGUAGE plpgsql;
 

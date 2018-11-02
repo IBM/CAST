@@ -18,7 +18,14 @@
 #include "csmd/src/db/include/DBConnection.h" //: DBConn source.
 #include "logging.h"                          //: For logging funtionality.
 #include <libpq-fe.h>                         //: Postgresql header.
+#include <boost/locale.hpp>
 
+#define UTF8_BAD_CHAR ' '
+#define CLEAR_UTF8_BAD_SIZE(str, size) for( int i = 0; i < size; ++i) { \
+    if (str[i] == 192 || str[i] == 193 || (str[i] >= 245 && str[i] <= 255)) str[i] = UTF8_BAD_CHAR; }
+
+#define CLEAR_UTF8_BAD(str) for( int i = 0; str[i]; ++i) { \
+    if (str[i] == 192 || str[i] == 193 || (str[i] >= 245 && str[i] <= 255)) str[i] = UTF8_BAD_CHAR; }
 
 namespace csm {
 namespace db {
@@ -93,7 +100,10 @@ void DBReqContent::AddTextParam( const char* text )
     if ( text && _NumParams != 0  && _ParamIndex < _NumParams )
     {
         // If the text param was null calloc a size 1 string.
-        _ParamValues[_ParamIndex]  = text ? strdup(text): (char*) calloc(1, sizeof(char));
+        char* tempText = (char*)strdup(text);
+        CLEAR_UTF8_BAD(tempText)
+        _ParamValues[_ParamIndex]  = tempText;
+
         _ParamFormats[_ParamIndex] = 0; // Text field.
         _ParamSizes[_ParamIndex]   = strlen(_ParamValues[_ParamIndex]) + 1;
         _ParamIndex++;
@@ -108,6 +118,8 @@ void DBReqContent::AddTextParam( const char* text, int size )
         {
             _ParamValues[_ParamIndex]  = (char*) malloc(size);
             memcpy( _ParamValues[_ParamIndex], text, size );
+            CLEAR_UTF8_BAD_SIZE(_ParamValues[_ParamIndex], size)
+
         }
         else
         {
@@ -140,7 +152,11 @@ void DBReqContent::AddTextArrayParam( const char* const * elements, uint32_t siz
         else
             arrayString.append("}");
 
-        _ParamValues[_ParamIndex]  = (char*)strdup(arrayString.c_str() );
+        char* tempText = (char*)strdup(arrayString.c_str());
+        CLEAR_UTF8_BAD(tempText)
+        _ParamValues[_ParamIndex]  = tempText;
+
+        //_ParamValues[_ParamIndex]  = (char*)strdup(arrayString.c_str() );
         _ParamFormats[_ParamIndex] = 0; // Text field.
         _ParamSizes[_ParamIndex]   = strlen(_ParamValues[_ParamIndex])  + 1;
         _ParamIndex++;

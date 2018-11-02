@@ -22,7 +22,7 @@ const char* csmi_state_t_strs [] = {"staging-in","to-running","running","to-stag
 
 const char* csmi_cgroup_controller_t_strs [] = {"cpuset","memory","devices","cpuacct",""};
 
-const char* csmi_allocation_type_t_strs [] = {"user-managed","jsm","jsm-cgroup-step","diagnostics",""};
+const char* csmi_allocation_type_t_strs [] = {"user-managed","jsm","jsm-cgroup-step","diagnostics","cgroup-step",""};
 
 const char* csmi_job_type_t_strs [] = {"batch","interactive",""};
 

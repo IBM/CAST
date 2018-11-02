@@ -93,7 +93,16 @@ typedef enum {
    CSMERR_STATE_CHANGE_FAILED=43, ///< 43 - Indicates an allocation update state operation failed to be completed, usually a problem in the compute nodes.
    CSMERR_DELETE_STATE_BAD=44, ///< 44 - Indicates an allocation delete operation failed due to an invalid state.
    CSMERR_JSRUN_CMD_ERROR=45, ///< 45 - Indicates a JSRUN start failed.
-   csmi_cmd_err_t_MAX=46 ///< 46 - Bounding Value
+   CSMERR_ALLOC_INVALID_NODES=46, ///< 46 - Indicates one or more nodes were not in the CSM database for the allocation create.
+   CSMERR_ALLOC_OCCUPIED_NODES=47, ///< 47 - Indicates nodes in the list were in use by another allocation.
+   CSMERR_ALLOC_UNAVIL_NODES=48, ///< 48 - Indicates the allocation create failed due to nodes that were not avaliable.
+   CSMERR_ALLOC_BAD_FLAGS=49, ///< 49 - Indicates the allocation create failed due to the prolog having bad allocation flags.
+   CSMERR_ALLOC_MISSING=50, ///< 50 - Indicates the allocation delete failed due to a missing allocation.
+   CSMERR_EPILOG_EPILOG_COLLISION=51, ///< 51 - Indicates an epilog collided with an epilog.
+   CSMERR_EPILOG_PROLOG_COLLISION=52, ///< 52 - Indicates an epilog collided with a prolog.
+   CSMERR_PROLOG_EPILOG_COLLISION=53, ///< 53 - Indicates a prolog collided with an epilog.
+   CSMERR_PROLOG_PROLOG_COLLISION=54, ///< 54 - Indicates a prolog collided with a prolog.
+   csmi_cmd_err_t_MAX=55 ///< 55 - Bounding Value
 } csmi_cmd_err_t;
 
 

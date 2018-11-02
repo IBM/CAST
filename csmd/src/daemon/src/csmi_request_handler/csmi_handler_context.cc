@@ -31,6 +31,7 @@ EventContextHandlerState::EventContextHandlerState(
         _ExpectedNumResponses(0),
         _ReceivedNumResponses(0),
         _ErrorCode(CSMI_SUCCESS),
+        _DBErrorCode(0),
         _ErrorMessage(""),
         _UserData(nullptr),
         _DataDestructor(nullptr)
@@ -155,6 +156,18 @@ int EventContextHandlerState::GetErrorCode()
 { 
     std::lock_guard<std::mutex> lock(_ErrorCodeMutex);
     return _ErrorCode; 
+}
+
+void EventContextHandlerState::SetDBErrorCode( int errorCode ) 
+{ 
+    std::lock_guard<std::mutex> lock(_DBErrorCodeMutex);
+    _DBErrorCode = errorCode; 
+}
+
+int EventContextHandlerState::GetDBErrorCode() 
+{ 
+    std::lock_guard<std::mutex> lock(_DBErrorCodeMutex);
+    return _DBErrorCode; 
 }
 
 void EventContextHandlerState::SetErrorMessage( const std::string & message ) 

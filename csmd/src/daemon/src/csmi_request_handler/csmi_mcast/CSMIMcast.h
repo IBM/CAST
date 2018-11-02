@@ -23,11 +23,13 @@
 #define CSMI_ALLOCATION_MCAST
 
 #include "csmnet/src/CPP/csm_message_and_address.h"
+#include "csmi/include/csmi_type_common.h"
 #include "../helpers/EventHelpers.h"
 #include "../csmi_handler_context.h"
 #include <string>
 #include <vector>
 #include <map>
+#include <queue>
 
 /**
  * @brief A class defining the properties of a multicast.
@@ -35,7 +37,7 @@
  * @tparam DataStruct The type of the struct stored in @ref _Data, assumed to have the following 
  *  fields: compute_nodes ( char ** ) and num_nodes ( uint32_t ).
  */
-template<typename DataStruct>
+template<typename DataStruct, class ErrorCompare=std::less<int>>
 class CSMIMcast
 {
 protected:
@@ -56,6 +58,10 @@ protected:
     std::string _RASMsgId;      /**< The RAS message id for failed multicasts.  */
     std::string _ErrorMsg;      /**< An aggration of error messages.*/
 
+    std::priority_queue<int, std::vector<int>, ErrorCompare> _ErrHeap;  /**< A Heap to store errors received from the compute nodes. */
+    
+
+
 public:
     /**@brief Initializes a Multicast property object.
      * @param[in] cmdType The command type of the handler responsible for this class.
@@ -73,7 +79,11 @@ public:
                 _Recovery(false),      _IsAlternate(false),
                 _EEReply(eeReply),     _RASPushed(false),
                 _Data(data),           _RASMsgId(rasMsgId),
-                _ErrorMsg(""){ }
+                _ErrorMsg(""),         _ErrHeap()
+    { 
+        
+        _ErrHeap.push(CSMERR_MULTI_GEN_ERROR);    
+    }
 
     /**
      * @brief Invokes the free for allocation.
@@ -330,6 +340,17 @@ public:
      * @return True if an error has been detected.
      */
     inline bool DidErrorOccur() const { return _ErrorMsg.size() > 0; }
+
+
+    /** @brief Pushes an error onto the error heap.
+     *  @param[in] errorCode The new error code recieved by the multicast.
+     */
+    inline void PushError(int errorCode) { _ErrHeap.push(errorCode); }
+
+    /** @brief Returns the primary error detected in the run of the multicast.
+     *  @return The most important error from the multicast.
+     */
+    inline int GetMainErrorCode() { return _ErrHeap.top(); }
 };
 
 
