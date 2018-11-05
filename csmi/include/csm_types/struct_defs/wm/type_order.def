@@ -44,3 +44,4 @@ csmi_allocation_step_mcast_context.def 7 523870ae65e99aadbfdc149c3c5c500a
 csmi_allocation_step_mcast_payload.def 5 e16f9784d4fcd125ee911554ff9b3a2a
 csmi_jsrun_cmd_payload.def 5 d2e78619fffe49da8b81bba29ef28715
 csm_jsrun_cmd_input.def 3 757d79d8d3d06d33ca5da9c9ca79808d
+csmi_soft_failure_recovery_payload.def 0

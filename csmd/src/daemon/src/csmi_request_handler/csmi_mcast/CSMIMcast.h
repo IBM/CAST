@@ -92,6 +92,7 @@ public:
      */
     ~CSMIMcast() {};
  
+    
     /**
      * @brief Builds a vector of strings for the nodes defined in @ref _Data's compute_nodes field.
      *
@@ -204,6 +205,24 @@ public:
         return "";
     }
 
+    /** @brief Generate a list of hostnames that the multicast succeeded or failed on.
+     * @return A vector containing the nodes that either failed or succeeded (comma delimited).
+     */
+    inline std::vector<std::string> GenerateHostnameListing(bool isSuccess) const
+    {
+        std::vector<std::string> nodeVector = {};
+
+        for ( auto const& node : _NodeStates )
+        {
+            if ( (isSuccess && node.second.first == 0) || !(isSuccess || node.second.first == 0) )
+            {
+                nodeVector.push_back(node.first);
+            }
+        }
+
+        return nodeVector;
+    }
+
     /** @brief Generates a string detailing any issues with the nodes in the multicast.
      *
      * | Error Code | Description             |
@@ -232,7 +251,8 @@ public:
 
         return failureCount > 0 ? failures : std::string("");
     }
-            
+
+
     /**
      * @brief Generates a generic RAS event for timeouts.
      *

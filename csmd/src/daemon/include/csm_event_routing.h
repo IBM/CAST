@@ -97,6 +97,8 @@
 #include "src/csmi_request_handler/csm_envdata_handler.h"
 #include "src/csmi_request_handler/csm_interval_handler.h"
 #include "src/csmi_request_handler/csm_error_case_handler.h"
+#include "src/csmi_request_handler/CSMISoftFailureRecoveryAgentState.h"
+#include "src/csmi_request_handler/CSMISoftFailureRecovery.h"
 
 #include "src/csmi_request_handler/csm_handler_options.h"
 
