@@ -19,6 +19,7 @@ export AGGREGATOR_B=
 export COMPUTE_NODES=
 export SINGLE_COMPUTE=
 export UFM_ADDR=
+export LOGSTASH=
 
 # Users
 export USER=

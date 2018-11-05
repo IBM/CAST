@@ -108,9 +108,35 @@ check_return_exit $? 0 "Test Case 14: Calling csm_bb_lv_delete"
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 15: calling csm_allocation_delete"
 
-# Test Case 16: Calling csm_bb_vg_delete
+# Test Case 16: Cascading allocation/LV delete - create allocation
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+check_return_exit $? 0 "Test Case 16: Cascading allocation/LV delete - create allocation"
+
+# Test Case 16: Cascading allocation/LV delete - create lv_02
+${CSM_PATH}/csm_bb_lv_create -a ${allocation_id} -c 500 -f mount -F type -l lv_02 -n ${SINGLE_COMPUTE} -s C -V vg_01 > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 16: Cascading allocation/LV delete - create lv_02"
+
+# Test Case 16: Cascading allocation/LV delete - query lv_02
+${CSM_PATH}/csm_bb_lv_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 16: Cascading allocation/LV delete - query lv_02"
+
+# Test Case 16: Cascading allocation/LV delete - delete allocation
+${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 16: Cascading allocation/LV delete - delete allocation"
+
+# Test Case 16: Cascading allocation/LV delete - verify lv_02 deleted
+${CSM_PATH}/csm_bb_lv_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 4 "Test Case 16: Cascading allocation/LV delete - verify lv_02 deleted"
+
+# Test Case 16; Cascading allocation/LV delete - verify lv_02 in history table
+su -c "psql -d csmdb -c 'select * from csm_lv_history ;'" postgres > ${TEMP_LOG} 2>&1
+check_all_output "lv_02 .* D"
+check_return_flag $? "Test Case 16; Cascading allocation/LV delete - verify lv_02 in history table"
+
+# Test Case 17: Calling csm_bb_vg_delete
 ${CSM_PATH}/csm_bb_vg_delete -n ${SINGLE_COMPUTE} -V vg_01 > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 16: Calling csm_bb_vg_delete"
+check_return_exit $? 0 "Test Case 17: Calling csm_bb_vg_delete"
 
 rm -f ${TEMP_LOG}
 su -c "psql -d csmdb -c 'DELETE FROM csm_ssd ;'" postgres > /dev/null

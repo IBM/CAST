@@ -56,15 +56,15 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
 # Test Case 3: csm_allocation_create node does not exist
 ${CSM_PATH}/csm_allocation_create -j 1 -n doesnotexist > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 3: csm_allocation_create node does not exist"
+check_return_flag_nz $? 46 "Test Case 3: csm_allocation_create node does not exist"
 
 # Test Case 4: csm_allocation_create allocation already exists
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 4: csm_allocation_create allocation already exists"
+check_return_flag_nz $? 47 "Test Case 4: csm_allocation_create allocation already exists"
 
 # Test Case 5: csm_allocation_create new job, but node is busy
 ${CSM_PATH}/csm_allocation_create -j 2 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 5: csm_allocation_create new job, but node is busy"
+check_return_flag_nz $? 47 "Test Case 5: csm_allocation_create new job, but node is busy"
 
 # Test Case 6: csm_allocation_create invalid -j input
 ${CSM_PATH}/csm_allocation_create -j xxx -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
@@ -177,7 +177,7 @@ check_return_flag_nz $? 9 "Test Case 32: csm_allocation_delete NO ARGS"
 
 # Test Case 33: csm_allocation_delete allocation does not exist
 ${CSM_PATH}/csm_allocation_delete -a 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 33: csm_allocation_delete allocation does not exist"
+check_return_flag_nz $? 50 "Test Case 33: csm_allocation_delete allocation does not exist"
 
 # Test Case 34: csm_allocation_delete invalid -a input
 ${CSM_PATH}/csm_allocation_delete -a xxx > ${TEMP_LOG} 2>&1
