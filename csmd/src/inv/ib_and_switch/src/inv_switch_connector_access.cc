@@ -101,6 +101,11 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 {
 	try
 	{	
+        //Helper Variables
+		//helper variable to keep track of total records.
+		int total_switch_records = 0;
+
+
 		// Get a list of endpoints corresponding to the server name.
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
@@ -169,10 +174,15 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			//LOG(csmd, debug) << &response;
 			//std::cout << &response;
 		}
+
+
+
+		// TEMP 
+        // ToDo: replace this buffer push to a config file update like error paths below. 
+        std::string ufm_switch_output_filename = "ufm_switch_output_file.txt";
 		
 		// opening output file
-		std::string output_file_name = csm_inv_log_dir + "/ufm_switch_output_file.txt";
-		std::cout << "output file name: " << output_file_name << std::endl;
+		std::string output_file_name = csm_inv_log_dir + "/" + ufm_switch_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 
 		// checking if output file is open
@@ -210,7 +220,6 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 
 		// opening input file
 		std::string input_file_name = output_file_name;
-		std::cout << "input file name: " << input_file_name << std::endl;
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
 
 		// checking if input file is open
@@ -220,8 +229,6 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			std::cout << "Input file " << input_file_name << " not open, return" << std::endl;
 			return 1;
 		}else{
-			// printing
-			std::cout << "reading input file..." << std::endl;
 
 			// setting the number of lines to skip
 			int number_of_lines_to_skip = 0;
@@ -562,6 +569,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								//LOG(csmd, debug) << "updating vector of the switch names";
 								//std::cout << "updating vector of the switch names" <<std::endl;
 								vector_of_the_switch_names.push_back(line);
+								total_switch_records++;
 								break;
 							case 1:
 								//LOG(csmd, debug) << "updating vector of the serial numbers";
@@ -655,6 +663,9 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 					}
 				}
 			}
+
+			std::cout << "UFM reported " << total_switch_records << " switch records." << std::endl;
+			std::cout << "This report from UFM can be found in '" << ufm_switch_output_filename << "' located at '" << csm_inv_log_dir << "'\n" << std::endl;
 
 			// closing the input file
 			input_file.close();
