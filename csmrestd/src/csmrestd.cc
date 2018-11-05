@@ -49,6 +49,7 @@
 
 
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 
@@ -119,6 +120,8 @@ private:
     string _mytext;
 };
 
+#define LOG_RAS_EVENT_PREFIX_WIDTH (21)
+
 RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
    string const &method, string const &url, string const &jsonIn, string &jsonOut)
 {
@@ -139,6 +142,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
         string location_name;
         string raw_data;
         string kvcsv;
+        string ctx;
 
         for(boost::property_tree::ptree::iterator iter = pt.begin(); iter != pt.end(); iter++)
         {
@@ -147,15 +151,18 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
             else if (iter->first == CSM_RAS_FKEY_LOCATION_NAME) location_name = iter->second.data();
             else if (iter->first == CSM_RAS_FKEY_RAW_DATA) raw_data = iter->second.data();
             else if (iter->first == CSM_RAS_FKEY_KVCSV) kvcsv = iter->second.data();
+            else if (iter->first == CSM_RAS_FKEY_CTXID) ctx = iter->second.data();
             else {
                 // ignore other fields...  or maybe do some sor tof error..
             }
         }
 
         csm_api_object *csmobj = NULL;
-        LOG( csmrestd, debug ) << "csmRasEventCreate: msgID=" << msg_id
-            << "time=" << time_stamp
-            << "; location=" << location_name;
+        LOG( csmrestd, info ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << std::left << "NEW RAS EVENT" << std::setw(0)
+            << " ctx:" << ctx
+            << " ts:" << time_stamp
+            << " loc:" << location_name
+            << " msg:" << msg_id;
         int csmrc = csm_ras_event_create(&csmobj,
                                           msg_id.c_str(),
                                           time_stamp.c_str(),
@@ -165,17 +172,30 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventCreate(
         if  (csmrc != 0) {
             char *errmsg = csm_api_object_errmsg_get(csmobj);
             jsonOut = string("{\"error\":\"") + "CSMRESTD csm_ras_event_create = " + errmsg + "\"}";
-            LOG(csmrestd, error) << "CSMRESTD csm_ras_event_create error. Is CSMD running? rc=" << csmrc << " (" << errmsg << ")";
+            LOG( csmrestd, error ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << std::left << "RAS EVENT ERROR" << std::setw(0)
+                << " ctx:" << ctx
+                << " ts:" << time_stamp
+                << " loc:" << location_name
+                << " msg:" << msg_id
+                << " errstr:" << errmsg;
             rc = RestApiReply::internal_server_error;
             // put this into an error return too...
         }
+        else
+        {
+          LOG( csmrestd, info ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << std::left << "RAS EVENT COMPLETE" << std::setw(0)
+              << " ctx:" << ctx
+              << " ts:" << time_stamp
+              << " loc:" << location_name
+              << " msg:" << msg_id;
+        }
         csm_api_object_destroy(csmobj);
 
-        LOG( csmrestd, debug ) << "csmRasEventCreate: Complete.";
     }
     catch (std::exception & e)
     {
-        LOG(csmrestd, warning) <<  "csmRasEventCreate: error parsing json data: " << e.what();
+      LOG( csmrestd, warning ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << std::left << "RAS EVENT ERROR" << std::setw(0)
+        <<  " error parsing json data: " << e.what();
 
         // need to return some sort of error here... internal_server_error and some extra text...?
         rc = RestApiReply::internal_server_error;
@@ -261,6 +281,8 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
         input->offset = 'd';
 
         csm_api_object *csmobj = NULL;
+        LOG( csmrestd, info ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << "NEW RAS QUERY" << std::setw(0)
+            << jsonIn;
         //csmi_ras_event_vector_t *event_vect = NULL;
         int csmrc = csm_ras_event_query(&csmobj, input, &output);
         //Use CSM API free to release arguments. We no longer need them.
@@ -268,7 +290,9 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
         if  (csmrc != 0) {
             char *errmsg = csm_api_object_errmsg_get(csmobj);
             jsonOut = string("{\"error\":\"") + "CSMRESTD csm_ras_event_create = " + errmsg + "\"}";
-            LOG( csmrestd, error ) << "CSMRESTD csm_ras_event_query error. Is CSMD running? rc=" << csmrc << " (" << errmsg << ")";
+            LOG( csmrestd, error ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << "RAS QUERY ERROR" << std::setw(0)
+                << " " << jsonIn
+                << " errstr: " << errmsg;
             rc = RestApiReply::internal_server_error;
         } 
         else {
@@ -296,13 +320,15 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
             ostringstream ss;
             boost::property_tree::json_parser::write_json(ss, evw);
             jsonOut = ss.str();
+            LOG( csmrestd, info ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << "RAS QUERY COMPLETE" << std::setw(0)
+                << " " << jsonIn;
         }
         csm_api_object_destroy(csmobj);
         rc = RestApiReply::ok;
-        LOG( csmrestd, debug ) << "csmRasEventQuery: Complete.";
     }
     catch (std::exception & e) {
-        LOG( csmrestd, error ) << "error parsing json data: " << e.what() << "\n";
+      LOG( csmrestd, warning ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << std::left << "RAS QUERY ERROR" << std::setw(0)
+        <<  " error parsing json data: " << e.what();
 
         // need to return some sort of error here... internal_server_error and some extra text...?
         rc = RestApiReply::internal_server_error;
