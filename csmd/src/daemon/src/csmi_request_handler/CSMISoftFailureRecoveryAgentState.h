@@ -46,6 +46,7 @@ protected:
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) final;
+    
 
     /** @brief Unused. */
     virtual void GenerateTimeoutResponse(

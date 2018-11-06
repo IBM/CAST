@@ -32,8 +32,10 @@
 struct csmi_soft_failure_recovery_context_t {
     uint32_t num_nodes;
     char**   compute_nodes;
+    char*    hard_failure_nodes;
 
-    csmi_soft_failure_recovery_context_t() : num_nodes(0), compute_nodes(nullptr) {}
+    csmi_soft_failure_recovery_context_t() : num_nodes(0),
+        compute_nodes(nullptr), hard_failure_nodes(nullptr) {}
 
     ~csmi_soft_failure_recovery_context_t()
     {
@@ -42,12 +44,10 @@ struct csmi_soft_failure_recovery_context_t {
             for (uint32_t i = 0; i < num_nodes; ++i) free(compute_nodes[i]);
         }
         compute_nodes = nullptr;
-    }
 
-    void initNodes (uint32_t node_count)
-    {
-        num_nodes = node_count;
-        compute_nodes = (char**)calloc(node_count, sizeof(char*));
+        if (hard_failure_nodes)
+            free(hard_failure_nodes);
+        hard_failure_nodes = nullptr;
     }
 };
 

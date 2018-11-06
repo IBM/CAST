@@ -37,14 +37,15 @@
 #define CMD_ID CSM_CMD_soft_failure_recovery
 
 #define MCAST_PROPS_PAYLOAD CSMIMcastSoftFailureRecovery
-#define EXTRA_STATES 2
+#define EXTRA_STATES 3
 CSMISoftFailureRecovery_Master::CSMISoftFailureRecovery_Master(csm::daemon::HandlerOptions& options) :
     CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
 {
     // State id for the multicast spawner.    
     const int MCAST_SPAWN    = STATEFUL_DB_RECV_DB;     // 2
     const int MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 1; // 3
-    const int FIX_NODES      = STATEFUL_DB_RECV_DB + 2; // 4  NOTE: This is recv_db
+    const int FIX_NODES      = STATEFUL_DB_RECV_DB + 2; // 4 
+    const int FAIL_NODES     = STATEFUL_DB_RECV_DB + 3; // 5  NOTE: This is recv_db
 
     const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES;
 
@@ -73,6 +74,12 @@ CSMISoftFailureRecovery_Master::CSMISoftFailureRecovery_Master(csm::daemon::Hand
            FINAL,                     // Final State
            FIX_NODES,               // Timeout State
            MASTER_TIMEOUT));          // Timeout Time
+
+    SetState( FIX_NODES,
+        new StatefulDBRecvSend<CreateHardFailures>(
+            FAIL_NODES,
+            FAIL_NODES,
+            FINAL));
 }                           
 
                             
@@ -152,7 +159,10 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Enter";
-    
+    static std::map<std::string, short> _RetryMap;
+    static std::mutex                   _RetryMutex;
+    #define RETRY_LIMIT 10 // TODO Pull from daemon.
+
     // ========================================================================================
     std::vector<std::string> nodeVector = mcastProps->GenerateHostnameListing(true);
     std::string nodeStr = "{";
@@ -160,23 +170,89 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     std::string separator = "";
     for ( std::string node : nodeVector )
     {
-       nodeStr.append(separator).append(node); 
-       separator = ",";
+        nodeStr.append(separator).append(node); 
+        separator = ",";
     }
     nodeStr.append("}");
     LOG(csmapi, info) << nodeStr;
+    // ========================================================================================
+    
+    // ========================================================================================
+    std::vector<std::string> failVector = mcastProps->GenerateHostnameListing(false);
+    std::map<std::string, short> tempMap;
+    std::string failStr = "{";
+
+    std::unique_lock<std::mutex>dataLock( _RetryMutex);
+    separator = "";
+    for ( std::string node : failVector )
+    {
+        short count = _RetryMap[node] + 1;
+
+        if( count >= RETRY_LIMIT )
+        {
+            failStr.append(separator).append(node); 
+            separator = ",";
+        }
+        else
+        {
+            tempMap[node] = count;
+        }
+    }
+    failStr.append("}");
+
+    // Replace the retry map and unclock access.
+    _RetryMap = tempMap;
+    dataLock.unlock();
+
+    if ( mcastProps )
+    {
+        MCAST_STRUCT* recovery = mcastProps->GetData();
+        recovery->hard_failure_nodes = strdup(failStr.c_str());
+    }
     // ========================================================================================
 
     csm::db::DBReqContent *dbReq = nullptr;
 
     const int paramCount = 1; 
-    std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' WHERE node_name=ANY($1::text[])";
+    std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
+        "WHERE node_name=ANY($1::text[]);";
 
+    LOG(csmapi, info) << stmt;
     dbReq = new csm::db::DBReqContent( stmt, paramCount );
     dbReq->AddTextParam(nodeStr.c_str());
 
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Exit";
     return dbReq;
+}
+
+bool CSMISoftFailureRecovery_Master::CreateHardFailures(
+    const std::vector<csm::db::DBTuple *>&tuples,
+    csm::db::DBReqContent **dbPayload,
+    csm::daemon::EventContextHandlerState_sptr ctx)
+{
+    LOG(csmapi,trace) <<  STATE_NAME ":CreateHardFailures: Enter";
+    bool success = false;
+    MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
+    std::unique_lock<std::mutex>dataLock =
+        ctx->GetUserData<MCAST_PROPS_PAYLOAD*>(&mcastProps);
+    
+    if ( mcastProps )
+    {
+        MCAST_STRUCT* recovery = mcastProps->GetData();
+        const int paramCount = 1; 
+        std::string stmt =  "UPDATE csm_node SET state='HARD_FAILURE' "
+            "WHERE node_name=ANY($1::text[]);";
+
+        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
+        dbReq->AddTextParam(recovery->hard_failure_nodes);
+
+        *dbPayload = dbReq;
+        success=true;
+    }
+
+    dataLock.unlock();
+    LOG(csmapi,trace) <<  STATE_NAME ":CreateHardFailures: Exit";
+    return success;
 }
 
 bool CSMISoftFailureRecovery_Master::CreateResponsePayload(

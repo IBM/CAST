@@ -68,6 +68,7 @@ public:
         const std::vector<csm::db::DBTuple *>& tuples,
         CSMIMcastSoftFailureRecovery* mcastProps);
 
+
     /** @brief Creates a statement to fix the nodes repaired by the process.
      *
      * @param[in] mcastProps The properties used to create the sql statement.
@@ -77,6 +78,11 @@ public:
     static csm::db::DBReqContent* FixRepairedNodes( 
         csm::daemon::EventContextHandlerState_sptr ctx,
         CSMIMcastSoftFailureRecovery* mcastProps);
+
+    static bool CreateHardFailures(
+        const std::vector<csm::db::DBTuple *>&tuples,
+        csm::db::DBReqContent **dbPayload,
+        csm::daemon::EventContextHandlerState_sptr ctx);
 };
 
 class CSMISoftFailureRecovery_Agent : public CSMIStateful
