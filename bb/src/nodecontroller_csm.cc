@@ -91,6 +91,7 @@ NodeController_CSM::NodeController_CSM()
     if(rc)
     {
         LOG(bb,info) << "Volume group create failed with rc=" << rc << " ...  ignoring as might already be created";
+        bberror << err("err.csmerror", "Volume group create failed")<<err("err.csmrc",rc);
     }
     free(vg.ssd_info);
 
@@ -100,6 +101,7 @@ NodeController_CSM::NodeController_CSM()
 int NodeController_CSM::gethostlist(string& hostlist)
 {
     int rc = 0;
+    stringstream errorText;
     LOG(bb,info) << "NodeController_CSM::gethostlist:  hostlist=" << hostlist;
     const char* allocid = getenv("CSM_ALLOCATION_ID");
     const char* jobid   = getenv("LSF_STAGE_JOBID");
@@ -119,8 +121,9 @@ int NodeController_CSM::gethostlist(string& hostlist)
         input.secondary_job_id = 0;
     }
     else
-    {
+    { 
         LOG(bb,error) << "NodeController_CSM neither allocationid nor jobid and jobindex was specified";
+        bberror << err("err.csmerror", "NodeController_CSM neither allocationid nor jobid and jobindex was specified");
         return -1;
     }
     csm_allocation_query_output_t* output;
@@ -131,11 +134,15 @@ int NodeController_CSM::gethostlist(string& hostlist)
     if(rc)
     {
         LOG(bb,error) << "NodeController_CSM allocation query failed with rc=" << rc;
+        if (rc==CSMERR_TIMEOUT) bberror<< err("err.CSMERR_TIMEOUT",rc);
+        else bberror << err("err.csmerror","NodeController_CSM allocation query failed")<<err("err.csmrc",rc);
+
         return -1;
     }
     if(output->allocation->num_nodes == 0)
     {
         LOG(bb,error) << "CSM: allocation query returned zero compute nodes";
+        bberror << err("err.csmerror","CSM: allocation query returned zero compute nodes");
         return -1;
     }
 
@@ -291,8 +298,9 @@ int NodeController_CSM::lvremove(const string& lvname, const BBUsage_t& usage)
     FL_Write(FLCSM, CSMLVDeleteRC, "CSM: call csm_bb_lv_delete.  AllocID=%ld.  rc=%ld",allocinfo.allocation_id,rc,0,0);
     if(rc)
     {
-	LOG(bb,error) << "Error posting csm_bb_lv_delete().  rc=" << rc;
-	return -1;
+	  LOG(bb,error) << "Error posting csm_bb_lv_delete().  rc=" << rc;
+      bberror << err("err.csmerror", "Error posting csm_bb_lv_delete()")<<err("err.csmrc",rc);
+	  return -1;
     }
     return 0;
 }
@@ -321,8 +329,9 @@ int NodeController_CSM::lvupdate(const string& lvname, enum LVState state, size_
     FL_Write(FLCSM, CSMLVUpdateRC, "CSM: call csm_bb_lv_update.  AllocID=%ld, Size=%ld.  rc=%ld",allocinfo.allocation_id, current_size,rc,0);
     if(rc)
     {
-	LOG(bb,error) << "Error posting csm_bb_lv_update().  rc=" << rc;
-	return -1;
+	  LOG(bb,error) << "Error posting csm_bb_lv_update().  rc=" << rc;
+      bberror << err("err.csmerror", "Error posting csm_bb_lv_update()")<<err("err.csmrc",rc);
+	  return -1;
     }
     return 0;
 }
