@@ -1007,6 +1007,22 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
                             << " smUtilization.minValue: "  << dcgm_job_stats.gpus[i].smUtilization.minValue << ", "
                             << " smUtilization.maxValue: "  << dcgm_job_stats.gpus[i].smUtilization.maxValue << ", "
                             << " smUtilization.average: "   << dcgm_job_stats.gpus[i].smUtilization.average;
+         
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " maxGpuMemoryUsed: " << dcgm_job_stats.gpus[i].maxGpuMemoryUsed;
+         
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " powerViolationTime: " << dcgm_job_stats.gpus[i].powerViolationTime;
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " thermalViolationTime: " << dcgm_job_stats.gpus[i].thermalViolationTime;
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " reliabilityViolationTime: " << dcgm_job_stats.gpus[i].reliabilityViolationTime;
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " boardLimitViolationTime: " << dcgm_job_stats.gpus[i].boardLimitViolationTime;
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " lowUtilizationTime: " << dcgm_job_stats.gpus[i].lowUtilizationTime;
+         LOG(csmenv, debug) << "gpuId: "           << dcgm_job_stats.gpus[i].gpuId << ", "
+                            << " syncBoostTime: " << dcgm_job_stats.gpus[i].syncBoostTime;
       
          for (int32_t j = 0; j < dcgm_job_stats.gpus[i].numComputePids; j++)
          {
