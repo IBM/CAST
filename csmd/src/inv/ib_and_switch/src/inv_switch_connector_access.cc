@@ -97,15 +97,10 @@ int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
 	return compiled_with_support;
 }
 
-int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir)
+int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors)
 {
 	try
 	{	
-        //Helper Variables
-		//helper variable to keep track of total records.
-		int total_switch_records = 0;
-
-
 		// Get a list of endpoints corresponding to the server name.
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
@@ -230,6 +225,26 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			return 1;
 		}else{
 
+			//grab time info to stick into the bad switch text file
+			time_t rawtime;
+			struct tm * timeinfo;
+			time (&rawtime);
+			timeinfo = localtime (&rawtime);
+		
+			//opening a error write file
+			std::ofstream bad_switch_records;
+			
+			bad_switch_records.open (csm_inv_log_dir + "/" + switch_errors);
+			bad_switch_records << "CSM switch inventory collection" << std::endl;
+			bad_switch_records << "File created: " << asctime(timeinfo) << std::endl;
+			bad_switch_records << "The following records are incomplete and can not be inserted into CSM database.\n" << std::endl;
+			
+			//helper variable to keep track of a bad serial number for a record. 
+			bool bad_record = false;
+			//helper variable to keep track of total records.
+			int total_switch_records = 0;
+			int NA_serials_count = 0;
+
 			// setting the number of lines to skip
 			int number_of_lines_to_skip = 0;
 
@@ -271,6 +286,14 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								//Should prob report some error here.
 								
 								//idk, exit early, no need to further continue the main loop.
+
+
+                                //maybe increase the number of bad switches
+                                //because no serial number field from module
+                                NA_serials_count++;
+                                bad_record = true;
+
+
 							}else{
 								// read the next line
 								std::getline(input_file, line);
@@ -279,6 +302,11 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								if(line.find("{") == std::string::npos){
 									// 'slim' case
 									// only a list of module names are found
+
+
+									//definitly bad because this means no serial number
+									bad_record = true;
+									NA_serials_count++;
 									
 									//Modify the prefix. Trim the opening garbage from the key_value
 									line.erase(0,13);
@@ -293,20 +321,42 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 										//remove the double
 										line.erase(line.length()-3,line.length()-1);
 									}
+
+
+									if(bad_record)
+									{
+										//copy to bad_switch_records NOT vector push
+										bad_switch_records << "New Module: ??? " << std::endl;
+										bad_switch_records << "name:            " << line << std::endl;
+										bad_switch_records << "description:     N/A "<< std::endl;
+										bad_switch_records << "device_name:     N/A "<< std::endl;
+										bad_switch_records << "device_type:     N/A "<< std::endl;
+										bad_switch_records << "max_ib_ports:    N/A "<< std::endl;
+										bad_switch_records << "module_index:    N/A "<< std::endl;
+										bad_switch_records << "number_of_chips: N/A "<< std::endl;
+										bad_switch_records << "path:            N/A "<< std::endl;
+										bad_switch_records << "serial_number:   N/A "<< std::endl;
+										bad_switch_records << "severity:        N/A "<< std::endl;
+										bad_switch_records << "status:          N/A "<< std::endl;
+										bad_switch_records << std::endl;
+									}else{
+										//SAVE NAME HERE:
+										vector_of_the_modules.push_back(line); //name
+										//SAVE OTHER FIELDS AS N/A
+										vector_of_the_modules.push_back("N/A"); // description
+										vector_of_the_modules.push_back("N/A"); // device_name
+										vector_of_the_modules.push_back("N/A"); // device_type
+										vector_of_the_modules.push_back("N/A"); // max_ib_ports
+										vector_of_the_modules.push_back("N/A"); // module_index
+										vector_of_the_modules.push_back("N/A"); // number_of_chips
+										vector_of_the_modules.push_back("N/A"); // path 
+										vector_of_the_modules.push_back("N/A"); // serial_number
+										vector_of_the_modules.push_back("N/A"); // severity
+										vector_of_the_modules.push_back("N/A"); // status
+
+									}
 							
-									//SAVE NAME HERE:
-									vector_of_the_modules.push_back(line); //name
-									//SAVE OTHER FIELDS AS N/A
-									vector_of_the_modules.push_back("N/A"); // description
-									vector_of_the_modules.push_back("N/A"); // device_name
-									vector_of_the_modules.push_back("N/A"); // device_type
-									vector_of_the_modules.push_back("N/A"); // max_ib_ports
-									vector_of_the_modules.push_back("N/A"); // module_index
-									vector_of_the_modules.push_back("N/A"); // number_of_chips
-									vector_of_the_modules.push_back("N/A"); // path 
-									vector_of_the_modules.push_back("N/A"); // serial_number
-									vector_of_the_modules.push_back("N/A"); // severity
-									vector_of_the_modules.push_back("N/A"); // status
+									
 							
 									//increase the count
 									number_of_modules_found++;
@@ -334,20 +384,39 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 												line.erase(line.length()-3,line.length()-1);
 											}
 											
-											//not in correct order - but doesn't matter because all "N/A"
-											//SAVE OTHER FIELDS AS N/A
-											vector_of_the_modules.push_back("N/A"); // description
-											vector_of_the_modules.push_back("N/A"); // device_name
-											vector_of_the_modules.push_back("N/A"); // device_type
-											vector_of_the_modules.push_back("N/A"); // max_ib_ports
-											vector_of_the_modules.push_back("N/A"); // module_index
-											vector_of_the_modules.push_back("N/A"); // number_of_chips
-											vector_of_the_modules.push_back("N/A"); // path 
-											vector_of_the_modules.push_back("N/A"); // serial_number
-											vector_of_the_modules.push_back("N/A"); // severity
-											vector_of_the_modules.push_back("N/A"); // status
-											//SAVE NAME HERE:
-											vector_of_the_modules.push_back(line); //name
+
+											if(bad_record)
+											{
+												//copy to bad_switch_records NOT vector push
+												bad_switch_records << "New Module: ??? " << std::endl;
+												bad_switch_records << "name:            " << line << std::endl;
+												bad_switch_records << "description:     N/A "<< std::endl;
+												bad_switch_records << "device_name:     N/A "<< std::endl;
+												bad_switch_records << "device_type:     N/A "<< std::endl;
+												bad_switch_records << "max_ib_ports:    N/A "<< std::endl;
+												bad_switch_records << "module_index:    N/A "<< std::endl;
+												bad_switch_records << "number_of_chips: N/A "<< std::endl;
+												bad_switch_records << "path:            N/A "<< std::endl;
+												bad_switch_records << "serial_number:   N/A "<< std::endl;
+												bad_switch_records << "severity:        N/A "<< std::endl;
+												bad_switch_records << "status:          N/A "<< std::endl;
+												bad_switch_records << std::endl;
+											}else{
+												//not in correct order - but doesn't matter because all "N/A"
+												//SAVE OTHER FIELDS AS N/A
+												vector_of_the_modules.push_back("N/A"); // description
+												vector_of_the_modules.push_back("N/A"); // device_name
+												vector_of_the_modules.push_back("N/A"); // device_type
+												vector_of_the_modules.push_back("N/A"); // max_ib_ports
+												vector_of_the_modules.push_back("N/A"); // module_index
+												vector_of_the_modules.push_back("N/A"); // number_of_chips
+												vector_of_the_modules.push_back("N/A"); // path 
+												vector_of_the_modules.push_back("N/A"); // serial_number
+												vector_of_the_modules.push_back("N/A"); // severity
+												vector_of_the_modules.push_back("N/A"); // status
+												//SAVE NAME HERE:
+												vector_of_the_modules.push_back(line); //name
+											}
 									
 											//increase the count
 											number_of_modules_found++;
@@ -369,6 +438,8 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 									//continue reading list of modules until end of list
 									//exit condition variable
 									char close_found = 0;
+
+									//For personal notes. This should be a "GOOD" record WITH a serial number
 									
 									do{
 										if(line.find("]") == std::string::npos)
@@ -566,10 +637,9 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 						switch (i)
 						{
 							case 0:
-								//LOG(csmd, debug) << "updating vector of the switch names";
-								//std::cout << "updating vector of the switch names" <<std::endl;
-								vector_of_the_switch_names.push_back(line);
-								total_switch_records++;
+								if(bad_record){ bad_switch_records << "switch_name: " << line << std::endl; } 
+							    else{ vector_of_the_switch_names.push_back(line); }
+							    total_switch_records++;
 								break;
 							case 1:
 								//LOG(csmd, debug) << "updating vector of the serial numbers";
@@ -597,9 +667,14 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								vector_of_the_ips.push_back(line);
 								break;
 							case 6:
-								//LOG(csmd, debug) << "updating vector of the inventories";
-								//std::cout << "updating vector of the inventories" << std::endl;
-								vector_of_the_model.push_back(line);
+								//last record for bad record
+								// unfortunately only record
+								if(bad_record){ 
+									bad_switch_records << "model: " << line << std::endl; 
+									//because its last field. pad the record with a new line. 
+									bad_switch_records << std::endl;
+								} 
+							    else{ vector_of_the_model.push_back(line); }
 								break;
 							case 7:
 								//LOG(csmd, debug) << "updating vector of the types";
@@ -661,14 +736,75 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								break;
 						}
 					}
+
+					//I think unfortunately for now . we have to do this here. this way
+					if(bad_record)
+					{
+						//copy the already added fields to the bad_record file
+						bad_switch_records << "Switch: " << total_switch_records << std::endl;
+						bad_switch_records << "ip:                    " << vector_of_the_ips[vector_of_the_ips.size()-1] << std::endl;
+						bad_switch_records << "fw_version:            " << vector_of_the_firmware_versions[vector_of_the_firmware_versions.size()-1] << std::endl;
+						bad_switch_records << "total_alarms:          " << vector_of_the_total_alarms[vector_of_the_total_alarms.size()-1] << std::endl;
+						bad_switch_records << "psid:                  " << vector_of_the_ps_ids[vector_of_the_ps_ids.size()-1] << std::endl;
+						bad_switch_records << "guid:                  " << vector_of_the_guids[vector_of_the_guids.size()-1] << std::endl;
+						bad_switch_records << "state:                 " << vector_of_the_states[vector_of_the_states.size()-1] << std::endl;
+						bad_switch_records << "role:                  " << vector_of_the_roles[vector_of_the_roles.size()-1] << std::endl;
+						bad_switch_records << "type:                  " << vector_of_the_types[vector_of_the_types.size()-1] << std::endl;
+						bad_switch_records << "vendor:                " << vector_of_the_vendors[vector_of_the_vendors.size()-1] << std::endl;
+						bad_switch_records << "description:           " << vector_of_the_descriptions[vector_of_the_descriptions.size()-1] << std::endl;
+						bad_switch_records << "has_ufm_agent:         " << vector_of_the_has_ufm_agents[vector_of_the_has_ufm_agents.size()-1] << std::endl;
+						bad_switch_records << "server_operation_mode: " << vector_of_the_server_operation_modes[vector_of_the_server_operation_modes.size()-1] << std::endl;
+						bad_switch_records << "sm_mode:               " << vector_of_the_sm_modes[vector_of_the_sm_modes.size()-1] << std::endl;
+						bad_switch_records << "system_name:           " << vector_of_the_system_names[vector_of_the_system_names.size()-1] << std::endl;
+						bad_switch_records << "sw_version:            " << vector_of_the_sw_versions[vector_of_the_sw_versions.size()-1] << std::endl;
+						bad_switch_records << "system_guid:           " << vector_of_the_system_guids[vector_of_the_system_guids.size()-1] << std::endl;
+						bad_switch_records << "name:                  " << vector_of_the_switch_names[vector_of_the_switch_names.size()-1] << std::endl;
+						bad_switch_records << "modules:               ???" << std::endl;
+
+						//remove already added fields to lists.
+						vector_of_the_ips.pop_back();
+						vector_of_the_firmware_versions.pop_back();
+						vector_of_the_total_alarms.pop_back();
+						vector_of_the_ps_ids.pop_back();
+						vector_of_the_guids.pop_back();
+						vector_of_the_states.pop_back();
+						vector_of_the_roles.pop_back();
+						vector_of_the_types.pop_back();
+						vector_of_the_vendors.pop_back();
+						vector_of_the_descriptions.pop_back();
+						vector_of_the_has_ufm_agents.pop_back();
+						vector_of_the_server_operation_modes.pop_back();
+						vector_of_the_sm_modes.pop_back();
+						vector_of_the_system_names.pop_back();
+						vector_of_the_sw_versions.pop_back();
+						vector_of_the_system_guids.pop_back();
+						vector_of_the_switch_names.pop_back();
+					}
 				}
+
+				//reset to a new record
+				bad_record = false;
 			}
 
 			std::cout << "UFM reported " << total_switch_records << " switch records." << std::endl;
-			std::cout << "This report from UFM can be found in '" << ufm_switch_output_filename << "' located at '" << csm_inv_log_dir << "'\n" << std::endl;
+			std::cout << "This report from UFM can be found in '" << ufm_switch_output_filename << "' located at '" << csm_inv_log_dir << std::endl;
+
+			if(NA_serials_count > 0){
+				std::cerr << "WARNING: " << NA_serials_count << " Switches found with 'N/A' serial numbers and have been removed from CSM inventory collection data." << std::endl;
+				std::cerr << "These records copied into '" << switch_errors <<"' located at '" << csm_inv_log_dir << std::endl;
+			}
+
+			if(bad_record == true)
+			{
+				std::cout << "bad records" << std::endl;
+			}
+
+			std::cout << std::endl;
 
 			// closing the input file
 			input_file.close();
+			//close the error file
+			bad_switch_records.close();
 		}
 	}
 	catch (std::exception& e)

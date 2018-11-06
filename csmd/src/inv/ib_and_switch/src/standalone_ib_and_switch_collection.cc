@@ -485,7 +485,7 @@ int main(int argc, char *argv[])
 		else 
 		{
 			// execute data collection for the switch cables
-			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir);
+			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
 		}
 	}
 
@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
 		else
 		{
 			// execute data collection for the switch cables
-			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir);
+			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
 		}
 	}
 
