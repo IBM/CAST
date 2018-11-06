@@ -231,7 +231,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 				// check if this is one of the strange lines (cable not complete)
 				if ( line.find("\"cable_info\": {},") != std::string::npos ){
 					//copy the missing cable_info fields to the bad_record file
-					bad_ib_cable_records << "Cable: " << vector_of_the_part_numbers.size()-1 << std::endl;
+					bad_ib_cable_records << "Cable: " << total_ib_records + 1 << std::endl;
 					bad_ib_cable_records << "part_number:      " << "NOT AVAILABLE" << std::endl;
 					bad_ib_cable_records << "length:           " << "NOT AVAILABLE" << std::endl;
 					bad_ib_cable_records << "serial_number:    " << "NOT AVAILABLE" << std::endl;
@@ -344,7 +344,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 							case 13:
 								//special case with a bad serial number. 
 								//copy the already added fields to the bad_record file
-								bad_ib_cable_records << "Cable: " << vector_of_the_part_numbers.size()-1 << std::endl;
+								bad_ib_cable_records << "Cable: " << total_ib_records + 1<< std::endl;
 								bad_ib_cable_records << "part_number:      " << vector_of_the_part_numbers[vector_of_the_part_numbers.size()-1] << std::endl;
 								bad_ib_cable_records << "length:           " << vector_of_the_lengths[vector_of_the_lengths.size()-1] << std::endl;
 								bad_ib_cable_records << "serial_number:    " << line << std::endl;
