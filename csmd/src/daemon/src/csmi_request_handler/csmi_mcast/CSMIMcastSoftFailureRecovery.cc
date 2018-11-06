@@ -67,6 +67,7 @@ bool ParseResponseSoftFailure(
     // If this is not in recovery and the message length is greater than zero parse the content.
     if( mcastProps && content._Msg.GetDataLen() > 0 )
     {
+        LOG(csmapi,trace) << "Message length is greater than 0";
         csmi_soft_failure_recovery_payload_t *payload = nullptr;
 
         // Attempt to deserialize the struct, if it deserializes process.
@@ -76,6 +77,7 @@ bool ParseResponseSoftFailure(
             success=true;
 
             std::string hostname(payload->hostname);
+            LOG(csmapi,trace) << hostname << " Found " << payload->error_code;
             mcastProps->SetHostError(hostname, 
                 payload->error_code, 
                 payload->error_message);

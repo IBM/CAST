@@ -1,0 +1,39 @@
+#!/bin/python
+# encoding: utf-8
+#================================================================================
+#
+#    soft_failure_recovery
+#
+#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+'''
+.. module:: 
+    :platform: Linux
+    :synopsis: A script to recover a node from soft failure, returns 0 on success, 
+        if 0 is not returned the soft failure recovery will fail. Should be installed in 
+        /opt/ibm/csm/recovery/soft_failure_recovery.
+.. moduleauthor:: John Dunham (jdunham@us.ibm.com)
+'''
+
+import sys
+import getopt
+import os 
+
+def main():
+    ''' Execute a collection of clean up mechanisms for a node in the soft failure state.'''
+    
+    #: The return code of this script.
+    ret_code = 0
+
+    return ret_code
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -56,10 +56,12 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
         return false;
     }
     
+    std::string hostname = csm::daemon::Configuration::Instance()->GetHostname();
+
     // Clone the hostname for RAS reporting.
-    payload->hostname = 
-        strdup( csm::daemon::Configuration::Instance()->GetHostname().c_str() );
+    payload->hostname = strdup( hostname.c_str() ); 
     
+    LOG(csmapi, info) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\nHostname " << payload->hostname;
     try
     {
         // 0. Clear out the CGroups.
@@ -69,9 +71,12 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
         // Note if the cgroup fails we don't care about running the recovery script.
         // 1. Run the local recovery script.
         char* cmd_out = nullptr;
-        if(csm::daemon::helper::ExecuteSFRecovery(&cmd_out, csm_get_agent_timeout(CMD_ID)/1000))
+        int errorCode = csm::daemon::helper::ExecuteSFRecovery(&cmd_out, csm_get_agent_timeout(CMD_ID)/1000);
+        if(errorCode)
         {
-            payload->error_message = strdup("Soft failure recovery script did not end successfully;"); 
+            std::string error = hostname + "[" + std::to_string(errorCode) + 
+                "]: Soft failure recovery script did not end successfully;";
+            payload->error_message = strdup(error.c_str()); 
             payload->error_code = CSMERR_SOFT_FAIL_RECOVERY_AGENT;
             LOG(csmapi, error) << "Message: " << payload->error_message;
         }
@@ -80,13 +85,15 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
     catch(const csm::daemon::helper::CSMHandlerException& e)
     {
         payload->error_code = CSMERR_CGROUP_FAIL;
-        payload->error_message = strdup(e.what());
+        std::string error = hostname + ": " + e.what();
+        payload->error_message = strdup(error.c_str());
         LOG(csmapi, error) << "Message: " << payload->error_message;
     }
     catch(const std::exception& e)
     {
         payload->error_code = CSMERR_CGROUP_FAIL;
-        payload->error_message = strdup(e.what());
+        std::string error = hostname + ": " + e.what();
+        payload->error_message = strdup(error.c_str());
         LOG(csmapi, error) << "Message: " << payload->error_message;
     }
     // Return the results to the Master via the Aggregator.

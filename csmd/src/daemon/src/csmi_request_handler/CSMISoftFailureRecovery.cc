@@ -91,7 +91,8 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
     csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( paramStmt, paramCount );
     *dbPayload = dbReq;
     
-    MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, nullptr, false, false, 
+    MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, new csmi_soft_failure_recovery_context_t()
+        , false, false, 
          CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT); // TODO Replace msg id
      ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
      ctx->SetUserData( payload );
@@ -110,13 +111,18 @@ bool CSMISoftFailureRecovery_Master::ParseInfoQuery(
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":ParseInfoQuery: Enter";
-    MCAST_STRUCT* recovery = mcastProps->GetData();
-    
-    size_t numNodes = tuples.size();
-    recovery->initNodes((uint32_t)numNodes);
 
-    std::string error = mcastProps->GenerateIdentifierString() +
-        "; Message: Found " + std::to_string(numNodes)  + " nodes in the SOFT_FAILURE state.";
+    MCAST_STRUCT* recovery = mcastProps->GetData();
+    // TODO test recovery.
+
+    size_t numNodes = tuples.size();
+
+    recovery->num_nodes = (uint32_t)numNodes;
+    recovery->compute_nodes = (char**)calloc(numNodes, sizeof(char*));
+    LOG(csmapi,trace) << "Nodes initialized.";
+
+    LOG(csmapi,info) << mcastProps->GenerateIdentifierString() <<
+        "; Message: Found " << std::to_string(numNodes)  << " nodes in the SOFT_FAILURE state.";
     
     std::string nodeList("");
 
@@ -149,7 +155,7 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     
     // ========================================================================================
     std::vector<std::string> nodeVector = mcastProps->GenerateHostnameListing(true);
-    std::string nodeStr = "(";
+    std::string nodeStr = "{";
 
     std::string separator = "";
     for ( std::string node : nodeVector )
@@ -157,13 +163,14 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
        nodeStr.append(separator).append(node); 
        separator = ",";
     }
-    nodeStr.append(")");
+    nodeStr.append("}");
+    LOG(csmapi, info) << nodeStr;
     // ========================================================================================
 
     csm::db::DBReqContent *dbReq = nullptr;
 
     const int paramCount = 1; 
-    std::string stmt = "UPDATE csm_node SET stat='IN_SERVICE' WHERE node_name in $1::text[]";
+    std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' WHERE node_name=ANY($1::text[])";
 
     dbReq = new csm::db::DBReqContent( stmt, paramCount );
     dbReq->AddTextParam(nodeStr.c_str());

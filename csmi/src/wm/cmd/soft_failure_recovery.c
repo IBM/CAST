@@ -1,6 +1,6 @@
 /*================================================================================
 
-    csmi/src/wm/cmd/jsrun_cmd.c
+    csmi/src/wm/cmd/soft_failure_recovery.c
 
     © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
@@ -28,7 +28,7 @@
 ///< For use as the usage variable in the input parsers.
 #define USAGE  help
 
-#define API_PARAMETER_INPUT_TYPE csm_jsrun_cmd_input_t
+#define API_PARAMETER_INPUT_TYPE 
 #define API_PARAMETER_OUTPUT_TYPE
 
 struct option longopts[] = {
@@ -43,10 +43,10 @@ struct option longopts[] = {
 static void help()
 {
 	puts("USAGE:");
-	puts("  jsrun_cmd ARGUMENTS [OPTIONS]");
-	puts("  jsrun_cmd -a allocation_id -k \"key=value,\" [-h] [-v verbose_level]");
+	puts("  csm_soft_failure_recovery ARGUMENTS [OPTIONS]");
+	puts("  csm_soft_failure_recovery ");
 	puts("");
-	puts("SUMMARY: Used to start jsm with a set of key value pairs on a compute daemon.");
+	puts("SUMMARY: Used to recover all nodes in the cluster from soft failure.");
 	puts("");
 	puts("EXIT STATUS:");
 	puts("  0  if OK,");
@@ -54,19 +54,12 @@ static void help()
 	puts("");
 	puts("ARGUMENTS:");
 	puts("  MANDATORY:");
-	puts("    jsrun_cmd requires an allocation_id to determine where to start the daemon.");
 	puts("    Argument                | Example value | Description  "); 
 	puts("    ------------------------|---------------|--------------");
-	puts("    -a, --allocation_id     | 1             | (LONG INTEGER) Allocation identifier [>0].");
 	puts("                            |               | ");
     puts("  OPTIONAL:");
-    puts("    jsrun_cmd may be run with optional arguments.");
-
     puts("    Argument               | Example value       | Description  ");
     puts("    -----------------------|---------------------|--------------");
-    puts("    -k, --kv_pairs         | \"gpus=0,mem=1024\" | (String) A comma separated list of alphanumeric ");
-    puts("                                                   key value pairs (indicated by equals signs).");
-    puts("    -p, --jsm_path         | \"/path/to/jsm\"    | (String) A linux path to the jsm executable.");
     puts("                           |                     | ");
 	puts("");
 	puts("GENERAL OPTIONS:");
@@ -74,7 +67,7 @@ static void help()
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
-	puts("  jsm_cmd  -a 1 -k \"gpus=0,mem=1024\"");
+	puts("  csm_soft_failure_recovery");
 	puts("____________________");
 }
 
@@ -84,15 +77,11 @@ int main(int argc, char *argv[])
 	int               return_value;
 	int               indexptr = 0;
     
-    API_PARAMETER_INPUT_TYPE input;    
-    input.allocation_id = 0;
-    input.kv_pairs      = NULL;
-    input.jsm_path      = NULL;
+    //API_PARAMETER_INPUT_TYPE input;    
 
 	csm_api_object   *csm_obj = NULL;
-	char             *arg_check = NULL; ///< Used in verifying the long arg values.
 
-	while ((opt = getopt_long(argc, argv, "hv:a:k:p:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -100,20 +89,6 @@ int main(int argc, char *argv[])
 			case 'v':
                 csm_set_verbosity( optarg, USAGE )
 				break;
-			case 'a':      
-            {
-                csm_optarg_test( "-a, --allocation", optarg, USAGE )
-                csm_str_to_int64(input.allocation_id, optarg, arg_check, "-a, --allocation", USAGE)
-				break;      
-            }
-            case 'k':
-                csm_optarg_test( "-k, --kv_pairs", optarg, USAGE );
-                input.kv_pairs = strdup(optarg);
-                break;
-            case 'p':
-                csm_optarg_test( "-p, --jsm_path", optarg, USAGE );
-                input.jsm_path = strdup(optarg);
-                break;
 			default:      
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
                 USAGE();
@@ -121,25 +96,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (input.allocation_id <= 0)
-    {
-		USAGE();
-        return CSMERR_INVALID_PARAM;
-	}
-
-	return_value = csm_init_lib();
-	if( return_value != 0)
-    {
-		csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
-		csmutil_logging(error, "  csm_init_lib rc= %d, Initialization failed. Success is required to be able to communicate between library and daemon. Are the daemons running?", return_value);
-		return return_value;
-	}
-
-	return_value = csm_jsrun_cmd(&csm_obj, &input);
+	return_value = csm_soft_failure_recovery(&csm_obj);
 
 	if (return_value == CSMI_SUCCESS ) 
     {
-	    printf("---\n# Allocation Id: %ld successfully started\n...\n", input.allocation_id);
+	    printf("---\n# Soft Failure cleaned up.\n...\n");
 	}
 	else 
     {

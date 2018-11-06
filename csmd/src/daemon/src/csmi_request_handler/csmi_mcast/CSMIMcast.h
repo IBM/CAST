@@ -214,6 +214,7 @@ public:
 
         for ( auto const& node : _NodeStates )
         {
+            LOG(csmapi,info) << node.first << ": " <<node.second.first;
             if ( (isSuccess && node.second.first == 0) || !(isSuccess || node.second.first == 0) )
             {
                 nodeVector.push_back(node.first);
