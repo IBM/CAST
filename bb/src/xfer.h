@@ -66,7 +66,7 @@ extern int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKe
 
 extern void lockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 
-extern void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, const uint64_t pHandle, const uint32_t pContribId);
+extern void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId);
 
 extern int prepareForRestartOriginalServerDead(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pHandle, BBJob pJob, const int32_t pContribId);
 
