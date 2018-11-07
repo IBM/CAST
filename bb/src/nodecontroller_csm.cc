@@ -101,7 +101,6 @@ NodeController_CSM::NodeController_CSM()
 int NodeController_CSM::gethostlist(string& hostlist)
 {
     int rc = 0;
-    stringstream errorText;
     LOG(bb,info) << "NodeController_CSM::gethostlist:  hostlist=" << hostlist;
     const char* allocid = getenv("CSM_ALLOCATION_ID");
     const char* jobid   = getenv("LSF_STAGE_JOBID");
