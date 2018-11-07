@@ -31,7 +31,7 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         //        matches the number of entries in the vector of extents to transfer
         //        for this LVKey when we are adding an entry to the work queue.
         LVKey l_Key = pWorkItem.getLVKey();
-        BBLV_Info* l_LV_Info = metadata.getTagInfo2(&l_Key);
+        BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
         if (getWrkQ_Size() != l_LV_Info->getNumberOfExtents())
         {
             LOG(bb,error) << "WRKQE::addWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
@@ -59,11 +59,11 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
     {
         if (getWrkQ_Size())
         {
-            BBLV_Info* l_WorkItemTagInfo2 = metadata.getTagInfo2(&lvKey);
-            if (l_WorkItemTagInfo2)
+            BBLV_Info* l_WorkItemLV_Info = metadata.getLV_Info(&lvKey);
+            if (l_WorkItemLV_Info)
             {
                 // NOTE: The high priority work queue will not fall into this leg...
-                ExtentInfo l_ExtentInfo = l_WorkItemTagInfo2->getNextExtentInfo();
+                ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
@@ -201,7 +201,7 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         //        matches the number of entries in the vector of extents to transfer
         //        for this LVKey when we are removing the first entry from the work queue.
         LVKey l_Key = (wrkq->front()).getLVKey();
-        BBLV_Info* l_LV_Info = metadata.getTagInfo2(&l_Key);
+        BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
         if (getWrkQ_Size() != l_LV_Info->getNumberOfExtents())
         {
             LOG(bb,error) << "WRKQE::removeWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;

@@ -899,7 +899,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                     // This workqueue has at least one entry.
                     // Get the LVKey and taginfo2 for this work item...
                     l_Key = (qe->second->getWrkQ()->front()).getLVKey();
-                    l_LV_Info = metadata.getTagInfo2(&l_Key);
+                    l_LV_Info = metadata.getLV_Info(&l_Key);
                     if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
                     {
                         // Next extent is canceled...  Don't look any further
