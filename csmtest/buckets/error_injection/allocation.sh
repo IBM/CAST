@@ -47,6 +47,59 @@ echo "------------------------------------------------------------" >> ${LOG}
 ${CSM_PATH}/csm_allocation_create > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 9 "Test Case 1: csm_allocation_create NO ARGS"
 
+# Test Case 2: csm_allocation_create node is out of service
+# set and verify node is out of service
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "OUT_OF_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 2: csm_allocation_create node is out of service - update to OUT_OF_SERVICE"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_all_output "OUT_OF_SERVICE"
+check_return_flag $? "Test Case 2: csm_allocation_create node is out of service - verify OUT_OF_SERVICE"
+# create
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 48 "Test Case 2: csm_allocation_create node is out of service"
+# set and verify back in service
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: csm_allocation_create node is out of service - set back to IN_SERVICE"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_all_output "IN_SERVICE"
+check_return_exit $? 0 "Test Case 2: csm_allocation_create node is out of service - verify back IN_SERVICE"
+
+# Test Case 3: csm_allocation_create permission denied
+su -c "${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE}" plundgr > ${TEMP_LOG} 2>&1
+check_return_exit $? 1 "Test Case 3: csm_allocation_create permission denied"
+
+# Test Case 4: csm_allocation_create prolog error 255
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_255 /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 4: csm_allocation_create prolog error 255 - copy prolog"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 49 "Test Case 4: csm_allocation_create prolog error 255"
+check_all_output "Privileged script execution failure detected. Invalid allocation flags"
+check_return_flag $? "Test Case 4: csm_allocation_create prolog error 255 - verify error message"
+
+# Test Case 5: csm_allocation_create prolog error generic
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_generic /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 5: csm_allocation_create prolog error generic - copy prolog"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 33 "Test Case 5: csm_allocation_create prolog error generic"
+check_all_output "Privileged script execution failure detected. Error code received: 2"
+check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - verify error message"
+
+# Test Case 6: csm_allocation_create prolog error timeout
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_timeout /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - copy prolog"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 33 "Test Case 6: csm_allocation_create prolog error timeout"
+check_all_output "Request timeout detected"
+check_return_flag $? "Test Case 6: csm_allocation_create prolog error timeout - verify error message"
+# set node back to IN_SERVICE after timeout
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - set node back to IN_SERVICE after timeout"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - verify node back IN_SERVICE after timeout"
+# restore working prolog
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - restore working prolog"
+
 # Test Case 2: csm_allocation_create success
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: csm_allocation_create success"
