@@ -292,7 +292,7 @@ sub bbcmd
     alarm(0);
     if($@)
     {
-        print "bbcmd() eval error: $@\n";
+        print "bbcmd() eval error: $@  jsonoutput=$jsonoutput\n";
         $result = decode_json('{ "rc":1 }');
         $result->{"evalerr"} = $@;
     }
