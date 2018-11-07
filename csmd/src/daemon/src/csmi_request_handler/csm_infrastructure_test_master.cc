@@ -27,7 +27,6 @@
 void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEvent,
                 std::vector<csm::daemon::CoreEvent*>& postEventList )
 {
-  
   if ( isSystemEvent(aEvent) )
   {
     TestSystemEvent(aEvent);
@@ -58,10 +57,10 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       return;
     }
   }
-  
+
   uint64_t testStage = context->GetAuxiliaryId();
   LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_MASTER: Entering handler. TEST_STAGE = " << testStage;
-  
+
   switch (context->GetAuxiliaryId())
   {
     case INITIAL_TEST:
@@ -83,7 +82,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
                                      std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )),
                                      0, true );
       data._master.SetDaemonID( csm::daemon::Configuration::Instance()->GetDaemonState()->GetDaemonID() );
-      
+
 #ifdef WITH_MASTER_LOAD_STATS
       if (GetDaemonState()) data._event_load = GetDaemonState()->GetEventLoad();
 #endif
@@ -113,8 +112,8 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       // set up the timer test
       context->SetAuxiliaryId(TIMER);
       postEventList.push_back( CreateTimerEvent( 50, context, TIMER ) );
-      context->_timer_reference = std::chrono::system_clock::now() + std::chrono::milliseconds( 50 );
-      
+      context->_timer_reference = std::chrono::steady_clock::now() + std::chrono::milliseconds( 50 );
+
       break;
     }
     case TIMER:
@@ -122,7 +121,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       if ( !isTimerEvent(aEvent) ) break;
 
       csm::daemon::TimerContent timer_data = dynamic_cast<const csm::daemon::TimerEvent*>(&aEvent)->GetContent();
-      
+
       // make sure the actual timer expiration is about the order of the expected expiration
       int64_t remainingMicro = timer_data.RemainingMicros();
       context->_cached_data._timer_test = ( timer_data.GetEndTime() < context->_timer_reference );
@@ -163,7 +162,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
         break;
       }
     }
-    
+
     case DBRESP:
     {
       if( !isDBRespEvent( aEvent )  && !isTimerEvent( aEvent ) ) break;
@@ -192,7 +191,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       if (ret)
       {
         context->_cached_data._db_query_test = true;
-        
+
         // retrieve the tuples using the APIs provided in db.
         // make sure these APIs are memory-leak free!!!
         csm::db::DBRespContent dbResp = GetDBRespContent(aEvent);
@@ -231,16 +230,16 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
     {
       // starting to set up the flow test
       context->SetAuxiliaryId(FLOW);
-      
+
       if ( !isNetworkEvent(*(context->GetReqEvent())) )
       {
         LOG(csmd, info) << "CSM_INFRASTRUCTURE_TEST_MASTER: Expecting a NetworkEvent in GetReqEvent. Stopping";
         break;
       }
-      
+
       // start up a timer for the complex flow test
       //postEventList.push_back( CreateTimerEvent( _master_timeout, context ) );
-      
+
       // the original Network Inbound request
       csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *) context->GetReqEvent();
       if( ev == nullptr )
@@ -249,15 +248,15 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
         break;
       }
       csm::daemon::NetworkEvent *copyOrigEvent = CreateNetworkEvent(ev->GetContent(), context);
-      
+
       // now we can start the complex flow test...
       // Don't post the event here. Otherwise, it will go out of the network. We just need to
       // trigger the test by calling FlowTest()
-      
+
       // need to set up a user timer here because we expect multiple responses from Aggregators
       // as we don't know how many are there, we simply are setting a timeout
       postEventList.push_back( CreateTimerEvent(_master_timeout, context, FLOW ) );
-      
+
       FlowTest( *copyOrigEvent, postEventList );
       delete copyOrigEvent;
       if( context->GetState() != DONE_STATE )
@@ -274,16 +273,16 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       if (context->GetState() == DONE_STATE)
       {
         LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_MASTER: Done with FLOW test";
-        
+
         // can clear postEventList if it's in DONE_STATE
         postEventList.clear();
-        
+
         // network channel test has 2 phases
         // test will cause a failed recv on vchannel but return via regular event with FAIL_VCHAN state to continue
         postEventList.push_back( CreateTimerEvent( 3000, context, FAIL_VCHAN ) );
         context->_cached_data._net_vchannel_test = NetworkVChannelTest( 0, context );
         context->SetAuxiliaryId( FAIL_VCHAN );
-        
+
 #ifndef CSM_INFRASTRUCTURE_TEST_PARALLEL
         break;
 #endif
@@ -291,7 +290,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
       // allow to come back case FLOW again when more than 1 Agg
       else break;
     }
-    
+
     case FAIL_VCHAN:
     {
       bool skip_test = false;
@@ -331,23 +330,23 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::Process( const csm::daemon::CoreEvent &aEve
         postEventList.push_back( CreateTimerEvent(_master_timeout, context, MTC) );
         GenerateMTCMessage(context, postEventList);
       }
-      
+
       // need to break here
       break;
     }
     case MTC:
     {
       RcvMessagesFromAgg(aEvent, postEventList);
-      
+
       if (context->GetState() != DONE_STATE) break;
 
       context->SetAuxiliaryId(END_TEST);
-        
+
       DaemonIDUniqueTest( context );
       GenerateReply(context, postEventList);
-      
+
       LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_MASTER: End of All Tests";
-      
+
       break;
     }
     case END_TEST:
@@ -525,9 +524,9 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::GenerateReply(EventContextTestMaster_sptr c
                         std::vector<csm::daemon::CoreEvent*>& postEventList )
 {
   csm::daemon::NetworkEvent *reqEvent = (csm::daemon::NetworkEvent *) context->GetReqEvent();
-  
+
   std::string payload = CSMI_BASE::ConvertToBytes<HealthCheckData>( context->_cached_data );
-  
+
   csm::daemon::NetworkEvent* event = CreateReplyNetworkEvent(payload.c_str(), payload.length(), *reqEvent, context);
 
   if (event)
@@ -536,8 +535,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::GenerateReply(EventContextTestMaster_sptr c
     postEventList.push_back(event);
   }
   else LOG(csmd, warning) << "CSM_INFRASTRUCTURE_TEST_MASTER: Fail to create a Reply NetworkEvent";
-        
-    
+
 }
 
 void CSM_INFRASTRUCTURE_TEST_MASTER::GenerateMTCMessage(EventContextTestMaster_sptr context,
@@ -548,9 +546,9 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::GenerateMTCMessage(EventContextTestMaster_s
   int numCNs = 0;
   std::vector<std::string> cnList;
   numCNs = data.GetActiveAgents(cnList);
-  
+
   context->SetNumCNs(numCNs);
-  
+
   csm::network::Message mtc;
   bool valid = mtc.Init(CSM_TEST_MTC, 0, CSM_PRIORITY_DEFAULT, 0, MASTER, AGGREGATOR, geteuid(), getegid(), std::string(""));
   if (!valid)
@@ -571,7 +569,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::RcvMessagesFromAgg(const csm::daemon::CoreE
                 std::vector<csm::daemon::CoreEvent*>& postEventList )
 {
   EventContextTestMaster_sptr context = std::dynamic_pointer_cast<EventContextTestMaster> (aEvent.GetEventContext());
-  
+
   if (isTimerEvent(aEvent))
   {
     if( dynamic_cast<const csm::daemon::TimerEvent*>(&aEvent)->GetContent().GetTargetStateId() != MTC )
@@ -579,34 +577,33 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::RcvMessagesFromAgg(const csm::daemon::CoreE
       LOG( csmd, debug ) << "CSM_INFRASTRUCTURE_TEST_MASTER: TimerEvent from different state. Ignoring.";
       return;
     }
-    
+
     LOG(csmd, warning) << "CSM_INFRASTRUCTURE_TEST_MASTER: Hit the user-defined timeout for MTC test! timer = " << GetTimerInterval(aEvent);
     context->SetState(DONE_STATE);
     return;
   }
-  
+
   if ( !isNetworkEvent(aEvent) ) return;
-  
-  
+
   if (GetNetworkMessage(aEvent).GetErr())
   {
     LOG(csmd, warning) << "CSM_INFRASTRUCTURE_TEST_MASTER: Hit the ack timeout or encountered network errors!";
     context->SetState(DONE_STATE);
     return;
   }
-  
+
   // todo: potential data race condition. multple replies associated with same context!
   context->IncrementRecvCNs();
   LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_MASTER: Get a reply from a compute node! # of rcv msg=" << context->GetRecvCNs();
-    
+
   if (context->GetNumCNs() ==context->GetRecvCNs())
   {
     context->_cached_data._mtc_test = true;
     context->SetState(DONE_STATE);
-    
+
     LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_MASTER: Get all expected replies from compute nodes! Done with MTC!";
   }
-  
+
 }
 
 void CSM_INFRASTRUCTURE_TEST_MASTER::UpdateHealthInfo( std::vector<csm::network::AddressCode> &remaining, EventContextTestMaster_sptr context )
@@ -684,7 +681,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::FlowTest( const csm::daemon::CoreEvent &aEv
   }
 
   csm::daemon::DaemonStateMaster *dState = dynamic_cast<csm::daemon::DaemonStateMaster*>( _handlerOptions.GetDaemonState() );
-  
+
   // wait for some reasonable time for Agg
   if (isTimerEvent(aEvent))
   {
@@ -713,7 +710,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::FlowTest( const csm::daemon::CoreEvent &aEv
     context->SetState(DONE_STATE);
     return;
   }
-  
+
   if ( !isNetworkEvent(aEvent) ) return;
 
   switch ( context->GetState() )
@@ -725,7 +722,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::FlowTest( const csm::daemon::CoreEvent &aEv
       // Got the message from utility. Forward the message to MQTT/aggregator using CSM/MASTER/QUERY topic
       // The context should have the Address Info (i.e. CSM/IP/REQ) of the original request
       context->SetState(WAIT_STATE);
-      
+
       // add the earlier health check in the payload
       csm::network::Message msg = GetNetworkMessage(aEvent);
       msg.SetData( CSMI_BASE::ConvertToBytes<HealthCheckData>(context->_cached_data) );
@@ -800,7 +797,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::FlowTest( const csm::daemon::CoreEvent &aEv
 
       break;
     }
-    
+
     case WAIT_STATE:
     {
       csm::network::Message msg = GetNetworkMessage(aEvent);
