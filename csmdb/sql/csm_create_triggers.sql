@@ -17,9 +17,11 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.2
 --   create:                06-22-2016
---   last modified:         11-2-2018
+--   last modified:         11-8-2018
 --   change log:
 --     16.2   - Moving this version to sync with DB schema version
+--            fn_csm_switch_inventory_history_dump
+--            - (Transactions were being recorded into the history table if a particular field was 'NULL')
 --            fn_csm_allocation_delete_start -              Added in
 --                                                        INVALID_STATE       CONSTANT integer := 1;
 --                                                        INVALID_ALLOCATION  CONSTANT integer := 2;
@@ -4322,20 +4324,20 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
         RETURN OLD;
      ELSEIF (TG_OP = 'UPDATE') THEN
         IF  (
-            OLD.host_system_guid = NEW.host_system_guid AND
-            OLD.comment          = NEW.comment AND
-            OLD.description      = NEW.description AND
-            OLD.device_name      = NEW.device_name AND
-            OLD.device_type      = NEW.device_type AND
-            OLD.hw_version       = NEW.hw_version AND
-            OLD.max_ib_ports     = NEW.max_ib_ports AND
-            OLD.module_index     = NEW.module_index AND
-            OLD.number_of_chips  = NEW.number_of_chips AND
-            OLD.path             = NEW.path AND
-            OLD.serial_number    = NEW.serial_number AND
-            OLD.severity         = NEW.severity AND
-            OLD.status           = NEW.status) THEN
-            NEW.collection_time = now();
+            (OLD.host_system_guid = NEW.host_system_guid OR OLD.host_system_guid IS NULL) AND
+            (OLD.comment          = NEW.comment OR OLD.comment IS NULL) AND
+            (OLD.description      = NEW.description OR OLD.description IS NULL) AND
+            (OLD.device_name      = NEW.device_name OR OLD.device_name IS NULL) AND
+            (OLD.device_type      = NEW.device_type OR OLD.device_type IS NULL) AND
+            (OLD.hw_version       = NEW.hw_version OR OLD.hw_version IS NULL) AND
+            (OLD.max_ib_ports     = NEW.max_ib_ports OR OLD.max_ib_ports IS NULL) AND
+            (OLD.module_index     = NEW.module_index OR OLD.module_index IS NULL) AND
+            (OLD.number_of_chips  = NEW.number_of_chips OR OLD.number_of_chips IS NULL) AND
+            (OLD.path             = NEW.path OR OLD.path IS NULL) AND
+            (OLD.serial_number    = NEW.serial_number OR OLD.serial_number IS NULL) AND
+            (OLD.severity         = NEW.severity OR OLD.severity IS NULL) AND
+            (OLD.status           = NEW.status OR OLD.status IS NULL)) THEN
+            OLD.collection_time = now();
         ELSE
         INSERT INTO csm_switch_inventory_history(
             history_time,
