@@ -731,6 +731,8 @@ typedef struct {
     char** switch_names; /**< List of switches to perform query on, must specify at least one switch. Size defined by @ref switch_names_count. */
     char* serial_number; /**< Optionally filter results to only a specific serial_number - unique identifier for a switch */
     char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' */
+    uint32_t roles_count; /**< Number of roles being queried, size of @ref roles. */
+    char** roles; /**< List of roles to perform query on, must specify at least one roles. Size defined by @ref roles_count. */
 } csm_switch_attributes_query_input_t;
 /**
  *  @brief A wrapper for the output of @ref csm_switch_attributes_query.

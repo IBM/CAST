@@ -1087,17 +1087,21 @@ const csmi_struct_mapping_t map_csm_node_find_job_output_t= {
     cast_csm_node_find_job_output_t
 };
 
-const csmi_struct_node_t csm_switch_attributes_query_input_tree[11] = {{"limit",offsetof(csm_switch_attributes_query_input_t,limit),0,NULL,0xfdcc804,36},
-{"switch_names_count",offsetof(csm_switch_attributes_query_input_t,switch_names_count),0,NULL,0x4da7952,24},
-{"offset",offsetof(csm_switch_attributes_query_input_t,offset),0,NULL,0x123b4b4c,36},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{"state",offsetof(csm_switch_attributes_query_input_t,state),0,NULL,0x10614a06,4},
+const csmi_struct_node_t csm_switch_attributes_query_input_tree[15] = {{"offset",offsetof(csm_switch_attributes_query_input_t,offset),0,NULL,0x123b4b4c,36},
+{"limit",offsetof(csm_switch_attributes_query_input_t,limit),0,NULL,0xfdcc804,36},
 {"switch_names",offsetof(csm_switch_attributes_query_input_t,switch_names),offsetof(csm_switch_attributes_query_input_t, switch_names_count),NULL,0x4d7c5dca,5},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
+{"switch_names_count",offsetof(csm_switch_attributes_query_input_t,switch_names_count),0,NULL,0x4da7952,24},
+{"state",offsetof(csm_switch_attributes_query_input_t,state),0,NULL,0x10614a06,4},
 {"order_by",offsetof(csm_switch_attributes_query_input_t,order_by),0,NULL,0x245553bb,68},
-{"serial_number",offsetof(csm_switch_attributes_query_input_t,serial_number),0,NULL,0xd931f68d,4}}
+{"serial_number",offsetof(csm_switch_attributes_query_input_t,serial_number),0,NULL,0xd931f68d,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"roles",offsetof(csm_switch_attributes_query_input_t,roles),offsetof(csm_switch_attributes_query_input_t, roles_count),NULL,0x104ca08a,5},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"roles_count",offsetof(csm_switch_attributes_query_input_t,roles_count),0,NULL,0xe301cc12,24}}
 ;
 
 void* cast_csm_switch_attributes_query_input_t(void* ptr,size_t index, char isArray) { 
@@ -1105,7 +1109,7 @@ void* cast_csm_switch_attributes_query_input_t(void* ptr,size_t index, char isAr
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_switch_attributes_query_input_t= {
-    11,
+    15,
     csm_switch_attributes_query_input_tree,
     cast_csm_switch_attributes_query_input_t
 };
