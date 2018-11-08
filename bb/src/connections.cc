@@ -658,7 +658,10 @@ int sendMessage(const string& name, txp::Msg* msg)
             txp::Id l_MsgId = msg->getMsgId();
             char l_MsgIdStr[64] = {'\0'};
             msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
-            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+            txp::Connex* cnx = iter->second;
+            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr 
+                   << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber()
+                   << " "<< cnx->getInfoString();
 
             // Not all messages are logged as 'info' in the console log...
             if (txp::isMsgIdToLogAsInfo(l_MsgId))
@@ -670,7 +673,7 @@ int sendMessage(const string& name, txp::Msg* msg)
                 LOG(bb,debug) << l_Text.str();
             }
 
-            txp::Connex* cnx = iter->second;
+            
             rc = cnx->write(msg);
             rc = rc > 0 ? 0 : rc;
             if (rc)
@@ -745,11 +748,13 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
                 {
                     l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() \
                            << ", uid=" << (uid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::uid))->getData() \
-                           << ", gid=" << (gid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::gid))->getData();
+                           << ", gid=" << (gid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::gid))->getData()
+                           << " "<< cnx->getInfoString();
                 }
                 else
                 {
-                    l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+                    l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber()
+                           << " "<< cnx->getInfoString();
                 }
 
                 // Not all messages are logged as 'info' in the console log...
