@@ -59,6 +59,7 @@ bool CSMISwitchAttributesQuery::CreatePayload(
 	add_param_sql(stmtParams, input->switch_names_count > 0, ++SQLparameterCount, "switch_name = ANY ( $","::text[] ) AND ")
 	add_param_sql(stmtParams, input->state[0] != '\0', ++SQLparameterCount, "state = $","::text AND ")
 	add_param_sql(stmtParams, input->serial_number[0] != '\0', ++SQLparameterCount, "serial_number = $","::text AND ")
+	add_param_sql(stmtParams, input->roles_count > 0, ++SQLparameterCount, "role = ANY ( $","::text[] ) AND ")
 	
     // Replace the last 4 characters if any parameters were found.
     if ( SQLparameterCount > 0)
@@ -123,6 +124,7 @@ bool CSMISwitchAttributesQuery::CreatePayload(
 	if ( input->switch_names_count > 0 ) dbReq->AddTextArrayParam(input->switch_names, input->switch_names_count);
 	if ( input->state[0] != '\0') dbReq->AddTextParam(input->state);
 	if ( input->serial_number[0] != '\0') dbReq->AddTextParam(input->serial_number);
+	if ( input->roles_count > 0 ) dbReq->AddTextArrayParam(input->roles, input->roles_count);
 	if ( input->limit  > 0 ) dbReq->AddNumericParam<int>(input->limit); 
 	if ( input->offset > 0 ) dbReq->AddNumericParam<int>(input->offset);
 
