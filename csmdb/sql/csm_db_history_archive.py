@@ -62,7 +62,9 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     
     ## Update the flagged tables.
     cursor.execute("UPDATE {0} SET archive_history_time = 'now()' \
-        FROM temp_{0} WHERE temp_{0}.id = {0}.ctid".format(table_name))
+	FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
+	AND {0}.archive_history_time IS NULL \
+	AND {0}.{1} = temp_{0}.{1}".format(table_name,time))
 
     ## Drop the id from the temp table.
     cursor.execute("ALTER TABLE temp_{0} DROP COLUMN id".format(table_name))

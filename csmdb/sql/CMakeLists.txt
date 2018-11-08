@@ -21,7 +21,7 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_stats.sh"
   "csm_db_connections_script.sh"
   "csm_db_ras_type_script.sh"
-  "csm_db_schema_version_upgrade_16_1.sh"
+  "csm_db_schema_version_upgrade_16_2.sh"
   "csm_db_history_table_delete.sh"
   "csm_history_table_archive_template.sh"
   "csm_history_table_delete_template.sh"
