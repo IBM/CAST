@@ -281,7 +281,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 							//check for the broken "[],"
 							if(line.find("[],") != std::string::npos){
 								//push num_modules
-								vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
+								//vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
 								
 								//Should prob report some error here.
 								
@@ -299,7 +299,9 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								std::getline(input_file, line);
 								
 								// determine if 'slim' or 'expanded'
-								if(line.find("{") == std::string::npos){
+								if(line.find("{") == std::string::npos)
+								{
+									//did not find a "{"
 									// 'slim' case
 									// only a list of module names are found
 
@@ -637,8 +639,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 						switch (i)
 						{
 							case 0:
-								if(bad_record){ bad_switch_records << "switch_name: " << line << std::endl; } 
-							    else{ vector_of_the_switch_names.push_back(line); }
+								vector_of_the_switch_names.push_back(line);
 							    total_switch_records++;
 								break;
 							case 1:
@@ -670,11 +671,14 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								//last record for bad record
 								// unfortunately only record
 								if(bad_record){ 
-									bad_switch_records << "model: " << line << std::endl; 
+									bad_switch_records << "model:                 " << line << std::endl; 
 									//because its last field. pad the record with a new line. 
 									bad_switch_records << std::endl;
 								} 
 							    else{ vector_of_the_model.push_back(line); }
+							    // because last field of ufm record. 
+							    //reset to a new record
+								bad_record = false;
 								break;
 							case 7:
 								//LOG(csmd, debug) << "updating vector of the types";
@@ -735,55 +739,53 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 								vector_of_the_os_versions.push_back(line);
 								break;
 						}
+
+						//I think unfortunately for now . we have to do this here. this way
+						if(bad_record)
+						{
+							//copy the already added fields to the bad_record file
+							bad_switch_records << "Switch: " << total_switch_records << std::endl;
+							bad_switch_records << "ip:                    " << vector_of_the_ips[vector_of_the_ips.size()-1] << std::endl;
+							bad_switch_records << "fw_version:            " << vector_of_the_firmware_versions[vector_of_the_firmware_versions.size()-1] << std::endl;
+							bad_switch_records << "total_alarms:          " << vector_of_the_total_alarms[vector_of_the_total_alarms.size()-1] << std::endl;
+							bad_switch_records << "psid:                  " << vector_of_the_ps_ids[vector_of_the_ps_ids.size()-1] << std::endl;
+							bad_switch_records << "guid:                  " << vector_of_the_guids[vector_of_the_guids.size()-1] << std::endl;
+							bad_switch_records << "state:                 " << vector_of_the_states[vector_of_the_states.size()-1] << std::endl;
+							bad_switch_records << "role:                  " << vector_of_the_roles[vector_of_the_roles.size()-1] << std::endl;
+							bad_switch_records << "type:                  " << vector_of_the_types[vector_of_the_types.size()-1] << std::endl;
+							bad_switch_records << "vendor:                " << vector_of_the_vendors[vector_of_the_vendors.size()-1] << std::endl;
+							bad_switch_records << "description:           " << vector_of_the_descriptions[vector_of_the_descriptions.size()-1] << std::endl;
+							bad_switch_records << "has_ufm_agent:         " << vector_of_the_has_ufm_agents[vector_of_the_has_ufm_agents.size()-1] << std::endl;
+							bad_switch_records << "server_operation_mode: " << vector_of_the_server_operation_modes[vector_of_the_server_operation_modes.size()-1] << std::endl;
+							bad_switch_records << "sm_mode:               " << vector_of_the_sm_modes[vector_of_the_sm_modes.size()-1] << std::endl;
+							bad_switch_records << "system_name:           " << vector_of_the_system_names[vector_of_the_system_names.size()-1] << std::endl;
+							bad_switch_records << "sw_version:            " << vector_of_the_sw_versions[vector_of_the_sw_versions.size()-1] << std::endl;
+							bad_switch_records << "system_guid:           " << vector_of_the_system_guids[vector_of_the_system_guids.size()-1] << std::endl;
+							bad_switch_records << "name:                  " << vector_of_the_switch_names[vector_of_the_switch_names.size()-1] << std::endl;
+							bad_switch_records << "modules:               ???" << std::endl;
+							bad_switch_records << "serial_number:         N/A" << std::endl;
+
+							//remove already added fields to lists.
+							vector_of_the_ips.pop_back();
+							vector_of_the_firmware_versions.pop_back();
+							vector_of_the_total_alarms.pop_back();
+							vector_of_the_ps_ids.pop_back();
+							vector_of_the_guids.pop_back();
+							vector_of_the_states.pop_back();
+							vector_of_the_roles.pop_back();
+							vector_of_the_types.pop_back();
+							vector_of_the_vendors.pop_back();
+							vector_of_the_descriptions.pop_back();
+							vector_of_the_has_ufm_agents.pop_back();
+							vector_of_the_server_operation_modes.pop_back();
+							vector_of_the_sm_modes.pop_back();
+							vector_of_the_system_names.pop_back();
+							vector_of_the_sw_versions.pop_back();
+							vector_of_the_system_guids.pop_back();
+							vector_of_the_switch_names.pop_back();
+						}
 					}
-
-					//I think unfortunately for now . we have to do this here. this way
-					if(bad_record)
-					{
-						//copy the already added fields to the bad_record file
-						bad_switch_records << "Switch: " << total_switch_records << std::endl;
-						bad_switch_records << "ip:                    " << vector_of_the_ips[vector_of_the_ips.size()-1] << std::endl;
-						bad_switch_records << "fw_version:            " << vector_of_the_firmware_versions[vector_of_the_firmware_versions.size()-1] << std::endl;
-						bad_switch_records << "total_alarms:          " << vector_of_the_total_alarms[vector_of_the_total_alarms.size()-1] << std::endl;
-						bad_switch_records << "psid:                  " << vector_of_the_ps_ids[vector_of_the_ps_ids.size()-1] << std::endl;
-						bad_switch_records << "guid:                  " << vector_of_the_guids[vector_of_the_guids.size()-1] << std::endl;
-						bad_switch_records << "state:                 " << vector_of_the_states[vector_of_the_states.size()-1] << std::endl;
-						bad_switch_records << "role:                  " << vector_of_the_roles[vector_of_the_roles.size()-1] << std::endl;
-						bad_switch_records << "type:                  " << vector_of_the_types[vector_of_the_types.size()-1] << std::endl;
-						bad_switch_records << "vendor:                " << vector_of_the_vendors[vector_of_the_vendors.size()-1] << std::endl;
-						bad_switch_records << "description:           " << vector_of_the_descriptions[vector_of_the_descriptions.size()-1] << std::endl;
-						bad_switch_records << "has_ufm_agent:         " << vector_of_the_has_ufm_agents[vector_of_the_has_ufm_agents.size()-1] << std::endl;
-						bad_switch_records << "server_operation_mode: " << vector_of_the_server_operation_modes[vector_of_the_server_operation_modes.size()-1] << std::endl;
-						bad_switch_records << "sm_mode:               " << vector_of_the_sm_modes[vector_of_the_sm_modes.size()-1] << std::endl;
-						bad_switch_records << "system_name:           " << vector_of_the_system_names[vector_of_the_system_names.size()-1] << std::endl;
-						bad_switch_records << "sw_version:            " << vector_of_the_sw_versions[vector_of_the_sw_versions.size()-1] << std::endl;
-						bad_switch_records << "system_guid:           " << vector_of_the_system_guids[vector_of_the_system_guids.size()-1] << std::endl;
-						bad_switch_records << "name:                  " << vector_of_the_switch_names[vector_of_the_switch_names.size()-1] << std::endl;
-						bad_switch_records << "modules:               ???" << std::endl;
-
-						//remove already added fields to lists.
-						vector_of_the_ips.pop_back();
-						vector_of_the_firmware_versions.pop_back();
-						vector_of_the_total_alarms.pop_back();
-						vector_of_the_ps_ids.pop_back();
-						vector_of_the_guids.pop_back();
-						vector_of_the_states.pop_back();
-						vector_of_the_roles.pop_back();
-						vector_of_the_types.pop_back();
-						vector_of_the_vendors.pop_back();
-						vector_of_the_descriptions.pop_back();
-						vector_of_the_has_ufm_agents.pop_back();
-						vector_of_the_server_operation_modes.pop_back();
-						vector_of_the_sm_modes.pop_back();
-						vector_of_the_system_names.pop_back();
-						vector_of_the_sw_versions.pop_back();
-						vector_of_the_system_guids.pop_back();
-						vector_of_the_switch_names.pop_back();
-					}
-				}
-
-				//reset to a new record
-				bad_record = false;
+				}				
 			}
 
 			std::cout << "UFM reported " << total_switch_records << " switch records." << std::endl;
@@ -794,12 +796,9 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 				std::cerr << "These records copied into '" << switch_errors <<"' located at '" << csm_inv_log_dir << std::endl;
 			}
 
-			if(bad_record == true)
-			{
-				std::cout << "bad records" << std::endl;
-			}
-
 			std::cout << std::endl;
+
+			bad_switch_records << "\nTotal Bad Records: " << NA_serials_count << "\n" << std::endl;
 
 			// closing the input file
 			input_file.close();
@@ -813,7 +812,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::cout << "Exception thrown during Switch inventory connection: " << e.what() << std::endl;
 	}
 
-	return 1;
+	return 0;
 }
 
 std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector)

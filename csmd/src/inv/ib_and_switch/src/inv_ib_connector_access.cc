@@ -377,6 +377,8 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			}
 
 			std::cout << std::endl;
+
+			bad_ib_cable_records << "\nTotal Bad Records: " << NA_serials_count + missing_cable_info_count << "\n" << std::endl;
 		
 			// closing the input file
 			input_file.close();
@@ -389,7 +391,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::cout << "Exception thrown during IB inventory connection: " << e.what() << std::endl;
 	}
 
-	return 1;
+	return 0;
 }
 
 std::string INV_IB_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector)

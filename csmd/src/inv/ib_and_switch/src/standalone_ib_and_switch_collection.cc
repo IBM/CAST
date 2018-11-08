@@ -468,8 +468,15 @@ int main(int argc, char *argv[])
 		} 
 		else 
 		{
+			int returnCode = 0;
 			// execute data collection for the ib cables
-			INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			returnCode = INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_IB_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 	} 
 
@@ -484,8 +491,15 @@ int main(int argc, char *argv[])
 		} 
 		else 
 		{
+			int returnCode = 0;
 			// execute data collection for the switch cables
-			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_SWITCH_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 	}
 
@@ -500,8 +514,15 @@ int main(int argc, char *argv[])
 		} 
 		else 
 		{
+			int returnCode = 0;
 			// execute data collection for the ib cables
-			INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			returnCode = INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_IB_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 
 		// checking switch flag
@@ -512,8 +533,15 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
+			int returnCode = 0;
 			// execute data collection for the switch cables
-			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_SWITCH_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 	}
 
