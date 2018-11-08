@@ -1031,7 +1031,8 @@ int xchgWithBBserver(const string& name)
     rc = bbproxy_SayHello(name);
     if(rc)
     {
-        LOG(bb,error) << "Hello exchange with bbserver failed";
+        LOG(bb,error) << "Hello exchange with bbserver failed. Closing connection";
+        closeConnectionFD(name);
         return -2;
     }
     return rc;
