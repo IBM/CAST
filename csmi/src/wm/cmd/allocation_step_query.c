@@ -190,7 +190,6 @@ int main(int argc, char *argv[])
 	        	printf("Record_%u:\n", i+1);
                 printf("  allocation_id:        %"PRId64"\n", step->allocation_id);
                 printf("  step_id:              %"PRId64"\n", step->step_id);
-	        	printf("  argument:             %s\n",        step->argument);
                 printf("  begin_time:           %s\n",        step->begin_time);
                 printf("  status:               %s\n", csm_get_string_from_enum(csmi_step_status_t, step->status));
                 printf("  executable:           %s\n",        step->executable);
