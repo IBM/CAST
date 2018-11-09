@@ -7,12 +7,12 @@ CSMD Command line options
 .. code-block:: none
 
     Supported Command Line Options:
-  -h [ --help ]                  Show this help
-  -f [ --file ] arg (=coral.cfg) Specify configuration file (default:
-                                 coral.cfg)
-  -r [ --role ] arg              Set the role of the daemon (M|m)[aster] |
-                                 (A|a)[ggregator] | (C|c)[ompute] |
-                                 (U|u)[tility]
+  -h [ --help ]            Show this help
+  -f [ --file ] arg        Specify configuration file
+                                  (default: /etc/ibm/csm/csm_master.cfg)
+  -r [ --role ] arg        Set the role of the daemon (M|m)[aster] |
+                                  (A|a)[ggregator] | (C|c)[ompute] |
+                                  (U|u)[tility]
 
 .. note::
   * The role is determined by the first letter of the role argument. If you like, you can start your master by using `-r minion`.
