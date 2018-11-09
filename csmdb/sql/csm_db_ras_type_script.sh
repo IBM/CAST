@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_ras_type_script.sh
 #   current_version:    01.8
 #   create:             11-07-2017
-#   last modified:      11-08-2018
+#   last modified:      11-09-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -307,9 +307,9 @@ if [ $loaddata == "yes" ]; then
             exit 0
         ;;
     esac
-count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
-select count(*) from csm_ras_type;
 
+rtl_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+select count(*) from csm_ras_type;
 THE_END`
 
 import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
@@ -318,6 +318,7 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
     CREATE TEMP TABLE tmp_ras_type_data(msg_id text, severity ras_event_severity, message text, description text, control_action text, threshold_count int, threshold_period int, enabled boolean, set_state compute_node_states, visible_to_users boolean);
         \copy tmp_ras_type_data FROM '$csv_file_name' with csv header;
+        WITH rows AS (
         UPDATE csm_ras_type
         SET
         severity = tmp_ras_type_data.severity,
@@ -340,7 +341,9 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
         OR csm_ras_type.enabled <> tmp_ras_type_data.enabled
         OR csm_ras_type.set_state <> tmp_ras_type_data.set_state
         OR csm_ras_type.visible_to_users <> tmp_ras_type_data.visible_to_users)
-        AND csm_ras_type.msg_id = tmp_ras_type_data.msg_id;
+        AND csm_ras_type.msg_id = tmp_ras_type_data.msg_id
+        RETURNING *)
+        SELECT count(*) FROM rows;
 
         SELECT count(*) FROM tmp_ras_type_data;
         INSERT INTO csm_ras_type
@@ -367,14 +370,21 @@ fi
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count
-Difference=$(($count + $2))
+#Difference=$(($count + $2))
+diff=$(($count - $rtl_count))
 
-    echo "[Info    ] Record import count: $Difference"
-    LogMsg "[Info    ] Record import count: $Difference"
-    echo "[Info    ] csm_ras_type live row count: $3"
-    LogMsg "[Info    ] csm_ras_type live row count: $3"
-    echo "[Info    ] csm_ras_type_audit live row count: $4"
-    LogMsg "[Info    ] csm_ras_type_audit live row count: $4"
+    echo "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    LogMsg "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    echo "[Info    ] Record import count from $csv_file_name: $count"
+    LogMsg "[Info    ] Record import count from $csv_file_name: $count"
+    echo "[Info    ] Record update count from $csv_file_name: $1"
+    LogMsg "[Info    ] Record update count from $csv_file_name: $1"
+    echo "[Info    ] Total csm_ras_type insert count from file: $diff"
+    LogMsg "[Info    ] Total csm_ras_type insert count from file: $diff"
+    echo "[Info    ] csm_ras_type live row count after script execution: $4"
+    LogMsg "[Info    ] csm_ras_type live row count after script execution: $4"
+    echo "[Info    ] csm_ras_type_audit live row count: $5"
+    LogMsg "[Info    ] csm_ras_type_audit live row count: $5"
     echo "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
     LogMsg "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
     echo "${line2_log}"
@@ -440,7 +450,7 @@ set -- $delete_count_csm_ras_type
                 exit 0
                 fi
 
-count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+rtl_count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 select count(*) from csm_ras_type;
 
 THE_END`
@@ -494,18 +504,23 @@ THE_END` 2>>/dev/null
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count
-Difference=$(($count + $2))
+#Difference=$(($count + $2))
+diff=$(($count - $rtl_count))
 
-    echo "[Info    ] Record import begin process"
-    LogMsg "[Info    ] Record import begin process"
-    echo "[Info    ] Record import count: $Difference"
-    LogMsg "[Info    ] Record import count: $Difference"
-    echo "[Info    ] csm_ras_type live row count: $3"
-    LogMsg "[Info    ] csm_ras_type live row count: $3"
-    echo "[Info    ] csm_ras_type_audit live row count: $4"
-    LogMsg "[Info    ] csm_ras_type_audit live row count: $4"
-    echo "[Info    ] Database csv upload process complete for csm_ras_type table."
-    LogMsg "[End     ] Database csv upload process complete for csm_ras_type table."
+    echo "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    LogMsg "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    echo "[Info    ] Record import count from $csv_file_name: $count"
+    LogMsg "[Info    ] Record import count from $csv_file_name: $count"
+#   echo "[Info    ] Record update count from $csv_file_name: $1"
+#   LogMsg "[Info    ] Record update count from $csv_file_name: $1"
+    echo "[Info    ] Total csm_ras_type insert count from file: $diff"
+    LogMsg "[Info    ] Total csm_ras_type insert count from file: $diff"
+    echo "[Info    ] csm_ras_type live row count after script execution: $4"
+    LogMsg "[Info    ] csm_ras_type live row count after script execution: $4"
+    echo "[Info    ] csm_ras_type_audit live row count: $5"
+    LogMsg "[Info    ] csm_ras_type_audit live row count: $5"
+    echo "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
+    LogMsg "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
     echo "${line2_log}"
     echo "${line3_log}" >> $logfile
     exit $return_code
