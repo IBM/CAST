@@ -48,7 +48,7 @@ void help(){
 	puts("_____CSM_SWITCH_ATTRIBUTES_QUERY_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_switch_attributes_query ARGUMENTS [OPTIONS]");
-	puts("  csm_switch_attributes_query [-s switch_names] [-S serial_number] [-t state] [-l limit] [-o offset] [-h] [-v verbose_level]");
+	puts("  csm_switch_attributes_query [-r roles] [-s switch_names] [-S serial_number] [-t state] [-l limit] [-o offset] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Used to query the 'csm_switch' table of the CSM database.");
 	puts("");
@@ -61,6 +61,7 @@ void help(){
 	puts("    csm_switch_attributes_query can have 3 optional arguments");
 	puts("    Argument            | Example value         | Description  ");                                                 
 	puts("    --------------------|-----------------------|--------------");
+	puts("    -r, --roles         | \"tor,core\"            | (STRING) This is a csv field of roles to query. Filter results to only include records that have a matching role.");
 	puts("    -s, --switch_names  | \"switch_01,switch_02\" | (STRING) This is a csv field of switch names to query. Filter results to only include records that have a matching switch name. The switch name is a unique identification for a switch.");
 	puts("    -S, --serial_number | \"abc123\"              | (STRING) Filter results to only include records that have a matching serial number.");
 	puts("    -t, --state         | \"active\"              | (STRING) Filter results to only include records that have a matching state.");
@@ -99,6 +100,7 @@ struct option longopts[] = {
 	{"format",        required_argument, 0, 'f'},
 	{"JSON",          no_argument,       0, 'J'},
 	//api arguments
+	{"role",          required_argument, 0, 'r'},
 	{"switch_name",   required_argument, 0, 's'},
 	{"serial_number", required_argument, 0, 'S'},
 	{"state",         required_argument, 0, 't'},
@@ -142,7 +144,7 @@ int main(int argc, char *argv[])
 	csm_switch_attributes_query_output_t* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:f:Jl:o:O:s:S:t:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:f:Jl:o:O:r:s:S:t:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -181,12 +183,22 @@ int main(int argc, char *argv[])
 					return CSMERR_INVALID_PARAM;
 				}
 				break;
+			case 'r':
+			{
+				csm_optarg_test( "-r, --roles", optarg, USAGE );
+				csm_parse_csv( optarg, input->roles, input->roles_count,
+                            char*, csm_str_to_char, NULL, "-r, --roles", USAGE );
+				optionalParameterCounter++;
+				break;
+			}
 			case 's':
+			{
 				csm_optarg_test( "-s, --switch_names", optarg, USAGE );
 				csm_parse_csv( optarg, input->switch_names, input->switch_names_count,
                             char*, csm_str_to_char, NULL, "-s, --switch_names", USAGE );
 				optionalParameterCounter++;
 				break;
+			}
 			case 'S':
                 csm_optarg_test( "-S, --serial_number", optarg, USAGE );
 				input->serial_number = strdup(optarg);
@@ -237,6 +249,11 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "  csm_switch_attributes_query_input_t contains the following:");
 	csmutil_logging(debug, "    limit:       %i", input->limit);
 	csmutil_logging(debug, "    offset:      %i", input->offset);
+	csmutil_logging(debug, "    roles_count: %i", input->roles_count);
+	csmutil_logging(debug, "    roles:       %p", input->roles);
+	for(i = 0; i < input->roles_count; i++){
+		csmutil_logging(debug, "      roles[%i]: %s", i, input->roles[i]);
+	}
 	csmutil_logging(debug, "    switch_names_count: %i", input->switch_names_count);
 	csmutil_logging(debug, "    switch_names:       %p", input->switch_names);
 	for(i = 0; i < input->switch_names_count; i++){
