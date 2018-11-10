@@ -899,7 +899,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                     // This workqueue has at least one entry.
                     // Get the LVKey and taginfo2 for this work item...
                     l_Key = (qe->second->getWrkQ()->front()).getLVKey();
-                    l_LV_Info = metadata.getTagInfo2(&l_Key);
+                    l_LV_Info = metadata.getLV_Info(&l_Key);
                     if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
                     {
                         // Next extent is canceled...  Don't look any further
@@ -1599,25 +1599,47 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 case START_BBSERVER:
                 case FULL_MAINTENANCE:
                 {
-                    // Unconditionally perform a chown to root:root for the cross-bbserver metatdata root directory.
-                    rc = chown(l_DataStorePath.c_str(), 0, 0);
-                    if (rc)
+                    if (pMaintenanceOption == START_BBSERVER)
                     {
-                        errorText << "chown failed";
-                        bberror << err("error.path", l_DataStorePath.c_str());
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
-                    }
+                        // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
+                        rc = chown(l_DataStorePath.c_str(), 0, 0);
+                        if (rc)
+                        {
+                            errorText << "chown failed";
+                            bberror << err("error.path", l_DataStorePath.c_str());
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        }
 
-                    // Unconditionally perform a chmod to 0755 for the cross-bbserver metatdata root directory.
-                    // NOTE:  root:root will insert jobid directories into this directory and then ownership
-                    //        of those jobid directories will be changed to the uid:gid of the mountpoint.
-                    //        The mode of the jobid directories is also changed to be 0700.
-                    rc = chmod(l_DataStorePath.c_str(), 0755);
-                    if (rc)
-                    {
-                        errorText << "chmod failed";
-                        bberror << err("error.path", l_DataStorePath.c_str());
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
+                        // NOTE:  root:root will insert jobid directories into this directory and then ownership
+                        //        of those jobid directories will be changed to the uid:gid of the mountpoint.
+                        //        The mode of the jobid directories is also changed to be 0700.
+                        rc = chmod(l_DataStorePath.c_str(), 0755);
+                        if (rc)
+                        {
+                            errorText << "chmod failed";
+                            bberror << err("error.path", l_DataStorePath.c_str());
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        }
+
+                        // Verify the correct permissions for all individual directories in the
+                        // cross-bbServer metadata path.
+                        bfs::path l_Path = datastore.parent_path();
+                        while (l_Path.string().length())
+                        {
+                            if (((bfs::status(l_Path)).permissions() & (bfs::others_read|bfs::others_exe)) != (bfs::others_read|bfs::others_exe))
+                            {
+                                rc = -1;
+                                stringstream l_Temp;
+                                l_Temp << "0" << oct << (bfs::status(l_Path)).permissions();
+                                errorText << "Verification of permissions failed for bbServer metadata directory " << l_Path.c_str() \
+                                          << ". Requires read and execute for all users, but permissions are " \
+                                          << l_Temp.str() << ".";
+                                bberror << err("error.path", l_Path.c_str()) << err("error.permissions", l_Temp.str());
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                            l_Path = l_Path.parent_path();
+                        }
                     }
 
                     // Unconditionally perform a chown to root:root for the async request file.

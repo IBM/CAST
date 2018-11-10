@@ -248,7 +248,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     BBLV_Info* l_LV_Info = 0;
                     while ((!l_LV_Info) && l_Continue--)
                     {
-                        l_LV_Info = metadata.getTagInfo2(l_LVKey);
+                        l_LV_Info = metadata.getLV_Info(l_LVKey);
                         if (!l_LV_Info)
                         {
                             unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
@@ -2221,7 +2221,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         if (l_MarkFailedFromProxy)
         {
-            markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
+            markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
             // NOTE: errstate filled in by bbProxy
             rc = -1;
             LOG_RC(rc);
@@ -2244,7 +2244,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                 // we got far enough along to insert this transfer definition into the local metadata
                 if (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr))
                 {
-                    markTransferFailed(&l_LVKey2, l_TransferPtr, l_Handle, l_ContribId);
+                    markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
                 }
             }
         }
@@ -2615,8 +2615,9 @@ int bb_main(std::string who)
             errorText << "setrlimit failed";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
-
         LOG(bb,always) << "Maximum number of file descriptors set to " << l_Limits.rlim_cur;
+
+        // Initialize values to be used by this bbServer instance
         wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
         ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
@@ -2635,7 +2636,8 @@ int bb_main(std::string who)
         }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
 
-        // Check for the existence of the file used to communicate high-priority async requests between instances of bbServers
+        // Check for the existence of the file used to communicate high-priority async requests between instances
+        // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
         char* l_AsyncRequestFileNamePtr = 0;
         int l_SeqNbr = 0;
         rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, START_BBSERVER);

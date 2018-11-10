@@ -159,7 +159,7 @@ int BBIO_Regular::fstat(uint32_t pFileIndex, struct stat* pStats)
         FL_Write(FLXfer, BBIORegFstat, "pFileIndex=%ld fd=%ld rc=%ld errno=%ld",pFileIndex,fh->getfd(),rc,errno);
         if(rc == 0)
         {
-            LOG(bb,debug) << "BBIO_Regular::fstat(): " << fh->getfn() << ": st_dev=" << pStats->st_dev << ", st_mode=" << std::oct << pStats->st_mode << std::dec << ", st_size=" << pStats->st_size;
+            LOG(bb,debug) << "BBIO_Regular::fstat(): " << fh->getfn() << ": st_dev=" << pStats->st_dev << ", st_mode=0" << std::oct << pStats->st_mode << std::dec << ", st_size=" << pStats->st_size;
         }
     }
     else

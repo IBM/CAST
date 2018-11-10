@@ -84,47 +84,44 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
     size_t l_NumberOfNewExtentsCanceled = 0;
     extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);
 
-    // If new extents canceled, indicate that next findWork() needs to look for canceled extents
     if (l_NumberOfNewExtentsCanceled)
     {
+        // Indicate that the next findWork() needs to look for canceled extents
         wrkqmgr.setCheckForCanceledExtents(1);
+
+        // Wait for the canceled extents to be processed
+        uint64_t l_Attempts = 1;
+        while (1)
+        {
+            if (wrkqmgr.getCheckForCanceledExtents())
+            {
+                if ((l_Attempts % 15) == 0)
+                {
+                    // Display this message every 15 seconds...
+                    FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
+                             (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
+                    LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                                 << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                }
+
+                unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                {
+                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                    usleep((useconds_t)1000000);    // Delay 1 second
+                }
+                lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                ++l_Attempts;
+            }
+            else
+            {
+                break;
+            }
+        }
     }
 
     // If we are to perform remove operations for target PFS files, do so now...
     if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
     {
-        if (l_NumberOfNewExtentsCanceled)
-        {
-            // Wait for the canceled extents to be processed
-            uint64_t l_Attempts = 1;
-            while (1)
-            {
-                if (wrkqmgr.getCheckForCanceledExtents())
-                {
-                    if ((l_Attempts % 15) == 0)
-                    {
-                        // Display this message every 15 seconds...
-                        FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
-                                 (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
-                                     << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
-                    }
-
-                    unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
-                    {
-                        pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
-                        usleep((useconds_t)1000000);    // Delay 1 second
-                    }
-                    lockTransferQueue(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
-                    ++l_Attempts;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-
         // Remove the target files
         LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
         removeTargetFiles(pLVKey, *pHandle, *pContribId);
@@ -693,7 +690,7 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
 
     if (rc)
     {
-        markTransferFailed(pLVKey, pTransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+        markTransferFailed(pLVKey, pTransferDef, this, pExtentInfo.getHandle(), pExtentInfo.getContrib());
         ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_Failed);
     }
 
