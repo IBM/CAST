@@ -39,7 +39,6 @@ cat << EOF
               [-c]  Clean up OS caches 
               [-s]  Runs daxpy per socket
               [-v]  Set verbose mode
-              [-m]  Use mpirun instead of jsrun
               [-h]  This help screen
 EOF
 }
@@ -73,7 +72,6 @@ function read_basics_daxpy()
 }         
 
 
-MPI_DIR=""
 tmpdir=/tmp/$$
 trap 'rm -rf $tmpdir' EXIT
 args="-d $tmpdir"
@@ -89,10 +87,6 @@ while [[ $# -gt 0 ]]; do
         ;;
       -c)
         CLEANUP_OS_CACHES=true
-        ;;
-      -m)
-        # use mpirun instead of jsrun
-        MPI_DIR="mpirun_scripts"
         ;;
       -h)
         usage
@@ -135,7 +129,7 @@ fi
 
 # daxpy version comes with spectrum mpi
 #------------------------------------------------------
-DAXPY_DIR="${SMPI_ROOT}/POWER${processor:1:1}/${MPI_DIR}/daxpy"
+DAXPY_DIR="${SMPI_ROOT}/POWER${processor:1:1}/daxpy"
 if [ ! -x ${DAXPY_DIR}/run.daxpy ]; then echo -e "Can not find the daxpy installation ${DAXPY_DIR}/run.daxpy.\n$me test FAIL, rc=$rc"; exit 1; fi
 
 mkdir $tmpdir

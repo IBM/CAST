@@ -337,7 +337,7 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
     isdevzero = false;
     restartInProgress = false;
 
-    LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=" << std::oct << mode << std::dec;
+    LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=0" << std::oct << mode << std::dec;
 
     FL_Write(FLProxy, OpenFile, "Open for filehandle",(uint64_t)oflag,(uint64_t)mode,0,0);
 #if (BBSERVER || BBPROXY)
@@ -349,7 +349,7 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
 #endif
     if (fd >= 0)
     {
-        LOG(bb,info) << "Opened file " << filename << " as fd=" << fd << " with flag=" << oflag << ", mode=" << std::oct << mode << std::dec;
+        LOG(bb,info) << "Opened file " << filename << " as fd=" << fd << " with flag=" << oflag << ", mode=0" << std::oct << mode << std::dec;
         FL_Write(FLProxy, OpenFile_OK, "Open for filehandle successful fd=%ld oflag=%ld mode=%ld",(uint64_t)fd,oflag,mode,0);
         if(filename == "/dev/zero")
         {
@@ -393,7 +393,7 @@ void filehandle::dump(const char* pSev, const char* pPrefix) {
         LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "filehandle");
         LOG(bb,debug) << "                   fd: " << fd;
         LOG(bb,debug) << "             filename: " << filename;
-        LOG(bb,debug) << "             statinfo: st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
+        LOG(bb,debug) << "             statinfo: st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
         LOG(bb,debug) << "            extlookup: " << extlookup;
         LOG(bb,debug) << "            fd_oflags: " << fd_oflags;
         LOG(bb,debug) << "      numWritesNoSync: " << numWritesNoSync;
@@ -404,7 +404,7 @@ void filehandle::dump(const char* pSev, const char* pPrefix) {
         LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "filehandle");
         LOG(bb,info) << "                   fd: " << fd;
         LOG(bb,info) << "             filename: " << filename;
-        LOG(bb,info) << "             statinfo: st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
+        LOG(bb,info) << "             statinfo: st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
         LOG(bb,info) << "            extlookup: " << extlookup;
         LOG(bb,info) << "            fd_oflags: " << fd_oflags;
         LOG(bb,info) << "      numWritesNoSync: " << numWritesNoSync;
@@ -437,7 +437,7 @@ int filehandle::getstats(struct stat& statbuf)
                 statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
                 LOG(bb,info) << "Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
             statbuf = statinfo;
         }
         else
@@ -489,7 +489,7 @@ void filehandle::updateStats(struct stat* stats)
     if (stats)
     {
         memcpy(&statinfo, stats, sizeof(struct stat));
-        LOG(bb,debug) << "filehandle::updateStats(): " << filename << ": st_dev=" << statinfo.st_dev << ", st_mode=" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
+        LOG(bb,debug) << "filehandle::updateStats(): " << filename << ": st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size;
     }
 
     return;

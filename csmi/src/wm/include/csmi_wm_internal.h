@@ -109,6 +109,8 @@ extern const csmi_struct_mapping_t map_csmi_jsrun_cmd_payload_t;
 
 extern const csmi_struct_mapping_t map_csm_jsrun_cmd_input_t;
 
+extern const csmi_struct_mapping_t map_csmi_soft_failure_recovery_payload_t;
+
 
 #ifdef __cplusplus
 }

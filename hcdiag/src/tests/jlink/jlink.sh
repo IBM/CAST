@@ -119,7 +119,7 @@ else
    cat $MP_HOSTFILE
    args+=" -f $MP_HOSTFILE"
 fi
-echo -e "\nRunning: ${JLINK_DIR}; ./run.jlink ${args} tee $tmpdir/hcdiag_jlink_results"
+echo -e "\nRunning: ${JLINK_DIR}; ./run.jlink ${args} : tee $tmpdir/hcdiag_jlink_results"
 cd ${JLINK_DIR}; ./run.jlink ${args} | tee $tmpdir/hcdiag_jlink_results
 rc=$?
 

@@ -22,6 +22,7 @@
 //#include "logging.h"   ///< CSM logging.
 
 #define CSM_BB_CMD "/opt/ibm/bb/bin/bbcmd"
+#define CSM_SFR_CMD "/opt/ibm/csm/recovery/soft_failure_recovery"
 #define CSM_JSRUN_CMD "/opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm"
 
 #define CSM_SMT_CMD     "/usr/sbin/ppc64_cpu"
@@ -127,11 +128,17 @@ inline int SetSMTLevelCSM( int smtLevel )
     return errCode;
 }
 
-
 inline int ExecuteBB( char* command_args, char ** output, uid_t user_id, int timeout)
 {
     char* scriptArgs[] = { (char*)CSM_BB_CMD, command_args, NULL };
     int errCode = ForkAndExecCapture( scriptArgs, output, user_id, timeout );
+    return errCode;
+}
+
+inline int ExecuteSFRecovery( char ** output, int timeout)
+{
+    char* scriptArgs[] = { (char*)CSM_SFR_CMD, NULL };
+    int errCode = ForkAndExecCapture( scriptArgs, output, 0, timeout );
     return errCode;
 }
 

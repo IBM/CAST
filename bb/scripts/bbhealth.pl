@@ -36,7 +36,7 @@ sub output
 
     if($setupSyslog == 0)
     {
-        openlog("bbactivate", "ndelay,pid", "local0");
+        openlog("bbhealth", "ndelay,pid", "local0");
         $setupSyslog = 1;
     }
     if(!defined $level)
@@ -46,7 +46,6 @@ sub output
 
     foreach $line (split("\n", $out))
     {
-        print "$outputprefix$line\n";
         syslog($level, $line);
     }
 }

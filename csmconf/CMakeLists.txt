@@ -23,6 +23,7 @@ if(RPMBUILD)
   install(DIRECTORY COMPONENT csm-core DESTINATION /var/log/ibm/csm/inv)
   install(DIRECTORY COMPONENT csm-core DESTINATION /etc/ibm/csm)
   install(DIRECTORY COMPONENT csm-core DESTINATION /opt/ibm/csm/prologs)
+  install(DIRECTORY COMPONENT csm-core DESTINATION /opt/ibm/csm/recovery)
   install(DIRECTORY COMPONENT csm-db DESTINATION /var/log/ibm/csm/db)
   install(DIRECTORY COMPONENT csm-db DESTINATION /etc/ibm/csm)
   install(DIRECTORY COMPONENT csm-hcdiag DESTINATION /var/log/ibm/csm)
@@ -45,4 +46,6 @@ install(FILES privileged.ini PERMISSIONS OWNER_WRITE OWNER_READ COMPONENT csm-co
 
 install(PROGRAMS privileged_epilog PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ COMPONENT csm-core DESTINATION csm/share/prologs)
 install(PROGRAMS privileged_prolog PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ COMPONENT csm-core DESTINATION csm/share/prologs)
+
+install(PROGRAMS soft_failure_recovery PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ COMPONENT csm-core DESTINATION csm/share/recovery)
 

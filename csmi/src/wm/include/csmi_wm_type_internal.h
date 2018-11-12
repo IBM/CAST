@@ -320,6 +320,46 @@ void free_csmi_jsrun_cmd_payload_t( csmi_jsrun_cmd_payload_t *target );
 void init_csmi_jsrun_cmd_payload_t( csmi_jsrun_cmd_payload_t *target );
 
 
+/**
+ * @brief Defines payload 
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    char* hostname; /**< The hostname of the node. */
+    csmi_cmd_err_t error_code; /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
+    char* error_message; /**< The error message in failure cases which don'tbreak data aggregation.*/
+} csmi_soft_failure_recovery_payload_t;
+ /**  @brief Serializes the supplied structure into a char buffer.
+*
+* @param[in]  target     The structure to pack into the char buffer.
+* @param[out] buf        Contains the structure as char buffer.
+* @param[out] buffer_len Contains the length of the buffer.
+*/
+int serialize_csmi_soft_failure_recovery_payload_t( csmi_soft_failure_recovery_payload_t *target, char **buf , uint32_t *buffer_len);
+
+/** @brief Deserializes the supplied character buffer.
+*
+* @param[out] dest       A pointer to a struct to output the contents of the buffer to.
+* @param[in]  buffer     The buffer to read into the destination struct.
+* @param[in]  buffer_len The size of the buffer provided (for overflows).
+*/
+int deserialize_csmi_soft_failure_recovery_payload_t( csmi_soft_failure_recovery_payload_t **dest, const char *buffer, uint32_t buffer_len);
+
+/** @brief Frees the supplied struct and its members.
+*
+*  @warning Don't invoke unless @p target has been initialized by the init function.
+*
+*  @param[in] target The struct to free.
+*/
+void free_csmi_soft_failure_recovery_payload_t( csmi_soft_failure_recovery_payload_t *target );
+
+/** @brief Initializes the supplied struct to the default values.
+*
+*  @param[in,out] target The struct to initialize.
+*/
+void init_csmi_soft_failure_recovery_payload_t( csmi_soft_failure_recovery_payload_t *target );
+
+
 
 #ifdef __cplusplus
 }

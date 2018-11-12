@@ -1019,12 +1019,17 @@ int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t
     return rc;
 }
 
-void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, const uint64_t pHandle, const uint32_t pContribId)
+void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
 {
     if (pTransferDef)
     {
         // Mark the transfer definition failed
         pTransferDef->setFailed(pLVKey, pHandle, pContribId);
+
+        // Sort the extents, moving the extents for the failed file, and all other files
+        // for the transfer definition, to the front of the work queue so they are immediately removed...
+        TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+        pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
     }
     else
     {
@@ -1184,7 +1189,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 
     // Process request...
     BBTagID l_TagId = pWorkItem.getTagId();
-    BBLV_Info* l_LV_Info = metadata.getTagInfo2(&l_Key);
+    BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
     if (l_LV_Info)
     {
         bool l_MarkFailed = false;
@@ -1306,7 +1311,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
                     // Took an error on the transfer...
                     l_MarkFailed = false;
                     // Mark the transfer definition and associated handle as failed
-                    markTransferFailed(&l_Key, l_TransferDef, pExtentInfo.handle, pExtentInfo.contrib);
+                    markTransferFailed(&l_Key, l_TransferDef, l_LV_Info, pExtentInfo.handle, pExtentInfo.contrib);
                 }
 
                 if (l_MarkTransferDefinitionCanceled)
@@ -1442,7 +1447,7 @@ void* transferWorker(void* ptr)
                         {
                             // Workqueue entries exist...
                             l_WorkItem = l_WrkQE->getWrkQ()->front();
-                            l_LV_Info = metadata.getTagInfo2(&l_Key);
+                            l_LV_Info = metadata.getLV_Info(&l_Key);
                             if (l_LV_Info)
                             {
                                 l_TagId = l_WorkItem.getTagId();
@@ -2225,7 +2230,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                         else
                         {
                             // Failed on bbProxy side...  Mark the handle/contribid as failed
-                            markTransferFailed(pLVKey, l_OrigTransferDef, pHandle, pContribId);
+                            markTransferFailed(pLVKey, l_OrigTransferDef, pLV_Info, pHandle, pContribId);
                         }
                     }
                 }
@@ -2248,7 +2253,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                     else
                     {
                         // Failed on bbProxy side...  Mark the handle/contribid as failed
-                        markTransferFailed(pLVKey, l_OrigTransferDef, pHandle, pContribId);
+                        markTransferFailed(pLVKey, l_OrigTransferDef, pLV_Info, pHandle, pContribId);
                     }
                 }
             }
@@ -2293,7 +2298,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     pJob.getStr(l_JobStr);
 
     // First, find the LVKey value...
-    l_LV_Info = metadata.getTagInfo2(pLVKey);
+    l_LV_Info = metadata.getLV_Info(pLVKey);
     if (l_LV_Info)
     {
         if (pTransferDef)
@@ -2863,7 +2868,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     WRKQE* l_WrkQE = 0;
     BBLV_Info* l_LV_Info;
 
-    l_LV_Info = metadata.getTagInfo2(pLVKey);
+    l_LV_Info = metadata.getLV_Info(pLVKey);
     if (l_LV_Info)
     {
         // LVKey value found in taginfo2...
@@ -2960,7 +2965,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         // in the original order.  This is important because the first/last extent flags
                         // need to be processed in the correct order.
                         LVKey l_Key;
-                        BBLV_Info* l_WorkItemTagInfo2;
+                        BBLV_Info* l_WorkItemLV_Info;
                         uint64_t l_JobId = l_LV_Info->getJobId();
                         bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
                         while (l_Temp.size()) {
@@ -2968,10 +2973,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_WorkId = l_Temp.front();
                             l_Temp.pop();
                             l_Key = l_WorkId.getLVKey();
-                            l_WorkItemTagInfo2 = metadata.getTagInfo2(&l_Key);
-                            if (l_WorkItemTagInfo2)
+                            l_WorkItemLV_Info = metadata.getLV_Info(&l_Key);
+                            if (l_WorkItemLV_Info)
                             {
-                                if (l_WorkItemTagInfo2->getJobId() == l_JobId) {
+                                if (l_WorkItemLV_Info->getJobId() == l_JobId) {
                                     l_Temp2.push(l_WorkId);
                                 } else {
                                     LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
@@ -3016,10 +3021,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_WorkId = l_Temp2.front();
                             l_Temp2.pop();
                             l_Key = l_WorkId.getLVKey();
-                            l_WorkItemTagInfo2 = metadata.getTagInfo2(&l_Key);
-                            if (l_WorkItemTagInfo2)
+                            l_WorkItemLV_Info = metadata.getLV_Info(&l_Key);
+                            if (l_WorkItemLV_Info)
                             {
-                                ExtentInfo l_ExtentInfo = l_WorkItemTagInfo2->getNextExtentInfo();
+                                ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
                                 transferExtent(l_WorkId, l_ExtentInfo);
                             }
                             else
@@ -3103,7 +3108,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
 
     try
     {
-        l_LV_Info = metadata.getTagInfo2(pLVKey);
+        l_LV_Info = metadata.getLV_Info(pLVKey);
         if (l_LV_Info)
         {
             // Key found in taginfo2...
