@@ -184,6 +184,13 @@ int csmi_sendrecv_cmd_ext(
                   if (cdata_err->errmsg) errmsg = cdata_err->errmsg;
                   else errmsg = strdup(csm_get_string_from_enum(csmi_cmd_err_t,errcode));
 
+                  if( cdata_err->error_count > 0  && cdata_err->node_errors)
+                  {
+                        // Transfer ownership of the objects.
+                        csm_api_object_errlist_set(csm_obj, cdata_err->error_count, cdata_err->node_errors);
+                        cdata_err->node_errors = NULL;
+                        cdata_err->error_count = 0;
+                  }
               }
      
               // now can free cdata_err

@@ -168,90 +168,38 @@ void csmi_cmd_hdl_init(void)
 
 char *csmi_err_pack(const int errcode, const char *errmsg, uint32_t *buf_len)
 {
-  char *buf = NULL;
-  int len;
-  uint32_t offset = 0;
-  
-  *buf_len = sizeof(errcode);
-  if (errmsg) *buf_len += strnlen(errmsg, MAX_ERR_MSG_LEN) + sizeof(len);
+    char *buf = NULL;
+    csmi_err_t error;
 
-  if ( (buf = calloc(1, *buf_len)) == 0 ) {
-    csmutil_logging(error, "%s-%d: calloc NULL", __FILE__, __LINE__);
-    return NULL;
-  }
+    error.errcode       = errcode;
+    error.errmsg        = strdup(errmsg);
+    error.error_count   = 0;
+    error.node_errors        = NULL;
 
-  // add the errcode
-  memcpy(buf + offset, &errcode, sizeof(errcode));
-  offset += sizeof(errcode);
+    csm_serialize_struct(csmi_err_t, &error, &buf, buf_len);
 
-  // add the errmsg if not NULL
-  if (errmsg) {
-    len = strnlen(errmsg, MAX_ERR_MSG_LEN);
-    memcpy(buf + offset, &len, sizeof(len));
-    offset += sizeof(len);
-
-    memcpy(buf + offset, errmsg, len);
-    offset += len;
-  }
-  if (offset != *buf_len) {
-    csmutil_logging(error, "%s-%d: packing error\n", __FILE__, __LINE__);
-    free(buf);
-    return NULL;
-  }
-  
-  return buf;
+    free(error.errmsg);
+    error.errmsg = NULL;
+    return buf;
 }
 
 csmi_err_t* csmi_err_unpack(const char *buf, const uint32_t buf_len) 
 {
-  int errcode;
-  uint32_t offset = 0;
-  csmi_err_t *cdata=NULL;
-  static const size_t min_buf_size = sizeof(cdata->errcode);
-  uint32_t len;
+    csmi_err_t *cdata=NULL;
 
-  if (buf == NULL || buf_len < min_buf_size) {
-    csmutil_logging(warning,"csmi_err_unpack: buf not valid");
-    return cdata;
-  }
-
-  // set up the return data
-  cdata = calloc(1, sizeof(csmi_err_t));
-
-  // first, get the errcode
-  memcpy(&errcode, buf + offset, sizeof(errcode));
-  offset += sizeof(errcode);
-  cdata->errcode = errcode;
-
-  if ((offset+sizeof(len)) < buf_len) {
-    // get the errmsg length
-    memcpy(&len, buf + offset, sizeof(len));
-    offset += sizeof(len);
-
-    // get the errmsg string
-    if ((offset+len) == buf_len) {
-      cdata->errmsg = calloc(1, len + 1);
-      memcpy(cdata->errmsg, buf + offset, len);
-      offset += len;
+    if ( csm_deserialize_struct(csmi_err_t, &cdata, buf, buf_len) != 0 )
+    {
+        csmutil_logging(error, "%s-%d: unpacking error\n", __FILE__, __LINE__);
+        return NULL;
     }
-  }
 
-  if (offset != buf_len) {
-    csmutil_logging(error, "%s-%d: unpacking error\n", __FILE__, __LINE__);
-    free(cdata);
-    return NULL;
-  }
-  return cdata;
+    return cdata;
 }
 
 
 void csmi_err_free(csmi_err_t *err_obj) 
 {
-  if (err_obj)
-  {
-    if (err_obj->errmsg) free(err_obj->errmsg);
-    free(err_obj);
-  }
+    csm_free_struct_ptr(csmi_err_t, err_obj);
 }
 
 /** @brief Used to make sure we don't read past the end of the string buffer.

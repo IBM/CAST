@@ -143,7 +143,7 @@ BOOST_PYTHON_MODULE(lib_csm_py)
 		.value("CSMERR_JSRUN_CMD_ERROR",CSMERR_JSRUN_CMD_ERROR)
 		.value("CSMERR_ALLOC_INVALID_NODES",CSMERR_ALLOC_INVALID_NODES)
 		.value("CSMERR_ALLOC_OCCUPIED_NODES",CSMERR_ALLOC_OCCUPIED_NODES)
-		.value("CSMERR_ALLOC_UNAVIL_NODES",CSMERR_ALLOC_UNAVIL_NODES)
+		.value("CSMERR_ALLOC_UNAVAIL_NODES",CSMERR_ALLOC_UNAVAIL_NODES)
 		.value("CSMERR_ALLOC_BAD_FLAGS",CSMERR_ALLOC_BAD_FLAGS)
 		.value("CSMERR_ALLOC_MISSING",CSMERR_ALLOC_MISSING)
 		.value("CSMERR_EPILOG_EPILOG_COLLISION",CSMERR_EPILOG_EPILOG_COLLISION)
@@ -178,5 +178,10 @@ BOOST_PYTHON_MODULE(lib_csm_py)
 		.value("CSM_RAS_INFO",CSM_RAS_INFO)
 		.value("CSM_RAS_WARNING",CSM_RAS_WARNING)
 		.value("CSM_RAS_FATAL",CSM_RAS_FATAL);
+
+    class_<csm_node_error_t,csm_node_error_t*>("node_error_t")
+		.add_property("errcode", &csm_node_error_t::errcode,&csm_node_error_t::errcode,"int")
+		STRING_PROPERTY(csm_node_error_t, char*, errmsg, , NULL, )
+		STRING_PROPERTY(csm_node_error_t, char*, source, , NULL, );
 
 };

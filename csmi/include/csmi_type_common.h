@@ -23,6 +23,11 @@ extern "C" {
 #endif
 
 // Begin special_preprocess directives
+#include "csm_api_version.h"
+#include "csm_api_consts.h"
+#include "csm_api_macros.h"
+#include <stdint.h>
+
 
 /** @addtogroup common_apis
  * @{
@@ -37,6 +42,7 @@ extern "C" {
   *  2 | If set a CSM query will not filter on the field ( @ref CSM_UNDEF_BOOL ).
   */
  typedef char csm_bool;
+
 // End special_preprocess directives
 
 /** defgroup csmi_cmd_err_t csmi_cmd_err_t
@@ -95,7 +101,7 @@ typedef enum {
    CSMERR_JSRUN_CMD_ERROR=45, ///< 45 - Indicates a JSRUN start failed.
    CSMERR_ALLOC_INVALID_NODES=46, ///< 46 - Indicates one or more nodes were not in the CSM database for the allocation create.
    CSMERR_ALLOC_OCCUPIED_NODES=47, ///< 47 - Indicates nodes in the list were in use by another allocation.
-   CSMERR_ALLOC_UNAVIL_NODES=48, ///< 48 - Indicates the allocation create failed due to nodes that were not avaliable.
+   CSMERR_ALLOC_UNAVAIL_NODES=48, ///< 48 - Indicates the allocation create failed due to nodes that were not avaliable.
    CSMERR_ALLOC_BAD_FLAGS=49, ///< 49 - Indicates the allocation create failed due to the prolog having bad allocation flags.
    CSMERR_ALLOC_MISSING=50, ///< 50 - Indicates the allocation delete failed due to a missing allocation.
    CSMERR_EPILOG_EPILOG_COLLISION=51, ///< 51 - Indicates an epilog collided with an epilog.
@@ -197,6 +203,15 @@ extern const char* csmi_ras_severity_t_strs [];
 /** @}*/
 
 
+/**
+ * @brief A container for a CSM error, encapsulates the source error code and message.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    int errcode; ///< The error code of this error message. 
+    char* errmsg; ///< The error message. 
+    char* source; ///< The host reporting the error.
+} csm_node_error_t;
 /** @} */
 
 #ifdef __cplusplus

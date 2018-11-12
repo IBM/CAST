@@ -24,7 +24,7 @@
 #include "csmi/src/common/include/csmi_serialization.h"
 #include "csmi/src/common/include/csmi_common_utils.h"
 
-#include "csmi/include/csmi_type_common.h"
+#include "csmi/include/csmi_type_common_funct.h"
 
 #include <string.h>
 
@@ -256,6 +256,20 @@ char* csm_api_object_errmsg_get(csm_api_object *csm_obj)
    return (csmi_hdl->errmsg);
 }
 
+csm_node_error_t** csm_api_object_errlist_get( csm_api_object *csm_obj, uint32_t* count )
+{
+  if (csm_obj == NULL || csm_obj->hdl == NULL) {
+    csmutil_logging(error, "csmi_api_object not valid");
+    return NULL;
+  }
+
+   csmi_api_internal *csmi_hdl;
+   csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
+   (*count)=csmi_hdl->errorlist_count;
+   return (csmi_hdl->errlist);
+}
+
+
 uint32_t csm_api_object_traceid_get(csm_api_object *csm_obj)
 {
     if (csm_obj == NULL || csm_obj->hdl == NULL) {
@@ -303,6 +317,20 @@ void csm_api_object_clear(csm_api_object *csm_obj)
     csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
     freeFunc = csmi_hdl->csmi_free_func;
     if (freeFunc && csmi_hdl->ret_cdata != NULL) freeFunc(csm_obj);
+
+    if ( csmi_hdl->errlist && csmi_hdl->errorlist_count > 0 )
+    {
+        uint32_t count = csmi_hdl->errorlist_count;
+        uint32_t i=0;
+        for( ;i < count; i++)
+        {
+            csm_free_struct_ptr(csm_node_error_t, csmi_hdl->errlist[i]);
+        }
+        free(csmi_hdl->errlist);
+    }
+    csmi_hdl->errorlist_count = 0;
+    csmi_hdl->errlist= NULL;
+    csmi_hdl->errcode = CSMI_SUCCESS;
 
     // Null out the returned data.
     csmi_hdl->ret_cdata = NULL;

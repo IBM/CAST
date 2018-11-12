@@ -390,7 +390,7 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(
             switch (ctx->GetDBErrorCode())
             {
                 case INVALID_NODES:
-                    ctx->SetErrorCode(CSMERR_ALLOC_UNAVIL_NODES);
+                    ctx->SetErrorCode(CSMERR_ALLOC_UNAVAIL_NODES);
                     break;
                 case ABSENT_NODES:
                     ctx->SetErrorCode(CSMERR_ALLOC_INVALID_NODES);

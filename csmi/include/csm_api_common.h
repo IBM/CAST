@@ -16,10 +16,6 @@
 #define _CSM_INIT_TERM_H
 
 #include "csmi_type_common.h"
-#include "csm_api_version.h"
-#include "csm_api_consts.h"
-#include "csm_api_macros.h"
-#include <stdint.h>
 
 /** @file csm_api_common.h
  *
@@ -122,6 +118,23 @@ int csm_api_object_errcode_get(csm_api_object *csm_obj);
  * @returns The error string set by the API.
  */
 char *csm_api_object_errmsg_get(csm_api_object *csm_obj);
+
+
+
+/** @ingroup common_apis
+ *
+ * @brief Retrieves the error listing from the supplied @ref csm_api_object.
+ *
+ * At the time this only will be populated by APIs which perform multicast operations.
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[out] count An output value containing the number of entries in the returned list.
+ *
+ * @returns NULL If the @p csm_obj or @ref csm_api_object.hdl is NULL. Additionally, if the 
+ *                  API did not set the error list this function will return null.
+ * @returns A list of csm_node_error_t structs, containing error information from discrete sources.
+ */
+csm_node_error_t** csm_api_object_errlist_get( csm_api_object *csm_obj, uint32_t* count );
 
 /** @ingroup common_apis
  * @brief Retrieves the trace id from the supplied @ref csm_api_object.

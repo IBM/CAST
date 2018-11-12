@@ -35,6 +35,9 @@ typedef struct {
 
   void *ret_cdata;               ///< Returned data for an api, must be set by API.
   int ret_cdata_size;            ///< The size of the returned data.
+
+  uint32_t errorlist_count;      ///< The number of node errors.
+  csm_node_error_t** errlist;    ///< The errors reported by nodes.
 } csmi_api_internal;
 
 #ifdef __cplusplus
@@ -48,6 +51,8 @@ void csmi_api_handler_destroy(csmi_api_internal *csmi_hdl);
 
 void csm_api_object_errcode_set(csm_api_object *csm_obj, int errcode);
 void csm_api_object_errmsg_set(csm_api_object *csm_obj, char *msg);
+void csm_api_object_errlist_set(csm_api_object *csm_obj, uint32_t n_count, csm_node_error_t** node_errors);  
+
 
 /**
  * @brief Sets the trace id in the internal handle for the api object.
