@@ -93,6 +93,8 @@ CSMI_ENUM_MEMBER( CSMERR_EPILOG_PROLOG_COLLISION,   "Indicates an epilog collide
 CSMI_ENUM_MEMBER( CSMERR_PROLOG_EPILOG_COLLISION,   "Indicates a prolog collided with an epilog.",,) ///< Indicates a prolog collided with an epilog.
 CSMI_ENUM_MEMBER( CSMERR_PROLOG_PROLOG_COLLISION,   "Indicates a prolog collided with a prolog.",,) ///< Indicates a prolog collided with a prolog.
 
+CSMI_ENUM_MEMBER( CSMERR_SOFT_FAIL_RECOVERY_AGENT,  "Indicates a generic error in the soft failure recovery agent.",,) ///< Indicates a generic error in the soft failure recovery agent.
+
 CSMI_VERSION_END(0)
 #undef CSMI_ENUM_MEMBER
 #undef CSMI_VERSION_START

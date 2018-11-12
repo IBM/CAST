@@ -879,3 +879,18 @@ const csmi_struct_mapping_t map_csm_jsrun_cmd_input_t= {
     cast_csm_jsrun_cmd_input_t
 };
 
+const csmi_struct_node_t csmi_soft_failure_recovery_payload_tree[3] = {{"hostname",offsetof(csmi_soft_failure_recovery_payload_t,hostname),0,NULL,0xeba474a4,4},
+{"error_code",offsetof(csmi_soft_failure_recovery_payload_t,error_code),csmi_cmd_err_t_MAX,&csmi_cmd_err_t_strs,0x53eff629,8},
+{"error_message",offsetof(csmi_soft_failure_recovery_payload_t,error_message),0,NULL,0xf41641f3,4}}
+;
+
+void* cast_csmi_soft_failure_recovery_payload_t(void* ptr,size_t index, char isArray) { 
+    csmi_soft_failure_recovery_payload_t ** ptr_cast = *(csmi_soft_failure_recovery_payload_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csmi_soft_failure_recovery_payload_t= {
+    3,
+    csmi_soft_failure_recovery_payload_tree,
+    cast_csmi_soft_failure_recovery_payload_t
+};
+

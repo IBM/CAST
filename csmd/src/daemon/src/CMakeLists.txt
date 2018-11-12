@@ -156,8 +156,13 @@ file(GLOB CSM_DAEMON_SRC
   # MCast files:
   csmi_request_handler/csmi_mcast/CSMIMcastAllocation.cc
   csmi_request_handler/csmi_mcast/CSMIMcastStep.cc
+  csmi_request_handler/csmi_mcast/CSMIMcastSoftFailureRecovery.cc
+
   csmi_request_handler/CSMIStepUpdateAgent.cc
   csmi_request_handler/CSMIAllocationAgentUpdateState.cc
+  csmi_request_handler/CSMISoftFailureRecovery.cc
+  csmi_request_handler/CSMISoftFailureRecoveryAgentState.cc
+
 
   # BB CMD States:
   csmi_request_handler/CSMIBBCMD.cc

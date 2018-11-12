@@ -37,6 +37,7 @@ void EventRoutingAgg::RegisterHandlers()
    Register(CSM_CMD_allocation_step_end,     mtcHandler);
    Register(CSM_CMD_bb_cmd,                  mtcHandler);
    Register(CSM_CMD_jsrun_cmd,               mtcHandler);
+   Register(CSM_CMD_soft_failure_recovery,   mtcHandler);
 
    // Environmental data handling
    Register<CSM_ENVDATA_HANDLER>( CSM_environmental_data );

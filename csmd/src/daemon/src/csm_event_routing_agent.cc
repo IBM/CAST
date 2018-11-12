@@ -31,6 +31,7 @@ void EventRoutingAgent::RegisterHandlers()
    Register<CSMIAllocationDelete_Agent>(CSM_CMD_allocation_delete);
    Register<CSMIAllocationStepBegin_Agent>(CSM_CMD_allocation_step_begin);
    Register<CSMIAllocationStepEnd_Agent>(CSM_CMD_allocation_step_end);
+   Register<CSMISoftFailureRecovery_Agent>(CSM_CMD_soft_failure_recovery);
    Register<CSMIBBCMD_Agent>(CSM_CMD_bb_cmd);
    Register<CSMIJSRUNCMD_Agent>(CSM_CMD_jsrun_cmd);
    Register<CSMIAllocationUpdateState_Agent>(CSM_CMD_allocation_update_state);

@@ -102,7 +102,8 @@ typedef enum {
    CSMERR_EPILOG_PROLOG_COLLISION=52, ///< 52 - Indicates an epilog collided with a prolog.
    CSMERR_PROLOG_EPILOG_COLLISION=53, ///< 53 - Indicates a prolog collided with an epilog.
    CSMERR_PROLOG_PROLOG_COLLISION=54, ///< 54 - Indicates a prolog collided with a prolog.
-   csmi_cmd_err_t_MAX=55 ///< 55 - Bounding Value
+   CSMERR_SOFT_FAIL_RECOVERY_AGENT=55, ///< 55 - Indicates a generic error in the soft failure recovery agent.
+   csmi_cmd_err_t_MAX=56 ///< 56 - Bounding Value
 } csmi_cmd_err_t;
 
 
