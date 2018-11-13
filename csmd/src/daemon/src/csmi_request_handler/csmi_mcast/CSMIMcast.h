@@ -224,6 +224,11 @@ public:
     }
 
 
+    /**
+     * @brief Creates an error listing from the @ref _NodeStates map.
+     *
+     * @return A vector of node errors.
+     */
     inline std::vector<csm_node_error_t*> GenerateErrorListingVector() const
     {
         std::vector<csm_node_error_t*> nodeVector = {};

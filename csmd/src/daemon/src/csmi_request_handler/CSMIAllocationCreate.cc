@@ -529,8 +529,9 @@ bool CSMIAllocationCreate_Master::UndoTerminal(
         }
 
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-        ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
-        ctx->AppendErrorMessage("; Message: Allocation was successfully reverted;", ' ');
+        //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+        ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+        ctx->AppendErrorMessage("Message: Allocation was successfully reverted;", ' ');
     }
 
     dataLock.unlock();

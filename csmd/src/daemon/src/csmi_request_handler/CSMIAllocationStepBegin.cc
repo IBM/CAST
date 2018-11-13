@@ -377,8 +377,9 @@ bool CSMIAllocationStepBegin::UndoTerminal(
     if ( mcastProps )
     {
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(), ';');
-        ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
-        ctx->AppendErrorMessage("; Message: Step was successfully reverted;", ' ');
+        //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+        ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+        ctx->AppendErrorMessage("Message: Step was successfully reverted;", ' ');
 
         csmi_allocation_step_mcast_context_t* step = mcastProps->GetData();
         if(step && tuples.size() == 1 && tuples[0]->data && 

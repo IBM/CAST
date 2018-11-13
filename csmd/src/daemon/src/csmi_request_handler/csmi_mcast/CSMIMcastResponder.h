@@ -409,7 +409,8 @@ protected:
                     }
                     else
                     {
-                        ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+                        //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+                        ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
                         LOG(csmapi, error) << ctx << STATE_NAME "Unable to build the response query.";
                         dataLock.unlock();
                         CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);
@@ -498,7 +499,8 @@ protected:
                 }
                 else
                 {
-                    ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+                    ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+                    //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
                     LOG(csmapi, error) << ctx << STATE_NAME " Unable to build the response query.";
                     dataLock.unlock();
                     CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);

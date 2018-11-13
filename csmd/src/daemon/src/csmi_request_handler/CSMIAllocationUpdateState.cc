@@ -548,7 +548,8 @@ bool CSMIAllocationUpdateState::CreateByteArray(
         if ( mcastProps )
         {
             ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-            ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+            //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+            ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
         }
     }
 

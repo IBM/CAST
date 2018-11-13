@@ -274,7 +274,8 @@ bool CSMIJSRUNCMD_Master::CreateByteArray(
         if ( mcastProps )
         {
             ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-            ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+            ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+            //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
         }
     }
 

@@ -507,10 +507,11 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
         if ( mcastProps )
         {
             ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-            ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+            ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+            //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
         }
 
-        ctx->AppendErrorMessage("; Message: The allocation was removed from the database;", ' ');
+        ctx->AppendErrorMessage("Message: The allocation was removed from the database;", ' ');
     }
 
     dataLock.unlock();
