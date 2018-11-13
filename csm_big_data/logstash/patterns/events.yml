@@ -32,6 +32,12 @@ data_sources:                                  # Mandatory, Map with the keys co
        ras_msg_id: "ib.connection.%{cableEvent}"
        action:     ".send_ras;"
 
+     - tag: "UFM_GENERIC"
+       pattern:    "%{MELLANOXMSG}"
+       ras_msg_id: "test.msg.nick"
+       action:     ".send_ras;"
+
+
     mmsysmon:
      - tag: "MMSYSMON_CLEAN_MOUNT"
        pattern: "filesystem %{NOTSPACE} was (?<mountEvent>(un)?mounted)"
