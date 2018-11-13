@@ -74,6 +74,12 @@ EventContextHandlerState::~EventContextHandlerState()
         _DataDestructor(_UserData);
         _UserData = nullptr;
     }
+
+    while(_NodeErrors.size() > 0)
+    {
+        csm_free_struct_ptr(csm_node_error_t, _NodeErrors.back());
+        _NodeErrors.pop_back();
+    }
 }
 
 uint32_t EventContextHandlerState::GetRunID()

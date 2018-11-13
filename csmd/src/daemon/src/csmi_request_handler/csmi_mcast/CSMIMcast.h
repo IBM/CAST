@@ -235,12 +235,11 @@ public:
 
         for ( auto const& node : _NodeStates )
         {
-            if (  node.second.first != 0 )
+            if (  node.second.first != CSMI_SUCCESS )
             {
                 csm_node_error_t* temp;
                 csm_init_struct_ptr(csm_node_error_t, temp);
-
-                temp->errcode = node.second.first;
+                temp->errcode = node.second.first > CSMI_SUCCESS ? node.second.first : CSMERR_TIMEOUT ;
                 temp->source = strdup(node.first.c_str());
                 nodeVector.push_back(temp);
             }
