@@ -23,7 +23,7 @@
 #define CSMI_ALLOCATION_MCAST
 
 #include "csmnet/src/CPP/csm_message_and_address.h"
-#include "csmi/include/csmi_type_common.h"
+#include "csmi/include/csmi_type_common_funct.h"
 #include "../helpers/EventHelpers.h"
 #include "../csmi_handler_context.h"
 #include <string>
@@ -214,10 +214,30 @@ public:
 
         for ( auto const& node : _NodeStates )
         {
-            LOG(csmapi,info) << node.first << ": " <<node.second.first;
             if ( (isSuccess && node.second.first == 0) || !(isSuccess || node.second.first == 0) )
             {
                 nodeVector.push_back(node.first);
+            }
+        }
+
+        return nodeVector;
+    }
+
+
+    inline std::vector<csm_node_error_t*> GenerateErrorListingVector() const
+    {
+        std::vector<csm_node_error_t*> nodeVector = {};
+
+        for ( auto const& node : _NodeStates )
+        {
+            if (  node.second.first != 0 )
+            {
+                csm_node_error_t* temp;
+                csm_init_struct_ptr(csm_node_error_t, temp);
+
+                temp->errcode = node.second.first;
+                temp->source = strdup(node.first.c_str());
+                nodeVector.push_back(temp);
             }
         }
 

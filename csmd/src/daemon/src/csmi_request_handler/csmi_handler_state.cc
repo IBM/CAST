@@ -41,8 +41,13 @@ bool CSMIHandlerState::PushEvent(
         if( errorOnFail )
         {
             ctx->SetAuxiliaryId( GetFinalState() );
+            uint32_t bufferLen = 0;
+            char* buffer = ctx->GetErrorSerialized(&bufferLen);
+
             postEventList.push_back( csm::daemon::helper::CreateErrorEvent(
-                ctx->GetErrorCode(), ctx->GetErrorMessage(),  *(ctx->GetReqEvent())));
+                buffer, bufferLen,  *(ctx->GetReqEvent())));
+
+            if ( buffer ) free(buffer);
         }
         else
             ctx->SetAuxiliaryId( GetFailureState() );
@@ -229,11 +234,13 @@ void CSMIHandlerState::DefaultHandleError(
 
     if ( !byAggregator )
     {
-        postEventList.push_back(
-            csm::daemon::helper::CreateErrorEvent(
-                ctx->GetErrorCode(),
-                ctx->GetErrorMessage(),
-                aEvent ) );
+        uint32_t bufferLen = 0;
+        char* buffer = ctx->GetErrorSerialized(&bufferLen);
+        
+        postEventList.push_back( csm::daemon::helper::CreateErrorEvent(
+            buffer, bufferLen,  *(ctx->GetReqEvent())));
+
+        if ( buffer ) free(buffer);
     }
     else
     {
@@ -289,10 +296,11 @@ void CSMIHandlerState::HandleTimeout(
     if( GetTimeoutState()  == GetFinalState() )
     {
         LOG(csmapi, trace) << "HandleTimeout: Transitioning to Final State";
+        uint32_t bufferLen = 0;
+        char* buffer = ctx->GetErrorSerialized(&bufferLen);
         csm::daemon::CoreEvent *reply = csm::daemon::helper::CreateErrorEvent(
-                    ctx->GetErrorCode(), 
-                    ctx->GetErrorMessage(), 
-                    *(ctx->GetReqEvent()));
+            buffer, bufferLen,  *(ctx->GetReqEvent()));
+        if ( buffer ) free(buffer);
 
         ctx->SetAuxiliaryId( GetTimeoutState() );
 

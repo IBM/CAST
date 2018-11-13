@@ -19,6 +19,8 @@
 #include <mutex>
 #include <functional>
 #include <ostream>
+#include <vector>
+#include "csmi/include/csmi_type_common_funct.h"
 
 namespace csm {
 namespace daemon{
@@ -62,6 +64,9 @@ private:
     int           _DBErrorCode;                  ///< Holds the error code for database error events.
     std::mutex    _DBErrorCodeMutex;             ///< A mutex lock for the database error code.
 
+    std::vector<csm_node_error_t*> _NodeErrors;  ///< A collection of node errors.
+    std::mutex    _NodeErrorsMutex;              ///< A mutex lock for the node errors
+
     std::string   _ErrorMessage;                 ///< Holds the error message for error events.
     std::mutex    _ErrorMessageMutex;            ///< A mutex lock for the error string.
 
@@ -89,7 +94,6 @@ public:
      * @param [in]ctx The context to output
      */
     friend std::ostream& operator<<(std::ostream& os, const EventContextHandlerState* ctx);
-
 
     /** @defgroup Getters_and_Setters 
      * @{ */
@@ -213,11 +217,25 @@ public:
     void SetDataDestructor( std::function<void(void*)> dest );
     void SetUserData( void* userData );
 
+    /** @brief Sets the internal node error vector used in packing the error message.
+     * @param [in] nodeErrors A list of node errors.
+     */
+    void SetNodeErrors( std::vector<csm_node_error_t*> nodeErrors );
+
     /**
      * @brief Get the command name from the event handler.
      * @return The string representing the command.
      */
     std::string GetCommandName();
+
+    /**
+     * @brief Creates an error container for processing into an error event.
+     *
+     * @param[out] bufLen The length of the buffer returned by this function.
+     * 
+     * @return The serialized @ref csmi_err_t error object contained in this context object.
+     */
+    char* GetErrorSerialized(uint32_t* bufLen);
 
     /** @brief Retrieves the user data, performing a static cast to the correct type.
      * 
@@ -232,6 +250,7 @@ public:
 
         return lock;
     }
+
 
     /** @} */ // Getters_and_Setters
    
