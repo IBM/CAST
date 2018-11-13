@@ -145,7 +145,13 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		}
 		
 		// opening output file
-		std::string output_file_name = csm_inv_log_dir + "/ufm_ib_cable_output_file.txt";
+
+        //TEMP 
+        // ToDo: replace this buffer push to a config file update like error paths below. 
+        std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.txt";
+
+
+		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 		
 		// checking if output file is open
@@ -200,15 +206,12 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			
 			// csm_inv_log_dir is path
 			// ib_cable_errors is file
-			std::cout << "ib error full path: " << csm_inv_log_dir << "/" << ib_cable_errors << std::endl;
+			//std::cout << "ib error full path: " << csm_inv_log_dir << "/" << ib_cable_errors << std::endl;
 			
 			bad_ib_cable_records.open (csm_inv_log_dir + "/" + ib_cable_errors);
 			bad_ib_cable_records << "CSM IB cable inventory collection" << std::endl;
 			bad_ib_cable_records << "File created: " << asctime(timeinfo) << std::endl;
 			bad_ib_cable_records << "The following records are incomplete and can not be inserted into CSM database.\n" << std::endl;
-	
-			// printing
-			std::cout << "reading input file" << std::endl;
 			
 			//helper variable to keep track of a bad serial number for a record. 
 			bool bad_record = false;
@@ -228,7 +231,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 				// check if this is one of the strange lines (cable not complete)
 				if ( line.find("\"cable_info\": {},") != std::string::npos ){
 					//copy the missing cable_info fields to the bad_record file
-					bad_ib_cable_records << "Cable: " << vector_of_the_part_numbers.size()-1 << std::endl;
+					bad_ib_cable_records << "Cable: " << total_ib_records + 1 << std::endl;
 					bad_ib_cable_records << "part_number:      " << "NOT AVAILABLE" << std::endl;
 					bad_ib_cable_records << "length:           " << "NOT AVAILABLE" << std::endl;
 					bad_ib_cable_records << "serial_number:    " << "NOT AVAILABLE" << std::endl;
@@ -341,7 +344,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 							case 13:
 								//special case with a bad serial number. 
 								//copy the already added fields to the bad_record file
-								bad_ib_cable_records << "Cable: " << vector_of_the_part_numbers.size()-1 << std::endl;
+								bad_ib_cable_records << "Cable: " << total_ib_records + 1<< std::endl;
 								bad_ib_cable_records << "part_number:      " << vector_of_the_part_numbers[vector_of_the_part_numbers.size()-1] << std::endl;
 								bad_ib_cable_records << "length:           " << vector_of_the_lengths[vector_of_the_lengths.size()-1] << std::endl;
 								bad_ib_cable_records << "serial_number:    " << line << std::endl;
@@ -359,18 +362,23 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 					}
 				}
 			}
+
+			std::cout << "UFM reported " << total_ib_records << " IB records." << std::endl;
+			std::cout << "This report from UFM can be found in '" << ufm_ib_cable_output_filename << "' located at '" << csm_inv_log_dir << std::endl;
 	
 			if(NA_serials_count > 0){
-				std::cerr << "\nWARNING: " << NA_serials_count << " IB cables found with 'NA' serial numbers and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into 'bad_ib_cable_records.txt' located at '/var/log/ibm/csm/inv/' \n" << std::endl;
+				std::cerr << "WARNING: " << NA_serials_count << " IB cables found with 'NA' serial numbers and have been removed from CSM inventory collection data." << std::endl;
+				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << std::endl;
 			}
 			
 			if(missing_cable_info_count > 0){
-				std::cerr << "\nWARNING: " << missing_cable_info_count << " IB cables found with no 'cable_info' and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into 'bad_ib_cable_records.txt' located at '/var/log/ibm/csm/inv/' \n" << std::endl;
+				std::cerr << "WARNING: " << missing_cable_info_count << " IB cables found with no 'cable_info' and have been removed from CSM inventory collection data." << std::endl;
+				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << std::endl;
 			}
-			
-			std::cout << "\nUFM reported " << total_ib_records << " IB records.\n" << std::endl;
+
+			std::cout << std::endl;
+
+			bad_ib_cable_records << "\nTotal Bad Records: " << NA_serials_count + missing_cable_info_count << "\n" << std::endl;
 		
 			// closing the input file
 			input_file.close();
@@ -383,7 +391,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::cout << "Exception thrown during IB inventory connection: " << e.what() << std::endl;
 	}
 
-	return 1;
+	return 0;
 }
 
 std::string INV_IB_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector)
