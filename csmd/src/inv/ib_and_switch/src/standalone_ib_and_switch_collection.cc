@@ -396,8 +396,15 @@ int main(int argc, char *argv[])
 	}
 
 	// name of the temp file
-	std::string temp_file_name = "temp_file.txt";
-	//std::cout << "temp file name: " << temp_file_name << std::endl;
+	std::string ssl_file_path = "../keys";
+	std::string ssl_file_name = "csm_ufm_ssl_key.txt";
+	std::string ssl_full_path = ssl_file_path + "/" + ssl_file_name;
+	
+    // printing
+	if(details)
+	{
+		std::cout << "full path to the ssl key file: " << ssl_full_path << std::endl;
+	}
 	
     // ToDo: 
     // Store the username and password in a ssl key in a file
@@ -406,21 +413,22 @@ int main(int argc, char *argv[])
     // we then read from that file
     // pipeline is in place to make that switch.
 
+	//for old temp file. leave for now
 	// generating authentication string for the HTTP request
-	std::string command = "openssl base64 -e <<< " + rest_username+ ":" + rest_password + " > " + temp_file_name;
-	system(command.c_str());
+	//std::string command = "openssl base64 -e <<< " + rest_username+ ":" + rest_password + " > " + temp_file_name;
+	//system(command.c_str());
 	
 	// declaring the authentication string for the http request
 	std::string authentication_string_for_the_http_request;
 	
 	// opening temp file
-	std::ifstream temp_file(temp_file_name.c_str(),std::ios::in);
+	std::ifstream ssl_file(ssl_full_path.c_str(),std::ios::in);
 
 	// checking if temp file is open
-	if ( ! temp_file.is_open() )
+	if ( ! ssl_file.is_open() )
 	{
 		// printing
-		std::cout << "Temp file " << temp_file_name << " not open, return"  << std::endl;
+		std::cout << "Temp file " << ssl_full_path << " not open, return"  << std::endl;
 		std::cout << "Return without executing data collection" << std::endl;
 		
 		// return error
@@ -429,19 +437,20 @@ int main(int argc, char *argv[])
 	else 
 	{
 		// getting and modfifying the authentication string for the http request
-		temp_file >> authentication_string_for_the_http_request;
+		ssl_file >> authentication_string_for_the_http_request;
 		//std::cout << "before modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 		authentication_string_for_the_http_request = authentication_string_for_the_http_request.substr(0,authentication_string_for_the_http_request.size()-4);
 		//std::cout << "after modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 	}
 
 	// closing temp output file
-	temp_file.close();
+	ssl_file.close();
 	std::cout << std::endl;
 	
+	//old temp file - leave for now
 	// cleaning
-	command = "rm " + temp_file_name;
-	system(command.c_str());
+	//command = "rm " + ssl_file_name;
+	//system(command.c_str());
 	
 	// gathering flags
 	int ib_flag = INV_IB_CONNECTOR_ACCESS::GetInstance()->GetCompiledWithSupport();
