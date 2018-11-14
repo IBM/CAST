@@ -169,17 +169,17 @@ void csmi_cmd_hdl_init(void)
 char *csmi_err_pack(const int errcode, const char *errmsg, uint32_t *buf_len)
 {
     char *buf = NULL;
-    csmi_err_t error;
+    csmi_err_t* error;
+    csm_init_struct_ptr(csmi_err_t, error);
 
-    error.errcode       = errcode;
-    error.errmsg        = strdup(errmsg);
-    error.error_count   = 0;
-    error.node_errors        = NULL;
+    error->errcode       = errcode;
+    error->errmsg        = strdup(errmsg);
+    error->error_count   = 0;
+    error->node_errors   = NULL;
 
-    csm_serialize_struct(csmi_err_t, &error, &buf, buf_len);
+    csm_serialize_struct(csmi_err_t, error, &buf, buf_len);
+    csm_free_struct_ptr(csmi_err_t, error);
 
-    free(error.errmsg);
-    error.errmsg = NULL;
     return buf;
 }
 
