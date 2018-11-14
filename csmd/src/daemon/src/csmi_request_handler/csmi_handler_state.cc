@@ -26,12 +26,12 @@ bool CSMIHandlerState::PushEvent(
     // Verify that a DBReqEvent was successfully created:
     // If it was successful push the event onto the list and return true.
     // Else handle the error.
-    if ( reply )
+    if ( reply && ctx )
     {
         ctx->SetAuxiliaryId( GetSuccessState() );
         postEventList.push_back(reply);
     }
-    else
+    else if (ctx)
     {
         ctx->SetErrorCode(errorType);
         ctx->SetErrorMessage(errorMessage);
