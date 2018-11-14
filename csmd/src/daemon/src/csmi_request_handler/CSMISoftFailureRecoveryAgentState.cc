@@ -61,7 +61,6 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
     // Clone the hostname for RAS reporting.
     payload->hostname = strdup( hostname.c_str() ); 
     
-    LOG(csmapi, info) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\nHostname " << payload->hostname;
     try
     {
         // 0. Clear out the CGroups.

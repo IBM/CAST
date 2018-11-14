@@ -174,7 +174,6 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
         separator = ",";
     }
     nodeStr.append("}");
-    LOG(csmapi, info) << nodeStr;
     // ========================================================================================
     
     // ========================================================================================
@@ -217,7 +216,6 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
         "WHERE node_name=ANY($1::text[]);";
 
-    LOG(csmapi, info) << stmt;
     dbReq = new csm::db::DBReqContent( stmt, paramCount );
     dbReq->AddTextParam(nodeStr.c_str());
 
@@ -298,40 +296,48 @@ bool CSMISoftFailureRecovery_Master::CreateByteArray(
     {
         // Build the output, only tracks errors.
         std::vector<csm_node_error_t*> errorList = mcastProps->GenerateErrorListingVector();
-        csm_soft_failure_recovery_output_t *output;
-        csm_init_struct_ptr(csm_soft_failure_recovery_output_t, output);
-        output->error_count = errorList.size();
 
-        // Assign based on node count.
-        if(output->error_count > 0)
-            output->node_errors = (csm_soft_failure_recovery_node_t**)
-                calloc(output->error_count, sizeof(csm_soft_failure_recovery_node_t));
-
-        // Serialize, then free.
-        if(output->node_errors)
+        if ( ctx->GetErrorCode() == CSMI_SUCCESS )
         {
-            int i = 0;
-            while(errorList.size() > 0)
+            csm_soft_failure_recovery_output_t *output;
+            csm_init_struct_ptr(csm_soft_failure_recovery_output_t, output);
+            output->error_count = errorList.size();
+
+            // Assign based on node count.
+            if(output->error_count > 0)
+                output->node_errors = (csm_soft_failure_recovery_node_t**)
+                    calloc(output->error_count, sizeof(csm_soft_failure_recovery_node_t));
+
+            // Serialize, then free.
+            if(output->node_errors)
             {
-                csm_node_error_t* err= errorList.back();
+                int i = 0;
+                while(errorList.size() > 0)
+                {
+                    csm_node_error_t* err= errorList.back();
 
-                // Copy the contents into the struct.
-                csm_soft_failure_recovery_node_t *rNode;
-                csm_init_struct_ptr(csm_soft_failure_recovery_node_t, rNode);
-                rNode->errcode = err->errcode;
-                rNode->errmsg  = err->errmsg;
-                err->errmsg = nullptr;
-                rNode->source  = err->source;
-                err->source = nullptr;
-                output->node_errors[i++] = rNode;
+                    // Copy the contents into the struct.
+                    csm_soft_failure_recovery_node_t *rNode;
+                    csm_init_struct_ptr(csm_soft_failure_recovery_node_t, rNode);
+                    rNode->errcode = err->errcode;
+                    rNode->errmsg  = err->errmsg;
+                    err->errmsg = nullptr;
+                    rNode->source  = err->source;
+                    err->source = nullptr;
+                    output->node_errors[i++] = rNode;
 
-                csm_free_struct_ptr(csm_node_error_t, err);
-                errorList.pop_back();
+                    csm_free_struct_ptr(csm_node_error_t, err);
+                    errorList.pop_back();
+                }
             }
+            // Serialize, then free.
+            csm_serialize_struct(csm_soft_failure_recovery_output_t, output, buf, &bufLen);
+            csm_free_struct_ptr(csm_soft_failure_recovery_output_t, output);
         }
-        // Serialize, then free.
-        csm_serialize_struct(csm_soft_failure_recovery_output_t, output, buf, &bufLen);
-        csm_free_struct_ptr(csm_soft_failure_recovery_output_t, output);
+        else
+        {
+            ctx->SetNodeErrors(errorList);
+        }
 
         LOG(csmapi,info) << ctx->GetCommandName() << ctx
             << mcastProps->GenerateIdentifierString()

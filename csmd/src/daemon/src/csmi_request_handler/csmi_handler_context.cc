@@ -65,6 +65,8 @@ EventContextHandlerState::EventContextHandlerState(const csm::daemon::EventConte
    
 EventContextHandlerState::~EventContextHandlerState()
 {
+    LOG(csmapi, trace) << this << " EventContextHandlerState Destructor";
+
     if ( _UserData && _DataDestructor )
     {
         // Lock the Data and Destructor.

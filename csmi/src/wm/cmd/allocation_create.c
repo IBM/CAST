@@ -332,12 +332,15 @@ int main(int argc, char *argv[])
         uint32_t node_error_count = 0;
         csm_node_error_t** node_errors = csm_api_object_errlist_get(csm_obj, &node_error_count);
 
-        printf("# %d Nodes Failed:\n", node_error_count); 
-        int i = 0;
-        for(;i< node_error_count; i++)
+        if ( node_error_count > 0 )
         {
-            csm_node_error_t* node_error = node_errors[i];
-            printf("# %s[%d]: %s\n", node_error->source, node_error->errcode, node_error->errmsg);
+            printf("# %d Nodes Failed:\n", node_error_count); 
+            int i = 0;
+            for(;i< node_error_count; i++)
+            {
+                csm_node_error_t* node_error = node_errors[i];
+                printf("# %s[%d]: %s\n", node_error->source, node_error->errcode, node_error->errmsg);
+            }
         }
     }
 

@@ -273,14 +273,17 @@ void CSMIHandlerState::HandleTimeout(
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList )
 {
-    LOG(csmapi, trace) << "HandleTimeout: Enter";
+    LOG(csmapi, trace) << ctx << "HandleTimeout ";
+//    LOG(csmapi, trace) << ctx.use_count();
     // FIXME Potential segfault?
     csm::daemon::TimerContent timerContent = ((csm::daemon::TimerEvent*)&aEvent)->GetContent();
+    //LOG(csmapi, trace) << ctx << "Target State " << timerContent.GetTargetStateId( );
+    //LOG(csmapi, trace) << ctx->GetAuxiliaryId();
 
     // XXX Apparently it's possible for the context to be empty?
     // If we're in the completed state and ended up here something else
     // is going to take precedence over a timeout.
-    if ( ctx && ctx->GetAuxiliaryId() != timerContent.GetTargetStateId( ) ) 
+    if ( (ctx && ctx->GetAuxiliaryId() != timerContent.GetTargetStateId( ) ) || !ctx) 
     {
         //LOG(csmapi, warning) << 
         //    "HandleTimeout: context state doesn't match timer target state, discarding.";
