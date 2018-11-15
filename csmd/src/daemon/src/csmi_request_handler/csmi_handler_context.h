@@ -21,6 +21,7 @@
 #include <ostream>
 #include <vector>
 #include "csmi/include/csmi_type_common_funct.h"
+#include "csmi/src/common/include/csmi_common_type_internal.h"
 
 namespace csm {
 namespace daemon{

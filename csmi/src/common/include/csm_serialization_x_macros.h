@@ -475,9 +475,9 @@
 
 // ================================================================
 #include "csmi/src/common/include/csmi_common_internal.h"
-#define CSMI_STRUCT_NAME csm_node_error_t
-LEN_FUNCT(CSMI_STRUCT_NAME);
-PACK_FUNCT(CSMI_STRUCT_NAME);
-UNPACK_FUNCT(CSMI_STRUCT_NAME);
-FREE_FUNCT(CSMI_STRUCT_NAME);
-#undef CSMI_STRUCT_NAME
+//#define CSMI_STRUCT_NAME csm_node_error_t
+//LEN_FUNCT(CSMI_STRUCT_NAME);
+//PACK_FUNCT(CSMI_STRUCT_NAME);
+//UNPACK_FUNCT(CSMI_STRUCT_NAME);
+//FREE_FUNCT(CSMI_STRUCT_NAME);
+//#undef CSMI_STRUCT_NAME

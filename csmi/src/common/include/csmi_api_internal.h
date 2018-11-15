@@ -16,6 +16,7 @@
 #define __CSMI_API_INTERNAL_H
 
 #include "csmi/src/common/include/csmi_cmds.h"
+#include "csmi/src/common/include/csmi_common_type_internal.h"
 #include "csmi/include/csm_api_common.h"
 #include <inttypes.h>
 
