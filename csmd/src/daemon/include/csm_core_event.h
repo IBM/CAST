@@ -128,7 +128,7 @@ protected:
 public:
   EventContentBase( EventContext_sptr const aContext ) : _Context( aContext ) {}
   EventContentBase( const EventContentBase &in ) : _Context( in._Context ) {}
-  virtual ~EventContentBase() { _Context.reset(); }
+  virtual ~EventContentBase() { _Context = nullptr; }
   virtual EventContentBase *copy() const = 0;
   std::string GetTypeName() const { return std::string( typeid(*this).name() ); }
   EventContext_sptr GetContext() const { return _Context; }
