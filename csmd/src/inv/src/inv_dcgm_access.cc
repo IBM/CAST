@@ -946,14 +946,15 @@ bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocat
    return true;
 }
 
-bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage)
+bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_total_gpu_usage,
+   std::vector<int32_t> &o_gpu_id, std::vector<int64_t> &o_gpu_max_memory, std::vector<int64_t> &o_gpu_usage)
 {
    LOG(csmenv, debug) << "Enter " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id;
 
    if (Uninitialized())
    {
       LogInitializationWarning(__FUNCTION__);
-      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;
+      LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_total_gpu_usage=" << o_total_gpu_usage;
       return false;
    }
 
@@ -987,9 +988,14 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
    {
       LOG(csmenv, debug) << "dcgmJobGetStats was successful, numGpus: " << dcgm_job_stats.numGpus;
   
-      o_gpu_usage = 0;
+      o_total_gpu_usage = 0;
       uint64_t elapsed_usecs(0);
       uint64_t gpu_usecs(0); 
+
+      // Resize output vectors to contain numGpus elements with default values of -1
+      o_gpu_id.resize(dcgm_job_stats.numGpus, -1);
+      o_gpu_max_memory.resize(dcgm_job_stats.numGpus, -1);
+      o_gpu_usage.resize(dcgm_job_stats.numGpus, -1);
 
       for (int32_t i = 0; i < dcgm_job_stats.numGpus; i++)
       {
@@ -1037,7 +1043,11 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
                             << " smUtilization: "  << dcgm_job_stats.gpus[i].smUtilization.average << ", "
                             << " gpu_usecs: "      << gpu_usecs;
 
-         o_gpu_usage += gpu_usecs;
+         o_total_gpu_usage += gpu_usecs;
+
+         o_gpu_id[i] = dcgm_job_stats.gpus[i].gpuId;
+         o_gpu_max_memory[i] = dcgm_job_stats.gpus[i].maxGpuMemoryUsed;
+         o_gpu_usage[i] = gpu_usecs;
       }
 
    }
@@ -1053,7 +1063,13 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
       LOG(csmenv, debug) << "dcgmJobRemove was successful";
    }
 
-   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_gpu_usage=" << o_gpu_usage;   
+   for (uint32_t i = 0; i < o_gpu_id.size(); i++)
+   {
+     LOG(csmenv, debug) << "i_allocation_id=" << i_allocation_id << ", o_gpu_id=" << o_gpu_id[i] 
+                        << ", o_gpu_max_memory=" << o_gpu_max_memory[i] << ", o_gpu_usage=" << o_gpu_usage[i]; 
+   }
+   
+   LOG(csmenv, debug) << "Exit " << __FUNCTION__ << ", i_allocation_id=" << i_allocation_id << " o_total_gpu_usage=" << o_total_gpu_usage;   
    return true;
 }
 
@@ -1165,7 +1181,8 @@ bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocat
    return false;
 }
 
-bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage)
+bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_total_gpu_usage,
+   std::vector<int32_t> &o_gpu_id, std::vector<int64_t> &o_gpu_max_memory, std::vector<int64_t> &o_gpu_usage)
 {
    LOG(csmenv, warning) << "Built without DCGM support, skipping StopAllocationStats()";
    return false;

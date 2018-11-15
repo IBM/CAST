@@ -456,9 +456,12 @@ bool AllocationAgentUpdateState::RevertNode(
     // 4. In a delete get a snapshot after everything.
     // TODO Should a failure trigger an error?
     DataAggregators(respPayload);
+    std::vector<int32_t> gpu_id;
+    std::vector<int64_t> gpu_max_memory;
+    std::vector<int64_t> gpu_usage;
 
     bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
-        payload->allocation_id, respPayload->gpu_usage);
+        payload->allocation_id, respPayload->gpu_usage, gpu_id, gpu_max_memory, gpu_usage);
     if ( gpu_usage_success == false )
     {
         respPayload->gpu_usage = -1;  
