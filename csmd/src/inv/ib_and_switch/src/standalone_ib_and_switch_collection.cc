@@ -243,8 +243,8 @@ int main(int argc, char *argv[])
 		vector_of_the_comparing_strings.push_back("ufm");
 
 		//elements in the list for finding the ssl file
-		vector_of_the_comparing_strings.push_back("ufm_ssl_dir");
-		vector_of_the_comparing_strings.push_back("ufm_ssl_file");
+		vector_of_the_comparing_strings.push_back("ufm_ssl_file_path");
+		vector_of_the_comparing_strings.push_back("ufm_ssl_file_name");
 
 		//Boolean values to see if we find all data we expect to see.
 		//It is possible someone points to a bad config file missing expected fields. 
@@ -424,8 +424,8 @@ int main(int argc, char *argv[])
 	}
 
 	// name of the temp file
-	std::string ssl_file_path = "/etc/ibm/csm";
-	std::string ssl_file_name = "csm_ufm_ssl_key.txt";
+	ssl_file_path = "/etc/ibm/csm";
+	ssl_file_name = "csm_ufm_ssl_key.txt";
 	std::string ssl_full_path = ssl_file_path + "/" + ssl_file_name;
 	
     // printing
@@ -456,7 +456,7 @@ int main(int argc, char *argv[])
 	if ( ! ssl_file.is_open() )
 	{
 		// printing
-		std::cout << "Temp file " << ssl_full_path << " not open, return"  << std::endl;
+		std::cout << "SSL file " << ssl_full_path << " not open, return"  << std::endl;
 		std::cout << "Return without executing data collection" << std::endl;
 		
 		// return error
@@ -469,6 +469,15 @@ int main(int argc, char *argv[])
 		//std::cout << "before modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 		authentication_string_for_the_http_request = authentication_string_for_the_http_request.substr(0,authentication_string_for_the_http_request.size()-4);
 		//std::cout << "after modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
+	}
+
+	if( authentication_string_for_the_http_request[0] == '\0')
+	{
+		std::cout << "WARNING: SSL file provided is blank. Please create an SSL key and save it in this file." << std::endl;
+		std::cout << "Return without executing data collection" << std::endl;
+		
+		// return error
+		return 1;
 	}
 
 	// closing temp output file
