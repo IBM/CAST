@@ -204,15 +204,6 @@ extern const char* csmi_ras_severity_t_strs [];
 /** @}*/
 
 
-/**
- * @brief A container for a CSM error, encapsulates the source error code and message.
- */
-typedef struct {
-    uint64_t _metadata; /** The number of fields in the struct.*/
-    int errcode; ///< The error code of this error message. 
-    char* errmsg; ///< The error message. 
-    char* source; ///< The host reporting the error.
-} csm_node_error_t;
 /** @} */
 
 #ifdef __cplusplus

@@ -62,6 +62,23 @@ extern "C" {
         return CSMERR_INVALID_PARAM;                               \
     }
 
+/** @brief Prints a list of node errors in @p csmobj.
+ *
+ * @param[in] csmobj The csm api object.
+ */
+#define csm_print_node_errors(csmobj)                                   \
+    uint32_t node_error_count = csm_api_object_node_error_count_get(csmobj); \
+    if ( node_error_count ) {                                           \
+        printf("bad_node_count: %d\nbad_nodes:\n", node_error_count);   \
+        int i = 0;                                                      \
+        for(;i< node_error_count; i++){                                 \
+            printf(" - %s[%d]: %s\n",                                   \
+                csm_api_object_node_error_source_get(csmobj, i),        \
+                csm_api_object_node_error_code_get(csmobj, i),          \
+                csm_api_object_node_error_msg_get(csmobj, i));          \
+        }                                                               \
+    }
+
 #ifdef __cplusplus
 }
 #endif

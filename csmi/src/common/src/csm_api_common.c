@@ -256,19 +256,64 @@ char* csm_api_object_errmsg_get(csm_api_object *csm_obj)
    return (csmi_hdl->errmsg);
 }
 
-csm_node_error_t** csm_api_object_errlist_get( csm_api_object *csm_obj, uint32_t* count )
+uint32_t csm_api_object_node_error_count_get( csm_api_object *csm_obj)
 {
-  if (csm_obj == NULL || csm_obj->hdl == NULL) {
-    csmutil_logging(error, "csmi_api_object not valid");
-    return NULL;
-  }
+    if (csm_obj == NULL || csm_obj->hdl == NULL) {
+        csmutil_logging(error, "csmi_api_object not valid");
+        return 0;
+    }
 
-   csmi_api_internal *csmi_hdl;
-   csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
-   (*count)=csmi_hdl->errorlist_count;
-   return (csmi_hdl->errlist);
+    csmi_api_internal *csmi_hdl;
+    csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
+
+    return csmi_hdl->errorlist_count;
 }
 
+int csm_api_object_node_error_code_get( csm_api_object *csm_obj, uint32_t index)
+{
+    if (csm_obj == NULL || csm_obj->hdl == NULL) {
+        csmutil_logging(error, "csmi_api_object not valid");
+        return -1;
+        
+    }
+
+    csmi_api_internal *csmi_hdl;
+    csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
+
+    if ( index < csmi_hdl->errorlist_count && csmi_hdl->errlist )
+        return csmi_hdl->errlist[index]->errcode;
+    return -1;
+}
+
+const char* csm_api_object_node_error_source_get( csm_api_object *csm_obj, uint32_t index)
+{
+    if (csm_obj == NULL || csm_obj->hdl == NULL) {
+        csmutil_logging(error, "csmi_api_object not valid");
+        return NULL;
+    }
+
+    csmi_api_internal *csmi_hdl;
+    csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
+
+    if ( index < csmi_hdl->errorlist_count && csmi_hdl->errlist )
+        return csmi_hdl->errlist[index]->source;
+    return NULL;
+}
+
+const char* csm_api_object_node_error_msg_get( csm_api_object *csm_obj, uint32_t index)
+{
+    if (csm_obj == NULL || csm_obj->hdl == NULL) {
+        csmutil_logging(error, "csmi_api_object not valid");
+        return NULL;
+    }
+
+    csmi_api_internal *csmi_hdl;
+    csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
+
+    if ( index < csmi_hdl->errorlist_count && csmi_hdl->errlist )
+        return csmi_hdl->errlist[index]->errmsg;
+    return NULL;
+}
 
 uint32_t csm_api_object_traceid_get(csm_api_object *csm_obj)
 {

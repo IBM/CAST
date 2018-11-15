@@ -119,22 +119,45 @@ int csm_api_object_errcode_get(csm_api_object *csm_obj);
  */
 char *csm_api_object_errmsg_get(csm_api_object *csm_obj);
 
-
-
 /** @ingroup common_apis
- *
- * @brief Retrieves the error listing from the supplied @ref csm_api_object.
- *
- * At the time this only will be populated by APIs which perform multicast operations.
+ * @brief Getter for the number of nodes which had errors.
  *
  * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
- * @param[out] count An output value containing the number of entries in the returned list.
  *
- * @returns NULL If the @p csm_obj or @ref csm_api_object.hdl is NULL. Additionally, if the 
- *                  API did not set the error list this function will return null.
- * @returns A list of csm_node_error_t structs, containing error information from discrete sources.
+ * @return The number of nodes with errors.
  */
-csm_node_error_t** csm_api_object_errlist_get( csm_api_object *csm_obj, uint32_t* count );
+uint32_t csm_api_object_node_error_count_get(csm_api_object *csm_obj);
+
+/** @ingroup common_apis
+ * @brief Getter for the node error code.
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[in] index The index of the node error in the internal array.
+ *
+ * @return The error code, if the error code couldn't be retrieved, -1 is returned.
+ */
+int csm_api_object_node_error_code_get(csm_api_object *csm_obj, uint32_t index);
+
+/** @ingroup common_apis
+ * @brief Getter for the node error source (generally a hostname).
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[in] index The index of the node error in the internal array.
+ *
+ * @return The source of the error, null if not found.
+ */
+const char* csm_api_object_node_error_source_get(csm_api_object *csm_obj, uint32_t index);
+
+/** @ingroup common_apis
+ * @brief Getter for the node error message.
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[in] index The index of the node error in the internal array.
+ *
+ * @return The error message, null if not found.
+ */
+const char* csm_api_object_node_error_msg_get(csm_api_object *csm_obj, uint32_t index);
+
 
 /** @ingroup common_apis
  * @brief Retrieves the trace id from the supplied @ref csm_api_object.

@@ -131,6 +131,7 @@ int csm_deserialize_str_array( char** array[], uint32_t* array_len,
 #define csm_primative_deserializer(value, buffer, buffer_len)\
     memcpy( &(value), buffer, buffer_len);
 
+
 // ==============================================================================================
 
 

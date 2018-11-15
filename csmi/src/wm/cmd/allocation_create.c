@@ -329,19 +329,7 @@ int main(int argc, char *argv[])
              csm_api_object_errcode_get(csm_obj),
              csm_api_object_errmsg_get(csm_obj));
 
-        uint32_t node_error_count = 0;
-        csm_node_error_t** node_errors = csm_api_object_errlist_get(csm_obj, &node_error_count);
-
-        if ( node_error_count > 0 )
-        {
-            printf("# %d Nodes Failed:\n", node_error_count); 
-            int i = 0;
-            for(;i< node_error_count; i++)
-            {
-                csm_node_error_t* node_error = node_errors[i];
-                printf("# %s[%d]: %s\n", node_error->source, node_error->errcode, node_error->errmsg);
-            }
-        }
+        csm_print_node_errors(csm_obj)
     }
 
     // Free up the csm object and our struct.

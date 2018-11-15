@@ -250,16 +250,7 @@ int main(int argc, char *argv[])
         printf("%s FAILED: errcode: %d errmsg: %s\n",
             argv[0], return_value,  csm_api_object_errmsg_get(csm_obj));
 
-        uint32_t node_error_count = 0;
-        csm_node_error_t** node_errors = csm_api_object_errlist_get(csm_obj, &node_error_count);
-
-        printf("# %d Nodes Failed:\n", node_error_count); 
-        int i = 0;
-        for(;i< node_error_count; i++)
-        {
-            csm_node_error_t* node_error = node_errors[i];
-            printf("# %s[%d]: %s\n", node_error->source, node_error->errcode, node_error->errmsg);
-        }
+        csm_print_node_errors(csm_obj)
 	}
 
     // Destroy the csm_obj.
