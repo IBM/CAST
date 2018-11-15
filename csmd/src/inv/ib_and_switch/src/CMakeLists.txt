@@ -53,5 +53,6 @@ message("STANDALONE_IB_AND_SWITCH_COLLECTION_SRC: ${CSM_IB_SRC}")
 
 file(GLOB INSTALL_FILES
   "example_ssl.txt"
+  "csm_ufm_ssl_key.txt"
 )
-install(FILES ${INSTALL_FILES} COMPONENT csm-core DESTINATION csm/keys)
+install(FILES ${INSTALL_FILES} COMPONENT csm-core DESTINATION csm/share/etc)
