@@ -64,7 +64,7 @@ const char* CSM_ACTIVELIST_SWAP = "/etc/pam.d/csm/activelist.swp";
 bool AllocationAgentUpdateState::HandleNetworkMessage(
     const csm::network::MessageAndAddress content,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":HandleNetworkMessage: Enter";
 
@@ -171,7 +171,7 @@ bool AllocationAgentUpdateState::InitNode(
     csmi_allocation_mcast_payload_request_t *payload,
     csmi_allocation_mcast_payload_response_t *respPayload,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 { 
     LOG( csmapi, trace ) << STATE_NAME ":InitNode: Enter ";
 
@@ -330,7 +330,7 @@ bool AllocationAgentUpdateState::RevertNode(
         csmi_allocation_mcast_payload_request_t *payload,
         csmi_allocation_mcast_payload_response_t *respPayload,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RevertNode: Enter";
     
@@ -500,7 +500,7 @@ void AllocationAgentUpdateState::AfterPrologDataAggregators(
 }
 
 void AllocationAgentUpdateState::HandleError(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator )

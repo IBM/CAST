@@ -20,7 +20,7 @@
 
 typedef bool( *PayloadFunct )(const std::vector<csm::db::DBTuple *>&,
     csm::db::DBReqContent **,
-    csm::daemon::EventContextHandlerState_sptr);
+    csm::daemon::EventContextHandlerState_sptr&);
 
 #define STATE_NAME "StatefulDBRecvSend"
 
@@ -51,7 +51,7 @@ protected:
     virtual bool HandleDBResp(
         const std::vector<csm::db::DBTuple *>& tuples,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final
     {
         LOG( csmapi, trace ) << "StatefulDBRecvSend::HandleDBResp: Enter";
 
@@ -86,7 +86,7 @@ protected:
      * If @p ctx has @ref CSMI_NO_RESULTS as an error code, an empty reply will be returned.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) final
@@ -107,7 +107,7 @@ protected:
 
     /** @brief Unused. */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final { }
 };
 #undef STATE_NAME

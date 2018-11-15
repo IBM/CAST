@@ -18,7 +18,7 @@ bool CSMIHandlerState::PushEvent(
     csm::daemon::CoreEvent *reply, 
     uint64_t errorType, 
     const std::string& errorMessage, 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList, 
     bool errorOnFail )
 {
@@ -58,7 +58,7 @@ bool CSMIHandlerState::PushEvent(
 
 bool CSMIHandlerState::PushDBReq(
     csm::db::DBReqContent const &dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool errorOnFail )
 {
@@ -76,7 +76,7 @@ bool CSMIHandlerState::PushDBReq(
 bool CSMIHandlerState::PushMCAST( 
     csm::network::Message message,
     std::vector<std::string>& targets,
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     uint64_t targetState,
     bool errorOnFail )
@@ -116,7 +116,7 @@ bool CSMIHandlerState::PushMCAST(
        
 bool CSMIHandlerState::ForwardToMaster( 
     csm::network::Message message,
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool errorOnFail )
 {
@@ -158,7 +158,7 @@ bool CSMIHandlerState::ForwardToMaster(
 bool CSMIHandlerState::PushReply(
     const char* buffer,
     const uint32_t bufferLength,
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator )
 {
@@ -200,7 +200,7 @@ bool CSMIHandlerState::PushReply(
 }
 
 void CSMIHandlerState::PushRASEvent(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     const std::string &msg_id,
     const std::string &location_name,
@@ -219,7 +219,7 @@ void CSMIHandlerState::PushRASEvent(
 }
 
 void CSMIHandlerState::DefaultHandleError( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator ) 
@@ -257,7 +257,7 @@ void CSMIHandlerState::DefaultHandleError(
 }
 
 void CSMIHandlerState::PushTimeout (
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     std::vector<csm::daemon::CoreEvent*>& postEventList)
 {
     if ( GetTimeoutLength() != csm::daemon::helper::BAD_TIMEOUT_LEN )
@@ -269,17 +269,19 @@ void CSMIHandlerState::PushTimeout (
 }
 
 void CSMIHandlerState::HandleTimeout(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList )
 {
     // XXX BOTH OF THESE ARE NEEDED OR A SEGMENTATION FAULT HAPPENS.
     LOG(csmapi, trace) << ctx << "HandleTimeout Entered;";
-    LOG(csmapi, trace) << ctx << "Getting Timer Content;";
+    //LOG(csmapi, trace) << ctx << "Getting Timer Content;";
     // XXX DETERMINE A BETTER FIX!
 
     // FIXME Potential segfault?
-    csm::daemon::TimerContent timerContent = ((csm::daemon::TimerEvent*)&aEvent)->GetContent();
+    csm::daemon::TimerEvent timerEvent = (csm::daemon::TimerEvent)aEvent;
+    csm::daemon::TimerContent timerContent = timerEvent.GetContent();
+    //LOG(csmapi, trace) <<  "STATE ID: " << timerContent.GetTargetStateId( );
     
     // XXX Apparently it's possible for the context to be empty?
     // If we're in the completed state and ended up here something else

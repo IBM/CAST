@@ -171,7 +171,7 @@ bool CSMIAllocationUpdateState::RetrieveDataForPrivateCheck(
         const std::string& arguments, 
         const uint32_t len, 
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
 	
@@ -229,7 +229,7 @@ bool CSMIAllocationUpdateState::RetrieveDataForPrivateCheck(
 bool CSMIAllocationUpdateState::CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
     bool success = false;
@@ -267,7 +267,7 @@ bool CSMIAllocationUpdateState::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Enter"; 
 
@@ -335,7 +335,7 @@ bool CSMIAllocationUpdateState::CreatePayload(
 }
 
 csm::db::DBReqContent* CSMIAllocationUpdateState::InsertStatsStatement(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":InsertStatsStatement: Enter";
@@ -377,7 +377,7 @@ csm::db::DBReqContent* CSMIAllocationUpdateState::InsertStatsStatement(
 }
 
 bool CSMIAllocationUpdateState::ParseInfoQuery(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
@@ -490,14 +490,14 @@ bool CSMIAllocationUpdateState::ParseInfoQuery(
 bool CSMIAllocationUpdateState::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CSMIAllocationUpdateState::UpdateTerminal( tuples, buf, bufLen, ctx );
 }
 
 bool CSMIAllocationUpdateState::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 
@@ -562,7 +562,7 @@ bool CSMIAllocationUpdateState::CreateByteArray(
 bool CSMIAllocationUpdateState::UpdateTerminal(
     const std::vector<csm::db::DBTuple *>& tuples,
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     // Get the allocation data.
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
@@ -597,7 +597,7 @@ bool CSMIAllocationUpdateState::UpdateTerminal(
 }
 
 csm::db::DBReqContent* CSMIAllocationUpdateState::MCASTDBReqSpawn(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     CSMIMcastAllocation* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":MCASTDBReqSpawn: Enter";

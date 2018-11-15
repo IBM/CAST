@@ -29,7 +29,7 @@ bool CSMIDiagRunBegin::CreatePayload(
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Enter";
 
@@ -72,7 +72,7 @@ bool CSMIDiagRunBegin::CreatePayload(
 bool CSMIDiagRunBegin::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Enter";
 

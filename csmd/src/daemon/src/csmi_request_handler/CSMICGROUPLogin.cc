@@ -44,7 +44,7 @@ int migrate_pid( pid_t pid, int64_t allocationId )
 bool CGLoginInitState::HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi, trace) << "Enter CGLoginInitState";
     bool success = true;                             ///< Exit status of the state.

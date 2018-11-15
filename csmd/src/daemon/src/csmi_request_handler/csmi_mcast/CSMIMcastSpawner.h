@@ -70,7 +70,7 @@ protected:
     virtual bool HandleDBResp(
         const std::vector<csm::db::DBTuple *>& tuples,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final
     {
         LOG( csmapi, trace ) << STATE_NAME ":HandleDBResp: Enter";
         // Helper Variables.
@@ -153,7 +153,7 @@ protected:
      * @param[in] byAggregator Specifies whether the error must be sent through the Aggregator.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator ) final 
@@ -217,7 +217,7 @@ protected:
 
     /** @brief Unused. */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final { }
 };
 

@@ -18,7 +18,7 @@
 bool StatefulForwardRequest::HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) 
+        csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << "StatefulForwardRequest::HandleNetworkMessage: Enter";
     

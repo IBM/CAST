@@ -31,7 +31,7 @@ bool CSMIAllocationResourcesQuery::CreatePayload(
         const std::string& stringBuffer,
         const uint32_t bufferLength,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Enter";
 	
@@ -83,7 +83,7 @@ bool CSMIAllocationResourcesQuery::CreatePayload(
 bool CSMIAllocationResourcesQuery::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Enter";
 

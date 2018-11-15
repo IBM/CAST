@@ -108,8 +108,8 @@ public:
 private:
     void *_EventHandler;
   
-    uint64_t   _AuxiliaryId;
     std::mutex _AuxiliaryMutex;
+    uint64_t   _AuxiliaryId;
 
     std::shared_ptr<CoreEvent> _ReqEvent;
     std::mutex                 _ReqMutex;
@@ -128,7 +128,7 @@ protected:
 public:
   EventContentBase( EventContext_sptr const aContext ) : _Context( aContext ) {}
   EventContentBase( const EventContentBase &in ) : _Context( in._Context ) {}
-  virtual ~EventContentBase() { _Context = nullptr; }
+  virtual ~EventContentBase() { _Context.reset(); }
   virtual EventContentBase *copy() const = 0;
   std::string GetTypeName() const { return std::string( typeid(*this).name() ); }
   EventContext_sptr GetContext() const { return _Context; }

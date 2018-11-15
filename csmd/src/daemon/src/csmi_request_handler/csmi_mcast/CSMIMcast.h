@@ -286,7 +286,7 @@ public:
      */
     inline void GenerateRASEvents( 
         std::vector<csm::daemon::CoreEvent*>& postEventList, 
-        csm::daemon::EventContextHandlerState_sptr ctx) const
+        csm::daemon::EventContextHandlerState_sptr& ctx) const
     {
         // EARLY RETURN if ras was already pushed.
         if ( _RASPushed || _RASMsgId == "") return;

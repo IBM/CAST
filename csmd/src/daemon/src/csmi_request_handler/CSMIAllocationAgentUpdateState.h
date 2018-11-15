@@ -45,7 +45,7 @@ protected:
     virtual bool HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
     
     /**
      * @brief Initializes the Allocation on the compute node, this is used when transitioning allocations to the ready state.
@@ -61,7 +61,7 @@ protected:
         csmi_allocation_mcast_payload_request_t *payload,
         csmi_allocation_mcast_payload_response_t *respPayload,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /**
      * @brief Deallocates the compute node for the allocation, this is used when transitioning allocations to the staging out state.
@@ -77,7 +77,7 @@ protected:
         csmi_allocation_mcast_payload_request_t *payload,
         csmi_allocation_mcast_payload_response_t *respPayload,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /**
      * @brief Performs the data aggregation step of the allocation, ignores failures (Beta 2).
@@ -99,14 +99,14 @@ protected:
      * Prep ends the hostname to any error message received.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) final;
 
     /** @brief Unused. */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final { }
     
     /** @brief Register the allocation with the local compute node.

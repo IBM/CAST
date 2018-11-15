@@ -87,7 +87,7 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Enter"; 
 
@@ -113,7 +113,7 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
 }
 
 bool CSMISoftFailureRecovery_Master::ParseInfoQuery( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples, 
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
@@ -155,7 +155,7 @@ bool CSMISoftFailureRecovery_Master::ParseInfoQuery(
 }
     
 csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Enter";
@@ -226,7 +226,7 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
 bool CSMISoftFailureRecovery_Master::CreateHardFailures(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateHardFailures: Enter";
     bool success = false;
@@ -256,7 +256,7 @@ bool CSMISoftFailureRecovery_Master::CreateHardFailures(
 bool CSMISoftFailureRecovery_Master::CreateResponsePayload(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateResponsePayload: Enter";
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
@@ -273,14 +273,14 @@ bool CSMISoftFailureRecovery_Master::CreateResponsePayload(
 bool CSMISoftFailureRecovery_Master::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
 
 bool CSMISoftFailureRecovery_Master::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 

@@ -34,7 +34,7 @@ public:
      * @param postEventList The list of events to push new events to.
      */
     virtual void Process( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent, 
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final
     {
@@ -111,7 +111,7 @@ protected:
     virtual bool HandleDBResp(
         const std::vector<csm::db::DBTuple *>& tuples,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx )   = 0;
+        csm::daemon::EventContextHandlerState_sptr& ctx )   = 0;
 };
 
 #endif

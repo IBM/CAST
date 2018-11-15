@@ -31,7 +31,7 @@ public:
      * @param postEventList The list of events to push new events to.
      */
     virtual void Process( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent, 
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final
     {
@@ -41,7 +41,7 @@ public:
 protected:
     /** @brief Handles the parsing and storage of the recieved SystemEvents.
      */
-    virtual void ParseSystemEvent( csm::daemon::EventContextHandlerState_sptr ctx ) = 0;
+    virtual void ParseSystemEvent( csm::daemon::EventContextHandlerState_sptr& ctx ) = 0;
 
 };
 
