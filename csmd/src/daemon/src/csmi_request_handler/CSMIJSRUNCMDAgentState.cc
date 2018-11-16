@@ -82,7 +82,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
     try{
         // Execute the JSRUN Command.
         error_code = csm::daemon::helper::ExecuteJSRUN(jsrun_cmd->jsm_path, jsrun_cmd->allocation_id, 
-            jsrun_cmd->user_id, jsrun_cmd->kv_pairs);
+            jsrun_cmd->user_id, jsrun_cmd->kv_pairs, jsrun_cmd->num_nodes, jsrun_cmd->compute_nodes);
     }
     catch(const csm::daemon::helper::CSMHandlerException& e)
     {
@@ -100,6 +100,17 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
         error_code = CSMERR_CGROUP_FAIL;
     }
+
+    // Free the compute nodes.
+    if(jsrun_cmd->compute_nodes)
+    {
+        for(uint32_t i = 0; i < jsrun_cmd->num_nodes; ++i )
+        {
+            free(jsrun_cmd->compute_nodes[i]);
+        }
+        free(jsrun_cmd->compute_nodes);
+        jsrun_cmd->num_nodes = 0;
+    }
     
 
     // If the initialization or reversion was successful reply to the master daemon.
@@ -108,7 +119,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         // Return the results to the Master via the Aggregator.
         char *buffer          = nullptr;
         uint32_t bufferLength = 0;
-
+        
         csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrun_cmd, &buffer, &bufferLength );
 
         if( buffer )

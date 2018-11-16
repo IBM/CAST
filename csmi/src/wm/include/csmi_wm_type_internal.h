@@ -288,6 +288,8 @@ typedef struct {
     char* kv_pairs; /**< The arguments for JSRUN execution. */
     char* hostname; /**< The hostname of the node. */
     char* jsm_path; /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
+    uint32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes. */
+    char** compute_nodes; /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
 } csmi_jsrun_cmd_payload_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *
