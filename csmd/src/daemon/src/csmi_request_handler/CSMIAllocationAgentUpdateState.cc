@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/CSMIAllocationAgentUpdateState.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -25,6 +25,7 @@
 #include <syslog.h>
 #include <iostream>    ///< IO stream for file operations.
 #include <fstream>     ///< ofstream and ifstream used.
+#include <algorithm>
 
 #define GARRISON 
 // Garrison sample amounts.
@@ -457,14 +458,40 @@ bool AllocationAgentUpdateState::RevertNode(
     // TODO Should a failure trigger an error?
     DataAggregators(respPayload);
     std::vector<int32_t> gpu_id;
-    std::vector<int64_t> gpu_max_memory;
+    std::vector<int64_t> max_gpu_memory;
     std::vector<int64_t> gpu_usage;
 
+    // Allocate memory for the detailed per gpu data
+    csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, respPayload->gpu_metrics);
+    respPayload->gpu_metrics->num_gpus = 0;
+
     bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
-        payload->allocation_id, respPayload->gpu_usage, gpu_id, gpu_max_memory, gpu_usage);
+        payload->allocation_id, respPayload->gpu_usage, gpu_id, max_gpu_memory, gpu_usage);
     if ( gpu_usage_success == false )
     {
-        respPayload->gpu_usage = -1;  
+        respPayload->gpu_usage = -1;
+    }
+    else
+    {
+        if ((gpu_id.size() == max_gpu_memory.size()) && (gpu_id.size() == gpu_usage.size()))
+        {
+            respPayload->gpu_metrics->num_gpus = gpu_id.size();
+
+            // Allocate memory for the per gpu arrays
+            respPayload->gpu_metrics->gpu_id         = (int32_t*)malloc(respPayload->gpu_metrics->num_gpus * sizeof(int32_t));
+            respPayload->gpu_metrics->gpu_usage      = (int64_t*)malloc(respPayload->gpu_metrics->num_gpus * sizeof(int64_t));
+            respPayload->gpu_metrics->max_gpu_memory = (int64_t*)malloc(respPayload->gpu_metrics->num_gpus * sizeof(int64_t));
+
+            // Copy metrics into response payload
+            std::copy(gpu_id.begin(), gpu_id.end(), respPayload->gpu_metrics->gpu_id);  
+            std::copy(gpu_usage.begin(), gpu_usage.end(), respPayload->gpu_metrics->gpu_usage);  
+            std::copy(max_gpu_memory.begin(), max_gpu_memory.end(), respPayload->gpu_metrics->max_gpu_memory);  
+        }
+        else
+        {
+            LOG( csmapi, warning ) <<  "Allocation ID: " << payload->allocation_id <<
+                "; Message: detected size discrepancy in gpu metric vector sizes;";
+        }
     }
 
     LOG( csmapi, trace ) << STATE_NAME ":RevertNode: Exit";
