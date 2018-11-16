@@ -109,6 +109,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
             free(jsrun_cmd->compute_nodes[i]);
         }
         free(jsrun_cmd->compute_nodes);
+        jsrun_cmd->compute_nodes = nullptr;
         jsrun_cmd->num_nodes = 0;
     }
     

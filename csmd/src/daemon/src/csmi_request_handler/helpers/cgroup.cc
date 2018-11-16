@@ -295,11 +295,15 @@ void CGroup::ClearCGroups(bool removeSystem)
             ++controller )
     {
         // Build controller strings.
-        char* controllerStr;
-        asprintf( &controllerStr, "%s/", csmi_cgroup_controller_t_strs[controller]);
+        std::string controllerString(csmi_cgroup_controller_t_strs[controller] );
+        controllerString.append("/");
+        char* controllerStr =  (char*)controllerString.c_str();
+        //asprintf( &controllerStr, "%s/", csmi_cgroup_controller_t_strs[controller]);
 
-        char* controllerDir;
-        asprintf( &controllerDir, "%s%s", CGroup::CONTROLLER_DIR, controllerStr);
+        std::string groupPath = CGroup::CONTROLLER_DIR;
+        groupPath.append(controllerStr);
+        char* controllerDir = (char*) groupPath.c_str();
+        //asprintf( &controllerDir, "%s%s", CGroup::CONTROLLER_DIR, controllerStr);
 
         DIR *cDir =  opendir(controllerDir);  // Open the directory to search for subdirs.
         dirent *dirDetails;                         // Output struct for directory contents.
@@ -311,7 +315,7 @@ void CGroup::ClearCGroups(bool removeSystem)
         }
         std::shared_ptr<DIR> cDirShared(cDir, closedir );
 
-        std::string groupPath(controllerDir); // The base group path.
+        //std::string groupPath(controllerDir); // The base group path.
         while ( ( dirDetails = readdir( cDir ) ) )
         {
             bool isSystem = removeSystem && strcmp( dirDetails->d_name, CSM_SYSTEM ) == 0;
@@ -357,6 +361,7 @@ void CGroup::ClearCGroups(bool removeSystem)
                 }
             }
         }
+
     }
     LOG( csmapi, trace ) << _LOG_PREFIX "ClearCGroups Exit";
 }
