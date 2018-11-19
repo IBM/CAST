@@ -58,6 +58,9 @@ print "-------------------------------------------------------------------------
 print "Welcome to the CSM DB archiving script"
 print "---------------------------------------------------------------------------------------------------------"
 logger.info("Welcome to the CSM DB archiving script")
+print "---------------------------------------------------------------------------------------------------------"
+print "Start Script Time:                 | {0}".format(a)
+print "---------------------------------------------------------------------------------------------------------"
 logger.info("---------------------------------------------------------------------------------------------------------")
 logging.info("Start Script Time:                 | {0}".format(a))
 logger.info("---------------------------------------------------------------------------------------------------------")
@@ -79,7 +82,7 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
         print "[CRITICAL] Unable to connect to local database."
         logger.info("Unable to connect to local database.")
         return
-    print "[INFO] Processing {0}".format(table_name)
+    #print "[INFO] Processing {0}".format(table_name)
 
     time= "master_time_stamp" if is_ras else "history_time"
 
@@ -140,7 +143,8 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
     b = datetime.datetime.now()
     delta = b - a
-    logger.info("Tbl: {0:<29} | User Ct: {1:<10} Act DB Ct: {2:<10}".format(table_name, count, result[0]))
+    print "[INFO] Processing Table {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0])
+    logger.info("Tbl: {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0]))
     db_conn.commit()
     db_conn.close()
 
@@ -184,6 +188,12 @@ def main(args):
     logging.info("---------------------------------------------------------------------------------------------------------")
     logging.info("Finish CSM DB archive script process")
     logging.info("---------------------------------------------------------------------------------------------------------")
+    print "---------------------------------------------------------------------------------------------------------"
+    print "Archiving Data Directory:          | {0}".format(args.target)
+    print "End Script Time:                   | {0}".format(ft)
+    print "Total Process Time:                | {0}".format(delta2)
+    print "---------------------------------------------------------------------------------------------------------"
+    print "Finish CSM DB archive script process"
     print "---------------------------------------------------------------------------------------------------------"
 
 if __name__ == "__main__":
