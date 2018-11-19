@@ -10,7 +10,8 @@ Usage Overview
 
 .. code-block:: bash
 
-    /opt/ibm/csm/db/./csm_db_connections_script.sh –h, --help.
+ /opt/ibm/csm/db/./csm_db_connections_script.sh –h
+ /opt/ibm/csm/db/./csm_db_connections_script.sh --help
 
 The help command (-h, --help) will specify each of the options available to use.
 
@@ -81,6 +82,7 @@ To display all current DB connections:
 
 .. code-block:: bash
 
+ /opt/ibm/csm/db/csm_db_connections_script.sh -l
  /opt/ibm/csm/db/csm_db_connections_script.sh --list
  
 
@@ -118,7 +120,8 @@ Example (-l, --list)
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_connections_script.sh (-l, --list –u, --user <username>).
+ /opt/ibm/csm/db/csm_db_connections_script.sh -l –u <username>
+ /opt/ibm/csm/db/csm_db_connections_script.sh --list --user <username>
 
 .. note:: The script will display the total users connected along with total users.
 
@@ -161,7 +164,8 @@ The user has the ability to kill all DB connections by using the ``–k, --kill`
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_connections_script.sh (-k, --kill).
+ /opt/ibm/csm/db/csm_db_connections_script.sh -k
+ /opt/ibm/csm/db/csm_db_connections_script.sh --kill
 
 .. note:: If this option is chosen by itself, the script will prompt each session with a yes/no request.
  The user has the ability to manually kill or not kill each session.
@@ -222,7 +226,8 @@ The user has the ability to force kill all DB connections by using the ``–k, -
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_connections_script.sh (-k, --kill –f, --force).
+ /opt/ibm/csm/db/csm_db_connections_script.sh -k –f
+ /opt/ibm/csm/db/csm_db_connections_script.sh --kill --force
 
 .. warning:: If this option is chosen by itself, the script will kill each open session(s).
 
@@ -289,7 +294,8 @@ The user has the ability to kill specific user DB connections by using the ``–
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_kill_db_connections_test_1.sh (-k, --kill –u, --user <username>).
+ /opt/ibm/csm/db/csm_kill_db_connections_test_1.sh -k –u <username>
+ /opt/ibm/csm/db/csm_kill_db_connections_test_1.sh --kill --user <username>
 
 .. note:: If this option is chosen then the script will prompt each session with a yes/no request.  The user has the ability to manually kill or not kill each session.
 
@@ -349,7 +355,8 @@ The user has the ability to kill specific user DB connections by using the ``–
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_connections_script.sh (-k, --kill –p, --pid <pidnumber>).
+ /opt/ibm/csm/db/csm_db_connections_script.sh -k –p <pidnumber>
+ /opt/ibm/csm/db/csm_db_connections_script.sh --kill --pid <pidnumber>
 
 .. note:: If this option is chosen then the script will prompt the session with a yes/no request.
 
