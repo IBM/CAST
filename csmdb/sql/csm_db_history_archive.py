@@ -20,15 +20,47 @@ import argparse
 import json
 import sys
 import os
+import logging.config
+import logging.handlers as handlers
+import time
+from logging.handlers import RotatingFileHandler
+import datetime
 from datetime import date
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 
+DEFAULT_LOG='''/var/log/ibm/csm/db/'''
 DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
 DEFAULT_COUNT=1000
 DEFAULT_DATABASE="csmdb"
 DEFAULT_USER="postgres"
 DEFAULT_THREAD_POOL=2
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Absolute path to prevent file rotation issues.
+logfile = os.path.abspath("csm_db_archive_script.log")
+
+# Add a rotating handler
+handler = logging.handlers.RotatingFileHandler('csm_db_archive_script.log',mode='w',maxBytes=1000000,backupCount=365)
+
+# Create and configure logger
+LOG_FORMAT = logging.Formatter('%(asctime)s (%(name)s) [%(levelname)s]:\t%(message)s')
+
+# Add handler and formatter.
+handler.setFormatter(LOG_FORMAT)
+logger.addHandler(handler)
+
+# Test the logger
+a = datetime.datetime.now()
+print "---------------------------------------------------------------------------------------------------------"
+print "Welcome to the CSM DB archiving script"
+print "---------------------------------------------------------------------------------------------------------"
+logger.info("Welcome to the CSM DB archiving script")
+logger.info("---------------------------------------------------------------------------------------------------------")
+logging.info("Start Script Time:                 | {0}".format(a))
+logger.info("---------------------------------------------------------------------------------------------------------")
 
 TABLES=[ "csm_allocation_history", "csm_allocation_node_history", "csm_allocation_state_history", 
     "csm_config_history", "csm_db_schema_version_history", "csm_diag_result_history", 
@@ -44,9 +76,10 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
     except:
-        print "Unable to connect to local database."
+        print "[CRITICAL] Unable to connect to local database."
+        logger.info("Unable to connect to local database.")
         return
-    print "Processing {0}".format(table_name)
+    print "[INFO] Processing {0}".format(table_name)
 
     time= "master_time_stamp" if is_ras else "history_time"
 
@@ -59,13 +92,18 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
         ( SELECT *, ctid AS id \
           FROM {0} WHERE archive_history_time IS NULL \
           ORDER BY {1} ASC LIMIT {2} FOR UPDATE)".format(table_name, time, count))
+
+    ## Select the count.
+    sql = "SELECT count(*) FROM temp_{0}".format(table_name)
+    number_of_rows = cursor.execute(sql)
+    (result,) = cursor.fetchall()
     
     ## Update the flagged tables.
     cursor.execute("UPDATE {0} SET archive_history_time = 'now()' \
-	FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
-	AND {0}.archive_history_time IS NULL \
-	AND {0}.{1} = temp_{0}.{1}".format(table_name,time))
-
+        FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
+        AND {0}.archive_history_time IS NULL \
+        AND {0}.{1} = temp_{0}.{1}".format(table_name,time))
+    
     ## Drop the id from the temp table.
     cursor.execute("ALTER TABLE temp_{0} DROP COLUMN id".format(table_name))
 
@@ -100,9 +138,12 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     
     # Commit the records.
     cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
+    b = datetime.datetime.now()
+    delta = b - a
+    logger.info("Tbl: {0:<29} | User Ct: {1:<10} Act DB Ct: {2:<10}".format(table_name, count, result[0]))
     db_conn.commit()
     db_conn.close()
-    
+
 def main(args):
 
     # Parse the args.
@@ -133,6 +174,17 @@ def main(args):
     for table in RAS_TABLES:
         dump_table( args.db, args.user, table, args.count, args.target, True)
 
+    # Process the finishing info.
+    ft = datetime.datetime.now()
+    delta2 = ft - a
+    logging.info("---------------------------------------------------------------------------------------------------------")
+    logging.info("Archiving Data Directory:          | {0}".format(args.target))
+    logging.info("End Script Time:                   | {0}".format(ft))
+    logging.info("Total Process Time:                | {0}".format(delta2))
+    logging.info("---------------------------------------------------------------------------------------------------------")
+    logging.info("Finish CSM DB archive script process")
+    logging.info("---------------------------------------------------------------------------------------------------------")
+    print "---------------------------------------------------------------------------------------------------------"
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-
