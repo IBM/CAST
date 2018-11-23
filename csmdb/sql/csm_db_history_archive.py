@@ -18,7 +18,7 @@
 import psycopg2
 import argparse
 import json
-import sys, getopt
+import sys
 import os
 import logging.config
 import logging.handlers as handlers
