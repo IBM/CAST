@@ -9,7 +9,7 @@ CSM DB uses PostgreSQL.
     :maxdepth: 2
 
     csm_db_appendix.rst
-    csm_db_archive_script_sh.rst
+    csm_db_history_archive_py.rst
     csm_db_backup_script_v1_sh.rst
     csm_db_connections_script_sh.rst
     csm_db_history_delete_sh.rst
