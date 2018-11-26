@@ -36,11 +36,13 @@ void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** b
     allocPayload->allocation_id    = _Data->allocation_id;
     allocPayload->primary_job_id   = _Data->primary_job_id;
     allocPayload->secondary_job_id = _Data->secondary_job_id;
+    allocPayload->runtime          = _Data->runtime;
     allocPayload->user_flags       = _Data->user_flags ? strdup(_Data->user_flags) : nullptr;
     allocPayload->system_flags     = _Data->system_flags ? strdup(_Data->system_flags) : nullptr;
     allocPayload->user_name        = _Data->user_name ? strdup(_Data->user_name) : nullptr;
     allocPayload->create           = _Create;
     
+
     // Create only 
     allocPayload->isolated_cores   = _Data->isolated_cores;
     allocPayload->num_gpus         = _Data->num_gpus; 

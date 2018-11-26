@@ -454,8 +454,12 @@ bool AllocationAgentUpdateState::RevertNode(
     #endif
     
     // 4. In a delete get a snapshot after everything.
-    // TODO Should a failure trigger an error?
-    DataAggregators(respPayload);
+    // If the runtime is present and less than the total uptime of the node gather the data.
+    if ( payload->runtime > 0 && payload->runtime < csm::daemon::helper::GetUptime())
+    {
+        DataAggregators(respPayload);
+    }
+
 
     bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
         payload->allocation_id, respPayload->gpu_usage);

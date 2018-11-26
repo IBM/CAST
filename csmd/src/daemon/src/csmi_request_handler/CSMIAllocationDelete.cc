@@ -297,7 +297,7 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
     
     // EARLY RETURN
     // If the number of fields is invalid exit.
-    if ( fields->nfields != 11 )
+    if ( fields->nfields != 12 )
     {
         std::string error = mcastProps->GenerateIdentifierString() +
             "; Message: Allocation query returned an incorrect number of fields;";
@@ -323,6 +323,8 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
     a->type                 = (csmi_allocation_type_t)csm_get_enum_from_string(csmi_allocation_type_t, fields->data[7]);
     a->isolated_cores       = strtol(fields->data[8], nullptr, 10);
     a->user_name            = strdup(fields->data[9]);
+
+    a->runtime              = strtoll(fields->data[11], nullptr, 10);
 
     a->compute_nodes        = nullptr;
 
