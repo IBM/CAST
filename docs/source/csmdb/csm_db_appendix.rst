@@ -11,7 +11,7 @@ Table         | Table names start with "csm" prefix,     | *csm_node_history*
               | example csm_node. History table
               | names add "_history" suffix, example:
 Primary Key   | Primary key names are automatically      | *${table name}_pkey*
-              | generate within PostgreSQLstartingi      | *csm_node_pkey*
+              | generate within PostgreSQL starting      | *csm_node_pkey*
               | with table name and followed by pkey.
 Unique Key    | Unique key name start with "uk" followed | *uk_${table name}_b*
               | with table name and a letter indicating  | *uk_csm_allocation_b*
