@@ -16,8 +16,9 @@
 #define _CSMI_SERIALIZATION
 
 #include "csmi_cmds.h"
+#include "csmi_common_type_internal.h"
 
-#include <stdint.h>
+//#include <stdint.h>
 
 typedef struct {
   void *cdata;
@@ -51,10 +52,10 @@ extern "C"
 #endif
 
 #define MAX_ERR_MSG_LEN 2000000
-typedef struct {
-  int errcode;
-  char* errmsg;
-} csmi_err_t;
+//typedef struct {
+//  int errcode;
+//  char* errmsg;
+//} csmi_err_t;
 
 void csmi_cmd_hdl_init(void);
 
@@ -70,6 +71,7 @@ const char *csmi_dbtabname_get(csmi_cmd_t cmd);
 char *csmi_err_pack(const int errcode, const char *errmsg, uint32_t *buf_len);
 csmi_err_t* csmi_err_unpack(const char *buf, const uint32_t buf_len);
 void csmi_err_free(csmi_err_t *err_obj);
+
 
 /** @brief Used to make sure we don't read past the end of the string buffer.
  * @author: Nick Buonarota

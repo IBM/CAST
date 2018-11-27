@@ -21,6 +21,10 @@ extern "C" {
 
 #include "csmi/include/csmi_type_common.h"
 #include "csmi/src/common/include/csmi_struct_hash.h"
+extern const csmi_struct_mapping_t map_csm_node_error_t;
+
+extern const csmi_struct_mapping_t map_csmi_err_t;
+
 
 #ifdef __cplusplus
 }

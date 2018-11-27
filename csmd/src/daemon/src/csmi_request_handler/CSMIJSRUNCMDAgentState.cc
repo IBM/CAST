@@ -27,7 +27,7 @@
 bool JSRUNCMDAgentState::HandleNetworkMessage(
     const csm::network::MessageAndAddress content,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":HandleNetworkMessage: Enter";
 
@@ -101,7 +101,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
         error_code = CSMERR_CGROUP_FAIL;
     }
-
+  
     // Free the compute nodes.
     if(jsrun_cmd->compute_nodes)
     {
@@ -127,7 +127,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         // Return the results to the Master via the Aggregator.
         char *buffer          = nullptr;
         uint32_t bufferLength = 0;
-        
+
         csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrun_cmd, &buffer, &bufferLength );
 
         if( buffer )
@@ -177,7 +177,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
 }
 
 void JSRUNCMDAgentState::HandleError(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator )

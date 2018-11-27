@@ -111,6 +111,12 @@ extern const csmi_struct_mapping_t map_csm_jsrun_cmd_input_t;
 
 extern const csmi_struct_mapping_t map_csmi_soft_failure_recovery_payload_t;
 
+extern const csmi_struct_mapping_t map_csm_soft_failure_recovery_node_t;
+
+extern const csmi_struct_mapping_t map_csm_soft_failure_recovery_input_t;
+
+extern const csmi_struct_mapping_t map_csm_soft_failure_recovery_output_t;
+
 
 #ifdef __cplusplus
 }

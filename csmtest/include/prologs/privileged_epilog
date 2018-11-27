@@ -1,0 +1,277 @@
+#!/bin/python
+# encoding: utf-8
+#================================================================================
+#
+#    privileged_epilog
+#
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+'''
+.. module:: 
+    :platform: Linux
+    :synopsis: A epilog script to execute when creating an allocation, returns 0 on success, if 0 is not returned the Allocation will fail.
+.. moduleauthor:: John Dunham (jdunham@us.ibm.com)
+'''
+
+import sys
+import getopt
+import os
+
+# Set up the logging.
+# ==========================================
+import logging
+import logging.config
+ini_dir = os.path.dirname(os.path.realpath(__file__))
+logging.config.fileConfig( ini_dir + '/privileged.ini', disable_existing_loggers=False )
+logger = logging.getLogger( "privileged_epilog" )
+# ==========================================
+
+''' Constants '''
+#: The supported types of epilog invocations.
+TYPES = {
+    "no_type"    : 0,
+    "allocation" : 1,
+    "step"       : 2
+}
+
+''' Attributes '''
+#: Sets whether the system or user flags have precedence.
+system_precedence = True
+
+#: The system options for this script.
+#:   'short' key is a string of short options.
+#:   'long' key is a list of long options.
+#: This must match the privileged_prolog options.
+system_opts = {
+    "short" : "haz",
+    "long"  : ["huge-pages"]
+}
+
+#: The user options for this script. 
+#:   'short' key is a string of short options.
+#:   'long' key is a list of long options.
+#: This must match the privileged_prolog options.
+user_opts = {
+    "short" : "uat",
+    "long"  : ["UFM-vs","SMT","sms"]
+}
+
+def system_flag_parse( flags, epilog_type ):
+    ''' Parses the system flags for the epilog.
+
+    :param list flags: A list of system flags.
+    :param int epilog_type: The type of epilog to execute the script as:
+        1 - Allocation
+        2 - Step
+    
+    :returns 0: If the arguments were properly parsed.
+    :returns 1: If the arguments failed to be parsed.
+    '''
+    # Change the contents of this for loop to match the flags desired.
+    for flag in flags:
+        if flag in ( "h", "huge-pages" ):
+            logger.info( "Huge Pages Flag Set %s." % flag )
+        
+        elif flag == "a":
+            logger.info( "'a' flag has been set." )
+        
+        elif flag == "z":
+            logger.info( "'z' flag has been set." )
+
+        else:
+            # Return 1 because the user failed.
+            logger.info("Flag %s was not specified." % flag )
+            return 1 
+
+    return 0
+
+
+def user_flag_parse( flags, epilog_type ):
+    ''' Parses the user flags for the epilog.
+    
+    :param list flags: A list of user flags.
+    :param int epilog_type: The type of epilog to execute the script as:
+        1 - Allocation
+        2 - Step
+
+    :returns 0: If the arguments were properly parsed.
+    :returns 1: If the arguments failed to be parsed.
+    '''
+    # Change the contents of this for loop to match the flags desired.
+    for flag in flags:
+        if flag in ( "u", "UFM-vs" ):
+            logger.info( "UFM virtual server flag Set %s." % flag )
+
+        elif flag == "a":
+            logger.info( "'a' flag has been set.")
+        
+        elif flag == "t":
+            logger.info( "'t' flag has been set." )
+        
+        elif flag == "SMT":
+            if epilog_type == TYPES['allocation']:
+                logger.info( "'SMT' flag has been set." )
+            else:
+                logger.error( "'SMT' flag is not supported for the step type." )
+        
+        elif flag == "sms":
+            logger.info( "'sms' flag has been set." )
+        
+        else:
+            logger.info( "Flag %s was not specified." % flag )
+            return 1 
+
+    return 0
+
+def parse_flags( flag_str, options ):
+    ''' Parses the flags out of a string and places them in a list for processing.
+
+    :param string flag_str: A string of space delimited flags.
+    :param dict options: A dictionary containing a "long" key with a list of strings. This
+        will be a list of long flags.
+
+    :return list: The list of flags, both short and long.
+    '''
+    if flag_str is not None and flag_str != "" :
+        flags = flag_str.split(" ")
+    else:
+        return None
+
+    # Iterate over the flags list and find any flags not in the long list.
+    # This will assume that those flags are short flags, meaning each character is a flag.
+    for index, flag in enumerate(flags):
+        if flag not in options["long"]:
+
+            short_flags = flag
+            flags[index] = short_flags[0] 
+
+            for s_flag in short_flags[1:]:
+                flags.append( s_flag )
+
+    return flags
+
+def usage( ):
+    print('''    A Script for performing epilogs, should be paired with a prolog script.
+
+    Usage
+    ===================================================
+    privileged_epilog --type [allocation|step] 
+        [--user_flags  "USER_FLAG1 [USER_FLAG2 [...]]"] 
+        [--sys_flags "SYS_FLAG1 [SYS_FLAG2 [...]]"]
+    
+    Options
+    ===================================================
+    Displays this message.          --help, -h
+    
+    The type of epilog script to 
+    execute this script as.         --type [allocation|step]
+    
+    The flags to execute in this 
+    script with user level 
+    permissions.                    --user_flags "[flag [...]]"
+    
+    The flags to execute in this 
+    script with system level 
+    permissions.                    --sys_flags "[flag [...]]"
+    
+    Supported User Flags
+    ===================================================
+    short: {}
+    long : {}
+    
+    Supported System Flags
+    ===================================================
+    short: {}
+    long : {}
+    '''.format(
+        ",".join( opt for opt in user_opts["short"] ),
+        ",".join( opt for opt in user_opts["long"] ),
+        ",".join( opt for opt in system_opts["short"] ),
+        ",".join( opt for opt in system_opts["long"] )
+        )
+    )
+
+def main():
+    ''' Parse the user and system flags supplied to this script. '''
+    logger.info( "Epilog script begin." )
+    
+    #: The return code of this script.
+    ret_code = 0
+
+    #: The parsed user flags.
+    user_flags   = []
+
+    #: The parsed system flags.
+    system_flags = []
+    
+    #: The type of this epilog.
+    epilog_type       = TYPES["no_type"]
+
+    #: The name of the epilog type for errors.
+    epilog_type_name  = ""
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h", ["user_flags=","sys_flags=","type=","help"])
+    except getopt.GetoptError as err:
+        logger.error( "Invalid user option specified: %s", err )
+        return 1
+
+    for opt, arg in opts:
+        if opt in ("--help", "-h"):
+            usage()
+            return 1
+
+        elif opt == "--user_flags":
+            user_flags = parse_flags( arg, user_opts ) 
+
+        elif opt == "--sys_flags":
+            system_flags = parse_flags( arg, system_opts )
+
+        elif opt == "--type":        
+            epilog_type_name = arg.lower()
+
+            if epilog_type_name in TYPES and TYPES[epilog_type_name] > 0:
+                epilog_type = TYPES[epilog_type_name]
+            
+        else:
+            logger.error( "opt %s, did not specify the option." % opt )
+            return 1
+    
+    # If no type was present notify the invoker and return 1.
+    if epilog_type == TYPES["no_type"]:
+        logger.error( "Invalid epilog type specified: '%s'" % epilog_type_name )
+        return 1
+
+    # If the system precedence was set the system flags are parsed first.
+    # Else the user flags will be parsed first.
+    if system_precedence:
+        if system_flags is not None:
+            ret_code += system_flag_parse( system_flags, epilog_type )  
+
+        if user_flags is not None:
+            ret_code += user_flag_parse( user_flags, epilog_type )  
+
+    else:
+        if user_flags is not None:
+            ret_code += user_flag_parse( user_flags, epilog_type )  
+
+        if system_flags is not None:
+            ret_code += system_flag_parse( system_flags, epilog_type )  
+    
+    if ret_code > 0: 
+        logger.error( "Epilog script ended with errors!" )
+    else:
+        logger.info( "Epilog script ended cleanly." )
+
+    return ret_code
+
+if __name__ == '__main__':
+    sys.exit(main())

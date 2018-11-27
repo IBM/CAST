@@ -1,3 +1,8 @@
+#include "csm_api_version.h"
+#include "csm_api_consts.h"
+#include "csm_api_macros.h"
+#include <stdint.h>
+
 
 /** @addtogroup common_apis
  * @{
@@ -12,3 +17,4 @@
   *  2 | If set a CSM query will not filter on the field ( @ref CSM_UNDEF_BOOL ).
   */
  typedef char csm_bool;
+

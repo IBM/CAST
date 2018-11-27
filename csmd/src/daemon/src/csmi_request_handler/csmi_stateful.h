@@ -86,8 +86,10 @@ public:
         if( ctx->GetAuxiliaryId() >= _States.size() )
              LOG(csmapi, info) << ctx << _cmdName << " end";
 
-        ctx = nullptr;
-        gen_ctx = nullptr;
+        ctx.reset();
+        gen_ctx.reset();
+        //ctx = nullptr;
+        //gen_ctx = nullptr;
     }
     
 protected:

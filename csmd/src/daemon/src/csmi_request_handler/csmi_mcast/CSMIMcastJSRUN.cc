@@ -41,7 +41,6 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
 
     csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrunPayload,
                         buffer, bufferLength );
-    jsrunPayload->compute_nodes = nullptr;
 
     csm_free_struct_ptr(csmi_jsrun_cmd_payload_t, jsrunPayload);
 }

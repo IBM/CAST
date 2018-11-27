@@ -30,7 +30,7 @@
 bool StepAgentUpdateState::HandleNetworkMessage(
     const csm::network::MessageAndAddress content,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":HandleNetworkMessage: Enter";
 
@@ -124,7 +124,7 @@ bool StepAgentUpdateState::HandleNetworkMessage(
 bool StepAgentUpdateState::StepBegin(
     csmi_allocation_step_mcast_payload_t *step,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 { 
     LOG( csmapi, trace ) << STATE_NAME ":InitNode: Enter ";
 
@@ -190,7 +190,7 @@ bool StepAgentUpdateState::StepBegin(
 bool StepAgentUpdateState::StepEnd( 
     csmi_allocation_step_mcast_payload_t *step,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RevertNode: Enter";
     
@@ -248,7 +248,7 @@ bool StepAgentUpdateState::StepEnd(
 }
 
 void StepAgentUpdateState::HandleError(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator )

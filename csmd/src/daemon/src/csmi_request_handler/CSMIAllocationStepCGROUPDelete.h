@@ -41,11 +41,11 @@ protected:
     virtual bool HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     /** @brief See @ref CSMIHandlerState::DefaultHandleError for documentation. */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) final
@@ -55,7 +55,7 @@ protected:
 
     /** @brief Unused. */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final { }
 };
 

@@ -705,4 +705,16 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
 		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, kv_pairs, , NULL, )
 		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, jsm_path, , NULL, );
 
+    class_<csm_soft_failure_recovery_node_t,csm_soft_failure_recovery_node_t*>("soft_failure_recovery_node_t")
+		.add_property("errcode", &csm_soft_failure_recovery_node_t::errcode,&csm_soft_failure_recovery_node_t::errcode,"int")
+		STRING_PROPERTY(csm_soft_failure_recovery_node_t, char*, errmsg, , NULL, )
+		STRING_PROPERTY(csm_soft_failure_recovery_node_t, char*, source, , NULL, );
+
+    class_<csm_soft_failure_recovery_input_t,csm_soft_failure_recovery_input_t*>("soft_failure_recovery_input_t")
+		.add_property("node_count", &csm_soft_failure_recovery_input_t::node_count,&csm_soft_failure_recovery_input_t::node_count,"uint32_t");
+
+    class_<csm_soft_failure_recovery_output_t,csm_soft_failure_recovery_output_t*>("soft_failure_recovery_output_t")
+		.add_property("error_count", &csm_soft_failure_recovery_output_t::error_count,&csm_soft_failure_recovery_output_t::error_count,"uint32_t")
+		ARRAY_STRUCT_PROPERTY(csm_soft_failure_recovery_output_t, csm_soft_failure_recovery_node_t**, node_errors, error_count, NULL, csm_soft_failure_recovery_node_t);
+
 };

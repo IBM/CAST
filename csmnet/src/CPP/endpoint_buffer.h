@@ -44,7 +44,9 @@ public:
     _BufferTail( _BufferBase ),
     _DataLen( 0 ),
     _BufferState( BUFFER_EMPTY )
-  {}
+  {
+      memset(_BufferBase, 0x0, DGRAM_PAYLOAD_MAX);
+  }
 
   virtual ~EndpointBuffer()
   { delete[] _BufferBase; }

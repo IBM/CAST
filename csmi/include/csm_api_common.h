@@ -16,10 +16,6 @@
 #define _CSM_INIT_TERM_H
 
 #include "csmi_type_common.h"
-#include "csm_api_version.h"
-#include "csm_api_consts.h"
-#include "csm_api_macros.h"
-#include <stdint.h>
 
 /** @file csm_api_common.h
  *
@@ -122,6 +118,46 @@ int csm_api_object_errcode_get(csm_api_object *csm_obj);
  * @returns The error string set by the API.
  */
 char *csm_api_object_errmsg_get(csm_api_object *csm_obj);
+
+/** @ingroup common_apis
+ * @brief Getter for the number of nodes which had errors.
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ *
+ * @return The number of nodes with errors.
+ */
+uint32_t csm_api_object_node_error_count_get(csm_api_object *csm_obj);
+
+/** @ingroup common_apis
+ * @brief Getter for the node error code.
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[in] index The index of the node error in the internal array.
+ *
+ * @return The error code, if the error code couldn't be retrieved, -1 is returned.
+ */
+int csm_api_object_node_error_code_get(csm_api_object *csm_obj, uint32_t index);
+
+/** @ingroup common_apis
+ * @brief Getter for the node error source (generally a hostname).
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[in] index The index of the node error in the internal array.
+ *
+ * @return The source of the error, null if not found.
+ */
+const char* csm_api_object_node_error_source_get(csm_api_object *csm_obj, uint32_t index);
+
+/** @ingroup common_apis
+ * @brief Getter for the node error message.
+ *
+ * @param[in] csm_obj A @ref csm_api_object that has been used in an API.
+ * @param[in] index The index of the node error in the internal array.
+ *
+ * @return The error message, null if not found.
+ */
+const char* csm_api_object_node_error_msg_get(csm_api_object *csm_obj, uint32_t index);
+
 
 /** @ingroup common_apis
  * @brief Retrieves the trace id from the supplied @ref csm_api_object.

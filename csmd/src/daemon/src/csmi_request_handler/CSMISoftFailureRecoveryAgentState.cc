@@ -28,7 +28,7 @@
 bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
     const csm::network::MessageAndAddress content,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":HandleNetworkMessage: Enter";
 
@@ -61,7 +61,6 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
     // Clone the hostname for RAS reporting.
     payload->hostname = strdup( hostname.c_str() ); 
     
-    LOG(csmapi, info) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\nHostname " << payload->hostname;
     try
     {
         // 0. Clear out the CGroups.
@@ -133,7 +132,7 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
 }
 
 void SoftFailureRecoveryAgentState::HandleError(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator )

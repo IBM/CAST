@@ -41,7 +41,7 @@
     #define CSMI_STRING_FIXED        0
     #define CSMI_ARRAY               0
     #define CSMI_ARRAY_FIXED         0
-    #define CSMI_ARRAY_STR           1
+    #define CSMI_ARRAY_STR           0
     #define CSMI_ARRAY_STR_FIXED     0
     #define CSMI_STRUCT              0
     #define CSMI_ARRAY_STRUCT        0
@@ -66,6 +66,7 @@ CSMI_STRUCT_MEMBER(char**, compute_nodes, ARRAY_STR, num_nodes, NULL,           
 CSMI_STRUCT_MEMBER(char*  ,  launch_node, STRING, , NULL, ) /**< The launch node for the Job. */
 
 CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

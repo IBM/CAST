@@ -84,7 +84,7 @@ CSMI_VERSION_START(CSM_DEVELOPMENT)
 
 CSMI_ENUM_MEMBER( CSMERR_ALLOC_INVALID_NODES, "Nodes specified for allocation create were not in the database.",,) ///< Indicates one or more nodes were not in the CSM database for the allocation create.
 CSMI_ENUM_MEMBER( CSMERR_ALLOC_OCCUPIED_NODES, "Nodes specified for allocation create were in use by other allocations.",,) ///< Indicates nodes in the list were in use by another allocation.
-CSMI_ENUM_MEMBER( CSMERR_ALLOC_UNAVIL_NODES,   "Allocation create had nodes that were not available.",,) ///< Indicates the allocation create failed due to nodes that were not avaliable.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_UNAVAIL_NODES,   "Allocation create had nodes that were not available.",,) ///< Indicates the allocation create failed due to nodes that were not avaliable.
 CSMI_ENUM_MEMBER( CSMERR_ALLOC_BAD_FLAGS,   "Allocation create had bad allocation flags.",,) ///< Indicates the allocation create failed due to the prolog having bad allocation flags.
 CSMI_ENUM_MEMBER( CSMERR_ALLOC_MISSING,   "Allocation couldn't find the allocation.",,) ///< Indicates the allocation delete failed due to a missing allocation.
 

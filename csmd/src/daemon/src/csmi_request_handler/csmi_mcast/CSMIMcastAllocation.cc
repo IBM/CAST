@@ -106,7 +106,6 @@ bool ParseResponseCreate(
     
     // Track whether or not the received payload is valid.
     bool success = false;
-
     
     // If this is not in recovery and the message length is greater than zero parse the content.
     if( mcastProps && content._Msg.GetDataLen() > 0 )

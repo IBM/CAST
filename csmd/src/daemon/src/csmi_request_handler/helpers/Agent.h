@@ -163,23 +163,6 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
         (char*)"--hosts", (char*)hosts.c_str(),
         NULL };
 
-
-    // Build the script args.
-    //const size_t arg_size = 5 + num_nodes;
-    //char** scriptArgs = (char**)calloc(arg_size,sizeof(char*)); 
-    //scriptArgs[0] = jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD; 
-    //scriptArgs[1] = (char*)"--num_hosts";
-    //scriptArgs[2] = num_hosts;
-    //scriptArgs[3] = (char*)"--hosts";
-    //scriptArgs[arg_size-1]=nullptr;
-
-    //for (size_t i = 4,j=0; j < num_nodes; ++j,++i)
-    //{
-    //    scriptArgs[i] = compute_nodes[j];
-    //}
-    //free(scriptArgs);
-    //free(num_hosts);
-
     // Setup the environment.
     setenv(CSM_TYPE_ALLOCATION_ID   , std::to_string(allocation_id).c_str(), 1);
     setenv(CSM_TYPE_JSM_ARGS        , kv_pairs                             , 1);

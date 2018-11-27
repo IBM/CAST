@@ -87,7 +87,7 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Enter"; 
 
@@ -113,7 +113,7 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
 }
 
 bool CSMISoftFailureRecovery_Master::ParseInfoQuery( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples, 
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
@@ -155,7 +155,7 @@ bool CSMISoftFailureRecovery_Master::ParseInfoQuery(
 }
     
 csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Enter";
@@ -174,7 +174,6 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
         separator = ",";
     }
     nodeStr.append("}");
-    LOG(csmapi, info) << nodeStr;
     // ========================================================================================
     
     // ========================================================================================
@@ -217,7 +216,6 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
         "WHERE node_name=ANY($1::text[]);";
 
-    LOG(csmapi, info) << stmt;
     dbReq = new csm::db::DBReqContent( stmt, paramCount );
     dbReq->AddTextParam(nodeStr.c_str());
 
@@ -228,7 +226,7 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
 bool CSMISoftFailureRecovery_Master::CreateHardFailures(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateHardFailures: Enter";
     bool success = false;
@@ -258,7 +256,7 @@ bool CSMISoftFailureRecovery_Master::CreateHardFailures(
 bool CSMISoftFailureRecovery_Master::CreateResponsePayload(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateResponsePayload: Enter";
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
@@ -275,14 +273,14 @@ bool CSMISoftFailureRecovery_Master::CreateResponsePayload(
 bool CSMISoftFailureRecovery_Master::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
 
 bool CSMISoftFailureRecovery_Master::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 
@@ -296,6 +294,51 @@ bool CSMISoftFailureRecovery_Master::CreateByteArray(
     bufLen= 0;
     if ( mcastProps )
     {
+        // Build the output, only tracks errors.
+        std::vector<csm_node_error_t*> errorList = mcastProps->GenerateErrorListingVector();
+
+        if ( ctx->GetErrorCode() == CSMI_SUCCESS )
+        {
+            csm_soft_failure_recovery_output_t *output;
+            csm_init_struct_ptr(csm_soft_failure_recovery_output_t, output);
+            output->error_count = errorList.size();
+
+            // Assign based on node count.
+            if(output->error_count > 0)
+                output->node_errors = (csm_soft_failure_recovery_node_t**)
+                    calloc(output->error_count, sizeof(csm_soft_failure_recovery_node_t));
+
+            // Serialize, then free.
+            if(output->node_errors)
+            {
+                int i = 0;
+                while(errorList.size() > 0)
+                {
+                    csm_node_error_t* err= errorList.back();
+
+                    // Copy the contents into the struct.
+                    csm_soft_failure_recovery_node_t *rNode;
+                    csm_init_struct_ptr(csm_soft_failure_recovery_node_t, rNode);
+                    rNode->errcode = err->errcode;
+                    rNode->errmsg  = err->errmsg;
+                    err->errmsg = nullptr;
+                    rNode->source  = err->source;
+                    err->source = nullptr;
+                    output->node_errors[i++] = rNode;
+
+                    csm_free_struct_ptr(csm_node_error_t, err);
+                    errorList.pop_back();
+                }
+            }
+            // Serialize, then free.
+            csm_serialize_struct(csm_soft_failure_recovery_output_t, output, buf, &bufLen);
+            csm_free_struct_ptr(csm_soft_failure_recovery_output_t, output);
+        }
+        else
+        {
+            ctx->SetNodeErrors(errorList);
+        }
+
         LOG(csmapi,info) << ctx->GetCommandName() << ctx
             << mcastProps->GenerateIdentifierString()
             << "; Message: Recovery completed;";

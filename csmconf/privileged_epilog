@@ -268,6 +268,7 @@ def main():
     
     if ret_code > 0: 
         logger.error( "Epilog script ended with errors!" )
+        ret_code = -1
     else:
         logger.info( "Epilog script ended cleanly." )
 

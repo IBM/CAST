@@ -79,7 +79,7 @@ bool CSMIAllocationStepEnd::RetrieveDataForPrivateCheck(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
     
@@ -116,7 +116,7 @@ bool CSMIAllocationStepEnd::RetrieveDataForPrivateCheck(
 bool CSMIAllocationStepEnd::CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
     bool success = false;
@@ -153,7 +153,7 @@ bool CSMIAllocationStepEnd::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":CreatePayload: Enter";
 
@@ -239,7 +239,7 @@ bool CSMIAllocationStepEnd::CreatePayload(
 }
 
 bool CSMIAllocationStepEnd::ParseInfoQuery(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples,
     CSMIStepMcast* mcastProps)
 {
@@ -368,14 +368,14 @@ bool CSMIAllocationStepEnd::ParseInfoQuery(
 bool CSMIAllocationStepEnd::CreateByteArray(
     const std::vector<csm::db::DBTuple *>&tuples,
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
 
 bool CSMIAllocationStepEnd::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Enter";
 

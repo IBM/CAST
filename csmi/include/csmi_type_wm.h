@@ -694,6 +694,32 @@ typedef struct {
     char* kv_pairs; /**< Arguments to the JSM run: Supports alphanumeric, ',' , and  '='. Exported to **CSM_JSM_ARGS**. */
     char* jsm_path; /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
 } csm_jsrun_cmd_input_t;
+/**
+ * @brief A container for a CSM error, encapsulates the source error code and message.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    int errcode; ///< The error code of this error message. 
+    char* errmsg; ///< The error message. 
+    char* source; ///< The host reporting the error.
+} csm_soft_failure_recovery_node_t;
+/**
+ * @brief A wrapper for the output of 
+ *
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    uint32_t node_count; ///< A count of nodes.
+} csm_soft_failure_recovery_input_t;
+/**
+ * @brief A wrapper for the output of 
+ *
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    uint32_t error_count; ///< A count of errors.
+    csm_soft_failure_recovery_node_t** node_errors; ///< Collection of errors which occured on nodes.
+} csm_soft_failure_recovery_output_t;
 /** @} */
 
 #ifdef __cplusplus
