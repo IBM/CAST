@@ -152,7 +152,7 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
     {
         hosts.append(compute_nodes[j]).append(" ");
     }
-    //hosts.back() = '\"';
+    hosts.back() = 0;
     
     std::string node_count = std::to_string(num_nodes);
 
