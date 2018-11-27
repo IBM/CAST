@@ -23,7 +23,7 @@
 #define CSMI_ALLOCATION_MCAST
 
 #include "csmnet/src/CPP/csm_message_and_address.h"
-#include "csmi/include/csmi_type_common.h"
+#include "csmi/include/csmi_type_common_funct.h"
 #include "../helpers/EventHelpers.h"
 #include "../csmi_handler_context.h"
 #include <string>
@@ -214,10 +214,34 @@ public:
 
         for ( auto const& node : _NodeStates )
         {
-            LOG(csmapi,info) << node.first << ": " <<node.second.first;
             if ( (isSuccess && node.second.first == 0) || !(isSuccess || node.second.first == 0) )
             {
                 nodeVector.push_back(node.first);
+            }
+        }
+
+        return nodeVector;
+    }
+
+
+    /**
+     * @brief Creates an error listing from the @ref _NodeStates map.
+     *
+     * @return A vector of node errors.
+     */
+    inline std::vector<csm_node_error_t*> GenerateErrorListingVector() const
+    {
+        std::vector<csm_node_error_t*> nodeVector = {};
+
+        for ( auto const& node : _NodeStates )
+        {
+            if (  node.second.first != CSMI_SUCCESS )
+            {
+                csm_node_error_t* temp;
+                csm_init_struct_ptr(csm_node_error_t, temp);
+                temp->errcode = node.second.first > CSMI_SUCCESS ? node.second.first : CSMERR_TIMEOUT ;
+                temp->source = strdup(node.first.c_str());
+                nodeVector.push_back(temp);
             }
         }
 
@@ -262,7 +286,7 @@ public:
      */
     inline void GenerateRASEvents( 
         std::vector<csm::daemon::CoreEvent*>& postEventList, 
-        csm::daemon::EventContextHandlerState_sptr ctx) const
+        csm::daemon::EventContextHandlerState_sptr& ctx) const
     {
         // EARLY RETURN if ras was already pushed.
         if ( _RASPushed || _RASMsgId == "") return;

@@ -894,3 +894,45 @@ const csmi_struct_mapping_t map_csmi_soft_failure_recovery_payload_t= {
     cast_csmi_soft_failure_recovery_payload_t
 };
 
+const csmi_struct_node_t csm_soft_failure_recovery_node_tree[3] = {{"errcode",offsetof(csm_soft_failure_recovery_node_t,errcode),0,NULL,0x74acc5a9,44},
+{"source",offsetof(csm_soft_failure_recovery_node_t,source),0,NULL,0x1c3aff76,4},
+{"errmsg",offsetof(csm_soft_failure_recovery_node_t,errmsg),0,NULL,0xfbc757d5,4}}
+;
+
+void* cast_csm_soft_failure_recovery_node_t(void* ptr,size_t index, char isArray) { 
+    csm_soft_failure_recovery_node_t ** ptr_cast = *(csm_soft_failure_recovery_node_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csm_soft_failure_recovery_node_t= {
+    3,
+    csm_soft_failure_recovery_node_tree,
+    cast_csm_soft_failure_recovery_node_t
+};
+
+const csmi_struct_node_t csm_soft_failure_recovery_input_tree[1] = {{"node_count",offsetof(csm_soft_failure_recovery_input_t,node_count),0,NULL,0x176c6f3,24}}
+;
+
+void* cast_csm_soft_failure_recovery_input_t(void* ptr,size_t index, char isArray) { 
+    csm_soft_failure_recovery_input_t ** ptr_cast = *(csm_soft_failure_recovery_input_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csm_soft_failure_recovery_input_t= {
+    1,
+    csm_soft_failure_recovery_input_tree,
+    cast_csm_soft_failure_recovery_input_t
+};
+
+const csmi_struct_node_t csm_soft_failure_recovery_output_tree[2] = {{"error_count",offsetof(csm_soft_failure_recovery_output_t,error_count),0,NULL,0xd1ef0537,24},
+{"node_errors",offsetof(csm_soft_failure_recovery_output_t,node_errors),offsetof(csm_soft_failure_recovery_output_t, error_count),&map_csm_soft_failure_recovery_node_t,0x352e9f67,1}}
+;
+
+void* cast_csm_soft_failure_recovery_output_t(void* ptr,size_t index, char isArray) { 
+    csm_soft_failure_recovery_output_t ** ptr_cast = *(csm_soft_failure_recovery_output_t***)ptr;
+    return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
+};
+const csmi_struct_mapping_t map_csm_soft_failure_recovery_output_t= {
+    2,
+    csm_soft_failure_recovery_output_tree,
+    cast_csm_soft_failure_recovery_output_t
+};
+

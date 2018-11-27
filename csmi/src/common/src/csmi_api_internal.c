@@ -15,7 +15,8 @@
 #include "csmi/src/common/include/csmi_api_internal.h"
 #include "csmi/src/common/include/csm_serialization_x_macros.h"
 #include "csmutil/include/csmutil_logging.h"
-#include "csmi/include/csm_api_common.h"
+#include "csmi/include/csmi_type_common_funct.h"
+//#include "csmi/include/csm_api_common.h"
 #include <string.h>
 
 csm_api_object * csm_api_object_new(csmi_cmd_t cmd, freePrototype free_func)
@@ -43,6 +44,10 @@ csm_api_object * csm_api_object_new(csmi_cmd_t cmd, freePrototype free_func)
    // FIXME Should the Error Code get set here?
    // initialize errmsg for CSMI_SUCCESS
    csmi_hdl->errmsg = strdup(csm_get_string_from_enum(csmi_cmd_err_t,CSMI_SUCCESS));
+   csmi_hdl->errcode = CSMI_SUCCESS;
+
+   csmi_hdl->errorlist_count = 0;
+   csmi_hdl->errlist= NULL;
  
    return csm_obj;
 }
@@ -67,6 +72,18 @@ void csmi_api_handler_destroy(csmi_api_internal *csmi_hdl)
     return;
   }
   if (csmi_hdl->errmsg != NULL) free(csmi_hdl->errmsg);
+
+  // Free the outdated list
+  if ( csmi_hdl->errlist && csmi_hdl->errorlist_count > 0 )
+  {
+      uint32_t count = csmi_hdl->errorlist_count;
+      uint32_t i=0;
+      for( ;i < count; i++)
+      {
+           csm_free_struct_ptr(csm_node_error_t, csmi_hdl->errlist[i]);
+      }
+      free(csmi_hdl->errlist);
+  }
 
   free(csmi_hdl);
 }
@@ -95,6 +112,31 @@ void csm_api_object_errmsg_set(csm_api_object *csm_obj, char *msg)
    if (csmi_hdl->errmsg) free(csmi_hdl->errmsg);
    csmi_hdl->errmsg = msg;
 }
+
+void csm_api_object_errlist_set(csm_api_object *csm_obj, uint32_t n_count, csm_node_error_t** node_errors)
+{
+  if (csm_obj == NULL || csm_obj->hdl == NULL) {
+    csmutil_logging(error, "csmi_api_object not valid");
+    return;
+  }
+   csmi_api_internal *csmi_hdl;
+   csmi_hdl = (csmi_api_internal *) csm_obj->hdl;
+
+   // Free the outdated list
+   if ( csmi_hdl->errlist && csmi_hdl->errorlist_count > 0 )
+   {
+       uint32_t count = csmi_hdl->errorlist_count;
+       uint32_t i=0;
+       for( ;i < count; i++)
+       {
+            csm_free_struct_ptr(csm_node_error_t, csmi_hdl->errlist[i]);
+       }
+       free(csmi_hdl->errlist);
+   }
+   csmi_hdl->errlist = node_errors;
+   csmi_hdl->errorlist_count = n_count;
+}
+
 
 void csm_api_object_trace_set(csm_api_object *csm_obj, uint32_t traceId)
 {

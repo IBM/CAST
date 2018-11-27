@@ -40,7 +40,7 @@ public:
     
 protected:
     virtual void Process(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final;
     
@@ -49,7 +49,7 @@ protected:
      * This iteration converts ECOMM, ETIMEOUT and EPERM to the CSM equivalent.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) final
@@ -62,7 +62,7 @@ protected:
     
     /** @brief Unused, returns nullptr. */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final { ; }
 };
 #undef STATE_NAME

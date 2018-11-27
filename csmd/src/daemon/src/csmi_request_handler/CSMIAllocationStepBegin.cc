@@ -98,7 +98,7 @@ bool CSMIAllocationStepBegin::RetrieveDataForPrivateCheck(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
     
@@ -135,7 +135,7 @@ bool CSMIAllocationStepBegin::RetrieveDataForPrivateCheck(
 bool CSMIAllocationStepBegin::CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
     bool success = false;
@@ -172,7 +172,7 @@ bool CSMIAllocationStepBegin::CreatePayload(
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) 
+        csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":CreatePayload: Enter";
 
@@ -261,7 +261,7 @@ bool CSMIAllocationStepBegin::CreatePayload(
 }
 
 bool CSMIAllocationStepBegin::ParseInfoQuery(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples,
     CSMIStepMcast* mcastProps )
     {
@@ -323,7 +323,7 @@ bool CSMIAllocationStepBegin::ParseInfoQuery(
     }
 
 csm::db::DBReqContent* CSMIAllocationStepBegin::UndoStepDB(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) << STATE_NAME ":UndoStepDB: Enter";
@@ -364,7 +364,7 @@ csm::db::DBReqContent* CSMIAllocationStepBegin::UndoStepDB(
 bool CSMIAllocationStepBegin::UndoTerminal(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx ) 
+        csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     // Get the allocation data.
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
@@ -377,8 +377,9 @@ bool CSMIAllocationStepBegin::UndoTerminal(
     if ( mcastProps )
     {
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(), ';');
-        ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
-        ctx->AppendErrorMessage("; Message: Step was successfully reverted;", ' ');
+        //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+        ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+        ctx->AppendErrorMessage("Message: Step was successfully reverted;", ' ');
 
         csmi_allocation_step_mcast_context_t* step = mcastProps->GetData();
         if(step && tuples.size() == 1 && tuples[0]->data && 
@@ -406,7 +407,7 @@ bool CSMIAllocationStepBegin::UndoTerminal(
 bool CSMIAllocationStepBegin::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx ) 
+        csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
@@ -414,7 +415,7 @@ bool CSMIAllocationStepBegin::CreateByteArray(
 // TODO Inline?
 bool CSMIAllocationStepBegin::CreateByteArray(
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx ) 
+        csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Enter";
 

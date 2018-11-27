@@ -28,7 +28,7 @@
 bool BBCMDAgentState::HandleNetworkMessage(
     const csm::network::MessageAndAddress content,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << STATE_NAME ":HandleNetworkMessage: Enter";
 
@@ -128,7 +128,7 @@ bool BBCMDAgentState::HandleNetworkMessage(
 }
 
 void BBCMDAgentState::HandleError(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList,
     bool byAggregator )

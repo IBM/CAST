@@ -1,6 +1,6 @@
 /*================================================================================
    
-    csmi/src/common/include/csmi_common_internal.h
+    csmi/include/csmi_type_common_funct.h
 
     © Copyright IBM Corporation 2015-2017. All Rights Reserved
 
@@ -12,18 +12,21 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
     
 ================================================================================*/
-#ifndef _CSMI_COMMON_INTERNAL_H_
-#define _CSMI_COMMON_INTERNAL_H_
+/** @file csmi_type_common_funct.h
+ * @brief A collection of serialization helper functions for @ref common_apis.
+ * 
+ * If the user wants meaningful defaults for their CSM structs, it is 
+ * recommended to use the struct's corresponding init function. 
+ * Structs initialized through this function should generally be free'd 
+ * using the corresponding free.
+ */
+#include "csmi_type_common.h"
+#ifndef _CSMI_COMMON_TYPE_FUNCTS_H_
+#define _CSMI_COMMON_TYPE_FUNCTS_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "csmi/include/csmi_type_common.h"
-#include "csmi/src/common/include/csmi_struct_hash.h"
-extern const csmi_struct_mapping_t map_csm_node_error_t;
-
-extern const csmi_struct_mapping_t map_csmi_err_t;
 
 
 #ifdef __cplusplus

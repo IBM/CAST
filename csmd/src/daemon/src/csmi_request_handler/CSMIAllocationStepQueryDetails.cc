@@ -57,7 +57,7 @@ bool CSMIAllocationStepQueryDetails::RetrieveDataForPrivateCheck(
         const std::string& arguments, 
         const uint32_t len, 
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     //TODO: Add in history table check as well. 
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
@@ -105,7 +105,7 @@ bool CSMIAllocationStepQueryDetails::RetrieveDataForPrivateCheck(
 bool CSMIAllocationStepQueryDetails::CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
 	
@@ -146,7 +146,7 @@ bool CSMIAllocationStepQueryDetails::CreatePayload(
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
 	// TODO: Old log. Should this be a trace only?
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Enter";
@@ -255,7 +255,7 @@ bool CSMIAllocationStepQueryDetails::CreatePayload(
 bool CSMIAllocationStepQueryDetails::CreateResponsePayload(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     uint32_t step_count = tuples.size();
 
@@ -330,7 +330,7 @@ bool CSMIAllocationStepQueryDetails::CreateResponsePayload(
 bool CSMIAllocationStepQueryDetails::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {	
     LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Enter";
     

@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
 	int               indexptr = 0;
     
     //API_PARAMETER_INPUT_TYPE input;    
+    csm_soft_failure_recovery_input_t input;
+    csm_soft_failure_recovery_output_t *output;
 
 	csm_api_object   *csm_obj = NULL;
 
@@ -96,16 +98,40 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	return_value = csm_soft_failure_recovery(&csm_obj);
+
+    return_value = csm_init_lib();
+	if ( return_value != 0 )
+    {
+        csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+        csmutil_logging(error, "  csm_init_lib rc= %d, Initialization failed. Success is required to be able to communicate between library and daemon. Are the daemons running?",return_value);
+        return return_value;
+    }        
+    
+    return_value = csm_soft_failure_recovery(&csm_obj, &input, &output);
 
 	if (return_value == CSMI_SUCCESS ) 
     {
-	    printf("---\n# Soft Failure cleaned up.\n...\n");
+	    printf("---\n# Soft Failure cleaned up.\n");
+
+        if ( output->error_count > 0 )
+        {
+            printf("# %d Nodes Failed:\n", output->error_count);
+            int i=0;
+            for(;i< output->error_count; i++)
+            {
+                csm_soft_failure_recovery_node_t* node_error = output->node_errors[i];
+                printf("# %s[%d]: %s\n", node_error->source, node_error->errcode, node_error->errmsg);
+            }
+        }
+
+        printf("...\n");
 	}
 	else 
     {
 		printf("# %s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value, 
             csm_api_object_errcode_get(csm_obj), csm_api_object_errmsg_get(csm_obj));
+        
+        csm_print_node_errors(csm_obj)
 	}
 
 	// it's the csmi library's responsibility to free internal space

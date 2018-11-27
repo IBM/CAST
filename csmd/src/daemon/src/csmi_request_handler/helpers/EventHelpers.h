@@ -310,6 +310,47 @@ inline  csm::daemon::TimerEvent *CreateTimerEvent(
     return new csm::daemon::TimerEvent( content, csm::daemon::EVENT_TYPE_TIMER, aContext );
 }
 
+/** @brief Create an error reply NetworkEvent at Master
+ *  @ingroup Event_Types
+ *  @note aEvent must be a NetworkEvent
+ * 
+ *  @param[in] buffer        A buffer containing the error object to be sent over the wire.
+ *  @param[in] buffer_length The length of the buffer contained in @p buffer.
+ *  @param[in] reqContent Contains a _Msg and Address used in constructing 
+ *                          the sessage sent.
+ *
+ *  @return An ErrorEvent with the supplied details, a nullptr is returned if the 
+ *          Message is unable to be constructed.
+ */
+inline csm::daemon::NetworkEvent* CreateErrorEvent(
+                        char* buffer, uint32_t buffer_length,
+                        const csm::daemon::CoreEvent& aEvent)
+{
+    uint8_t   flags         = CSM_HEADER_RESP_BIT | CSM_HEADER_ERR_BIT; 
+    csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)&aEvent;
+    csm::network::MessageAndAddress reqContent = ev->GetContent();
+
+    // Generate the message.
+    csm::network::Message rsp_msg;    
+    bool ret  = csm::daemon::helper::CreateNetworkMessage(
+                      reqContent._Msg, buffer, buffer_length, flags, rsp_msg);
+    
+    // FIXME THIS CAN SEGFAULT!!!
+    // Determine the target address for this event.
+    csm::network::Address_sptr rsp_address = csm::daemon::helper::CreateReplyAddress(
+                      reqContent.GetAddr().get());
+    csm::daemon::NetworkEvent *net_event   = nullptr; 
+    
+    // If everything has been sucessfully created generate the event.
+    if ( ret && rsp_address) 
+    {
+          csm::network::MessageAndAddress errContent ( rsp_msg, rsp_address );
+          net_event = new csm::daemon::NetworkEvent(errContent,
+                              csm::daemon::EVENT_TYPE_NETWORK, nullptr);
+    }
+    
+    return net_event;
+}
 
 /** @brief Create an error reply NetworkEvent at Master
  *  @ingroup Event_Types

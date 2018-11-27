@@ -1,8 +1,8 @@
 /*================================================================================
 
-    csmi/include/csm_types/struct_defs/common/csmi_err.def
+    csmi/include/csm_types/struct_defs/common/csm_soft_failure_recovery_node.def
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -14,12 +14,11 @@
 ================================================================================*/
 
 /**
- * CSMI_INTERNAL
  * CSMI_COMMENT
- * @brief An internal container for a CSM error, encapsulates the error code, message and error list.
+ * @brief A container for a CSM error, encapsulates the source error code and message.
  */
 #ifndef CSMI_STRUCT_NAME
-    #define CSMI_STRUCT_NAME csmi_err_t
+    #define CSMI_STRUCT_NAME csm_soft_failure_recovery_node_t
     
     #undef CSMI_BASIC              
     #undef CSMI_STRING             
@@ -41,7 +40,7 @@
     #define CSMI_ARRAY_STR           0
     #define CSMI_ARRAY_STR_FIXED     0
     #define CSMI_STRUCT              0
-    #define CSMI_ARRAY_STRUCT        1
+    #define CSMI_ARRAY_STRUCT        0
     #define CSMI_ARRAY_STRUCT_FIXED  0
     #define CSMI_NONE                0
 #endif 
@@ -49,11 +48,9 @@
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
 CSMI_VERSION_START(CSM_DEVELOPMENT)
 
-CSMI_STRUCT_MEMBER(int     , errcode,            BASIC,              ,   -1,) ///< The error code of this error message.
-CSMI_STRUCT_MEMBER(char*   , errmsg ,            STRING,             , NULL,) ///< The error message.
-CSMI_STRUCT_MEMBER(uint32_t, error_count,  BASIC,              ,    0, ) ///< A count of errors. 
-CSMI_STRUCT_MEMBER(csm_node_error_t**, node_errors, ARRAY_STRUCT, error_count, NULL,csm_node_error_t ) ///< Collection of errors which occured on nodes.
-
+CSMI_STRUCT_MEMBER(int     , errcode,            BASIC,              ,   -1,) ///< The error code of this error message. 
+CSMI_STRUCT_MEMBER(char*   , errmsg ,            STRING,             , NULL,) ///< The error message. 
+CSMI_STRUCT_MEMBER(char*   , source ,            STRING,             , NULL,) ///< The host reporting the error.
 
 CSMI_VERSION_END(0)
 #undef CSMI_VERSION_START

@@ -47,7 +47,7 @@ int ScanForPrivleged(bool isProlog, int64_t allocationId=0, bool isShared=false)
 inline bool ExecutePrivileged( 
     char *userFlags,
     char *systemFlags,
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     bool isProlog,
     bool isStep)
 {

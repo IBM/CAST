@@ -29,13 +29,13 @@ public:
 	virtual bool CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx) final;
 	
 	virtual bool RetrieveDataForPrivateCheck(
         const std::string& arguments, 
         const uint32_t len, 
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     /** @brief Queries the database for the specified allocation id.
      *
@@ -45,11 +45,11 @@ public:
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     static bool CreateByteArray(
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /** @brief 
      *
@@ -57,12 +57,12 @@ public:
     virtual bool CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     static bool CreateResponsePayload(
         const std::vector<csm::db::DBTuple *>&tuples,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx);
+        csm::daemon::EventContextHandlerState_sptr& ctx);
 
     /** @brief Parses the query defined in CreatePayload.
      * 
@@ -75,7 +75,7 @@ public:
      * @return True if the info was successfully parsed.
      */
     static bool ParseInfoQuery( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const std::vector<csm::db::DBTuple *>& tuples,
         CSMIMcastAllocation* mcastProps);
 
@@ -86,7 +86,7 @@ public:
      * @return The Request content for the SQL query.
      */
     static csm::db::DBReqContent* DeleteRowStatement( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         CSMIMcastAllocation* mcastProps);
 };
 

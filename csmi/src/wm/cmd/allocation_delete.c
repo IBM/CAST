@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
 	int               indexptr = 0;
     
     API_PARAMETER_INPUT_TYPE input;    
+    csm_init_struct_versioning(&input);
     input.allocation_id = 0;
     input.primary_job_id =0;
     input.secondary_job_id=0;
@@ -147,12 +148,14 @@ int main(int argc, char *argv[])
 
 	if (return_value == CSMI_SUCCESS ) 
     {
-	    printf("---\n# Allocation Id: %ld successfully deleted\n...\n", input.allocation_id);
+	    printf("---\n# Allocation ID: %ld successfully deleted\n...\n", input.allocation_id);
 	}
 	else 
     {
 		printf("# %s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value, 
             csm_api_object_errcode_get(csm_obj), csm_api_object_errmsg_get(csm_obj));
+
+        csm_print_node_errors(csm_obj)
 	}
 
 	// it's the csmi library's responsibility to free internal space

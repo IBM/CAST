@@ -108,8 +108,8 @@ public:
 private:
     void *_EventHandler;
   
-    uint64_t   _AuxiliaryId;
     std::mutex _AuxiliaryMutex;
+    uint64_t   _AuxiliaryId;
 
     std::shared_ptr<CoreEvent> _ReqEvent;
     std::mutex                 _ReqMutex;

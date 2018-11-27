@@ -35,7 +35,7 @@ public:
      * @param postEventList The list of events to push new events to.
      */
     virtual void Process( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent, 
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final
     {
@@ -114,7 +114,7 @@ protected:
     virtual bool HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) = 0;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) = 0;
 
 
     /**
@@ -129,7 +129,7 @@ protected:
      * @param[in]     error The Error object representing the 
      */
     virtual void ProcessError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csmi_err_t* error) 
     { 
         if ( error )

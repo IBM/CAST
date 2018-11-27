@@ -32,6 +32,7 @@ EventContextHandlerState::EventContextHandlerState(
         _ReceivedNumResponses(0),
         _ErrorCode(CSMI_SUCCESS),
         _DBErrorCode(0),
+        _NodeErrors({}),
         _ErrorMessage(""),
         _UserData(nullptr),
         _DataDestructor(nullptr)
@@ -64,6 +65,8 @@ EventContextHandlerState::EventContextHandlerState(const csm::daemon::EventConte
    
 EventContextHandlerState::~EventContextHandlerState()
 {
+    LOG(csmapi, trace) << this << " EventContextHandlerState Destructor";
+
     if ( _UserData && _DataDestructor )
     {
         // Lock the Data and Destructor.
@@ -72,6 +75,12 @@ EventContextHandlerState::~EventContextHandlerState()
 
         _DataDestructor(_UserData);
         _UserData = nullptr;
+    }
+
+    while(_NodeErrors.size() > 0)
+    {
+        csm_free_struct_ptr(csm_node_error_t, _NodeErrors.back());
+        _NodeErrors.pop_back();
     }
 }
 
@@ -211,6 +220,32 @@ std::string EventContextHandlerState::GetCommandName()
     return name;
 }
 
+char* EventContextHandlerState::GetErrorSerialized(uint32_t* bufLen) 
+{
+    std::lock_guard<std::mutex> lock(_ErrorMessageMutex);
+    std::lock_guard<std::mutex> lockEc(_ErrorCodeMutex);
+    std::lock_guard<std::mutex> lockNe(_NodeErrorsMutex);
+    
+    // Build the error container.
+    csmi_err_t error;
+    csm_init_struct_versioning(&error);
+    error.errcode     = _ErrorCode;
+    error.errmsg      = strdup(_ErrorMessage.c_str());
+    error.error_count = _NodeErrors.size();
+    error.node_errors = (csm_node_error_t**)_NodeErrors.data();
+
+    // Serialize the message.
+    char* buffer = nullptr;
+    csm_serialize_struct(csmi_err_t, &error, &buffer, bufLen);
+
+    // Free the error message.
+    if (error.errmsg) free(error.errmsg);
+
+    return buffer;
+
+}
+
+
 void EventContextHandlerState::SetUserData( void* userData ) 
 { 
     // Lock the user data before performing operations.
@@ -229,6 +264,21 @@ void EventContextHandlerState::SetDataDestructor( std::function<void(void*)>  de
 {
     std::lock_guard<std::mutex> lock(_DestructorMutex);
     _DataDestructor = dest; 
+}
+
+void EventContextHandlerState::SetNodeErrors(std::vector<csm_node_error_t*> nodeErrors) 
+{
+    std::lock_guard<std::mutex> lock(_NodeErrorsMutex);
+
+    // Destroy the old list (should never happen.
+    while(_NodeErrors.size() > 0)
+    {
+        csm_free_struct_ptr(csm_node_error_t, _NodeErrors.back());
+        _NodeErrors.pop_back();
+    }
+    
+    _NodeErrors = nodeErrors;
+
 }
 
 std::ostream& operator<<(std::ostream& os, const EventContextHandlerState* ctx)
