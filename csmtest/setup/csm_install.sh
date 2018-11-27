@@ -237,6 +237,11 @@ if [ ${AGGREGATOR_A} == ${AGGREGATOR_B} ]
 		xdcp compute_A /etc/ibm/csm/csm_compute_A.cfg /etc/ibm/csm/csm_compute.cfg
 		xdcp compute_B /etc/ibm/csm/csm_compute_B.cfg /etc/ibm/csm/csm_compute.cfg
 fi
+if [ ! -z $SSL_KEY ]
+	then
+		cp ${SSL_KEY} /etc/ibm/csm/csm_ufm_ssl_key.txt
+	else "SSL_KEY is not defined in csm_test.cfg. Skipping SSL setup.  NOTE: basic inventory collection bucket will fail"
+fi
 
 # 4.2.3 Prolog/Epilog Scripts Compute
 xdcp csm_comp /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
