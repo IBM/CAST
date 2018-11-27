@@ -43,43 +43,57 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
+# Check for SSL key
+ls /etc/ibm/csm/csm_ufm_ssl_key.txt > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Check for SSL key"
+
 # Clean table data
 su -c "psql -d csmdb -c 'DELETE FROM csm_ib_cable ;'" postgres > /dev/null 2>&1
 su -c "psql -d csmdb -c 'DELETE FROM csm_switch ;'" postgres > /dev/null 2>&1
 
-# Test Case 1: standalone_ib_and_switch_collection collects IB cable data
-${SBIN_PATH}/standalone_ib_and_switch_collection -c /etc/ibm/csm/csm_master.cfg -t 1 > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 1: standalone_ib_and_switch_collection collects IB cable data"
+# Test Case 1: standalone_ib_and_switch_collection fails without SSL key
+rm -f /etc/ibm/csm/csm_ufm_ssl_key.txt > ${TEMP_LOG} 2>&1
+ls /etc/ibm/csm/csm_ufm_ssl_key.txt > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 2 "Test Case 1: standalone_ib_and_switch_collection fails without SSL key - remove SSL key"
+${SBIN_PATH}/standalone_ib_and_switch_collection -c /etc/ibm/csm/csm_master/cfg -t 3 > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 1 "Test Case 1: standalone_ib_and_switch_collection fails without SSL key"
+cp -f ${SSL_KEY} /etc/ibm/csm/csm_ufm_ssl_key.txt > ${TEMP_LOG} 2>&1
+ls /etc/ibm/csm/csm_ufm_ssl_key.txt > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 1: standalone_ib_and_switch_collection fails without SSL key - restore SSL key"
 
-# Test Case 2: Checking IB cable data populated
+# Test Case 2: standalone_ib_and_switch_collection collects IB cable data
+${SBIN_PATH}/standalone_ib_and_switch_collection -c /etc/ibm/csm/csm_master.cfg -t 1 > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 2: standalone_ib_and_switch_collection collects IB cable data"
+
+# Test Case 3: Checking IB cable data populated
 su -c "psql -d csmdb -c 'SELECT * FROM csm_ib_cable LIMIT 1;'" postgres | grep "1 row" > ${TEMP_LOG}
-check_return_flag $? "Test Case 2: Checking IB cable data populated"
+check_return_flag $? "Test Case 3: Checking IB cable data populated"
 
 # Clean ib cable table data
 su -c "psql -d csmdb -c 'DELETE FROM csm_ib_cable ;'" postgres > /dev/null 2>&1
 
-# Test Case 3: standalone_ib_and_switch_collection collects Switch data
+# Test Case 4: standalone_ib_and_switch_collection collects Switch data
 ${SBIN_PATH}/standalone_ib_and_switch_collection -c /etc/ibm/csm/csm_master.cfg -t 2 > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 3: standalone_ib_and_switch_collection collects Switch data"
+check_return_flag $? "Test Case 4: standalone_ib_and_switch_collection collects Switch data"
 
-# Test Case 4: Checking Switch data populated
+# Test Case 5: Checking Switch data populated
 su -c "psql -d csmdb -c 'SELECT * FROM csm_switch LIMIT 1;'" postgres | grep "1 row" > ${TEMP_LOG}
-check_return_flag $? "Test Case 4: Checking Switch data populated"
+check_return_flag $? "Test Case 5: Checking Switch data populated"
 
 # Clean switch table data
 su -c "psql -d csmdb -c 'DELETE FROM csm_switch ;'" postgres > /dev/null 2>&1
 
-# Test Case 5: standalone_ib_and_switch_collection collects IB and Switch data
+# Test Case 6: standalone_ib_and_switch_collection collects IB and Switch data
 ${SBIN_PATH}/standalone_ib_and_switch_collection -c /etc/ibm/csm/csm_master.cfg -t 3 > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 5: standalone_ib_and_switch_collection collects IB and Switch data"
+check_return_flag $? "Test Case 6: standalone_ib_and_switch_collection collects IB and Switch data"
 
-# Test Case 6: Checking IB cable data populated
+# Test Case 7: Checking IB cable data populated
 su -c "psql -d csmdb -c 'SELECT * FROM csm_ib_cable LIMIT 1;'" postgres | grep "1 row" > /dev/null 2>&1
-check_return_flag $? "Test Case 6: Checking IB cable data populated"
+check_return_flag $? "Test Case 7: Checking IB cable data populated"
 
-# Test Case 7: Checking Switch data populated
+# Test Case 8: Checking Switch data populated
 su -c "psql -d csmdb -c 'SELECT * FROM csm_switch LIMIT 1;'" postgres | grep "1 row" > ${TEMP_LOG}
-check_return_flag $? "Test Case 7: Checking Switch data populated"
+check_return_flag $? "Test Case 8: Checking Switch data populated"
 
 # File / DB Cleanup
 rm -f ${TEMP_LOG}
