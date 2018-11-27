@@ -37,6 +37,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
     jsrunPayload->hostname       = strdup("");
     jsrunPayload->num_nodes      = _Data->num_nodes;
     jsrunPayload->compute_nodes  = _Data->compute_nodes;
+    jsrunPayload->launch_node    = strdup(_Data->launch_node);
 
     csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrunPayload,
                         buffer, bufferLength );

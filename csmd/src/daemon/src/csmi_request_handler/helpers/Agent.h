@@ -143,22 +143,42 @@ inline int ExecuteSFRecovery( char ** output, int timeout)
 }
 
 inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, char* kv_pairs, 
-    uint32_t num_nodes, char** compute_nodes)
+    uint32_t num_nodes, char** compute_nodes, char* launch_node)
 {
-    char* num_hosts = strdup(std::to_string(num_nodes).c_str());
-    // Build the script args.
-    const size_t arg_size = 5 + num_nodes;
-    char** scriptArgs = (char**)calloc(arg_size,sizeof(char*)); 
-    scriptArgs[0] = jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD; 
-    scriptArgs[1] = (char*)"--num_hosts";
-    scriptArgs[2] = num_hosts;
-    scriptArgs[3] = (char*)"--hosts";
-    scriptArgs[arg_size-1]=nullptr;
+    // Build the nodes string.
+    std::string hosts = "\"";
 
-    for (size_t i = 4,j=0; j < num_nodes; ++j,++i)
+    for (size_t j=0; j < num_nodes; ++j)
     {
-        scriptArgs[i] = compute_nodes[j];
+        hosts.append(compute_nodes[j]).append(" ");
     }
+    hosts.append("\"");
+    
+    std::string node_count = std::to_string(num_nodes);
+
+    char* scriptArgs[] = { 
+        jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD, 
+        (char*)"--launch_node", launch_node ? launch_node : (char*)"BAD_NODE",
+        (char*)"--num_hosts", (char*)node_count.c_str(),
+        (char*)"--hosts", (char*)hosts.c_str(),
+        NULL };
+
+
+    // Build the script args.
+    //const size_t arg_size = 5 + num_nodes;
+    //char** scriptArgs = (char**)calloc(arg_size,sizeof(char*)); 
+    //scriptArgs[0] = jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD; 
+    //scriptArgs[1] = (char*)"--num_hosts";
+    //scriptArgs[2] = num_hosts;
+    //scriptArgs[3] = (char*)"--hosts";
+    //scriptArgs[arg_size-1]=nullptr;
+
+    //for (size_t i = 4,j=0; j < num_nodes; ++j,++i)
+    //{
+    //    scriptArgs[i] = compute_nodes[j];
+    //}
+    //free(scriptArgs);
+    //free(num_hosts);
 
     // Setup the environment.
     setenv(CSM_TYPE_ALLOCATION_ID   , std::to_string(allocation_id).c_str(), 1);
@@ -175,8 +195,6 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
         // Fork and don't wait.
         errCode = ForkAndExecAllocationCGroup( scriptArgs, allocation_id, user_id);
     }
-    free(scriptArgs);
-    free(num_hosts);
 
     return errCode;
 }
