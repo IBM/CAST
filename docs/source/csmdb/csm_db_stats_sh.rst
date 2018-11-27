@@ -513,6 +513,8 @@ Example (Query details)
 | ``last_archive_time`` | Last archived process time.                |
 +-----------------------+--------------------------------------------+
 
+.. warning:: This query could take several minutes to execute depending on the total size of each table.
+
 Example (DB archive count with details)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
