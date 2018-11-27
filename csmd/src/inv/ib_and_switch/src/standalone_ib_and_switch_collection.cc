@@ -206,6 +206,8 @@ int main(int argc, char *argv[])
 	std::string csm_inv_log_dir = "";
 	std::string ib_cable_errors = "";
 	std::string switch_errors = "";
+	std::string ssl_file_path = "";
+	std::string ssl_file_name = "";
 
 	// checking if master cinfig file is open
 	if ( !input_file.is_open() )
@@ -240,6 +242,10 @@ int main(int argc, char *argv[])
 		vector_of_the_comparing_strings.push_back("inventory");
 		vector_of_the_comparing_strings.push_back("ufm");
 
+		//elements in the list for finding the ssl file
+		vector_of_the_comparing_strings.push_back("ufm_ssl_file_path");
+		vector_of_the_comparing_strings.push_back("ufm_ssl_file_name");
+
 		//Boolean values to see if we find all data we expect to see.
 		//It is possible someone points to a bad config file missing expected fields. 
 		//As we find vaild fields we will "turn on" these booleans, proving we found the data
@@ -250,6 +256,8 @@ int main(int argc, char *argv[])
 		bool config_inventory_ufm_ib_cable_errors = false; // sub field of 'ufm' called 'ib_cable_errors'
 		bool config_inventory_ufm_switch_errors = false;   // sub field of 'ufm' called 'switch_errors'
 		//bool config_inventory_ufm_ufm_counters = false;    // sub field of 'ufm' called 'ufm_counters'
+		bool config_inventory_ufm_ufm_ssl_file_path = false;    // sub field of 'ufm' called 'ufm_ssl_file_path'
+		bool config_inventory_ufm_ufm_ssl_file_name = false;    // sub field of 'ufm' called 'ufm_ssl_file_name'
 		
 		// reading the input file lines
 		//std::cout << "Reading master config file" << std::endl;
@@ -328,6 +336,14 @@ int main(int argc, char *argv[])
 						    // update the logging bool
                             config_inventory_ufm = true; 
 						    break;
+						case 8:
+							ssl_file_path = line;
+							config_inventory_ufm_ufm_ssl_file_path = true;
+							break;
+						case 9:
+							ssl_file_name = line;
+							config_inventory_ufm_ufm_ssl_file_name = true;
+							break;
 					}
 				}
 			}
@@ -338,7 +354,9 @@ int main(int argc, char *argv[])
 			config_inventory_csm_inv_log_dir == false || 
 			config_inventory_ufm == false ||
 			config_inventory_ufm_ib_cable_errors == false || 
-			config_inventory_ufm_switch_errors == false 
+			config_inventory_ufm_switch_errors == false ||
+			config_inventory_ufm_ufm_ssl_file_path == false ||
+			config_inventory_ufm_ufm_ssl_file_name == false
 		)
 		{
 			std::cout << std::endl;
@@ -369,6 +387,16 @@ int main(int argc, char *argv[])
             	std::cout << "Missing 'switch_errors' field. Setting this to a default vaule of: \"bad_switch_records.txt\"" << std::endl;
             	switch_errors = "bad_switch_records.txt";
             }
+            if(config_inventory_ufm_ufm_ssl_file_path == false)
+            {
+            	std::cout << "Missing 'ssl_file_path' field. Setting this to a default vaule of: \"/etc/ibm/csm\"" << std::endl;
+            	ssl_file_path = "/etc/ibm/csm";
+            }
+            if(config_inventory_ufm_ufm_ssl_file_name == false)
+            {
+            	std::cout << "Missing 'ssl_file_name' field. Setting this to a default vaule of: \"csm_ufm_ssl_key.txt\"" << std::endl;
+            	ssl_file_name = "csm_ufm_ssl_key.txt";
+            }
             std::cout << "========" << std::endl;
             std::cout << std::endl;
             successful_with_errors = true;
@@ -396,8 +424,15 @@ int main(int argc, char *argv[])
 	}
 
 	// name of the temp file
-	std::string temp_file_name = "temp_file.txt";
-	//std::cout << "temp file name: " << temp_file_name << std::endl;
+	ssl_file_path = "/etc/ibm/csm";
+	ssl_file_name = "csm_ufm_ssl_key.txt";
+	std::string ssl_full_path = ssl_file_path + "/" + ssl_file_name;
+	
+    // printing
+	if(details)
+	{
+		std::cout << "full path to the ssl key file: " << ssl_full_path << std::endl;
+	}
 	
     // ToDo: 
     // Store the username and password in a ssl key in a file
@@ -406,21 +441,22 @@ int main(int argc, char *argv[])
     // we then read from that file
     // pipeline is in place to make that switch.
 
+	//for old temp file. leave for now
 	// generating authentication string for the HTTP request
-	std::string command = "openssl base64 -e <<< " + rest_username+ ":" + rest_password + " > " + temp_file_name;
-	system(command.c_str());
+	//std::string command = "openssl base64 -e <<< " + rest_username+ ":" + rest_password + " > " + temp_file_name;
+	//system(command.c_str());
 	
 	// declaring the authentication string for the http request
 	std::string authentication_string_for_the_http_request;
 	
 	// opening temp file
-	std::ifstream temp_file(temp_file_name.c_str(),std::ios::in);
+	std::ifstream ssl_file(ssl_full_path.c_str(),std::ios::in);
 
 	// checking if temp file is open
-	if ( ! temp_file.is_open() )
+	if ( ! ssl_file.is_open() )
 	{
 		// printing
-		std::cout << "Temp file " << temp_file_name << " not open, return"  << std::endl;
+		std::cout << "SSL file " << ssl_full_path << " not open, return"  << std::endl;
 		std::cout << "Return without executing data collection" << std::endl;
 		
 		// return error
@@ -429,19 +465,29 @@ int main(int argc, char *argv[])
 	else 
 	{
 		// getting and modfifying the authentication string for the http request
-		temp_file >> authentication_string_for_the_http_request;
+		ssl_file >> authentication_string_for_the_http_request;
 		//std::cout << "before modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 		authentication_string_for_the_http_request = authentication_string_for_the_http_request.substr(0,authentication_string_for_the_http_request.size()-4);
 		//std::cout << "after modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 	}
 
+	if( authentication_string_for_the_http_request[0] == '\0')
+	{
+		std::cout << "WARNING: SSL file provided is blank. Please create an SSL key and save it in this file." << std::endl;
+		std::cout << "Return without executing data collection" << std::endl;
+		
+		// return error
+		return 1;
+	}
+
 	// closing temp output file
-	temp_file.close();
+	ssl_file.close();
 	std::cout << std::endl;
 	
+	//old temp file - leave for now
 	// cleaning
-	command = "rm " + temp_file_name;
-	system(command.c_str());
+	//command = "rm " + ssl_file_name;
+	//system(command.c_str());
 	
 	// gathering flags
 	int ib_flag = INV_IB_CONNECTOR_ACCESS::GetInstance()->GetCompiledWithSupport();
