@@ -1,6 +1,8 @@
 CSM Configuration
 =================
 
+Soft Failure Recovery
+---------------------
 
 
 CSM Pam Daemon Module

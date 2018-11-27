@@ -82,7 +82,8 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
     try{
         // Execute the JSRUN Command.
         error_code = csm::daemon::helper::ExecuteJSRUN(jsrun_cmd->jsm_path, jsrun_cmd->allocation_id, 
-            jsrun_cmd->user_id, jsrun_cmd->kv_pairs);
+            jsrun_cmd->user_id, jsrun_cmd->kv_pairs, jsrun_cmd->num_nodes, jsrun_cmd->compute_nodes, 
+            jsrun_cmd->launch_node);
     }
     catch(const csm::daemon::helper::CSMHandlerException& e)
     {
@@ -99,6 +100,24 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         ctx->SetErrorMessage(error);
         ctx->SetErrorCode(CSMERR_CGROUP_FAIL);
         error_code = CSMERR_CGROUP_FAIL;
+    }
+  
+    // Free the compute nodes.
+    if(jsrun_cmd->compute_nodes)
+    {
+        for(uint32_t i = 0; i < jsrun_cmd->num_nodes; ++i )
+        {
+            free(jsrun_cmd->compute_nodes[i]);
+        }
+        free(jsrun_cmd->compute_nodes);
+        jsrun_cmd->compute_nodes = nullptr;
+        jsrun_cmd->num_nodes = 0;
+
+        if(jsrun_cmd->launch_node)
+        {
+            free(jsrun_cmd->launch_node);
+            jsrun_cmd->launch_node = nullptr;
+        }
     }
     
 

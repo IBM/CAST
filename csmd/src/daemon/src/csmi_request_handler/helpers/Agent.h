@@ -142,10 +142,26 @@ inline int ExecuteSFRecovery( char ** output, int timeout)
     return errCode;
 }
 
-inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, char* kv_pairs )
+inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, char* kv_pairs, 
+    uint32_t num_nodes, char** compute_nodes, char* launch_node)
 {
-    // Build the script args.
-    char* scriptArgs[] = { jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD, NULL };
+    // Build the nodes string.
+    std::string hosts = "";
+
+    for (size_t j=0; j < num_nodes; ++j)
+    {
+        hosts.append(compute_nodes[j]).append(" ");
+    }
+    hosts.back() = 0;
+    
+    std::string node_count = std::to_string(num_nodes);
+
+    char* scriptArgs[] = { 
+        jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD, 
+        (char*)"--launch_node", launch_node ? launch_node : (char*)"BAD_NODE",
+        (char*)"--num_hosts", (char*)node_count.c_str(),
+        (char*)"--hosts", (char*)hosts.c_str(),
+        NULL };
 
     // Setup the environment.
     setenv(CSM_TYPE_ALLOCATION_ID   , std::to_string(allocation_id).c_str(), 1);

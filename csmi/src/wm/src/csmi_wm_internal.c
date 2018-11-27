@@ -845,13 +845,19 @@ const csmi_struct_mapping_t map_csmi_allocation_step_mcast_payload_t= {
     cast_csmi_allocation_step_mcast_payload_t
 };
 
-const csmi_struct_node_t csmi_jsrun_cmd_payload_tree[7] = {{"allocation_id",offsetof(csmi_jsrun_cmd_payload_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csmi_jsrun_cmd_payload_tree[13] = {{"allocation_id",offsetof(csmi_jsrun_cmd_payload_t,allocation_id),0,NULL,0x99d3da77,40},
 {"user_id",offsetof(csmi_jsrun_cmd_payload_t,user_id),0,NULL,0x45c27210,24},
 {"jsm_path",offsetof(csmi_jsrun_cmd_payload_t,jsm_path),0,NULL,0xe89734bb,4},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
+{"launch_node",offsetof(csmi_jsrun_cmd_payload_t,launch_node),0,NULL,0x3603aa05,4},
+{"compute_nodes",offsetof(csmi_jsrun_cmd_payload_t,compute_nodes),offsetof(csmi_jsrun_cmd_payload_t, num_nodes),NULL,0x74676dda,5},
 {"kv_pairs",offsetof(csmi_jsrun_cmd_payload_t,kv_pairs),0,NULL,0x9c4b0fc4,4},
-{"hostname",offsetof(csmi_jsrun_cmd_payload_t,hostname),0,NULL,0xeba474a4,4}}
+{"hostname",offsetof(csmi_jsrun_cmd_payload_t,hostname),0,NULL,0xeba474a4,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"num_nodes",offsetof(csmi_jsrun_cmd_payload_t,num_nodes),0,NULL,0xa5d6722d,24}}
 ;
 
 void* cast_csmi_jsrun_cmd_payload_t(void* ptr,size_t index, char isArray) { 
@@ -859,7 +865,7 @@ void* cast_csmi_jsrun_cmd_payload_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_jsrun_cmd_payload_t= {
-    7,
+    13,
     csmi_jsrun_cmd_payload_tree,
     cast_csmi_jsrun_cmd_payload_t
 };
