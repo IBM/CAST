@@ -146,13 +146,13 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
     uint32_t num_nodes, char** compute_nodes, char* launch_node)
 {
     // Build the nodes string.
-    std::string hosts = "\"";
+    std::string hosts = "";
 
     for (size_t j=0; j < num_nodes; ++j)
     {
         hosts.append(compute_nodes[j]).append(" ");
     }
-    hosts.back() = '\"';
+    //hosts.back() = '\"';
     
     std::string node_count = std::to_string(num_nodes);
 
