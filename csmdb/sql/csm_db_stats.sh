@@ -16,9 +16,9 @@
 
 #================================================================================
 #   usage:              ./csm_db_stats.sh
-#   current_version:    01.7
+#   current_version:    01.8
 #   create:             08-02-2016
-#   last modified:      10-18-2018
+#   last modified:      11-27-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -549,22 +549,23 @@ fi
 return_code=0
 if [ $archivecount == "yes" ]; then
 echo "-----------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
+psql -U $db_username -d $dbname -P format=wrapped -c "WITH cte AS (
+    SELECT
        table_name,
-       (xpath('/row/cnt/text()', total_rows))[1]::text::int as total_rows,
        (xpath('/row/cnt/text()', not_archived))[1]::text::int as not_archived,
        (xpath('/row/cnt/text()', archived))[1]::text::int as archived,
        (xpath('/row/cnt/text()', last_archive_time))[1]::text::timestamp as last_archive_time
 from (
   select table_name,
-        query_to_xml(format('select count(*) as cnt from %I.%I', table_schema, table_name), false, true, '') as total_rows,
         query_to_xml(format('select count(*) as cnt from %I.%I where archive_history_time is NULL', table_schema, table_name), false, true, '') as not_archived,
         query_to_xml(format('select count(*) as cnt from %I.%I where archive_history_time is NOT NULL', table_schema, table_name), false, true, '') as archived,
         query_to_xml(format('select MAX(archive_history_time) as cnt from %I.%I where archive_history_time is NOT NULL', table_schema, table_name), false, true, '') as last_archive_time
   from information_schema.columns
   WHERE column_name = 'archive_history_time'
-  ORDER BY table_name ASC
-) t;" | grep -v "^$" 2>>/dev/null
+) t)
+SELECT table_name, sum(archived + not_archived) as total, sum(archived) as archived, sum(not_archived) not_archived, last_archive_time from cte
+group by table_name, last_archive_time
+ORDER BY table_name ASC;" | grep -v "^$" 2>>/dev/null
     if [ $? -ne 0 ]; then
     echo "[Error ] Table and or database does not exist in the system"
     LogMsg "[Error ] Table and or database does not exist in the system" 

@@ -20,15 +20,70 @@ import argparse
 import json
 import sys
 import os
+import logging.config
+import logging.handlers as handlers
+import time
+from logging.handlers import RotatingFileHandler
+import datetime
 from datetime import date
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 
+DEFAULT_LOG='''/var/log/ibm/csm/db/csm_db_archive_script.log'''
 DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
 DEFAULT_COUNT=1000
 DEFAULT_DATABASE="csmdb"
 DEFAULT_USER="postgres"
 DEFAULT_THREAD_POOL=2
+
+# Additional Formatting style
+line1 = "---------------------------------------------------------------------------------------------------------"
+
+if not os.geteuid() == 0:
+    print "{0}".format(line1)
+    print "[INFO] Only root can run this script"
+    sys.exit("{0}".format(line1))
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Add a rotating handler
+handler = logging.handlers.RotatingFileHandler(DEFAULT_LOG,mode='w',maxBytes=1000000,backupCount=365)
+
+# Create and configure logger
+LOG_FORMAT = logging.Formatter('%(asctime)s (%(name)s) [%(levelname)s]:\t%(message)s')
+
+# Add handler and formatter.
+handler.setFormatter(LOG_FORMAT)
+logger.addHandler(handler)
+
+# Test the logger create start time and also check the arguments
+a = datetime.datetime.now()
+fullCmdArguments = sys.argv
+argumentList = fullCmdArguments[1:]
+
+if "-t" in argumentList or "--target" in argumentList or "-n" in argumentList or "--count" in argumentList or "-d" in argumentList or "--database" in argumentList or "-u" in argumentList or "--user" in argumentList or "--threads" in argumentList:
+    print "{0}".format(line1)
+    print "Welcome to the CSM DB archiving script"
+    print "{0}".format(line1)
+    print "Start Script Time:                 | {0}".format(a)
+    print "{0}".format(line1)
+    logger.info("Welcome to the CSM DB archiving script")
+    logger.info("{0}".format(line1))
+    logging.info("Start Script Time:                 | {0}".format(a))
+    logger.info("{0}".format(line1))
+elif len(argumentList) == 0:
+    print "{0}".format(line1)
+    print "Welcome to the CSM DB archiving script"
+    print "{0}".format(line1)
+    print "Start Script Time:                 | {0}".format(a)
+    print "{0}".format(line1)
+    logger.info("Welcome to the CSM DB archiving script")
+    logger.info("{0}".format(line1))
+    logging.info("Start Script Time:                 | {0}".format(a))
+    logger.info("{0}".format(line1))
+else:
+    print "{0}".format(line1)
 
 TABLES=[ "csm_allocation_history", "csm_allocation_node_history", "csm_allocation_state_history", 
     "csm_config_history", "csm_db_schema_version_history", "csm_diag_result_history", 
@@ -44,9 +99,9 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
     except:
-        print "Unable to connect to local database."
+        print "[CRITICAL] Unable to connect to local database."
+        logger.info("Unable to connect to local database.")
         return
-    print "Processing {0}".format(table_name)
 
     time= "master_time_stamp" if is_ras else "history_time"
 
@@ -59,11 +114,18 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
         ( SELECT *, ctid AS id \
           FROM {0} WHERE archive_history_time IS NULL \
           ORDER BY {1} ASC LIMIT {2} FOR UPDATE)".format(table_name, time, count))
+
+    ## Select the count.
+    sql = "SELECT count(*) FROM temp_{0}".format(table_name)
+    number_of_rows = cursor.execute(sql)
+    (result,) = cursor.fetchall()
     
     ## Update the flagged tables.
     cursor.execute("UPDATE {0} SET archive_history_time = 'now()' \
-        FROM temp_{0} WHERE temp_{0}.id = {0}.ctid".format(table_name))
-
+        FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
+        AND {0}.archive_history_time IS NULL \
+        AND {0}.{1} = temp_{0}.{1}".format(table_name,time))
+    
     ## Drop the id from the temp table.
     cursor.execute("ALTER TABLE temp_{0} DROP COLUMN id".format(table_name))
 
@@ -90,7 +152,8 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
                 file.write('{{ "type":"db-{0}", "data":{1} }}\n'.format(
                     table_name, json.dumps(dict(zip(colnames, row)), default=str)))
     except Exception as e:
-        print "Exception caught: {0}".format(e)
+        print "[INFO] Exception caught: {0}".format(e)
+        logger.info("Exception caught: {0}".format(e))
         cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
         db_conn.rollback()
         db_conn.close()
@@ -98,17 +161,28 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     
     # Commit the records.
     cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
+    
+    # Gather the script time for calculation
+    b = datetime.datetime.now()
+    delta = b - a
+    
+    # Gather the results for printing to screen and logging
+    print "[INFO] Processing Table {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0])
+    logger.info("Tbl: {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0]))
+    
     db_conn.commit()
     db_conn.close()
-    
+
 def main(args):
 
     # Parse the args.
     parser = argparse.ArgumentParser(
-        description='''A tool for archiving the CSM Database history tables.''')
-    
+        description='A tool for archiving the CSM Database history tables.',
+        add_help=True,
+        epilog="------------------------------------------------------------------------------")
+   
     parser.add_argument( '-t', '--target', metavar='dir', dest='target', default=DEFAULT_TARGET,
-        help="Target directory to write archive and logging to. Default: {0}".format(DEFAULT_TARGET))
+        help="Target directory to write archive to. Default: {0}".format(DEFAULT_TARGET))
     parser.add_argument( '-n', '--count', metavar='count', dest="count", default=DEFAULT_COUNT,
         help="Number of records to archive in the run. Default: {0}".format(DEFAULT_COUNT))
     parser.add_argument( '-d', '--database', metavar='db', dest="db", default=DEFAULT_DATABASE,
@@ -118,6 +192,7 @@ def main(args):
     parser.add_argument( '--threads', metavar='threads', dest="threads", default=DEFAULT_THREAD_POOL,
         help="The number of threads for the thread pool. Default: {0}".format(DEFAULT_THREAD_POOL))
 
+    # Input parsing
     args = parser.parse_args()
 
     # Verifies path exists.
@@ -131,6 +206,27 @@ def main(args):
     for table in RAS_TABLES:
         dump_table( args.db, args.user, table, args.count, args.target, True)
 
+    # Process the finishing info. for screen and logging.
+    ft = datetime.datetime.now()
+    delta2 = ft - a
+    logger.info("{0}".format(line1))
+    logging.info("DB Name:                           | {0}".format(args.db))
+    logging.info("Archiving Log Directory:           | {0}".format(DEFAULT_LOG))
+    logging.info("Archiving Data Directory:          | {0}".format(args.target))
+    logging.info("End Script Time:                   | {0}".format(ft))
+    logging.info("Total Process Time:                | {0}".format(delta2))
+    logger.info("{0}".format(line1))
+    logging.info("Finish CSM DB archive script process")
+    logger.info("{0}".format(line1))
+    print "{0}".format(line1)
+    print "DB Name:                           | {0}".format(args.db)
+    print "Archiving Log Directory:           | {0}".format(DEFAULT_LOG)
+    print "Archiving Data Directory:          | {0}".format(args.target)
+    print "End Script Time:                   | {0}".format(ft)
+    print "Total Process Time:                | {0}".format(delta2)
+    print "{0}".format(line1)
+    print "Finish CSM DB archive script process"
+    print "{0}".format(line1)
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-
