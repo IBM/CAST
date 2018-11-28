@@ -385,7 +385,7 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
     }
     
 
-    if (allocation && allocation->primary_job_id > 0)
+    if (allocation && allocation->primary_job_id > 0 && !ctx->GetDBErrorCode() )
     {
         const int paramCount = 13;
         std::string stmt = "SELECT fn_csm_allocation_history_dump( "
