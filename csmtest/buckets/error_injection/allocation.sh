@@ -232,6 +232,10 @@ check_return_flag_nz $? 9 "Test Case 32: csm_allocation_delete NO ARGS"
 ${CSM_PATH}/csm_allocation_delete -a 123456789 > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 50 "Test Case 33: csm_allocation_delete allocation does not exist"
 
+# Test Case 34: csm_allocation_delete primary job id does not exist
+${CSM_PATH}/csm_allocation_delete -j 123456789 > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 50 "Test Case 34: csm_allocation_delete primary job id does not exist"
+
 # Test Case 34: csm_allocation_delete invalid -a input
 ${CSM_PATH}/csm_allocation_delete -a xxx > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 9 "Test Case 34: csm_allocation_delete invalid -a input"
