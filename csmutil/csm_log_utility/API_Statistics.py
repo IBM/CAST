@@ -49,9 +49,9 @@ else:
 # python api_statistics.py <Start Date> <Start Time> <End Date> <End Time>  - looks from Start Date/Time to End Date/Time
 
 if(args.start_arg):
-    start_datetime = datetime.strptime(start_arg, '%Y-%m-%d %H:%M:%S.%f')
+    start_datetime = datetime.strptime(args.start_arg, '%Y-%m-%d %H:%M:%S.%f')
 if(args.end_arg):
-    end_datetime = datetime.strptime(range_arg, '%Y-%m-%d %H:%M:%S.%f')
+    end_datetime = datetime.strptime(args.end_arg, '%Y-%m-%d %H:%M:%S.%f')
 
 
 # if len(sys.argv) == 1:
