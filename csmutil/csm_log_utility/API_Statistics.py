@@ -29,11 +29,11 @@ logs_path = ""
 parser = argparse.ArgumentParser(
     description='''A tool for parsing daemon logs for API statistics.''')
 parser.add_argument( '-p', metavar='path', dest='directory_path', default=None,
-    help='The directory path to where the logs are located.')
+    help='The directory path to where the logs are located. Defaults to: \'/var/log/ibm/csm\'')
 parser.add_argument( '-s', metavar='start', dest='start_arg', default=None,
-    help='looks from Start Date/Time to end of log file.')
+    help='start of search range. Defaults to: \'1000-01-01 00:00:00.0000\'')
 parser.add_argument( '-e', metavar='end', dest='end_arg', default=None,
-    help='looks from Start Date/Time to End Date/Time.')
+    help='end of search range. Defaults to: \'9999-01-01 00:00:00.0000\'')
 args = parser.parse_args()
 
 #Default log location for CSM logs, unless a user supplies a path
