@@ -94,6 +94,7 @@ Script out results
 .. code-block:: bash
 
  ./csm_db_stats.sh –t <db_name>
+ ./csm_db_stats.sh –-tableinfo <db_name>
 
 .. note:: Directory: Currently the scripts are setup to archive the results in a specified directory.
 

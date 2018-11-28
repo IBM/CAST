@@ -10,7 +10,9 @@ This script will gather statistical information related to the CSM DB which incl
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_stats.sh –h, --help.
+ /opt/ibm/csm/db/csm_db_stats.sh –h
+ /opt/ibm/csm/db/csm_db_stats.sh --help
+ 
  This help command <-h, --help> will specify each of the options available to use.
 
 The ``csm_db_stats.sh`` script creates a log file for each query executed. (Please see the log file for details): ``/var/log/ibm/csm/csm_db_stats.log``
@@ -97,7 +99,8 @@ Example (usage)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/csm_db_stats.sh –t, --tableinfo [my_db_name]
+ /opt/ibm/csm/db/csm_db_stats.sh –t <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --tableinfo <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -142,7 +145,8 @@ Example (DB Table info.)
 
 .. code-block:: bash	
  
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –i, --indexinfo <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –i <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --indexinfo <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -188,7 +192,8 @@ Example (Indexes)
 
 .. code-block:: bash	
  
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –x, --indexanalysis <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –x <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --indexanalysis <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -253,7 +258,8 @@ Example (Indexes Usage)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –l, --lockinfo <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –l <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --lockinfo <my_db_name>
  
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -306,7 +312,8 @@ Example (Lock Monitoring)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –s, --schemaversion <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –s <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --schemaversion <my_db_name>
  
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -327,7 +334,7 @@ Example (DB Schema Version)
  -------------------------------------------------------------------------------------
   version |        create_time         |     comment
  ---------+----------------------------+-----------------
-   16.1   | 2018-04-04 09:41:57.784378 | current_version
+   16.2   | 2018-04-04 09:41:57.784378 | current_version
  (1 row)
  -------------------------------------------------------------------------------------
 .. note:: This query provides the current database version the system is running along with its creation time.
@@ -337,7 +344,8 @@ Example (DB Schema Version)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –c, --connectionsdb <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –c <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --connectionsdb <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -392,7 +400,8 @@ Example (database connections)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –u, --usernamedb <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –u <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --usernamedb <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -455,7 +464,8 @@ Example (DB users with details)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –v, --postgresqlversion <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –v <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --postgresqlversion <my_db_name>
 
 +--------------+--------------------------------------------------------------+
 | Column_Name  |                          Description                         |
@@ -484,7 +494,8 @@ Example (DB Schema Version)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –a, --indexanalysis <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –a <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --indexanalysis <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -501,6 +512,8 @@ Example (Query details)
 +-----------------------+--------------------------------------------+
 | ``last_archive_time`` | Last archived process time.                |
 +-----------------------+--------------------------------------------+
+
+.. warning:: This query could take several minutes to execute depending on the total size of each table.
 
 Example (DB archive count with details)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
