@@ -685,17 +685,22 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                     else if (suppressed)
                     {
                         LOG(csmras, info) << "RAS EVENT SUPPRESSED " << rctx->_rasEvent->getLogString() << " state:" << node_state; 
+                        _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
                     }
                     else
                     {
                         LOG(csmras, info) << "RAS EVENT DISABLED   " << rctx->_rasEvent->getLogString(); 
+                        _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
                     }
                 }
 
                 if (rasRc._rc != CSMI_SUCCESS) {
                     csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)reqEvent;
                     csm::network::MessageAndAddress c = ev->GetContent();
+                    
                     LOG(csmras, error) << "RAS EVENT ERROR      " << rctx->_rasEvent->getLogString() << " errstr:" << rasRc._errstr; 
+                    _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
+                    
                     if (! c._Msg.GetInt() )
                         returnErrorMsg(c.GetAddr(), c._Msg, rasRc._rc, rasRc._errstr, postEventList);
 
@@ -734,15 +739,14 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
             {
                 LOG(csmras, debug) << "RAS EVENT DB WR RESP " << rctx->_rasEvent->getLogString(); 
                 LOG(csmras, info) << "RAS EVENT COMPLETE   " << rctx->_rasEvent->getLogString(); 
+                _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
             }
             else 
             {
-                LOG(csmras, warning) << "RAS EVENT unexpected branch taken, rctx->_state=" << rctx->_state; 
-
                 // TODO: detect and log db errors here...
-                // remove the rtx reference...
-                _contextMap.erase(ctx->GetAuxiliaryId());
-
+                
+                LOG(csmras, warning) << "RAS EVENT unexpected branch taken, rctx->_state=" << rctx->_state; 
+                _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
             }
         }
     }
