@@ -117,7 +117,7 @@ def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
     
     total_calls = 0
 
-    # Dictionary to hold all apis with full stats.
+    # Dictionary to hold all apis after calculating full stats.
     dic_API_Stats = {}
 
     stats = ("Master Log").center(print_padding, '+') + '\n' + filename.center(print_padding, '-') + '\n' + file_time +'\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
