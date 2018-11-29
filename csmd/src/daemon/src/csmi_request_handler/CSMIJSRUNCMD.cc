@@ -119,14 +119,14 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
         
         // Generate the auth query.
         std::string stmt = 
-            "SELECT a.user_id, a.num_nodes, array_agg(an.node_name), a.launch_node_name "
+            "SELECT a.user_id, a.num_nodes, array_agg(an.node_name), a.launch_node_name, a.type "
                 "FROM csm_allocation as a "
                 "LEFT JOIN csm_allocation_node as an "
                 "ON a.allocation_id=an.allocation_id "
                 "WHERE a.allocation_id=$1::bigint "
                     "AND a.state='";
         stmt.append(csm_get_string_from_enum(csmi_state_t,CSM_RUNNING));
-        stmt.append("' GROUP BY a.user_id, a.num_nodes, a.launch_node_name");    
+        stmt.append("' GROUP BY a.user_id, a.num_nodes, a.launch_node_name, a.type");    
 
         const int paramCount = 1;
         *dbPayload = new csm::db::DBReqContent( stmt, paramCount );
@@ -177,11 +177,13 @@ bool CSMIJSRUNCMD_Master::ParseAuthQuery(
     bool success = true;
     csm::db::DBTuple* fields = tuples[0];
 
-    if (fields  || fields->nfields == 3)
+    if (fields && fields->nfields == 5)
     {
         uint32_t user_id   = strtol(fields->data[0], nullptr, 10);
         uint32_t num_nodes =  strtol(fields->data[1], nullptr, 10);
         mcast_ctx->launch_node  = strdup(fields->data[3]);
+        mcast_ctx->type = 
+            (csmi_allocation_type_t)csm_get_enum_from_string(csmi_allocation_type_t, fields->data[4]);
 
         if ( num_nodes > 0 )
         {
