@@ -151,7 +151,7 @@ public:
    // number of the received msg from CNs
    std::atomic<size_t> _RecvCNs;
    // stored time stamp to check if timer event works properly
-   std::chrono::time_point<std::chrono::system_clock> _timer_reference;
+   std::chrono::time_point<std::chrono::steady_clock> _timer_reference;
 };
 
 

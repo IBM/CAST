@@ -35,7 +35,7 @@ namespace network {
 class EndpointHeartbeat_stateless
 {
 public:
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
 
 protected:
   TimeType _EndOfHappy; // at the end of the happy, we send a heartbeat
@@ -130,7 +130,7 @@ public:
   virtual void updateRecvSuccess()
   {
     // make the end of happy about 75% of the configured Interval
-    TimeType current = std::chrono::system_clock::now();
+    TimeType current = std::chrono::steady_clock::now();
     _EndOfHappy = current + std::chrono::seconds( _Interval );
   }
 
@@ -225,7 +225,7 @@ public:
   virtual void updateRecvSuccess()
   {
     // make the end of unsure about 125% of the configured Interval
-    TimeType current = std::chrono::system_clock::now();
+    TimeType current = std::chrono::steady_clock::now();
     _EndOfHappy = current + std::chrono::seconds( _Interval );
     _EndOfUnsure = current + std::chrono::seconds( (_Interval * 20) >> 4 );
     _Status = HAPPY;
@@ -235,7 +235,7 @@ public:
   // update the send deadline; e.g. after a successful send operation
   virtual void updateSendSuccess()
   {
-    TimeType current = std::chrono::system_clock::now();
+    TimeType current = std::chrono::steady_clock::now();
     _EndOfUnsure = current + std::chrono::seconds( (_Interval * 20) >> 4 );
     CSMLOG( csmnet, debug ) << ( _Address == nullptr ? "" : _Address->Dump() ) << " Successful send. Status: " << _Status;
   }

@@ -482,6 +482,8 @@ RETURNS timestamp AS $$
 DECLARE 
    a "csm_allocation"%ROWTYPE;
    s "csm_step"%ROWTYPE;
+   INVALID_STATE       CONSTANT integer := 1;
+   INVALID_ALLOCATION  CONSTANT integer := 2;
 
 BEGIN
     o_end_time = endtime;
@@ -584,7 +586,8 @@ BEGIN
         DELETE FROM csm_allocation WHERE allocation_id=allocationid;
 
     ELSE
-        RAISE EXCEPTION using message = 'allocation_id does not exist.';
+        RAISE EXCEPTION 'allocation_id does not exist.'
+            USING HINT = INVALID_ALLOCATION;
     END IF;
     --EXCEPTION
     --    WHEN others THEN

@@ -113,7 +113,7 @@ public:
   bool AddToCache( const std::string bsd_msg );
 
 private:
-  inline void UpdateCurrentTime() { _CurrentTime = std::chrono::system_clock::now(); }
+  inline void UpdateCurrentTime() { _CurrentTime = std::chrono::steady_clock::now(); }
   inline BDSTimeType GetTimestamp() { return _CurrentTime; };
   void CheckCachedData();
 };

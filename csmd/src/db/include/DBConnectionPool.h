@@ -219,7 +219,7 @@ public:
     return (_FreeConnPool.size() + _LockedConnPool.size()) > 0;
   }
 
-  std::chrono::time_point<std::chrono::system_clock> GetHeartbeatTimer() const
+  std::chrono::time_point<std::chrono::steady_clock> GetHeartbeatTimer() const
   {
     return _HeartbeatTimer;
   }
@@ -263,12 +263,12 @@ public:
     // don't update the timer if no free connections are available and no bad connections exist
     if(heartbeat || retry)
     {
-      _HeartbeatTimer = std::chrono::system_clock::now() + _HeartbeatInterval;
+      _HeartbeatTimer = std::chrono::steady_clock::now() + _HeartbeatInterval;
     }
     else
     {
       LOG(csmd,debug) << "DBConnectionPool::Heartbeat(): no connections available";
-      _HeartbeatTimer = std::chrono::system_clock::now() + _HeartbeatWait;
+      _HeartbeatTimer = std::chrono::steady_clock::now() + _HeartbeatWait;
     }
 
     bool heartbeat_failed = false;
@@ -343,7 +343,7 @@ public:
     }
     if(_DisconnectedPool.empty())
     {
-      _HeartbeatTimer = std::chrono::system_clock::now() + _HeartbeatInterval;
+      _HeartbeatTimer = std::chrono::steady_clock::now() + _HeartbeatInterval;
     }
     _TimerLock.unlock();
   }
@@ -366,7 +366,7 @@ private:
     draining(false)
   {
     Connect();
-    _HeartbeatTimer = std::chrono::system_clock::now() + _HeartbeatInterval;
+    _HeartbeatTimer = std::chrono::steady_clock::now() + _HeartbeatInterval;
   }
 
   static DBConnectionPool *_instance;
@@ -387,7 +387,7 @@ private:
 
   std::chrono::seconds _HeartbeatInterval;
   std::chrono::seconds _HeartbeatWait;
-  std::chrono::time_point<std::chrono::system_clock> _HeartbeatTimer;
+  std::chrono::time_point<std::chrono::steady_clock> _HeartbeatTimer;
 
   std::condition_variable DrainedPoolCondition;
   std::atomic<bool> draining;

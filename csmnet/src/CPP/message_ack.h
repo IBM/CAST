@@ -82,7 +82,7 @@ public:
   typedef std::unordered_set<AckKeyType, AckKeyTypeHash> AckSet;
 
 private:
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
 
   class TimedMessageType
   {
@@ -110,7 +110,7 @@ public:
   ~MessageACK() {}
 
   void SetDefaultTimeout( const uint64_t aTimeout ) { _DefaultTimeout = aTimeout; }
-  void UpdateClock() { _CurrentClock = std::chrono::system_clock::now(); }
+  void UpdateClock() { _CurrentClock = std::chrono::steady_clock::now(); }
 
   csm::network::MessageAndAddress* CheckCreateACKMsg( const csm::network::MessageAndAddress& aMsgAddr,
                                                       const csm::network::Address_sptr aDestAddr,
@@ -217,7 +217,7 @@ public:
 private:
   TimeType CalculateEndTime( const uint64_t aTimeout ) const
   {
-    TimeType end = std::chrono::system_clock::now() + std::chrono::seconds( aTimeout );
+    TimeType end = std::chrono::steady_clock::now() + std::chrono::seconds( aTimeout );
     return end;
   }
   inline AckKeyType MakeKey( const uint64_t aMsgId, const uint32_t aReply, const uint32_t aRefCount = 1 )

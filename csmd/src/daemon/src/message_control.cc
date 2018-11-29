@@ -32,8 +32,8 @@ csm::daemon::MessageControl::MessageControl( const uint64_t aDaemonID )
              csm::daemon::MSG_SEQ_NUMBER_HALFPOINT,
              csm::daemon::MSGID_HALF_TIME_LIMIT )
 {
-  _GCTimer = std::chrono::system_clock::now() + std::chrono::seconds( csm::daemon::DEFAULT_GC_INTERVAL );
-  _MsgIDTimer = std::chrono::system_clock::now() + std::chrono::seconds( csm::daemon::MSGID_HALF_TIME_LIMIT );
+  _GCTimer = std::chrono::steady_clock::now() + std::chrono::seconds( csm::daemon::DEFAULT_GC_INTERVAL );
+  _MsgIDTimer = std::chrono::steady_clock::now() + std::chrono::seconds( csm::daemon::MSGID_HALF_TIME_LIMIT );
 }
 
 csm::daemon::MessageControl::~MessageControl()
@@ -159,7 +159,7 @@ csm::daemon::MessageControl::GCCleanup( const TimeType &aStartTime,
 
     TimeType current;
     // every now and then, check if we're taking too long...
-    if(( ((++removed) & 0x3F) == 0 ) && ( ( current = std::chrono::system_clock::now()) >= aDeadline))
+    if(( ((++removed) & 0x3F) == 0 ) && ( ( current = std::chrono::steady_clock::now()) >= aDeadline))
     {
       completed = false;
       LOG( csmd, info ) << "GC: reached limit for cleanup after " << removed << " of " << toRemoveEntries
@@ -173,7 +173,7 @@ csm::daemon::MessageControl::GCCleanup( const TimeType &aStartTime,
   // did we remove anything, then do some logging
   if( removed > 0 )
   {
-    TimeType GC_Finished = std::chrono::system_clock::now();
+    TimeType GC_Finished = std::chrono::steady_clock::now();
     uint64_t micros = std::chrono::duration_cast<std::chrono::microseconds>(GC_Finished-aStartTime).count();
 
     LOG( csmd, debug ) << "GC: removed " << removed << " of " << toRemoveEntries
@@ -227,7 +227,7 @@ csm::daemon::MessageControl::GCScan( const TimeType &aStartTime,
     {
       TimeType current;
       // every now and then, check if we're taking too long...
-      if(( (iteration & 0x7F) == 0 ) && ( ( current = std::chrono::system_clock::now()) >= aDeadline))
+      if(( (iteration & 0x7F) == 0 ) && ( ( current = std::chrono::steady_clock::now()) >= aDeadline))
       {
         completed = false;
         // if we found less than 1/10th of the map, we continue from here next time
@@ -259,7 +259,7 @@ csm::daemon::MessageControl::GarbageCollect( const uint64_t aTimeLimit )
 {
   bool completed = true;
 
-  TimeType GC_Time = std::chrono::system_clock::now();
+  TimeType GC_Time = std::chrono::steady_clock::now();
   TimeType GC_Limit = GC_Time + std::chrono::microseconds( aTimeLimit );
 
   /* GC Strategy:

@@ -44,12 +44,9 @@ struct csmi_jsrun_cmd_context_t {
 
     ~csmi_jsrun_cmd_context_t()
     {
-        if ( kv_pairs )    free(kv_pairs);
-        if ( jsm_path )    free(jsm_path);
-        if ( launch_node ) free(launch_node);
-        jsm_path    = nullptr;
-        launch_node = nullptr;
-        kv_pairs    = nullptr;
+        if ( kv_pairs )    { free(kv_pairs);    kv_pairs    = nullptr; }
+        if ( jsm_path )    { free(jsm_path);    jsm_path    = nullptr; }
+        if ( launch_node ) { free(launch_node); launch_node = nullptr; }
 
         if ( compute_nodes != nullptr )
         {
