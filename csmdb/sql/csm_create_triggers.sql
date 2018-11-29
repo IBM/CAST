@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.2
 --   create:                06-22-2016
---   last modified:         11-8-2018
+--   last modified:         11-26-2018
 --   change log:
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
@@ -26,8 +26,11 @@
 --                                                        INVALID_STATE       CONSTANT integer := 1;
 --                                                        INVALID_ALLOCATION  CONSTANT integer := 2;
 --                                                        USING HINT = INVALID_STATE;
---                                                        USING HINT = INVALID_ALLOCATION;                                 
---            fn_csm_allocation_history_dump -             Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
+--                                                        Added OUT o_runtime bigint;
+--            fn_csm_allocation_update_state -            Added OUT o_runtime bigint;
+--            fn_csm_allocation_history_dump -            Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
 --            fn_csm_allocation_node_sharing_status -     error_code integer;
 --                                                        INVALID_NODES  CONSTANT integer := 1;
 --                                                        ABSENT_NODES  CONSTANT integer := 2;
@@ -369,7 +372,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_delete_start(
     OUT o_type             text,
     OUT o_isolated_cores   int,
     OUT o_user_name        text,
-    OUT o_nodelist         text
+    OUT o_nodelist         text,
+    OUT o_runtime          bigint
 )
 RETURNS record AS $$
 DECLARE
@@ -395,12 +399,13 @@ BEGIN
        a.allocation_id, a.primary_job_id, a.secondary_job_id, 
        a.user_flags, a.system_flags, a.num_nodes, 
        a.state, a.type, a.isolated_cores, a.user_name, 
-       array_to_string(array_agg(an.node_name),',') as a_nodelist 
+       array_to_string(array_agg(an.node_name),',') as a_nodelist,
+       (extract(EPOCH from  now() - begin_time))::bigint
     INTO 
         o_allocation_id, o_primary_job_id, o_secondary_job_id,
         o_user_flags, o_system_flags, o_num_nodes, 
         o_state, o_type, o_isolated_cores, o_user_name,
-        o_nodelist 
+        o_nodelist, o_runtime
     FROM csm_allocation a 
     LEFT JOIN 
         csm_allocation_node an 
@@ -450,7 +455,7 @@ COMMENT ON FUNCTION fn_csm_allocation_delete_start(
     OUT o_allocation_id    bigint, OUT o_primary_job_id   bigint, OUT o_secondary_job_id int,
     OUT o_user_flags       text,   OUT o_system_flags     text,   OUT o_num_nodes        int,
     OUT o_state            text,   OUT o_type             text,   OUT o_isolated_cores   int,
-    OUT o_user_name        text,   OUT o_nodelist         text ) is 
+    OUT o_user_name        text,   OUT o_nodelist         text,   OUT o_runtime          bigint ) is 
         'Retrieves allocation details for delete a d sets the state to deleteing.';
 
 ---------------------------------------------------------------------------------------------------
@@ -784,7 +789,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_num_gpus          integer,
     OUT o_num_processors    integer,
     OUT o_projected_memory  integer,
-    OUT o_state             text
+    OUT o_state             text,
+    OUT o_runtime           bigint
 )
 RETURNS record AS $$
 DECLARE
@@ -799,13 +805,13 @@ BEGIN
         state, isolated_cores,
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
-        num_gpus, num_processors, projected_memory
+        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
         o_shared, o_num_gpus, o_num_processors,
-        o_projected_memory
+        o_projected_memory, o_runtime
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 
@@ -903,7 +909,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 
 -----------------------------------------------------------

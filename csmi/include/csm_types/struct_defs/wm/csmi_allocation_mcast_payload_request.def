@@ -68,6 +68,10 @@ CSMI_STRUCT_MEMBER(char*  , system_flags    , STRING, , NULL, ) /**< System flag
 
 CSMI_VERSION_END(5db406e1f96595a4dabc8fece25d0381)
 
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int64_t, runtime, BASIC, ,  0, ) /**< The run time of the allocation so far. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

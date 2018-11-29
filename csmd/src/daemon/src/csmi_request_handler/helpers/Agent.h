@@ -18,6 +18,7 @@
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include "cgroup.h"
 //#include "logging.h"   ///< CSM logging.
 
@@ -27,6 +28,7 @@
 
 #define CSM_SMT_CMD     "/usr/sbin/ppc64_cpu"
 #define CSM_SMT_SMT_ARG "--smt="
+#define CSM_UPTIME_FILE "/proc/uptime"
 
 #define CSM_TYPE_ALLOCATION_ID    "CSM_ALLOCATION_ID"
 #define CSM_TYPE_JSM_ARGS         "CSM_JSM_ARGS"
@@ -181,6 +183,28 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
 
     return errCode;
 }
+
+
+/**
+ * @brief Retrieves the uptime of the system.
+ *
+ * @return The uptime of the system, 0 if the retrieval failed.
+ */
+inline long GetUptime()
+{
+    struct sysinfo info;
+    int ret_code = sysinfo(&info);
+    
+    if ( ret_code )
+    {
+        return 0;
+    }
+
+    return info.uptime;
+
+}
+
+
 
 } // End namespace helpers
 } // End namespace daemon

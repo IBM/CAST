@@ -40,7 +40,7 @@
 #define MCAST_PROPS_PAYLOAD CSMIMcastAllocation
 #define EXTRA_STATES 7 
 
-    const int NUM_SPAWN_PAYLOAD_FIELDS=13;
+    const int NUM_SPAWN_PAYLOAD_FIELDS=14;
 
     CSMIAllocationUpdateState::CSMIAllocationUpdateState(csm::daemon::HandlerOptions& options) :
         CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
@@ -425,6 +425,9 @@ bool CSMIAllocationUpdateState::ParseInfoQuery(
 
         
         a->start_state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, fields->data[12]);
+        
+        // Transitioning from staging-in should be 0 for run time.
+        a->runtime = a->start_state == CSM_STAGING_IN ? 0 : strtoll(fields->data[13], nullptr, 10);
         if ( a->start_state == CSM_STAGING_IN && a->state == CSM_STAGING_OUT )
         {
             success=false;

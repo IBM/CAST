@@ -86,6 +86,9 @@ CSMI_VERSION_START(CSM_VERSION_1_3_0)
 CSMI_STRUCT_MEMBER(char*, timestamp, STRING, ,NULL,) /**< A Timestamp for tracking miscellaneous timestamps. */
 CSMI_STRUCT_MEMBER(csmi_state_t, start_state, BASIC,, CSM_FAILED,) /**< State of allocation at the start of the , refer to @ref csmi_state_t for details. */
 CSMI_VERSION_END(79b40014609c05f907072fe513ccc353)
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int64_t, runtime, BASIC, ,  0, ) /**< The run time of the allocation so far. */
+CSMI_VERSION_END(0)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
