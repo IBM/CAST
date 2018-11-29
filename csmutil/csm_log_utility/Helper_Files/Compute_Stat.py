@@ -119,7 +119,7 @@ def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
 
         total_calls = total_calls + len(Api_Statistics[key])
 
-     for key, value in sorted(dic_API_Stats.iteritems(), key=lambda (k,v): (v[order_by],k), reverse = reverse_order):
+    for key, value in sorted(dic_API_Stats.iteritems(), key=lambda (k,v): (v[order_by],k), reverse = reverse_order):
         stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(value[0], value[1], value[2], value [3], value [4], value [5], value[6])
         print stat_line
         stats = stats + '\n' + stat_line
