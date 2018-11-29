@@ -90,12 +90,12 @@ def handle_file(filename):
     if "compute" in filename and ".log" in filename:
         print 'Compute: ' + filename
         start = time.time()
-        compute_CSM_Compute_stats(filename,start_datetime,end_datetime)
+        compute_CSM_Compute_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
     elif "aggregator" in filename and ".log" in filename:
         print 'Aggregate: ' + filename
         start = time.time()
-        compute_CSM_Aggregator_stats(filename,start_datetime, end_datetime)
+        compute_CSM_Aggregator_stats(filename,start_datetime, end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
     elif "master" in filename and ".log" in filename:
         print 'Master: ' + filename

@@ -19,7 +19,7 @@ time_format = '%Y-%m-%d %H:%M:%S.%f'
 print_padding = 115
 total_errors = 0
 
-def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime):
+def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime, order_by, reverse_order):
     opened_file = Pre_Process(filename) #open(filename, 'r')                   
     dictionary = dict()                 # Dictionary key uses Api operation ID
     Api_Statistics = dict()             # Api_Statistics key uses Api name
@@ -45,7 +45,7 @@ def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime):
                     Api_Statistics['responses'].append(responses)
             else:
                 break
-    end_stats = calculate_statistics(filename, Api_Statistics)
+    end_stats = calculate_statistics(filename, Api_Statistics, order_by, reverse_order)
     report_file.write(end_stats)
     report_file.close()
 
@@ -60,7 +60,7 @@ def collision_error(Api_Id, start_api, end_api):
     global total_errors 
     total_errors += 1
 
-def calculate_statistics(filename, Api_Statistics):
+def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
     print ("Aggregator Log").center(print_padding, '+')
     print filename.center(print_padding, '-')
     file_opened = open(filename, 'r')
@@ -70,22 +70,31 @@ def calculate_statistics(filename, Api_Statistics):
     file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     total_calls = 0
+
+    # Dictionary to hold all apis after calculating full stats.
+    dic_API_Stats = {}
+
     stats = ("Aggregator Log").center(print_padding, '+') + '\n' + filename.center(print_padding, '-') +'\n' + file_time + '\n' + '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std") + '\n'
     if not Api_Statistics['responses']:
         pass
     else:
         for key in Api_Statistics.keys():
-            stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(
-                key, 
-                len(Api_Statistics[key]),
-                np.mean(Api_Statistics[key]),
-                np.median(Api_Statistics[key]),
-                min(Api_Statistics[key]),
-                max(Api_Statistics[key]),
-                np.std(Api_Statistics[key]))
+            #apis with stats
+            dic_API_Stats[key] = [key]
+            dic_API_Stats[key].append(len(Api_Statistics[key]))
+            dic_API_Stats[key].append(np.mean(Api_Statistics[key]))
+            dic_API_Stats[key].append(np.median(Api_Statistics[key]))
+            dic_API_Stats[key].append(min(Api_Statistics[key]))
+            dic_API_Stats[key].append(max(Api_Statistics[key]))
+            dic_API_Stats[key].append(np.std(Api_Statistics[key]))
+
             total_calls = total_calls + len(Api_Statistics[key])
+
+        for key, value in sorted(dic_API_Stats.iteritems(), key=lambda (k,v): (v[order_by],k), reverse = reverse_order):
+            stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(value[0], value[1], value[2], value [3], value [4], value [5], value[6])
             print stat_line
             stats = stats + '\n' + stat_line
+            
     print "Total Calls:  " + str(total_calls)
     print "Total Errors: " + str(total_errors) + '\n'  
     return stats + '\n' + "Total Calls:  " + str(total_calls) + '\n' + "Total Errors: " + str(total_errors) + '\n' 
