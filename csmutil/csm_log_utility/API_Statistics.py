@@ -106,7 +106,7 @@ def handle_file(filename):
         start = time.time()
         # pass
         print 'Utility: ' + filename
-        compute_CSM_Utility_stats(filename,start_datetime,end_datetime)
+        compute_CSM_Utility_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
 
 
