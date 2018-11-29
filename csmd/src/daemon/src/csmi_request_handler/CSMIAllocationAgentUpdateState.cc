@@ -105,6 +105,10 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
     // Generate the response.
     csmi_allocation_mcast_payload_response_t *response;
     csm_init_struct_ptr(csmi_allocation_mcast_payload_response_t, response);
+    
+    // Allocate memory for the detailed per gpu data
+    csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, response->gpu_metrics);
+    response->gpu_metrics->num_gpus = 0;
 
     // setup the response.
     response->hostname = 
@@ -461,10 +465,6 @@ bool AllocationAgentUpdateState::RevertNode(
     std::vector<int64_t> max_gpu_memory;
     std::vector<int64_t> gpu_usage;
 
-    // Allocate memory for the detailed per gpu data
-    csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, respPayload->gpu_metrics);
-    respPayload->gpu_metrics->num_gpus = 0;
-
     bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
         payload->allocation_id, respPayload->gpu_usage, gpu_id, max_gpu_memory, gpu_usage);
     if ( gpu_usage_success == false )
@@ -478,9 +478,9 @@ bool AllocationAgentUpdateState::RevertNode(
             respPayload->gpu_metrics->num_gpus = gpu_id.size();
 
             // Allocate memory for the per gpu arrays
-            respPayload->gpu_metrics->gpu_id         = (int32_t*)malloc(respPayload->gpu_metrics->num_gpus * sizeof(int32_t));
-            respPayload->gpu_metrics->gpu_usage      = (int64_t*)malloc(respPayload->gpu_metrics->num_gpus * sizeof(int64_t));
-            respPayload->gpu_metrics->max_gpu_memory = (int64_t*)malloc(respPayload->gpu_metrics->num_gpus * sizeof(int64_t));
+            respPayload->gpu_metrics->gpu_id         = (int32_t*)calloc(respPayload->gpu_metrics->num_gpus, sizeof(int32_t));
+            respPayload->gpu_metrics->gpu_usage      = (int64_t*)calloc(respPayload->gpu_metrics->num_gpus, sizeof(int64_t));
+            respPayload->gpu_metrics->max_gpu_memory = (int64_t*)calloc(respPayload->gpu_metrics->num_gpus, sizeof(int64_t));
 
             // Copy metrics into response payload
             std::copy(gpu_id.begin(), gpu_id.end(), respPayload->gpu_metrics->gpu_id);  
