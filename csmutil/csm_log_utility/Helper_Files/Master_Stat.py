@@ -24,10 +24,11 @@ total_errors = 0
 
 
 def compute_CSM_Master_stats(filename, start_datetime, end_datetime, order_by, reverse_order):
+    print 'Master: ' + filename
     opened_file = Pre_Process(filename) #open(filename, 'r') 
     dictionary = dict()         # Dictionary key uses Api operation ID
     Api_Statistics = dict()     # Api_Statistics key uses Api name
-    report_file_path = './Reports/Master_Reports/Report_'+ filename[14:] +'.txt'
+    report_file_path = './Reports/Master_Reports/'+ filename +'.txt'
     if not os.path.exists(os.path.dirname(report_file_path)):
         try:
             os.makedirs(os.path.dirname(report_file_path))
@@ -113,6 +114,7 @@ def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
     file_start = file_lines[0].split("csm")[0].strip()
     file_end   = file_lines[-1].split("csm")[0].strip()
     file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
+    print(file_time)
     print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
     
     total_calls = 0

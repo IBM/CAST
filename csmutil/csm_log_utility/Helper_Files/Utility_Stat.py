@@ -20,10 +20,11 @@ print_padding = 115
 total_errors = 0
 
 def compute_CSM_Utility_stats(filename, start_datetime, end_datetime, order_by, reverse_order):
+    print 'Utility: ' + filename
     opened_file = Pre_Process(filename) #open(filename, 'r')                   
     dictionary = dict()                 # Dictionary key uses Api operation ID
     Api_Statistics = dict()             # Api_Statistics key uses Api name
-    report_file_path = './Reports/Utility_Reports/Report_'+ filename[15:] +'.txt'
+    report_file_path = './Reports/Utility_Reports/'+ filename +'.txt'
     if not os.path.exists(os.path.dirname(report_file_path)):
         try:
             os.makedirs(os.path.dirname(report_file_path))

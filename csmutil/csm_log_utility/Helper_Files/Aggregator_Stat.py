@@ -20,11 +20,12 @@ print_padding = 115
 total_errors = 0
 
 def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime, order_by, reverse_order):
+    print 'Aggregate: ' + filename
     opened_file = Pre_Process(filename) #open(filename, 'r')                   
     dictionary = dict()                 # Dictionary key uses Api operation ID
     Api_Statistics = dict()             # Api_Statistics key uses Api name
     Api_Statistics['responses'] = []
-    report_file_path = './Reports/Aggregator_Reports/Report_'+ filename[18:] +'.txt'
+    report_file_path = './Reports/Aggregator_Reports/'+ filename +'.txt'
     if not os.path.exists(os.path.dirname(report_file_path)):
         try:
             os.makedirs(os.path.dirname(report_file_path))
@@ -94,7 +95,7 @@ def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
             stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(value[0], value[1], value[2], value [3], value [4], value [5], value[6])
             print stat_line
             stats = stats + '\n' + stat_line
-            
+
     print "Total Calls:  " + str(total_calls)
     print "Total Errors: " + str(total_errors) + '\n'  
     return stats + '\n' + "Total Calls:  " + str(total_calls) + '\n' + "Total Errors: " + str(total_errors) + '\n' 

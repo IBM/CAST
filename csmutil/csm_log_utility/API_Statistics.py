@@ -88,24 +88,19 @@ sys.path.insert(0, logs_path)
 
 def handle_file(filename):
     if "compute" in filename and ".log" in filename:
-        print 'Compute: ' + filename
         start = time.time()
         compute_CSM_Compute_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
     elif "aggregator" in filename and ".log" in filename:
-        print 'Aggregate: ' + filename
         start = time.time()
         compute_CSM_Aggregator_stats(filename,start_datetime, end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
     elif "master" in filename and ".log" in filename:
-        print 'Master: ' + filename
         start = time.time()
         compute_CSM_Master_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
     elif "utility" in filename and ".log" in filename:
         start = time.time()
-        # pass
-        print 'Utility: ' + filename
         compute_CSM_Utility_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
 
