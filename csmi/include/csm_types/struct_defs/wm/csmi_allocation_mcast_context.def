@@ -44,7 +44,7 @@
     #define CSMI_ARRAY_STR           1
     #define CSMI_ARRAY_STR_FIXED     0
     #define CSMI_STRUCT              0
-    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT        1
     #define CSMI_ARRAY_STRUCT_FIXED  0
     #define CSMI_NONE                0
 #endif 
