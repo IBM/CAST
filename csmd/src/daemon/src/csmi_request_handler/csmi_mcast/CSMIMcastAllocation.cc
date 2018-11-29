@@ -75,7 +75,7 @@ void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** b
             // Only populate when not creating.
             _Data->cpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
             _Data->memory_max  = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
-	    _Data->gpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
+	        _Data->gpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
         }
     }
 }

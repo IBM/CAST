@@ -257,6 +257,8 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
         {
             // TODO Perform an arg check?
             allocation->allocation_id = strtoll( tuples[0]->data[0], nullptr, 10 );
+
+            if ( allocation->begin_time ) free(allocation->begin_time);
             allocation->begin_time    = strdup( tuples[0]->data[1] );
 
             std::string json="";
