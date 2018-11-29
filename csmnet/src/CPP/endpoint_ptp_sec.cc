@@ -397,7 +397,7 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
   LOG( csmnet, debug ) << "SSL Connecting...";
   ERR_clear_error();
   bool keep_retrying = true;
-  std::chrono::time_point< std::chrono::system_clock > end = std::chrono::system_clock::now() + std::chrono::milliseconds( 1000 );
+  std::chrono::time_point< std::chrono::steady_clock > end = std::chrono::steady_clock::now() + std::chrono::milliseconds( 1000 );
 
   while( keep_retrying )
   {
@@ -430,7 +430,7 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
             rc = csm::network::EndpointPTP_base::CheckConnectActivity( bsock, true ); // check read and write activity
             if( rc != 0 )
               throw csm::network::ExceptionEndpointDown( "SSL Connection failed.", rc );
-            if( std::chrono::system_clock::now() > end )
+            if( std::chrono::steady_clock::now() > end )
               throw csm::network::ExceptionEndpointDown( "SSL Connection timed out", ETIMEDOUT );
             break;
 

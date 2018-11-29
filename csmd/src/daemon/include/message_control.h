@@ -87,7 +87,7 @@ static const uint64_t MSG_SEQ_NUMBER_HALFPOINT = (MSG_SEQ_NUMBER_MAX >> 1);
 
 struct MessageContextContainer
 {
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
   csm::network::MessageAndAddress_sptr _MsgAddr;
   csm::daemon::EventContext_sptr _Context;
   csm::daemon::VirtualNetworkChannel_sptr _Connection;
@@ -101,7 +101,7 @@ struct MessageContextContainer
                            const uint32_t i_Timeout )
   : _MsgAddr( i_MsgAddr ), _Context( i_Context ), _Connection( i_Connection ), _RespCount( i_RespCount )
   {
-    _Timeout = std::chrono::system_clock::now() + std::chrono::seconds( i_Timeout );
+    _Timeout = std::chrono::steady_clock::now() + std::chrono::seconds( i_Timeout );
     LOG( csmd, trace ) << "Create MsgCtxContainer: (" << _MsgAddr << "," << (void*)(_Context.get()) << ")";
   }
   ~MessageContextContainer()
@@ -121,7 +121,7 @@ typedef std::unordered_map<uint64_t, uint64_t> ClientMessageIDMapping;
 
 class MessageControl
 {
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
   MessageContextStore _OutboundContextStore;
   std::queue<uint64_t> _GarbageCollectedIDs;
   MessageContextStore _InboundContextStore;

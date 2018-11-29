@@ -29,35 +29,35 @@ namespace daemon {
 class TimerContent
 {
 public:
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
-  
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
+
   TimerContent(
     const uint64_t& aMilliSeconds, 
     uint64_t aTargetState = UINT64_MAX ) : 
         _timerInterval(aMilliSeconds),
         _targetStateId(aTargetState)
   {
-    _startTime = std::chrono::system_clock::now();
+    _startTime = std::chrono::steady_clock::now();
     _endTime =  _startTime + std::chrono::milliseconds(_timerInterval);
   }
-  
+
   TimerContent( const TimerContent &in )
   : _timerInterval( in._timerInterval ),
     _targetStateId( in._targetStateId ),
     _endTime( in._endTime ),
     _startTime( in._startTime )
   { }
-  
+
   // keep this for debugging purpose
   uint64_t GetTimerInterval() const { return _timerInterval; }
 
   uint64_t GetTargetStateId() const { return _targetStateId; }
-  
+
   TimeType GetEndTime() const
   {
     return _endTime;
   }
-  
+
   TimeType GetStartTime() const
   {
     return _startTime;
@@ -66,20 +66,20 @@ public:
   bool TimerExpired() const
   {
 #if 0
-     if (std::chrono::system_clock::now() >= _endTime)
+     if (std::chrono::steady_clock::now() >= _endTime)
      {
-       std::time_t tt_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-       std::time_t tt_end = std::chrono::system_clock::to_time_t(_endTime);
-       std::time_t tt_start = std::chrono::system_clock::to_time_t(_startTime);
+       std::time_t tt_now = std::chrono::steady_clock::to_time_t(std::chrono::steady_clock::now());
+       std::time_t tt_end = std::chrono::steady_clock::to_time_t(_endTime);
+       std::time_t tt_start = std::chrono::steady_clock::to_time_t(_startTime);
        LOG(csmd, debug) << "now: " << std::ctime(&tt_now) << " end: " << std::ctime(&tt_end) << " start: " << std::ctime(&tt_start) << " interval: " << _timerInterval;
      }
-#endif     
-     return ( std::chrono::system_clock::now() >= _endTime );
+#endif
+     return ( std::chrono::steady_clock::now() >= _endTime );
   }
-  
+
   int64_t RemainingMicros() const
   {
-    return std::chrono::duration_cast<std::chrono::microseconds>( _endTime - std::chrono::system_clock::now() ).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>( _endTime - std::chrono::steady_clock::now() ).count();
   }
   
   virtual ~TimerContent()
