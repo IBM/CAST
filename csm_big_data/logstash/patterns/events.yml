@@ -42,4 +42,17 @@ data_sources:                                  # Mandatory, Map with the keys co
        pattern: "filesystem %{NOTSPACE} was.*forced.*unmount"
        ras_msg_id: "spectrumscale.fs.unmount_forced"
        action: ".send_ras;"
+ log-mellanox-event:
+  ras_location:  "hostname"
+  ras_timestamp: "timestamp"
+  event_data:    "message" 
+  category_key:  "program_name" 
+  categories:
+   eventlog:
+     - tag:        "UFM_GENERIC"
+       pattern:    "."
+       ras_msg_id: "ufm.%{event_type}.%{event_id}"
+       action:     ".send_ras;" 
+
+
 ...
