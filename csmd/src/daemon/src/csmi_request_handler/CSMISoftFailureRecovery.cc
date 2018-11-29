@@ -82,7 +82,6 @@ CSMISoftFailureRecovery_Master::CSMISoftFailureRecovery_Master(csm::daemon::Hand
             FINAL));
 }                           
 
-                            
 bool CSMISoftFailureRecovery_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
@@ -90,22 +89,41 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
     csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Enter"; 
-
-    const int paramCount = 0;
-    std::string paramStmt("SELECT node_name FROM csm_node WHERE state='SOFT_FAILURE' AND "
-        "type='compute' and node_name NOT IN (SELECT node_name from csm_allocation_node)");
-
-    csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( paramStmt, paramCount );
-    *dbPayload = dbReq;
     
-    MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, new csmi_soft_failure_recovery_context_t()
-        , false, false, 
-         CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT); // TODO Replace msg id
-     ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
-     ctx->SetUserData( payload );
+    INPUT_STRUCT* input = nullptr;
+
+    if ( csm_deserialize_struct( INPUT_STRUCT, &input, arguments.c_str(), len ) == 0 ) 
+    {
+        csmi_soft_failure_recovery_context_t *context = new csmi_soft_failure_recovery_context_t();
+        context->retry_count = input->retry_count;
+        csm_free_struct_ptr(INPUT_STRUCT, input);
         
-     LOG(csmapi,info) << ctx << payload->GenerateIdentifierString()
-         << "; Message: Looking for nodes in the soft failure state.";
+        LOG(csmapi, info) << ctx << "Running csm_soft_failure_recovery with " << context->retry_count << 
+            " retry attempts per node.";
+
+        const int paramCount = 0;
+        std::string paramStmt("SELECT node_name FROM csm_node WHERE state='SOFT_FAILURE' AND "
+            "type='compute' and node_name NOT IN (SELECT node_name from csm_allocation_node)");
+
+        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( paramStmt, paramCount );
+        *dbPayload = dbReq;
+        
+        MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, context, false, false, 
+             CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT); // TODO Replace msg id
+         ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
+         ctx->SetUserData( payload );
+            
+         LOG(csmapi,info) << ctx << payload->GenerateIdentifierString()
+             << "; Message: Looking for nodes in the soft failure state.";
+    }
+    else
+    {
+        LOG( csmapi, error ) << STATE_NAME ":CreatePayload: argUnpackFunc failed...";
+        LOG( csmapi, trace  ) << STATE_NAME ":CreatePayload: Exit";
+
+        ctx->SetErrorCode( CSMERR_MSG_UNPACK_ERROR);
+        ctx->SetErrorMessage("Input options were lost.");
+    }
 
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Exit"; 
 
@@ -126,7 +144,6 @@ bool CSMISoftFailureRecovery_Master::ParseInfoQuery(
 
     recovery->num_nodes = (uint32_t)numNodes;
     recovery->compute_nodes = (char**)calloc(numNodes, sizeof(char*));
-    LOG(csmapi,trace) << "Nodes initialized.";
 
     LOG(csmapi,info) << mcastProps->GenerateIdentifierString() <<
         "; Message: Found " << std::to_string(numNodes)  << " nodes in the SOFT_FAILURE state.";
@@ -159,10 +176,12 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Enter";
-    static std::map<std::string, short> _RetryMap;
-    static std::mutex                   _RetryMutex;
-    #define RETRY_LIMIT 10 // TODO Pull from daemon.
+    static std::map<std::string, uint32_t> _RetryMap;
+    static std::mutex                      _RetryMutex;
 
+    MCAST_STRUCT* recovery = mcastProps->GetData();
+    const uint32_t RETRY_LIMIT = recovery->retry_count;
+    
     // ========================================================================================
     std::vector<std::string> nodeVector = mcastProps->GenerateHostnameListing(true);
     std::string nodeStr = "{";
@@ -178,14 +197,14 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     
     // ========================================================================================
     std::vector<std::string> failVector = mcastProps->GenerateHostnameListing(false);
-    std::map<std::string, short> tempMap;
+    std::map<std::string, uint32_t> tempMap;
     std::string failStr = "{";
 
     std::unique_lock<std::mutex>dataLock( _RetryMutex);
     separator = "";
     for ( std::string node : failVector )
     {
-        short count = _RetryMap[node] + 1;
+        uint32_t count = _RetryMap[node] + 1;
 
         if( count >= RETRY_LIMIT )
         {

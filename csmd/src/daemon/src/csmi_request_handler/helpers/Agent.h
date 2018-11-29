@@ -145,7 +145,7 @@ inline int ExecuteSFRecovery( char ** output, int timeout)
 }
 
 inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, char* kv_pairs, 
-    uint32_t num_nodes, char** compute_nodes, char* launch_node)
+    uint32_t num_nodes, char** compute_nodes, char* launch_node, csmi_allocation_type_t  type)
 {
     // Build the nodes string.
     std::string hosts = "";
@@ -157,9 +157,11 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
     hosts.back() = 0;
     
     std::string node_count = std::to_string(num_nodes);
+    std::string alloc_type = std::to_string(type);
 
     char* scriptArgs[] = { 
         jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD, 
+        (char*)"--type", (char*)alloc_type.c_str(),
         (char*)"--launch_node", launch_node ? launch_node : (char*)"BAD_NODE",
         (char*)"--num_hosts", (char*)node_count.c_str(),
         (char*)"--hosts", (char*)hosts.c_str(),

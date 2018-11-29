@@ -34,6 +34,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
     jsrunPayload->allocation_id  = _Data->allocation_id;
     jsrunPayload->kv_pairs       = strdup(_Data->kv_pairs);
     jsrunPayload->jsm_path       = strdup(_Data->jsm_path);
+    jsrunPayload->type           = _Data->type;
     jsrunPayload->launch_node    = strdup(_Data->launch_node);
     jsrunPayload->hostname       = strdup("");
     jsrunPayload->num_nodes      = _Data->num_nodes;
@@ -42,7 +43,9 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
     csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrunPayload,
                         buffer, bufferLength );
 
-    jsrunPayload->compute_nodes  = nullptr;
+    jsrunPayload->num_nodes     = 0;
+    jsrunPayload->compute_nodes = nullptr;
+
     csm_free_struct_ptr(csmi_jsrun_cmd_payload_t, jsrunPayload);
 }
 

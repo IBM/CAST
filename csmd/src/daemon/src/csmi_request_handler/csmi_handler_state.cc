@@ -44,9 +44,11 @@ bool CSMIHandlerState::PushEvent(
             uint32_t bufferLen = 0;
             char* buffer = ctx->GetErrorSerialized(&bufferLen);
 
-            postEventList.push_back( csm::daemon::helper::CreateErrorEvent(
-                buffer, bufferLen,  *(ctx->GetReqEvent())));
+            csm::daemon::NetworkEvent* event = 
+                csm::daemon::helper::CreateErrorEvent(
+                    buffer, bufferLen,  *(ctx->GetReqEvent()));
 
+            if (event) postEventList.push_back(event);
             if ( buffer ) free(buffer);
         }
         else
@@ -236,20 +238,23 @@ void CSMIHandlerState::DefaultHandleError(
     {
         uint32_t bufferLen = 0;
         char* buffer = ctx->GetErrorSerialized(&bufferLen);
-        
-        postEventList.push_back( csm::daemon::helper::CreateErrorEvent(
-            buffer, bufferLen,  *(ctx->GetReqEvent())));
+
+        csm::daemon::NetworkEvent* event = csm::daemon::helper::CreateErrorEvent(
+            buffer, bufferLen,  *(ctx->GetReqEvent()));
+        if ( event ) postEventList.push_back( event );
 
         if ( buffer ) free(buffer);
     }
     else
     {
-        postEventList.push_back(
+        csm::daemon::NetworkEvent* event = 
             csm::daemon::helper::CreateErrorEventAgg(
                 ctx->GetErrorCode(),
                 ctx->GetErrorMessage(),
                 aEvent,
-                ctx ) );
+                ctx );
+
+        if (event) postEventList.push_back(event);
     }
 
     // Clear the user data, this will invoke its destructor if present.

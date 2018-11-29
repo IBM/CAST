@@ -64,7 +64,10 @@ public:
         if ( !csm::daemon::helper::InspectDBResult(aEvent, err_code, err_msg ) )
         {
             ctx->SetErrorCode(CSMERR_DB_ERROR);
-            ctx->SetDBErrorCode(err_code);
+            if ( err_code)
+            {
+                ctx->SetDBErrorCode(err_code);
+            }
             ctx->SetErrorMessage("Database Error Message: " + err_msg);
 
             HandleError( ctx, *(ctx->GetReqEvent()), postEventList );

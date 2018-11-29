@@ -709,7 +709,7 @@ typedef struct {
  */
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
-    uint32_t node_count; ///< A count of nodes.
+    uint32_t retry_count; ///< The number of times to retry soft failure recovery.
 } csm_soft_failure_recovery_input_t;
 /**
  * @brief A wrapper for the output of 

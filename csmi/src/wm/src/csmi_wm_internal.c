@@ -859,7 +859,7 @@ const csmi_struct_node_t csmi_jsrun_cmd_payload_tree[13] = {{"allocation_id",off
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
+{"type",offsetof(csmi_jsrun_cmd_payload_t,type),csmi_allocation_type_t_MAX,&csmi_allocation_type_t_strs,0x7c9ebd07,8},
 {NULL,0,0,NULL,0,0},
 {"num_nodes",offsetof(csmi_jsrun_cmd_payload_t,num_nodes),0,NULL,0xa5d6722d,24}}
 ;
@@ -919,7 +919,7 @@ const csmi_struct_mapping_t map_csm_soft_failure_recovery_node_t= {
     cast_csm_soft_failure_recovery_node_t
 };
 
-const csmi_struct_node_t csm_soft_failure_recovery_input_tree[1] = {{"node_count",offsetof(csm_soft_failure_recovery_input_t,node_count),0,NULL,0x176c6f3,24}}
+const csmi_struct_node_t csm_soft_failure_recovery_input_tree[1] = {{"retry_count",offsetof(csm_soft_failure_recovery_input_t,retry_count),0,NULL,0x2bb0e4c3,24}}
 ;
 
 void* cast_csm_soft_failure_recovery_input_t(void* ptr,size_t index, char isArray) { 

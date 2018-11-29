@@ -51,7 +51,7 @@
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
 CSMI_VERSION_START(CSM_DEVELOPMENT)
 
-CSMI_STRUCT_MEMBER(uint32_t, node_count,  BASIC,              ,    0, ) ///< A count of nodes.
+CSMI_STRUCT_MEMBER(uint32_t, retry_count,  BASIC,              ,    0, ) ///< The number of times to retry soft failure recovery.
 
 CSMI_VERSION_END(0)
 #undef CSMI_VERSION_START

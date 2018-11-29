@@ -293,6 +293,7 @@ typedef struct {
     uint32_t num_nodes; /**< Number of nodes, size of @ref compute_nodes. */
     char** compute_nodes; /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
     char* launch_node; /**< The launch node for the Job. */
+    csmi_allocation_type_t type; /**< Type of allocation, refer to @ref csmi_allocation_type_t for details. */
 } csmi_jsrun_cmd_payload_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

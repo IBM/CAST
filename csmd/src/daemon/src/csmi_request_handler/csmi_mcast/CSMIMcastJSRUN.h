@@ -36,10 +36,11 @@ struct csmi_jsrun_cmd_context_t {
     char*    jsm_path;
     char*    launch_node;
     char**   compute_nodes;
-
+    csmi_allocation_type_t  type;
+    
     csmi_jsrun_cmd_context_t() :
         user_id(0), num_nodes(0), allocation_id(0), kv_pairs(nullptr), jsm_path(nullptr),
-        launch_node(nullptr),compute_nodes(nullptr) {}
+        launch_node(nullptr),compute_nodes(nullptr), type(CSM_USER_MANAGED) {}
 
     ~csmi_jsrun_cmd_context_t()
     {
@@ -47,12 +48,17 @@ struct csmi_jsrun_cmd_context_t {
         if ( jsm_path )    { free(jsm_path);    jsm_path    = nullptr; }
         if ( launch_node ) { free(launch_node); launch_node = nullptr; }
 
-        if (compute_nodes != nullptr &&  num_nodes > 0 )
+        if ( compute_nodes != nullptr )
         {
-            for (uint32_t i = 0; i < num_nodes; ++i) {
-                if(compute_nodes[i])
+            if ( num_nodes > 0 ) 
+            {
+                for (uint32_t i = 0; i < num_nodes; ++i)
                 {
-                    free(compute_nodes[i]);
+                    if (compute_nodes[i])
+                    {
+                        free(compute_nodes[i]);
+                        compute_nodes[i] = nullptr;
+                    }
                 }
             }
             free(compute_nodes);
