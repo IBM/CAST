@@ -22,6 +22,9 @@ from Utility_Stat import compute_CSM_Utility_stats
 time_format = '%Y-%m-%d %H:%M:%S.%f'
 start_datetime = datetime.strptime('1000-01-01' + ' ' + '00:00:00.0000', time_format)
 end_datetime   = datetime.strptime('9999-01-01' + ' ' + '00:00:00.0000', time_format)
+# How to order the output.
+order_by = 0;
+reverse_order = False;
 
 
 logs_path = ""
@@ -34,6 +37,10 @@ parser.add_argument( '-s', metavar='start', dest='start_arg', default=None,
     help='start of search range. Defaults to: \'1000-01-01 00:00:00.0000\'')
 parser.add_argument( '-e', metavar='end', dest='end_arg', default=None,
     help='end of search range. Defaults to: \'9999-01-01 00:00:00.0000\'')
+parser.add_argument( '-o', metavar='order', dest='order_arg', default=0,
+    help='order the results by a field. Defaults to alphabetical by API name. Valid values: 0 = alphabetical, 1 = Frequency, 2 = Mean, 3 = Max, 4 = Min, 5 = Std')
+parser.add_argument( '-r', metavar='reverse', dest='reverse_arg', default=0,
+    help='reverse the order of the data. Defaults to 0. Set to 1 to turn on.')
 args = parser.parse_args()
 
 #Default log location for CSM logs, unless a user supplies a path
@@ -52,6 +59,12 @@ if(args.start_arg):
     start_datetime = datetime.strptime(args.start_arg, '%Y-%m-%d %H:%M:%S.%f')
 if(args.end_arg):
     end_datetime = datetime.strptime(args.end_arg, '%Y-%m-%d %H:%M:%S.%f')
+if(args.order_arg):
+    order_by = int(args.order_arg)
+    if(order_by > 5 or order_by < 0):
+        order_by = 0
+if(int(args.reverse_arg) == 1):
+    reverse_order = True
 
 
 # if len(sys.argv) == 1:
@@ -87,7 +100,7 @@ def handle_file(filename):
     elif "master" in filename and ".log" in filename:
         print 'Master: ' + filename
         start = time.time()
-        compute_CSM_Master_stats(filename,start_datetime,end_datetime)
+        compute_CSM_Master_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
         print 'Run Time: ' + str(time.time() - start) + '\n'
     elif "utility" in filename and ".log" in filename:
         start = time.time()
