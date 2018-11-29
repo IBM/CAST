@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       16.2
 --   create:                06-22-2016
---   last modified:         11-8-2018
+--   last modified:         11-26-2018
 --   change log:
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
@@ -26,9 +26,11 @@
 --                                                        INVALID_STATE       CONSTANT integer := 1;
 --                                                        INVALID_ALLOCATION  CONSTANT integer := 2;
 --                                                        USING HINT = INVALID_STATE;
---                                                        USING HINT = INVALID_ALLOCATION;                                --                                                        OUT runtime bigint;
---            fn_csm_allocation_update_state -            OUT runtime bigint;
---            fn_csm_allocation_history_dump -             Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
+--                                                        Added OUT o_runtime bigint;
+--            fn_csm_allocation_update_state -            Added OUT o_runtime bigint;
+--            fn_csm_allocation_history_dump -            Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
 --            fn_csm_allocation_node_sharing_status -     error_code integer;
 --                                                        INVALID_NODES  CONSTANT integer := 1;
 --                                                        ABSENT_NODES  CONSTANT integer := 2;
