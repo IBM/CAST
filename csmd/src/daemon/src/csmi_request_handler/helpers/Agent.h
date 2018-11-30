@@ -132,6 +132,7 @@ inline int SetSMTLevelCSM( int smtLevel )
 
 inline int ExecuteBB( char* command_args, char ** output, uid_t user_id, int timeout)
 {
+    timeout += 10;
     char* scriptArgs[] = { (char*)CSM_BB_CMD, command_args, NULL };
     int errCode = ForkAndExecCapture( scriptArgs, output, user_id, timeout );
     return errCode;
@@ -139,6 +140,7 @@ inline int ExecuteBB( char* command_args, char ** output, uid_t user_id, int tim
 
 inline int ExecuteSFRecovery( char ** output, int timeout)
 {
+    timeout += 10;
     char* scriptArgs[] = { (char*)CSM_SFR_CMD, NULL };
     int errCode = ForkAndExecCapture( scriptArgs, output, 0, timeout );
     return errCode;
