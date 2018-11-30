@@ -666,6 +666,67 @@ int64_t CGroup::GetCPUUsage(const char* stepCGroupName) const
     return ReadNumeric( usagePath );
 }
 
+bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* stepCGroupName) const
+{
+    // Build the usage path.
+    const char* USAGE = "/cpuacct.usage_percpu";
+    std::string usagePath(CGroup::CPUACCT_DIR);
+    usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
+    
+    // Make sure the output vector is empty
+    cpuUsage.clear();
+
+    std::string cpuacctStr = ReadString( usagePath );
+    if ( cpuacctStr.empty() )
+    {
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage: failed to read from " << usagePath;
+        return false;
+    }
+
+    // Read the logical cpu usage
+    std::vector<int64_t> logicalCpuUsage;
+    std::istringstream iss(cpuacctStr);
+    int64_t token;
+    while ( iss >> token )
+    {
+        logicalCpuUsage.push_back(token);
+    }
+
+    // Determine the ratio of logical cores to physical cores
+    int32_t threads, sockets, threadsPerCore, coresPerSocket;
+    // Get the CPUS and do a sanity check.
+    if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
+            threads > 0        && 
+            sockets > 0        && 
+            threadsPerCore > 0 && 
+            coresPerSocket > 0 &&
+            (threads % sockets) == 0 &&
+            (logicalCpuUsage.size() % threadsPerCore) == 0)
+    {
+        // Calculate the physical core usage from the logical core usage
+        int64_t accumulatedUsage(0);
+        int32_t logicalCpuCount = logicalCpuUsage.size(); 
+        for ( int32_t i = 0; i < logicalCpuCount; i++ )
+        {
+            accumulatedUsage += logicalCpuUsage[i];
+            
+            if ((i % threadsPerCore) == (threadsPerCore-1))
+            {
+                cpuUsage.push_back(accumulatedUsage);
+                accumulatedUsage = 0;
+            }
+        }
+    }
+    else
+    {
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage: CPU data was invalid"; 
+        return false;
+    }
+
+    return true;
+}
+
+
 int64_t CGroup::GetMemoryMaximum(const char* stepCGroupName) const
 {
     // Build the usage path.

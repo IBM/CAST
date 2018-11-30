@@ -87,7 +87,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -333,7 +333,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -579,7 +579,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -825,7 +825,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -1071,7 +1071,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -1317,7 +1317,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -1563,7 +1563,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -1809,7 +1809,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
@@ -2055,7 +2055,7 @@ SERIALIZE_FUNCT(CSMI_STRUCT_NAME)
         len += CSM_FUNCT_CAT( len_, CSMI_STRUCT_NAME )(target, version_id);
 
         // Allocate the buffer.
-        buffer = (char*) malloc(len);
+        buffer = (char*) calloc(len, sizeof(char));
     
         //Add the magic bytes to the front of the struct.
         memcpy( buffer, &struct_magic, sizeof(uint64_t) );
