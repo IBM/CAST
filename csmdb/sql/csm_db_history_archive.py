@@ -34,7 +34,7 @@ DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
 DEFAULT_COUNT=1000
 DEFAULT_DATABASE="csmdb"
 DEFAULT_USER="postgres"
-DEFAULT_THREAD_POOL=2
+DEFAULT_THREAD_POOL=10
 
 # Additional Formatting style
 line1 = "---------------------------------------------------------------------------------------------------------"
