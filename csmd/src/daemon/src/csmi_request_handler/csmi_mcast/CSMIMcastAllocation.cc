@@ -214,13 +214,14 @@ bool ParseResponseDelete(
                        allocation->gpu_metrics[hostIdx]->gpu_id         = (int32_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int32_t));
                        allocation->gpu_metrics[hostIdx]->gpu_usage      = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int64_t));
                        allocation->gpu_metrics[hostIdx]->max_gpu_memory = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int64_t));
-
-                       for ( int32_t gpuIdx = 0; gpuIdx < allocPayload->gpu_metrics->num_gpus; gpuIdx++ )
-                       {
-                          allocation->gpu_metrics[hostIdx]->gpu_id[gpuIdx]         = allocPayload->gpu_metrics->gpu_id[gpuIdx]; 
-                          allocation->gpu_metrics[hostIdx]->gpu_usage[gpuIdx]      = allocPayload->gpu_metrics->gpu_usage[gpuIdx];
-                          allocation->gpu_metrics[hostIdx]->max_gpu_memory[gpuIdx] = allocPayload->gpu_metrics->max_gpu_memory[gpuIdx];
-                       } 
+                      
+                       // Copy per gpu arrays 
+                       memcpy(allocation->gpu_metrics[hostIdx]->gpu_id, allocPayload->gpu_metrics->gpu_id, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int32_t));
+                       memcpy(allocation->gpu_metrics[hostIdx]->gpu_usage, allocPayload->gpu_metrics->gpu_usage, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
+                       memcpy(allocation->gpu_metrics[hostIdx]->max_gpu_memory, allocPayload->gpu_metrics->max_gpu_memory, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
                     }
                     else
                     {
