@@ -421,11 +421,13 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
             {
                 for ( uint32_t gpuIdx = 0; allocation->gpu_metrics[nodeIdx] && gpuIdx < allocation->gpu_metrics[nodeIdx]->num_gpus; gpuIdx++ )
                 {
-                    LOG(csmapi,debug) << "InsertStatsStatement() gpu_metrics: node=" << allocation->compute_nodes[nodeIdx]
-                                      << " gpu_id=" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
-                                      << " gpu_usage=" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
-                                      << " max_gpu_memory=" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx];
-                }
+                    // First field is type, this is used to select index,
+                    // Second is 
+                    ENVIRONMENTAL("gpu-env-extended", allocation->compute_nodes[nodeIdx],
+                        "{\"gpu_id\":" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
+                        << ",\"gpu_usage\":" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
+                        << ",\"max_gpu_memory\":" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx]
+                        << "}")
             }
         }
         // End TODO
