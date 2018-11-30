@@ -109,6 +109,7 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
     // Allocate memory for the detailed per gpu data
     csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, response->gpu_metrics);
     response->gpu_metrics->num_gpus = 0;
+    response->gpu_metrics->num_cpus = 0;
 
     // setup the response.
     response->hostname = 
@@ -422,6 +423,22 @@ bool AllocationAgentUpdateState::RevertNode(
 
         respPayload->cpu_usage = cgroup.GetCPUUsage();       // Agregate the cpu usage before leaving.
         respPayload->memory_max = cgroup.GetMemoryMaximum(); // Get the high water mark of the memory usage.
+
+        // TODO Replace this with actual usage data
+        std::vector<int64_t> cpu_usage;
+        for ( int i = 0; i < 44; i++ )
+        {
+            cpu_usage.push_back(777777000000+i);
+        }
+            
+        respPayload->gpu_metrics->num_cpus = cpu_usage.size();
+
+        // Allocate memory for the per cpu arrays
+        respPayload->gpu_metrics->cpu_usage = (int64_t*)calloc(respPayload->gpu_metrics->num_cpus, sizeof(int64_t));
+
+        // Copy cpu metrics into response payload
+        std::copy(cpu_usage.begin(), cpu_usage.end(), respPayload->gpu_metrics->cpu_usage);  
+        // End TODO
 
         cgroup.DeleteCGroups( true ); // Delete the system cgroup as well.
 

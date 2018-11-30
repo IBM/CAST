@@ -29,6 +29,8 @@ typedef struct {
     int32_t* gpu_id; /**< GPU id for this GPU */
     int64_t* gpu_usage; /**< GPU usage in microseconds during the allocation */
     int64_t* max_gpu_memory; /**< Maximum amount of GPU memory that was used in bytes during the allocation */
+    int64_t num_cpus;         /**< The number of CPUs (physical cores) */
+    int64_t* cpu_usage; /**< CPU usage in nanoseconds during the allocation, per physical core */
 } csmi_allocation_gpu_metrics_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

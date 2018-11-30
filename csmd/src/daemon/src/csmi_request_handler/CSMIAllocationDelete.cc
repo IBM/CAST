@@ -428,6 +428,19 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
                         << ",\"gpu_usage\":" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
                         << ",\"max_gpu_memory\":" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx]
                         << "}")
+                }
+                
+                // print the CPU environmental.
+                std::string cpuData = "{"
+                for ( uint32_t cpuIdx = 0; allocation->gpu_metrics[nodeIdx] 
+                        && cpuIdx < allocation->gpu_metrics[nodeIdx]->num_cpus; cpuIdx++ )
+                {
+                    cpuData.append("\"cpu_").append(cpuIdx).append("\":")
+                        .append(allocation->gpu_metrics[nodeIdx]->cpu_usage[cpuIdx]).append(",");
+                }
+                cpuData.back()='}';
+
+                ENVIRONMENTAL("cpu-env-extended", allocation->compute_nodes[nodeIdx], cpuData);
             }
         }
         // End TODO

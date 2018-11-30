@@ -689,10 +689,10 @@ const csmi_struct_mapping_t map_csm_cgroup_login_input_t= {
 
 const csmi_struct_node_t csmi_allocation_gpu_metrics_tree[7] = {{"num_gpus",offsetof(csmi_allocation_gpu_metrics_t,num_gpus),0,NULL,0x338e5253,40},
 {"gpu_id",offsetof(csmi_allocation_gpu_metrics_t,gpu_id),offsetof(csmi_allocation_gpu_metrics_t, num_gpus),NULL,0x4ee05d,1},
+{"cpu_usage",offsetof(csmi_allocation_gpu_metrics_t,cpu_usage),offsetof(csmi_allocation_gpu_metrics_t, num_cpus),NULL,0x6f872541,1},
+{NULL,0,0,NULL,0,0},
+{"num_cpus",offsetof(csmi_allocation_gpu_metrics_t,num_cpus),0,NULL,0x338c20cf,40},
 {"gpu_usage",offsetof(csmi_allocation_gpu_metrics_t,gpu_usage),offsetof(csmi_allocation_gpu_metrics_t, num_gpus),NULL,0x4178e945,1},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
 {"max_gpu_memory",offsetof(csmi_allocation_gpu_metrics_t,max_gpu_memory),offsetof(csmi_allocation_gpu_metrics_t, num_gpus),NULL,0xf084750e,1}}
 ;
 
