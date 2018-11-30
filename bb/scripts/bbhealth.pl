@@ -150,10 +150,19 @@ sub monitor
         }
         else
         {
+            $failurecnt++;
             if($result->{"error"}{"text"} =~ /Unable to create bb.proxy connection/i)
             {
-                output("Unable to create bbProxy connection.  Attempting restart of bbProxy");
-                cmd("systemctl start bbproxy.service");
+                if($failurecnt % 5 == 4)
+                {
+                    output("Unable to create bbProxy connection.  Attempting restart of bbProxy");
+                    cmd("systemctl restart bbproxy.service");
+                }
+                else
+                {
+                    output("Unable to create bbProxy connection.  Attempting start of bbProxy");
+                    cmd("systemctl start bbproxy.service");
+                }
             }
         }
         $pollcount++;
@@ -164,6 +173,11 @@ sub monitor
 sub failover
 {
     my($newserver) = @_;
+    if($newserver eq "none")
+    {
+        output("No backup configured for failover");
+        return -1;
+    }
 
     output("Attempting failover to $newserver");
 
