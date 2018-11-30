@@ -28,6 +28,7 @@
 #include <inttypes.h>
 #include "csmi/include/csmi_type_wm.h"
 #include "csm_handler_exception.h"
+#include <vector>
 
 namespace csm {
 namespace daemon {
@@ -161,6 +162,17 @@ public:
      * @return The cpu time in nano seconds used by the cgroup.
      */
     int64_t GetCPUUsage(const char* stepCGroupName = "") const;
+
+    /** 
+     * @brief Retrieve the CPU usage for the cgroup on a per physical core basis; returns the same number of entries independent of SMT mode. 
+     *
+     * @param[out] cpuUsage A vector with one entry per physical core containing the cpu time in nanoseconds for each core used by the cgroup. 
+     * @param[in] stepCGroupName Optional, step cgroup.
+     *
+     * @note nanoseconds is max 292 years, we should be fine - John.
+     * @return true if successful, false if unsuccessful
+     */
+    bool GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* stepCGroupName = "") const;
 
     /** @brief Retrieve the maximum Memory usage for the cgroup. Accesses memory.max_usage_in_bytes.
      *

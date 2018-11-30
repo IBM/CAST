@@ -424,13 +424,10 @@ bool AllocationAgentUpdateState::RevertNode(
         respPayload->cpu_usage = cgroup.GetCPUUsage();       // Agregate the cpu usage before leaving.
         respPayload->memory_max = cgroup.GetMemoryMaximum(); // Get the high water mark of the memory usage.
 
-        // TODO Replace this with actual usage data
+        // Get detailed cpu_usage for each physical core
         std::vector<int64_t> cpu_usage;
-        for ( int i = 0; i < 44; i++ )
-        {
-            cpu_usage.push_back(777777000000+i);
-        }
-            
+        cgroup.GetDetailedCPUUsage(cpu_usage);           
+ 
         respPayload->gpu_metrics->num_cpus = cpu_usage.size();
 
         // Allocate memory for the per cpu arrays
@@ -438,7 +435,6 @@ bool AllocationAgentUpdateState::RevertNode(
 
         // Copy cpu metrics into response payload
         std::copy(cpu_usage.begin(), cpu_usage.end(), respPayload->gpu_metrics->cpu_usage);  
-        // End TODO
 
         cgroup.DeleteCGroups( true ); // Delete the system cgroup as well.
 
