@@ -55,9 +55,9 @@ thread_local uid_t threadLocaluid=-1;
 thread_local gid_t threadLocalgid=-1;
 
 
-int listen_socket = 0;
-int ssl_listen_socket = 0;
-int unix_listen_socket = 0;
+static int listen_socket = -1;
+static int ssl_listen_socket = -1;
+static int unix_listen_socket = -1;
 
 // NOTE:  If connections_io_mutex is to be acquired with connection_map_mutex,
 //        connection_map_mutex MUST be acquired after connections_io_mutex and
@@ -1347,12 +1347,77 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
 }
 #endif
 
+int setupUnixConnections(string whoami){
+    txp::CnxSockUnix* unixSock;
+    process_whoami   = whoami;
+    process_instance = instance;
+    LOG(bb,always) << "setupUnixConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
+    string unixPort = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+    if ( unixPort == NO_CONFIG_VALUE ){
+        LOG(bb,always) << "whoami=" << whoami << " unixPort=" << unixPort;;
+    }
+    lockConnectionMaps("setupUnixConnections");
+    if (process_whoami.find("bb.proxy") != std::string::npos)
+    {
+            if (unixPort != NO_CONFIG_VALUE)
+            {
+                unixSock = new txp::CnxSockUnix(PF_UNIX, SOCK_STREAM,0);
+
+                unixSock->setAddr(unixPort);
+                unixSock->openCnxSock();
+                int rc = unixSock->bindCnxSock();
+                if(rc)
+                {
+                    unlockConnectionMaps("setupUnixConnections - failure, could not bind unix socket");
+                    LOG(bb,error) <<  "Could not bind unix socket " << strerror(errno);
+                    delete unixSock;
+                    return -1;
+                }
+                rc = unixSock->listen4remote();
+                if(rc)
+                {
+                    unlockConnectionMaps("setupUnixConnections - failure, unixSock->listen4remote()");
+                    LOG(bb,error) <<  "could not listen unix socket " << strerror(errno);
+                    delete unixSock;
+                    return -1;
+                }
+
+                //changing permission of the file to avoid unreadable file.
+                rc= chmod(unixPort.c_str(), 0777 );
+                if (rc)
+                {
+                    unlockConnectionMaps("setupUnixConnections - failure, could not change permission of unix socket file");
+                    LOG(bb,error) <<  "Could not change permission of unix socket file " << strerror(errno);
+                    delete unixSock;
+                    return -1;
+                }
+
+                unix_listen_socket = unixSock->getSockfd();
+
+                connections[unixSock->getSockfd()] = unixSock;
+                addToNameConnectionMaps(unixSock, "ulistener");
+
+                LOG(bb,info) << "Listening for connections on fd " << unixSock->getSockfd() << ", path=" << unixPort;
+            }
+            else
+            {
+                unlockConnectionMaps("setupUnixConnections - failure no unix path for bb.proxy process");
+                LOG(bb,error) << "setupUnixConnections(): No unix path for bb.proxy process";
+                return -1;
+            }
+    }
+    unlockConnectionMaps("setupUnixConnections");
+    int tmp = 0;
+    write(connection_doorbell[1], &tmp, sizeof(tmp));
+    sem_wait(&connection_sem);
+    return 0;
+}
+
 int setupConnections(string whoami, string instance)
 {
     int rc;
     in_addr_t      iplocal;
     txp::CnxSock*  sock;
-    txp::CnxSockUnix* unixSock;
     txp::CnxSockSSL* sslSock;
 
     process_whoami   = whoami;
@@ -1368,10 +1433,10 @@ int setupConnections(string whoami, string instance)
 
     string ipaddr;
     string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
-    string unixPort = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+    
     string sslurl = config.get(whoami + ".ssladdress", NO_CONFIG_VALUE);
-    if ( (url == NO_CONFIG_VALUE) && (sslurl == NO_CONFIG_VALUE) && (unixPort == NO_CONFIG_VALUE) ){
-        LOG(bb,always) << "whoami=" << whoami << " url=" << url << " unixPort=" << unixPort << " sslurl=" << sslurl;
+    if ( (url == NO_CONFIG_VALUE) && (sslurl == NO_CONFIG_VALUE) ){
+        LOG(bb,always) << "whoami=" << whoami << " url=" << url << " sslurl=" << sslurl;
     }
 
     lockConnectionMaps("setupConnections");
@@ -1491,55 +1556,7 @@ int setupConnections(string whoami, string instance)
             LOG(bb,info) << "Listening for connections on fd (SSL) " << sslSock->getSockfd() << ", ip=" << ipaddr << ", port=" << port;
         }
 
-        if (process_whoami.find("bb.proxy") != std::string::npos)
-        {
-            if (unixPort != NO_CONFIG_VALUE)
-            {
-                unixSock = new txp::CnxSockUnix(PF_UNIX, SOCK_STREAM,0);
 
-                unixSock->setAddr(unixPort);
-                unixSock->openCnxSock();
-                rc = unixSock->bindCnxSock();
-                if(rc)
-                {
-                    unlockConnectionMaps("setupConnections - failure, could not bind unix socket");
-                    LOG(bb,error) <<  "Could not bind unix socket " << strerror(errno);
-                    delete unixSock;
-                    return -1;
-                }
-                rc = unixSock->listen4remote();
-                if(rc)
-                {
-                    unlockConnectionMaps("setupConnections - failure, unixSock->listen4remote()");
-                    LOG(bb,error) <<  "could not listen unix socket " << strerror(errno);
-                    delete unixSock;
-                    return -1;
-                }
-
-                //changing permission of the file to avoid unreadable file.
-                rc= chmod(unixPort.c_str(), 0777 );
-                if (rc)
-                {
-                    unlockConnectionMaps("setupConnections - failure, could not change permission of unix socket file");
-                    LOG(bb,error) <<  "Could not change permission of unix socket file " << strerror(errno);
-                    delete unixSock;
-                    return -1;
-                }
-
-                unix_listen_socket = unixSock->getSockfd();
-
-                connections[unixSock->getSockfd()] = unixSock;
-                addToNameConnectionMaps(unixSock, "ulistener");
-
-                LOG(bb,info) << "Listening for connections on fd " << unixSock->getSockfd() << ", path=" << unixPort;
-            }
-            else
-            {
-                unlockConnectionMaps("setupConnections - failure no unix path for bb.proxy process");
-                LOG(bb,error) << "setupConnections(): No unix path for bb.proxy process";
-                return -1;
-            }
-        }
     }
     unlockConnectionMaps("setupConnections");
 
