@@ -70,7 +70,11 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
         // Note if the cgroup fails we don't care about running the recovery script.
         // 1. Run the local recovery script.
         char* cmd_out = nullptr;
-        int errorCode = csm::daemon::helper::ExecuteSFRecovery(&cmd_out, csm_get_agent_timeout(CMD_ID)/1000);
+
+        LOG( csmapi, info ) <<  ctx << "Running soft failure recovery script.";
+        int errorCode = csm::daemon::helper::ExecuteSFRecovery(&cmd_out, (csm_get_agent_timeout(CMD_ID)/1000));
+        LOG( csmapi, info ) <<  ctx << "Soft failure recovery exited with error code: " << errorCode;
+
         if(errorCode)
         {
             std::string error = hostname + "[" + std::to_string(errorCode) + 
