@@ -82,6 +82,7 @@ void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** b
             {
                 csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, _Data->gpu_metrics[i]);
                 _Data->gpu_metrics[i]->num_gpus = 0;
+                _Data->gpu_metrics[i]->num_cpus = 0;
             }
         }
     }
@@ -209,6 +210,7 @@ bool ParseResponseDelete(
                          ( allocation->gpu_metrics[hostIdx] != nullptr ) )
                     { 
                        allocation->gpu_metrics[hostIdx]->num_gpus  = allocPayload->gpu_metrics->num_gpus;
+                       allocation->gpu_metrics[hostIdx]->num_cpus  = allocPayload->gpu_metrics->num_cpus;
 
                        // Allocate memory for the per gpu arrays
                        allocation->gpu_metrics[hostIdx]->gpu_id         = (int32_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int32_t));
@@ -222,6 +224,13 @@ bool ParseResponseDelete(
                               allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
                        memcpy(allocation->gpu_metrics[hostIdx]->max_gpu_memory, allocPayload->gpu_metrics->max_gpu_memory, 
                               allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
+                       
+                       // Allocate memory for the per cpu arrays
+                       allocation->gpu_metrics[hostIdx]->cpu_usage      = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_cpus, sizeof(int64_t));
+                       
+                       // Copy per cpu arrays 
+                       memcpy(allocation->gpu_metrics[hostIdx]->cpu_usage, allocPayload->gpu_metrics->cpu_usage, 
+                              allocation->gpu_metrics[hostIdx]->num_cpus * sizeof(int64_t));
                     }
                     else
                     {

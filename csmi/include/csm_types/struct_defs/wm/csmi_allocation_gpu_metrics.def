@@ -56,6 +56,8 @@ CSMI_STRUCT_MEMBER(int64_t,  num_gpus,       BASIC,         ,   -1, )         /*
 CSMI_STRUCT_MEMBER(int32_t*, gpu_id,         ARRAY, num_gpus, NULL, int32_t ) /**< GPU id for this GPU */
 CSMI_STRUCT_MEMBER(int64_t*, gpu_usage,      ARRAY, num_gpus, NULL, int64_t ) /**< GPU usage in microseconds during the allocation */
 CSMI_STRUCT_MEMBER(int64_t*, max_gpu_memory, ARRAY, num_gpus, NULL, int64_t ) /**< Maximum amount of GPU memory that was used in bytes during the allocation */
+CSMI_STRUCT_MEMBER(int64_t,  num_cpus,       BASIC,         ,   -1, )         /**< The number of CPUs (physical cores) */
+CSMI_STRUCT_MEMBER(int64_t*, cpu_usage,      ARRAY, num_cpus, NULL, int64_t ) /**< CPU usage in nanoseconds during the allocation, per physical core */
 
 CSMI_VERSION_END(0)
 

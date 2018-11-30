@@ -424,6 +424,12 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
                                       << " gpu_usage=" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
                                       << " max_gpu_memory=" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx];
                 }
+                
+                for ( uint32_t cpuIdx = 0; allocation->gpu_metrics[nodeIdx] && cpuIdx < allocation->gpu_metrics[nodeIdx]->num_cpus; cpuIdx++ )
+                {
+                    LOG(csmapi,debug) << "InsertStatsStatement() cpu_metrics: node=" << allocation->compute_nodes[nodeIdx]
+                                      << " cpu_id=" << cpuIdx << " cpu_usage=" << allocation->gpu_metrics[nodeIdx]->cpu_usage[cpuIdx];
+                }
             }
         }
         // End TODO
