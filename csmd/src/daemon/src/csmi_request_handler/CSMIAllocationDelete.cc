@@ -413,18 +413,16 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
         dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
 
         // TODO Replace this with mechanism to send data to BDS via file beats
-        LOG(csmapi,info) << "NAB2: allocation->gpu_metrics=" << allocation->gpu_metrics;
         if ( allocation->gpu_metrics )
         {
             for ( uint32_t nodeIdx = 0; nodeIdx < allocation->num_nodes; nodeIdx++ )
             {
-                LOG(csmapi,info) << "NAB2: allocation->gpu_metrics[nodeIdx]=" << allocation->gpu_metrics[nodeIdx];
                 for ( uint32_t gpuIdx = 0; allocation->gpu_metrics[nodeIdx] && gpuIdx < allocation->gpu_metrics[nodeIdx]->num_gpus; gpuIdx++ )
                 {
-                    LOG(csmapi,info) << "NAB2: InsertStatsStatement() gpu_metrics: node=" << allocation->compute_nodes[nodeIdx]
-                                     << " gpu_id=" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
-                                     << " gpu_usage=" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
-                                     << " max_gpu_memory=" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx];
+                    LOG(csmapi,debug) << "InsertStatsStatement() gpu_metrics: node=" << allocation->compute_nodes[nodeIdx]
+                                      << " gpu_id=" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
+                                      << " gpu_usage=" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
+                                      << " max_gpu_memory=" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx];
                 }
             }
         }

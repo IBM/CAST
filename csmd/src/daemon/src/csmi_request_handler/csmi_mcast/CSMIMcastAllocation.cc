@@ -208,9 +208,6 @@ bool ParseResponseDelete(
                          ( allocation->gpu_metrics != nullptr ) &&
                          ( allocation->gpu_metrics[hostIdx] != nullptr ) )
                     { 
-                       LOG(csmapi,info) << "NAB: allocPayload->gpu_metrics = " << std::hex << allocPayload->gpu_metrics << std::dec;
-                       LOG(csmapi,info) << "NAB: allocPayload->gpu_metrics->num_gpus = " << allocPayload->gpu_metrics->num_gpus;
-                     
                        allocation->gpu_metrics[hostIdx]->num_gpus  = allocPayload->gpu_metrics->num_gpus;
 
                        // Allocate memory for the per gpu arrays
@@ -220,10 +217,6 @@ bool ParseResponseDelete(
 
                        for ( int32_t gpuIdx = 0; gpuIdx < allocPayload->gpu_metrics->num_gpus; gpuIdx++ )
                        {
-                          LOG(csmapi,info) << "NAB: gpu_id=" << allocPayload->gpu_metrics->gpu_id[gpuIdx]
-                                           << " gpu_usage=" << allocPayload->gpu_metrics->gpu_usage[gpuIdx]
-                                           << " max_gpu_memory=" << allocPayload->gpu_metrics->max_gpu_memory[gpuIdx];
-                          
                           allocation->gpu_metrics[hostIdx]->gpu_id[gpuIdx]         = allocPayload->gpu_metrics->gpu_id[gpuIdx]; 
                           allocation->gpu_metrics[hostIdx]->gpu_usage[gpuIdx]      = allocPayload->gpu_metrics->gpu_usage[gpuIdx];
                           allocation->gpu_metrics[hostIdx]->max_gpu_memory[gpuIdx] = allocPayload->gpu_metrics->max_gpu_memory[gpuIdx];
@@ -231,7 +224,7 @@ bool ParseResponseDelete(
                     }
                     else
                     {
-                       LOG(csmapi,warning) << "NAB: Unexpected nullptr: allocPayload->gpu_metrics=" 
+                       LOG(csmapi,warning) << "Unexpected nullptr: allocPayload->gpu_metrics=" 
                                            << std::hex << allocPayload->gpu_metrics
                                            << " allocation->gpu_metrics=" << allocation->gpu_metrics << std::dec;
                     }
