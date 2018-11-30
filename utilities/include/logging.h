@@ -69,7 +69,7 @@ namespace utility
 
     extern boost::log::sources::severity_channel_logger_mt< bluecoral_sevs > logger;
     extern boost::log::sources::channel_logger_mt< > bds_logger;
-    extern boost::log::sources::channel_logger_mt< > env_logger;
+    extern boost::log::sources::channel_logger_mt< > allocation_logger;
 };
 
 /**
@@ -95,8 +95,8 @@ namespace utility
 #define TRANSACTION(type, traceid, uid, data) BOOST_LOG(utility::bds_logger) << "{\"type\":\"" << type << \
     "\",\"traceid\":" << traceid << ",\"uid\":" << uid << ",\"data\":" << data << "}"
 
-#define ENVIRONMENTAL(type, source, data) BOOST_LOG(utility::env_logger) << "{\"type\":\"" << type << \
-    ",\"source\":\"" << source <<"\",\"data\":" << data << "}"
+#define ALLOCATION(type, source, data) BOOST_LOG(utility::allocation_logger) << "{\"type\":\"" << type << \
+    "\",\"source\":\"" << source <<"\",\"data\":" << data << "}"
 
 #define setLoggingLevel(subcomponent, setlevel) \
     utility::minlevel[utility::bluecoral_subcomponents::subcomponent] = utility::bluecoral_sevs::setlevel

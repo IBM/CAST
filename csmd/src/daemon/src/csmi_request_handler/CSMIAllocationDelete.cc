@@ -414,7 +414,6 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
         dbReq->AddNumericArrayParam<int64_t>(allocation->memory_max,    allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
 
-        // TODO Replace this with mechanism to send data to BDS via file beats
         if ( allocation->gpu_metrics )
         {
             for ( uint32_t nodeIdx = 0; nodeIdx < allocation->num_nodes; nodeIdx++ )
@@ -423,28 +422,30 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
                 {
                     // First field is type, this is used to select index,
                     // Second is 
-                    ENVIRONMENTAL("gpu-env-extended", allocation->compute_nodes[nodeIdx],
-                        "{\"gpu_id\":" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
+                    ALLOCATION("allocation-gpu", allocation->compute_nodes[nodeIdx],
+                        "{\"allocation_id\":" << allocation->allocation_id
+                        << ",\"gpu_id\":" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
                         << ",\"gpu_usage\":" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
                         << ",\"max_gpu_memory\":" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx]
                         << "}");
                 }
                 
-                // print the CPU environmental.
-                std::string cpuData = "{";
-                for ( uint32_t cpuIdx = 0; allocation->gpu_metrics[nodeIdx] 
-                        && cpuIdx < allocation->gpu_metrics[nodeIdx]->num_cpus; cpuIdx++ )
+                if ( allocation->gpu_metrics[nodeIdx] && (allocation->gpu_metrics[nodeIdx]->num_cpus > 0) )
                 {
-                    cpuData.append("\"cpu_").append(std::to_string(cpuIdx)).append("\":");
-                    cpuData.append(std::to_string(allocation->gpu_metrics[nodeIdx]->cpu_usage[cpuIdx]));
-                    cpuData.append(",");
-                }
-                cpuData.back()='}';
+                    std::string cpuData = "{";
+                    cpuData.append("\"allocation_id\":").append(std::to_string(allocation->allocation_id)).append(",");
+                    for ( uint32_t cpuIdx = 0; cpuIdx < allocation->gpu_metrics[nodeIdx]->num_cpus; cpuIdx++ )
+                    {
+                        cpuData.append("\"cpu_").append(std::to_string(cpuIdx)).append("\":");
+                        cpuData.append(std::to_string(allocation->gpu_metrics[nodeIdx]->cpu_usage[cpuIdx]));
+                        cpuData.append(",");
+                    }
+                    cpuData.back()='}';
 
-                ENVIRONMENTAL("cpu-env-extended", allocation->compute_nodes[nodeIdx], cpuData);
+                    ALLOCATION("allocation-cpu", allocation->compute_nodes[nodeIdx], cpuData);
+                }
             }
         }
-        // End TODO
 
         LOG(csmapi,info) << ctx <<  mcastProps->GenerateIdentifierString()
             << "; Message: Recording Allocation statistics and removing allocation from database;";

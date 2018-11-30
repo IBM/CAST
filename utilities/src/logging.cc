@@ -67,7 +67,7 @@ namespace utility
 {
     src::severity_channel_logger_mt< bluecoral_sevs > logger(keywords::channel = "LOG" );
     src::channel_logger_mt<> bds_logger( keywords::channel = "BDS" );
-    src::channel_logger_mt<> env_logger( keywords::channel = "ENV" );
+    src::channel_logger_mt<> allocation_logger( keywords::channel = "ALC" );
     bluecoral_sevs minlevel[NUM_SUBCOMPONENTS];
 
     void touch_unused_variable()
@@ -243,14 +243,14 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
             keywords::filter = channel == "BDS");
     }
 
-    if(config.get(ptree_prefix + ".environment", true))
+    if(config.get(ptree_prefix + ".allocation", true))
     {
          auto sink = logging::add_file_log(
-		    keywords::file_name = config.get(ptree_prefix + ".environment_file", "none"),
-		    keywords::rotation_size = config.get(ptree_prefix + ".environment_rotation_size", (~0)),
+		    keywords::file_name = config.get(ptree_prefix + ".allocation_file", "none"),
+		    keywords::rotation_size = config.get(ptree_prefix + ".allocation_rotation_size", (~0)),
 		    keywords::auto_flush = true,
             keywords::open_mode = std::ios::app,
-            keywords::filter = channel == "ENV");
+            keywords::filter = channel == "ALC");
     }
 
     return 0;
