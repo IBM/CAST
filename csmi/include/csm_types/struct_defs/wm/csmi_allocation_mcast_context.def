@@ -44,7 +44,7 @@
     #define CSMI_ARRAY_STR           1
     #define CSMI_ARRAY_STR_FIXED     0
     #define CSMI_STRUCT              0
-    #define CSMI_ARRAY_STRUCT        0
+    #define CSMI_ARRAY_STRUCT        1
     #define CSMI_ARRAY_STRUCT_FIXED  0
     #define CSMI_NONE                0
 #endif 
@@ -67,7 +67,7 @@ CSMI_STRUCT_MEMBER(int64_t*, ib_tx               , ARRAY,  num_nodes, NULL, int6
 CSMI_STRUCT_MEMBER(int64_t*, gpfs_read           , ARRAY,  num_nodes, NULL, int64_t ) /**< Counter for number of bytes read over network via gpfs. */  
 CSMI_STRUCT_MEMBER(int64_t*, gpfs_write          , ARRAY,  num_nodes, NULL, int64_t ) /**< Counter for number of bytes written over network via gpfs. */  
 CSMI_STRUCT_MEMBER(int64_t*, energy              , ARRAY,  num_nodes, NULL, int64_t ) /**< The energy usage of the node. */ 
-CSMI_STRUCT_MEMBER(int64_t*, gpu_usage           , ARRAY,  num_nodes, NULL, int64_t ) /**< The gpu usage .*/
+CSMI_STRUCT_MEMBER(int64_t*, gpu_usage           , ARRAY,  num_nodes, NULL, int64_t ) /**< The gpu usage in microseconds. */
 CSMI_STRUCT_MEMBER(int64_t*, cpu_usage           , ARRAY,  num_nodes, NULL, int64_t ) /**< The cpu usage in nanoseconds. */
 CSMI_STRUCT_MEMBER(int64_t*, memory_max          , ARRAY,  num_nodes, NULL, int64_t ) /**< The maximum memory usage in bytes/ */
 CSMI_STRUCT_MEMBER(int64_t*, power_cap_hit       , ARRAY,  num_nodes, NULL, int64_t ) /**< The total power cap hit value for the run of the allocation. */
@@ -88,6 +88,10 @@ CSMI_STRUCT_MEMBER(csmi_state_t, start_state, BASIC,, CSM_FAILED,) /**< State of
 CSMI_VERSION_END(79b40014609c05f907072fe513ccc353)
 CSMI_VERSION_START(CSM_DEVELOPMENT)
 CSMI_STRUCT_MEMBER(int64_t, runtime, BASIC, ,  0, ) /**< The run time of the allocation so far. */
+CSMI_VERSION_END(0)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(csmi_allocation_gpu_metrics_t**, gpu_metrics, ARRAY_STRUCT, num_nodes, NULL, csmi_allocation_gpu_metrics_t ) /**< Detailed gpu metrics for each node */
 CSMI_VERSION_END(0)
 
 #undef CSMI_VERSION_START

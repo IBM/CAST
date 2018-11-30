@@ -21,6 +21,47 @@ extern "C" {
 
 #include "csmi/include/csmi_type_wm.h"
 /**
+ * @brief Contains detailed gpu metric data on a per gpu basis, collected for each allocation. 
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    int64_t num_gpus;         /**< The number of GPUs */
+    int32_t* gpu_id; /**< GPU id for this GPU */
+    int64_t* gpu_usage; /**< GPU usage in microseconds during the allocation */
+    int64_t* max_gpu_memory; /**< Maximum amount of GPU memory that was used in bytes during the allocation */
+} csmi_allocation_gpu_metrics_t;
+ /**  @brief Serializes the supplied structure into a char buffer.
+*
+* @param[in]  target     The structure to pack into the char buffer.
+* @param[out] buf        Contains the structure as char buffer.
+* @param[out] buffer_len Contains the length of the buffer.
+*/
+int serialize_csmi_allocation_gpu_metrics_t( csmi_allocation_gpu_metrics_t *target, char **buf , uint32_t *buffer_len);
+
+/** @brief Deserializes the supplied character buffer.
+*
+* @param[out] dest       A pointer to a struct to output the contents of the buffer to.
+* @param[in]  buffer     The buffer to read into the destination struct.
+* @param[in]  buffer_len The size of the buffer provided (for overflows).
+*/
+int deserialize_csmi_allocation_gpu_metrics_t( csmi_allocation_gpu_metrics_t **dest, const char *buffer, uint32_t buffer_len);
+
+/** @brief Frees the supplied struct and its members.
+*
+*  @warning Don't invoke unless @p target has been initialized by the init function.
+*
+*  @param[in] target The struct to free.
+*/
+void free_csmi_allocation_gpu_metrics_t( csmi_allocation_gpu_metrics_t *target );
+
+/** @brief Initializes the supplied struct to the default values.
+*
+*  @param[in,out] target The struct to initialize.
+*/
+void init_csmi_allocation_gpu_metrics_t( csmi_allocation_gpu_metrics_t *target );
+
+
+/**
  * @brief Defines a context object for an allocation.
  */
 typedef struct {
@@ -40,7 +81,7 @@ typedef struct {
     int64_t* gpfs_read; /**< Counter for number of bytes read over network via gpfs. */  
     int64_t* gpfs_write; /**< Counter for number of bytes written over network via gpfs. */  
     int64_t* energy; /**< The energy usage of the node. */ 
-    int64_t* gpu_usage; /**< The gpu usage .*/
+    int64_t* gpu_usage; /**< The gpu usage in microseconds. */
     int64_t* cpu_usage; /**< The cpu usage in nanoseconds. */
     int64_t* memory_max; /**< The maximum memory usage in bytes/ */
     int64_t* power_cap_hit; /**< The total power cap hit value for the run of the allocation. */
@@ -56,6 +97,7 @@ typedef struct {
     char* timestamp; /**< A Timestamp for tracking miscellaneous timestamps. */
     csmi_state_t start_state; /**< State of allocation at the start of the , refer to @ref csmi_state_t for details. */
     int64_t runtime; /**< The run time of the allocation so far. */
+    csmi_allocation_gpu_metrics_t** gpu_metrics; /**< Detailed gpu metrics for each node */
 } csmi_allocation_mcast_context_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *
@@ -162,6 +204,7 @@ typedef struct {
     int64_t gpu_energy; /**< The gpu energy (watts).*/
     csmi_cmd_err_t error_code; /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
     char* error_message; /**< The error message in failure cases which don'tbreak data aggregation.*/
+    csmi_allocation_gpu_metrics_t* gpu_metrics; /**< Detailed gpu metrics for each gpu. */
 } csmi_allocation_mcast_payload_response_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

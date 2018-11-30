@@ -78,6 +78,13 @@ void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** b
             _Data->cpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
             _Data->memory_max  = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
 	        _Data->gpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
+	        
+             _Data->gpu_metrics = (csmi_allocation_gpu_metrics_t**) calloc( _Data->num_nodes, sizeof(csmi_allocation_gpu_metrics_t*));
+             for ( uint32_t i = 0; i < _Data->num_nodes; i++ )
+             {
+                 csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, _Data->gpu_metrics[i]);
+                 _Data->gpu_metrics[i]->num_gpus = 0;
+             }
         }
     }
 }
@@ -197,6 +204,32 @@ bool ParseResponseDelete(
                     allocation->power_cap_hit[hostIdx]  = allocPayload->pc_hit;
                     allocation->gpu_energy[hostIdx]     = allocPayload->gpu_energy;
                     allocation->gpu_usage[hostIdx]     = allocPayload->gpu_usage;
+                    
+                    if ( ( allocPayload->gpu_metrics != nullptr ) && 
+                         ( allocation->gpu_metrics != nullptr ) &&
+                         ( allocation->gpu_metrics[hostIdx] != nullptr ) )
+                    { 
+                       allocation->gpu_metrics[hostIdx]->num_gpus  = allocPayload->gpu_metrics->num_gpus;
+
+                       // Allocate memory for the per gpu arrays
+                       allocation->gpu_metrics[hostIdx]->gpu_id         = (int32_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int32_t));
+                       allocation->gpu_metrics[hostIdx]->gpu_usage      = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int64_t));
+                       allocation->gpu_metrics[hostIdx]->max_gpu_memory = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int64_t));
+                      
+                       // Copy per gpu arrays 
+                       memcpy(allocation->gpu_metrics[hostIdx]->gpu_id, allocPayload->gpu_metrics->gpu_id, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int32_t));
+                       memcpy(allocation->gpu_metrics[hostIdx]->gpu_usage, allocPayload->gpu_metrics->gpu_usage, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
+                       memcpy(allocation->gpu_metrics[hostIdx]->max_gpu_memory, allocPayload->gpu_metrics->max_gpu_memory, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
+                    }
+                    else
+                    {
+                       LOG(csmapi,warning) << "Unexpected nullptr: allocPayload->gpu_metrics=" 
+                                           << std::hex << allocPayload->gpu_metrics
+                                           << " allocation->gpu_metrics=" << allocation->gpu_metrics << std::dec;
+                    }
                 }
             }
 
