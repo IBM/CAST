@@ -410,7 +410,7 @@ sub makeProxyConfigFile
         {
             for($x = 0 ; $x < $#backup + 1 ; $x++)
             {
-                $BACKUP{ $ESS[$x] } = $#backup - $x;
+                $BACKUP{ $backup[$x] } = $#ESS - $x;
             }
         }
     }
@@ -422,11 +422,10 @@ sub makeProxyConfigFile
         exit(3);
     }
 
-    $numess          = $#ESS + 1;
-    $compute_per_ess = ceil($numnodes / $numess);
-    $index           = int(floor($NODES{$nodename} / $compute_per_ess));
+    my $numess          = $#ESS + 1;
+    my $compute_per_ess = ceil($numnodes / $numess);
+    my $primaryServer   = int(floor($NODES{$nodename} / $compute_per_ess));
     $namespace       = ($NODES{$nodename} % 8192) + 10;
-    $primaryServer   = $index;
     output("Number compute nodes: $numnodes");
     output("Number ESS nodes: $numess");
     output("Compute per ESS: $compute_per_ess");
@@ -434,7 +433,7 @@ sub makeProxyConfigFile
 
     for($x = 0 ; $x < $numess ; $x++)
     {
-        $tmp = $json->{"bb"}{"server0"};
+        my $tmp = $json->{"bb"}{"server0"};
         foreach $key (keys %{$tmp})
         {
             $json->{"bb"}{ $ESSNAME[$x] }{$key} = $tmp->{$key};
@@ -445,9 +444,9 @@ sub makeProxyConfigFile
     $json->{"bb"}{"proxy"}{"servercfg"} = "bb." . $ESSNAME[$primaryServer];
     output("ESS:    $ESS[$primaryServer] (bb.proxy.servercfg=bb.$ESSNAME[$primaryServer])");
 
-    if(exists $BACKUP{ $ESS[$index] })
+    if(exists $BACKUP{ $ESS[$primaryServer] })
     {
-        $backupServer = $BACKUP{ $ESS[$index] };
+        my $backupServer = $BACKUP{ $ESS[$primaryServer] };
         $json->{"bb"}{"proxy"}{"backupcfg"} = "bb." . $ESSNAME[$backupServer];
         output("Backup: $ESS[$backupServer] (bb.proxy.backupcfg=bb.$ESSNAME[$backupServer])");
     }
