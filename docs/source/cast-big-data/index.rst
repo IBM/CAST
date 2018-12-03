@@ -29,5 +29,6 @@ elasticsearch.
     beats.rst
     python-guide.rst
     csm-event-correlator.rst
+    cast-search.rst
 
 
