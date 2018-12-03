@@ -82,7 +82,7 @@ Beginning with the top-level configuration section `csm`.
   * ``ras`` tbd
   * ``ufm`` configure access to UFM. See `The UFM block`_.
   * ``bds`` addresses, ports, and other settings for BDS access. See `The BDS block`.
-  * ``recurring_tasks`` setting up intervals and types of predefined recurring tasks to be triggered by the daemon. See `The recurring tasks block`_.
+  * ``recurring_tasks`` setting up intervals and types of predefined recurring tasks to be triggered by the daemon. See `Recurring Tasks Block`_.
   * ``data_collection`` enable and configure predefined buckets for environmental data collection. See `The data collection block`_.
 
 
@@ -401,10 +401,49 @@ on the aggregator daemon at the moment.
     it is recommended to set the expiration to be longer than the maximum reconnect interval.
 
 
-The recurring tasks block
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Recurring Tasks Block
+^^^^^^^^^^^^^^^^^^^^^
 
-This is currently a placeholder for an upcoming feature of the CSM daemon.
+.. code-block:: json
+    
+    {
+        "enabled" : false,
+        "soft_fail_recovery" :
+        {
+            "enabled" : false,
+            "interval" : "00:01:00",
+            "retry" : 3
+        }
+    }
+
+The recurring tasks configuration block, schedules recurring tasks that are supported by CSM.
+
+:enabled: Indicates whether or not recurring tasks will be processed by the daemons.
+
+.. TODO link all
+
+.. _csm_soft_failure_recovery-config :
+
+soft_fail_recovery
+++++++++++++++++++
+
+The soft failure recovery task executes the `soft_failure_recovery` API over the 
+specified interval for the number of retries specified. For s
+
+.. code-block:: json 
+
+    {
+        "enabled" : false,
+        "interval" : "00:01:00",
+        "retry" : 3
+    }
+
+:enabled: Indicates whether or not this task will be processed by the daemons.
+:interval: The interval time between recurring tasks, format: `HH:mm:ss`.
+:retry: The number of times to retry the task on a specific node before placing the node into soft failure, 
+    if the daemon is restarted the retry count for the node will be restarted.
+
+.. attention:: This is only defined on the Master Daemon.
 
 The data collection block
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -536,7 +575,8 @@ API Configuration
    "csm_allocation_step_begin" : 120,
    "csm_allocation_query" : 120,
    "csm_bb_cmd" : 120,
-   "csm_jsrun_cmd" : 60
+   "csm_jsrun_cmd" : 60,
+   "csm_soft_failure_recovery" : 240
  }
 
 The CSM API configuration file allows the admin to set a number of API-specific parameters.

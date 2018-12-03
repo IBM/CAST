@@ -794,14 +794,21 @@ in the CSM master configuration file:
 
     "log" :
     {
-        "transaction"                       : true,
-        "transaction_file"                  : "/var/log/ibm/csm/csm_transaction.log",
-        "transaction_rotation_size"         : 1000000000
+        "transaction"                : true,
+        "transaction_file"           : "/var/log/ibm/csm/csm_transaction.log",
+        "transaction_rotation_size"  : 1000000000,
+         "allocation"                : true,
+         "allocation_file"           : "/var/log/ibm/csm/csm_allocation_metrics.log",
+         "allocation_rotation_size"  : 1000000000
     }
 
 :transaction: Enables the mechanism transaction log mechanism. 
 :transaction_file: Specifies the location the transaction log will be saved to.
 :transaction_rotation_size: The size of the file (in bytes) to rotate the log at.
+
+:allocation: Enables the mechanism allocation metrics log mechanism. 
+:allocation_file: Specifies the location the allocation metrics log will be saved to.
+:allocation_rotation_size: The size of the file (in bytes) to rotate the log at.
 
 Each transaction record will follow the following pattern:
 
@@ -818,6 +825,19 @@ Each transaction record will follow the following pattern:
 :data: Encapsulates the transactional data.
 :traceid: The API's trace id as used in the CSM API trace functionality.
 :uid: A unique identifier for the record in the elasticsearch index.
+
+Allocation metrics will match the following pattern:
+
+.. code-block:: javascript
+
+    { 
+        "type": "<metric-type>", 
+        "data": { <metric data> },
+    }
+
+:type: The type of the allocation metric, converted to index in default configuration.
+:data: Encapsulates the allocation metric data.
+
 
 Filebeats Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
