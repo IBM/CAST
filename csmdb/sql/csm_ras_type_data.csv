@@ -431,6 +431,7 @@ bmc.UnrecoverableHardwareFailure.FQPSPTR0001M,FATAL,A problem with the time of d
 csm.api.allocation_timeout,FATAL,CSM allocation operation timed out on $(location_name) with rc=$(rc),CSM daemon detected a timeout during an allocation operation.,NONE,1,0,true,SOFT_FAILURE,true
 csm.api.cgroup_create_failure,FATAL,Cgroup creation failed on $(location_name) with rc=$(rc),CSM daemon was unable to create a cgroup and signaled its failure.,NONE,1,0,true,SOFT_FAILURE,true
 csm.api.cgroup_delete_failure,FATAL,Cgroup deletion failed on $(location_name) with rc=$(rc),CSM daemon was unable to delete a cgroup and signaled its failure.,NONE,1,0,true,SOFT_FAILURE,true
+csm.soft_failure_recovery.retries_exceeded,FATAL,CSM soft failure recovery failed on $(location_name) due to exceeding the maximum number of retries.,CSM soft failure recovery failed due to exceeding the maximum number of retries.,NONE,1,0,true,HARD_FAILURE,true
 csm.status.down,FATAL,CSM daemon is down or unreachable on $(location_name),CSM daemon is down or unreachable.,NONE,1,0,true,SOFT_FAILURE,true
 csm.status.full_redundancy,INFO,CSM daemon on $(location_name) is reachable via two aggregators.,CSM daemon is reachable via two aggregators.,NONE,1,0,true,,true
 csm.status.lost_redundancy,WARNING,CSM daemon on $(location_name) is only reachable via one aggregator.,CSM daemon is only reachable via one aggregator.,NONE,1,0,true,,true
