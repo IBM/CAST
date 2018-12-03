@@ -69,7 +69,7 @@ Example (usage)
                          Number of records to archive in the run. Default: 1000
    -d db, --database db  Database to archive tables from. Default: csmdb
    -u user, --user user  The database user. Default: postgres
-   --threads threads     The number of threads for the thread pool. Default: 2
+   --threads threads     The number of threads for the thread pool. Default: 10
  
  ------------------------------------------------------------------------------
 
