@@ -1347,6 +1347,7 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
 }
 #endif
 
+#ifdef BBPROXY
 int setupUnixConnections(string whoami){
     txp::CnxSockUnix* unixSock;
     process_whoami   = whoami;
@@ -1412,8 +1413,10 @@ int setupUnixConnections(string whoami){
     sem_wait(&connection_sem);
     return 0;
 }
+#endif
 
-int setupConnections(string whoami, string instance)
+#ifdef BBSERVER
+int setupBBproxyListener(string whoami)
 {
     int rc;
     in_addr_t      iplocal;
@@ -1421,15 +1424,8 @@ int setupConnections(string whoami, string instance)
     txp::CnxSockSSL* sslSock;
 
     process_whoami   = whoami;
-    process_instance = instance;
 
-    LOG(bb,always) << "setupConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
-
-    sem_init(&connection_sem, 0, 0);
-    pthread_mutex_init(&connections_io_mutex, NULL);
-    pthread_mutex_init(&connection_map_mutex, NULL);
-    pthread_mutex_init(&threadFreePool_mutex, NULL);
-    pipe2(connection_doorbell, O_CLOEXEC);
+    LOG(bb,always) << "setupBBproxyListener(): whoami=" << whoami << ", ProcessId=" << ProcessId;
 
     string ipaddr;
     string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
@@ -1439,7 +1435,7 @@ int setupConnections(string whoami, string instance)
         LOG(bb,always) << "whoami=" << whoami << " url=" << url << " sslurl=" << sslurl;
     }
 
-    lockConnectionMaps("setupConnections");
+    lockConnectionMaps("setupBBproxyListener");
     {
         if (url != NO_CONFIG_VALUE)
         {
@@ -1448,7 +1444,7 @@ int setupConnections(string whoami, string instance)
             getIPPort(url, ipaddr, port);
             if (inet_pton(AF_INET, ipaddr.c_str(), &iplocal) == 0)
             {
-                unlockConnectionMaps("setupConnections - failure, unable to build local address");
+                unlockConnectionMaps("setupBBproxyListener - failure, unable to build local address");
                 LOG(bb,error) << "Unable to build local address";
                 delete sock;
                 return -1;
@@ -1460,14 +1456,14 @@ int setupConnections(string whoami, string instance)
             if (rc)
             {
                 LOG(bb,always) << "bind failed for " << sock->getSockfd() << ", ip=" << ipaddr << ", port=" << port;
-                unlockConnectionMaps("setupConnections - failure, sock->bindCnxSock()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sock->bindCnxSock()");
                 delete sock;
                 return -1;
             }
             rc = sock->listen4remote();
             if (rc)
             {
-                unlockConnectionMaps("setupConnections - failure, sock->listen4remote()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sock->listen4remote()");
                 delete sock;
                 return -1;
             }
@@ -1502,7 +1498,7 @@ int setupConnections(string whoami, string instance)
             getIPPort(sslurl, ipaddr, port);
             if (inet_pton(AF_INET, ipaddr.c_str(), &iplocal) == 0)
             {
-                unlockConnectionMaps("setupConnections - failure, SSL unable to build local address");
+                unlockConnectionMaps("setupBBproxyListener - failure, SSL unable to build local address");
                 LOG(bb,error) << "SSL - Unable to build local address";
                 delete sslSock;
                 return -1;
@@ -1514,7 +1510,7 @@ int setupConnections(string whoami, string instance)
             }
             catch (std::runtime_error e){
                 LOG(bb,always) << "loadCertificates failed for (SSL) what=" << e.what();
-                unlockConnectionMaps("setupConnections - failure, sslSock->bindCnxSock()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sslSock->bindCnxSock()");
                 delete sslSock;
                 rc=-1;
                 bberror << errloc(rc);
@@ -1527,14 +1523,14 @@ int setupConnections(string whoami, string instance)
             if(rc)
             {
                 LOG(bb,always) << "bind failed for (SSL) " << sslSock->getSockfd() << ", ip=" << ipaddr << ", port=" << port;
-                unlockConnectionMaps("setupConnections - failure, sslSock->bindCnxSock()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sslSock->bindCnxSock()");
                 delete sslSock;
                 return -1;
             }
             rc = sslSock->listen4remote();
             if(rc)
             {
-                unlockConnectionMaps("setupConnections - failure, sslSock->listen4remote()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sslSock->listen4remote()");
                 delete sslSock;
                 return -1;
             }
@@ -1558,8 +1554,32 @@ int setupConnections(string whoami, string instance)
 
 
     }
-    unlockConnectionMaps("setupConnections");
+    unlockConnectionMaps("setupBBproxyListener");
 
+    int tmp = 0;
+    write(connection_doorbell[1], &tmp, sizeof(tmp));
+    sem_wait(&connection_sem);
+    return 0;
+}
+#endif
+
+int setupConnections(string whoami, string instance)
+{
+
+    process_whoami   = whoami;
+    process_instance = instance;
+
+    LOG(bb,always) << "setupConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
+
+    sem_init(&connection_sem, 0, 0);
+    pthread_mutex_init(&connections_io_mutex, NULL);
+    pthread_mutex_init(&connection_map_mutex, NULL);
+    pthread_mutex_init(&threadFreePool_mutex, NULL);
+    pipe2(connection_doorbell, O_CLOEXEC);
+
+    string ipaddr;
+    string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
+    
     int x;
     pthread_t tid;
     pthread_attr_t attr;
