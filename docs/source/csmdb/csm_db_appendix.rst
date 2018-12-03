@@ -1479,11 +1479,10 @@ Functions and Triggers
 CSM DB Schema (pdf)
 -------------------
 (CSM DB schema version 16.2):
--- Coming soon --
 
-..     .. image:: CSM_DB_08-10-2018_v16.2.jpg
-..              :width: 600px
-..              :height: 500px
-..              :scale: 100%
-..              :alt: Screenshot of Image Window in OpenCV
-..              :align: left
+.. image:: https://user-images.githubusercontent.com/6536949/49393422-2acd6f80-f6ff-11e8-8816-d1d74bba3378.jpg
+              :width: 600px
+              :height: 500px
+              :scale: 100%
+              :alt: Screenshot of Image Window in OpenCV
+              :align: left
