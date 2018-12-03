@@ -109,7 +109,7 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
         *dbPayload = dbReq;
         
         MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, context, false, false, 
-             CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT); // TODO Replace msg id
+             ""); // TODO Replace msg id
          ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
          ctx->SetUserData( payload );
             
@@ -155,11 +155,16 @@ bool CSMISoftFailureRecovery_Master::ParseInfoQuery(
         if ( tuples[i] && tuples[i]->nfields > 0 )
         {
             recovery->compute_nodes[i] = strdup(tuples[i]->data[0]);
-            nodeList.append(recovery->compute_nodes[i]);
+            nodeList.append(recovery->compute_nodes[i]).append(",");
         }
         else
             recovery->compute_nodes[i] = strdup("");
     }
+
+    // Drop the comma.
+    if (nodeList.length() > 0)
+        nodeList.back()=' ';
+
 
     // Log the mcast information.
     LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString()
