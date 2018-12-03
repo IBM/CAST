@@ -59,6 +59,8 @@ protected:
     std::string _ErrorMsg;      /**< An aggration of error messages.*/
 
     std::priority_queue<int, std::vector<int>, ErrorCompare> _ErrHeap;  /**< A Heap to store errors received from the compute nodes. */
+    bool         _EventListRegistered; /**< Tracks whether the event  qeueue was registered. */
+    std::vector<csm::daemon::CoreEvent*> _PostEventList; /**< A Queue of events. */
     
 
 
@@ -79,7 +81,8 @@ public:
                 _Recovery(false),      _IsAlternate(false),
                 _EEReply(eeReply),     _RASPushed(false),
                 _Data(data),           _RASMsgId(rasMsgId),
-                _ErrorMsg(""),         _ErrHeap()
+                _ErrorMsg(""),         _ErrHeap(),
+                _EventListRegistered(false), _PostEventList()
     { 
         
         _ErrHeap.push(CSMERR_MULTI_GEN_ERROR);    
@@ -396,6 +399,29 @@ public:
      *  @return The most important error from the multicast.
      */
     inline int GetMainErrorCode() { return _ErrHeap.top(); }
+
+    inline void SetEventList(std::vector<csm::daemon::CoreEvent*>& postEventList)
+    {
+        _EventListRegistered = true;
+        _PostEventList = postEventList;
+    }
+
+    /** @brief Pushes an event to the event queue.
+     *  @param[in] reply The Core Event to enqueue.
+     *
+     *  @TODO Finish this
+     */
+    inline bool PushEvent(csm::daemon::CoreEvent* reply)
+    {
+        if(_EventListRegistered && reply)
+        {
+            _PostEventList.push_back(reply)
+            return true;
+        }
+        else
+            return false;
+
+    }
 };
 
 
