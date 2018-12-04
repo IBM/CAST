@@ -25,9 +25,32 @@
 #include "csmi/include/csmi_type_wm_funct.h"
 #include "csmi/include/csm_api_macros.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h" 
+#define STRUCT_TYPE csmi_soft_failure_recovery_context_t
 //#include <map>
 
-#define STRUCT_TYPE csmi_soft_failure_recovery_context_t
+// Build the error map table.
+struct CSMISoftFailureComparator
+{
+    int map(int val) const
+    {
+        int returnVal=0;
+        switch (val)
+        {
+            case CSMERR_MULTI_GEN_ERROR:
+                returnVal=-1;
+                break;
+            default:
+                break;
+        }
+        return returnVal;
+    }
+
+    bool operator() (const int& a, const int& b) const
+    {
+        return map(a) < map(b);
+    }
+};
+
 
 struct csmi_soft_failure_recovery_context_t {
     uint32_t num_nodes;
@@ -63,7 +86,7 @@ struct csmi_soft_failure_recovery_context_t {
  * @tparam DataStruct The allocation create/delete/update multicast context.
  */
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
+CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::~CSMIMcast();
 
 /** @brief Builds a specialized payload to handle allocation create/delete multicast payloads.
  *
@@ -73,7 +96,7 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
  * @param[out] bufferLength The length of the @p bufferLength payload.
  */
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
+void CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
 
 /**
  * @brief Generates a unique identifier string for the mcast object.
@@ -82,11 +105,11 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
  * @return A string containing the unique identifier for the multicast.
  */
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString();
+std::string CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::GenerateIdentifierString();
 
 /** @brief A typedef for @ref csmi_allocation_mcast_context_t specializations of @ref CSMIMcast.
  */
-typedef CSMIMcast<STRUCT_TYPE> CSMIMcastSoftFailureRecovery;
+typedef CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator> CSMIMcastSoftFailureRecovery;
 
 namespace csm{
 namespace mcast{
