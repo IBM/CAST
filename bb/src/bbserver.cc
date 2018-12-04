@@ -2737,6 +2737,13 @@ int bb_main(std::string who)
         //       can be immediately honored from other bbServers.
         startTransferThreads();
         rc = setupBBproxyListener(who);
+        if(rc)
+       {
+        stringstream errorText;
+        errorText<<"Listening socket error.  rc=" << rc;
+        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.net.bbproxyListenerSocketFailed);
+        exit(0);
+       }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)

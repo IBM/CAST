@@ -4361,7 +4361,12 @@ int bb_main(std::string who)
     rc = setupUnixConnections(process_whoami);
     if(rc)
     {
-        LOG(bb,warning) << "Unix socket did not open.  rc=" << rc;
+        bberror.clear(process_whoami);
+        string upath = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+        stringstream errorText;
+        errorText<<"Unix socket did not open rc=" << rc << " bb.unixpath="<<upath;
+        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc,bb.net.UnixSocketFailed);
+        exit(0);
     }
 
     LOG(bb,always) << "bbProxy completed initialization";
