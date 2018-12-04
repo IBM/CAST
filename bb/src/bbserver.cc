@@ -2586,7 +2586,7 @@ int registerHandlers()
 
     return 0;
 }
-
+int setupBBproxyListener(string whoami);
 int bb_main(std::string who)
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -2736,6 +2736,7 @@ int bb_main(std::string who)
         // NOTE: Transfer threads are started here so that async requests
         //       can be immediately honored from other bbServers.
         startTransferThreads();
+        rc = setupBBproxyListener(who);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
