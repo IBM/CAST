@@ -61,6 +61,9 @@ CSM provides a command line script to trigger a `Soft Failure` recovery. Invocat
 The `-r` or `--retry` option sets a retry threshold if this threshold is exceeded or met by any nodes
 that failed to be placed into `In Service` the node will be moved to `Hard Failure`.
 
+.. attention:: Nodes that are in `Soft Failure` and owned by an allocation will *NOT* be processed by this
+    utility!
+
 Recovery Script
 ---------------
 
