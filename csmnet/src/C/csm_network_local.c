@@ -467,6 +467,7 @@ int csm_net_unix_Exit( csm_net_endpoint_t *aEP )
 
   if( aEP->_connected )
   {
+    pthread_mutex_lock( &aEP->_ep->_Lock );
     aEP->_connected = 0;
     char *msgData = strdup(CSM_DISCONNECT_MSG);
     csm_net_msg_t *DisconnectMsg;
@@ -481,7 +482,7 @@ int csm_net_unix_Exit( csm_net_endpoint_t *aEP )
     if( DisconnectMsg )
     {
       csmutil_logging(debug, "%s-%d: Sending disconnect message", __FILE__, __LINE__);
-      rc = csm_net_unix_Send( aEP->_ep, DisconnectMsg );
+      rc = csm_net_unix_Send_unlocked( aEP->_ep, DisconnectMsg );
       if( rc < 0 )
       {
         csmutil_logging(error, "%s-%d: Failed to send disconnect message. errno=%d", __FILE__, __LINE__, errno);
@@ -493,6 +494,7 @@ int csm_net_unix_Exit( csm_net_endpoint_t *aEP )
       free( DisconnectMsg );
     }
     free( msgData );
+    pthread_mutex_unlock( &aEP->_ep->_Lock );
   }
 
   // cleanup CallBack socket
@@ -537,6 +539,8 @@ int csm_net_unix_Exit( csm_net_endpoint_t *aEP )
 
   // cleanup Regular socket
   if( aEP->_ep ) {
+    pthread_mutex_lock( &aEP->_ep->_Lock );
+
     if( aEP->_ep->_Socket >= 0 )
     {
       close( aEP->_ep->_Socket );
@@ -550,6 +554,7 @@ int csm_net_unix_Exit( csm_net_endpoint_t *aEP )
       free( aEP->_ep->_DataBuffer );
     }
 
+    pthread_mutex_unlock( &aEP->_ep->_Lock );
     memset( aEP->_ep, 0, sizeof( csm_net_unix_t ) );
     free( aEP->_ep );
   }
@@ -711,16 +716,11 @@ csm_net_msg_t * csm_net_unix_RecvMain(
  * @return number of bytes sent (excluding control data)
  * @return -1 on error (with errno set accordingly)
  */
-ssize_t csm_net_unix_Send( csm_net_unix_t *aEP,
-                          csm_net_msg_t *aMsg)
+ssize_t csm_net_unix_Send_unlocked( csm_net_unix_t *aEP,
+                                    csm_net_msg_t *aMsg )
 {
   ssize_t rc = 0;
 
-  if( !aMsg )
-  {
-    errno = EBADR;
-    return -1;
-  }
   if( aEP->_Socket < 2 )
   {
     errno = ENOTCONN;
@@ -933,6 +933,25 @@ ssize_t csm_net_unix_Send( csm_net_unix_t *aEP,
   }
   return rc;
 }
+ssize_t csm_net_unix_Send( csm_net_unix_t *aEP,
+                          csm_net_msg_t *aMsg)
+{
+  if( aEP == NULL )
+  {
+    errno = EINVAL;
+    return -1;
+  }
+  if( !aMsg )
+  {
+    errno = EBADR;
+    return -1;
+  }
+  pthread_mutex_lock( &aEP->_Lock );
+  ssize_t rc = csm_net_unix_Send_unlocked( aEP, aMsg );
+  pthread_mutex_unlock( &aEP->_Lock );
+  return rc;
+}
+
 
 #define MIN( a, b ) ( (a)<(b)?(a):(b))
 
@@ -1062,9 +1081,9 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
 }
 
 static
-csm_net_msg_t * csm_net_unix_RecvMain( 
-    csm_net_unix_t *aEP, 
-    int aBlocking, 
+csm_net_msg_t * csm_net_unix_RecvMain(
+    csm_net_unix_t *aEP,
+    int aBlocking,
     csmi_cmd_t cmd,
     int aReturnCtrlData )
 {
@@ -1087,6 +1106,11 @@ csm_net_msg_t * csm_net_unix_RecvMain(
 
     // sanity check of buffer status of EP
     csm_dgram_buffer_state_t *EPBS = &( aEP->_BufferState );
+    if( EPBS == NULL )
+    {
+      errno = EINVAL;
+      return NULL;
+    }
     if( ( EPBS->_BufferedData < aEP->_DataBuffer ) ||
         ( EPBS->_DataEnd < EPBS->_BufferedData ) ||
         ( EPBS->_BufferedDataLen >= DGRAM_PAYLOAD_MAX ) ||
@@ -1267,7 +1291,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
             csm_net_msg_SetAck( ack );
             csm_net_msg_ClrErrorFlag( ack );
             csm_net_msg_SetDataAndChksum( ack, "", 0 );
-            csm_net_unix_Send( aEP, ack );
+            csm_net_unix_Send_unlocked( aEP, ack );
             free( ack );
         }
 
@@ -1316,12 +1340,31 @@ ignore:
 
 csm_net_msg_t * csm_net_unix_Recv( csm_net_unix_t *aEP )
 {
-  return csm_net_unix_RecvMain( aEP, 0, CSM_CMD_UNDEFINED, 0 ); /// TODO remove the cmd
+  if( aEP == NULL )
+  {
+    errno = EINVAL;
+    return NULL;
+  }
+  pthread_mutex_lock( &aEP->_Lock );
+  csm_net_msg_t *ret = csm_net_unix_RecvMain( aEP, 0, CSM_CMD_UNDEFINED, 0 ); /// TODO remove the cmd
+  pthread_mutex_unlock( &aEP->_Lock );
+
+  return ret;
 }
 
 csm_net_msg_t * csm_net_unix_BlockingRecv( csm_net_unix_t *aEP, csmi_cmd_t cmd)
 {
-  return csm_net_unix_RecvMain( aEP, 1, cmd, 0 ); /// TODO remove the cmd?
+  if( aEP == NULL )
+  {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  pthread_mutex_lock( &aEP->_Lock );
+  csm_net_msg_t *ret = csm_net_unix_RecvMain( aEP, 1, cmd, 0 ); /// TODO remove the cmd?
+  pthread_mutex_unlock( &aEP->_Lock );
+
+  return ret;
 }
 
 void csm_net_unix_FlushBuffer( csm_net_unix_t *aEP )
@@ -1403,7 +1446,9 @@ void * thread_callback_loop( void * aIn )
       continue;
     }
 
+    pthread_mutex_lock( &cb->_Lock );
     csm_net_msg_t *msg = csm_net_unix_RecvMain( cb, 1, CSM_CMD_UNDEFINED, 1 );
+    pthread_mutex_unlock( &cb->_Lock );
     int stored_errno = errno;
 
     // double check we're still connected before processing

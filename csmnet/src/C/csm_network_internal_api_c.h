@@ -55,6 +55,7 @@ typedef struct {
     struct sockaddr_un _OtherAddr; // for client sockets this holds the connected addr
 
     char * _DataBuffer;
+    pthread_mutex_t _Lock;
     csm_dgram_buffer_state_t _BufferState;
 
 } csm_net_unix_t;
