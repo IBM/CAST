@@ -4366,7 +4366,7 @@ int bb_main(std::string who)
         stringstream errorText;
         errorText<<"Unix socket did not open rc=" << rc << " bb.unixpath="<<upath;
         LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc,bb.net.UnixSocketFailed);
-        exit(0);
+        return rc;
     }
 
     LOG(bb,always) << "bbProxy completed initialization";

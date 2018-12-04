@@ -2742,7 +2742,6 @@ int bb_main(std::string who)
         stringstream errorText;
         errorText<<"Listening socket error.  rc=" << rc;
         LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.net.bbproxyListenerSocketFailed);
-        exit(0);
        }
     }
     catch(ExceptionBailout& e) { }
