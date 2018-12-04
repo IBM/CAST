@@ -243,11 +243,11 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
             keywords::filter = channel == "BDS");
     }
 
-    if(config.get(ptree_prefix + ".allocation", true))
+    if(config.get(ptree_prefix + ".allocation_metrics", true))
     {
          auto sink = logging::add_file_log(
-		    keywords::file_name = config.get(ptree_prefix + ".allocation_file", "none"),
-		    keywords::rotation_size = config.get(ptree_prefix + ".allocation_rotation_size", (~0)),
+		    keywords::file_name = config.get(ptree_prefix + ".allocation_metrics_file", "none"),
+		    keywords::rotation_size = config.get(ptree_prefix + ".allocation_metrics_rotation_size", (~0)),
 		    keywords::auto_flush = true,
             keywords::open_mode = std::ios::app,
             keywords::filter = channel == "ALC");
