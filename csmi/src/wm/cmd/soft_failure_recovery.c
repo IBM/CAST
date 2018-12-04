@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     
     return_value = csm_soft_failure_recovery(&csm_obj, &input, &output);
 
-	if (return_value == CSMI_SUCCESS ) 
+	if (return_value == CSMI_SUCCESS )
     {
 	    printf("---\n# Soft Failure cleaned up.\n");
 
@@ -131,10 +131,17 @@ int main(int argc, char *argv[])
 	}
 	else 
     {
-		printf("# %s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value, 
-            csm_api_object_errcode_get(csm_obj), csm_api_object_errmsg_get(csm_obj));
-        
-        csm_print_node_errors(csm_obj)
+        if(return_value == CSMI_NO_RESULTS)
+        {
+            printf("# No nodes currently in soft failure.\n");
+        }
+        else
+        {
+		    printf("# %s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value, 
+                csm_api_object_errcode_get(csm_obj), csm_api_object_errmsg_get(csm_obj));
+            
+            csm_print_node_errors(csm_obj)
+        }
 	}
 
 	// it's the csmi library's responsibility to free internal space

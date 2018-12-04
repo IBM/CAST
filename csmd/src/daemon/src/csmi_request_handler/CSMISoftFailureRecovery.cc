@@ -68,10 +68,10 @@ CSMISoftFailureRecovery_Master::CSMISoftFailureRecovery_Master(csm::daemon::Hand
                             FixRepairedNodes,                         // Called for failure.                                                 
                             csm::mcast::nodes::ParseResponseSoftFailure,// Performs a parse of the responses.                                  
                            false>(                                      // Specifies that a second multicast shouldn't be attempted in a failure. 
-           FINAL,               // Success State 
-           FINAL,               // Failure State
+           FIX_NODES,           // Success State 
+           FIX_NODES,           // Failure State
            FINAL,               // Final State
-           FINAL,               // Timeout State
+           FIX_NODES,           // Timeout State
            MASTER_TIMEOUT));    // Timeout Time
 }                           
 
@@ -87,6 +87,9 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
 
     if ( csm_deserialize_struct( INPUT_STRUCT, &input, arguments.c_str(), len ) == 0 ) 
     {
+        // The context will no longer send errors when the mcast has no targets (legal end state).
+        ctx->SetMCASTNoTargetSuccess();
+
         csmi_soft_failure_recovery_context_t *context = new csmi_soft_failure_recovery_context_t();
         context->retry_count = input->retry_count;
         csm_free_struct_ptr(INPUT_STRUCT, input);
@@ -210,20 +213,12 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
             failStr.append(separator).append(node); 
             separator = ",";
 
+            csm::daemon::NetworkEvent *reply =
+                 csm::daemon::helper::CreateRasEventMessage(CSM_RAS_MSG_ID_RETRY_EXCEEDED,
+                     node, "", "", handler->GetAbstractMaster());
 
-            // TODO Assign this elsewhere.
-            // Generate a RAS Event.
-            if(! mcastProps->PushEvent(
-                csm::daemon::helper::CreateRasEventMessage(CSM_RAS_MSG_ID_RETRY_EXCEEDED,
-                    node, "", "", handler->GetAbstractMaster())))
-            {
-                LOG(csmapi, error) << ctx << "Unable to place node '" << node <<  "' into hard failure"; 
-            }
-
-        }
-        else
-        {
-            tempMap[node] = count;
+            if (!mcastProps->PushEvent(reply))
+               LOG(csmapi, error) <<  "Unable to push RAS Event for node" << node;
         }
     }
 
@@ -238,12 +233,15 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
 
     csm::db::DBReqContent *dbReq = nullptr;
 
-    const int paramCount = 1; 
-    std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
-        "WHERE node_name=ANY($1::text[]);";
+    if ( nodeVector.size() > 0 )
+    {
+        const int paramCount = 1; 
+        std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
+            "WHERE node_name=ANY($1::text[]);";
 
-    dbReq = new csm::db::DBReqContent( stmt, paramCount );
-    dbReq->AddTextParam(nodeStr.c_str());
+        dbReq = new csm::db::DBReqContent( stmt, paramCount );
+        dbReq->AddTextParam(nodeStr.c_str());
+    }
 
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Exit";
     return dbReq;

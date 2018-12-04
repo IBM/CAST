@@ -59,8 +59,8 @@ protected:
     std::string _ErrorMsg;      /**< An aggration of error messages.*/
 
     std::priority_queue<int, std::vector<int>, ErrorCompare> _ErrHeap;  /**< A Heap to store errors received from the compute nodes. */
-    bool         _EventListRegistered; /**< Tracks whether the event  qeueue was registered. */
-    std::vector<csm::daemon::CoreEvent*> _PostEventList; /**< A Queue of events. */
+
+    std::vector<csm::daemon::CoreEvent*>* _PostEventList; /**< A Queue of events. */
     
 
 
@@ -82,7 +82,7 @@ public:
                 _EEReply(eeReply),     _RASPushed(false),
                 _Data(data),           _RASMsgId(rasMsgId),
                 _ErrorMsg(""),         _ErrHeap(),
-                _EventListRegistered(false), _PostEventList()
+                _PostEventList(nullptr)
     { 
         
         _ErrHeap.push(CSMERR_MULTI_GEN_ERROR);    
@@ -402,8 +402,7 @@ public:
 
     inline void SetEventList(std::vector<csm::daemon::CoreEvent*>& postEventList)
     {
-        _EventListRegistered = true;
-        _PostEventList = postEventList;
+        _PostEventList = &postEventList;
     }
 
     /** @brief Pushes an event to the event queue.
@@ -413,13 +412,16 @@ public:
      */
     inline bool PushEvent(csm::daemon::CoreEvent* reply)
     {
-        if(_EventListRegistered && reply)
+        if(_PostEventList && reply)
         {
-            _PostEventList.push_back(reply)
+            _PostEventList->push_back(reply);
             return true;
         }
         else
+        {
+            if (reply) delete reply;
             return false;
+        }
 
     }
 };

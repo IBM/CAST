@@ -421,7 +421,13 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
         sql_stmt << "$" << ++param << "::compute_node_states";     // SQL param: set_state
         sql_stmt <<  " where node_name=";
         sql_stmt << "$" << ++param << "::text";                    // SQL param: location_name
-        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE << "') ) ";
+        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE;
+        
+        // Allow hard failure transitions from soft failure.
+        if (set_state == CSM_NODE_STATE_HARD_FAILURE)
+            sql_stmt << "','" << CSM_NODE_STATE_SOFT_FAILURE;
+
+        sql_stmt <<"') ) ";
     }
     else if (set_state == "")
     {
