@@ -298,7 +298,7 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog_generic /opt/ibm/csm/prologs/privileged_epilog
 check_return_exit $? 0 "Test Case 46: csm_allocation_delete generic epilog error - copy epilog"
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 46: csm_allocation_delete generic epilog error"
+check_return_exit $? 17 "Test Case 46: csm_allocation_delete generic epilog error"
 check_all_output "Privileged script execution failure detected. Error code received: 2"
 check_return_flag $? "Test Case 46: csm_allocation_delete generic epilog error - verify error message"
 
@@ -310,7 +310,7 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog_timeout /opt/ibm/csm/prologs/privileged_epilog
 check_return_exit $? 0 "Test Case 46: csm_allocation_delete epilog timeout error - copy epilog"
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 46: csm_allocation_delete epilog timeout error"
+check_return_exit $? 5 "Test Case 46: csm_allocation_delete epilog timeout error"
 check_all_output "Request timeout detected"
 check_return_flag $? "Test Case 46: csm_allocation_delete epilog timeout error - verify error message"
 
