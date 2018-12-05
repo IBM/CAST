@@ -80,7 +80,7 @@ check_return_flag $? "Test Case 4: csm_allocation_create prolog error 255 - veri
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_generic /opt/ibm/csm/prologs/privileged_prolog
 check_return_exit $? 0 "Test Case 5: csm_allocation_create prolog error generic - copy prolog"
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 5: csm_allocation_create prolog error generic"
+check_return_exit $? 17 "Test Case 5: csm_allocation_create prolog error generic"
 check_all_output "Privileged script execution failure detected. Error code received: 2"
 check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - verify error message"
 
@@ -88,7 +88,7 @@ check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - 
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_timeout /opt/ibm/csm/prologs/privileged_prolog
 check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - copy prolog"
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 6: csm_allocation_create prolog error timeout"
+check_return_exit $? 5 "Test Case 6: csm_allocation_create prolog error timeout"
 check_all_output "Request timeout detected"
 check_return_flag $? "Test Case 6: csm_allocation_create prolog error timeout - verify error message"
 # set node back to IN_SERVICE after timeout
