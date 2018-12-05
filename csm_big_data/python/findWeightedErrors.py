@@ -242,10 +242,11 @@ def main(args):
             cast.deep_get(response, "hits", "max_score") ) ) 
         print( "\"{0}\" Count : {1}".format( category, total ) ) 
         
-        # Sort aggregations by document count.
-        for (aggregation,value) in sorted(aggregations.iteritems(), 
-                key=lambda (k, v): v.get("doc_count"), reverse=True):
-            print("  \"{0}\" : {1}".format( aggregation, value.get("doc_count") ) ) 
+        if aggregations is not None:
+            # Sort aggregations by document count.
+            for (aggregation,value) in sorted(aggregations.iteritems(), 
+                    key=lambda (k, v): v.get("doc_count"), reverse=True):
+                print("  \"{0}\" : {1}".format( aggregation, value.get("doc_count") ) ) 
 
         if args.verbose:
             hits=cast.deep_get(response, "hits", "hits")
