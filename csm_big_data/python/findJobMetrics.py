@@ -20,6 +20,7 @@ import sys
 import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
+from elasticsearch import exceptions
 from datetime import datetime
 import operator
 
@@ -75,7 +76,11 @@ def main(args):
     )
 
     # Execute the query on the cast-allocation index.
-    tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    try:
+        tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     total_hits = cast.deep_get(tr_res, "hits","total")
 
@@ -152,10 +157,14 @@ def main(args):
         "size" : 0
     }
 
-    key_res = es.search(  
-        index=args.index, # TODO This should be replaced.
-        body=body
-    )
+    try:
+        key_res = es.search(  
+            index=args.index, # TODO This should be replaced.
+            body=body
+        )
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     if args.allocation_id > 0 :
         print("\nMetric Analysis for Allocation ID {0} :\n".format(args.allocation_id))

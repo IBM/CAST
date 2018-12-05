@@ -23,6 +23,8 @@ from datetime import datetime
 from dateutil.parser import parse
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
+from elasticsearch import exceptions
+
 import json
 
 import cast_helper as cast
@@ -73,7 +75,11 @@ def main(args):
     )
 
     # Execute the query on the cast-allocation index.
-    tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    try:
+        tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     total_hits = cast.deep_get(tr_res, "hits","total")
 
@@ -172,10 +178,14 @@ def main(args):
         "aggs"    : keywords 
     }
 
-    key_res = es.search(
-        index="_all",
-        body=body
-    )
+    try:
+        key_res = es.search(
+            index="_all",
+            body=body
+        )
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     # Print the count table.
     total=cast.deep_get(key_res,'hits','total')

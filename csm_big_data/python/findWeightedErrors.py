@@ -26,7 +26,7 @@ from datetime import datetime
 from dateutil.parser import parse
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
-
+from elasticsearch import exceptions
 import cast_helper as cast
 
 TARGET_ENV='CAST_ELASTIC'
@@ -174,7 +174,11 @@ def main(args):
     )
 
     # Execute the query on the cast-allocation index.
-    tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    try:
+        tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     total_hits = cast.deep_get(tr_res, "hits","total")
 

@@ -24,6 +24,7 @@ from datetime import datetime
 from dateutil.parser import parse
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
+from elasticsearch import exceptions
 
 import cast_helper as cast
 
@@ -93,14 +94,17 @@ def main(args):
 
 
 
-    resp = cast.search_user_jobs(es, 
-        user_name  = args.user, 
-        user_id    = args.userid,
-        job_state  = args.state,
-        start_time = args.starttime,
-        end_time   = args.endtime,
-        size       = args.size)
-        
+    try:
+        resp = cast.search_user_jobs(es, 
+            user_name  = args.user, 
+            user_id    = args.userid,
+            job_state  = args.state,
+            start_time = args.starttime,
+            end_time   = args.endtime,
+            size       = args.size)
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     # Parse the response from elasticsearch.
     hits       = cast.deep_get(resp, "hits", "hits")
