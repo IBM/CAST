@@ -62,6 +62,7 @@ run_bucket "error_injection" "switch_inventory"
 run_bucket "error_injection" "messaging"
 run_bucket "basic" "hcdiag"
 run_bucket "basic" "csm_ctrl_cmd"
+run_bucket "basic" "soft_failure_recovery"
 ${FVT_PATH}/tools/dual_aggregator/shutdown_daemons.sh
 sleep 5
 ${FVT_PATH}/setup/csm_setup.sh
