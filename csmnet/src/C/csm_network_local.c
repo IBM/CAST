@@ -450,6 +450,10 @@ csm_net_endpoint_t * csm_net_unix_Init( const int aIsServer )
   return ret;
 }
 
+
+ssize_t csm_net_unix_Send_unlocked( csm_net_unix_t *aEP,
+                                    csm_net_msg_t *aMsg );
+
 /** @brief destruction of the local endpoint
  *
  * Closes and cleans up the local endpoint structures, state, and files
@@ -997,7 +1001,7 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
         errno = 0;
         rlen = recvmsg( aEP->_Socket, &msg, 0 );
         stored_errno = errno;
-        
+
         switch( stored_errno )
         {
             case EINTR:
@@ -1429,7 +1433,13 @@ int handle_internal_msg( csm_net_unix_t *ep, csm_net_msg_t const *aMsg )
 void * thread_callback_loop( void * aIn )
 {
   csm_net_endpoint_t *ep = (csm_net_endpoint_t*)aIn;
+  if( ep == NULL )
+    return NULL;
+
   csm_net_unix_t *cb = ep->_cb;
+  if( cb == NULL )
+    return NULL;
+
   int rc = 0;
   int recvRetries = 2;
 
