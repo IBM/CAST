@@ -85,7 +85,8 @@ bool CSMIHandlerState::PushMCAST(
 {
     if( targets.size() == 0 )
     {
-        ctx->SetErrorCode(CSMERR_MULTI_GEN_ERROR);
+        // Set the error code if the NoTargetFail is set. This allows this MCAST to be used for non failure cases.
+        ctx->SetErrorCode(ctx->GetMCASTNoTargetFail() ? CSMERR_MULTI_GEN_ERROR : CSMI_NO_RESULTS );
         ctx->SetErrorMessage("Multicast had no targets!");
         return false;
     }
@@ -230,7 +231,14 @@ void CSMIHandlerState::DefaultHandleError(
     std::string prependString = ctx->GenerateUniqueID() + ";" ;
     ctx->PrependErrorMessage( prependString, ' ');
 
-    LOG(csmapi, error) <<  ctx->GetErrorMessage();
+    if(ctx->GetErrorCode() == CSMI_NO_RESULTS)
+    {
+        LOG(csmapi, error) <<  ctx->GetErrorMessage();
+    }
+    else
+    {
+        LOG(csmapi, info) <<  ctx->GetErrorMessage();
+    }
 
     ctx->SetAuxiliaryId( GetFinalState() );
 

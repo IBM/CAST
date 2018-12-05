@@ -37,15 +37,14 @@
 #define CMD_ID CSM_CMD_soft_failure_recovery
 
 #define MCAST_PROPS_PAYLOAD CSMIMcastSoftFailureRecovery
-#define EXTRA_STATES 3
+#define EXTRA_STATES 2
 CSMISoftFailureRecovery_Master::CSMISoftFailureRecovery_Master(csm::daemon::HandlerOptions& options) :
     CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
 {
     // State id for the multicast spawner.    
     const int MCAST_SPAWN    = STATEFUL_DB_RECV_DB;     // 2
     const int MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 1; // 3
-    const int FIX_NODES      = STATEFUL_DB_RECV_DB + 2; // 4 
-    const int FAIL_NODES     = STATEFUL_DB_RECV_DB + 3; // 5  NOTE: This is recv_db
+    const int FIX_NODES      = STATEFUL_DB_RECV_DB + 2; // 4  NOTE: This is recv_db
 
     const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES;
 
@@ -69,17 +68,11 @@ CSMISoftFailureRecovery_Master::CSMISoftFailureRecovery_Master(csm::daemon::Hand
                             FixRepairedNodes,                         // Called for failure.                                                 
                             csm::mcast::nodes::ParseResponseSoftFailure,// Performs a parse of the responses.                                  
                            false>(                                      // Specifies that a second multicast shouldn't be attempted in a failure. 
-           FIX_NODES,               // Success State 
-           FIX_NODES,               // Failure State
-           FINAL,                     // Final State
-           FIX_NODES,               // Timeout State
-           MASTER_TIMEOUT));          // Timeout Time
-
-    SetState( FIX_NODES,
-        new StatefulDBRecvSend<CreateHardFailures>(
-            FAIL_NODES,
-            FAIL_NODES,
-            FINAL));
+           FIX_NODES,           // Success State 
+           FIX_NODES,           // Failure State
+           FINAL,               // Final State
+           FIX_NODES,           // Timeout State
+           MASTER_TIMEOUT));    // Timeout Time
 }                           
 
 bool CSMISoftFailureRecovery_Master::CreatePayload(
@@ -94,6 +87,9 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
 
     if ( csm_deserialize_struct( INPUT_STRUCT, &input, arguments.c_str(), len ) == 0 ) 
     {
+        // The context will no longer send errors when the mcast has no targets (legal end state).
+        ctx->SetMCASTNoTargetSuccess();
+
         csmi_soft_failure_recovery_context_t *context = new csmi_soft_failure_recovery_context_t();
         context->retry_count = input->retry_count;
         csm_free_struct_ptr(INPUT_STRUCT, input);
@@ -109,7 +105,7 @@ bool CSMISoftFailureRecovery_Master::CreatePayload(
         *dbPayload = dbReq;
         
         MCAST_PROPS_PAYLOAD* payload = new MCAST_PROPS_PAYLOAD( CMD_ID, context, false, false, 
-             CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT); // TODO Replace msg id
+             ""); // TODO Replace msg id
          ctx->SetDataDestructor( []( void* data ){ delete (MCAST_PROPS_PAYLOAD*)data;});
          ctx->SetUserData( payload );
             
@@ -155,17 +151,20 @@ bool CSMISoftFailureRecovery_Master::ParseInfoQuery(
         if ( tuples[i] && tuples[i]->nfields > 0 )
         {
             recovery->compute_nodes[i] = strdup(tuples[i]->data[0]);
-            nodeList.append(recovery->compute_nodes[i]);
+            nodeList.append(recovery->compute_nodes[i]).append(",");
         }
         else
             recovery->compute_nodes[i] = strdup("");
     }
 
+    // Drop the comma.
+    if (nodeList.length() > 0)
+        nodeList.back()=' ';
+
+
     // Log the mcast information.
     LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString()
         << "; Message: Successfully retrieved nodes in soft failure, starting Mulitcast;";
-    LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString() 
-        << "; Nodes: " << nodeList << ";";
 
     LOG(csmapi,trace) <<  STATE_NAME ":ParseInfoQuery: Exit";
     return true;
@@ -198,7 +197,10 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     // ========================================================================================
     std::vector<std::string> failVector = mcastProps->GenerateHostnameListing(false);
     std::map<std::string, uint32_t> tempMap;
-    std::string failStr = "{";
+    std::string failStr = "";
+    
+    //  Event Handler for error nodes.
+    CSMI_BASE* handler = static_cast<CSMI_BASE*>(ctx->GetEventHandler());
 
     std::unique_lock<std::mutex>dataLock( _RetryMutex);
     separator = "";
@@ -210,66 +212,39 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
         {
             failStr.append(separator).append(node); 
             separator = ",";
-        }
-        else
-        {
-            tempMap[node] = count;
+
+            csm::daemon::NetworkEvent *reply =
+                 csm::daemon::helper::CreateRasEventMessage(CSM_RAS_MSG_ID_RETRY_EXCEEDED,
+                     node, "", "", handler->GetAbstractMaster());
+
+            if (!mcastProps->PushEvent(reply))
+               LOG(csmapi, error) <<  "Unable to push RAS Event for node" << node;
         }
     }
-    failStr.append("}");
 
-    // Replace the retry map and unclock access.
+    LOG(csmapi,info) << ctx << mcastProps->GenerateIdentifierString() 
+        << "; Hard Failure Nodes: " << failStr << ";";
+
+    // Replace the retry map and unlock access.
     _RetryMap = tempMap;
     dataLock.unlock();
 
-    if ( mcastProps )
-    {
-        MCAST_STRUCT* recovery = mcastProps->GetData();
-        recovery->hard_failure_nodes = strdup(failStr.c_str());
-    }
     // ========================================================================================
 
     csm::db::DBReqContent *dbReq = nullptr;
 
-    const int paramCount = 1; 
-    std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
-        "WHERE node_name=ANY($1::text[]);";
+    if ( nodeVector.size() > 0 )
+    {
+        const int paramCount = 1; 
+        std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
+            "WHERE node_name=ANY($1::text[]) AND state='SOFT_FAILURE';";
 
-    dbReq = new csm::db::DBReqContent( stmt, paramCount );
-    dbReq->AddTextParam(nodeStr.c_str());
+        dbReq = new csm::db::DBReqContent( stmt, paramCount );
+        dbReq->AddTextParam(nodeStr.c_str());
+    }
 
     LOG(csmapi,trace) <<  STATE_NAME ":FixRepairedNodes: Exit";
     return dbReq;
-}
-
-bool CSMISoftFailureRecovery_Master::CreateHardFailures(
-    const std::vector<csm::db::DBTuple *>&tuples,
-    csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr& ctx)
-{
-    LOG(csmapi,trace) <<  STATE_NAME ":CreateHardFailures: Enter";
-    bool success = false;
-    MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
-    std::unique_lock<std::mutex>dataLock =
-        ctx->GetUserData<MCAST_PROPS_PAYLOAD*>(&mcastProps);
-    
-    if ( mcastProps )
-    {
-        MCAST_STRUCT* recovery = mcastProps->GetData();
-        const int paramCount = 1; 
-        std::string stmt =  "UPDATE csm_node SET state='HARD_FAILURE' "
-            "WHERE node_name=ANY($1::text[]);";
-
-        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
-        dbReq->AddTextParam(recovery->hard_failure_nodes);
-
-        *dbPayload = dbReq;
-        success=true;
-    }
-
-    dataLock.unlock();
-    LOG(csmapi,trace) <<  STATE_NAME ":CreateHardFailures: Exit";
-    return success;
 }
 
 bool CSMISoftFailureRecovery_Master::CreateResponsePayload(

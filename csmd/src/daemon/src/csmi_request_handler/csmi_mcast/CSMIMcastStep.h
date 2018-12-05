@@ -26,11 +26,34 @@
 
 #define STRUCT_TYPE csmi_allocation_step_mcast_context_t
 
+// Build the error map table.
+struct CSMIAllocStepComparator
+{
+    int map(int val) const
+    {
+        int returnVal=0;
+        switch (val)
+        {
+            case CSMERR_MULTI_GEN_ERROR:
+                returnVal=-1;
+                break;
+            default:
+                break;
+        }
+        return returnVal;
+    }
+
+    bool operator() (const int& a, const int& b) const
+    {
+        return map(a) < map(b);
+    }
+};
+
 /** @brief Frees the @ref _Data structure if not null.
  * @tparam DataStruct The step begin/end  multicast context.
  */
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
+CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator>::~CSMIMcast();
 
 /** @brief Builds a specialized payload to handle step begin/end multicast payloads.
  * @todo finish this document.
@@ -43,7 +66,7 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
  * @param[out] bufferLength The length of the @p bufferLength payload.
  */
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
+void CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
 
 /**
  * @brief Generates a unique identifier for the multicast.
@@ -52,11 +75,11 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
  * @return A string containing the unique identifier for the multicast.
  */
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString();
+std::string CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator>::GenerateIdentifierString();
 
 /** @brief A typedef for @ref csmi_allocation_step_mcast_context_t specializations of @ref CSMIMcast.
  */
-typedef CSMIMcast<STRUCT_TYPE> CSMIStepMcast;
+typedef CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator> CSMIStepMcast;
 
 namespace csm{
 namespace mcast{

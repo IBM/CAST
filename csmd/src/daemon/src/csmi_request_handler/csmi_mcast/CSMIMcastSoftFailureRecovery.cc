@@ -16,14 +16,14 @@
 #define STRUCT_TYPE csmi_soft_failure_recovery_context_t
 
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
+CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::~CSMIMcast()
 {
     if(_Data) delete _Data;
     _Data = nullptr;
 }
 
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
+void CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
 {
     // Generate the payload
     csmi_soft_failure_recovery_payload_t * payload = nullptr;
@@ -38,9 +38,9 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
 }
 
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString()
+std::string CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::GenerateIdentifierString()
 {
-    std::string idString = "Soft Failure Recovery: ";
+    std::string idString = "Soft Failure Recovery";
     //if ( _Data )
     //    idString.append(std::to_string(_Data->allocation_id)).append( "; Primary Job Id: ")
     //        .append(std::to_string(_Data->primary_job_id)).append("; Secondary Job Id: ")

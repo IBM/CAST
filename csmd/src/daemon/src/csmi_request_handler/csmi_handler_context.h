@@ -58,6 +58,9 @@ private:
     uint32_t      _ReceivedNumResponses;         ///< Number of responses received by the state.
     std::mutex    _ReceivedMutex;                ///< Mutex lock for the responses received.
 
+    bool          _MCASTNoTargetFail;            ///< Triggers a failure if a multicast has no targets.
+    std::mutex    _MCASTNoTargetFailMutex;       ///< Mutex lock for a multicast no target.
+
     // General Data.
     int           _ErrorCode;                    ///< Holds the error code for error events.
     std::mutex    _ErrorCodeMutex;               ///< A mutex lock for the error code.
@@ -237,6 +240,15 @@ public:
      * @return The serialized @ref csmi_err_t error object contained in this context object.
      */
     char* GetErrorSerialized(uint32_t* bufLen);
+
+    /** @brief  Sets the multicast to not return an error when the multicast fails.
+     */
+    void SetMCASTNoTargetSuccess();
+
+    /** @brief Retreives if the multicast should return an error when no targets were found.
+     * @return True multicast should return an error when no targets were found.
+     */
+    bool GetMCASTNoTargetFail();
 
     /** @brief Retrieves the user data, performing a static cast to the correct type.
      * 

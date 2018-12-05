@@ -78,11 +78,6 @@ public:
     static csm::db::DBReqContent* FixRepairedNodes( 
         csm::daemon::EventContextHandlerState_sptr& ctx,
         CSMIMcastSoftFailureRecovery* mcastProps);
-
-    static bool CreateHardFailures(
-        const std::vector<csm::db::DBTuple *>&tuples,
-        csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr& ctx);
 };
 
 class CSMISoftFailureRecovery_Agent : public CSMIStateful
