@@ -237,7 +237,7 @@ csm::db::DBReqContent* CSMISoftFailureRecovery_Master::FixRepairedNodes(
     {
         const int paramCount = 1; 
         std::string stmt = "UPDATE csm_node SET state='IN_SERVICE' "
-            "WHERE node_name=ANY($1::text[]);";
+            "WHERE node_name=ANY($1::text[]) AND state='SOFT_FAILURE';";
 
         dbReq = new csm::db::DBReqContent( stmt, paramCount );
         dbReq->AddTextParam(nodeStr.c_str());
