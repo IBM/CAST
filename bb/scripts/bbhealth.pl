@@ -53,15 +53,17 @@ sub output
 sub setDefaults
 {
     $pollrate           = 30;
+    $maxSleep           = 3600;
     $::DEFAULT_HOSTLIST = "localhost";
-    @::GETOPS           = ("pollrate=i" => \$pollrate);
+    @::GETOPS           = ("pollrate=i" => \$pollrate,
+                           "maxsleep=i" => \$maxSleep);
 }
 
 sub window_sleep
 {
-    my($pollrate) = @_;
+    my($prate) = @_;
     my $curtime = time();
-    my $sleeptime = $pollrate - ($curtime - (int($curtime / $pollrate)) * $pollrate);
+    my $sleeptime = $prate - ($curtime - (int($curtime / $prate)) * $prate);
     sleep($sleeptime);
 }
 
@@ -87,7 +89,7 @@ $bbtools::QUIET = 1;
 do
 {
     $rc = monitor();
-    &window_sleep(60);
+    &window_sleep($pollrate);
 }
 while($rc == -1);
 
@@ -166,7 +168,11 @@ sub monitor
             }
         }
         $pollcount++;
-        &window_sleep($pollrate);
+        $backoffFactor = 1;
+        $backoffFactor = 2**($failurecnt - 4)       if($failurecnt > 4);
+        $sleepAmount = $pollrate * $backoffFactor;
+        $sleepAmount = $maxSleep                    if($sleepAmount > $maxSleep);
+        &window_sleep($sleepAmount);
     }
 }
 
