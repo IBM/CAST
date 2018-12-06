@@ -50,7 +50,7 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 
 CSMI_STRUCT_MEMBER(int64_t,  num_gpus,       BASIC,         ,   -1, )         /**< The number of GPUs */
 CSMI_STRUCT_MEMBER(int32_t*, gpu_id,         ARRAY, num_gpus, NULL, int32_t ) /**< GPU id for this GPU */
@@ -59,7 +59,7 @@ CSMI_STRUCT_MEMBER(int64_t*, max_gpu_memory, ARRAY, num_gpus, NULL, int64_t ) /*
 CSMI_STRUCT_MEMBER(int64_t,  num_cpus,       BASIC,         ,   -1, )         /**< The number of CPUs (physical cores) */
 CSMI_STRUCT_MEMBER(int64_t*, cpu_usage,      ARRAY, num_cpus, NULL, int64_t ) /**< CPU usage in nanoseconds during the allocation, per physical core */
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(d2c4e9aa9899feb40a581325dd0cf81a)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
