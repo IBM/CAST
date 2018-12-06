@@ -153,6 +153,7 @@ int csm_term_lib()
 
   initialized = 0;
   rc = csm_net_unix_Exit(ep);
+  ep = NULL;
 
   csmutil_logging(trace, "csm_term_lib() done");
   pthread_mutex_unlock( &disconnect_lock );
@@ -212,6 +213,7 @@ int csmi_net_unix_Send(csm_net_msg_t *msg)
 csm_net_msg_t* csmi_net_unix_Recv(csmi_cmd_t cmd) 
 {
   csm_net_msg_t *msg = NULL;
+  csm_net_unix_CallBack dfn;
 
   pthread_mutex_lock( &disconnect_lock );
   if (!initialized) {
@@ -228,8 +230,10 @@ csm_net_msg_t* csmi_net_unix_Recv(csmi_cmd_t cmd)
     // if we received a disconnect, we need to disconnect, unless it already happened
     if( initialized  && ( stored_errno == ENOTCONN ))
     {
+      // need to preserve the disconnect fnptr because ep might be NULL after the unlock
+      dfn = ep->_on_disconnect;
       pthread_mutex_unlock( &disconnect_lock ); // unlock to allow disconnect processing
-      ep->_on_disconnect( NULL );
+      dfn( NULL );
       return NULL;
     }
   }

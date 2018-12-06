@@ -1062,7 +1062,7 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
 }
 
 static
-csm_net_msg_t * csm_net_unix_RecvMain( 
+csm_net_msg_t * csm_net_unix_RecvMain(
     csm_net_unix_t *aEP, 
     int aBlocking, 
     csmi_cmd_t cmd,
@@ -1420,6 +1420,7 @@ void * thread_callback_loop( void * aIn )
           ep->_connected = 0;
           ep->_cb_keep_running = 0;
           rc = ep->_on_disconnect( msg );
+          break;
         }
       }
       continue;
@@ -1433,6 +1434,7 @@ void * thread_callback_loop( void * aIn )
         ep->_connected = 0;
         ep->_cb_keep_running = 0;
         rc = ep->_on_disconnect( msg );
+        break;
       }
     }
     else
