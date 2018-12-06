@@ -130,18 +130,31 @@ int csm_init_lib_vers(int64_t version_id)
  */
 int csm_term_lib()
 {
-  pthread_mutex_lock( &disconnect_lock );
   int rc = 0;
+
+  /* cases to handle disconnect/lib termination
+   * - locked+initialized: wait for lock and check initialized again
+   * - unlocked+initialized: get lock and proceed
+   * - locked+uninitialized: return without wait - nothing to do
+   * - unlocked+uninitialized: return without wait - nothing to do */
+
   if (!initialized) {
     csmutil_logging(warning, "not initialized or already terminated\n");
-    pthread_mutex_unlock( &disconnect_lock );
     return ENOTCONN;
   }
-  
+
+  while( pthread_mutex_trylock( &disconnect_lock ) != 0 )
+  {
+    if (!initialized) {
+      csmutil_logging(warning, "not initialized or already terminated\n");
+      return ENOTCONN;
+    }
+  }
+
+  initialized = 0;
   rc = csm_net_unix_Exit(ep);
 
   csmutil_logging(trace, "csm_term_lib() done");
-  initialized = 0;
   pthread_mutex_unlock( &disconnect_lock );
   return rc;
 }
@@ -165,18 +178,21 @@ int csmi_net_unix_Send(csm_net_msg_t *msg)
       csm_init_lib();
     }
 
+    pthread_mutex_lock( &disconnect_lock );
     if (!initialized) {
       csmutil_logging(warning, "%s-%d: csmi_init_lib() unable to initialize. Giving up...\n", __FILE__, __LINE__);
       errno = ENOTCONN;
+      pthread_mutex_unlock( &disconnect_lock );
       return -1;
     }
-    
+
     if ( (rc = csm_net_unix_Send(ep->_ep, msg)) == -1 )
     {
         //rc = -1;
         perror("csm_net_unix_Send");
         csmutil_logging(error, "%s-%d: csm_net_unix_send() failed\n", __FILE__, __LINE__);
     }
+    pthread_mutex_unlock( &disconnect_lock );
 
   return rc;
 }
@@ -197,8 +213,10 @@ csm_net_msg_t* csmi_net_unix_Recv(csmi_cmd_t cmd)
 {
   csm_net_msg_t *msg = NULL;
 
+  pthread_mutex_lock( &disconnect_lock );
   if (!initialized) {
     csmutil_logging(warning, "%s-%d: csmi_init_lib() has not been called yet\n", __FILE__, __LINE__);
+    pthread_mutex_unlock( &disconnect_lock );
     return NULL;
   }
   msg = csm_net_unix_BlockingRecv(ep->_ep, cmd);
@@ -209,8 +227,13 @@ csm_net_msg_t* csmi_net_unix_Recv(csmi_cmd_t cmd)
 
     // if we received a disconnect, we need to disconnect, unless it already happened
     if( initialized  && ( stored_errno == ENOTCONN ))
+    {
+      pthread_mutex_unlock( &disconnect_lock ); // unlock to allow disconnect processing
       ep->_on_disconnect( NULL );
+      return NULL;
+    }
   }
+  pthread_mutex_unlock( &disconnect_lock );
   return msg;
 }
 
