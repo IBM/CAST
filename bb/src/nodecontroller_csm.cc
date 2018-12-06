@@ -91,7 +91,6 @@ NodeController_CSM::NodeController_CSM()
     if(rc)
     {
         LOG(bb,info) << "Volume group create failed with rc=" << rc << " ...  ignoring as might already be created";
-        bberror << err("err.csmerror", "Volume group create failed")<<err("err.csmrc",rc);
     }
     free(vg.ssd_info);
 
