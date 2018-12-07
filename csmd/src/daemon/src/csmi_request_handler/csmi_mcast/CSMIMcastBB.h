@@ -33,6 +33,7 @@ struct CSMIBBCMDComparator
         int returnVal=0;
         switch (val)
         {
+            case CSMERR_GENERIC:
             case CSMERR_MULTI_GEN_ERROR:
                 returnVal=-1;
                 break;
