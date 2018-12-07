@@ -1,4 +1,4 @@
-CSM DAEMON
+CSM Daemon
 ==========
 
 CSM Daemon is the managing process of CSM.
