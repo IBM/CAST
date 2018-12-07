@@ -16,4 +16,6 @@ This section is divided into the following subsections:
     list-of-csm-apis.rst
     implementing-new-csm-apis.rst
     csm_python_guide.md
+    soft_failure.rst
+    csm_api_change_log.rst
 
