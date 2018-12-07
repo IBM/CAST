@@ -1,6 +1,9 @@
 CSM Daemon
 ==========
 
+.. contents::
+   :local:
+
 CSMD Command line options
 -------------------------
 
