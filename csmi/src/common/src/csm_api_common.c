@@ -109,7 +109,7 @@ int csm_init_lib_vers(int64_t version_id)
   csmi_set_init_msgId(init_msgId);
 
   ep->_on_disconnect = on_disconnect;
-  
+
   initialized = 1;
 
   csmutil_logging(trace, "csm_init_lib initialized (init_msg_id=%d)", init_msgId);

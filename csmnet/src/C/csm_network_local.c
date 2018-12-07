@@ -1403,8 +1403,13 @@ void * thread_callback_loop( void * aIn )
       continue;
     }
 
+    /* can be called without locking:
+     *  - when tear-down happens in this thread, no issues with access after free
+     *  - when tear-down happens in the main thread, pthread_cancel/join get called before cleanup
+     */
     csm_net_msg_t *msg = csm_net_unix_RecvMain( cb, 1, CSM_CMD_UNDEFINED, 1 );
     int stored_errno = errno;
+    pthread_testcancel();  // check for cancellation before attempting to process any received data
 
     // double check we're still connected before processing
     if( ep->_connected == 0 )
@@ -1452,7 +1457,6 @@ void * thread_callback_loop( void * aIn )
         csmutil_logging( warning, "Callback triggered, but no registered callback found. dropping msg");
       }
     }
-    pthread_testcancel();
   }
   pthread_cleanup_pop( 0 );
   csmutil_logging( debug, "Exiting CBThread on socket: %s", cb->_Addr.sun_path);
