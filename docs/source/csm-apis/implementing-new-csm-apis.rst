@@ -9,7 +9,7 @@ Front-end
 “Front end" is supposed to represent the part of the API a user would interface with and before an API connects and goes into the CSM infrastructure. 
 Follow these steps to create/edit an api. This diagram below shows where to find the appropriate files in the open source repository.
 
-.. image:: ../images/front-end.png
+.. image:: https://user-images.githubusercontent.com/4662139/49670824-efe77680-fa33-11e8-9703-170a022e9c5c.png
 
 Constructing an API:
 
@@ -72,7 +72,7 @@ The following numbers reference the chart above.
 
 Important highlights in the struct:
 
-.. image:: ../images/example_struct.png
+.. image:: https://user-images.githubusercontent.com/4662139/49670829-f249d080-fa33-11e8-9cb9-8a3cd5a9dbb6.png
 
 
 2. The X-Macro definition files will be collated by their ordering in the local ``type_order.def`` file. New files added to this ordering should just be the file name. Specific details for this file are in the README.
@@ -260,7 +260,7 @@ Back-end
 
 Follow these steps to create/edit an api. This diagram below shows where to find the appropriate files in the open source repo, along with the numbered order of which ones to work on first.
 
-.. image:: ../images/back_end.png
+.. image:: https://user-images.githubusercontent.com/4662139/49670832-f4139400-fa33-11e8-8591-c53e50c79f05.png
 
 When implementing a backend API the developer must determine several key details:
 

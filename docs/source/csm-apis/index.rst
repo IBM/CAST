@@ -1,4 +1,4 @@
-.. image:: ../images/CSM_Logo.png
+.. image:: https://user-images.githubusercontent.com/4662139/49670811-e958ff00-fa33-11e8-92c2-3bf00e8d1001.png
 
 
 CSM APIs
