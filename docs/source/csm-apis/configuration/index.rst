@@ -29,3 +29,5 @@ Table of Contents
     configuring-allocation-prolog-and-epilog-scripts.rst
     configuring-allocation-step-prolog-and-epilog-scripts.rst
     configuring-the-CSM-PAM-module.rst
+    soft_failure.rst
+    csm_api_change_log.rst
