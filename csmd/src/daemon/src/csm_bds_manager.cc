@@ -93,6 +93,7 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   _IdleRetryBackOff( "BDSMgr", csm::daemon::RetryBackOff::SleepType::CONDITIONAL,
                      csm::daemon::RetryBackOff::SleepType::INTERRUPTIBLE_SLEEP,
                      0, 10000000, 1 ),
+  _LastConnectInterval(1),
   _Socket( 0 ),
   _CachedMsgQueue(),
   _CurrentTime( std::chrono::steady_clock::now() )
@@ -108,7 +109,6 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
     Connect();
   Unfreeze();
   _LastConnect = std::chrono::steady_clock::now();
-  _LastConnectInterval = 1;
 }
 
 bool
