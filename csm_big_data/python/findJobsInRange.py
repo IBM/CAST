@@ -20,6 +20,7 @@ import sys
 import os
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
+from elasticsearch import exceptions
 from datetime import datetime
 import re
 
@@ -47,7 +48,7 @@ def main(args):
     args = parser.parse_args()
 
     # If the target wasn't specified check the environment for the target value, printing help on failure.
-    if args.target == None:
+    if args.target is None:
         if TARGET_ENV in os.environ:
             args.target = os.environ[TARGET_ENV]
         else:
@@ -86,10 +87,14 @@ def main(args):
     )
 
     # Execute the query on the cast-allocation index.
-    tr_res = es.search(
-        index="cast-allocation",
-        body=body
-    )
+    try:
+        tr_res = es.search(
+            index="cast-allocation",
+            body=body
+        )
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     # Get Hit Data
     hits          = cast.deep_get(tr_res, "hits", "hits")

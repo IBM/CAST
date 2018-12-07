@@ -15,9 +15,9 @@
 
 #================================================================================
 #   usage:              ./csm_db_script.sh <----- to create the csm_db
-#   current_version:    10.14
+#   current_version:    10.15
 #   create:             12-14-2015
-#   last modified:      08-22-2018
+#   last modified:      12-05-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -30,6 +30,10 @@ logname="csm_db_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 cur_path=`pwd`
 BASENAME=`basename "$0"`
+
+line1_out="------------------------------------------------------------------------------------------------------------------------"
+line2_log="---------------------------------------------------------------------------------------"
+line3_log="-----------------------------------------------------------------------------------------------------------------------------------"
 
 #==============================================
 # CSM_database_files
@@ -103,7 +107,7 @@ echo "$now ($current_user) $1[Complete] $dbname database created user: $csmdb_us
 #================================
 # Log messaging intro. header
 #================================
-echo "-----------------------------------------------------------------------------------------------------------------"
+echo "${line1_out}"
 echo "[Start   ] Welcome to CSM database automation script."
 LogMsg "[Start   ] Welcome to CSM database automation script."
 
@@ -188,7 +192,7 @@ do
                                 LogMsg "[Info    ] Script execution: $BASENAME -h, --help"
                                 LogMsg "[End     ] Help menu query executed"
                                 echo "[Info  ] No arguments were passed in (Please choose appropriate option from usage list -h, --help)"
-                                echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+                                echo "${line3_log}" >> $logfile
                                 exit 0 ;;
        #============================================
        # pass through anything else
@@ -249,7 +253,7 @@ while getopts "d:n:e:xf:r:h" opt; do
             usage
             LogMsg "[Info    ] Script execution: $BASENAME -h, --help"
             LogMsg "[End     ] Help menu query executed"
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+            echo "${line3_log}" >> $logfile
             exit 0 ;;
         \?)
             usage && exit 0 ;;
@@ -278,7 +282,7 @@ if [[ ($newdb == "yes") ]]; then
     if [[ ($force == "yes") || ($removedata == "yes") || ($dropdb == "yes") || ($createdb == "yes") ]]; then
         echo "[Error   ] arguments conflict"
         usage
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         exit 0
     fi
 fi
@@ -289,7 +293,7 @@ if [[ ($createdb == "yes") ]]; then
     if [[ ($force == "yes") || ($removedata == "yes") || ($dropdb == "yes") || ($newdb == "yes") ]]; then
         echo "[Error   ] arguments conflict"
         usage
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         exit 0
     fi
 fi
@@ -300,7 +304,7 @@ if [[ ($dropdb == "yes") ]]; then
     if [[ ($force == "yes") || ($removedata == "yes") || ($newdb == "yes") || ($createdb == "yes") ]]; then
         echo "[Error   ] arguments conflict"
         usage
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         exit 0
     fi
 fi
@@ -311,7 +315,7 @@ if [[ ($removedata == "yes") ]]; then
     if [[ ($force == "yes") || ($newdb == "yes") || ($dropdb == "yes") || ($createdb == "yes") ]]; then
         echo "[Error   ] arguments conflict"
         usage
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         exit 0
     fi
 fi
@@ -322,7 +326,7 @@ if [[ ($force == "yes") ]]; then
     if [[ ($newdb == "yes") || ($removedata == "yes") || ($dropdb == "yes") || ($createdb == "yes") ]]; then
         echo "[Error   ] arguments conflict"
         usage
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         exit 0
     fi
 fi
@@ -333,7 +337,7 @@ if [[ ($eliminate == "yes") ]]; then
     if [[ ($newdb == "yes") || ($removedata == "yes") || ($dropdb == "yes") || ($createdb == "yes") || ($force == "yes") ]]; then
         echo "[Error   ] arguments conflict"
         usage
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         exit 0
     fi
 fi
@@ -346,31 +350,44 @@ if [[ ($newdb == "yes") || ($force == "yes") ]]; then
     fi
 fi
 
-#=======================================
-# Check if postgresql exists already
-#=======================================
-
-string1="$now1 ($current_user) [Info    ] DB Names:"
-
-psql -l 2>>/dev/null $logfile
-
-if [ $? -ne 127 ]; then
-db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-\set ON_ERROR_STOP true
-select string_agg(datname,' | ') from pg_database;
+#=================================================
+# Check if postgresql exists already and root user
+#=================================================
+string1="$now1 ($current_user) [Info    ] DB Users:"
+    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
+        if [ $? -ne 0 ]; then
+            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(usename,' | ') from pg_user;
 EOF`
-    #LogMsg "[Info    ] DB Names: $db_query"
-    echo "$string1 $db_query" | sed "s/.\{80\}|/&\n$string1 /g" >> $logfile
-    echo "[Info    ] PostgreSQL is installed"
-    LogMsg "[Info    ] PostgreSQL is installed"
-    #LogMsg "---------------------------------------------------------------------------------------"
-else
-    echo "[Error ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "[Error ] PostgreSQL may not be installed. Please check configuration settings"
-    echo "-----------------------------------------------------------------------------------------------------------------"
-    LogMsg "---------------------------------------------------------------------------------------"
-    exit 1
-fi
+            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
+            echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
+            exit 0
+        fi
+
+#=================================================
+# Check if postgresql exists already and DB name
+#=================================================
+string2="$now1 ($current_user) [Info    ] DB Names:"
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
+        if [ $? -ne 127 ]; then       #<------------This is the error return code
+            db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(datname,' | ') from pg_database;
+EOF`
+            echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
+            echo "[Info    ] PostgreSQL is installed"
+            LogMsg "[Info    ] PostgreSQL is installed"
+        else
+            echo "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
+            LogMsg "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
+            echo "${line1_out}"
+            LogMsg "${line2_log}"
+            exit 1
+        fi
 
 #======================================
 # Check if database exists already
@@ -391,11 +408,10 @@ if [ $db_exists == "no" ]; then
     LogMsg "[Info    ] $dbname database does not exist."
     if [[ ($removedata == "yes") || ($dropdb == "yes") || ($force == "yes") || ($eliminate == "yes") ]]; then
             echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             LogMsg "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
             LogMsg "[End     ] Database does not exist"
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-            #LogMsg "---------------------------------------------------------------------------------------"
+            echo "${line3_log}" >> $logfile
             exit 0
     fi
 else
@@ -405,11 +421,10 @@ else
     if [[ ($newdb == "yes") || ($createdb == "yes") ]]; then
             LogMsg "[Error   ] Database already exists for: $dbname"
             echo "[Error   ] Cannot perform action because the $dbname database already exists. Exiting."
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             LogMsg "[Error   ] Cannot perform action because the $dbname database already exists. Exiting."
             LogMsg "[End     ] Database already exists."
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-            #LogMsg "---------------------------------------------------------------------------------------"
+            echo "${line3_log}" >> $logfile
             exit 0
     fi
 fi
@@ -451,7 +466,7 @@ if [ $dropdb == "yes" ]; then
                         echo "[Error   ] User: $i has $connection_count connection(s)"
                     done
                     echo "[Info    ] See log file for connection details"
-                    echo "-----------------------------------------------------------------------------------------------------------------"
+                    echo "${line1_out}"
                 fi
             else
                 #==================================================
@@ -461,11 +476,11 @@ if [ $dropdb == "yes" ]; then
                 if [ $? -eq 0  ]; then
                     echo "[Complete] $dbname database deleted"
                     LogMsg "[Complete] $dbname database deleted"
-                    echo "-----------------------------------------------------------------------------------------------------------------"
+                    echo "${line1_out}"
                 else
                     echo "[Error   ] Database delete failed for $dbname"
                     LogMsg "[Error   ] Database delete failed for $dbname"
-                    echo "-----------------------------------------------------------------------------------------------------------------"
+                    echo "${line1_out}"
                     return_code=1
                 fi
             fi
@@ -475,12 +490,11 @@ if [ $dropdb == "yes" ]; then
             LogMsg "[Info    ] User response: $drop_database"
             echo "[Error   ] Database not deleted"
             LogMsg "[Error   ] Database not deleted"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
         ;;
     esac
     LogMsg "[End     ] $dbname database drop process end."
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-    #LogMsg "---------------------------------------------------------------------------------------"
+    echo "${line3_log}" >> $logfile
     exit $return_code
 fi
 
@@ -509,24 +523,23 @@ if [ $eliminate == "yes" ]; then
         else
             echo "[Error   ] Csm functions drop failed for $dbname"
             LogMsg "[Error   ] Csm functions drop failed for $dbname"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             return_code=1
         fi
     else
         echo "[Error   ] Csm table and trigger drop failed for $dbname"
         LogMsg "[Error   ] Csm table and trigger drop failed for $dbname"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         return_code=1
     fi
     if [ $return_code -ne 0 ]; then
         echo "[Error   ] dropping CSM tables"
         LogMsg "[Error   ] dropping CSM tables"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
     fi
     LogMsg "[End     ] $dbname database drop csm tables/functions/triggers process end."
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-    #LogMsg "---------------------------------------------------------------------------------------"
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "${line3_log}" >> $logfile
+    echo "${line1_out}"
     exit $return_code
 fi
 #===============================================
@@ -545,21 +558,20 @@ if [ $removedata == "yes" ]; then
     if [ $? -eq 0  ]; then
         echo "[Complete] $dbname database data deleted from all tables excluding csm_db_schema_version and csm_db_schema_version_history tables"
         LogMsg "[Complete] $dbname database data deleted from all tables excluding csm_db_schema_version and csm_db_schema_history tables"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
     else
         echo "[Error   ] Database data delete from all tables failed for $dbname"
         LogMsg "[Error   ] Database data delete from all tables failed for $dbname"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         return_code=1
     fi
     if [ $return_code -ne 0 ]; then
         echo "[Error   ] Error removing database data"
         LogMsg "[Error   ] Error removing database data"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
     fi
     LogMsg "[End     ] $dbname database remove all data from the database tables end."
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-    #LogMsg "---------------------------------------------------------------------------------------"
+    echo "${line3_log}" >> $logfile
     exit $return_code
 fi
 
@@ -629,7 +641,7 @@ if [[ ($newdb == "yes") || ($createdb == "yes") ]]; then
                         else
                             echo "[Error   ] Table data load failed for $dbname ${table_name[$i]}"
                             LogMsg "[Error   ] Table data load failed for $dbname ${table_name[$i]}"
-                            echo "-----------------------------------------------------------------------------------------------------------------"
+                            echo "${line1_out}"
                             return_code=1
                         fi
                         ((i=i+1))
@@ -645,7 +657,7 @@ if [[ ($newdb == "yes") || ($createdb == "yes") ]]; then
                     schema_version="${schema_version%%*( )}"
                     echo "[Info    ] $dbname DB schema version ($schema_version)"
                     LogMsg "[Info    ] $dbname DB schema version ($schema_version)"
-                    echo "-----------------------------------------------------------------------------------------------------------------"
+                    echo "${line1_out}"
                 else
                     echo "[Info    ] $dbname skipping data load process"
                     LogMsg "[Info    ] $dbname skipping data load process"
@@ -665,24 +677,24 @@ if [[ ($newdb == "yes") || ($createdb == "yes") ]]; then
                         #=====================================================
                         echo "[Info    ] $dbname DB schema version ($schema_version)"
                         LogMsg "[Info    ] $dbname DB schema version ($schema_version)"
-                        echo "-----------------------------------------------------------------------------------------------------------------"
+                        echo "${line1_out}"
                     else
                         echo "[Error   ] Table schema initialization failed for $dbname $csm_db_schema_version_table"
                         LogMsg "[Error   ] Table schema initialization failed for $dbname $csm_db_schema_version_table"
-                        echo "-----------------------------------------------------------------------------------------------------------------"
+                        echo "${line1_out}"
                         return_code=1
                     fi
                 fi
             else
                 echo "[Error   ] Database functions and triggers creates failed for $dbname"
                 LogMsg "[Error   ] Database functions and triggers creates failed for $dbname"
-                echo "-----------------------------------------------------------------------------------------------------------------"
+                echo "${line1_out}"
                 return_code=1
             fi
         else
             echo "[Error   ] Database table creates failed for $dbname"
             LogMsg "[Error   ] Database table creates failed for $dbname"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             return_code=1
         fi
         if [ $return_code -ne 0 ]; then
@@ -690,7 +702,7 @@ if [[ ($newdb == "yes") || ($createdb == "yes") ]]; then
             LogMsg "[Error   ] creating database"
             echo "[Info    ] $dbname dropping database due to error"
             LogMsg "[Info    ] $dbname dropping database due to error"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             #====================================
             # Drop DB if the process has failed
             #====================================
@@ -698,22 +710,21 @@ if [[ ($newdb == "yes") || ($createdb == "yes") ]]; then
             if [ $? -eq 0  ]; then
                 echo "[Complete] $dbname database deleted"
                 LogMsg "[Complete] $dbname database deleted"
-                echo "-----------------------------------------------------------------------------------------------------------------"
+                echo "${line1_out}"
             else
                 echo "[Error   ] Database delete failed for $dbname"
                 LogMsg "[Error   ] Database delete failed for $dbname"
-                echo "-----------------------------------------------------------------------------------------------------------------"
+                echo "${line1_out}"
             fi
         fi
     else
         echo "[Error   ] Database create failed for $dbname"
         LogMsg "[Error   ] Database create failed for $dbname"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         return_code=1
     fi
     LogMsg "[End     ] $dbname database creation process end."
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-    #LogMsg "---------------------------------------------------------------------------------------"
+    echo "${line3_log}" >> $logfile
     exit $return_code
 fi
 
@@ -793,7 +804,7 @@ if [[ $force == "yes" ]]; then
                             else
                                 echo "[Error   ] Table data load failed for $dbname ${table_name[$i]}"
                                 LogMsg "[Error   ] Table data load failed for $dbname ${table_name[$i]}"
-                                echo "-----------------------------------------------------------------------------------------------------------------"
+                                echo "${line1_out}"
                                 return_code=1
                             fi
                             ((i=i+1))
@@ -809,7 +820,7 @@ if [[ $force == "yes" ]]; then
                         schema_version="${schema_version%%*( )}"
                         echo "[Info    ] $dbname DB schema version ($schema_version)"
                         LogMsg "[Info    ] $dbname DB schema version ($schema_version)"
-                        echo "-----------------------------------------------------------------------------------------------------------------"
+                        echo "${line1_out}"
                     else
                         echo "[Info    ] $dbname skipping data load process."
                         LogMsg "[Info    ] $dbname skipping data load process."
@@ -829,46 +840,45 @@ if [[ $force == "yes" ]]; then
                             #=====================================================
                             echo "[Info    ] $dbname DB schema version ($schema_version)"
                             LogMsg "[Info    ] $dbname DB schema version ($schema_version)"
-                            echo "-----------------------------------------------------------------------------------------------------------------"
+                            echo "${line1_out}"
                         else
                             echo "[Error   ] Table schema initialization failed for $dbname $csm_db_schema_version_table"
                             LogMsg "[Error   ] Table schema initialization failed for $dbname $csm_db_schema_version_table"
-                            echo "-----------------------------------------------------------------------------------------------------------------"
+                            echo "${line1_out}"
                             return_code=1
                         fi
                     fi
                 else
                     echo "[Error   ] Database functions and triggers creates failed for $dbname"
                     LogMsg "[Error   ] Database functions and triggers creates failed for $dbname"
-                    echo "-----------------------------------------------------------------------------------------------------------------"
+                    echo "${line1_out}"
                     return_code=1
                 fi
             else
                 echo "[Error   ] Database table creates failed for $dbname"
                 LogMsg "[Error    ]Database table creates failed for $dbname"
-                echo "-----------------------------------------------------------------------------------------------------------------"
+                echo "${line1_out}"
                 return_code=1
             fi
         else
             echo "[Error   ] Csm functions and triggers drop failed for $dbname"
             LogMsg "[Error    ]Csm functions and triggers drop failed for $dbname"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             return_code=1
         fi
     else
         echo "[Error   ] Table drop failed for $dbname"
         LogMsg "[Error    ]Table drop failed for $dbname"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         return_code=1
     fi
     if [ $return_code -ne 0 ]; then
         echo "[Error   ] creating database"
         LogMsg "[Error    ] creating database"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
     fi
     LogMsg "[End     ] $dbname database force/creation process end."
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-    #LogMsg "---------------------------------------------------------------------------------------"
+    echo "${line3_log}" >> $logfile
     exit $return_code
 fi
 
@@ -940,7 +950,7 @@ if [ $? -eq 0  ]; then
                         else
                             echo "[Error   ] Table data load failed for $dbname ${table_name[$i]}"
                             LogMsg "[Error   ] Table data load failed for $dbname ${table_name[$i]}"
-                            echo "-----------------------------------------------------------------------------------------------------------------"
+                            echo "${line1_out}"
                             return_code=1
                         fi
                         ((i=i+1))
@@ -956,7 +966,7 @@ if [ $? -eq 0  ]; then
                     schema_version="${schema_version%%*( )}"
                     echo "[Info    ] $dbname DB schema version ($schema_version)"
                     LogMsg "[Info    ] $dbname DB schema version ($schema_version)"
-                    echo "-----------------------------------------------------------------------------------------------------------------"
+                    echo "${line1_out}"
                 else
                     echo "[Info    ] $dbname skipping data load process"
                     LogMsg "[Info    ] $dbname skipping data load process"
@@ -970,20 +980,20 @@ if [ $? -eq 0  ]; then
                     else
                         echo "[Error   ] Table data initialization failed for $dbname ${table_name[$i]}"
                         LogMsg "[Error   ] Table data initialization failed for $dbname ${table_name[$i]}"
-                        echo "-----------------------------------------------------------------------------------------------------------------"
+                        echo "${line1_out}"
                         return_code=1
                     fi
                 fi
             else
             echo "[Error   ] Database functions and triggers creates failed for $dbname"
             LogMsg "[Error   ] Database functions and triggers creates failed for $dbname"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
             return_code=1
         fi
     else
         echo "[Error   ] Database table creates failed for $dbname"
         LogMsg "[Error    ] Database table creates failed for $dbname"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         return_code=1
     fi
     if [ $return_code -ne 0 ]; then
@@ -991,7 +1001,7 @@ if [ $? -eq 0  ]; then
         LogMsg "[Error   ] Error creating database"
         echo "[Info    ] $dbname dropping database due to error"
         LogMsg "[Info    ] $dbname dropping database due to error"
-        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "${line1_out}"
         #====================================
         # Drop DB if the process has faileld
         #====================================
@@ -1002,16 +1012,15 @@ if [ $? -eq 0  ]; then
         else
             echo "[Error   ] Database delete failed for $dbname"
             LogMsg "[Error   ] Database delete failed for $dbname"
-            echo "-----------------------------------------------------------------------------------------------------------------"
+            echo "${line1_out}"
         fi
     fi
 else
     echo "[Error   ] Database create failed for $dbname"
     LogMsg "[Error   ] Database create failed for $dbname"
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "${line1_out}"
     return_code=1
 fi
 LogMsg "[End     ] $dbname database default/creation process end."
-#LogMsg "---------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+echo "${line3_log}" >> $logfile
 exit $return_code

@@ -19,7 +19,7 @@
 #   current_version:    01.0
 #   migration_version:  16.2 # <--------example version after the DB upgrade
 #   create:             10-22-2018
-#   last modified:      11-06-2018
+#   last modified:      12-05-2018
 #================================================================================
 #set -x
 export PGOPTIONS='--client-min-messages=warning'
@@ -129,26 +129,46 @@ else
     dbname=$1
 fi
 
-#=======================================
-# Check if postgresql exists already
-#=======================================
-
-string1="$now1 ($current_user) [Info    ] DB Names:"
-psql -l 2>>/dev/null $logfile
-
-if [ $? -ne 127 ]; then       #<------------This is the error return code
-db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-\set ON_ERROR_STOP true
-select string_agg(datname,' | ') from pg_database;
+#=================================================
+# Check if postgresql exists already and root user
+#=================================================
+string1="$now1 ($current_user) [Info    ] DB Users:"
+    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
+        if [ $? -ne 0 ]; then
+            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(usename,' | ') from pg_user;
 EOF`
-     echo "$string1 $db_query" | sed "s/.\{80\}|/&\n$string1 /g" >> $logfile
-     echo "[Info    ] PostgreSQL is installed"
-     LogMsg "[Info    ] PostgreSQL is installed"
-else
-     echo "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
-     LogMsg "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
-     echo "${line2_log}" >> $logfile
-fi
+            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
+            echo "${line1_out}"
+            echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
+            exit 0
+        fi
+
+#=================================================
+# Check if postgresql exists already and DB name
+#=================================================
+string2="$now1 ($current_user) [Info    ] DB Names:"
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
+        if [ $? -eq 0 ]; then       #<------------This is the error return code
+            db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(datname,' | ') from pg_database;
+EOF`
+            echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
+            LogMsg "[Info    ] PostgreSQL is installed"
+        else
+            echo "[Error   ] PostgreSQL may not be installed or DB: $dbname may not exist."
+            echo "[Info    ] Please check configuration settings or psql -l"
+            echo "${line1_out}"
+            LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
+            LogMsg "[Info    ] Please check configuration settings or psql -l"
+            echo "${line3_log}" >> $logfile
+            exit 1
+        fi
 
 #======================================
 # Check if database exists already
@@ -189,8 +209,15 @@ fi
 # The schema version csv file will be one of the comparison files
 # used to determaine the upgrade.
 #=================================================================
-version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db_schema_version"`
 
+version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db_schema_version" 2>>/dev/null`
+if [ $? -ne 0 ]; then
+    echo "[Error   ] Cannot perform action because DB: $dbname is not compatible."
+    LogMsg "[Error   ] Cannot perform action because DB: $dbname is not compatible."
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
+    exit 0
+fi
 
 #----------------------------------------------------------
 # Checks the files and compares to db schema version table
@@ -198,12 +225,12 @@ version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db
 # currently running db schema version: $version"
 #----------------------------------------------------------
 
-if [[ $(bc <<< "$version == $migration_db_version") -eq 1 ]]; then
-echo "[Info    ] $dbname is currently running db schema version: $version"
-LogMsg "[Info    ] $dbname is currently running db schema version: $version"
-echo "${line1_out}"
-echo "${line3_log}" >> $logfile
-exit 0
+if [[ $(bc <<< "${version} == ${migration_db_version}") -eq 1 ]]; then
+    echo "[Info    ] $dbname is currently running db schema version: $version"
+    LogMsg "[Info    ] $dbname is currently running db schema version: $version"
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
+    exit 0
 fi
 
 #----------------------------------------------------------
@@ -212,7 +239,7 @@ fi
 # to date.
 #----------------------------------------------------------
 
-if [[ $(bc <<< "$version < $version_comp_2") -eq 0 ]] || [[ $(bc <<< "$version < $csm_db_schema_version_comp") -eq 0 ]] || [[ $(bc <<< "$version < 15.0") -eq 1 ]] || [[ $(bc <<< "$migration_db_version == $trigger_version_2") -eq 0 ]]; then
+if [[ $(bc <<< "${version} < ${version_comp_2}") -eq 0 ]] || [[ $(bc <<< "${version} < ${csm_db_schema_version_comp}") -eq 0 ]] || [[ $(bc <<< "${version} < 15.0") -eq 1 ]] || [[ $(bc <<< "${migration_db_version} == ${trigger_version_2}") -eq 0 ]]; then
     echo "[Error   ] Cannot perform action because not compatible."
     echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, or appropriate files in directory"
     LogMsg "[Error   ] Cannot perform action because not compatible."

@@ -16,16 +16,15 @@
 
 #================================================================================
 #   usage:              ./csm_db_ras_type_script.sh
-#   current_version:    01.8
+#   current_version:    01.9
 #   create:             11-07-2017
-#   last modified:      11-09-2018
+#   last modified:      12-05-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
 
 OPTERR=0
 logpath="/var/log/ibm/csm/db"
-#logpath=`pwd` #<------- Change this when pushing to the repo.
 logname="csm_db_ras_type_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 #cur_path=`pwd`
@@ -82,8 +81,8 @@ echo "[Start   ] Welcome to CSM database ras type automation script."
 
 function usage () {
 echo "================================================================================================="
-echo "[Info ] $BASENAME : Load/Remove data from csm_ras_type table"
-echo "[Usage] $BASENAME : [OPTION]... [DBNAME]... [CSV_FILE]"
+echo "[Info    ] $BASENAME : Load/Remove data from csm_ras_type table"
+echo "[Usage   ] $BASENAME : [OPTION]... [DBNAME]... [CSV_FILE]"
 echo "-------------------------------------------------------------------------------------------------"
 echo "  Argument               |  DB Name  | Description                                               "
 echo "-------------------------|-----------|-----------------------------------------------------------"
@@ -170,10 +169,10 @@ do
                 loaddata="yes"
                 dbname="$2"
                 csv_file_name="$3"
-                    if [ -f $csv_file_name ]; then
-                        echo "[Info    ] $3 file exists"
-                        LogMsg "[Info    ] $3 file exists"
-                    else    
+                    if [ ! -f $csv_file_name ]; then
+                    #    echo "[Info    ] $3 file exists"
+                    #    LogMsg "[Info    ] $3 file exists"
+                    #else    
                         echo "[Error   ] File $csv_file_name can not be located or doesn't exist"
                         echo "[Info    ] Please choose another file or check path"
                         LogMsg "[Error   ] Cannot perform action because the $csv_file_name file does not exist. Exiting."
@@ -228,36 +227,55 @@ done
      exit 0
  fi
 
-#=======================================
-# Check if postgresql exists already
-#=======================================
-
-string1="$now1 ($current_user) [Info    ] DB Names:"
-psql -l 2>>/dev/null $logfile
-
-if [ $? -ne 127 ]; then       #<------------This is the error return code
-db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-\set ON_ERROR_STOP true
-select string_agg(datname,' | ') from pg_database;
+#=================================================
+# Check if postgresql exists already and root user
+#=================================================
+string1="$now1 ($current_user) [Info    ] DB Users:"
+    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
+        if [ $? -ne 0 ]; then
+            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(usename,' | ') from pg_user;
 EOF`
-    echo "$string1 $db_query" | sed "s/.\{80\}|/&\n$string1 /g" >> $logfile
-    echo "[Info    ] PostgreSQL is installed" #This message can be displayed to the screen as output
-    LogMsg "[Info    ] PostgreSQL is installed"
-else
-    echo "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
-    echo "${line2_log}" >> $logfile
-    exit 1
-fi
+            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
+            echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
+            exit 0
+        fi
+
+#=================================================
+# Check if postgresql exists already and DB name
+#=================================================
+string2="$now1 ($current_user) [Info    ] DB Names:"
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
+        if [ $? -eq 0 ]; then       #<------------This is the error return code
+            db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(datname,' | ') from pg_database;
+EOF`
+            echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
+            LogMsg "[Info    ] PostgreSQL is installed"
+        else
+            echo "${line1_out}"
+            echo "[Error   ] PostgreSQL may not be installed or DB: $dbname may not exist."
+            echo "[Info    ] Please check configuration settings or psql -l"
+            echo "${line1_out}"
+            LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
+            LogMsg "[Info    ] Please check configuration settings or psql -l"
+            echo "${line3_log}" >> $logfile
+            exit 1
+        fi
 
 #======================================
 # Check if database exists already
 #======================================
 db_exists="no"
-psql -lqt | cut -d \| -f 1 | grep -qw $dbname
-if [ $? -eq 0 ]; then
-    db_exists="yes"
-fi
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname
+        if [ $? -eq 0 ]; then
+            db_exists="yes"
+        fi
 
 #==================================================================
 # End it if the input argument requires an existing database
@@ -290,6 +308,8 @@ ras_script_errors="$(mktemp)"
 #trap 'rm -f "$ras_script_errors"' EXIT
 
 if [ $loaddata == "yes" ]; then
+    echo "[Info    ] $3 file exists"
+    LogMsg "[Info    ] $3 file exists"
     echo "[Warning ] This will load and or update csm_ras_type table data into $dbname database. Do you want to continue [y/n]?"
     LogMsg "[Info    ] $dbname database insert/update process begin."
     read -s -n 1 loaddata
@@ -312,7 +332,7 @@ rtl_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wr
 select count(*) from csm_ras_type;
 THE_END`
 
-import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END 2>>/dev/null
 BEGIN;
 LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
@@ -361,10 +381,14 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
 COMMIT; 
 THE_END`
 
-if [[ 0 -ne $? ]]; then
-    #>> "$ras_script_errors" #| tee -a "$ras_script_errors" | \
-    #awk '/^ERROR:.*$/ { print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($current_user) ($BASENAME ) [Error ] "'" $0 }' | tee -a >>"${logfile}"
-    echo "Something went wrong; error log follows:" >> "$ras_script_errors"
+if [[ $? -ne 0 ]]; then
+     echo "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     echo "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     LogMsg "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[End     ] Aborting csv process"
+     echo "${line1_out}"
+     echo "${line3_log}" >> $logfile
     exit 0
 fi
 
@@ -454,7 +478,7 @@ rtl_count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 select count(*) from csm_ras_type;
 
 THE_END`
-import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END 2>>/dev/null
 BEGIN;
 LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
@@ -500,7 +524,18 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
         select count(*) from csm_ras_type;
         select count(*) from csm_ras_type_audit;
 COMMIT; 
-THE_END` 2>>/dev/null
+THE_END` #2>>/dev/null
+
+if [[ $? -ne 0 ]]; then
+     echo "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     echo "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     LogMsg "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[End     ] Aborting csv process"
+     echo "${line1_out}"
+     echo "${line3_log}" >> $logfile
+    exit 0
+fi
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count

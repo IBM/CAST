@@ -26,7 +26,7 @@ from datetime import datetime
 from dateutil.parser import parse
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
-
+from elasticsearch import exceptions
 import cast_helper as cast
 
 TARGET_ENV='CAST_ELASTIC'
@@ -147,7 +147,7 @@ def main(args):
     args = parser.parse_args()
 
     # If the target wasn't specified check the environment for the target value, printing help on failure.
-    if args.target == None:
+    if args.target is None:
         if TARGET_ENV in os.environ:
             args.target = os.environ[TARGET_ENV]
         else:
@@ -174,7 +174,11 @@ def main(args):
     )
 
     # Execute the query on the cast-allocation index.
-    tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    try:
+        tr_res =  cast.search_job(es, args.allocation_id, args.job_id, args.job_id_secondary)
+    except exceptions.RequestError as e:
+        cast.print_request_error(e)
+        return 4
 
     total_hits = cast.deep_get(tr_res, "hits","total")
 
@@ -238,10 +242,11 @@ def main(args):
             cast.deep_get(response, "hits", "max_score") ) ) 
         print( "\"{0}\" Count : {1}".format( category, total ) ) 
         
-        # Sort aggregations by document count.
-        for (aggregation,value) in sorted(aggregations.iteritems(), 
-                key=lambda (k, v): v.get("doc_count"), reverse=True):
-            print("  \"{0}\" : {1}".format( aggregation, value.get("doc_count") ) ) 
+        if aggregations is not None:
+            # Sort aggregations by document count.
+            for (aggregation,value) in sorted(aggregations.iteritems(), 
+                    key=lambda (k, v): v.get("doc_count"), reverse=True):
+                print("  \"{0}\" : {1}".format( aggregation, value.get("doc_count") ) ) 
 
         if args.verbose:
             hits=cast.deep_get(response, "hits", "hits")

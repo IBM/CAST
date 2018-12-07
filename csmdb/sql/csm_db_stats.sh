@@ -16,9 +16,9 @@
 
 #================================================================================
 #   usage:              ./csm_db_stats.sh
-#   current_version:    01.8
+#   current_version:    01.9
 #   create:             08-02-2016
-#   last modified:      11-27-2018
+#   last modified:      12-04-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -28,6 +28,10 @@ logpath="/var/log/ibm/csm/db"
 logname="csm_db_stats.log"
 cd "${BASH_SOURCE%/*}" || exit
 cur_path=`pwd`
+
+line1_out="------------------------------------------------------------------------------------------------------------------------"
+line2_log="------------------------------------------------------------------------------------"
+line3_log="---------------------------------------------------------------------------------------------------------------------------"
 
 #==============================================
 # Current user connected---
@@ -114,8 +118,6 @@ echo "   $BASENAME -h, --help               [dbname]    | Help menu"
 echo "================================================================================================="
 }
 
-# Maybe add in more usage cases with script name and options?
-
 #==============================================
 #---Default flags---
 #==============================================
@@ -168,7 +170,7 @@ do
                                         LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
                                         LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
                                         LogMsg "[End   ] Please choose another option"
-                                        echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+                                        echo "${line3_log}" >> $logfile
                                         exit 0 ;;
        # pass through anything else
        *)                               set -- "$@" "$arg" ;;
@@ -183,7 +185,7 @@ done
 # error message will prompt and will be logged.
 #==============================================
 
-while getopts "t:i:l:s:c:u:v:a:x:h" arg; do
+while getopts "t:i:l:s:c:u:v:a:x:h:" arg; do
     case ${arg} in
         t)
             #============================================================================
@@ -255,66 +257,75 @@ while getopts "t:i:l:s:c:u:v:a:x:h" arg; do
             ;;
         #h|*)
         h)
-            #usage && exit 0
             usage
             LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -h, --help"
             LogMsg "[End   ] Help menu query executed"
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+            echo "${line3_log}" >> $logfile
             exit 0
             ;;
         *)
-            #usage && exit 0
             usage
             LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
             LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
             LogMsg "[End   ] Please choose another option"
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+            echo "${line3_log}" >> $logfile
             exit 0
             ;;
-
-
     esac
 done
 
-#==============================================
-# Built in checks
-#==============================================
-
-#=======================================
-# Check if postgresql exists already
-#=======================================
-
-string1="$now1 ($current_user) [Info  ] DB Names:"
-psql -l 2>>/dev/null $logfile
-
-#if [ $? -eq 0 ]; then
-if [ $? -ne 127 ]; then       #<------------This is the error return code
-db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-\set ON_ERROR_STOP true
-select string_agg(datname,' | ') from pg_database;
+#=================================================
+# Check if postgresql exists already and root user
+#=================================================
+string1="$now1 ($current_user) [Info  ] DB Users:"
+    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
+        if [ $? -ne 0 ]; then
+            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(usename,' | ') from pg_user;
 EOF`
-    echo "$string1 $db_query" | sed "s/.\{80\}|/&\n$string1 /g" >> $logfile
-    #echo "[Info  ] PostgreSQL is installed" #This message can be displayed to the screen as output
-    LogMsg "[Info  ] PostgreSQL is installed"
-    #LogMsg "---------------------------------------------------------------------------------------"
-else
-    echo "[Error ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "[Error ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "---------------------------------------------------------------------------------------"
-    exit 1
-fi
+            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
+            echo "${line1_out}"
+            echo "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
+            echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
+            exit 0
+        fi
+
+#=================================================
+# Check if postgresql exists already and DB name
+#=================================================
+string2="$now1 ($current_user) [Info  ] DB Names:"
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
+        if [ $? -eq 0 ]; then       #<------------This is the error return code
+            db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(datname,' | ') from pg_database;
+EOF`
+            echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
+            LogMsg "[Info  ] PostgreSQL is installed"
+        else
+            echo "${line1_out}"
+            echo "[Error ] PostgreSQL may not be installed or DB: $dbname may not exist."
+            echo "[Info  ] Please check configuration settings or psql -l"
+            echo "${line1_out}"
+            LogMsg "[Error ] PostgreSQL may not be installed or DB $dbname may not exist."
+            LogMsg "[Info  ] Please check configuration settings or psql -l"
+            echo "${line3_log}" >> $logfile
+            exit 1
+        fi
 
 #==============================================
 # Checks to see if no arguments are passed in
 #==============================================
 
 if [ $# -eq 0 ]; then
-    #usage && exit 0
     usage
     LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
     LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
     LogMsg "[End   ] Please choose another option"
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+    echo "${line3_log}" >> $logfile
     exit 0
 fi
 
@@ -324,38 +335,39 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $createdbstats == "yes" ]; then
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
-    relname,
-    n_live_tup As live_row_count,
-    cast(n_tup_ins AS numeric)
-AS 
-    insert_count,
-    cast(n_tup_upd AS numeric)
-AS
-    update_count,
-    cast(n_tup_del AS numeric)
-AS 
-    delete_count,
-    pg_size_pretty(pg_relation_size(quote_ident(relname)::text)) AS table_size
-FROM
-    pg_stat_user_tables 
-WHERE
-    (n_tup_ins + n_tup_upd + n_tup_del) > 0
-ORDER BY
-relname;" | grep -v "^$" 2>>/dev/null
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-if [ $? -ne 0 ]; then
-echo "[Error ] Table and or database does not exist in the system"
-LogMsg "[Error ] Table and or database does not exist in the system" 
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -t, --tableinfo (db_name): $dbname"
-LogMsg "[End   ] Table stats query executed"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
+    if [ $createdbstats == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
+            relname,
+            n_live_tup As live_row_count,
+            cast(n_tup_ins AS numeric)
+        AS 
+            insert_count,
+            cast(n_tup_upd AS numeric)
+        AS
+            update_count,
+            cast(n_tup_del AS numeric)
+        AS 
+            delete_count,
+            pg_size_pretty(pg_relation_size(quote_ident(relname)::text)) AS table_size
+        FROM
+            pg_stat_user_tables 
+        WHERE
+            (n_tup_ins + n_tup_upd + n_tup_del) > 0
+        ORDER BY
+        relname;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -t, --tableinfo (db_name): $dbname"
+        LogMsg "[End   ] Table stats query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
+    fi
 
 #==============================================
 # CSM_DB_Index_Information
@@ -363,50 +375,51 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $createixstats == "yes" ]; then
-echo "---------------------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
-    t.tablename,
-    indexname,
-    c.reltuples::integer AS num_rows,
-    pg_size_pretty(pg_relation_size(quote_ident(t.tablename)::text)) AS table_size,
-    pg_size_pretty(pg_relation_size(quote_ident(indexrelname)::text)) AS index_size,
-    CASE WHEN x.is_unique = 1  THEN 'Y'
-       ELSE 'N'
-    END AS UNIQUE,
-    idx_scan AS number_of_scans,
-    idx_tup_read AS tuples_read,
-    idx_tup_fetch AS tuples_fetched
-FROM pg_tables t
-LEFT OUTER JOIN pg_class c ON t.tablename=c.relname
-LEFT OUTER JOIN
-       (SELECT indrelid,
-           max(CAST(indisunique AS integer)) AS is_unique
-       FROM pg_index
-       GROUP BY indrelid) x
-       ON c.oid = x.indrelid
-LEFT OUTER JOIN
-    ( SELECT c.relname AS ctablename, ipg.relname AS indexname, x.indnatts AS number_of_columns, idx_scan, idx_tup_read, idx_tup_fetch,indexrelname FROM pg_index x
-           JOIN pg_class c ON c.oid = x.indrelid
-           JOIN pg_class ipg ON ipg.oid = x.indexrelid
-           JOIN pg_stat_all_indexes psai ON x.indexrelid = psai.indexrelid )
-    AS tbixsize
-    ON t.tablename = tbixsize.ctablename
-WHERE t.schemaname='public'
-    AND
-        (c.reltuples + idx_scan + idx_tup_read + idx_tup_fetch) > 0
-ORDER BY pg_relation_size(quote_ident(indexrelname)::text) desc;" | grep -v "^$" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system"
-    LogMsg "[Error ] Table and or database does not exist in the system" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $createixstats == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
+            t.tablename,
+            indexname,
+            c.reltuples::integer AS num_rows,
+            pg_size_pretty(pg_relation_size(quote_ident(t.tablename)::text)) AS table_size,
+            pg_size_pretty(pg_relation_size(quote_ident(indexrelname)::text)) AS index_size,
+            CASE WHEN x.is_unique = 1  THEN 'Y'
+               ELSE 'N'
+            END AS UNIQUE,
+            idx_scan AS number_of_scans,
+            idx_tup_read AS tuples_read,
+            idx_tup_fetch AS tuples_fetched
+        FROM pg_tables t
+        LEFT OUTER JOIN pg_class c ON t.tablename=c.relname
+        LEFT OUTER JOIN
+               (SELECT indrelid,
+                   max(CAST(indisunique AS integer)) AS is_unique
+               FROM pg_index
+               GROUP BY indrelid) x
+               ON c.oid = x.indrelid
+        LEFT OUTER JOIN
+            ( SELECT c.relname AS ctablename, ipg.relname AS indexname, x.indnatts AS number_of_columns, idx_scan, idx_tup_read, idx_tup_fetch,indexrelname FROM pg_index x
+                   JOIN pg_class c ON c.oid = x.indrelid
+                   JOIN pg_class ipg ON ipg.oid = x.indexrelid
+                   JOIN pg_stat_all_indexes psai ON x.indexrelid = psai.indexrelid )
+            AS tbixsize
+            ON t.tablename = tbixsize.ctablename
+        WHERE t.schemaname='public'
+            AND
+                (c.reltuples + idx_scan + idx_tup_read + idx_tup_fetch) > 0
+        ORDER BY pg_relation_size(quote_ident(indexrelname)::text) desc;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -i, --indexinfo (db_name): $dbname"
+        LogMsg "[End   ] Table index query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -i, --indexinfo (db_name): $dbname"
-LogMsg "[End   ] Table index query executed"
-echo "---------------------------------------------------------------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
 
 #==============================================
 # CSM_DB_Index_Analysis
@@ -414,33 +427,34 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $indexanalysis == "yes" ]; then
-echo "---------------------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
-       relname,
-       seq_scan - idx_scan AS too_much_seq,
-       CASE
-           WHEN seq_scan - idx_scan > 0 THEN 'Missing Index?'
-           ELSE 'OK'
-       END,
-       Pg_relation_size(relid :: regclass) AS rel_size,
-       seq_scan,
-       idx_scan
-FROM pg_stat_all_tables
-WHERE schemaname = 'public'
-  AND Pg_relation_size(relid :: regclass) > 0
-ORDER BY too_much_seq DESC;" | grep -v "^$" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system"
-    LogMsg "[Error ] Table and or database does not exist in the system" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $indexanalysis == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -d $dbname -P format=wrapped -c "SELECT
+               relname,
+               seq_scan - idx_scan AS too_much_seq,
+               CASE
+                   WHEN seq_scan - idx_scan > 0 THEN 'Missing Index?'
+                   ELSE 'OK'
+               END,
+               Pg_relation_size(relid :: regclass) AS rel_size,
+               seq_scan,
+               idx_scan
+        FROM pg_stat_all_tables
+        WHERE schemaname = 'public'
+          AND Pg_relation_size(relid :: regclass) > 0
+        ORDER BY too_much_seq DESC;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -x, --indexanalysis (db_name): $dbname"
+        LogMsg "[End   ] Table index analysis query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -x, --indexanalysis (db_name): $dbname"
-LogMsg "[End   ] Table index analysis query executed"
-echo "---------------------------------------------------------------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
 
 #==============================================
 # Lock Monitoring
@@ -448,34 +462,35 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $createlstats == "yes" ]; then
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -x -d $dbname -P format=wrapped -c "SELECT
-    bl.pid AS blocked_pid,
-    a.usename AS blocked_user,
-    ka.query AS current_or_recent_statement_in_blocking_process,
-    ka.state AS state_of_blocking_process,
-    now() - ka.query_start AS blocking_duration,
-    kl.pid AS blocking_pid,
-    ka.usename AS blocking_user,
-    a.query AS blocked_statement,
-    now() - a.query_start AS blocked_duration
-FROM pg_catalog.pg_locks bl
-JOIN pg_catalog.pg_stat_activity a ON a.pid = bl.pid
-JOIN pg_catalog.pg_locks kl ON kl.transactionid = bl.transactionid AND kl.pid != bl.pid
-JOIN pg_catalog.pg_stat_activity ka ON ka.pid = kl.pid
-WHERE NOT bl.GRANTED;" | grep -v "^$" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system"
-    LogMsg "[Error ] Table and or database does not exist in the system" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $createlstats == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -x -d $dbname -P format=wrapped -c "SELECT
+            bl.pid AS blocked_pid,
+            a.usename AS blocked_user,
+            ka.query AS current_or_recent_statement_in_blocking_process,
+            ka.state AS state_of_blocking_process,
+            now() - ka.query_start AS blocking_duration,
+            kl.pid AS blocking_pid,
+            ka.usename AS blocking_user,
+            a.query AS blocked_statement,
+            now() - a.query_start AS blocked_duration
+        FROM pg_catalog.pg_locks bl
+        JOIN pg_catalog.pg_stat_activity a ON a.pid = bl.pid
+        JOIN pg_catalog.pg_locks kl ON kl.transactionid = bl.transactionid AND kl.pid != bl.pid
+        JOIN pg_catalog.pg_stat_activity ka ON ka.pid = kl.pid
+        WHERE NOT bl.GRANTED;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -l, --lockinfo (db_name): $dbname"
+        LogMsg "[End   ] Table lock monitoring query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -l, --lockinfo (db_name): $dbname"
-LogMsg "[End   ] Table lock monitoring query executed"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-exit $return_code
-fi
 
 #==============================================
 # DB connections stats
@@ -483,21 +498,22 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $connectionsdb == "yes" ]; then
-echo "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username $dbname -P format=wrapped -c "
-SELECT pid, datname AS dbname, usename, backend_start, query_start, state_change, waiting AS wait, query FROM pg_stat_activity;" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system"
-    LogMsg "[Error ] Table and or database does not exist in the system" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $connectionsdb == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username $dbname -P format=wrapped -c "
+        SELECT pid, datname AS dbname, usename, backend_start, query_start, state_change, waiting AS wait, query FROM pg_stat_activity;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -c, --connectionsdb (db_name): $dbname"
+        LogMsg "[End   ] DB connections with stats query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -c, --connectionsdb (db_name): $dbname"
-LogMsg "[End   ] DB connections with stats query executed"
-echo "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
 
 #==============================================
 # DB usernames stats
@@ -505,20 +521,21 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $usernamedb == "yes" ]; then
-echo "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username $dbname -P format=wrapped -c "SELECT * from pg_roles;" | grep -v "^$" 2>>/dev/null 
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system"
-    LogMsg "[Error ] Table and or database does not exist in the system" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $usernamedb == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username $dbname -P format=wrapped -c "SELECT * from pg_roles;" 2>>/dev/null 
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -u, --username (db_name): $dbname"
+        LogMsg "[End   ] DB usernames with stats query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -u, --username (db_name): $dbname"
-LogMsg "[End   ] DB usernames with stats query executed"
-echo "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
 
 #==============================================
 # Schema Version stats
@@ -526,20 +543,21 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $schemaversion == "yes" ]; then
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "select * from csm_db_schema_version" | grep -v "^$" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system (query must be ran against a CSM database)"
-    LogMsg "[Error ] Table and or database does not exist in the system (query must be ran against a CSM database)"
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $schemaversion == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -d $dbname -P format=wrapped -c "select * from csm_db_schema_version" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system"
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -s, --schemaversion (db_name): $dbname"
+        LogMsg "[End   ] DB schema version query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -s, --schemaversion (db_name): $dbname"
-LogMsg "[End   ] DB schema version query executed"
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
 
 #==============================================
 # DB history archiving stats
@@ -547,36 +565,37 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $archivecount == "yes" ]; then
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "WITH cte AS (
-    SELECT
-       table_name,
-       (xpath('/row/cnt/text()', not_archived))[1]::text::int as not_archived,
-       (xpath('/row/cnt/text()', archived))[1]::text::int as archived,
-       (xpath('/row/cnt/text()', last_archive_time))[1]::text::timestamp as last_archive_time
-from (
-  select table_name,
-        query_to_xml(format('select count(*) as cnt from %I.%I where archive_history_time is NULL', table_schema, table_name), false, true, '') as not_archived,
-        query_to_xml(format('select count(*) as cnt from %I.%I where archive_history_time is NOT NULL', table_schema, table_name), false, true, '') as archived,
-        query_to_xml(format('select MAX(archive_history_time) as cnt from %I.%I where archive_history_time is NOT NULL', table_schema, table_name), false, true, '') as last_archive_time
-  from information_schema.columns
-  WHERE column_name = 'archive_history_time'
-) t)
-SELECT table_name, sum(archived + not_archived) as total, sum(archived) as archived, sum(not_archived) not_archived, last_archive_time from cte
-group by table_name, last_archive_time
-ORDER BY table_name ASC;" | grep -v "^$" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] Table and or database does not exist in the system"
-    LogMsg "[Error ] Table and or database does not exist in the system" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $archivecount == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -d $dbname -P format=wrapped -c "WITH cte AS (
+            SELECT
+               table_name,
+               (xpath('/row/cnt/text()', not_archived))[1]::text::int as not_archived,
+               (xpath('/row/cnt/text()', archived))[1]::text::int as archived,
+               (xpath('/row/cnt/text()', last_archive_time))[1]::text::timestamp as last_archive_time
+        from (
+          select table_name,
+                query_to_xml(format('select count(*) as cnt from %I.%I where archive_history_time is NULL', table_schema, table_name), false, true, '') as not_archived,
+                query_to_xml(format('select count(*) as cnt from %I.%I where archive_history_time is NOT NULL', table_schema, table_name), false, true, '') as archived,
+                query_to_xml(format('select MAX(archive_history_time) as cnt from %I.%I where archive_history_time is NOT NULL', table_schema, table_name), false, true, '') as last_archive_time
+          from information_schema.columns
+          WHERE column_name = 'archive_history_time'
+        ) t)
+        SELECT table_name, sum(archived + not_archived) as total, sum(archived) as archived, sum(not_archived) not_archived, last_archive_time from cte
+        group by table_name, last_archive_time
+        ORDER BY table_name ASC;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -a, --archivecount (db_name): $dbname"
+        LogMsg "[End   ] History table archive count query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -a, --archivecount (db_name): $dbname"
-LogMsg "[End   ] History table archive count query executed"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-exit $return_code
-fi
 
 #==============================================
 # PostgreSQL Version stats
@@ -584,19 +603,19 @@ fi
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
-if [ $postgresqlversion == "yes" ]; then
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-psql -U $db_username -d $dbname -P format=wrapped -c "SELECT version()" | grep -v "^$" 2>>/dev/null
-    if [ $? -ne 0 ]; then
-    echo "[Error ] A valid database name has to be specified (Please run psql -l for a list of active databases)"
-    LogMsg "[Error ] A valid database name has to be specified (Please run psql -l for a list of active databases)" 
-    echo "-----------------------------------------------------------------------------------------------------------------------------------"
+    if [ $postgresqlversion == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username -d $dbname -P format=wrapped -c "SELECT version()" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] A valid database name has to be specified (Please run psql -l for a list of active databases)"
+                LogMsg "[Error ] A valid database name has to be specified (Please run psql -l for a list of active databases)" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -v, --postgresqlversion (db_name): $dbname"
+        LogMsg "[End   ] PostgeSQL version and environment query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
     fi
-LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -v, --postgresqlversion (db_name): $dbname"
-LogMsg "[End   ] PostgeSQL version and environment query executed"
-echo "-----------------------------------------------------------------------------------------------------------------------------------"
-echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-exit $return_code
-fi
-    #LogMsg "---------------------------------------------------------------------------------------"
 exit $return_code

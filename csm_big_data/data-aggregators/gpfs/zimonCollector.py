@@ -142,6 +142,10 @@ def main(args):
             hostName=columnInfo.keys[0][0]
             sensorData[hostName][rowNum]["data"][sensorName] = row.values[colNum]
             
+            # Convert none to 0.
+            if row.values[colNum] is None:
+                sensorData[hostName][rowNum]["data"][sensorName] = 0
+            
             colNum+=1
         rowNum+=1
     

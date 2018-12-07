@@ -28,6 +28,8 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <string>
+#include <chrono>
+
 
 /**
    \brief Helper macros for __FILENAME__ "filename.cc" and __FILELINE__ "filename.cc:122"
@@ -70,7 +72,14 @@ namespace utility
     extern boost::log::sources::severity_channel_logger_mt< bluecoral_sevs > logger;
     extern boost::log::sources::channel_logger_mt< > bds_logger;
     extern boost::log::sources::channel_logger_mt< > allocation_logger;
+
+    /**
+     * @brief Retrieves the current time then converts it to a string.
+     * @return The UTC timestamp.
+     */
+    std::string GetUTCTimestampNow();
 };
+
 
 /**
    \brief Log a message at the given severity level
@@ -80,6 +89,7 @@ namespace utility
      LOG(error) << "This is my error message";
 
 */
+
 
 #ifndef USE_SC_LOGGER
 #define LOG(sevlevel) BOOST_LOG_SEV(utility::logger, utility::bluecoral_sevs::sevlevel)
@@ -92,11 +102,13 @@ namespace utility
                                << boost::log::add_value("Line"        , __LINE__) \
                                << boost::log::add_value("Function"    , __func__)
 
+#define TIMESTAMP_NOW() ",\"@timestamp\":\"" << utility::GetUTCTimestampNow() << "\""
+
 #define TRANSACTION(type, traceid, uid, data) BOOST_LOG(utility::bds_logger) << "{\"type\":\"" << type << \
-    "\",\"traceid\":" << traceid << ",\"uid\":" << uid << ",\"data\":" << data << "}"
+    "\",\"traceid\":" << traceid << ",\"uid\":" << uid << TIMESTAMP_NOW() <<",\"data\":" << data << "}"
 
 #define ALLOCATION(type, source, data) BOOST_LOG(utility::allocation_logger) << "{\"type\":\"" << type << \
-    "\",\"source\":\"" << source <<"\",\"data\":" << data << "}"
+"\",\"source\":\"" << source << "\"" TIMESTAMP_NOW() <<",\"data\":" << data << "}"
 
 #define setLoggingLevel(subcomponent, setlevel) \
     utility::minlevel[utility::bluecoral_subcomponents::subcomponent] = utility::bluecoral_sevs::setlevel

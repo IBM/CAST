@@ -111,6 +111,15 @@ namespace utility
 	strm << filename;
         return strm;
     }
+
+    std::string GetUTCTimestampNow()
+    {
+        auto now = std::chrono::system_clock::now();
+        time_t tt = std::chrono::system_clock::to_time_t(now);
+        char buffer [sizeof "2018-12-06T04:31:09Z"];
+        strftime(buffer, sizeof buffer, "%FT%TZ", gmtime(&tt));
+        return std::string(buffer);
+    }
 };
 
 int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
