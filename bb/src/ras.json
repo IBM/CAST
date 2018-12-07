@@ -66,6 +66,18 @@
 	      "message" : "The poll of a descriptor in the read or listening list had an event indicating the connection is no longer working.",
 	      "description" : "The poll for listening or reading on the file descriptor of a connection had an event which closed or ended the connection."
 	  },
+	  "UnixSocketFailed" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "The Unix listener socket did not open.",
+	      "description" : "The configured unix listener socket did not open."
+	  },
+	  "bbproxyListenerSocketFailed" :
+	  {
+	      "severity" : "FATAL",
+	      "message" : "The bbproxy listener socket did not open.",
+	      "description" : "The configured bbproxy listener socket did not open."
+	  },
 	  "certLoadFailed" :
 	  {
 	      "severity" : "FATAL",

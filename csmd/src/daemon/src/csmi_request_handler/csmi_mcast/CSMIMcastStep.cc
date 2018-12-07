@@ -16,17 +16,17 @@
 #define STRUCT_TYPE csmi_allocation_step_mcast_context_t
 
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
+CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator>::~CSMIMcast()
 {
     if( _Data )
     {
-        csm_free_struct_ptr( STRUCT_TYPE, _Data );
+        csm_free_struct_ptr( csmi_allocation_step_mcast_context_t, _Data );
         _Data = nullptr;
     }
 }
 
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
+void CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
 {
     // TODO improve this function for memory usage.
     if ( _Data )
@@ -46,7 +46,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
 }
 
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString()
+std::string CSMIMcast<STRUCT_TYPE,CSMIAllocStepComparator>::GenerateIdentifierString()
 {
     std::string idString = "Allocation ID: ";
     if ( _Data )

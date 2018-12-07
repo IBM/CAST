@@ -4312,7 +4312,7 @@ int registerHandlers()
 
 
 char LVM_SUPPRESS[] = "LVM_SUPPRESS_FD_WARNINGS=1";  // note: ownership of this string is moved to ENV during putenv() call.
-
+int setupUnixConnections(string whoami);
 int bb_main(std::string who)
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -4357,6 +4357,17 @@ int bb_main(std::string who)
 
     /* Perform any clean-up of existing logical volumes */
     logicalVolumeCleanup();
+
+    rc = setupUnixConnections(process_whoami);
+    if(rc)
+    {
+        bberror.clear(process_whoami);
+        string upath = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+        stringstream errorText;
+        errorText<<"Unix socket did not open rc=" << rc << " bb.unixpath="<<upath;
+        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc,bb.net.UnixSocketFailed);
+        return rc;
+    }
 
     LOG(bb,always) << "bbProxy completed initialization";
 

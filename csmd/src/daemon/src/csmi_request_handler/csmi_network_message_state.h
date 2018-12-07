@@ -71,7 +71,7 @@ public:
         if (content._Msg.GetErr()) 
         {
             LOG(csmapi, error) << ctx << 
-                "NetworkMessageState: An error was detected while recieving a "
+                "NetworkMessageState: An error was detected while receiving a "
                 "Network Message.";
 
             // Unpack the error

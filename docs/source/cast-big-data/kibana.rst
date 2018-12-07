@@ -1,3 +1,5 @@
+.. _cast-kibana:
+
 Kibana
 ======
 
