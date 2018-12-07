@@ -15,4 +15,5 @@ This section is divided into the following subsections:
     configuration/index.rst
     list-of-csm-apis.rst
     implementing-new-csm-apis.rst
+    csm_python_guide.md
 
