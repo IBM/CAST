@@ -1,4 +1,10 @@
 #msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users
+admin.common.soft_failure,FATAL,An administrative tool has detected an error on $(location_name): $(comment).,Set node state to SOFT_FAILURE due to error.,NONE,1,0,true,SOFT_FAILURE,true
+admin.common.hard_failure,FATAL,An administrative tool has detected an error on $(location_name): $(comment).,Set node state to HARD_FAILURE due to error.,NONE,1,0,true,HARD_FAILURE,true
+admin.common.prolog_soft_failure,FATAL,Prolog error detected on $(location_name): $(comment).,Set node state to SOFT_FAILURE due to a prolog error.,NONE,1,0,true,SOFT_FAILURE,true
+admin.common.prolog_hard_failure,FATAL,Prolog error detected on $(location_name): $(comment).,Set node state to HARD_FAILURE due to a prolog error.,NONE,1,0,true,HARD_FAILURE,true
+admin.common.epilog_soft_failure,FATAL,Epilog error detected on $(location_name): $(comment).,Set node state to SOFT_FAILURE due to an epilog error.,NONE,1,0,true,SOFT_FAILURE,true
+admin.common.epilog_hard_failure,FATAL,Epilog error detected on $(location_name): $(comment).,Set node state to HARD_FAILURE due to an epilog error. ,NONE,1,0,true,HARD_FAILURE,true
 bmc.Administrative.FQPSPSE0002M,FATAL,A session audit has occurred.,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPCA0057M,FATAL,Unable to set fan speed for Fan $(fan).,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPCA0058M,FATAL,Unable to read Fan $(fan) rotor $(rotor) speed.,,NONE,1,0,true,,true
