@@ -46,11 +46,11 @@
 #endif 
  
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 CSMI_STRUCT_MEMBER(int32_t, insert_count       , BASIC, , -1, ) /**< number of new records inserted into the database. */
 CSMI_STRUCT_MEMBER(int32_t, update_count       , BASIC, , -1, ) /**< number of old records updated in the database. */
 CSMI_STRUCT_MEMBER(int32_t, delete_count       , BASIC, , -1, ) /**< number of old records removed from the database. */
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(2ff04ee5c9f002854267c1a6f621c65a)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

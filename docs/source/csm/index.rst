@@ -8,6 +8,7 @@ CSM is an API for managing a large cluster.
     
     configuration.rst
     soft_failure.rst
+    csm_api_change_log.rst
 
     
 

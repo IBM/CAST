@@ -26,7 +26,7 @@ extern "C" {
 /// TODO ADD MASKING MACROS!
 
 ///< The version id for CSM (uint64_t), this is the version counter for this API.
-#define CSM_VERSION_ID CSM_VERSION_1_3_0
+#define CSM_VERSION_ID CSM_VERSION_1_4_0
 
 ///< The development level.
 #define CSM_DEVELOPMENT CSM_VERSION_ID
@@ -35,6 +35,7 @@ extern "C" {
 #define CSM_MIN_VERSION CSM_VERSION_0_4_1
 
 /// VERSION START
+#define CSM_VERSION_1_4_0 66560
 #define CSM_VERSION_1_3_0 66304
 #define CSM_VERSION_1_1_0 65792
 #define CSM_VERSION_1_0_0 65536

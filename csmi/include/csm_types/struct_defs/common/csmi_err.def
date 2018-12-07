@@ -47,7 +47,7 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 
 CSMI_STRUCT_MEMBER(int     , errcode,            BASIC,              ,   -1,) ///< The error code of this error message.
 CSMI_STRUCT_MEMBER(char*   , errmsg ,            STRING,             , NULL,) ///< The error message.
@@ -55,7 +55,7 @@ CSMI_STRUCT_MEMBER(uint32_t, error_count,  BASIC,              ,    0, ) ///< A 
 CSMI_STRUCT_MEMBER(csm_node_error_t**, node_errors, ARRAY_STRUCT, error_count, NULL,csm_node_error_t ) ///< Collection of errors which occured on nodes.
 
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(6d3b246daac2cbd4d76b2f58b90cc8bd)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER
