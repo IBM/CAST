@@ -255,7 +255,9 @@ int main(int argc, char *argv[])
     {
         printf("%s FAILED: errcode: %d errmsg: %s\n",
             argv[0], return_value,  csm_api_object_errmsg_get(csm_obj));
-	}
+        
+        csm_print_node_errors(csm_obj)
+    }
     
     // Destroy the csm_obj.
     csm_api_object_destroy(csm_obj);

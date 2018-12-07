@@ -15,8 +15,9 @@
 #include "CSMIMcastAllocation.h"
 #define STRUCT_TYPE csmi_allocation_mcast_context_t
 
+
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
+CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::~CSMIMcast()
 {
     if(_Data)
     {
@@ -26,7 +27,7 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
 }
 
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
+void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
 {
     // Generate the leaner allocation payload.
     csmi_allocation_mcast_payload_request_t *allocPayload = nullptr;
@@ -35,11 +36,13 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
     allocPayload->allocation_id    = _Data->allocation_id;
     allocPayload->primary_job_id   = _Data->primary_job_id;
     allocPayload->secondary_job_id = _Data->secondary_job_id;
+    allocPayload->runtime          = _Data->runtime;
     allocPayload->user_flags       = _Data->user_flags ? strdup(_Data->user_flags) : nullptr;
     allocPayload->system_flags     = _Data->system_flags ? strdup(_Data->system_flags) : nullptr;
     allocPayload->user_name        = _Data->user_name ? strdup(_Data->user_name) : nullptr;
     allocPayload->create           = _Create;
     
+
     // Create only 
     allocPayload->isolated_cores   = _Data->isolated_cores;
     allocPayload->num_gpus         = _Data->num_gpus; 
@@ -74,13 +77,21 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
             // Only populate when not creating.
             _Data->cpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
             _Data->memory_max  = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
-	    _Data->gpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
+	        _Data->gpu_usage   = (int64_t*) calloc( _Data->num_nodes, sizeof(int64_t));
+	    
+            _Data->gpu_metrics = (csmi_allocation_gpu_metrics_t**) calloc( _Data->num_nodes, sizeof(csmi_allocation_gpu_metrics_t*));
+            for ( uint32_t i = 0; i < _Data->num_nodes; i++ )
+            {
+                csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, _Data->gpu_metrics[i]);
+                _Data->gpu_metrics[i]->num_gpus = 0;
+                _Data->gpu_metrics[i]->num_cpus = 0;
+            }
         }
     }
 }
 
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString()
+std::string CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::GenerateIdentifierString()
 {
     std::string idString = "Allocation ID: ";
     if ( _Data )
@@ -122,8 +133,13 @@ bool ParseResponseCreate(
             {
                 success = true;
                 std::string hostname(allocPayload->hostname);
-                uint32_t hostIdx = mcastProps->SetHostError(hostname);
+                uint32_t hostIdx = mcastProps->SetHostError(hostname, 
+                    allocPayload->error_code, 
+                    allocPayload->error_message);
                 
+                if( allocPayload->error_code )
+                    mcastProps->PushError(allocPayload->error_code);
+
                 if (  hostIdx < allocation->num_nodes )
                 {
                     allocation->ib_rx[hostIdx]          = allocPayload->ib_rx;
@@ -173,6 +189,9 @@ bool ParseResponseDelete(
                 uint32_t hostIdx = mcastProps->SetHostError(hostname, 
                     allocPayload->error_code, 
                     allocPayload->error_message);
+                
+                if( allocPayload->error_code )
+                    mcastProps->PushError(allocPayload->error_code);
 
                 if ( hostIdx < allocation->num_nodes )
                 {
@@ -186,6 +205,40 @@ bool ParseResponseDelete(
                     allocation->power_cap_hit[hostIdx]  = allocPayload->pc_hit;
                     allocation->gpu_energy[hostIdx]     = allocPayload->gpu_energy;
                     allocation->gpu_usage[hostIdx]     = allocPayload->gpu_usage;
+                    
+                    if ( ( allocPayload->gpu_metrics != nullptr ) && 
+                         ( allocation->gpu_metrics != nullptr ) &&
+                         ( allocation->gpu_metrics[hostIdx] != nullptr ) )
+                    { 
+                       allocation->gpu_metrics[hostIdx]->num_gpus  = allocPayload->gpu_metrics->num_gpus;
+                       allocation->gpu_metrics[hostIdx]->num_cpus  = allocPayload->gpu_metrics->num_cpus;
+
+                       // Allocate memory for the per gpu arrays
+                       allocation->gpu_metrics[hostIdx]->gpu_id         = (int32_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int32_t));
+                       allocation->gpu_metrics[hostIdx]->gpu_usage      = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int64_t));
+                       allocation->gpu_metrics[hostIdx]->max_gpu_memory = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_gpus, sizeof(int64_t));
+                      
+                       // Copy per gpu arrays 
+                       memcpy(allocation->gpu_metrics[hostIdx]->gpu_id, allocPayload->gpu_metrics->gpu_id, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int32_t));
+                       memcpy(allocation->gpu_metrics[hostIdx]->gpu_usage, allocPayload->gpu_metrics->gpu_usage, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
+                       memcpy(allocation->gpu_metrics[hostIdx]->max_gpu_memory, allocPayload->gpu_metrics->max_gpu_memory, 
+                              allocation->gpu_metrics[hostIdx]->num_gpus * sizeof(int64_t));
+                       
+                       // Allocate memory for the per cpu arrays
+                       allocation->gpu_metrics[hostIdx]->cpu_usage      = (int64_t*)calloc(allocation->gpu_metrics[hostIdx]->num_cpus, sizeof(int64_t));
+                       
+                       // Copy per cpu arrays 
+                       memcpy(allocation->gpu_metrics[hostIdx]->cpu_usage, allocPayload->gpu_metrics->cpu_usage, 
+                              allocation->gpu_metrics[hostIdx]->num_cpus * sizeof(int64_t));
+                    }
+                    else
+                    {
+                       LOG(csmapi,warning) << "Unexpected nullptr: allocPayload->gpu_metrics=" 
+                                           << std::hex << allocPayload->gpu_metrics
+                                           << " allocation->gpu_metrics=" << allocation->gpu_metrics << std::dec;
+                    }
                 }
             }
 
@@ -200,12 +253,11 @@ bool ParseResponseRecover(
     CSMIMcastAllocation* mcastProps,
     const csm::network::MessageAndAddress content )
 {
-
     LOG(csmapi,trace) << "Parsing Mcast Response Recover";
 
     // Track whether or not the received payload is valid.
     bool success = false;
-    
+   
     // If this is not in recovery and the message length is greater than zero parse the content.
     if( mcastProps && content._Msg.GetDataLen() > 0 )
     {

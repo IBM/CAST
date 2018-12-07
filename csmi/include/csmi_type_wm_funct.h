@@ -1200,6 +1200,99 @@ void free_csm_jsrun_cmd_input_t( csm_jsrun_cmd_input_t *target );
 void init_csm_jsrun_cmd_input_t( csm_jsrun_cmd_input_t *target );
 
 
+ /**  @brief Serializes the supplied structure into a char buffer.
+*
+* @param[in]  target     The structure to pack into the char buffer.
+* @param[out] buf        Contains the structure as char buffer.
+* @param[out] buffer_len Contains the length of the buffer.
+*/
+int serialize_csm_soft_failure_recovery_node_t( csm_soft_failure_recovery_node_t *target, char **buf , uint32_t *buffer_len);
+
+/** @brief Deserializes the supplied character buffer.
+*
+* @param[out] dest       A pointer to a struct to output the contents of the buffer to.
+* @param[in]  buffer     The buffer to read into the destination struct.
+* @param[in]  buffer_len The size of the buffer provided (for overflows).
+*/
+int deserialize_csm_soft_failure_recovery_node_t( csm_soft_failure_recovery_node_t **dest, const char *buffer, uint32_t buffer_len);
+
+/** @brief Frees the supplied struct and its members.
+*
+*  @warning Don't invoke unless @p target has been initialized by the init function.
+*
+*  @param[in] target The struct to free.
+*/
+void free_csm_soft_failure_recovery_node_t( csm_soft_failure_recovery_node_t *target );
+
+/** @brief Initializes the supplied struct to the default values.
+*
+*  @param[in,out] target The struct to initialize.
+*/
+void init_csm_soft_failure_recovery_node_t( csm_soft_failure_recovery_node_t *target );
+
+
+ /**  @brief Serializes the supplied structure into a char buffer.
+*
+* @param[in]  target     The structure to pack into the char buffer.
+* @param[out] buf        Contains the structure as char buffer.
+* @param[out] buffer_len Contains the length of the buffer.
+*/
+int serialize_csm_soft_failure_recovery_input_t( csm_soft_failure_recovery_input_t *target, char **buf , uint32_t *buffer_len);
+
+/** @brief Deserializes the supplied character buffer.
+*
+* @param[out] dest       A pointer to a struct to output the contents of the buffer to.
+* @param[in]  buffer     The buffer to read into the destination struct.
+* @param[in]  buffer_len The size of the buffer provided (for overflows).
+*/
+int deserialize_csm_soft_failure_recovery_input_t( csm_soft_failure_recovery_input_t **dest, const char *buffer, uint32_t buffer_len);
+
+/** @brief Frees the supplied struct and its members.
+*
+*  @warning Don't invoke unless @p target has been initialized by the init function.
+*
+*  @param[in] target The struct to free.
+*/
+void free_csm_soft_failure_recovery_input_t( csm_soft_failure_recovery_input_t *target );
+
+/** @brief Initializes the supplied struct to the default values.
+*
+*  @param[in,out] target The struct to initialize.
+*/
+void init_csm_soft_failure_recovery_input_t( csm_soft_failure_recovery_input_t *target );
+
+
+ /**  @brief Serializes the supplied structure into a char buffer.
+*
+* @param[in]  target     The structure to pack into the char buffer.
+* @param[out] buf        Contains the structure as char buffer.
+* @param[out] buffer_len Contains the length of the buffer.
+*/
+int serialize_csm_soft_failure_recovery_output_t( csm_soft_failure_recovery_output_t *target, char **buf , uint32_t *buffer_len);
+
+/** @brief Deserializes the supplied character buffer.
+*
+* @param[out] dest       A pointer to a struct to output the contents of the buffer to.
+* @param[in]  buffer     The buffer to read into the destination struct.
+* @param[in]  buffer_len The size of the buffer provided (for overflows).
+*/
+int deserialize_csm_soft_failure_recovery_output_t( csm_soft_failure_recovery_output_t **dest, const char *buffer, uint32_t buffer_len);
+
+/** @brief Frees the supplied struct and its members.
+*
+*  @warning Don't invoke unless @p target has been initialized by the init function.
+*
+*  @param[in] target The struct to free.
+*/
+void free_csm_soft_failure_recovery_output_t( csm_soft_failure_recovery_output_t *target );
+
+/** @brief Initializes the supplied struct to the default values.
+*
+*  @param[in,out] target The struct to initialize.
+*/
+void init_csm_soft_failure_recovery_output_t( csm_soft_failure_recovery_output_t *target );
+
+
 
 #ifdef __cplusplus
 }

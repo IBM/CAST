@@ -54,7 +54,14 @@
                         NOTE:  This must be a python script file, but do not include the .py
     -z --config         Configuration file to use.  Default is "/etc/ibm/bb.cfg".
     -1 --process_args   Process arguments (bbapiAdminProcs interface only)
-    -2 --iteration      Iteration number
+    -2 --iteration      Iteration number (NOTE: Test convention is to add 10 times this value
+                                                to the jobid value in initEnv() to prevent jobid
+                                                collision.  Used to generate unique jobid values
+                                                by iteration.)
+    -3 --jobid_bump     JobId bump value (NOTE: Test convention is to add this value
+                                                to the jobid value in initEnv() to prevent jobid
+                                                collision.  Used to generate unique jobid values
+                                                within a testcase.)
 
      All paths can be given as either absolute or relative to the current working directory.
 
@@ -136,6 +143,7 @@ DEFAULT_IO_FAILOVER = False
 #        API doesn't have any arguments to pass.
 DEFAULT_PROCEDURE_ARGS = ""
 DEFAULT_ITERATION = 0
+DEFAULT_JOBID_BUMP = 0
 
 NOCONFIG = ""
 NOUNIXPATH = ""
@@ -199,6 +207,10 @@ def setDefaults(pEnv):
     #       routine of this module
     if (not pEnv.has_key("iteration")):
         pEnv["iteration"] = DEFAULT_ITERATION
+    # NOTE: The jobid_bump value can be passed into the main()
+    #       routine of this module
+    if (not pEnv.has_key("jobid_bump")):
+        pEnv["jobid_bump"] = DEFAULT_JOBID_BUMP
 
     return
 
@@ -245,7 +257,7 @@ def processArgs(pEnv, pArgs):
     setDefaults(pEnv)
 
     try:
-        l_Opts, l_Args = getopt.getopt(pArgs,"ha:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:1:2:",["cn_failover=","io_failover=","contrib=","name=","floor=","flags=","group=","handle=","hostname=","jobid=","jobstepid=","libpath=","mount=","mode=","owner=","testpath=","orgsrc=","contribid=","size=","tag=","unixpath=","type=","procedure=","target=","testcase=","config=","procedure_args=","iteration="])
+        l_Opts, l_Args = getopt.getopt(pArgs,"ha:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:1:2:3:",["cn_failover=","io_failover=","contrib=","name=","floor=","flags=","group=","handle=","hostname=","jobid=","jobstepid=","libpath=","mount=","mode=","owner=","testpath=","orgsrc=","contribid=","size=","tag=","unixpath=","type=","procedure=","target=","testcase=","config=","procedure_args=","iteration=","jobid_bump="])
     except getopt.GetoptError as e:
         print >> sys.stderr, e
         usage(1, "Invalid arguments passed")
@@ -338,6 +350,8 @@ def processArgs(pEnv, pArgs):
             pEnv["procedure_args"] = os.path.abspath(l_Arg)
         elif l_Opt in ("-2", "--iteration"):
             pEnv["iteration"] = int(l_Arg)
+        elif l_Opt in ("-3", "--jobid_bump"):
+            pEnv["jobid_bump"] = int(l_Arg)
 
     pEnv["COMMAND"] = os.path.abspath(__file__)
     pEnv["COMMAND_LINE_ARGS"] = " ".join(pArgs)

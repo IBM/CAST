@@ -295,11 +295,15 @@ void CGroup::ClearCGroups(bool removeSystem)
             ++controller )
     {
         // Build controller strings.
-        char* controllerStr;
-        asprintf( &controllerStr, "%s/", csmi_cgroup_controller_t_strs[controller]);
+        std::string controllerString(csmi_cgroup_controller_t_strs[controller] );
+        controllerString.append("/");
+        char* controllerStr =  (char*)controllerString.c_str();
+        //asprintf( &controllerStr, "%s/", csmi_cgroup_controller_t_strs[controller]);
 
-        char* controllerDir;
-        asprintf( &controllerDir, "%s%s", CGroup::CONTROLLER_DIR, controllerStr);
+        std::string groupPath = CGroup::CONTROLLER_DIR;
+        groupPath.append(controllerStr);
+        char* controllerDir = (char*) groupPath.c_str();
+        //asprintf( &controllerDir, "%s%s", CGroup::CONTROLLER_DIR, controllerStr);
 
         DIR *cDir =  opendir(controllerDir);  // Open the directory to search for subdirs.
         dirent *dirDetails;                         // Output struct for directory contents.
@@ -311,7 +315,7 @@ void CGroup::ClearCGroups(bool removeSystem)
         }
         std::shared_ptr<DIR> cDirShared(cDir, closedir );
 
-        std::string groupPath(controllerDir); // The base group path.
+        //std::string groupPath(controllerDir); // The base group path.
         while ( ( dirDetails = readdir( cDir ) ) )
         {
             bool isSystem = removeSystem && strcmp( dirDetails->d_name, CSM_SYSTEM ) == 0;
@@ -357,6 +361,7 @@ void CGroup::ClearCGroups(bool removeSystem)
                 }
             }
         }
+
     }
     LOG( csmapi, trace ) << _LOG_PREFIX "ClearCGroups Exit";
 }
@@ -660,6 +665,67 @@ int64_t CGroup::GetCPUUsage(const char* stepCGroupName) const
 
     return ReadNumeric( usagePath );
 }
+
+bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* stepCGroupName) const
+{
+    // Build the usage path.
+    const char* USAGE = "/cpuacct.usage_percpu";
+    std::string usagePath(CGroup::CPUACCT_DIR);
+    usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
+    
+    // Make sure the output vector is empty
+    cpuUsage.clear();
+
+    std::string cpuacctStr = ReadString( usagePath );
+    if ( cpuacctStr.empty() )
+    {
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage: failed to read from " << usagePath;
+        return false;
+    }
+
+    // Read the logical cpu usage
+    std::vector<int64_t> logicalCpuUsage;
+    std::istringstream iss(cpuacctStr);
+    int64_t token;
+    while ( iss >> token )
+    {
+        logicalCpuUsage.push_back(token);
+    }
+
+    // Determine the ratio of logical cores to physical cores
+    int32_t threads, sockets, threadsPerCore, coresPerSocket;
+    // Get the CPUS and do a sanity check.
+    if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
+            threads > 0        && 
+            sockets > 0        && 
+            threadsPerCore > 0 && 
+            coresPerSocket > 0 &&
+            (threads % sockets) == 0 &&
+            (logicalCpuUsage.size() % threadsPerCore) == 0)
+    {
+        // Calculate the physical core usage from the logical core usage
+        int64_t accumulatedUsage(0);
+        int32_t logicalCpuCount = logicalCpuUsage.size(); 
+        for ( int32_t i = 0; i < logicalCpuCount; i++ )
+        {
+            accumulatedUsage += logicalCpuUsage[i];
+            
+            if ((i % threadsPerCore) == (threadsPerCore-1))
+            {
+                cpuUsage.push_back(accumulatedUsage);
+                accumulatedUsage = 0;
+            }
+        }
+    }
+    else
+    {
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage: CPU data was invalid"; 
+        return false;
+    }
+
+    return true;
+}
+
 
 int64_t CGroup::GetMemoryMaximum(const char* stepCGroupName) const
 {

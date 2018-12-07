@@ -47,7 +47,8 @@ NO_CONTRIBID = 999999999
 
 
 DO_NOT_PRINT_VALUE = False
-DEFAULT_REMOVE_JOB_INFO_DELAY = 60
+DEFAULT_REMOVE_JOB_INFO_DELAY_FOR_ISSUER = 3
+DEFAULT_REMOVE_JOB_INFO_DELAY_FOR_NON_ISSUER = 60
 # DEFAULT_GET_TRANSFERINFO_DELAY = 5
 DEFAULT_GET_TRANSFERINFO_DELAY = 1.5
 # DEFAULT_WAIT_FOR_COMPLETION_ATTEMPTS = 360  # 30 minutes
@@ -244,7 +245,8 @@ def initEnv(pEnv, pMountpoints=None, pDirectories=None):
 #        print ">>>> Start: Initialize environment..."
 
         l_Iteration = pEnv.get("iteration", 0)
-        setJobId(pEnv['jobid'] + l_Iteration*10)
+        l_JobIdBump = pEnv.get("jobid_bump", 0)
+        setJobId(pEnv["jobid"] + (l_Iteration*10) + l_JobIdBump)
         setJobStepId(pEnv['jobstepid'])
         setContribId(pEnv['contribid'])
 
@@ -254,18 +256,21 @@ def initEnv(pEnv, pMountpoints=None, pDirectories=None):
 
     if ((pMountpoints is not None) or (pDirectories is not None)):
         if l_Continue:
-            # If multiple contributors and contribid is not 0,
-            # delay waiting for the removejobinfo to be processed
-            # and possibly propagated amongst bbServers.
-            # Otherwise, issue the removejobinfo operation.
-#            if pEnv['contribid'] != 0:
-            if len(pEnv['contrib']) > 1 and pEnv['contribid'] != 0:
-                time.sleep(DEFAULT_REMOVE_JOB_INFO_DELAY)
-            else:
+            # If single contributor or contribid is 0,
+            # issue the removejobinfo request.
+            #
+            # Whether or not the request was issued, delay
+            # for a bit waiting for the removejobinfo to be
+            # processed, and possibly propagated, amongst all
+            # bbServers.
+            if len(pEnv['contrib']) == 1 or pEnv['contribid'] == 0:
                 try:
                     sudo_RemoveJobInfo(pEnv)
                 except BBError as error:
                     l_Continue = error.handleError()
+                time.sleep(DEFAULT_REMOVE_JOB_INFO_DELAY_FOR_ISSUER)
+            else:
+                time.sleep(DEFAULT_REMOVE_JOB_INFO_DELAY_FOR_NON_ISSUER)
 
             if l_Continue:
                 if pDirectories is not None:

@@ -81,11 +81,7 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
   _CSMAPIConfigs(nullptr),
   _Tweaks()
 {
-  char *coral_home = std::getenv("CORAL_HOME");
-  if( coral_home != nullptr )
-    _CfgFile = std::string( coral_home )+"/coral.cfg";
-  else
-    _CfgFile = "coral.cfg";
+  _CfgFile = "/etc/ibm/csm/csm_master.cfg";
 
   bool RoleOptionInCommand = false;
   try {
@@ -542,7 +538,7 @@ bool Configuration::ParseCommandLineOptions( int argc, char **argv )
         (opt_help.c_str(), "Show this help")
         (opt_file.c_str(),
             po::value<std::string>(&cfgFileOpt)->default_value(_CfgFile),
-            "Specify configuration file (default: coral.cfg)")
+            "Specify configuration file (default: /etc/ibm/csm/csm_master.cfg)")
         (opt_role.c_str(),
             po::value<std::string>(&roleOpt),
             "Set the role of the daemon (M|m)[aster] | (A|a)[ggregator] | (C|c)[ompute] | (U|u)[tility]")

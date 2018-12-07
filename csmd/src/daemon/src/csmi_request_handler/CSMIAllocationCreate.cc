@@ -42,6 +42,14 @@
 #define MCAST_PROPS_PAYLOAD CSMIMcastAllocation
 #define EXTRA_STATES 6
 #define SPAWN_STATE STATEFUL_DB_RECV_DB + 1
+const int MCAST_SPAWN    = SPAWN_STATE;                     // 3 - Spawns a multicast message.
+const int MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 2;         // 4 - Handles a multicast response, continuing on receiving all the events or a timeout.
+
+const int UNDO_MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 3;    // 5 - Handles a recovery multicast responses.
+const int UNDO_INSERT    = STATEFUL_DB_RECV_DB + 4;         // 6 - Reverts the Allocation in the database. TERMINAL STATE
+
+const int UPDATE_STATS   = STATEFUL_DB_RECV_DB + 5;         // 7 - Updates The aggregated statistics.
+const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES + 1; // Beyond the final state of the state machine, a context placed in this state is done.
 
 #define DATA_STRING "allocation_id,begin_time,primary_job_id,secondary_job_id,ssd_file_system_name,"\
     "launch_node_name,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,"\
@@ -53,14 +61,6 @@ CSMIAllocationCreate_Master::CSMIAllocationCreate_Master(csm::daemon::HandlerOpt
 {
     // State id for the multicast spawner.    
     const int RESERVE_NODES  = STATEFUL_DB_RECV_DB;             // 2 - Reserves nodes in the database.
-    const int MCAST_SPAWN    = SPAWN_STATE;                     // 3 - Spawns a multicast message.
-    const int MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 2;         // 4 - Handles a multicast response, continuing on receiving all the events or a timeout.
-
-    const int UNDO_MCAST_RESPONSE = STATEFUL_DB_RECV_DB + 3;    // 5 - Handles a recovery multicast responses.
-    const int UNDO_INSERT    = STATEFUL_DB_RECV_DB + 4;         // 6 - Reverts the Allocation in the database. TERMINAL STATE
-
-    const int UPDATE_STATS   = STATEFUL_DB_RECV_DB + 5;         // 7 - Updates The aggregated statistics.
-    const int FINAL          = STATEFUL_DB_DONE + EXTRA_STATES + 1; // Beyond the final state of the state machine, a context placed in this state is done.
     
     const int MASTER_TIMEOUT = csm_get_master_timeout(CMD_ID);
 
@@ -136,7 +136,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Enter"; 
 
@@ -242,7 +242,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
 bool CSMIAllocationCreate_Master::ReserveNodes(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG(csmapi,trace) << STATE_NAME ":ReserveNodes: Enter";
     
@@ -257,6 +257,8 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
         {
             // TODO Perform an arg check?
             allocation->allocation_id = strtoll( tuples[0]->data[0], nullptr, 10 );
+
+            if ( allocation->begin_time ) free(allocation->begin_time);
             allocation->begin_time    = strdup( tuples[0]->data[1] );
 
             std::string json="";
@@ -370,12 +372,44 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
 }
 
 csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) << STATE_NAME ":UndoAllocationDB: Enter";
     csm::db::DBReqContent *dbReq = nullptr;
     std::string error = "";
+    //MCAST_SPAWN
+    
+
+
+    switch ( ctx->GetAuxiliaryId() )
+    {
+        case MCAST_SPAWN:
+            #define INVALID_NODES  1
+            #define ABSENT_NODES   2
+            #define OCCUPIED_NODES 3
+            #define BAD_STATE      4
+            switch (ctx->GetDBErrorCode())
+            {
+                case INVALID_NODES:
+                    ctx->SetErrorCode(CSMERR_ALLOC_UNAVAIL_NODES);
+                    break;
+                case ABSENT_NODES:
+                    ctx->SetErrorCode(CSMERR_ALLOC_INVALID_NODES);
+                    break;
+                case OCCUPIED_NODES:
+                    ctx->SetErrorCode(CSMERR_ALLOC_OCCUPIED_NODES);
+                    break;
+                case BAD_STATE:
+                    break;
+                default:
+                    break;
+            }
+
+            break;
+        default:
+            break;
+    }
 
     MCAST_STRUCT* allocation = mcastProps->GetData();
     if (allocation)
@@ -422,7 +456,7 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(
 }
 
 csm::db::DBReqContent* CSMIAllocationCreate_Master::InsertStatsStatement( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) << STATE_NAME ":InsertStatsStatement: Enter";
@@ -463,7 +497,7 @@ csm::db::DBReqContent* CSMIAllocationCreate_Master::InsertStatsStatement(
 bool CSMIAllocationCreate_Master::UndoTerminal( 
     const std::vector<csm::db::DBTuple *>& tuples,
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     // Get the allocation data.
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
@@ -497,8 +531,9 @@ bool CSMIAllocationCreate_Master::UndoTerminal(
         }
 
         ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-        ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
-        ctx->AppendErrorMessage("; Message: Allocation was successfully reverted;", ' ');
+        //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+        ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+        ctx->AppendErrorMessage("Message: Allocation was successfully reverted;", ' ');
     }
 
     dataLock.unlock();
@@ -509,14 +544,14 @@ bool CSMIAllocationCreate_Master::UndoTerminal(
 bool CSMIAllocationCreate_Master::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
 
 bool CSMIAllocationCreate_Master::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 
@@ -563,7 +598,7 @@ bool CSMIAllocationCreate_Master::CreateByteArray(
 }
 
 bool CSMIAllocationCreate_Master::ParseStatsQuery(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples,
     CSMIMcastAllocation* mcastProps) 
 {

@@ -114,7 +114,7 @@ public:
      * @param postEventList The list of events to push new events to.
      */
     virtual void Process( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent& aEvent, 
         std::vector<csm::daemon::CoreEvent*>& postEventList ) = 0;
 
@@ -136,14 +136,14 @@ protected:
      *
      * If this function is unused in your state add the following to the header:
      * virtual void GenerateTimeoutResponse(
-     *  csm::daemon::EventContextHandlerState_sptr ctx,
+     *  csm::daemon::EventContextHandlerState_sptr& ctx,
      *  std::vector<csm::daemon::CoreEvent*>& postEventList) final {  }
      *
      * @param ctx The context of the timer event spawning this code block.
      * @param postEventList The event list, used in registering the final event.
      */
     virtual void GenerateTimeoutResponse( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList) = 0;
 
     
@@ -160,7 +160,7 @@ protected:
      * @param[in] byAggregator Specifies whether the error must be sent through the Aggregator.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent& aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) = 0;
@@ -192,7 +192,7 @@ protected:
      */
     bool PushDBReq(
         csm::db::DBReqContent const &dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool errorOnFail = true );
     
@@ -214,7 +214,7 @@ protected:
     bool PushMCAST(
         csm::network::Message message,
         std::vector<std::string>& targets,
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         uint64_t targetState = UINT64_MAX,
         bool errorOnFail = true );
@@ -235,7 +235,7 @@ protected:
      */
     bool ForwardToMaster(
         csm::network::Message message,
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool errorOnFail = true );
 
@@ -257,13 +257,13 @@ protected:
     bool PushReply(
         const char* buffer,
         const uint32_t bufferLength,
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false );
 
     // TODO DOCUMENT
     void PushRASEvent(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         const std::string &msg_id,
         const std::string &location_name,
@@ -277,7 +277,7 @@ protected:
      *  @param[in] postEventList The event list.
      */
     void PushTimeout(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList);
 
     /**
@@ -285,7 +285,7 @@ protected:
      * TODO deeper document.
      */
     void HandleTimeout( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent& aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList );
 
@@ -302,7 +302,7 @@ protected:
      * @param[in] byAggregator Specifies whether the error must be sent through the Aggregator.
      */
     void DefaultHandleError( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent& aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false ); 
@@ -315,7 +315,7 @@ private:
         csm::daemon::CoreEvent *reply,
         uint64_t errorType, 
         const std::string& errorMessage,
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool errorOnFail = false );
     /** @} */ // End Dispatch_Functions
@@ -339,7 +339,7 @@ public:
      *
      * @param[in] ctx The context to set the state to "Failure".
      */
-    inline void SetAsFailure(csm::daemon::EventContextHandlerState_sptr ctx)
+    inline void SetAsFailure(csm::daemon::EventContextHandlerState_sptr& ctx)
     {
         ctx->SetAuxiliaryId(GetFailureState());
     }
@@ -352,7 +352,7 @@ public:
      * @param[in] ctx The context to set the state to "Alternate".
      *
      */
-    inline void SetAsAlternate(csm::daemon::EventContextHandlerState_sptr ctx)
+    inline void SetAsAlternate(csm::daemon::EventContextHandlerState_sptr& ctx)
     {
         ctx->SetAuxiliaryId(GetAlternateState());
     }

@@ -411,9 +411,9 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
     // Add optional section to SQL to update the state in the csm_node table if set_state is valid
     string set_state = rasEvent.getValue(CSM_RAS_FKEY_SET_STATE);
     bool add_set_state_sql(false);
-    if (set_state == CSM_NODE_STATE_SOFT_FAILURE)
+    if ((set_state == CSM_NODE_STATE_SOFT_FAILURE) || (set_state == CSM_NODE_STATE_HARD_FAILURE))
     {
-        // Only change the node state if set_state=SOFT_FAILURE and
+        // Only change the node state if set_state=SOFT_FAILURE/HARD_FAILURE and
         // the node state is currently DISCOVERED or IN_SERVICE
         LOG(csmras, debug) << "Generating SQL for set_state=" << set_state << endl;
         add_set_state_sql = true;
@@ -421,7 +421,13 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
         sql_stmt << "$" << ++param << "::compute_node_states";     // SQL param: set_state
         sql_stmt <<  " where node_name=";
         sql_stmt << "$" << ++param << "::text";                    // SQL param: location_name
-        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE << "') ) ";
+        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE;
+        
+        // Allow hard failure transitions from soft failure.
+        if (set_state == CSM_NODE_STATE_HARD_FAILURE)
+            sql_stmt << "','" << CSM_NODE_STATE_SOFT_FAILURE;
+
+        sql_stmt <<"') ) ";
     }
     else if (set_state == "")
     {
@@ -685,17 +691,22 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                     else if (suppressed)
                     {
                         LOG(csmras, info) << "RAS EVENT SUPPRESSED " << rctx->_rasEvent->getLogString() << " state:" << node_state; 
+                        _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
                     }
                     else
                     {
                         LOG(csmras, info) << "RAS EVENT DISABLED   " << rctx->_rasEvent->getLogString(); 
+                        _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
                     }
                 }
 
                 if (rasRc._rc != CSMI_SUCCESS) {
                     csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)reqEvent;
                     csm::network::MessageAndAddress c = ev->GetContent();
+                    
                     LOG(csmras, error) << "RAS EVENT ERROR      " << rctx->_rasEvent->getLogString() << " errstr:" << rasRc._errstr; 
+                    _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
+                    
                     if (! c._Msg.GetInt() )
                         returnErrorMsg(c.GetAddr(), c._Msg, rasRc._rc, rasRc._errstr, postEventList);
 
@@ -734,15 +745,14 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
             {
                 LOG(csmras, debug) << "RAS EVENT DB WR RESP " << rctx->_rasEvent->getLogString(); 
                 LOG(csmras, info) << "RAS EVENT COMPLETE   " << rctx->_rasEvent->getLogString(); 
+                _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
             }
             else 
             {
-                LOG(csmras, warning) << "RAS EVENT unexpected branch taken, rctx->_state=" << rctx->_state; 
-
                 // TODO: detect and log db errors here...
-                // remove the rtx reference...
-                _contextMap.erase(ctx->GetAuxiliaryId());
-
+                
+                LOG(csmras, warning) << "RAS EVENT unexpected branch taken, rctx->_state=" << rctx->_state; 
+                _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
             }
         }
     }

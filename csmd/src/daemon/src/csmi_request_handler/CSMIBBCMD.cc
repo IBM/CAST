@@ -81,7 +81,7 @@ bool CSMIBBCMD_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return  RetrieveDataForPrivateCheck( arguments, len, dbPayload, ctx);
 }
@@ -90,7 +90,7 @@ bool CSMIBBCMD_Master::RetrieveDataForPrivateCheck(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
 
@@ -142,7 +142,7 @@ bool CSMIBBCMD_Master::RetrieveDataForPrivateCheck(
 bool CSMIBBCMD_Master::CompareDataForPrivateCheck(
     const std::vector<csm::db::DBTuple *>& tuples,
     const csm::network::Message &msg,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
     std::unique_lock<std::mutex>dataLock =
@@ -152,7 +152,7 @@ bool CSMIBBCMD_Master::CompareDataForPrivateCheck(
 }
 
 bool CSMIBBCMD_Master::ParseAuthQuery( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples, 
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
@@ -220,14 +220,14 @@ bool CSMIBBCMD_Master::ParseAuthQuery(
 bool CSMIBBCMD_Master::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
 
 bool CSMIBBCMD_Master::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 
@@ -262,7 +262,8 @@ bool CSMIBBCMD_Master::CreateByteArray(
         if ( mcastProps )
         {
             ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-            ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+            ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+            //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
         }
     }
 

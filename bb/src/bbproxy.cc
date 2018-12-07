@@ -158,6 +158,13 @@ int bbproxy_SayHello(const string& pConnectionName)
 
         // Process response data
         rc = bberror.merge(msg);
+        if (rc)
+        {
+            errorText << "error in response to hello message";
+            delete msg;
+            msg=NULL;
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
 
         l_seconds = time(NULL);
         time_t remote_epoch = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::epochtimeinseconds))->getData();
@@ -3456,26 +3463,44 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
         {
             try
             {
-                // Remove source file (if open)
-                if (!removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_SourceIndex))
+                // Remove source file (if open and not in progress for restart transfer)
+                int rc2 = removeFilehandle(fh, l_JobId, l_Handle, l_ContribId, l_SourceIndex, CHECK_FOR_RESTART);
+                switch (rc2)
                 {
-                    LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
-                    if (fh->release(l_FileStatus))
+                    case 0:
                     {
-                        throw runtime_error(string("Unable to release filehandle"));
+                        LOG(bb,info) << "Removing filehandle '" << fh->getfn() << "'";
+                        if (fh->release(l_FileStatus))
+                        {
+                            throw runtime_error(string("Unable to release filehandle"));
+                        }
                     }
-                }
-                else
-                {
-                    // NOTE:  fh will be NULL in this leg
-                    if (!l_StageoutStarted)
+                    break;
+
+                    case -2:
                     {
-                        LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", source index " << l_SourceIndex;
+                        // NOTE:  fh will be NULL in this leg
+
+                        // File handle found, but not removed because restart transfer processing is
+                        // in progress for this file.  The file handle found is the newly opened
+                        // handle for restart processing.  The original file handle has already been
+                        // closed by the restart processing.
                     }
-                    else
+                    break;
+
+                    default:
                     {
-                        // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                        // NOTE:  fh will be NULL in this leg
+                        if (!l_StageoutStarted)
+                        {
+                            LOG(bb,debug) << "Unable to find file associated with handle " << l_Handle << ", contrib " << l_ContribId << ", source index " << l_SourceIndex;
+                        }
+                        else
+                        {
+                            // NOTE:  If stageout has started, the handle has already been cleaned up when the file system was torn down...
+                        }
                     }
+                    break;
                 }
             }
             catch(exception& e)
@@ -4287,7 +4312,7 @@ int registerHandlers()
 
 
 char LVM_SUPPRESS[] = "LVM_SUPPRESS_FD_WARNINGS=1";  // note: ownership of this string is moved to ENV during putenv() call.
-
+int setupUnixConnections(string whoami);
 int bb_main(std::string who)
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -4332,6 +4357,17 @@ int bb_main(std::string who)
 
     /* Perform any clean-up of existing logical volumes */
     logicalVolumeCleanup();
+
+    rc = setupUnixConnections(process_whoami);
+    if(rc)
+    {
+        bberror.clear(process_whoami);
+        string upath = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+        stringstream errorText;
+        errorText<<"Unix socket did not open rc=" << rc << " bb.unixpath="<<upath;
+        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc,bb.net.UnixSocketFailed);
+        return rc;
+    }
 
     LOG(bb,always) << "bbProxy completed initialization";
 

@@ -5,6 +5,11 @@ filebeat.prospectors:
     - /var/log/ibm/csm/csm_transaction.log
   tags: ["transaction"]
 
+- type: log
+  enabled: true
+  paths:
+    - /var/log/ibm/csm/csm_allocation_metrics.log
+  tags: ["allocation","metrics"]
 
 - type: log 
   enabled: true

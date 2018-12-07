@@ -23,15 +23,46 @@
 
 #include "CSMIMcast.h"
 #include "csmi/include/csmi_type_wm_funct.h"
+#include "csmi/include/csm_api_macros.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h" 
-
 #define STRUCT_TYPE csmi_allocation_mcast_context_t
+//#include <map>
+
+// Build the error map table.
+struct CSMIAllocErrorComparator
+{
+    int map(int val) const
+    {
+        int returnVal=0;
+        switch (val)
+        {
+            case CSMERR_ALLOC_BAD_FLAGS :
+                returnVal=5;
+                break;
+            case CSMERR_GENERIC:
+            case CSMERR_MULTI_GEN_ERROR:
+                returnVal=-1;
+                break;
+            default:
+                break;
+        }
+        return returnVal;
+    }
+
+    bool operator() (const int& a, const int& b) const
+    {
+        return map(a) < map(b);
+    }
+};
+
+
+
 
 /** @brief Frees the @ref _Data structure if not null.
  * @tparam DataStruct The allocation create/delete/update multicast context.
  */
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
+CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::~CSMIMcast();
 
 /** @brief Builds a specialized payload to handle allocation create/delete multicast payloads.
  *
@@ -41,20 +72,20 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
  * @param[out] bufferLength The length of the @p bufferLength payload.
  */
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
+void CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
 
 /**
- * @brief Generates a unique identifier for the multicast.
+ * @brief Generates a unique iSMIAllocErrorComparator
  * Reports Allocation Id, Primary Job Id and Secondary Job Id.
  *
  * @return A string containing the unique identifier for the multicast.
  */
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString();
+std::string CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator>::GenerateIdentifierString();
 
 /** @brief A typedef for @ref csmi_allocation_mcast_context_t specializations of @ref CSMIMcast.
  */
-typedef CSMIMcast<STRUCT_TYPE> CSMIMcastAllocation;
+typedef CSMIMcast<STRUCT_TYPE, CSMIAllocErrorComparator> CSMIMcastAllocation;
 
 namespace csm{
 namespace mcast{

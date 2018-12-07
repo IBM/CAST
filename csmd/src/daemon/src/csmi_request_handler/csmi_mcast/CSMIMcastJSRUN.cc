@@ -17,14 +17,14 @@
 #define STRUCT_TYPE csmi_jsrun_cmd_context_t
 
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
+CSMIMcast<STRUCT_TYPE,CSMIJSRUNCMDComparator>::~CSMIMcast()
 {
     if( _Data ) delete _Data;
     _Data = nullptr;
 }
 
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
+void CSMIMcast<STRUCT_TYPE,CSMIJSRUNCMDComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
 {
     // Generate the leaner JSRUN  payload.
     csmi_jsrun_cmd_payload_t *jsrunPayload = nullptr;
@@ -34,16 +34,23 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
     jsrunPayload->allocation_id  = _Data->allocation_id;
     jsrunPayload->kv_pairs       = strdup(_Data->kv_pairs);
     jsrunPayload->jsm_path       = strdup(_Data->jsm_path);
+    jsrunPayload->type           = _Data->type;
+    jsrunPayload->launch_node    = strdup(_Data->launch_node);
     jsrunPayload->hostname       = strdup("");
+    jsrunPayload->num_nodes      = _Data->num_nodes;
+    jsrunPayload->compute_nodes  = _Data->compute_nodes;
 
     csm_serialize_struct( csmi_jsrun_cmd_payload_t, jsrunPayload,
                         buffer, bufferLength );
+
+    jsrunPayload->num_nodes     = 0;
+    jsrunPayload->compute_nodes = nullptr;
 
     csm_free_struct_ptr(csmi_jsrun_cmd_payload_t, jsrunPayload);
 }
 
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString()
+std::string CSMIMcast<STRUCT_TYPE,CSMIJSRUNCMDComparator>::GenerateIdentifierString()
 {
     std::string idString = "User ID: ";
     if ( _Data )

@@ -33,6 +33,10 @@ CSMI_ENUM_MEMBER(CSM_JSM_CGROUP_STEP,"jsm-cgroup-step",, ) ///< Denotes an alloc
 CSMI_ENUM_MEMBER(CSM_DIAGNOSTICS,    "diagnostics"    ,, ) ///< Denotes a diagnostic allocation run.
 
 CSMI_VERSION_END(84ac9abfdbe4006d73bf522b49219335)
+
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
+CSMI_ENUM_MEMBER(CSM_CGROUP_STEP,"cgroup-step",, ) ///< Denotes an allocation with step cgroups.
+CSMI_VERSION_END(39e89ca5b0c157218ace08bd78e3578a)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_ENUM_MEMBER

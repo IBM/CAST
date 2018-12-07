@@ -45,7 +45,7 @@
     #define CSMI_ARRAY_FIXED         0
     #define CSMI_ARRAY_STR           0
     #define CSMI_ARRAY_STR_FIXED     0
-    #define CSMI_STRUCT              0
+    #define CSMI_STRUCT              1
     #define CSMI_ARRAY_STRUCT        0
     #define CSMI_ARRAY_STRUCT_FIXED  0
     #define CSMI_NONE                0
@@ -76,6 +76,11 @@ CSMI_STRUCT_MEMBER(csmi_cmd_err_t  , error_code  , BASIC, , CSMI_SUCCESS, ) /**<
 CSMI_STRUCT_MEMBER(char*  , error_message  , STRING, , NULL, ) /**< The error message in failure cases which don'tbreak data aggregation.*/
 
 CSMI_VERSION_END(c0bc341048158414c26f23e675b10a4b)
+
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
+CSMI_STRUCT_MEMBER(csmi_allocation_gpu_metrics_t*, gpu_metrics, STRUCT, , NULL, csmi_allocation_gpu_metrics_t ) /**< Detailed gpu metrics for each gpu. */
+CSMI_VERSION_END(a31543894153dbac1cf6f5a94c77394a)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

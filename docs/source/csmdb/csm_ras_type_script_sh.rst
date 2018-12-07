@@ -15,7 +15,8 @@ Usage Overview
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/ csm_db_ras_type_script.sh –h, --help.
+ /opt/ibm/csm/db/ csm_db_ras_type_script.sh –h
+ /opt/ibm/csm/db/ csm_db_ras_type_script.sh --help
  
 .. note:: This help command (``-h, --help``) will specify each of the options available to use.
 
@@ -45,6 +46,8 @@ Example (Usage)
     csm_db_ras_type_script.sh -h, --help               [dbname]    |
  =================================================================================================
 
+.. _csm_ras_type_script_usage:
+
 Importing records into csm_ras_type table (manually)
 ----------------------------------------------------
 
@@ -52,7 +55,8 @@ Importing records into csm_ras_type table (manually)
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_ras_type_script.sh (–l, --loaddata) my_db_name (where my_db_name is the name of your DB) and the csv_file_name.
+ /opt/ibm/csm/db/csm_db_ras_type_script.sh –l  my_db_name (where my_db_name is the name of your DB) and the csv_file_name.
+ /opt/ibm/csm/db/csm_db_ras_type_script.sh --loaddata my_db_name (where my_db_name is the name of your DB) and the csv_file_name.
  
 .. note:: The script will check to see if the given name is available and if the database does not exist then it will exit with an error message.  
 
@@ -69,7 +73,7 @@ Example (non DB existence):
  [Error   ] Cannot perform action because the csmdb database does not exist. Exiting.
  -------------------------------------------------------------------------------------
 
-.. note:: Make sure PostgreSQL is installed on the system [todo: Link to install postgres]
+.. note:: Make sure PostgreSQL is installed on the system.
  
 Example (non csv_file_name existence):
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -90,16 +94,21 @@ Example (successful execution):
 
 .. code-block:: bash
 
- -bash-4.2$ ./csm_db_ras_type_script.sh -l csmdb csm_ras_type_data_2.csv
+ -bash-4.2$ ./csm_db_ras_type_script.sh -l csmdb csm_ras_type_data.csv
  -------------------------------------------------------------------------------------
- [Start   ] Welcome to CSM datatbase ras type automation script.
- [Info    ] csm_ras_type_data_2.csv file exists
+ [Start   ] Welcome to CSM database ras type automation script.
+ [Info    ] csm_ras_type_data.csv file exists
  [Info    ] PostgreSQL is installed
- [Info    ] Record import count: 4
- [Info    ] csm_ras_type live row count: 4
- [Info    ] csm_ras_type_audit live row count: 46
- [Info    ] Database csv upload process complete for csm_ras_type table.
- ---------------------------------------------------------------------------------------------------------------
+ [Warning ] This will load and or update csm_ras_type table data into csmdb database. Do you want to continue [y/n]?
+ [Info    ] User response: y
+ [Info    ] csm_ras_type record count before script execution: 520
+ [Info    ] Record import count from csm_ras_type_data.csv: 737
+ [Info    ] Record update count from csm_ras_type_data.csv: 5
+ [Info    ] Total csm_ras_type insert count from file: 217
+ [Info    ] csm_ras_type live row count after script execution: 737
+ [Info    ] csm_ras_type_audit live row count: 742
+ [Info    ] Database: csmdb csv upload process complete for csm_ras_type table.
+ ------------------------------------------------------------------------------------
 
 Removing records from csm_ras_type table (manually)
 ---------------------------------------------------
@@ -110,18 +119,51 @@ Removing records from csm_ras_type table (manually)
 
 .. code-block:: bash
 
+ /opt/ibm/csm/db/csm_db_ras_type_script.sh –r  my_db_name (where my_db_name is the name of your DB).
+
  Example (successful execution):
+ 
  -bash-4.2$ ./csm_db_ras_type_script.sh -r csmdb
  -------------------------------------------------------------------------------------
- [Start   ] Welcome to CSM datatbase ras type automation script.
+ [Start   ] Welcome to CSM database ras type automation script.
  [Info    ] PostgreSQL is installed
  [Warning ] This will drop csm_ras_type table data from csmdb database. Do you want to continue [y/n]?
  [Info    ] User response: y
- [Info    ] Record delete count from the csm_ras_type table: 4
+ [Info    ] Record delete count from the csm_ras_type table: 737
  [Info    ] csm_ras_type live row count: 0
- [Info    ] csm_ras_type_audit live row count: 50
+ [Info    ] csm_ras_type_audit live row count: 1479
  [Info    ] Data from the csm_ras_type table has been successfully removed
+ ------------------------------------------------------------------------------------
+
+2.  The script will remove records from the ``csm_ras_type`` table and repopulate when a given csv file is present after the db_name. The option (``-r, --removedata``) can be executed.
+    A prompt message will appear and the admin has the ability to choose ``"y/n"``.
+    Each of the logging message will be logged accordingly.  
+
+.. code-block:: bash
+
+ /opt/ibm/csm/db/csm_db_ras_type_script.sh –r  my_db_name <ras_csv_file> (where my_db_name is the name of your DB and the csv_file_name).
+
+ Example (successful execution): 
+
+ -bash-4.2$ ./csm_db_ras_type_script.sh -r csmdb csm_ras_type_data.csv
  -------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM database ras type automation script.
+ [Info    ] PostgreSQL is installed
+ [Info    ] csm_ras_type_data.csv file exists
+ [Warning ] This will drop csm_ras_type table data from csmdb database. Do you want to continue [y/n]?
+ [Info    ] User response: y
+ [Info    ] Record delete count from the csm_ras_type table: 520
+ [Info    ] csm_ras_type live row count: 0
+ [Info    ] csm_ras_type_audit live row count: 1040
+ [Info    ] Data from the csm_ras_type table has been successfully removed
+ ------------------------------------------------------------------------------------
+ [Info    ] csm_ras_type record count before script execution: 0
+ [Info    ] Record import count from csm_ras_type_data.csv: 737
+ [Info    ] Total csm_ras_type insert count from file: 737
+ [Info    ] csm_ras_type live row count after script execution: 1777
+ [Info    ] csm_ras_type_audit live row count:
+ [Info    ] Database: csmdb csv upload process complete for csm_ras_type table.
+ ------------------------------------------------------------------------------------
 
 Example (unsuccessful execution):
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

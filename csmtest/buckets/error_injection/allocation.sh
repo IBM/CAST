@@ -47,6 +47,59 @@ echo "------------------------------------------------------------" >> ${LOG}
 ${CSM_PATH}/csm_allocation_create > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 9 "Test Case 1: csm_allocation_create NO ARGS"
 
+# Test Case 2: csm_allocation_create node is out of service
+# set and verify node is out of service
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "OUT_OF_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 2: csm_allocation_create node is out of service - update to OUT_OF_SERVICE"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_all_output "OUT_OF_SERVICE"
+check_return_flag $? "Test Case 2: csm_allocation_create node is out of service - verify OUT_OF_SERVICE"
+# create
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 48 "Test Case 2: csm_allocation_create node is out of service"
+# set and verify back in service
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: csm_allocation_create node is out of service - set back to IN_SERVICE"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_all_output "IN_SERVICE"
+check_return_exit $? 0 "Test Case 2: csm_allocation_create node is out of service - verify back IN_SERVICE"
+
+# Test Case 3: csm_allocation_create permission denied
+su -c "${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE}" plundgr > ${TEMP_LOG} 2>&1
+check_return_exit $? 1 "Test Case 3: csm_allocation_create permission denied"
+
+# Test Case 4: csm_allocation_create prolog error 255
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_255 /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 4: csm_allocation_create prolog error 255 - copy prolog"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 49 "Test Case 4: csm_allocation_create prolog error 255"
+check_all_output "Privileged script execution failure detected. Invalid allocation flags"
+check_return_flag $? "Test Case 4: csm_allocation_create prolog error 255 - verify error message"
+
+# Test Case 5: csm_allocation_create prolog error generic
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_generic /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 5: csm_allocation_create prolog error generic - copy prolog"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 33 "Test Case 5: csm_allocation_create prolog error generic"
+check_all_output "Privileged script execution failure detected. Error code received: 2"
+check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - verify error message"
+
+# Test Case 6: csm_allocation_create prolog error timeout
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_timeout /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - copy prolog"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_exit $? 33 "Test Case 6: csm_allocation_create prolog error timeout"
+check_all_output "Request timeout detected"
+check_return_flag $? "Test Case 6: csm_allocation_create prolog error timeout - verify error message"
+# set node back to IN_SERVICE after timeout
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - set node back to IN_SERVICE after timeout"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - verify node back IN_SERVICE after timeout"
+# restore working prolog
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog /opt/ibm/csm/prologs/privileged_prolog
+check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - restore working prolog"
+
 # Test Case 2: csm_allocation_create success
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: csm_allocation_create success"
@@ -56,15 +109,15 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
 # Test Case 3: csm_allocation_create node does not exist
 ${CSM_PATH}/csm_allocation_create -j 1 -n doesnotexist > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 3: csm_allocation_create node does not exist"
+check_return_flag_nz $? 46 "Test Case 3: csm_allocation_create node does not exist"
 
 # Test Case 4: csm_allocation_create allocation already exists
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 4: csm_allocation_create allocation already exists"
+check_return_flag_nz $? 47 "Test Case 4: csm_allocation_create allocation already exists"
 
 # Test Case 5: csm_allocation_create new job, but node is busy
 ${CSM_PATH}/csm_allocation_create -j 2 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 5: csm_allocation_create new job, but node is busy"
+check_return_flag_nz $? 47 "Test Case 5: csm_allocation_create new job, but node is busy"
 
 # Test Case 6: csm_allocation_create invalid -j input
 ${CSM_PATH}/csm_allocation_create -j xxx -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
@@ -177,7 +230,7 @@ check_return_flag_nz $? 9 "Test Case 32: csm_allocation_delete NO ARGS"
 
 # Test Case 33: csm_allocation_delete allocation does not exist
 ${CSM_PATH}/csm_allocation_delete -a 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 33: csm_allocation_delete allocation does not exist"
+check_return_flag_nz $? 50 "Test Case 33: csm_allocation_delete allocation does not exist"
 
 # Test Case 34: csm_allocation_delete invalid -a input
 ${CSM_PATH}/csm_allocation_delete -a xxx > ${TEMP_LOG} 2>&1
@@ -205,6 +258,10 @@ check_return_exit $? 0 "Test Case 38: Checking allocation state still staging-ou
 ${CSM_PATH}/csm_allocation_update_history -a ${allocation_id} -c "test comment" > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 25 "Test Case 39: csm_allocation_update_history before allocation deleted (i.e. added to history table)"
 
+# Test Case 40: csm_allocation_delete permission denied
+su -c "${CSM_PATH}/csm_allocation_delete -a ${allocation_id}" plundgr > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 16 "Test Case 40: csm_allocation_delete permission denied"
+
 # Test Case 40: csm_allocation_delete success
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_return_flag $? "Test Case 40: csm_allocation_delete success"
@@ -228,6 +285,43 @@ check_return_flag_nz $? 9 "Test Case 44: csm_allocation_update_history invalid o
 # Test Case 45: csm_allocation_update_history invalid input for required argument
 ${CSM_PATH}/csm_allocation_update_history -a testcase -c "test comment" > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 9 "Test Case 45: csm_allocation_update_history invalid input for required argument"
+
+# Create allocation for next test case
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 46: csm_allocation_delete generic epilog error
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog_generic /opt/ibm/csm/prologs/privileged_epilog
+check_return_exit $? 0 "Test Case 46: csm_allocation_delete generic epilog error - copy epilog"
+${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 33 "Test Case 46: csm_allocation_delete generic epilog error"
+check_all_output "Privileged script execution failure detected. Error code received: 2"
+check_return_flag $? "Test Case 46: csm_allocation_delete generic epilog error - verify error message"
+
+# Create allocation for next test case
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 46: csm_allocation_delete epilog timeout error
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog_timeout /opt/ibm/csm/prologs/privileged_epilog
+check_return_exit $? 0 "Test Case 46: csm_allocation_delete epilog timeout error - copy epilog"
+${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 33 "Test Case 46: csm_allocation_delete epilog timeout error"
+check_all_output "Request timeout detected"
+check_return_flag $? "Test Case 46: csm_allocation_delete epilog timeout error - verify error message"
+
+# Verify allocation deleted
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_return_exit $? 4 "Test Case 46: csm_allocation_delete epilog timeout error - verify no alloc after timeout"
+
+# set node back to IN_SERVICE after timeout
+${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 46: csm_allocation_delete epilog timeout error - set node back to IN_SERVICE"
+${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 46: csm_allocation_delete epilog timeout error - verify node back IN_SERVICE"
+# restore working epilog
+xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog /opt/ibm/csm/prologs/privileged_epilog
+check_return_exit $? 0 "Test Case 6: csm_allocation_delete epilog timeout error - restore working epilog"
 
 # Clean up temp log so ${allocation_id} gets set correctly on next run
 rm -f ${TEMP_LOG}

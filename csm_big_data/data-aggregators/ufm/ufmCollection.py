@@ -188,7 +188,7 @@ def main(args):
         elif o in ("--ufm_restAPI_args-objects"):
             POST_PAYLOAD["objects"]=a.split(',')
     
-    if ( ufm_url == None or logstash == None ):
+    if ( ufm_url is None or logstash is None ):
         print( "Script requires both `ufm` and `logstash` to be set" )
         return 2
 

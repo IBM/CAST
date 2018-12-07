@@ -148,7 +148,7 @@ inline csm::network::Address_sptr CreateReplyAddress(const csm::network::Address
     csm::network::Address_sptr rspAddress = nullptr; //< Smart Pointer to the reply address.
     csm::network::AddressType addr_type = reqAddress->GetAddrType(); //< Cache the address type.
   
-    switch ( reqAddress->GetAddrType() )
+    switch ( addr_type )
     {
         case csm::network::CSM_NETWORK_TYPE_AGGREGATOR:
             rspAddress = std::make_shared<csm::network::AddressAggregator>(
@@ -310,6 +310,52 @@ inline  csm::daemon::TimerEvent *CreateTimerEvent(
     return new csm::daemon::TimerEvent( content, csm::daemon::EVENT_TYPE_TIMER, aContext );
 }
 
+/** @brief Create an error reply NetworkEvent at Master
+ *  @ingroup Event_Types
+ *  @note aEvent must be a NetworkEvent
+ * 
+ *  @param[in] buffer        A buffer containing the error object to be sent over the wire.
+ *  @param[in] buffer_length The length of the buffer contained in @p buffer.
+ *  @param[in] reqContent Contains a _Msg and Address used in constructing 
+ *                          the sessage sent.
+ *
+ *  @return An ErrorEvent with the supplied details, a nullptr is returned if the 
+ *          Message is unable to be constructed.
+ */
+inline csm::daemon::NetworkEvent* CreateErrorEvent(
+                        char* buffer, uint32_t buffer_length,
+                        const csm::daemon::CoreEvent& aEvent)
+{
+    uint8_t   flags         = CSM_HEADER_RESP_BIT | CSM_HEADER_ERR_BIT; 
+    csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)&aEvent;
+    csm::network::MessageAndAddress reqContent = ev->GetContent();
+
+    // Generate the message.
+    csm::network::Message rsp_msg;    
+    bool ret  = csm::daemon::helper::CreateNetworkMessage(
+                      reqContent._Msg, buffer, buffer_length, flags, rsp_msg);
+    
+    // FIXME THIS CAN SEGFAULT!!!
+    // Determine the target address for this event.
+    csm::network::Address_sptr rsp_address = csm::daemon::helper::CreateReplyAddress(
+                      reqContent.GetAddr().get());
+    csm::daemon::NetworkEvent *net_event   = nullptr; 
+
+    // Check to see if it's a self send.
+    bool isSelf = rsp_address->GetAddrType() == csm::network::CSM_NETWORK_TYPE_ABSTRACT &&
+        ( std::dynamic_pointer_cast<csm::network::AddressAbstract>(rsp_address)->_AbstractName ==
+            csm::network::ABSTRACT_ADDRESS_SELF );
+
+    // If everything has been sucessfully created generate the event.
+    if ( ret && rsp_address && !isSelf )
+    {
+          csm::network::MessageAndAddress errContent ( rsp_msg, rsp_address );
+          net_event = new csm::daemon::NetworkEvent(errContent,
+                              csm::daemon::EVENT_TYPE_NETWORK, nullptr);
+    }
+    
+    return net_event;
+}
 
 /** @brief Create an error reply NetworkEvent at Master
  *  @ingroup Event_Types
@@ -345,9 +391,14 @@ inline csm::daemon::NetworkEvent* CreateErrorEvent(
     csm::network::Address_sptr rsp_address = csm::daemon::helper::CreateReplyAddress(
                       reqContent.GetAddr().get());
     csm::daemon::NetworkEvent *net_event   = nullptr; 
+
+    // Check to see if it's a self send.
+    bool isSelf = rsp_address->GetAddrType() == csm::network::CSM_NETWORK_TYPE_ABSTRACT &&
+        ( std::dynamic_pointer_cast<csm::network::AddressAbstract>(rsp_address)->_AbstractName ==
+            csm::network::ABSTRACT_ADDRESS_SELF);
     
     // If everything has been sucessfully created generate the event.
-    if ( ret && rsp_address) 
+    if ( ret && rsp_address && !isSelf )
     {
           csm::network::MessageAndAddress errContent ( rsp_msg, rsp_address );
           net_event = new csm::daemon::NetworkEvent(errContent,
@@ -404,7 +455,7 @@ inline csm::daemon::NetworkEvent* CreateErrorEventAgg(
         static_cast<CSMI_BASE*>( aContext->GetEventHandler() ) : nullptr;
     csm::daemon::NetworkEvent *netEvent = nullptr;
 
-    if ( handler && ret ) 
+    if ( handler && ret )
     {
       csm::network::MessageAndAddress errContent ( 
                                         rspMsg, 
@@ -450,9 +501,14 @@ inline csm::daemon::NetworkEvent* CreateReplyNetworkEvent(
     uint8_t flags = CSM_HEADER_RESP_BIT;
     if (isError) 
         flags |= CSM_HEADER_ERR_BIT;
+
+    // Check to see if it's a self send.
+    bool isSelf = rspAddress->GetAddrType() == csm::network::CSM_NETWORK_TYPE_ABSTRACT &&
+        ( std::dynamic_pointer_cast<csm::network::AddressAbstract>(rspAddress)->_AbstractName ==
+            csm::network::ABSTRACT_ADDRESS_SELF);
       
     // If there is a valid address to send this to, create the event.
-    if (rspAddress) 
+    if ( rspAddress && !isSelf )
         netEvent = csm::daemon::helper::CreateNetworkEvent(payload, payloadLen, flags, 
             reqContent._Msg, rspAddress, aContext, isError);
 

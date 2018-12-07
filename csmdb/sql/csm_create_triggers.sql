@@ -15,10 +15,31 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.1
+--   current_version:       16.2
 --   create:                06-22-2016
---   last modified:         10-17-2018
+--   last modified:         11-26-2018
 --   change log:
+--     16.2   - Moving this version to sync with DB schema version
+--            fn_csm_switch_inventory_history_dump
+--            - (Transactions were being recorded into the history table if a particular field was 'NULL')
+--            fn_csm_allocation_delete_start -              Added in
+--                                                        INVALID_STATE       CONSTANT integer := 1;
+--                                                        INVALID_ALLOCATION  CONSTANT integer := 2;
+--                                                        USING HINT = INVALID_STATE;
+--                                                        USING HINT = INVALID_ALLOCATION; 
+--                                                        Added OUT o_runtime bigint;
+--            fn_csm_allocation_update_state -            Added OUT o_runtime bigint;
+--            fn_csm_allocation_history_dump -            Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
+--            fn_csm_allocation_node_sharing_status -     error_code integer;
+--                                                        INVALID_NODES  CONSTANT integer := 1;
+--                                                        ABSENT_NODES  CONSTANT integer := 2;
+--                                                        OCCUPIED_NODES CONSTANT integer := 3;
+--                                                        BAD_STATE CONSTANT integer := 4;
+--                                                        Included new error logic releted to the existence of nodes.
+--                                                        USING HINT = OCCUPIED_NODES;
+--                                                        USING HINT = BAD_STATE;
+--                                                        Removed Older exception message
 --     16.1   - Updated fn_csm_switch_children_inventory_collection to remove old records from database and have more user feedback data to CSM API
 --            - Updated fn_csm_ib_cable_inventory_collection to remove old records from database and have more user feedback data to CSM API
 --            - Updated fn_csm_switch_inventory_collection to remove old records from database and have more user feedback data to CSM API
@@ -351,13 +372,16 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_delete_start(
     OUT o_type             text,
     OUT o_isolated_cores   int,
     OUT o_user_name        text,
-    OUT o_nodelist         text
+    OUT o_nodelist         text,
+    OUT o_runtime          bigint
 )
 RETURNS record AS $$
 DECLARE
     real_allocation_id bigint;
     time_since_change  double precision;
     allocations_found  integer;
+    INVALID_STATE       CONSTANT integer := 1;
+    INVALID_ALLOCATION  CONSTANT integer := 2;
 BEGIN
     IF (i_primary_job_id > 0) THEN
         SELECT allocation_id INTO real_allocation_id
@@ -375,12 +399,13 @@ BEGIN
        a.allocation_id, a.primary_job_id, a.secondary_job_id, 
        a.user_flags, a.system_flags, a.num_nodes, 
        a.state, a.type, a.isolated_cores, a.user_name, 
-       array_to_string(array_agg(an.node_name),',') as a_nodelist 
+       array_to_string(array_agg(an.node_name),',') as a_nodelist,
+       (extract(EPOCH from  now() - begin_time))::bigint
     INTO 
         o_allocation_id, o_primary_job_id, o_secondary_job_id,
         o_user_flags, o_system_flags, o_num_nodes, 
         o_state, o_type, o_isolated_cores, o_user_name,
-        o_nodelist 
+        o_nodelist, o_runtime
     FROM csm_allocation a 
     LEFT JOIN 
         csm_allocation_node an 
@@ -404,7 +429,8 @@ BEGIN
         -- Test the state, raising an exception is not valid.
         IF ( (o_state = 'deleting-mcast' OR o_state = 'to-staging-out' OR o_state = 'to-running') 
             AND time_since_change < i_timeout_time ) THEN
-            RAISE EXCEPTION 'Detected a multicast operation in progress for allocation, rejecting delete.';
+            RAISE EXCEPTION 'Detected a multicast operation in progress for allocation, rejecting delete.'
+                USING HINT = INVALID_STATE;
         END IF;
 
         -- TODO should this use an in ANY instead?
@@ -416,7 +442,8 @@ BEGIN
             UPDATE csm_allocation SET state = 'deleting' WHERE allocation_id=real_allocation_id;
         END IF;
     ELSE
-        RAISE EXCEPTION 'Allocation unable to be found matching the supplied criteria, unable to delete.';
+        RAISE EXCEPTION 'Allocation unable to be found matching the supplied criteria, unable to delete.'
+            USING HINT = INVALID_ALLOCATION;
     END IF;
 
 END;
@@ -428,7 +455,7 @@ COMMENT ON FUNCTION fn_csm_allocation_delete_start(
     OUT o_allocation_id    bigint, OUT o_primary_job_id   bigint, OUT o_secondary_job_id int,
     OUT o_user_flags       text,   OUT o_system_flags     text,   OUT o_num_nodes        int,
     OUT o_state            text,   OUT o_type             text,   OUT o_isolated_cores   int,
-    OUT o_user_name        text,   OUT o_nodelist         text ) is 
+    OUT o_user_name        text,   OUT o_nodelist         text,   OUT o_runtime          bigint ) is 
         'Retrieves allocation details for delete a d sets the state to deleteing.';
 
 ---------------------------------------------------------------------------------------------------
@@ -460,6 +487,8 @@ RETURNS timestamp AS $$
 DECLARE 
    a "csm_allocation"%ROWTYPE;
    s "csm_step"%ROWTYPE;
+   INVALID_STATE       CONSTANT integer := 1;
+   INVALID_ALLOCATION  CONSTANT integer := 2;
 
 BEGIN
     o_end_time = endtime;
@@ -562,13 +591,14 @@ BEGIN
         DELETE FROM csm_allocation WHERE allocation_id=allocationid;
 
     ELSE
-        RAISE EXCEPTION using message = 'allocation_id does not exist.';
+        RAISE EXCEPTION 'allocation_id does not exist.'
+            USING HINT = INVALID_ALLOCATION;
     END IF;
-    EXCEPTION
-        WHEN others THEN
-            RAISE EXCEPTION
-            USING ERRCODE = sqlstate,
-                     MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+    --EXCEPTION
+    --    WHEN others THEN
+    --        RAISE EXCEPTION
+    --        USING ERRCODE = sqlstate,
+    --                 MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
 --    RETURN NULL;
 
 END;
@@ -759,7 +789,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_num_gpus          integer,
     OUT o_num_processors    integer,
     OUT o_projected_memory  integer,
-    OUT o_state             text
+    OUT o_state             text,
+    OUT o_runtime           bigint
 )
 RETURNS record AS $$
 DECLARE
@@ -774,13 +805,13 @@ BEGIN
         state, isolated_cores,
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
-        num_gpus, num_processors, projected_memory
+        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
         o_shared, o_num_gpus, o_num_processors,
-        o_projected_memory
+        o_projected_memory, o_runtime
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 
@@ -878,7 +909,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 
 -----------------------------------------------------------
@@ -1576,6 +1607,11 @@ DECLARE
     bad_nodes text[];
     missing_nodes text[];
     running_nodes text[];
+    error_code integer;
+    INVALID_NODES  CONSTANT integer := 1;
+    ABSENT_NODES  CONSTANT integer := 2;
+    OCCUPIED_NODES CONSTANT integer := 3;
+    BAD_STATE CONSTANT integer := 4;
 BEGIN
     --LOCK TABLE csm_allocation_node IN EXCLUSIVE MODE;
     PERFORM 1 FROM csm_allocation_node WHERE allocation_id=i_allocation_id FOR UPDATE;
@@ -1603,10 +1639,18 @@ BEGIN
     -- OR there were nodes that couldn't be found, raise an exception.
     ELSIF (array_length(bad_nodes, 1) > 0 )
         OR  array_length(missing_nodes,1) > 0 THEN
-        RAISE EXCEPTION 'The following nodes were not available: % 
-The following nodes were not found: %',
+        
+        IF( array_length(bad_nodes, 1) > 0 ) 
+        THEN
+            error_code := INVALID_NODES;
+        ELSE
+            error_code := ABSENT_NODES;
+        END IF;
+
+        RAISE EXCEPTION 'The following nodes were not available: % ;The following nodes were not found: %',
                 array_to_string(bad_nodes, ', ', '*' ),
-                array_to_string(missing_nodes, ', ', '*');
+                array_to_string(missing_nodes, ', ', '*')
+            USING HINT = error_code;
     END IF;
 
     -- If the allocation is being created in the running state.
@@ -1624,7 +1668,8 @@ The following nodes were not found: %',
                     WHERE node_name = ANY(i_nodenames) AND state!='staging-in' AND state!='staging-out');
 
                 RAISE EXCEPTION 'Node(s) are currently busy, unable to request exclusive job. Active Nodes: %',
-                        array_to_string(running_nodes, ', ', '*');
+                        array_to_string(running_nodes, ', ', '*')
+                        USING HINT = OCCUPIED_NODES;
             END IF;
 
         ELSIF EXISTS (
@@ -1638,10 +1683,12 @@ The following nodes were not found: %',
                 WHERE node_name = ANY(i_nodenames) AND state!='staging-in' AND state!='staging-out');
 
             RAISE EXCEPTION 'Node(s) can not be shared because an exclusive job currently active. Active Nodes: %',
-                array_to_string(running_nodes, ', ', '*');
+                array_to_string(running_nodes, ', ', '*')
+                USING HINT = OCCUPIED_NODES;
         END IF;
     ELSIF i_state!='staging-in' THEN
-        RAISE EXCEPTION using message = 'Inserting into invalid state';
+        RAISE EXCEPTION 'Inserting into invalid state'
+            USING HINT = BAD_STATE;
     --ELSIF i_state='stage-out' THEN
         --RAISE EXCEPTION using message = 'Inserting into the stage-out state';
     END IF;
@@ -1656,11 +1703,13 @@ The following nodes were not found: %',
         i_allocation_id, i_shared, i_state, node
     FROM
         unnest(i_nodenames) as n(node);
-    EXCEPTION
-        WHEN others THEN
-            RAISE EXCEPTION
-            USING ERRCODE = sqlstate,
-                MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+
+    --EXCEPTION
+    --    WHEN others THEN
+    --        RAISE EXCEPTION
+    --        USING ERRCODE = sqlstate,
+    --            HINT = ?
+    --            MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
 END; -- releases all locks
 $$ LANGUAGE plpgsql;
 
@@ -4284,20 +4333,20 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
         RETURN OLD;
      ELSEIF (TG_OP = 'UPDATE') THEN
         IF  (
-            OLD.host_system_guid = NEW.host_system_guid AND
-            OLD.comment          = NEW.comment AND
-            OLD.description      = NEW.description AND
-            OLD.device_name      = NEW.device_name AND
-            OLD.device_type      = NEW.device_type AND
-            OLD.hw_version       = NEW.hw_version AND
-            OLD.max_ib_ports     = NEW.max_ib_ports AND
-            OLD.module_index     = NEW.module_index AND
-            OLD.number_of_chips  = NEW.number_of_chips AND
-            OLD.path             = NEW.path AND
-            OLD.serial_number    = NEW.serial_number AND
-            OLD.severity         = NEW.severity AND
-            OLD.status           = NEW.status) THEN
-            NEW.collection_time = now();
+            (OLD.host_system_guid = NEW.host_system_guid OR OLD.host_system_guid IS NULL) AND
+            (OLD.comment          = NEW.comment OR OLD.comment IS NULL) AND
+            (OLD.description      = NEW.description OR OLD.description IS NULL) AND
+            (OLD.device_name      = NEW.device_name OR OLD.device_name IS NULL) AND
+            (OLD.device_type      = NEW.device_type OR OLD.device_type IS NULL) AND
+            (OLD.hw_version       = NEW.hw_version OR OLD.hw_version IS NULL) AND
+            (OLD.max_ib_ports     = NEW.max_ib_ports OR OLD.max_ib_ports IS NULL) AND
+            (OLD.module_index     = NEW.module_index OR OLD.module_index IS NULL) AND
+            (OLD.number_of_chips  = NEW.number_of_chips OR OLD.number_of_chips IS NULL) AND
+            (OLD.path             = NEW.path OR OLD.path IS NULL) AND
+            (OLD.serial_number    = NEW.serial_number OR OLD.serial_number IS NULL) AND
+            (OLD.severity         = NEW.severity OR OLD.severity IS NULL) AND
+            (OLD.status           = NEW.status OR OLD.status IS NULL)) THEN
+            OLD.collection_time = now();
         ELSE
         INSERT INTO csm_switch_inventory_history(
             history_time,

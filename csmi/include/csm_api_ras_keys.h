@@ -33,6 +33,13 @@ extern "C" {
 #define CSM_RAS_MSG_ID_CGROUP_CREATE_FAILURE   "csm.api.cgroup_create_failure"
 #define CSM_RAS_MSG_ID_CGROUP_DELETE_FAILURE   "csm.api.cgroup_delete_failure"
 #define CSM_RAS_MSG_ID_ALLOCATION_TIMEOUT      "csm.api.allocation_timeout"
+#define CSM_RAS_MSG_ID_RETRY_EXCEEDED          "csm.soft_failure_recovery.retries_exceeded"
+
+
+#define CSM_RAS_PROLOG_PROLOG_COLLISION        "csm.api.prolog_prolog_collision"
+#define CSM_RAS_PROLOG_EPILOG_COLLISION        "csm.api.prolog_epilog_collision"
+#define CSM_RAS_EPILOG_PROLOG_COLLISION        "csm.api.epilog_prolog_collision"
+#define CSM_RAS_EPILOG_EPILOG_COLLISION        "csm.api.epilog_epilog_collision"
 
 
 // severity goes on the end of the pub/sub topic...

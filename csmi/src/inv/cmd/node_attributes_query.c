@@ -62,7 +62,7 @@ void help(){
 	puts("    -n, --node_names | \"node01,node02\"  | (STRING) This is a csv field of node names to query. Filter results to only include records that have a matching node names. The node name is a unique identification for a node.");
 	puts("                     |                  | Valid formats: \"node01\", \"node01,node02\", or \"node[01-09]\"");
 	puts("    -s, --state      | \"IN_SERVICE\"     | (CSM_NODE_STATE) Filter results by the state field in the CSM database. API will ignore NULL values.");
-	puts("                     |                  | Valid values: \"undefined\", \"DISCOVERED\", \"IN_SERVICE\", \"OUT_OF_SERVICE\", \"ADMIN_RESERVED\", or \"SOFT_FAILURE\" ");
+	puts("                     |                  | Valid values: \"undefined\", \"DISCOVERED\", \"IN_SERVICE\", \"OUT_OF_SERVICE\", \"ADMIN_RESERVED\", \"SOFT_FAILURE\", or \"HARD_FAILURE\".");
 	puts("    -t, --type       | \"compute\"        | (STRING) Filter results by the type field in the CSM database. API will ignore NULL values.");
 	puts("");
 	puts("  FILTERS:");

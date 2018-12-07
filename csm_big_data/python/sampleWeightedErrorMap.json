@@ -18,7 +18,7 @@
                 "field" : "message",
                 "value" : "xid",
                 "boost" : 60
-            },
+            }
         ]
     },
     {
@@ -38,7 +38,6 @@
                 "boost"     : 200,
                 "threshold" : "gte"
             }
-
         ]
     },
     {

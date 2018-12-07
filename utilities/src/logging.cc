@@ -66,8 +66,8 @@ static size_t maxseveritywidth = 1;
 namespace utility
 {
     src::severity_channel_logger_mt< bluecoral_sevs > logger(keywords::channel = "LOG" );
-    //src::logger_mt bds_logger;
     src::channel_logger_mt<> bds_logger( keywords::channel = "BDS" );
+    src::channel_logger_mt<> allocation_logger( keywords::channel = "ALC" );
     bluecoral_sevs minlevel[NUM_SUBCOMPONENTS];
 
     void touch_unused_variable()
@@ -110,6 +110,15 @@ namespace utility
 	}
 	strm << filename;
         return strm;
+    }
+
+    std::string GetUTCTimestampNow()
+    {
+        auto now = std::chrono::system_clock::now();
+        time_t tt = std::chrono::system_clock::to_time_t(now);
+        char buffer [sizeof "2018-12-06T04:31:09Z"];
+        strftime(buffer, sizeof buffer, "%FT%TZ", gmtime(&tt));
+        return std::string(buffer);
     }
 };
 
@@ -241,8 +250,16 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 		    keywords::auto_flush = true,
             keywords::open_mode = std::ios::app,
             keywords::filter = channel == "BDS");
+    }
 
-         
+    if(config.get(ptree_prefix + ".allocation_metrics", true))
+    {
+         auto sink = logging::add_file_log(
+		    keywords::file_name = config.get(ptree_prefix + ".allocation_metrics_file", "none"),
+		    keywords::rotation_size = config.get(ptree_prefix + ".allocation_metrics_rotation_size", (~0)),
+		    keywords::auto_flush = true,
+            keywords::open_mode = std::ios::app,
+            keywords::filter = channel == "ALC");
     }
 
     return 0;

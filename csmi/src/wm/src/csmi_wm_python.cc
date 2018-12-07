@@ -428,7 +428,8 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
 		.value("CSM_USER_MANAGED",CSM_USER_MANAGED)
 		.value("CSM_JSM",CSM_JSM)
 		.value("CSM_JSM_CGROUP_STEP",CSM_JSM_CGROUP_STEP)
-		.value("CSM_DIAGNOSTICS",CSM_DIAGNOSTICS);
+		.value("CSM_DIAGNOSTICS",CSM_DIAGNOSTICS)
+		.value("CSM_CGROUP_STEP",CSM_CGROUP_STEP);
 
     enum_<csmi_job_type_t>("csmi_job_type_t")
 		.value("CSM_BATCH",CSM_BATCH)
@@ -703,5 +704,17 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
 		.add_property("allocation_id", &csm_jsrun_cmd_input_t::allocation_id,&csm_jsrun_cmd_input_t::allocation_id," The Allocation id for the JSM run. Exported to **CSM_ALLOCATION_ID**. ")
 		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, kv_pairs, , NULL, )
 		STRING_PROPERTY(csm_jsrun_cmd_input_t, char*, jsm_path, , NULL, );
+
+    class_<csm_soft_failure_recovery_node_t,csm_soft_failure_recovery_node_t*>("soft_failure_recovery_node_t")
+		.add_property("errcode", &csm_soft_failure_recovery_node_t::errcode,&csm_soft_failure_recovery_node_t::errcode,"int")
+		STRING_PROPERTY(csm_soft_failure_recovery_node_t, char*, errmsg, , NULL, )
+		STRING_PROPERTY(csm_soft_failure_recovery_node_t, char*, source, , NULL, );
+
+    class_<csm_soft_failure_recovery_input_t,csm_soft_failure_recovery_input_t*>("soft_failure_recovery_input_t")
+		.add_property("retry_count", &csm_soft_failure_recovery_input_t::retry_count,&csm_soft_failure_recovery_input_t::retry_count,"uint32_t");
+
+    class_<csm_soft_failure_recovery_output_t,csm_soft_failure_recovery_output_t*>("soft_failure_recovery_output_t")
+		.add_property("error_count", &csm_soft_failure_recovery_output_t::error_count,&csm_soft_failure_recovery_output_t::error_count,"uint32_t")
+		ARRAY_STRUCT_PROPERTY(csm_soft_failure_recovery_output_t, csm_soft_failure_recovery_node_t**, node_errors, error_count, NULL, csm_soft_failure_recovery_node_t);
 
 };

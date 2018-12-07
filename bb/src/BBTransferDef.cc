@@ -395,7 +395,7 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                                      << " because transfers for all extents had already completed.  See prior messages for this handle.";
 
                         // Clear bberror for the tolerated exception
-                        bberror.clear();
+                        bberror.forceClear();
 
                         break;
                     }
@@ -475,7 +475,7 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                      << l_HostNamePrt2 << ", jobid " << jobid << ", jobstepid " << jobstepid << ", handle " << handle << ", and " << l_ContribIdPrt2 \
                      << ", a restart operation was completed for " << l_NumberRestarted << " transfer definition(s), " << l_NotInStoppedState \
                      << " transfer definition(s) were not in a stopped state, and a restart was attempted but failed for " \
-                     << l_NumberFailed << " transfer definition(s) . See previous messages for additional details.";
+                     << l_NumberFailed << " transfer definition(s). See previous messages for additional details.";
 
         pNumRestartedTransferDefs = l_NumberRestarted;
     }
@@ -581,6 +581,11 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
 
                     break;
                 }
+            }
+            if (rc && rc != -1)
+            {
+                // Clear bberror of any possible tolerated condition
+                bberror.forceClear();
             }
         }
         else

@@ -10,7 +10,9 @@ This script will gather statistical information related to the CSM DB which incl
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_stats.sh –h, --help.
+ /opt/ibm/csm/db/csm_db_stats.sh –h
+ /opt/ibm/csm/db/csm_db_stats.sh --help
+ 
  This help command <-h, --help> will specify each of the options available to use.
 
 The ``csm_db_stats.sh`` script creates a log file for each query executed. (Please see the log file for details): ``/var/log/ibm/csm/csm_db_stats.log``
@@ -97,7 +99,8 @@ Example (usage)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/csm_db_stats.sh –t, --tableinfo [my_db_name]
+ /opt/ibm/csm/db/csm_db_stats.sh –t <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --tableinfo <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -142,7 +145,8 @@ Example (DB Table info.)
 
 .. code-block:: bash	
  
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –i, --indexinfo <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –i <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --indexinfo <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -188,7 +192,8 @@ Example (Indexes)
 
 .. code-block:: bash	
  
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –x, --indexanalysis <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –x <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --indexanalysis <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -216,36 +221,36 @@ Example (Indexes Usage)
 .. code-block:: bash
 
  -bash-4.2$ ./csm_db_stats.sh -x csmdb
-    --------------------------------------------------------------------------------------------------
-               relname            | too_much_seq |      case      |  rel_size   | seq_scan | idx_scan
-    ------------------------------+--------------+----------------+-------------+----------+----------
-     csm_step_node                |     16280094 | Missing Index? |      245760 | 17438931 |  1158837
-     csm_allocation_history       |      3061025 | Missing Index? |    57475072 |  3061787 |      762
-     csm_allocation_state_history |         3276 | Missing Index? |    35962880 |    54096 |    50820
-     csm_vg_history               |         1751 | Missing Index? |      933888 |     1755 |        4
-     csm_vg_ssd_history           |         1751 | Missing Index? |      819200 |     1755 |        4
-     csm_ssd_history              |         1749 | Missing Index? |     1613824 |     1755 |        6
-     csm_dimm_history             |         1652 | Missing Index? |    13983744 |     1758 |      106
-     csm_gpu_history              |         1645 | Missing Index? |    24076288 |     1756 |      111
-     csm_hca_history              |         1643 | Missing Index? |     8167424 |     1754 |      111
-     csm_ras_event_action         |         1549 | Missing Index? |   263143424 |     1854 |      305
-     csm_node_state_history       |          401 | Missing Index? |    78413824 |      821 |      420
-     csm_node_history             |       -31382 | OK             |   336330752 |      879 |    32261
-     csm_ras_type_audit           |       -97091 | OK             |       98304 |   793419 |   890510
-     csm_step_history             |      -227520 | OK             |   342327296 |      880 |   228400
-     csm_vg_ssd                   |      -356574 | OK             |      704512 |   125588 |   482162
-     csm_vg                       |      -403370 | OK             |      729088 |    86577 |   489947
-     csm_hca                      |      -547463 | OK             |     1122304 |        1 |   547464
-     csm_ras_type                 |      -942966 | OK             |       81920 |       23 |   942989
-     csm_ssd                      |     -1242433 | OK             |     1040384 |    85068 |  1327501
-     csm_step_node_history        |     -1280913 | OK             |  2865987584 |    49335 |  1330248
-     csm_allocation_node_history  |     -1664023 | OK             | 21430599680 |      887 |  1664910
-     csm_gpu                      |     -2152044 | OK             |     5996544 |        1 |  2152045
-     csm_dimm                     |     -2239777 | OK             |     7200768 |   118280 |  2358057
-     csm_allocation_node          |    -52187077 | OK             |      319488 |  1727675 | 53914752
-     csm_node                     |    -78859700 | OK             |     2768896 |   127214 | 78986914
-    (25 rows)
-    --------------------------------------------------------------------------------------------------
+ --------------------------------------------------------------------------------------------------
+               relname         | too_much_seq |      case      |  rel_size   | seq_scan | idx_scan
+ ------------------------------+--------------+----------------+-------------+----------+----------
+  csm_step_node                |     16280094 | Missing Index? |      245760 | 17438931 |  1158837
+  csm_allocation_history       |      3061025 | Missing Index? |    57475072 |  3061787 |      762
+  csm_allocation_state_history |         3276 | Missing Index? |    35962880 |    54096 |    50820
+  csm_vg_history               |         1751 | Missing Index? |      933888 |     1755 |        4
+  csm_vg_ssd_history           |         1751 | Missing Index? |      819200 |     1755 |        4
+  csm_ssd_history              |         1749 | Missing Index? |     1613824 |     1755 |        6
+  csm_dimm_history             |         1652 | Missing Index? |    13983744 |     1758 |      106
+  csm_gpu_history              |         1645 | Missing Index? |    24076288 |     1756 |      111
+  csm_hca_history              |         1643 | Missing Index? |     8167424 |     1754 |      111
+  csm_ras_event_action         |         1549 | Missing Index? |   263143424 |     1854 |      305
+  csm_node_state_history       |          401 | Missing Index? |    78413824 |      821 |      420
+  csm_node_history             |       -31382 | OK             |   336330752 |      879 |    32261
+  csm_ras_type_audit           |       -97091 | OK             |       98304 |   793419 |   890510
+  csm_step_history             |      -227520 | OK             |   342327296 |      880 |   228400
+  csm_vg_ssd                   |      -356574 | OK             |      704512 |   125588 |   482162
+  csm_vg                       |      -403370 | OK             |      729088 |    86577 |   489947
+  csm_hca                      |      -547463 | OK             |     1122304 |        1 |   547464
+  csm_ras_type                 |      -942966 | OK             |       81920 |       23 |   942989
+  csm_ssd                      |     -1242433 | OK             |     1040384 |    85068 |  1327501
+  csm_step_node_history        |     -1280913 | OK             |  2865987584 |    49335 |  1330248
+  csm_allocation_node_history  |     -1664023 | OK             | 21430599680 |      887 |  1664910
+  csm_gpu                      |     -2152044 | OK             |     5996544 |        1 |  2152045
+  csm_dimm                     |     -2239777 | OK             |     7200768 |   118280 |  2358057
+  csm_allocation_node          |    -52187077 | OK             |      319488 |  1727675 | 53914752
+  csm_node                     |    -78859700 | OK             |     2768896 |   127214 | 78986914
+ (25 rows)
+ --------------------------------------------------------------------------------------------------
 
 
 4. Table Lock Monitoring
@@ -253,7 +258,8 @@ Example (Indexes Usage)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –l, --lockinfo <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –l <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --lockinfo <my_db_name>
  
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -306,7 +312,8 @@ Example (Lock Monitoring)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –s, --schemaversion <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh –s <my_db_name>
+ /opt/ibm/csm/db/csm_db_stats.sh --schemaversion <my_db_name>
  
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -327,7 +334,7 @@ Example (DB Schema Version)
  -------------------------------------------------------------------------------------
   version |        create_time         |     comment
  ---------+----------------------------+-----------------
-   16.1   | 2018-04-04 09:41:57.784378 | current_version
+   16.2   | 2018-04-04 09:41:57.784378 | current_version
  (1 row)
  -------------------------------------------------------------------------------------
 .. note:: This query provides the current database version the system is running along with its creation time.
@@ -337,7 +344,8 @@ Example (DB Schema Version)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –c, --connectionsdb <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –c <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --connectionsdb <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -392,7 +400,8 @@ Example (database connections)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –u, --usernamedb <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –u <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --usernamedb <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -455,7 +464,8 @@ Example (DB users with details)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –v, --postgresqlversion <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –v <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --postgresqlversion <my_db_name>
 
 +--------------+--------------------------------------------------------------+
 | Column_Name  |                          Description                         |
@@ -484,7 +494,8 @@ Example (DB Schema Version)
 
 .. code-block:: bash
 
- Run: /opt/ibm/csm/db/./csm_db_stats.sh –a, --indexanalysis <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh –a <my_db_name>
+ /opt/ibm/csm/db/./csm_db_stats.sh --indexanalysis <my_db_name>
 
 Example (Query details)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -502,41 +513,43 @@ Example (Query details)
 | ``last_archive_time`` | Last archived process time.                |
 +-----------------------+--------------------------------------------+
 
+.. warning:: This query could take several minutes to execute depending on the total size of each table.
+
 Example (DB archive count with details)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-    -bash-4.2$ ./csm_db_stats.sh -a csmdb
-        ---------------------------------------------------------------------------------------------------
-                  table_name           | total_rows | not_archived | archived | last_archive_time
-        -------------------------------+------------+--------------+----------+----------------------------
-         csm_allocation_history        |      94022 |            0 |    94022 | 2018-10-09 16:00:01.912545
-         csm_allocation_node_history   |   73044162 |            0 | 73044162 | 2018-10-09 16:00:02.06098
-         csm_allocation_state_history  |     281711 |            0 |   281711 | 2018-10-09 16:01:03.685959
-         csm_config_history            |          0 |            0 |        0 |
-         csm_db_schema_version_history |          2 |            0 |        2 | 2018-10-03 10:38:45.294172
-         csm_diag_result_history       |         12 |            0 |       12 | 2018-10-03 10:38:45.379335
-         csm_diag_run_history          |          8 |            0 |        8 | 2018-10-03 10:38:45.464976
-         csm_dimm_history              |      76074 |            0 |    76074 | 2018-10-03 10:38:45.550827
-         csm_gpu_history               |      58773 |            0 |    58773 | 2018-10-03 10:38:47.486974
-         csm_hca_history               |      23415 |            0 |    23415 | 2018-10-03 10:38:50.574223
-         csm_ib_cable_history          |          0 |            0 |        0 |
-         csm_lv_history                |          0 |            0 |        0 |
-         csm_lv_update_history         |          0 |            0 |        0 |
-         csm_node_history              |     536195 |            0 |   536195 | 2018-10-09 14:10:40.423458
-         csm_node_state_history        |     966991 |            0 |   966991 | 2018-10-09 15:30:40.886846
-         csm_processor_socket_history  |          0 |            0 |        0 |
-         csm_ras_event_action          |    1115253 |            0 |  1115253 | 2018-10-09 15:30:50.514246
-         csm_ssd_history               |       4723 |            0 |     4723 | 2018-10-03 10:39:47.963564
-         csm_ssd_wear_history          |          0 |            0 |        0 |
-         csm_step_history              |     456080 |            0 |   456080 | 2018-10-09 16:01:05.797751
-         csm_step_node_history         |   25536362 |            0 | 25536362 | 2018-10-09 16:01:06.216121
-         csm_switch_history            |          0 |            0 |        0 |
-         csm_switch_inventory_history  |          0 |            0 |        0 |
-         csm_vg_history                |       4608 |            0 |     4608 | 2018-10-03 10:44:25.837201
-         csm_vg_ssd_history            |       4608 |            0 |     4608 | 2018-10-03 10:44:26.047599
-        (25 rows)
-        ---------------------------------------------------------------------------------------------------
+ -bash-4.2$ ./csm_db_stats.sh -a csmdb
+ ---------------------------------------------------------------------------------------------------
+ 	  table_name            | total_rows | not_archived | archived | last_archive_time
+ -------------------------------+------------+--------------+----------+----------------------------
+  csm_allocation_history        |      94022 |            0 |    94022 | 2018-10-09 16:00:01.912545
+  csm_allocation_node_history   |   73044162 |            0 | 73044162 | 2018-10-09 16:00:02.06098
+  csm_allocation_state_history  |     281711 |            0 |   281711 | 2018-10-09 16:01:03.685959
+  csm_config_history            |          0 |            0 |        0 |
+  csm_db_schema_version_history |          2 |            0 |        2 | 2018-10-03 10:38:45.294172
+  csm_diag_result_history       |         12 |            0 |       12 | 2018-10-03 10:38:45.379335
+  csm_diag_run_history          |          8 |            0 |        8 | 2018-10-03 10:38:45.464976
+  csm_dimm_history              |      76074 |            0 |    76074 | 2018-10-03 10:38:45.550827
+  csm_gpu_history               |      58773 |            0 |    58773 | 2018-10-03 10:38:47.486974
+  csm_hca_history               |      23415 |            0 |    23415 | 2018-10-03 10:38:50.574223
+  csm_ib_cable_history          |          0 |            0 |        0 |
+  csm_lv_history                |          0 |            0 |        0 |
+  csm_lv_update_history         |          0 |            0 |        0 |
+  csm_node_history              |     536195 |            0 |   536195 | 2018-10-09 14:10:40.423458
+  csm_node_state_history        |     966991 |            0 |   966991 | 2018-10-09 15:30:40.886846
+  csm_processor_socket_history  |          0 |            0 |        0 |
+  csm_ras_event_action          |    1115253 |            0 |  1115253 | 2018-10-09 15:30:50.514246
+  csm_ssd_history               |       4723 |            0 |     4723 | 2018-10-03 10:39:47.963564
+  csm_ssd_wear_history          |          0 |            0 |        0 |
+  csm_step_history              |     456080 |            0 |   456080 | 2018-10-09 16:01:05.797751
+  csm_step_node_history         |   25536362 |            0 | 25536362 | 2018-10-09 16:01:06.216121
+  csm_switch_history            |          0 |            0 |        0 |
+  csm_switch_inventory_history  |          0 |            0 |        0 |
+  csm_vg_history                |       4608 |            0 |     4608 | 2018-10-03 10:44:25.837201
+  csm_vg_ssd_history            |       4608 |            0 |     4608 | 2018-10-03 10:44:26.047599
+ (25 rows)
+ ---------------------------------------------------------------------------------------------------
 
 .. note:: This query provides statistical information related to the DB archiving count and processing time.

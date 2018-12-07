@@ -31,6 +31,8 @@ namespace csm {
 namespace daemon {
 namespace helper {
 
+int ScanForPrivleged(bool isProlog, int64_t allocationId=0, bool isShared=false);
+
 /**
  * @brief Executes either a privileged prolog or epilog as either a step or allocation.
  *
@@ -45,7 +47,7 @@ namespace helper {
 inline bool ExecutePrivileged( 
     char *userFlags,
     char *systemFlags,
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     bool isProlog,
     bool isStep)
 {
@@ -56,11 +58,35 @@ inline bool ExecutePrivileged(
                             (char*)CSM_P_SYSTEM_FLAG, systemFlags,
                             (char*)CSM_P_TYPE, (char*)(isStep ? CSM_P_STEP : CSM_P_ALLOCATION),
                             NULL };
+    int errCode = 0;
 
-    int errCode = ForkAndExec( scriptArgs );
+    // TODO Check for prolog/epilog.
+    if ( !isStep )
+    {
+        errCode = ScanForPrivleged( isProlog );
+        
+        if (errCode != 0)
+        {
+            LOG( csmapi, error ) << "Privileged script execution failed. Another script was running.";
+            ctx->SetErrorCode( errCode );
+            return false;
+        }
+    }
+
+    errCode = ForkAndExec( scriptArgs );
 
     // Report any failure.
-    if ( errCode != 0 )
+    if ( errCode== 255 )
+    {
+        LOG( csmapi, error ) << "Privileged script execution failed. Invalid allocation flags.";
+        ctx->SetErrorCode( CSMERR_ALLOC_BAD_FLAGS );
+
+        std::string err = "Privileged script execution failure detected. Invalid allocation flags.";
+        ctx->SetErrorMessage( err );
+
+        return false;
+    }
+    else if ( errCode != 0 )
     {
         LOG( csmapi, error ) << "Privileged script execution failed. Error Code: " << errCode;
         ctx->SetErrorCode( CSMERR_SCRIPT_FAILURE );

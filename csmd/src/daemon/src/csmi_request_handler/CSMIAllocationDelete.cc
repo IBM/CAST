@@ -79,7 +79,7 @@ bool CSMIAllocationDelete_Master::RetrieveDataForPrivateCheck(
         const std::string& arguments, 
         const uint32_t len, 
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
 	
@@ -167,7 +167,7 @@ bool CSMIAllocationDelete_Master::RetrieveDataForPrivateCheck(
 bool CSMIAllocationDelete_Master::CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
     bool success = false;
@@ -193,7 +193,7 @@ bool CSMIAllocationDelete_Master::CompareDataForPrivateCheck(
     }
     else
     {
-        ctx->SetErrorCode(CSMERR_DB_ERROR);
+        ctx->SetErrorCode(CSMERR_ALLOC_MISSING);
         ctx->AppendErrorMessage("Database check failed for user id " + std::to_string(msg.GetUserID()) + ";" );
     }
 
@@ -205,7 +205,7 @@ bool CSMIAllocationDelete_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) << STATE_NAME ":CreatePayload: Enter"; 
 
@@ -267,7 +267,7 @@ bool CSMIAllocationDelete_Master::CreatePayload(
 }
 
 bool CSMIAllocationDelete_Master::ParseInfoQuery( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples, 
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
@@ -297,7 +297,7 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
     
     // EARLY RETURN
     // If the number of fields is invalid exit.
-    if ( fields->nfields != 11 )
+    if ( fields->nfields != 12 )
     {
         std::string error = mcastProps->GenerateIdentifierString() +
             "; Message: Allocation query returned an incorrect number of fields;";
@@ -323,6 +323,8 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
     a->type                 = (csmi_allocation_type_t)csm_get_enum_from_string(csmi_allocation_type_t, fields->data[7]);
     a->isolated_cores       = strtol(fields->data[8], nullptr, 10);
     a->user_name            = strdup(fields->data[9]);
+
+    a->runtime              = strtoll(fields->data[11], nullptr, 10);
 
     a->compute_nodes        = nullptr;
 
@@ -359,7 +361,7 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
 }
     
 csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":DeleteRowStatement: Enter";
@@ -370,7 +372,22 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
 
     // Early return if a transitory state was found.
 
-    if (allocation && allocation->primary_job_id > 0)
+    #define INVALID_STATE 1
+    #define INVALID_ALLOCATION 2
+    switch ( ctx->GetDBErrorCode() )
+    {
+        case INVALID_STATE:
+            ctx->SetErrorCode(CSMERR_DELETE_STATE_BAD);
+            break;
+        case INVALID_ALLOCATION: 
+            ctx->SetErrorCode(CSMERR_ALLOC_MISSING);
+            break;
+        default:
+            break;
+    }
+    
+
+    if (allocation && allocation->primary_job_id > 0 && !ctx->GetDBErrorCode() )
     {
         const int paramCount = 13;
         std::string stmt = "SELECT fn_csm_allocation_history_dump( "
@@ -397,6 +414,39 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
         dbReq->AddNumericArrayParam<int64_t>(allocation->memory_max,    allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
 
+        if ( allocation->gpu_metrics )
+        {
+            for ( uint32_t nodeIdx = 0; nodeIdx < allocation->num_nodes; nodeIdx++ )
+            {
+                for ( uint32_t gpuIdx = 0; allocation->gpu_metrics[nodeIdx] && gpuIdx < allocation->gpu_metrics[nodeIdx]->num_gpus; gpuIdx++ )
+                {
+                    // First field is type, this is used to select index,
+                    // Second is 
+                    ALLOCATION("allocation-gpu", allocation->compute_nodes[nodeIdx],
+                        "{\"allocation_id\":" << allocation->allocation_id
+                        << ",\"gpu_id\":" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
+                        << ",\"gpu_usage\":" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
+                        << ",\"max_gpu_memory\":" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx]
+                        << "}");
+                }
+                
+                if ( allocation->gpu_metrics[nodeIdx] && (allocation->gpu_metrics[nodeIdx]->num_cpus > 0) )
+                {
+                    std::string cpuData = "{";
+                    cpuData.append("\"allocation_id\":").append(std::to_string(allocation->allocation_id)).append(",");
+                    for ( uint32_t cpuIdx = 0; cpuIdx < allocation->gpu_metrics[nodeIdx]->num_cpus; cpuIdx++ )
+                    {
+                        cpuData.append("\"cpu_").append(std::to_string(cpuIdx)).append("\":");
+                        cpuData.append(std::to_string(allocation->gpu_metrics[nodeIdx]->cpu_usage[cpuIdx]));
+                        cpuData.append(",");
+                    }
+                    cpuData.back()='}';
+
+                    ALLOCATION("allocation-cpu", allocation->compute_nodes[nodeIdx], cpuData);
+                }
+            }
+        }
+
         LOG(csmapi,info) << ctx <<  mcastProps->GenerateIdentifierString()
             << "; Message: Recording Allocation statistics and removing allocation from database;";
 
@@ -409,7 +459,7 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
 bool CSMIAllocationDelete_Master::CreateResponsePayload(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateResponsePayload: Enter";
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
@@ -426,7 +476,7 @@ bool CSMIAllocationDelete_Master::CreateResponsePayload(
 bool CSMIAllocationDelete_Master::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
 
     if( tuples.size() > 0 && tuples[0]->data && tuples[0]->nfields > 0)
@@ -468,7 +518,7 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
 
 bool CSMIAllocationDelete_Master::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 
@@ -492,10 +542,11 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
         if ( mcastProps )
         {
             ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-            ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
+            ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+            //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing(), ' ');
         }
 
-        ctx->AppendErrorMessage("; Message: The allocation was removed from the database;", ' ');
+        ctx->AppendErrorMessage("Message: The allocation was removed from the database;", ' ');
     }
 
     dataLock.unlock();

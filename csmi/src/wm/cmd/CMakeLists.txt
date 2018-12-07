@@ -111,5 +111,11 @@ install(TARGETS csm_jsrun_cmd COMPONENT csm-api DESTINATION csm/bin)
 target_include_directories(csm_jsrun_cmd PRIVATE ./)
 target_link_libraries(csm_jsrun_cmd csmi csm_network_c csmutil)
 
+# cmd line interface for jsrun_cmd
+add_executable(csm_soft_failure_recovery soft_failure_recovery.c)
+install(TARGETS csm_soft_failure_recovery COMPONENT csm-api DESTINATION csm/bin)
+target_include_directories(csm_soft_failure_recovery PRIVATE ./)
+target_link_libraries(csm_soft_failure_recovery csmi csm_network_c csmutil)
+
 
 add_definitions(-DUSE_SC_LOGGER)

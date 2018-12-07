@@ -45,18 +45,18 @@ public:
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     virtual bool RetrieveDataForPrivateCheck(
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
     
     virtual bool CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     /** @brief Parses the query defined in RetrieveDataForPrivateCheck.
      * 
@@ -70,7 +70,7 @@ public:
      * @return True if the user was authorized to execute on the nodes.
      */
     static bool ParseAuthQuery( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const std::vector<csm::db::DBTuple *>& tuples,
         CSMIJSRUNCMD* mcastProps);
 
@@ -80,7 +80,7 @@ public:
      * @return nullptr.
      */
     static inline csm::db::DBReqContent* BadQuery(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         CSMIJSRUNCMD* mcastProps) { return nullptr; }
 
     /**
@@ -90,7 +90,7 @@ public:
      */
     static bool CreateByteArray(
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /** 
      * @brief Serializes the results for replying to the API caller.
@@ -103,7 +103,7 @@ public:
     virtual bool CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 };
 
 class CSMIJSRUNCMD_Agent : public CSMIStateful

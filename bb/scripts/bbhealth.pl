@@ -36,7 +36,7 @@ sub output
 
     if($setupSyslog == 0)
     {
-        openlog("bbactivate", "ndelay,pid", "local0");
+        openlog("bbhealth", "ndelay,pid", "local0");
         $setupSyslog = 1;
     }
     if(!defined $level)
@@ -46,7 +46,6 @@ sub output
 
     foreach $line (split("\n", $out))
     {
-        print "$outputprefix$line\n";
         syslog($level, $line);
     }
 }
@@ -54,15 +53,17 @@ sub output
 sub setDefaults
 {
     $pollrate           = 30;
+    $maxSleep           = 3600;
     $::DEFAULT_HOSTLIST = "localhost";
-    @::GETOPS           = ("pollrate=i" => \$pollrate);
+    @::GETOPS           = ("pollrate=i" => \$pollrate,
+                           "maxsleep=i" => \$maxSleep);
 }
 
 sub window_sleep
 {
-    my($pollrate) = @_;
+    my($prate) = @_;
     my $curtime = time();
-    my $sleeptime = $pollrate - ($curtime - (int($curtime / $pollrate)) * $pollrate);
+    my $sleeptime = $prate - ($curtime - (int($curtime / $prate)) * $prate);
     sleep($sleeptime);
 }
 
@@ -88,7 +89,7 @@ $bbtools::QUIET = 1;
 do
 {
     $rc = monitor();
-    &window_sleep(60);
+    &window_sleep($pollrate);
 }
 while($rc == -1);
 
@@ -151,20 +152,38 @@ sub monitor
         }
         else
         {
+            $failurecnt++;
             if($result->{"error"}{"text"} =~ /Unable to create bb.proxy connection/i)
             {
-                output("Unable to create bbProxy connection.  Attempting restart of bbProxy");
-                cmd("systemctl start bbproxy.service");
+                if($failurecnt % 5 == 4)
+                {
+                    output("Unable to create bbProxy connection.  Attempting restart of bbProxy");
+                    cmd("systemctl restart bbproxy.service");
+                }
+                else
+                {
+                    output("Unable to create bbProxy connection.  Attempting start of bbProxy");
+                    cmd("systemctl start bbproxy.service");
+                }
             }
         }
         $pollcount++;
-        &window_sleep($pollrate);
+        $backoffFactor = 1;
+        $backoffFactor = 2**($failurecnt - 4)       if($failurecnt > 4);
+        $sleepAmount = $pollrate * $backoffFactor;
+        $sleepAmount = $maxSleep                    if($sleepAmount > $maxSleep);
+        &window_sleep($sleepAmount);
     }
 }
 
 sub failover
 {
     my($newserver) = @_;
+    if($newserver eq "none")
+    {
+        output("No backup configured for failover");
+        return -1;
+    }
 
     output("Attempting failover to $newserver");
 

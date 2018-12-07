@@ -18,7 +18,7 @@
 bool StatefulDBRecvPrivate::HandleDBResp(
         const std::vector<csm::db::DBTuple *>& tuples,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << "StatefulDBRecvPrivate::HandleDBResp: Enter";
 
@@ -34,8 +34,10 @@ bool StatefulDBRecvPrivate::HandleDBResp(
         LOG( csmapi, trace ) << "StatefulDBRecvPrivate::HandleDBResp: Exit";
 
         if ( ctx->GetErrorCode() == CSMI_SUCCESS )
+        {
             ctx->SetErrorCode( CSMERR_PERM );
-        ctx->AppendErrorMessage( "Permission Denied" );
+            ctx->AppendErrorMessage( "Permission Denied" );
+        }
 		return false;
 	}
     

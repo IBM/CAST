@@ -239,7 +239,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
 int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
     int rc = 0;
 
-    BBLV_Info* l_LV_Info = getTagInfo2(pLVKey);
+    BBLV_Info* l_LV_Info = getLV_Info(pLVKey);
     if (l_LV_Info) {
         tagInfoMap2.erase(*pLVKey);
     } else {
@@ -478,7 +478,7 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
     return rc;
 }
 
-BBLV_Info* BBLV_Metadata::getTagInfo2(const LVKey* pLVKey) const {
+BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
     for(auto it =  tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
         if (it->first == *pLVKey) {
             return const_cast <BBLV_Info*> (&(it->second));

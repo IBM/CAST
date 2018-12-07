@@ -209,6 +209,13 @@ if [ ${AGGREGATOR_A} == ${AGGREGATOR_B} ]
 		sed -i -- "s/__AGGREGATOR_A__/${AGGREGATOR_B}/g" csm_compute_B.cfg
 		sed -i -- "s/__AGGREGATOR_B__/${AGGREGATOR_A}/g" csm_compute_B.cfg
 fi
+if [ ! -z $LOGSTASH ]
+	then
+		sed -i -- "s/__LOGSTASH__/${LOGSTASH}/g" csm_aggregator_A.cfg
+		sed -i -- "s/__LOGSTASH__/${LOGSTASH}/g" csm_aggregator_B.cfg
+	else
+		echo "LOGSTASH not defined in csm_test.cfg.  Skipping BDS setup" 
+fi
 
 # Configuration file distribution
 xdsh csm_comp,utility "mkdir -p /etc/ibm/csm"
@@ -229,6 +236,11 @@ if [ ${AGGREGATOR_A} == ${AGGREGATOR_B} ]
 	else
 		xdcp compute_A /etc/ibm/csm/csm_compute_A.cfg /etc/ibm/csm/csm_compute.cfg
 		xdcp compute_B /etc/ibm/csm/csm_compute_B.cfg /etc/ibm/csm/csm_compute.cfg
+fi
+if [ ! -z $SSL_KEY ]
+	then
+		cp ${SSL_KEY} /etc/ibm/csm/csm_ufm_ssl_key.txt
+	else "SSL_KEY is not defined in csm_test.cfg. Skipping SSL setup.  NOTE: basic inventory collection bucket will fail"
 fi
 
 # 4.2.3 Prolog/Epilog Scripts Compute

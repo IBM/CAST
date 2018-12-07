@@ -64,7 +64,6 @@ extern inline int isMsgIdToLogAsInfo(txp::Id pId)
         case CORAL_ERROR:
         case CORAL_GETVAR:
         case CORAL_GOODBYE:
-        case CORAL_HELLO:
         case CORAL_HELLO_MONITOR:
         case CORAL_NO_OP:
         case CORAL_READY:

@@ -78,6 +78,19 @@ public:
     else return nullptr;
   }
   
+  int GetErrCode() {
+    int errCode= 0;
+    if (_pgres) 
+    {
+        char* errStr= PQ_RES_ERROR_CODE(_pgres);
+
+        if ( errStr)
+            errCode=strtol(errStr, nullptr, 10);
+    }
+
+    return errCode;
+  }
+
   size_t GetNumOfFields()
   {
     if (_pgres) return PQ_RES_GET_NFIELDS(_pgres);

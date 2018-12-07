@@ -95,6 +95,8 @@ extern const csmi_struct_mapping_t map_csm_allocation_delete_input_t;
 
 extern const csmi_struct_mapping_t map_csm_cgroup_login_input_t;
 
+extern const csmi_struct_mapping_t map_csmi_allocation_gpu_metrics_t;
+
 extern const csmi_struct_mapping_t map_csmi_allocation_mcast_context_t;
 
 extern const csmi_struct_mapping_t map_csmi_allocation_mcast_payload_request_t;
@@ -108,6 +110,14 @@ extern const csmi_struct_mapping_t map_csmi_allocation_step_mcast_payload_t;
 extern const csmi_struct_mapping_t map_csmi_jsrun_cmd_payload_t;
 
 extern const csmi_struct_mapping_t map_csm_jsrun_cmd_input_t;
+
+extern const csmi_struct_mapping_t map_csmi_soft_failure_recovery_payload_t;
+
+extern const csmi_struct_mapping_t map_csm_soft_failure_recovery_node_t;
+
+extern const csmi_struct_mapping_t map_csm_soft_failure_recovery_input_t;
+
+extern const csmi_struct_mapping_t map_csm_soft_failure_recovery_output_t;
 
 
 #ifdef __cplusplus

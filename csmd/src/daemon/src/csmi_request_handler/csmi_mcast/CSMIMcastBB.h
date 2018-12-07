@@ -25,6 +25,30 @@
 #include "csmi/include/csmi_type_bb_funct.h"
 #define STRUCT_TYPE csmi_bb_cmd_context_t
 
+// Build the error map table.
+struct CSMIBBCMDComparator
+{
+    int map(int val) const
+    {
+        int returnVal=0;
+        switch (val)
+        {
+            case CSMERR_GENERIC:
+            case CSMERR_MULTI_GEN_ERROR:
+                returnVal=-1;
+                break;
+            default:
+                break;
+        }
+        return returnVal;
+    }
+
+    bool operator() (const int& a, const int& b) const
+    {
+        return map(a) < map(b);
+    }
+};
+
 /**
  * @brief Defines a context object for a Burst Buffer command multicast context.
  */
@@ -59,7 +83,7 @@ struct csmi_bb_cmd_context_t {
  * @tparam DataStruct The allocation create/delete/update multicast context.
  */
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
+CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator>::~CSMIMcast();
 
 /** @brief Builds a specialized payload to handle burst buffer command multicast payloads.
  *
@@ -69,7 +93,7 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
  * @param[out] bufferLength The length of the @p bufferLength payload.
  */
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
+void CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
 
 /**
  * @brief Generates a unique identifier for the multicast.
@@ -78,11 +102,11 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
  * @return A string containing the unique identifier for the multicast.
  */
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString();
+std::string CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator>::GenerateIdentifierString();
 
 /** @brief A typedef for @ref csmi_bb_context_t specializations of @ref CSMIMcast.
  */
-typedef CSMIMcast<STRUCT_TYPE> CSMIBBCMD;
+typedef CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator> CSMIBBCMD;
 
 namespace csm{
 namespace mcast{

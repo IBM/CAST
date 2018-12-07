@@ -36,14 +36,14 @@ public:
         const std::string& stringBuffer,
         const uint32_t bufferLength,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 	
 	//DEAL WITH RETURNS FROM SQL QUERY
 	virtual bool CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char** stringBuffer, 
 		uint32_t &bufferLength,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 	
 	/** @brief Creates an allocation structure using the supplied tuples.
      *  FIXME  THIS IS DUPLICATED CODE!

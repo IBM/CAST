@@ -16,7 +16,7 @@
 #include "CSMIStatefulForwardResponse.h"
 
 void StatefulForwardResponse::Process(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const csm::daemon::CoreEvent &aEvent,
     std::vector<csm::daemon::CoreEvent*>& postEventList ) 
 {

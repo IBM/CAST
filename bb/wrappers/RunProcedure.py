@@ -61,7 +61,7 @@ def main(pEnv):
     if pEnv.has_key("procedure"):
         try:
             rc = getattr(procs, pEnv["procedure"])(pEnv)
-            print "Procedure -> %s, rc = %d" % (os.path.splitext(os.path.basename(pEnv["procedure"]))[0], rc)
+            print "%sProcedure -> %s, rc = %d" % (os.linesep, os.path.splitext(os.path.basename(pEnv["procedure"]))[0], rc)
         except:
             rc = -1
             print "When attempting to invoke procedure %s, unexpected error: %s" % (pEnv["procedure"], sys.exc_info()[0])

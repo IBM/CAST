@@ -81,7 +81,7 @@ bool CSMIJSRUNCMD_Master::CreatePayload(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return  RetrieveDataForPrivateCheck( arguments, len, dbPayload, ctx);
 }
@@ -90,7 +90,7 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
     const std::string& arguments,
     const uint32_t len,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
 
@@ -119,14 +119,14 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
         
         // Generate the auth query.
         std::string stmt = 
-            "SELECT a.user_id, a.num_nodes, array_agg(an.node_name) "
+            "SELECT a.user_id, a.num_nodes, array_agg(an.node_name), a.launch_node_name, a.type "
                 "FROM csm_allocation as a "
                 "LEFT JOIN csm_allocation_node as an "
                 "ON a.allocation_id=an.allocation_id "
                 "WHERE a.allocation_id=$1::bigint "
                     "AND a.state='";
         stmt.append(csm_get_string_from_enum(csmi_state_t,CSM_RUNNING));
-        stmt.append("' GROUP BY a.user_id, a.num_nodes");    
+        stmt.append("' GROUP BY a.user_id, a.num_nodes, a.launch_node_name, a.type");    
 
         const int paramCount = 1;
         *dbPayload = new csm::db::DBReqContent( stmt, paramCount );
@@ -143,7 +143,7 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
 bool CSMIJSRUNCMD_Master::CompareDataForPrivateCheck(
     const std::vector<csm::db::DBTuple *>& tuples,
     const csm::network::Message &msg,
-    csm::daemon::EventContextHandlerState_sptr ctx)
+    csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     MCAST_PROPS_PAYLOAD* mcastProps = nullptr;
     std::unique_lock<std::mutex>dataLock =
@@ -153,7 +153,7 @@ bool CSMIJSRUNCMD_Master::CompareDataForPrivateCheck(
 }
 
 bool CSMIJSRUNCMD_Master::ParseAuthQuery( 
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples, 
     MCAST_PROPS_PAYLOAD* mcastProps)
 {
@@ -177,15 +177,19 @@ bool CSMIJSRUNCMD_Master::ParseAuthQuery(
     bool success = true;
     csm::db::DBTuple* fields = tuples[0];
 
-    if (fields  || fields->nfields == 3)
+    if (fields && fields->nfields == 5)
     {
         uint32_t user_id   = strtol(fields->data[0], nullptr, 10);
         uint32_t num_nodes =  strtol(fields->data[1], nullptr, 10);
-        
+        mcast_ctx->launch_node  = strdup(fields->data[3]);
+        mcast_ctx->type = 
+            (csmi_allocation_type_t)csm_get_enum_from_string(csmi_allocation_type_t, fields->data[4]);
+
         if ( num_nodes > 0 )
         {
             mcast_ctx->compute_nodes = (char **)malloc(sizeof(char *) * num_nodes);
             uint32_t i = 0;
+
             char *saveptr;
             char *nodeStr = strtok_r(fields->data[2], ",\"{}", &saveptr);
             
@@ -241,14 +245,14 @@ bool CSMIJSRUNCMD_Master::ParseAuthQuery(
 bool CSMIJSRUNCMD_Master::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     return CreateByteArray(buf, bufLen, ctx);
 }
 
 bool CSMIJSRUNCMD_Master::CreateByteArray(
     char **buf, uint32_t &bufLen,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi,trace) <<  STATE_NAME ":CreateByteArray: Enter";
 
@@ -274,7 +278,8 @@ bool CSMIJSRUNCMD_Master::CreateByteArray(
         if ( mcastProps )
         {
             ctx->PrependErrorMessage(mcastProps->GenerateIdentifierString(),';');
-            ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+            ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+            //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
         }
     }
 

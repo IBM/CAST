@@ -26,19 +26,68 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 fi
 
 # spectrum mpi install
-S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu
-#S_BINDIR=/opt/ibm/spectrum_mpi/healthcheck/mpirun_scripts/dgemm_gpu
+SMPI_ROOT=/opt/ibm/spectrum_mpi/healthcheck
+## please read /opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu/README.dgemm_gpu
+## do we need to lock the clock? 
+## application clock, <memory,graphics> clocks as a pair (e.g. 2000,800) 
+## that defines GPU's speed in MHz while running applications on a GPU.
+APPL_CLOCK="877,1342"
+LOCK_CLOCK=0
+verbose=false
+
+usage()
+{
+cat << EOF
+        Usage: `basename $0` [options]
+        Runs GPU DGEMM
+        Optional arguments:
+              [-l]  Lock GPU application clock
+              [-c]  Set GPU application clock: <memory,graphics>
+              [-v]  Set verbose mode
+              [-m]  Use mpirun instead of jsrun
+              [-h]  This help screen
+EOF
+}
 
 readonly me=${0##*/}
 thishost=`hostname -s`
 thisdir=`dirname $0`
+
+MPI_DIR=""
+while [[ $# -gt 0 ]]; do
+  opt="$1"
+  case $opt in
+      -l)
+        LOCK_CLOCK=1
+        ;;
+      -c)
+        APPL_CLOCK=$2
+        shift 
+        ;;
+      -m)
+        # use mpirun instead of jsrun
+        MPI_DIR="mpirun_scripts"
+        ;;
+      -v)
+        verbose=true
+        ;;
+      -h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument: $opt"
+        exit 1
+        ;;
+  esac
+  shift
+done
 
 source $thisdir/../common/functions
 source $thisdir/../common/gpu_functions
 supported_machine
 
 echo "Running $me on `hostname -s`, machine type $model."          
-
 if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi 
 if [ -z $is_boston ]; then 
    echo -e "Could not determine if the machine has GPUs by model. Continuing.."
@@ -51,37 +100,26 @@ if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PAS
 # ===========================
 has_gpus
 rc=$ret
-nsuccess=$((ngpus+1))
 if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi 
 if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
 
-
-eye_catcher="PERFORMANCE SUCCESS:"
-tmpdir=/tmp/$$
-tmpout=/tmp/$$.out
-hostfile=/tmp/host.list$$
-
-trap 'rm -rf $tmpdir; rm -f $hostfile $tmpout' EXIT
-
-
-## first, we need to lock the  clock  
-## please read /opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu/README.dgemm_gpu
-
-LOCK_CLOCK=1
-if [ $# -gt 0 ]; then 
-  if ( [ "$1" -ne "0" ] && [ "$1" -ne "1" ]); then echo -e "Invalid argument: $1\n$me test FAIL, rc=$1"; exit 1; fi 
-  LOCK_CLOCK=$1
-fi
-
 if [ "$LOCK_CLOCK" -eq "1" ]; then
-   echo "Issuing 'sudo /usr/bin/nvidia-smi -ac 877,1342'"
-   sudo /usr/bin/nvidia-smi -ac 877,1342 
+   echo "Issuing 'sudo /usr/bin/nvidia-smi -ac ${APPL_CLOCK}'"
+   sudo /usr/bin/nvidia-smi -ac ${APPL_CLOCK} 
 fi
+
+tmpdir=/tmp/$$
+hostfile=/tmp/host.list$$
+trap 'rm -rf $tmpdir; rm -f $hostfile' EXIT
 
 # It is the dgemm_gpu version that comes with spectrum mpi
 #------------------------------------------------------      
-if [ ! -x $S_BINDIR/run.dgemm_gpu ]; then 
-   echo "Can not find the dgemm-gpu installation."          
+get_processor
+if [ "$ret" -ne "0" ]; then echo -e "Processor not supported: $processor.\n$me test FAIL, rc=1"; exit 1; fi
+DGEMM_DIR="${SMPI_ROOT}/POWER${processor:1:1}/${MPI_DIR}/dgemm_gpu"
+
+if [ ! -x ${DGEMM_DIR}/run.dgemm_gpu ]; then 
+   echo "Can not find the dgemm-gpu installation: ${DGEMM_DIR}."          
    echo "$me test FAIL, rc=$rc"
    exit 1
 fi
@@ -89,13 +127,13 @@ fi
 mkdir $tmpdir
 output_dir=$tmpdir
 
-
 # check if we need jsmd
-need_jsmd=`grep -c "jsrun " $S_BINDIR/run.dgemm_gpu`
+need_jsmd=`grep -c "jsrun " ${DGEMM_DIR}/run.dgemm_gpu`
+flags="-d $tmpdir" 
 stopd=0
 if [ "$need_jsmd" -ne "0" ]; then
    # check if we there is jsm daemon running
-   run_flag="-g $ngpus"
+   flags+=" -g $ngpus"
    is_running=`/usr/bin/pgrep jsmd`
    if [ -z "$is_running" ]; then 
       # not running, need to create a host.file, just with the hostname
@@ -105,20 +143,18 @@ if [ "$need_jsmd" -ne "0" ]; then
       echo "hostfile $hostfile content is:"
       cat $hostfile
       stopd=1
-      run_flag="${run_flag} -c"
+      flags+=" -c"
    fi
-   cmd="cd $S_BINDIR; ./run.dgemm_gpu ${run_flag} -d $tmpdir >$tmpout 2>&1"
 else
    # need to create a host.file, hostname slots="
    echo "$thishost slots=1" > $hostfile
    echo "hostfile $hostfile content is:"
    cat $hostfile
-   cmd="cd $S_BINDIR; ./run.dgemm_gpu -f $hostfile -d $tmpdir >$tmpout 2>&1"
+   flags+=" -f $hostfile"
 fi
 
-
-echo -e "\nRunning: $cmd.\n"          
-eval $cmd
+echo -e "\nRunning: cd ${DGEMM_DIR}; ./run.dgemm_gpu ${flags}"
+cd ${DGEMM_DIR}; ./run.dgemm_gpu ${flags}
 rc=$?
 
 if [ "$stopd" -eq "1" ]; then stop_jsmd; fi
@@ -128,41 +164,20 @@ if [ "$LOCK_CLOCK" -eq "1" ]; then
    sudo /usr/bin/nvidia-smi -rac
 fi
 
-
-echo -e "\n================================================================"
-echo -e "\nPrinting dgemm_gpu raw output file(s) in $output_dir"
-if [ -d $output_dir ]; then
-   for file in `ls $output_dir`; do
-     echo -e "\nFile: $output_dir/$file"
-     cat $output_dir/$file
-     #rm $output_dir/$file
-   done
-fi
-
-
-echo -e "\n================================================================"
-echo -e "\nResults:\n"
-trc=3
-if [ -f $tmpout ]; then
-   cat $tmpout
-   echo -e "\n"
-   trc=0
-fi
-
-if [ $rc -eq 0 ]; then
-   if [ $trc -eq 0 ]; then 
-      npass=`grep -c "$eye_catcher" $tmpout`
-      if [ "$npass" -ne "$nsuccess" ]; then rc=2; fi
-   else
-      rc=$trc
+if $verbose; then
+   echo -e "\n================================================================"
+   echo -e "\nPrinting dgemm_gpu raw output file(s) in $output_dir"
+   if [ -d $output_dir ]; then
+      for file in `ls $output_dir`; do
+        echo -e "\nFile: $output_dir/$file"
+        cat $output_dir/$file
+      done
    fi
 fi
 
-if [ "$rc" -eq "0" ]; then
-  echo "$me test PASS, rc=0"
-else
-  echo "$me test FAIL, rc=$rc"
-fi
 
+if [ "$rc" -eq "0" ]; then echo "$me test PASS, rc=0"; exit 0; fi
+
+echo "$me test FAIL, rc=$rc"
 exit $rc
 

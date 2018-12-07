@@ -49,3 +49,10 @@ install(TARGETS standalone_ib_and_switch_collection COMPONENT csm-api DESTINATIO
 #install(TARGETS standalone_ib_and_switch_collection COMPONENT csm-core DESTINATION csm/sbin)
 
 message("STANDALONE_IB_AND_SWITCH_COLLECTION_SRC: ${CSM_IB_SRC}")
+
+
+file(GLOB INSTALL_FILES
+  "example_ssl.txt"
+  "csm_ufm_ssl_key.txt"
+)
+install(FILES ${INSTALL_FILES} COMPONENT csm-core DESTINATION csm/share/etc)

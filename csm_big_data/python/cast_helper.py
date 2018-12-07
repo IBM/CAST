@@ -28,6 +28,7 @@ import re
 
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
+from elasticsearch import exceptions
 from datetime import datetime
    
 TARGET_ENV='CAST_ELASTIC'
@@ -44,6 +45,27 @@ USER_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation
 
 SEARCH_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
     "data.user_name", "data.user_id", "data.begin_time", "data.history.end_time", "data.state"]
+
+def print_request_error(exception):
+    '''Performs a print of the request error.
+        :param elasticsearch.exceptions.RequestError: A request error to print the contents of.
+    '''
+    error = exception.info.get("error")
+
+    print("A RequestError was recieved:")
+    if error is not None:
+        print("  type: {0}\n  reason: {1}".format(error.get("type"), error.get("reason")))
+        
+        root_cause = error.get("root_cause")
+
+        if root_cause is not None:
+            i = 0
+            for cause in root_cause:
+                print("  root_{2}_type: {0}\n  root_{2}_reason: {1}\n\t".format(
+                    cause.get("type"), cause.get("reason"), i))
+    else:
+        print(exception)
+    
 
 def get_env():
     '''Gets useful evironment variables.
@@ -113,7 +135,7 @@ def build_time_range(start_time, end_time,
     start_field and end_field) collides with the range defined by start_time and end_time.
 
     The logic used in these time range queries is : 
-        `start_field <= end_time && ( end_field >= start_time || end_field == None)`
+        `start_field <= end_time && ( end_field >= start_time || end_field is None)`
 
     :param string start_time:  The start of the time range to find records in.
     :param string end_time:    The end of the time range to find records in.

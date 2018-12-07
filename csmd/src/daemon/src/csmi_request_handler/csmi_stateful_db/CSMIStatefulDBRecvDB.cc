@@ -18,7 +18,7 @@
 bool StatefulDBRecv::HandleDBResp(
         const std::vector<csm::db::DBTuple *>& tuples,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) 
+        csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG( csmapi, trace ) << "StatefulDBRecv::HandleDBResp: Enter";
 

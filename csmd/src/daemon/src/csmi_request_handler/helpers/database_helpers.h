@@ -57,11 +57,17 @@ inline bool InspectDBResult(
     // as it may be due to db connection. dbMgr will leave the request in the queue and try later.
     if (dbRes == nullptr || dbRes->GetResStatus() != csm::db::DB_SUCCESS)
     {
-        errcode = CSMERR_DB_ERROR;
         if (dbRes == nullptr)
+        {
+            errcode = 0;
             errmsg.append( "No Database Connection in Local Daemon" );
+        }
         else
+        {
             errmsg.append( dbRes->GetErrMsg() );
+            errcode = dbRes->GetErrCode();
+        }
+
         return false;
     }
     else

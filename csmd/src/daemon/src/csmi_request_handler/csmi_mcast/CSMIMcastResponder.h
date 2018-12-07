@@ -27,7 +27,7 @@
 #include "CSMIMcast.h"
 #include "CSMIMcastPrototypes.h"
 
-#define ERR_MSG_DIVIDE " | "
+#define ERR_MSG_DIVIDE " "
 #define STATE_NAME "McastResponder:"
 #include "../csmi_network_message_state.h"
 
@@ -93,7 +93,7 @@ protected:
     virtual bool HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final
     {
         LOG( csmapi, trace ) << STATE_NAME ":HandleNetworkMessage: Enter";
         bool success = true;
@@ -150,7 +150,7 @@ protected:
     template<typename FT=PayloadFT,
              typename std::enable_if<std::is_same<FT, PayloadConstructor<PayloadType>>::value>::type* = nullptr>
     inline bool GenerateResponse( 
-        csm::daemon::EventContextHandlerState_sptr ctx, 
+        csm::daemon::EventContextHandlerState_sptr& ctx, 
         PayloadType* mcastProps, 
         std::vector<csm::daemon::CoreEvent*>& postEventList )
     {
@@ -186,7 +186,7 @@ protected:
     template<typename FT=PayloadFT, 
              typename std::enable_if<std::is_same<FT, TerminalByte>::value>::type* = nullptr>
     inline bool GenerateResponse( 
-        csm::daemon::EventContextHandlerState_sptr ctx, 
+        csm::daemon::EventContextHandlerState_sptr& ctx, 
         PayloadType* mcastProps, 
         std::vector<csm::daemon::CoreEvent*>& postEventList )
     {
@@ -210,7 +210,7 @@ protected:
     }
 
     virtual void ProcessError( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csmi_err_t* error ) final
     {
         // If the error was specified cache.
@@ -252,7 +252,7 @@ protected:
      * @param[in,out] postEventList The event queue.
      */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final
     {
        LOG( csmapi, trace ) << STATE_NAME ":GenerateTimeoutResponse: Enter";
@@ -272,7 +272,7 @@ protected:
      * @param[in] byAggregator Specifies whether the error must be sent through the Aggregator.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator ) final
@@ -299,7 +299,7 @@ protected:
      */
     template<bool M=McastRecover, typename std::enable_if<M>::type* = nullptr>
     void GenerateError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator=false )
@@ -308,6 +308,16 @@ protected:
         
         // FIXME if something times out then returns an error, this breaks things.
         ctx->SetReceivedNumResponses(ctx->GetReceivedNumResponses() + 1);
+
+        PayloadType* mcastProps = nullptr;
+        std::unique_lock<std::mutex>dataLock = 
+            ctx->GetUserData<PayloadType*>(&mcastProps);
+
+        if ( mcastProps )
+        {
+            // Push the errorcode onto the heap to be sure
+            mcastProps->PushError(ctx->GetErrorCode());
+        }
         
         // First verify that all of the nodes have responded.
         // If all the nodes have responded attempt to recover (dependant on implementation).
@@ -318,9 +328,9 @@ protected:
                 ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR);
             
             // Get the multicast properties first.
-            PayloadType* mcastProps = nullptr;
-            std::unique_lock<std::mutex>dataLock = 
-                ctx->GetUserData<PayloadType*>(&mcastProps);
+            //PayloadType* mcastProps = nullptr;
+            //std::unique_lock<std::mutex>dataLock = 
+            //    ctx->GetUserData<PayloadType*>(&mcastProps);
 
             // Helper Variables.
             bool success = mcastProps != nullptr;
@@ -335,10 +345,16 @@ protected:
 
                 // Attempt to build the payload.
                 mcastProps->BuildMcastPayload(&buffer, &bufferLength);
+
+                // Push the errorcode onto the heap to be sure
+                mcastProps->PushError(ctx->GetErrorCode());
                 
                 // Append additional errors.
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                 ctx->AppendErrorMessage(mcastProps->GetErrorMessage());
+             
+                // Set the Error Code.
+                ctx->SetErrorCode(mcastProps->GetMainErrorCode());
             }
 
             ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
@@ -393,7 +409,8 @@ protected:
                     }
                     else
                     {
-                        ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+                        //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+                        ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
                         LOG(csmapi, error) << ctx << STATE_NAME "Unable to build the response query.";
                         dataLock.unlock();
                         CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);
@@ -430,7 +447,7 @@ protected:
      */
     template<bool M=McastRecover, typename std::enable_if<!M>::type* = nullptr>
     void GenerateError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false ) 
@@ -439,6 +456,16 @@ protected:
         
         // FIXME if something times out then returns an error, this breaks things.
         ctx->SetReceivedNumResponses(ctx->GetReceivedNumResponses() + 1);
+
+        PayloadType* mcastProps = nullptr;
+        std::unique_lock<std::mutex>dataLock = 
+            ctx->GetUserData<PayloadType*>(&mcastProps);
+
+        if ( mcastProps )
+        {
+            // Push the errorcode onto the heap to be sure
+            mcastProps->PushError(ctx->GetErrorCode());
+        }
         
         // First verify that all of the nodes have responded.
         // If all the nodes have responded attempt to recover (dependant on implementation).
@@ -448,10 +475,6 @@ protected:
             if ( ctx->GetErrorCode() == CSMI_SUCCESS ) 
                 ctx->SetErrorCode(CSMERR_MULTI_RESP_ERROR);
             
-            PayloadType* mcastProps = nullptr;
-            std::unique_lock<std::mutex>dataLock = 
-                ctx->GetUserData<PayloadType*>(&mcastProps);
-
             if ( mcastProps )
             {
                 // Generate the RAS event for the failure cases.
@@ -461,6 +484,10 @@ protected:
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                 ctx->AppendErrorMessage(mcastProps->GetErrorMessage());
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
+
+
+                // Set the Error Code.
+                ctx->SetErrorCode(mcastProps->GetMainErrorCode());
                
                 // Attempt the database recovery function.
                 csm::db::DBReqContent *dbReq = DBRecover(ctx, mcastProps);
@@ -472,7 +499,8 @@ protected:
                 }
                 else
                 {
-                    ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
+                    ctx->SetNodeErrors(mcastProps->GenerateErrorListingVector());
+                    //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
                     LOG(csmapi, error) << ctx << STATE_NAME " Unable to build the response query.";
                     dataLock.unlock();
                     CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);

@@ -16,16 +16,15 @@
 
 #================================================================================
 #   usage:              ./csm_db_ras_type_script.sh
-#   current_version:    01.7
+#   current_version:    01.9
 #   create:             11-07-2017
-#   last modified:      08-10-2018
+#   last modified:      12-05-2018
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
 
 OPTERR=0
 logpath="/var/log/ibm/csm/db"
-#logpath=`pwd` #<------- Change this when pushing to the repo.
 logname="csm_db_ras_type_script.log"
 cd "${BASH_SOURCE%/*}" || exit
 #cur_path=`pwd`
@@ -41,6 +40,10 @@ now1=$(date '+%Y-%m-%d %H:%M:%S')
 
 BASENAME=`basename "$0"`
 
+line1_out="------------------------------------------------------------------------------------------------------------------------"
+line2_log="------------------------------------------------------------------------------------"
+line3_log="---------------------------------------------------------------------------------------------------------------------------"
+
 #==============================================
 # Log Message---
 #================================================================================
@@ -49,7 +52,7 @@ BASENAME=`basename "$0"`
 # The current version will only display results to the screen
 #================================================================================
 
-if [ -d "$logpath" ]; then
+if [ -w "$logpath" ]; then
     logdir="$logpath"
 else
     logdir="/tmp"
@@ -78,8 +81,8 @@ echo "[Start   ] Welcome to CSM database ras type automation script."
 
 function usage () {
 echo "================================================================================================="
-echo "[Info ] $BASENAME : Load/Remove data from csm_ras_type table"
-echo "[Usage] $BASENAME : [OPTION]... [DBNAME]... [CSV_FILE]"
+echo "[Info    ] $BASENAME : Load/Remove data from csm_ras_type table"
+echo "[Usage   ] $BASENAME : [OPTION]... [DBNAME]... [CSV_FILE]"
 echo "-------------------------------------------------------------------------------------------------"
 echo "  Argument               |  DB Name  | Description                                               "
 echo "-------------------------|-----------|-----------------------------------------------------------"
@@ -128,10 +131,10 @@ do
                             LogMsg "[Info    ] Script execution: $BASENAME [NO ARGUMENT]"
                             LogMsg "[Info    ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
                             LogMsg "[End     ] Please choose another option"
-                            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-                                     exit 0 ;;
+                            echo "${line3_log}" >> $logfile
+                            exit 0 ;;
         # pass through anything else
-        *)                           set -- "$@" "$arg" ;;
+        *)                  set -- "$@" "$arg" ;;
      esac
  done
 
@@ -159,25 +162,22 @@ do
                 if [ -z "$3" ]; then
                     echo "[Error   ] Please specify csv file to import"
                     LogMsg "[Error   ] Please specify csv file to import"
-                    echo "-------------------------------------------------------------------------------------"
-                    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+                    echo "${line1_out}"
+                    echo "${line3_log}" >> $logfile
                     exit 1
                 else
                 loaddata="yes"
                 dbname="$2"
                 csv_file_name="$3"
-                    if [ -f $csv_file_name ]; then
-                        #echo "-------------------------------------------------------------------------------------"
-                        echo "[Info    ] $3 file exists"
-                        LogMsg "[Info    ] $3 file exists"
-                        #LogMsg "------------------------------------------------------------------------------"
-                        #echo "-------------------------------------------------------------------------------------"
-                    else    
+                    if [ ! -f $csv_file_name ]; then
+                    #    echo "[Info    ] $3 file exists"
+                    #    LogMsg "[Info    ] $3 file exists"
+                    #else    
                         echo "[Error   ] File $csv_file_name can not be located or doesn't exist"
                         echo "[Info    ] Please choose another file or check path"
                         LogMsg "[Error   ] Cannot perform action because the $csv_file_name file does not exist. Exiting."
-                        echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-                        echo "-------------------------------------------------------------------------------------"
+                        echo "${line3_log}" >> $logfile
+                        echo "${line1_out}"
                     exit 0
                     fi
                 fi
@@ -197,7 +197,7 @@ do
              usage
              LogMsg "[Info    ] Script execution: ./csm_db_stats.sh -h, --help"
              LogMsg "[End     ] Help menu query executed"
-             echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+             echo "${line3_log}" >> $logfile
              exit 0
              ;;
         *)
@@ -206,7 +206,7 @@ do
             LogMsg "[Info    ] Script execution: $BASENAME [NO ARGUMENT]"
             LogMsg "[Info    ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
             LogMsg "[End     ] Please choose another option"
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+            echo "${line3_log}" >> $logfile
             exit 0
             ;;
     esac
@@ -223,41 +223,59 @@ done
      LogMsg "[Info    ] Script execution: $BASENAME [NO ARGUMENT]"
      LogMsg "[Info    ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
      LogMsg "[End     ] Please choose another option"
-     echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+     echo "${line3_log}" >> $logfile
      exit 0
  fi
 
-#=======================================
-# Check if postgresql exists already
-#=======================================
-
-string1="$now1 ($current_user) [Info    ] DB Names:"
-psql -l 2>>/dev/null $logfile
-
-if [ $? -ne 127 ]; then       #<------------This is the error return code
-db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-\set ON_ERROR_STOP true
-select string_agg(datname,' | ') from pg_database;
+#=================================================
+# Check if postgresql exists already and root user
+#=================================================
+string1="$now1 ($current_user) [Info    ] DB Users:"
+    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
+        if [ $? -ne 0 ]; then
+            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(usename,' | ') from pg_user;
 EOF`
-    echo "$string1 $db_query" | sed "s/.\{80\}|/&\n$string1 /g" >> $logfile
-    echo "[Info    ] PostgreSQL is installed" #This message can be displayed to the screen as output
-    LogMsg "[Info    ] PostgreSQL is installed"
-    #LogMsg "---------------------------------------------------------------------------------------"
-else
-    echo "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "[Error   ] PostgreSQL may not be installed. Please check configuration settings"
-    LogMsg "---------------------------------------------------------------------------------------"
-    exit 1
-fi
+            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
+            echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
+            exit 0
+        fi
+
+#=================================================
+# Check if postgresql exists already and DB name
+#=================================================
+string2="$now1 ($current_user) [Info    ] DB Names:"
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
+        if [ $? -eq 0 ]; then       #<------------This is the error return code
+            db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
+            \set ON_ERROR_STOP true
+            select string_agg(datname,' | ') from pg_database;
+EOF`
+            echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
+            LogMsg "[Info    ] PostgreSQL is installed"
+        else
+            echo "${line1_out}"
+            echo "[Error   ] PostgreSQL may not be installed or DB: $dbname may not exist."
+            echo "[Info    ] Please check configuration settings or psql -l"
+            echo "${line1_out}"
+            LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
+            LogMsg "[Info    ] Please check configuration settings or psql -l"
+            echo "${line3_log}" >> $logfile
+            exit 1
+        fi
 
 #======================================
 # Check if database exists already
 #======================================
 db_exists="no"
-psql -lqt | cut -d \| -f 1 | grep -qw $dbname
-if [ $? -eq 0 ]; then
-    db_exists="yes"
-fi
+    psql -lqt | cut -d \| -f 1 | grep -qw $dbname
+        if [ $? -eq 0 ]; then
+            db_exists="yes"
+        fi
 
 #==================================================================
 # End it if the input argument requires an existing database
@@ -270,9 +288,8 @@ if [ $db_exists == "no" ]; then
      echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
      LogMsg "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
      LogMsg "[End     ] Database does not exist"
-     echo "-------------------------------------------------------------------------------------"
-     echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-     #LogMsg "---------------------------------------------------------------------------------------"
+     echo "${line1_out}"
+     echo "${line3_log}" >> $logfile
      exit 0
 fi
 
@@ -291,19 +308,63 @@ ras_script_errors="$(mktemp)"
 #trap 'rm -f "$ras_script_errors"' EXIT
 
 if [ $loaddata == "yes" ]; then
-count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
-select count(*) from csm_ras_type;
+    echo "[Info    ] $3 file exists"
+    LogMsg "[Info    ] $3 file exists"
+    echo "[Warning ] This will load and or update csm_ras_type table data into $dbname database. Do you want to continue [y/n]?"
+    LogMsg "[Info    ] $dbname database insert/update process begin."
+    read -s -n 1 loaddata
+    case "$loaddata" in
+        [yY][eE][sS]|[yY]) echo "[Info    ] User response: $loaddata"
+        LogMsg "[Info    ] User response: $loaddata";;
+        *)
+            echo "[Info    ] User response: $loaddata"
+            echo "[Info    ] Skipping the csm_ras_type table data import/update process"
+            echo "${line2_log}"
+            LogMsg "[Info    ] Skipping the csm_ras_type table data import/update process"
+            LogMsg "[End     ] $dbname database Data load/update process has ended."
+            echo "${line3_log}" >> $logfile
+            return_code=1
+            exit 0
+        ;;
+    esac
 
+rtl_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+select count(*) from csm_ras_type;
 THE_END`
 
-import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END 2>>/dev/null
 BEGIN;
 LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
-    CREATE TEMP TABLE tmp_ras_type_data
-        as
-        SELECT * FROM csm_ras_type;
+    CREATE TEMP TABLE tmp_ras_type_data(msg_id text, severity ras_event_severity, message text, description text, control_action text, threshold_count int, threshold_period int, enabled boolean, set_state compute_node_states, visible_to_users boolean);
         \copy tmp_ras_type_data FROM '$csv_file_name' with csv header;
+        WITH rows AS (
+        UPDATE csm_ras_type
+        SET
+        severity = tmp_ras_type_data.severity,
+        message = tmp_ras_type_data.message,
+        description = tmp_ras_type_data.description,
+        control_action = tmp_ras_type_data.control_action,
+        threshold_count = tmp_ras_type_data.threshold_count,
+        threshold_period = tmp_ras_type_data.threshold_period,
+        enabled = tmp_ras_type_data.enabled,
+        set_state = tmp_ras_type_data.set_state,
+        visible_to_users = tmp_ras_type_data.visible_to_users
+        FROM tmp_ras_type_data
+        WHERE
+        (csm_ras_type.severity <> tmp_ras_type_data.severity
+        OR csm_ras_type.message <> tmp_ras_type_data.message
+        OR csm_ras_type.description <> tmp_ras_type_data.description
+        OR csm_ras_type.control_action <> tmp_ras_type_data.control_action
+        OR csm_ras_type.threshold_count <> tmp_ras_type_data.threshold_count
+        OR csm_ras_type.threshold_period <> tmp_ras_type_data.threshold_period
+        OR csm_ras_type.enabled <> tmp_ras_type_data.enabled
+        OR csm_ras_type.set_state <> tmp_ras_type_data.set_state
+        OR csm_ras_type.visible_to_users <> tmp_ras_type_data.visible_to_users)
+        AND csm_ras_type.msg_id = tmp_ras_type_data.msg_id
+        RETURNING *)
+        SELECT count(*) FROM rows;
+
         SELECT count(*) FROM tmp_ras_type_data;
         INSERT INTO csm_ras_type
         SELECT DISTINCT ON (msg_id) * FROM tmp_ras_type_data
@@ -320,29 +381,40 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
 COMMIT; 
 THE_END`
 
-if [[ 0 -ne $? ]]; then
-    #>> "$ras_script_errors" #| tee -a "$ras_script_errors" | \
-    #awk '/^ERROR:.*$/ { print "'"$(date '+%Y-%m-%d.%H:%M:%S') ($current_user) ($BASENAME ) [Error ] "'" $0 }' | tee -a >>"${logfile}"
-    echo "Something went wrong; error log follows:" >> "$ras_script_errors"
+if [[ $? -ne 0 ]]; then
+     echo "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     echo "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     LogMsg "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[End     ] Aborting csv process"
+     echo "${line1_out}"
+     echo "${line3_log}" >> $logfile
     exit 0
 fi
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count
-Difference=$(($count + $2))
+#Difference=$(($count + $2))
+diff=$(($count - $rtl_count))
 
-    echo "[Info    ] Record import count: $Difference"
-    LogMsg "[Info    ] Record import count: $Difference"
-    echo "[Info    ] csm_ras_type live row count: $3"
-    LogMsg "[Info    ] csm_ras_type live row count: $3"
-    echo "[Info    ] csm_ras_type_audit live row count: $4"
-    LogMsg "[Info    ] csm_ras_type_audit live row count: $4"
+    echo "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    LogMsg "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    echo "[Info    ] Record import count from $csv_file_name: $count"
+    LogMsg "[Info    ] Record import count from $csv_file_name: $count"
+    echo "[Info    ] Record update count from $csv_file_name: $1"
+    LogMsg "[Info    ] Record update count from $csv_file_name: $1"
+    echo "[Info    ] Total csm_ras_type insert count from file: $diff"
+    LogMsg "[Info    ] Total csm_ras_type insert count from file: $diff"
+    echo "[Info    ] csm_ras_type live row count after script execution: $4"
+    LogMsg "[Info    ] csm_ras_type live row count after script execution: $4"
+    echo "[Info    ] csm_ras_type_audit live row count: $5"
+    LogMsg "[Info    ] csm_ras_type_audit live row count: $5"
     echo "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
     LogMsg "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
-    echo "-------------------------------------------------------------------------------------"
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+    echo "${line2_log}"
+    echo "${line3_log}" >> $logfile
     exit $return_code
-    fi
+fi
 
 #===============================================
 # Remove all data from the database tables
@@ -353,17 +425,14 @@ return_code=0
 if [ $removedata == "yes" ]; then
     if [ ! -z "$3" ]; then
             if [ -f $csv_file_name ]; then
-                #echo "-------------------------------------------------------------------------------------"
                 echo "[Info    ] $3 file exists"
                 LogMsg "[Info    ] $3 file exists"
-                #LogMsg "------------------------------------------------------------------------------"
-                #echo "-------------------------------------------------------------------------------------"
             else    
                 echo "[Error   ] File $csv_file_name can not be located or doesn't exist"
                 echo "[Info    ] Please choose another file or check path"
                 LogMsg "[Error   ] Cannot perform action because the $csv_file_name file does not exist. Exiting."
-                echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-                echo "-------------------------------------------------------------------------------------"
+                echo "${line3_log}" >> $logfile
+                echo "${line2_log}"
             exit 0
             fi
     fi
@@ -397,25 +466,50 @@ set -- $delete_count_csm_ras_type
             LogMsg "[Info    ] Data from the csm_ras_type table has been successfully removed"
                 if [ ! -z "$csv_file_name" ]; then
                     LogMsg "[Info    ] $dbname database remove all data from the csm_ras_type table."
-                    echo "-------------------------------------------------------------------------------------"
+                    echo "${line2_log}"
                 else
                     LogMsg "[End     ] $dbname database remove all data from the csm_ras_type table."
-                    echo "-------------------------------------------------------------------------------------"
-                    #echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+                    echo "${line2_log}"
+                    echo "${line3_log}" >> $logfile
+                exit 0
                 fi
 
-count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+rtl_count=`psql -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
 select count(*) from csm_ras_type;
 
 THE_END`
-import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END
+import_count=`psql -v ON_ERROR_STOP=1 -q -t -U $db_username -d $dbname -P format=wrapped << THE_END 2>>/dev/null
 BEGIN;
 LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
     DROP TABLE IF EXISTS tmp_ras_type_data;
-    CREATE TEMP TABLE tmp_ras_type_data
-        as
-        SELECT * FROM csm_ras_type;
+    CREATE TEMP TABLE tmp_ras_type_data(msg_id text, severity ras_event_severity, message text, description text, control_action text, threshold_count int, threshold_period int, enabled boolean, set_state compute_node_states, visible_to_users boolean);
+        --as
+        --SELECT * FROM csm_ras_type;
         \copy tmp_ras_type_data FROM '$csv_file_name' with csv header;
+        UPDATE csm_ras_type
+        SET
+        severity = tmp_ras_type_data.severity,
+        message = tmp_ras_type_data.message,
+        description = tmp_ras_type_data.description,
+        control_action = tmp_ras_type_data.control_action,
+        threshold_count = tmp_ras_type_data.threshold_count,
+        threshold_period = tmp_ras_type_data.threshold_period,
+        enabled = tmp_ras_type_data.enabled,
+        set_state = tmp_ras_type_data.set_state,
+        visible_to_users = tmp_ras_type_data.visible_to_users
+        FROM tmp_ras_type_data
+        WHERE
+        (csm_ras_type.severity <> tmp_ras_type_data.severity
+        OR csm_ras_type.message <> tmp_ras_type_data.message
+        OR csm_ras_type.description <> tmp_ras_type_data.description
+        OR csm_ras_type.control_action <> tmp_ras_type_data.control_action
+        OR csm_ras_type.threshold_count <> tmp_ras_type_data.threshold_count
+        OR csm_ras_type.threshold_period <> tmp_ras_type_data.threshold_period
+        OR csm_ras_type.enabled <> tmp_ras_type_data.enabled
+        OR csm_ras_type.set_state <> tmp_ras_type_data.set_state
+        OR csm_ras_type.visible_to_users <> tmp_ras_type_data.visible_to_users)
+        AND csm_ras_type.msg_id = tmp_ras_type_data.msg_id;
+
         SELECT count(*) FROM tmp_ras_type_data;
         INSERT INTO csm_ras_type
         SELECT DISTINCT ON (msg_id) * FROM tmp_ras_type_data
@@ -429,29 +523,43 @@ LOCK TABLE csm_ras_type IN EXCLUSIVE MODE;
         (SELECT "count"(*) as cnt1 from csm_ras_type) - (SELECT "count"(*) as cnt2 from tmp_ras_type_data) as total_count;
         select count(*) from csm_ras_type;
         select count(*) from csm_ras_type_audit;
-COMMIT;
-THE_END` 2>>/dev/null
+COMMIT; 
+THE_END` #2>>/dev/null
+
+if [[ $? -ne 0 ]]; then
+     echo "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     echo "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[Error   ] Cannot perform action because the csv: $csv_file_name might not be compatible with the DB. Exiting."
+     LogMsg "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[End     ] Aborting csv process"
+     echo "${line1_out}"
+     echo "${line3_log}" >> $logfile
+    exit 0
+fi
 
 count=$(grep -vc "^#" $csv_file_name)
 set -- $import_count
-Difference=$(($count + $2))
+#Difference=$(($count + $2))
+diff=$(($count - $rtl_count))
 
-    echo "[Info    ] Record import begin process"
-    LogMsg "[Info    ] Record import begin process"
-    echo "[Info    ] Record import count: $Difference"
-    LogMsg "[Info    ] Record import count: $Difference"
-    echo "[Info    ] csm_ras_type live row count: $3"
-    LogMsg "[Info    ] csm_ras_type live row count: $3"
-    echo "[Info    ] csm_ras_type_audit live row count: $4"
-    LogMsg "[Info    ] csm_ras_type_audit live row count: $4"
-    echo "[Info    ] Database csv upload process complete for csm_ras_type table."
-    LogMsg "[End     ] Database csv upload process complete for csm_ras_type table."
-    echo "-------------------------------------------------------------------------------------"
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+    echo "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    LogMsg "[Info    ] csm_ras_type record count before script execution:$rtl_count"
+    echo "[Info    ] Record import count from $csv_file_name: $count"
+    LogMsg "[Info    ] Record import count from $csv_file_name: $count"
+#   echo "[Info    ] Record update count from $csv_file_name: $1"
+#   LogMsg "[Info    ] Record update count from $csv_file_name: $1"
+    echo "[Info    ] Total csm_ras_type insert count from file: $diff"
+    LogMsg "[Info    ] Total csm_ras_type insert count from file: $diff"
+    echo "[Info    ] csm_ras_type live row count after script execution: $4"
+    LogMsg "[Info    ] csm_ras_type live row count after script execution: $4"
+    echo "[Info    ] csm_ras_type_audit live row count: $5"
+    LogMsg "[Info    ] csm_ras_type_audit live row count: $5"
+    echo "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
+    LogMsg "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
+    echo "${line2_log}"
+    echo "${line3_log}" >> $logfile
     exit $return_code
-else
-    echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
-    fi
+    echo "${line3_log}" >> $logfile
         ;;
         *)
             echo "[Info    ] User response: $removedata"
@@ -459,8 +567,8 @@ else
             echo "[Info    ] Data removal from the csm_ras_type table has been aborted"
             LogMsg "[Info    ] Data removal from the csm_ras_type table has been aborted"
             LogMsg "[End     ] $dbname database attempted removal process has ended."
-            echo "-------------------------------------------------------------------------------------"
-            echo "-----------------------------------------------------------------------------------------------------------------------------------" >> $logfile
+            echo "${line2_log}"
+            echo "${line3_log}" >> $logfile
             return_code=1
         ;;
     esac

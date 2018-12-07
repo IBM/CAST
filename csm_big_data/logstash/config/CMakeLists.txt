@@ -17,6 +17,7 @@ set(SUBDIR logstash/config)
 
 file(GLOB INSTALL_FILES
   "logstash.conf"
+  "jvm.options"
 )
 
 install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})

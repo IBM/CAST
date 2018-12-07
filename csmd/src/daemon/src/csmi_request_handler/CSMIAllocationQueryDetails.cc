@@ -50,7 +50,7 @@ bool CSMIAllocationQueryDetails::RetrieveDataForPrivateCheck(
         const std::string& arguments, 
         const uint32_t len, 
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG( csmapi, trace ) << STATE_NAME ":RetrieveDataForPrivateCheck: Enter";
 	
@@ -97,7 +97,7 @@ bool CSMIAllocationQueryDetails::RetrieveDataForPrivateCheck(
 bool CSMIAllocationQueryDetails::CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples,
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
 {
     LOG( csmapi, trace ) << STATE_NAME ":CompareDataForPrivateCheck: Enter";
 	
@@ -140,7 +140,7 @@ bool CSMIAllocationQueryDetails::CreatePayload(
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Enter";
 
@@ -230,7 +230,7 @@ bool CSMIAllocationQueryDetails::CreatePayload(
 bool CSMIAllocationQueryDetails::CreateResponsePayload(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG(csmapi, trace) << STATE_NAME ":CreateResponsePayload: Enter";
     
@@ -413,7 +413,7 @@ bool CSMIAllocationQueryDetails::CreateResponsePayload(
 bool CSMIAllocationQueryDetails::CreateStepPayload(
     const std::vector<csm::db::DBTuple *>&tuples,
     csm::db::DBReqContent **dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG(csmapi, trace) << STATE_NAME ":CreateResponsePayload: Enter";
     
@@ -570,7 +570,7 @@ bool CSMIAllocationQueryDetails::CreateStepPayload(
 bool CSMIAllocationQueryDetails::CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
 {
 	LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Enter";
 

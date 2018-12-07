@@ -328,6 +328,8 @@ int main(int argc, char *argv[])
         printf("%s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value,
              csm_api_object_errcode_get(csm_obj),
              csm_api_object_errmsg_get(csm_obj));
+
+        csm_print_node_errors(csm_obj)
     }
 
     // Free up the csm object and our struct.

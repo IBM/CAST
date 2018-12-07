@@ -50,7 +50,7 @@ public:
         const std::string& arguments,
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     /**
      * @brief Generates a payload to reserve the nodes for an allocation.
@@ -67,7 +67,7 @@ public:
     static bool ReserveNodes(
         const std::vector<csm::db::DBTuple *>&tuples,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx);
+        csm::daemon::EventContextHandlerState_sptr& ctx);
 
     /**
      * @brief Generates a database payload to undo the allocation.
@@ -86,7 +86,7 @@ public:
      * @return A database request containing a payload to revert the allocation.
      */
     static csm::db::DBReqContent* UndoAllocationDB(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         CSMIMcastAllocation* mcastProps);
     
     /**
@@ -102,7 +102,7 @@ public:
      * @return A database request to insert aggregated statistics for an allocation.
      */
     static csm::db::DBReqContent* InsertStatsStatement(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         CSMIMcastAllocation* mcastProps);
 
     /**
@@ -120,7 +120,7 @@ public:
     static bool  UndoTerminal(
         const std::vector<csm::db::DBTuple *>& tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /**
      * @brief The terminal state for the handler.
@@ -137,7 +137,7 @@ public:
     virtual bool CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples,
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
 
     /**
      * @brief A success case terminal function.
@@ -156,7 +156,7 @@ public:
      */
     static bool CreateByteArray(
         char **buf, uint32_t &bufLen,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
 
     /**
@@ -173,7 +173,7 @@ public:
      *
      */
     static inline bool PerformMulticast(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const std::vector<csm::db::DBTuple *>& tuples,
         CSMIMcastAllocation* mcastProps) 
     {
@@ -205,7 +205,7 @@ public:
      * @return True
      */
     static  bool ParseStatsQuery(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const std::vector<csm::db::DBTuple *>& tuples,
         CSMIMcastAllocation* mcastProps);
 };

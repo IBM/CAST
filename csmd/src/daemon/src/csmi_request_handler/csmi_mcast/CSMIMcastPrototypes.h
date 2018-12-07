@@ -36,7 +36,7 @@
  */
 template<class MProps>
 using PayloadParser = bool(*)(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     const std::vector<csm::db::DBTuple *>& tuples,
     MProps* mcastProps);
 
@@ -52,7 +52,7 @@ using PayloadParser = bool(*)(
  */
 template<class MProps>
 using PayloadConstructor = csm::db::DBReqContent*(*)(
-    csm::daemon::EventContextHandlerState_sptr ctx,
+    csm::daemon::EventContextHandlerState_sptr& ctx,
     MProps* mcastProps);
     
 
@@ -66,7 +66,7 @@ using PayloadConstructor = csm::db::DBReqContent*(*)(
  */
 using TerminalByte = bool(*)(
     char** buffer, uint32_t& bufferLength,
-    csm::daemon::EventContextHandlerState_sptr ctx);
+    csm::daemon::EventContextHandlerState_sptr& ctx);
 
 /**@brief Defines a multicast message parser for a responder object.
  * @param[in,out] mcastProps A multicast properties object to compare the payload against and 

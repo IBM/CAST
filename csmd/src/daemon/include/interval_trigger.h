@@ -25,20 +25,20 @@ namespace daemon {
 
 class IntervalTrigger
 {
-  std::chrono::time_point<std::chrono::system_clock> _NextTrigger;
+  std::chrono::time_point<std::chrono::steady_clock> _NextTrigger;
   std::chrono::milliseconds _Interval;
 public:
   IntervalTrigger( const uint64_t i_IntervalMilli )
   {
     _Interval = std::chrono::milliseconds( i_IntervalMilli );
-    _NextTrigger = std::chrono::system_clock::now() + _Interval;
+    _NextTrigger = std::chrono::steady_clock::now() + _Interval;
   }
   ~IntervalTrigger() {}
 
   bool IsReady()
   {
     bool ready = false;
-    std::chrono::time_point<std::chrono::system_clock> current = std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::steady_clock> current = std::chrono::steady_clock::now();
     if( current > _NextTrigger )
     {
       ready = true;

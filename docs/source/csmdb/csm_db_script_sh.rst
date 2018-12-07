@@ -6,7 +6,9 @@ Using csm_db_script.sh
   
 .. code-block:: bash
 
- run /opt/ibm/csm/db/csm_db_script.sh –h, --help.
+ /opt/ibm/csm/db/csm_db_script.sh –h
+ /opt/ibm/csm/db/csm_db_script.sh --help
+
  This help command <-h, --help> specifies each of the options available to use.
 
 Usage Overview
@@ -99,7 +101,9 @@ To create your own DB
 
 .. code-block:: bash
 
- run /opt/ibm/csm/db/db_script.sh –n, --newdb <my_db_name>.
+ /opt/ibm/csm/db/db_script.sh –n <my_db_name>
+ /opt/ibm/csm/db/db_script.sh --newdb <my_db_name>
+
  By default if no DB name is specified, then the script will
  create a DB called csmdb. 
 
@@ -118,7 +122,7 @@ Example (successful DB creation):
  [Complete] csmdb database functions and triggers created.
  [Complete] csmdb table data loaded successfully into csm_db_schema_version
  [Complete] csmdb table data loaded successfully into csm_ras_type
- [Info    ] csmdb DB schema version <16.1>
+ [Info    ] csmdb DB schema version <16.2>
  ------------------------------------------------------------------------------------------------------
 
 .. note::
@@ -147,7 +151,8 @@ Example (DB already exists)
   If a user does not want to populate these tables, then they should indicate a
   -x, --nodata in the command line during the initial setup process.
 
-  /opt/ibm/csm/db/csm_db_script.sh -x, --nodata
+  /opt/ibm/csm/db/csm_db_script.sh -x
+  /opt/ibm/csm/db/csm_db_script.sh --nodata
 
 Example (Default DB creation without loaded data option)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -163,7 +168,7 @@ Example (Default DB creation without loaded data option)
  [Complete] csmdb database functions and triggers created.
  [Info    ] csmdb skipping data load process.  <----------[when running the -x, --nodata option]
  [Complete] csmdb initialized csm_db_schema_version data
- [Info    ] csmdb DB schema version <16.1>
+ [Info    ] csmdb DB schema version <16.2>
  ------------------------------------------------------------------------------------------------------
 
 Existing DB Options
@@ -173,8 +178,12 @@ Existing DB Options
  There are some other features in this script that will assist users in a “clean-up” process.
  If the database already exists, then these actions will work.
 
-1.    Delete the database ``/opt/ibm/csm/db/csm_db_script.sh –d, --delete`` followed
-by the ``<my_db_name>``
+1.    Delete the database
+
+.. code-block:: bash
+ 
+ /opt/ibm/csm/db/csm_db_script.sh –d <my_db_name>
+ /opt/ibm/csm/db/csm_db_script.sh --delete <my_db_name>
 
 Example (Delete existing DB)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -188,8 +197,12 @@ Example (Delete existing DB)
  [Complete] csmdb database deleted
  ------------------------------------------------------------------------------------------------------
 
-2.    Remove just data from all the tables ``/opt/ibm/csm/db/csm_db_script.sh –r, --removetabledata``
-followed by the ``<my_db_name>``
+2.    Remove just data from all the tables
+ 
+.. code-block:: bash
+ 
+ /opt/ibm/csm/db/csm_db_script.sh –r <my_db_name>
+ /opt/ibm/csm/db/csm_db_script.sh --removetabledata <my_db_name>
 
 Example (Remove data from DB tables)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -204,7 +217,11 @@ Example (Remove data from DB tables)
  ------------------------------------------------------------------------------------------------------
 
 3.   Force a total overwrite of the database <drops tables and recreates them>.
-``/opt/ibm/csm/db/csm_db_script.sh –f, --force`` followed by the ``<my_db_name>`` auto populates table data.
+
+.. code-block:: bash
+
+ /opt/ibm/csm/db/csm_db_script.sh –f <my_db_name> 
+ /opt/ibm/csm/db/csm_db_script.sh --force <my_db_name> (which auto populates table data).
 
 Example (Force DB receation)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -222,12 +239,16 @@ Example (Force DB receation)
  [Complete] csmdb database functions and triggers recreated.
  [Complete] csmdb table data loaded successfully into csm_db_schema_version
  [Complete] csmdb table data loaded successfully into csm_ras_type
- [Info    ] csmdb DB schema version <16.1>
+ [Info    ] csmdb DB schema version <16.2>
  ------------------------------------------------------------------------------------------------------
 
 4.    Force a total overwrite of the database <drops tables and recreates them without
-prepopulated data>.  ``/opt/ibm/csm/db/csm_db_script.sh –f, --force`` followed by the ``<my_db_name>``
-followed by ``–x, --nodata`` does not populate table data.
+prepopulated data>.
+
+.. code-block:: bash
+
+ /opt/ibm/csm/db/csm_db_script.sh –f <my_db_name> -x
+ /opt/ibm/csm/db/csm_db_script.sh --force <my_db_name --nodata (which does not populate table data).
 
 Example (Force DB recreation without preloaded table data)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -245,7 +266,7 @@ Example (Force DB recreation without preloaded table data)
  [Complete] csmdb database functions and triggers recreated.
  [Complete] csmdb skipping data load process.
  [Complete] csmdb table data loaded successfully into csm_db_schema_version
- [Info    ] csmdb DB schema version <16.1>
+ [Info    ] csmdb DB schema version <16.2>
  ------------------------------------------------------------------------------------------------------
 
 CSMDB user info.

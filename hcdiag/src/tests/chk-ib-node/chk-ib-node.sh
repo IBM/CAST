@@ -24,8 +24,58 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 
 fi
 
+usage()
+{
+cat << EOF
+        Usage: `basename $0` [options]
+        Checks the IB bandwidth within the node
+        Optional arguments:
+              [-c0]  cpu for the first process. Default 84 
+              [-c1]  cpu for the second process. Default 172 
+              [-m0]  mellanox port for the first process. Default mlx5_0
+              [-m1]  mellanox port for the second process. Default mlx_3
+              [-b]   expected bandwidth. Default 21250.00
+              [-h]   this help screen
+EOF
+}
+
+# set for Witherspoon as default
 EXPECTED_IB_BANDWITH="21250.00"
-if [ $# -gt 0 ]; then EXPECTED_IB_BANDWITH=$1; fi
+CPU0=84
+CPU1=172
+MLX_P0=mlx5_0
+MLX_P1=mlx5_3
+
+while [[ $# -gt 0 ]]; do
+  opt="$1"
+  case $opt in
+      -c0)
+        CPU0="$2"
+        ;;
+      -c1)
+        CPU1="$2"
+        ;;
+      -m0)
+        MLX_P0="$2"
+        ;;
+      -m1)
+        MLX_P1="$2"
+        ;;
+      -b)
+        EXPECTED_IB_BANDWITH="$2"
+        ;;
+      -h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument: $opt"
+        exit 1
+        ;;
+  esac
+  shift
+  shift
+done
 
 readonly me=${0##*/}
 thishost=`hostname -s`
@@ -42,6 +92,8 @@ if [ "$running" -ne "0" ]; then
     ps -ef | grep ib_  | grep -v ] | grep -v "grep" | grep -v $0
 fi
 
+echo "Using cpus: $CPU0, $CPU1"
+echo "Using Mellanox ports: $MLX_P0, $MLX_P1"
 echo "Minimum bandwidth set to: $EXPECTED_IB_BANDWITH MB/s"
 if [ "$portcheck" -ne "0" ]; then
     echo "ERROR: Network port in use.  Test cannot execute."
@@ -50,10 +102,10 @@ if [ "$portcheck" -ne "0" ]; then
     exit 2
 fi
 
-taskset -c 84 ib_write_bw --size=8M -d mlx5_0 -b --port=20000 -D 10 > /dev/null &
+taskset -c $CPU0 ib_write_bw --size=8M -d ${MLX_P0} -b --port=20000 -D 10 > /dev/null &
 sleep .1
 
-bw=$(taskset -c 172 ib_write_bw --size=8M -d mlx5_3 -b --port=20000 -D 10 --output=bandwidth localhost)
+bw=$(taskset -c $CPU1 ib_write_bw --size=8M -d ${MLX_P1} -b --port=20000 -D 10 --output=bandwidth localhost)
 if [ -z "$bw" ]; then 
    # do some cleanup if necessary
    pid=`pgrep ib_write_bw`

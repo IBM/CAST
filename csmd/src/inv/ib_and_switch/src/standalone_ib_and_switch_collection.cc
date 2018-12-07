@@ -70,6 +70,12 @@ void help(){
 	puts("                  |                               |   3 = ib cables and switches");
 	puts("                  |                               | Default Value: 3");
 	puts("                  |                               | ");
+	puts("  OPTIONAL:");
+	puts("    standalone_ib_and_switch_collection can have 1 optional parameters");
+	puts("    Argument      | Example value  | Description  ");                                                 
+	puts("    --------------|----------------|--------------");
+	puts("    -d, --details | NOT APPLICABLE | (FLAG) Turn on a more detailed output for UFM inventory collection.");
+	puts("                  |                | ");
 	puts("");
     puts("GENERAL OPTIONS:");
     puts("[-h, --help]                  | Help.");
@@ -87,12 +93,19 @@ struct option longopts[] = {
     {"verbose", required_argument, 0, 'v'},
 	{"config",  required_argument, 0, 'c'},
 	{"type",    required_argument, 0, 't'},
+	{"details", no_argument,       0, 'd'},
     {0,0,0,0}
 };
 
 // main
 int main(int argc, char *argv[])
 {
+    // Program variables
+    // -----------------
+    // used for a check at the very end of program.
+    // where we want to print success, but the let user know to scropll up to see some errors that were printed. 
+    bool successful_with_errors = false; 
+
     // CSM Variables
     csm_api_object *csm_obj = NULL;
 
@@ -108,6 +121,8 @@ int main(int argc, char *argv[])
 	/* getopt_long stores the option index here. */
 	int indexptr = 0;
     //int i = 0;
+    // value to help with some prints. informs if they should print or not.
+    bool details = false; 
 	
     int totalSwitchRecords = 0;
     int totalIBRecords = 0;
@@ -123,7 +138,7 @@ int main(int argc, char *argv[])
 	requiredParameterCounter++;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:c:t:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:c:dt:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -134,6 +149,9 @@ int main(int argc, char *argv[])
 			case 'c':
 				full_path_to_the_master_config_file = strdup(optarg);
                 break;
+			case 'd':
+				details = true;
+			    break;
 			case 't':
 				type_of_collection = std::atol(optarg);
 				if(type_of_collection < 1 || type_of_collection > 3)
@@ -167,10 +185,14 @@ int main(int argc, char *argv[])
 	}
 
 	// printing
-	std::cout << "Loading the inputs" << std::endl;
-	std::cout << "full path to the master config file: " << full_path_to_the_master_config_file << std::endl;
-	std::cout << "Type of collection: " << type_of_collection << std::endl;
-	std::cout << std::endl;
+	if(details)
+	{
+		std::cout << "Loading the inputs..." << std::endl;
+		std::cout << "full path to the master config file: " << full_path_to_the_master_config_file << std::endl;
+		std::cout << "Type of collection: " << type_of_collection << std::endl;
+		std::cout << std::endl;
+	}
+	
 	
 	// opening master config file
 	std::ifstream input_file(full_path_to_the_master_config_file.c_str(),std::ios::in);
@@ -184,6 +206,8 @@ int main(int argc, char *argv[])
 	std::string csm_inv_log_dir = "";
 	std::string ib_cable_errors = "";
 	std::string switch_errors = "";
+	std::string ssl_file_path = "";
+	std::string ssl_file_name = "";
 
 	// checking if master cinfig file is open
 	if ( !input_file.is_open() )
@@ -213,6 +237,27 @@ int main(int argc, char *argv[])
 		vector_of_the_comparing_strings.push_back("ib_cable_errors");
 		vector_of_the_comparing_strings.push_back("switch_errors");
 		//std::cout << "Initialize vector_of_the_comparing_strings" << std::endl;
+
+		//elements in the list specific for checking a valid config file
+		vector_of_the_comparing_strings.push_back("inventory");
+		vector_of_the_comparing_strings.push_back("ufm");
+
+		//elements in the list for finding the ssl file
+		vector_of_the_comparing_strings.push_back("ufm_ssl_file_path");
+		vector_of_the_comparing_strings.push_back("ufm_ssl_file_name");
+
+		//Boolean values to see if we find all data we expect to see.
+		//It is possible someone points to a bad config file missing expected fields. 
+		//As we find vaild fields we will "turn on" these booleans, proving we found the data
+		//If there are booleans that are still off after the file has been parsed, then print errors. 
+		bool config_inventory = false;                     // main section of inventory in JSON
+		bool config_inventory_csm_inv_log_dir = false;     // sub field of `inventory` called 'csm_inv_log_dir'
+		bool config_inventory_ufm = false;                 // sub section of 'inventory' called 'ufm' 
+		bool config_inventory_ufm_ib_cable_errors = false; // sub field of 'ufm' called 'ib_cable_errors'
+		bool config_inventory_ufm_switch_errors = false;   // sub field of 'ufm' called 'switch_errors'
+		//bool config_inventory_ufm_ufm_counters = false;    // sub field of 'ufm' called 'ufm_counters'
+		bool config_inventory_ufm_ufm_ssl_file_path = false;    // sub field of 'ufm' called 'ufm_ssl_file_path'
+		bool config_inventory_ufm_ufm_ssl_file_name = false;    // sub field of 'ufm' called 'ufm_ssl_file_name'
 		
 		// reading the input file lines
 		//std::cout << "Reading master config file" << std::endl;
@@ -236,18 +281,23 @@ int main(int argc, char *argv[])
 					 // printing
 					 //std::cout << "the line contain " << comparing_string << std::endl;
 
-					 // extraction field
-					 position_delimiter=line.find(":");
-					 //std::cout << "position delimiter: " << position_delimiter << std::endl;
-					 line.erase(0,position_delimiter);
-					 //std::cout << "line after the modification: " << line << std::endl;
-					 position_delimiter=line.find("\"");
-					 //std::cout << "position delimiter: " << position_delimiter << std::endl;
-					 line.erase(0,position_delimiter+1);
-					 //std::cout << "line after the modification: " << line << std::endl;
-					 position_delimiter=line.find("\"");
-					 //std::cout << "position delimiter: " << position_delimiter << std::endl;
-					 line.erase(position_delimiter,line.size());
+					if(i != 6 && i != 7)
+					{
+                        // extraction field
+					    position_delimiter=line.find(":");
+					    //std::cout << "position delimiter: " << position_delimiter << std::endl;
+					    line.erase(0,position_delimiter);
+					    //std::cout << "line after the modification: " << line << std::endl;
+					    position_delimiter=line.find("\"");
+					    //std::cout << "position delimiter: " << position_delimiter << std::endl;
+					    line.erase(0,position_delimiter+1);
+					    //std::cout << "line after the modification: " << line << std::endl;
+					    position_delimiter=line.find("\"");
+					    //std::cout << "position delimiter: " << position_delimiter << std::endl;
+					    line.erase(position_delimiter,line.size());
+					}
+
+					 
 
 					// updating variables
 					switch (i)
@@ -266,19 +316,90 @@ int main(int argc, char *argv[])
 							break;
 						case 3:
 							csm_inv_log_dir = line;
-							//std::cout << "updating rest_password " << rest_password << std::endl;
+							config_inventory_csm_inv_log_dir = true;
 							break;
 						case 4:
 							ib_cable_errors = line;
-							//std::cout << "updating rest_password " << rest_password << std::endl;
+							config_inventory_ufm_ib_cable_errors = true;
 							break;
 						case 5:
 							switch_errors = line;
-							//std::cout << "updating rest_password " << rest_password << std::endl;
+							config_inventory_ufm_switch_errors = true;
+							break;
+						case 6:
+						    // 'inventory' field was found.
+						    // update the logging bool
+                            config_inventory = true; 
+						    break;
+						case 7:
+						    // 'ufm' field was found.
+						    // update the logging bool
+                            config_inventory_ufm = true; 
+						    break;
+						case 8:
+							ssl_file_path = line;
+							config_inventory_ufm_ufm_ssl_file_path = true;
+							break;
+						case 9:
+							ssl_file_name = line;
+							config_inventory_ufm_ufm_ssl_file_name = true;
 							break;
 					}
 				}
 			}
+		}
+
+		// Are any of these booleans still false?
+		if( config_inventory == false || 
+			config_inventory_csm_inv_log_dir == false || 
+			config_inventory_ufm == false ||
+			config_inventory_ufm_ib_cable_errors == false || 
+			config_inventory_ufm_switch_errors == false ||
+			config_inventory_ufm_ufm_ssl_file_path == false ||
+			config_inventory_ufm_ufm_ssl_file_name == false
+		)
+		{
+			std::cout << std::endl;
+			std::cout << "========" << std::endl;
+            std::cout << "WARNING: Missing expected key values in config file." << std::endl;
+            std::cout << "--------" << std::endl;
+            std::cout << "Details:" << std::endl;
+            if(config_inventory == false)
+            {
+            	std::cout << "Missing 'inventory' section. " << std::endl;
+            }
+            if(config_inventory_csm_inv_log_dir == false)
+            {
+            	std::cout << "Missing 'csm_inv_log_dir' field. Setting this to a default vaule of: \"/var/log/ibm/csm/inv\"" << std::endl;
+            	csm_inv_log_dir = "/var/log/ibm/csm/inv";
+            }
+            if(config_inventory_ufm == false)
+            {
+            	std::cout << "Missing 'ufm' section. " << std::endl;
+            }
+            if(config_inventory_ufm_ib_cable_errors == false)
+            {
+            	std::cout << "Missing 'ib_cable_errors' field. Setting this to a default vaule of: \"bad_ib_cable_records.txt\"" << std::endl;
+            	ib_cable_errors = "bad_ib_cable_records.txt";
+            }
+            if(config_inventory_ufm_switch_errors == false)
+            {
+            	std::cout << "Missing 'switch_errors' field. Setting this to a default vaule of: \"bad_switch_records.txt\"" << std::endl;
+            	switch_errors = "bad_switch_records.txt";
+            }
+            if(config_inventory_ufm_ufm_ssl_file_path == false)
+            {
+            	std::cout << "Missing 'ssl_file_path' field. Setting this to a default vaule of: \"/etc/ibm/csm\"" << std::endl;
+            	ssl_file_path = "/etc/ibm/csm";
+            }
+            if(config_inventory_ufm_ufm_ssl_file_name == false)
+            {
+            	std::cout << "Missing 'ssl_file_name' field. Setting this to a default vaule of: \"csm_ufm_ssl_key.txt\"" << std::endl;
+            	ssl_file_name = "csm_ufm_ssl_key.txt";
+            }
+            std::cout << "========" << std::endl;
+            std::cout << std::endl;
+            successful_with_errors = true;
 		}
 	}
 
@@ -303,24 +424,39 @@ int main(int argc, char *argv[])
 	}
 
 	// name of the temp file
-	std::string temp_file_name = "temp_file.txt";
-	//std::cout << "temp file name: " << temp_file_name << std::endl;
+	ssl_file_path = "/etc/ibm/csm";
+	ssl_file_name = "csm_ufm_ssl_key.txt";
+	std::string ssl_full_path = ssl_file_path + "/" + ssl_file_name;
 	
+    // printing
+	if(details)
+	{
+		std::cout << "full path to the ssl key file: " << ssl_full_path << std::endl;
+	}
+	
+    // ToDo: 
+    // Store the username and password in a ssl key in a file
+    // Eventually we will require that the sys admin create a file with an ssl key inside of it. 
+    // to prep for that we save the ssl key to a file today
+    // we then read from that file
+    // pipeline is in place to make that switch.
+
+	//for old temp file. leave for now
 	// generating authentication string for the HTTP request
-	std::string command = "openssl base64 -e <<< " + rest_username+ ":" + rest_password + " > " + temp_file_name;
-	system(command.c_str());
+	//std::string command = "openssl base64 -e <<< " + rest_username+ ":" + rest_password + " > " + temp_file_name;
+	//system(command.c_str());
 	
 	// declaring the authentication string for the http request
 	std::string authentication_string_for_the_http_request;
 	
 	// opening temp file
-	std::ifstream temp_file(temp_file_name.c_str(),std::ios::in);
+	std::ifstream ssl_file(ssl_full_path.c_str(),std::ios::in);
 
 	// checking if temp file is open
-	if ( ! temp_file.is_open() )
+	if ( ! ssl_file.is_open() )
 	{
 		// printing
-		std::cout << "Temp file " << temp_file_name << " not open, return"  << std::endl;
+		std::cout << "SSL file " << ssl_full_path << " not open, return"  << std::endl;
 		std::cout << "Return without executing data collection" << std::endl;
 		
 		// return error
@@ -329,35 +465,47 @@ int main(int argc, char *argv[])
 	else 
 	{
 		// getting and modfifying the authentication string for the http request
-		temp_file >> authentication_string_for_the_http_request;
+		ssl_file >> authentication_string_for_the_http_request;
 		//std::cout << "before modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 		authentication_string_for_the_http_request = authentication_string_for_the_http_request.substr(0,authentication_string_for_the_http_request.size()-4);
 		//std::cout << "after modifications authentication_string_for_the_http_request " << authentication_string_for_the_http_request << std::endl;
 	}
 
+	if( authentication_string_for_the_http_request[0] == '\0')
+	{
+		std::cout << "WARNING: SSL file provided is blank. Please create an SSL key and save it in this file." << std::endl;
+		std::cout << "Return without executing data collection" << std::endl;
+		
+		// return error
+		return 1;
+	}
+
 	// closing temp output file
-	temp_file.close();
+	ssl_file.close();
 	std::cout << std::endl;
 	
+	//old temp file - leave for now
 	// cleaning
-	command = "rm " + temp_file_name;
-	system(command.c_str());
+	//command = "rm " + ssl_file_name;
+	//system(command.c_str());
 	
 	// gathering flags
 	int ib_flag = INV_IB_CONNECTOR_ACCESS::GetInstance()->GetCompiledWithSupport();
 	
 	// gathering flags
 	int switch_flag = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->GetCompiledWithSupport();
-	
+
 	// printing
-	std::cout << "type of collection " << type_of_collection << std::endl;
+	if(details)
+	{
+		std::cout << "Configuration successful." << std::endl;
+		std::cout << "Connecting to UFM to collect inventory..." << std::endl;
+		std::cout << std::endl;
+	}
 
 	// checking type of collection
 	if ( type_of_collection == 1 )
 	{
-		// printing
-		std::cout << "ib flag " << ib_flag << std::endl;
-	
 		// checking ib flag
 		if ( ib_flag == 0 )
 		{
@@ -366,17 +514,21 @@ int main(int argc, char *argv[])
 		} 
 		else 
 		{
+			int returnCode = 0;
 			// execute data collection for the ib cables
-			INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			returnCode = INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_IB_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 	} 
 
 	// checking type of collection
 	if ( type_of_collection == 2 )
 	{
-		// printing
-		std::cout << "switch flag " << switch_flag << std::endl;
-		
 		// checking switch flag
 		if ( switch_flag == 0 )
 		{
@@ -385,17 +537,21 @@ int main(int argc, char *argv[])
 		} 
 		else 
 		{
+			int returnCode = 0;
 			// execute data collection for the switch cables
-			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_SWITCH_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 	}
 
 	// checking type of collection
 	if ( type_of_collection == 3 )
 	{
-		// printing
-		std::cout << "ib flag " << ib_flag << std::endl;
-		
 		// checking ib flag
 		if ( ib_flag == 0 )
 		{
@@ -404,12 +560,16 @@ int main(int argc, char *argv[])
 		} 
 		else 
 		{
+			int returnCode = 0;
 			// execute data collection for the ib cables
-			INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			returnCode = INV_IB_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, ib_cable_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_IB_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
-
-		// printing
-		std::cout << "switch flag " << switch_flag << std::endl;
 
 		// checking switch flag
 		if ( switch_flag == 0 )
@@ -419,27 +579,42 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
+			int returnCode = 0;
 			// execute data collection for the switch cables
-			INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			if(returnCode == 1)
+			{
+				// return error
+				std::cout << "INV_SWITCH_CONNECTOR_ACCESS failed" << std::endl;
+				return 1;
+			}
 		}
 	}
 
 	// test for the ib and switch field values
 	std::string ib_field_value;
 	std::string switch_field_value;
-	//ib_field_value = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(4,12);
-	//switch_field_value = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(0,3);
-	//std::cout << "Test for ib field value " << ib_field_value << std::endl;
-	//std::cout << "Test for switch field value " << switch_field_value << std::endl;
 
-	// getting number of records
-	//totalIBRecords = 30;
-	//totalSwitchRecords = 30;
-	
 	totalIBRecords = INV_IB_CONNECTOR_ACCESS::GetInstance()->TotalNumberOfRecords();
 	totalSwitchRecords = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->TotalNumberOfRecords();
-	std::cout << "totalIBRecords " << totalIBRecords << std::endl;
-	std::cout << "totalSwitchRecords " << totalSwitchRecords << std::endl;
+	
+	// printing
+	if(details)
+	{
+		std::cout << "UFM collection successful." << std::endl;
+		std::cout << "CSM has approved the following records for insertion into the CSM Database: " << std::endl;
+		std::cout << "IB Records: " << totalIBRecords << std::endl;
+	    std::cout << "Switch Records: " << totalSwitchRecords << std::endl;
+	    std::cout << std::endl;
+	}
+	
+	// printing
+	if(details)
+	{
+		std::cout << "Converting UFM data into CSM structs." << std::endl;
+	    std::cout << std::endl;
+	}
+	
 	
 	// IB
 	// Set up data to call API
@@ -492,45 +667,6 @@ int main(int argc, char *argv[])
             //malloc space for record
             csm_init_struct_ptr(csmi_ib_cable_record_t, IBinput->inventory[i]);
 
-            /*
-            // I calloc and use i to get a consecutive name for each record. starting at 0. example: 0,1,2...N
-            IBinput->inventory[i]->serial_number  = (char*)calloc(3, sizeof(char));
-            sprintf(IBinput->inventory[i]->serial_number,"%d",i);
-            IBinput->inventory[i]->comment        = strdup("comment");
-            IBinput->inventory[i]->discovery_time = strdup("NULL");
-            IBinput->inventory[i]->guid_s1        = strdup("STUFF FROM THE JSON");
-            IBinput->inventory[i]->guid_s2        = strdup("STUFF FROM THE JSON");
-            IBinput->inventory[i]->hw_revision    = strdup("NULL");
-            IBinput->inventory[i]->length         = strdup("STUFF FROM THE JSON");
-            IBinput->inventory[i]->part_number    = strdup("STUFF FROM THE JSON");
-            IBinput->inventory[i]->port_s1        = strdup("STUFF FROM THE JSON");
-            IBinput->inventory[i]->port_s2        = strdup("STUFF FROM THE JSON");
-            IBinput->inventory[i]->type           = strdup("STUFF FROM THE JSON");
-            */
-
-            /*
-            // legend
-            vector_of_the_comparing_strings.push_back("serial_number");           // 0
-            vector_of_the_comparing_strings.push_back("part_number");             // 1
-            vector_of_the_comparing_strings.push_back("hw_revision");             // 2 disappeared
-            vector_of_the_comparing_strings.push_back("source_guid");             // 3
-            vector_of_the_comparing_strings.push_back("source_port");             // 4
-            vector_of_the_comparing_strings.push_back("destination_guid");        // 5
-            vector_of_the_comparing_strings.push_back("destination_port");        // 6
-            vector_of_the_comparing_strings.push_back("technology");              // 7
-            vector_of_the_comparing_strings.push_back("length");                  // 8
-
-            vector_of_the_comparing_strings.clear();        // 0
-            vector_of_the_comparing_strings.clear();        // 1
-            vector_of_the_comparing_strings.clear();        // 2 disappeared
-            vector_of_the_comparing_strings.clear();        // 3
-            vector_of_the_comparing_strings.clear();        // 4
-            vector_of_the_comparing_strings.clear();        // 5
-            vector_of_the_comparing_strings.clear();        // 6
-            vector_of_the_comparing_strings.clear();        // 7
-            vector_of_the_comparing_strings.clear();        // 8
-            */
-
             // actual part
             temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(2,i); 	IBinput->inventory[i]->serial_number   = strdup(temp_string.c_str());
 																							IBinput->inventory[i]->discovery_time  = strdup("NULL");
@@ -548,6 +684,14 @@ int main(int argc, char *argv[])
 			temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(6,i); 	IBinput->inventory[i]->severity        = strdup(temp_string.c_str());
             temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(4,i); 	IBinput->inventory[i]->type            = strdup(temp_string.c_str());
 			temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(8,i); 	IBinput->inventory[i]->width           = strdup(temp_string.c_str());
+		}
+
+		// printing
+		if(details)
+		{
+			std::cout << "IB cable data successfully converted into CSM structs." << std::endl;
+			std::cout << "Inserting into CSM Database..." << std::endl;
+		    std::cout << std::endl;
 		}
 
         // Call the CSM API
@@ -832,6 +976,11 @@ int main(int argc, char *argv[])
     {
 		csmutil_logging(error, "csm_term_lib rc= %d, Initalization failed. Success is required to be able to communicate between library and daemon. Are the daemons running?", lib_return_value);
 		return lib_return_value;
+    }
+
+    if(successful_with_errors)
+    {
+    	std::cout << "\n WARNING: Program completed successfully, but with some unexpected errors. Scroll up to view the output log. \n" << std::endl;
     }
 
     return return_value;

@@ -286,32 +286,6 @@ def RestartTransfers(pEnv):
             else:
                 print "No transfer definition(s) were found given the provided input criteria.  An operation to stop transfers will not be attempted."
 
-            if (pEnv["IO_FAILOVER"]):
-                # Now, close the connection to the previously active bbServer
-                try:
-                    # First, make sure we have no waiters...
- #                   bb.flushWaiters(l_ActiveServer)
-
-                    # Close the connection to the 'old' server
-                    BB_CloseServer(l_ActiveServer)
-                except BBError as error:
-                    if not error.handleError():
-                        raise
-
-            elif (0==1 and pEnv["CN_FAILOVER"]):
-                # New CN, set up that environment
-                # Not ready for prime time...
-
-                l_Mountpoint = pEnv["MOUNT"]
-                l_Owner = pEnv.get("OWNER", None)
-                l_Group = pEnv.get("GROUP", None)
-                l_Mode = int(pEnv.get("MODE", 0755))
-                l_LVSize = pEnv.get("SIZE", "1G")
-                sudo_CreateDirectory(pEnv, l_Mountpoint)
-                sudo_ChangeOwner(pEnv, l_Mountpoint, l_Owner, l_Group)
-                sudo_ChangeMode(pEnv, l_Mountpoint, l_Mode)
-                sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
-
             if (l_ResumeCN_Host):
                 l_ResumeCN_Host = False
                 try:
@@ -337,6 +311,32 @@ def RestartTransfers(pEnv):
                 l_NumRestartedTransferDefs = BB_RestartTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
             else:
                 print "%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep)
+
+            if (pEnv["IO_FAILOVER"]):
+                # Now, close the connection to the previously active bbServer
+                try:
+                    # First, make sure we have no waiters...
+ #                   bb.flushWaiters(l_ActiveServer)
+
+                    # Close the connection to the 'old' server
+                    BB_CloseServer(l_ActiveServer)
+                except BBError as error:
+                    if not error.handleError():
+                        raise
+
+            elif (0==1 and pEnv["CN_FAILOVER"]):
+                # New CN, set up that environment
+                # Not ready for prime time...
+
+                l_Mountpoint = pEnv["MOUNT"]
+                l_Owner = pEnv.get("OWNER", None)
+                l_Group = pEnv.get("GROUP", None)
+                l_Mode = int(pEnv.get("MODE", 0755))
+                l_LVSize = pEnv.get("SIZE", "1G")
+                sudo_CreateDirectory(pEnv, l_Mountpoint)
+                sudo_ChangeOwner(pEnv, l_Mountpoint, l_Owner, l_Group)
+                sudo_ChangeMode(pEnv, l_Mountpoint, l_Mode)
+                sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
 
             l_ActiveServer = BB_GetServer("active")
         else:

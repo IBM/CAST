@@ -148,7 +148,7 @@ csm::network::NetworkCtrlInfo* csm::network::EndpointPTP_base::Sync( const csm::
     return nullptr;
 
   csm::network::NetworkCtrlInfo *ctrlInfo = nullptr;
-  EndpointHeartbeat::TimeType ref = std::chrono::system_clock::now();
+  EndpointHeartbeat::TimeType ref = std::chrono::steady_clock::now();
   if( _Heartbeat.peerDead( ref ) )
   {
     throw csm::network::ExceptionEndpointDown("Heartbeat: Peer not responding.", ENETDOWN );

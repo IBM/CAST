@@ -35,7 +35,7 @@ public:
      * @param postEventList The list of events to push new events to.
      */
     virtual void Process( 
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent, 
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final
     {
@@ -71,7 +71,7 @@ public:
         if (content._Msg.GetErr()) 
         {
             LOG(csmapi, error) << ctx << 
-                "NetworkMessageState: An error was detected while recieving a "
+                "NetworkMessageState: An error was detected while receiving a "
                 "Network Message.";
 
             // Unpack the error
@@ -79,6 +79,11 @@ public:
             csmi_err_t* error = csmi_err_unpack( dataStr.c_str(), dataStr.size());
 
             this->ProcessError(ctx, error);
+
+            if ( ctx->GetErrorCode() >= csmi_cmd_err_t_MAX)
+            {
+                ctx->SetErrorCode(CSMERR_GENERIC);
+            }
 
             if ( ctx->GetErrorCode() == CSMERR_TIMEOUT )
             {
@@ -114,7 +119,7 @@ protected:
     virtual bool HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) = 0;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) = 0;
 
 
     /**
@@ -129,7 +134,7 @@ protected:
      * @param[in]     error The Error object representing the 
      */
     virtual void ProcessError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csmi_err_t* error) 
     { 
         if ( error )

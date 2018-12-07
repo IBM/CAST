@@ -14,6 +14,7 @@ provided the executable/scripts match the following requirements:
     * --user_flags "[string of flags, spaces allowed]" (Alphanumeric flags)
     * --sys_flags "[string of flags, spaces allowed]"  (Alphanumeric flags)
 * The scripts must return zero for a successful execution and non zero for a failed execution.
+    * Invalid arguments should return -1 or 255 (to be leveraged for error codes).
 
 The sample post scripts are shipped to **/opt/ibm/csm/share/prologs/** in the **ibm-csm-core** rpm.
 Before an allocation may be created these scripts, or user defined scripts must be copied to 

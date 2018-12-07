@@ -31,7 +31,7 @@ bool CSMIRasMsgTypeUpdate::CreatePayload(
     const std::string& stringBuffer,
     const uint32_t bufferLength,
     csm::db::DBReqContent** dbPayload,
-    csm::daemon::EventContextHandlerState_sptr ctx ) 
+    csm::daemon::EventContextHandlerState_sptr& ctx ) 
 {
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Enter";
 	
@@ -154,7 +154,7 @@ bool CSMIRasMsgTypeUpdate::CreateByteArray(
     const std::vector<csm::db::DBTuple *>&tuples,
     char** stringBuffer,
 	uint32_t &bufferLength,
-    csm::daemon::EventContextHandlerState_sptr ctx )
+    csm::daemon::EventContextHandlerState_sptr& ctx )
 {
 	LOG(csmapi, trace) << STATE_NAME ":CreateByteArray: ENTER";
 	

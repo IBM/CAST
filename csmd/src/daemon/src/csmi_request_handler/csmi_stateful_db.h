@@ -65,7 +65,7 @@ public:
         const std::string& arguments, 
         const uint32_t len,
         csm::db::DBReqContent **dbPayload, 
-        csm::daemon::EventContextHandlerState_sptr ctx )  = 0;
+        csm::daemon::EventContextHandlerState_sptr& ctx )  = 0;
     
     /**
      * @brief Assembles a buffer to respond to the user.
@@ -80,7 +80,7 @@ public:
     virtual bool CreateByteArray(
         const std::vector<csm::db::DBTuple *>&tuples, 
         char **buf, uint32_t &bufLen, 
-        csm::daemon::EventContextHandlerState_sptr ctx ) = 0;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) = 0;
 
   /**
    * @brief Decodes the user data and assembles a query to perform a private check.
@@ -96,7 +96,7 @@ public:
         const std::string& arguments, 
         const uint32_t len,
         csm::db::DBReqContent **dbPayload,
-        csm::daemon::EventContextHandlerState_sptr ctx )
+        csm::daemon::EventContextHandlerState_sptr& ctx )
     { 
         return false; 
     }
@@ -112,7 +112,7 @@ public:
     virtual bool CompareDataForPrivateCheck(
         const std::vector<csm::db::DBTuple *>& tuples, 
         const csm::network::Message &msg,
-        csm::daemon::EventContextHandlerState_sptr ctx)
+        csm::daemon::EventContextHandlerState_sptr& ctx)
     {
         LOG( csmapi, trace ) << "CompareDataForPrivateCheck: Enter";
 	    

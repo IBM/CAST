@@ -104,7 +104,8 @@ typedef enum {
    CSM_JSM=1, ///< 1 - Denotes an allocation managed by JSM.
    CSM_JSM_CGROUP_STEP=2, ///< 2 - Denotes an allocation managed by JSM with step cgroups. 
    CSM_DIAGNOSTICS=3, ///< 3 - Denotes a diagnostic allocation run.
-   csmi_allocation_type_t_MAX=4 ///< 4 - Bounding Value
+   CSM_CGROUP_STEP=4, ///< 4 - Denotes an allocation with step cgroups.
+   csmi_allocation_type_t_MAX=5 ///< 5 - Bounding Value
 } csmi_allocation_type_t;
 
 
@@ -693,6 +694,32 @@ typedef struct {
     char* kv_pairs; /**< Arguments to the JSM run: Supports alphanumeric, ',' , and  '='. Exported to **CSM_JSM_ARGS**. */
     char* jsm_path; /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
 } csm_jsrun_cmd_input_t;
+/**
+ * @brief A container for a CSM error, encapsulates the source error code and message.
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    int errcode; ///< The error code of this error message. 
+    char* errmsg; ///< The error message. 
+    char* source; ///< The host reporting the error.
+} csm_soft_failure_recovery_node_t;
+/**
+ * @brief A wrapper for the output of 
+ *
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    uint32_t retry_count; ///< The number of times to retry soft failure recovery.
+} csm_soft_failure_recovery_input_t;
+/**
+ * @brief A wrapper for the output of 
+ *
+ */
+typedef struct {
+    uint64_t _metadata; /** The number of fields in the struct.*/
+    uint32_t error_count; ///< A count of errors.
+    csm_soft_failure_recovery_node_t** node_errors; ///< Collection of errors which occured on nodes.
+} csm_soft_failure_recovery_output_t;
 /** @} */
 
 #ifdef __cplusplus

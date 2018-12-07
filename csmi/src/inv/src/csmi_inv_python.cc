@@ -845,7 +845,9 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		STRING_PROPERTY(csm_switch_attributes_query_input_t, char*, state, , NULL, )
 		ARRAY_STR_PROPERTY(csm_switch_attributes_query_input_t, char**, switch_names, switch_names_count, NULL, )
 		STRING_PROPERTY(csm_switch_attributes_query_input_t, char*, serial_number, , NULL, )
-		.add_property("order_by", &csm_switch_attributes_query_input_t::order_by,&csm_switch_attributes_query_input_t::order_by," Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' ");
+		.add_property("order_by", &csm_switch_attributes_query_input_t::order_by,&csm_switch_attributes_query_input_t::order_by," Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' ")
+		.add_property("roles_count", &csm_switch_attributes_query_input_t::roles_count,&csm_switch_attributes_query_input_t::roles_count," Number of roles being queried, size of @ref roles. ")
+		ARRAY_STR_PROPERTY(csm_switch_attributes_query_input_t, char**, roles, roles_count, NULL, );
 
     class_<csm_switch_attributes_query_output_t,csm_switch_attributes_query_output_t*>("switch_attributes_query_output_t")
 		.add_property("results_count", &csm_switch_attributes_query_output_t::results_count,&csm_switch_attributes_query_output_t::results_count," Number of switch records, size of @ref results. ")
@@ -895,7 +897,6 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		ARRAY_STRUCT_PROPERTY(csm_switch_children_inventory_collection_input_t, csmi_switch_details_t**, inventory, inventory_count, NULL, csmi_switch_details_t);
 
     class_<csm_switch_children_inventory_collection_output_t,csm_switch_children_inventory_collection_output_t*>("switch_children_inventory_collection_output_t")
-		.add_property("TBD", &csm_switch_children_inventory_collection_output_t::TBD,&csm_switch_children_inventory_collection_output_t::TBD," TBD. ")
 		.add_property("insert_count", &csm_switch_children_inventory_collection_output_t::insert_count,&csm_switch_children_inventory_collection_output_t::insert_count," number of new records inserted into the database. ")
 		.add_property("update_count", &csm_switch_children_inventory_collection_output_t::update_count,&csm_switch_children_inventory_collection_output_t::update_count," number of old records updated in the database. ")
 		.add_property("delete_count", &csm_switch_children_inventory_collection_output_t::delete_count,&csm_switch_children_inventory_collection_output_t::delete_count," number of old records removed from the database. ");

@@ -37,7 +37,7 @@ class VirtualNetworkChannel {
 
   friend class VirtualNetworkChannelPool;
 
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
   typedef std::pair< csm::network::MessageAndAddress_sptr, csm::daemon::EventContext_sptr > MsgAndCtxType;
   typedef std::deque< csm::daemon::CoreEvent* > ConnectionEventQueue;
   typedef std::deque< MsgAndCtxType > ConnectionMessageQueue;
@@ -70,7 +70,7 @@ public:
                 csm::daemon::EventContext_sptr &o_Ctx,
                 const uint32_t i_TimeoutMicroSeconds = DEFAULT_NET_REQUEST_TIMEOUT )
   {
-    TimeType ts = std::chrono::system_clock::now() + std::chrono::microseconds( i_TimeoutMicroSeconds );
+    TimeType ts = std::chrono::steady_clock::now() + std::chrono::microseconds( i_TimeoutMicroSeconds );
     MsgAndCtxType msgCtx;
 
     if( _State < RESERVED )
@@ -91,7 +91,7 @@ public:
       }
       _QueueLock.unlock();
       sched_yield();
-    } while( std::chrono::system_clock::now() < ts );
+    } while( std::chrono::steady_clock::now() < ts );
 
     if( msgCtx.first != nullptr )
     {
@@ -123,7 +123,7 @@ public:
     }
     _ManagerWakeup->WakeUp();
     // todo: timeout options... (right now missing forwarded successful ACK)
-    // TimeType ts = std::chrono::system_clock::now() + std::chrono::seconds( i_TimeoutMicroSeconds );
+    // TimeType ts = std::chrono::steady_clock::now() + std::chrono::seconds( i_TimeoutMicroSeconds );
     return i_MsgAddr->_Msg.GetDataLen();
   }
 

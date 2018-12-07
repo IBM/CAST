@@ -273,8 +273,8 @@ description = measure aggregate memory bandwidth in MB/s, per socket.
 executable  = /opt/ibm/csm/hcdiag/tests/daxpy/daxpy.sh
 group       = memory
 timeout     = 100
-args        = 2
 targetType  = Compute    
+args        = -s
 
 # NVIDIA datacenter. Argment for dcgmi diag is level, possible values:
 # 1 - Quick System Validation (~ seconds)  
@@ -335,12 +335,12 @@ targetType  = Compute
 
 ##  IBM spectrum mpi package dgemm-gpu
 [tests.dgemm-gpu]
-description  = measure GPU performance.
+description = measure GPU performance.
 executable  = /opt/ibm/csm/hcdiag/tests/dgemm-gpu/dgemm-gpu.sh
-group        = gpu
-timeout      = 2000
-targetType   = Compute
-#args        = 1
+group       = gpu
+timeout     = 2000
+targetType  = Compute
+args        = -l
 
 [tests.dgemm-per-socket]
 description = measure CPU performance per socket.
@@ -348,8 +348,7 @@ executable  = /opt/ibm/csm/hcdiag/tests/dgemm-per-socket/dgemm-per-socket.sh
 group       = cpu
 timeout     = 800
 targetType  = Compute
-#              performance in Gflops 
-#args        = 450
+args        = -s
 
 # strong recomend to run on the node, just invoking this script
 # NOTE: NVIDIA distributes the fieldiag binary and the source code for the

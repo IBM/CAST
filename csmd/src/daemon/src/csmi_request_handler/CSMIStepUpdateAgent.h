@@ -37,7 +37,7 @@ protected:
     virtual bool HandleNetworkMessage(
         const csm::network::MessageAndAddress content,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx ) final;
+        csm::daemon::EventContextHandlerState_sptr& ctx ) final;
     
     /**
      * @brief Runs the prolog for the step.
@@ -52,7 +52,7 @@ protected:
     bool StepBegin(
         csmi_allocation_step_mcast_payload_t *step,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /**
      * @brief Runs the epilog for the step.
@@ -67,20 +67,20 @@ protected:
     bool StepEnd( 
         csmi_allocation_step_mcast_payload_t *step,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
-        csm::daemon::EventContextHandlerState_sptr ctx );
+        csm::daemon::EventContextHandlerState_sptr& ctx );
 
     /** @brief See @ref CSMIHandlerState::DefaultHandleError for documentation. 
      * Prepends the hostname to any error message received.
      */
     virtual void HandleError(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         const csm::daemon::CoreEvent &aEvent,
         std::vector<csm::daemon::CoreEvent*>& postEventList,
         bool byAggregator = false) final;
 
     /** @brief Unused. */
     virtual void GenerateTimeoutResponse(
-        csm::daemon::EventContextHandlerState_sptr ctx,
+        csm::daemon::EventContextHandlerState_sptr& ctx,
         std::vector<csm::daemon::CoreEvent*>& postEventList ) final { }
 };
 #endif

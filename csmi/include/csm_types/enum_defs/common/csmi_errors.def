@@ -79,6 +79,23 @@ CSMI_ENUM_MEMBER(              CSMERR_STATE_CHANGE_FAILED, "The allocation state
 CSMI_ENUM_MEMBER(                 CSMERR_DELETE_STATE_BAD, "The allocation delete was performed in an illegal state."       ,,) ///< Indicates an allocation delete operation failed due to an invalid state.
 CSMI_ENUM_MEMBER(                  CSMERR_JSRUN_CMD_ERROR, "Indicates JSRUN could not be started by the CSM infrastructure."       ,,) ///< Indicates a JSRUN start failed.
 CSMI_VERSION_END(9bbb17a023c5a0bb1d19a367e1809c4e)
+
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
+
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_INVALID_NODES, "Nodes specified for allocation create were not in the database.",,) ///< Indicates one or more nodes were not in the CSM database for the allocation create.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_OCCUPIED_NODES, "Nodes specified for allocation create were in use by other allocations.",,) ///< Indicates nodes in the list were in use by another allocation.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_UNAVAIL_NODES,   "Allocation create had nodes that were not available.",,) ///< Indicates the allocation create failed due to nodes that were not avaliable.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_BAD_FLAGS,   "Allocation create had bad allocation flags.",,) ///< Indicates the allocation create failed due to the prolog having bad allocation flags.
+CSMI_ENUM_MEMBER( CSMERR_ALLOC_MISSING,   "Allocation couldn't find the allocation.",,) ///< Indicates the allocation delete failed due to a missing allocation.
+
+CSMI_ENUM_MEMBER( CSMERR_EPILOG_EPILOG_COLLISION,  "Indicates an epilog collided with an epilog.",,) ///< Indicates an epilog collided with an epilog.
+CSMI_ENUM_MEMBER( CSMERR_EPILOG_PROLOG_COLLISION,   "Indicates an epilog collided with a prolog.",,) ///< Indicates an epilog collided with a prolog.
+CSMI_ENUM_MEMBER( CSMERR_PROLOG_EPILOG_COLLISION,   "Indicates a prolog collided with an epilog.",,) ///< Indicates a prolog collided with an epilog.
+CSMI_ENUM_MEMBER( CSMERR_PROLOG_PROLOG_COLLISION,   "Indicates a prolog collided with a prolog.",,) ///< Indicates a prolog collided with a prolog.
+
+CSMI_ENUM_MEMBER( CSMERR_SOFT_FAIL_RECOVERY_AGENT,  "Indicates a generic error in the soft failure recovery agent.",,) ///< Indicates a generic error in the soft failure recovery agent.
+
+CSMI_VERSION_END(8448902adec852fe6e7106840400c97f)
 #undef CSMI_ENUM_MEMBER
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

@@ -958,6 +958,16 @@ int csm_cgroup_login( csm_api_object **handle, csm_cgroup_login_input_t* input )
  * @ref CSMI_SUCCESS            | Successfully logged the user in.
  */
 int csm_jsrun_cmd( csm_api_object **handle, csm_jsrun_cmd_input_t* input);
+
+/** @ingroup wm_apis
+ *
+ * @todo DOCUMENT/FINISH -John
+ */
+int csm_soft_failure_recovery(
+    csm_api_object **handle, 
+    csm_soft_failure_recovery_input_t *input,
+    csm_soft_failure_recovery_output_t  **output);
+
 #ifdef __cplusplus
 }
 #endif

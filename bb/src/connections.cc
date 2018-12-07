@@ -55,9 +55,9 @@ thread_local uid_t threadLocaluid=-1;
 thread_local gid_t threadLocalgid=-1;
 
 
-int listen_socket = 0;
-int ssl_listen_socket = 0;
-int unix_listen_socket = 0;
+static int listen_socket = -1;
+static int ssl_listen_socket = -1;
+static int unix_listen_socket = -1;
 
 // NOTE:  If connections_io_mutex is to be acquired with connection_map_mutex,
 //        connection_map_mutex MUST be acquired after connections_io_mutex and
@@ -658,7 +658,10 @@ int sendMessage(const string& name, txp::Msg* msg)
             txp::Id l_MsgId = msg->getMsgId();
             char l_MsgIdStr[64] = {'\0'};
             msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
-            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+            txp::Connex* cnx = iter->second;
+            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr 
+                   << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber()
+                   << " "<< cnx->getInfoString();
 
             // Not all messages are logged as 'info' in the console log...
             if (txp::isMsgIdToLogAsInfo(l_MsgId))
@@ -670,7 +673,7 @@ int sendMessage(const string& name, txp::Msg* msg)
                 LOG(bb,debug) << l_Text.str();
             }
 
-            txp::Connex* cnx = iter->second;
+            
             rc = cnx->write(msg);
             rc = rc > 0 ? 0 : rc;
             if (rc)
@@ -745,11 +748,13 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
                 {
                     l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() \
                            << ", uid=" << (uid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::uid))->getData() \
-                           << ", gid=" << (gid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::gid))->getData();
+                           << ", gid=" << (gid_t)((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::gid))->getData()
+                           << " "<< cnx->getInfoString();
                 }
                 else
                 {
-                    l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber();
+                    l_Text << "==> Sending msg to " << realName.c_str() << ": " << l_MsgIdStr << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber()
+                           << " "<< cnx->getInfoString();
                 }
 
                 // Not all messages are logged as 'info' in the console log...
@@ -809,13 +814,14 @@ int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &p
         // Wait for the response
         txp::Msg* l_ReplyMsg = 0;
         rc = waitReply(reply, l_ReplyMsg);
-        txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
-        if (l_Attribute)
-        {
-            rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
-        }
-
-        delete l_ReplyMsg;
+        if (!rc){
+            txp::Attribute* l_Attribute = l_ReplyMsg->retrieveAttr(txp::returncode);
+            if (l_Attribute)
+            {
+                rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
+            }
+            delete l_ReplyMsg;
+        } 
     }
 
     return rc;
@@ -1030,7 +1036,8 @@ int xchgWithBBserver(const string& name)
     rc = bbproxy_SayHello(name);
     if(rc)
     {
-        LOG(bb,error) << "Hello exchange with bbserver failed";
+        LOG(bb,error) << "Hello exchange with bbserver failed. Closing connection";
+        closeConnectionFD(name);
         return -2;
     }
     return rc;
@@ -1304,12 +1311,19 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
                     msg->addAttribute(txp::version, BBAPI_CLIENTVERSIONSTR, strlen(BBAPI_CLIENTVERSIONSTR)+1);
                     usock->write(msg);
                     delete msg;
-
-                    waitReply(resp, msg);
-                    connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
-                    if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
-
-                    delete msg;
+                    msg=NULL;
+                    connect_rc = waitReply(resp, msg);
+                    if (!connect_rc){
+                        connect_rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
+                        if (connect_rc) LOG(bb,error) << "Connected with result code " << connect_rc;
+                        delete msg;
+                    }
+                    else {//need to remove connection
+                       unlockConnectionWrite("makeConnection - CLEAR");
+                       closeConnectionFD(name);
+                       LOG(bb,error) << "makeConnection disconnect while waiting for auth reply for connection=" << name;
+                       return connect_rc;
+                    }
                 }
                 else
                 {
@@ -1333,34 +1347,95 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
 }
 #endif
 
-int setupConnections(string whoami, string instance)
+#ifdef BBPROXY
+int setupUnixConnections(string whoami){
+    txp::CnxSockUnix* unixSock;
+    process_whoami   = whoami;
+    process_instance = instance;
+    LOG(bb,always) << "setupUnixConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
+    string unixPort = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+    if ( unixPort == NO_CONFIG_VALUE ){
+        LOG(bb,always) << "whoami=" << whoami << " unixPort=" << unixPort;;
+    }
+    lockConnectionMaps("setupUnixConnections");
+    if (process_whoami.find("bb.proxy") != std::string::npos)
+    {
+            if (unixPort != NO_CONFIG_VALUE)
+            {
+                unixSock = new txp::CnxSockUnix(PF_UNIX, SOCK_STREAM,0);
+
+                unixSock->setAddr(unixPort);
+                unixSock->openCnxSock();
+                int rc = unixSock->bindCnxSock();
+                if(rc)
+                {
+                    unlockConnectionMaps("setupUnixConnections - failure, could not bind unix socket");
+                    LOG(bb,error) <<  "Could not bind unix socket " << strerror(errno);
+                    delete unixSock;
+                    return -1;
+                }
+                rc = unixSock->listen4remote();
+                if(rc)
+                {
+                    unlockConnectionMaps("setupUnixConnections - failure, unixSock->listen4remote()");
+                    LOG(bb,error) <<  "could not listen unix socket " << strerror(errno);
+                    delete unixSock;
+                    return -1;
+                }
+
+                //changing permission of the file to avoid unreadable file.
+                rc= chmod(unixPort.c_str(), 0777 );
+                if (rc)
+                {
+                    unlockConnectionMaps("setupUnixConnections - failure, could not change permission of unix socket file");
+                    LOG(bb,error) <<  "Could not change permission of unix socket file " << strerror(errno);
+                    delete unixSock;
+                    return -1;
+                }
+
+                unix_listen_socket = unixSock->getSockfd();
+
+                connections[unixSock->getSockfd()] = unixSock;
+                addToNameConnectionMaps(unixSock, "ulistener");
+
+                LOG(bb,info) << "Listening for connections on fd " << unixSock->getSockfd() << ", path=" << unixPort;
+            }
+            else
+            {
+                unlockConnectionMaps("setupUnixConnections - failure no unix path for bb.proxy process");
+                LOG(bb,error) << "setupUnixConnections(): No unix path for bb.proxy process";
+                return -1;
+            }
+    }
+    unlockConnectionMaps("setupUnixConnections");
+    int tmp = 0;
+    write(connection_doorbell[1], &tmp, sizeof(tmp));
+    sem_wait(&connection_sem);
+    return 0;
+}
+#endif
+
+#ifdef BBSERVER
+int setupBBproxyListener(string whoami)
 {
     int rc;
     in_addr_t      iplocal;
     txp::CnxSock*  sock;
-    txp::CnxSockUnix* unixSock;
     txp::CnxSockSSL* sslSock;
 
     process_whoami   = whoami;
-    process_instance = instance;
 
-    LOG(bb,always) << "setupConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
-
-    sem_init(&connection_sem, 0, 0);
-    pthread_mutex_init(&connections_io_mutex, NULL);
-    pthread_mutex_init(&connection_map_mutex, NULL);
-    pthread_mutex_init(&threadFreePool_mutex, NULL);
-    pipe2(connection_doorbell, O_CLOEXEC);
+    LOG(bb,always) << "setupBBproxyListener(): whoami=" << whoami << ", ProcessId=" << ProcessId;
 
     string ipaddr;
     string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
-    string unixPort = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+    
     string sslurl = config.get(whoami + ".ssladdress", NO_CONFIG_VALUE);
-    if ( (url == NO_CONFIG_VALUE) && (sslurl == NO_CONFIG_VALUE) && (unixPort == NO_CONFIG_VALUE) ){
-        LOG(bb,always) << "whoami=" << whoami << " url=" << url << " unixPort=" << unixPort << " sslurl=" << sslurl;
+    if ( (url == NO_CONFIG_VALUE) && (sslurl == NO_CONFIG_VALUE) ){
+        LOG(bb,always) << "whoami=" << whoami << " url=" << url << " sslurl=" << sslurl;
     }
 
-    lockConnectionMaps("setupConnections");
+    lockConnectionMaps("setupBBproxyListener");
     {
         if (url != NO_CONFIG_VALUE)
         {
@@ -1369,7 +1444,7 @@ int setupConnections(string whoami, string instance)
             getIPPort(url, ipaddr, port);
             if (inet_pton(AF_INET, ipaddr.c_str(), &iplocal) == 0)
             {
-                unlockConnectionMaps("setupConnections - failure, unable to build local address");
+                unlockConnectionMaps("setupBBproxyListener - failure, unable to build local address");
                 LOG(bb,error) << "Unable to build local address";
                 delete sock;
                 return -1;
@@ -1381,14 +1456,14 @@ int setupConnections(string whoami, string instance)
             if (rc)
             {
                 LOG(bb,always) << "bind failed for " << sock->getSockfd() << ", ip=" << ipaddr << ", port=" << port;
-                unlockConnectionMaps("setupConnections - failure, sock->bindCnxSock()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sock->bindCnxSock()");
                 delete sock;
                 return -1;
             }
             rc = sock->listen4remote();
             if (rc)
             {
-                unlockConnectionMaps("setupConnections - failure, sock->listen4remote()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sock->listen4remote()");
                 delete sock;
                 return -1;
             }
@@ -1423,7 +1498,7 @@ int setupConnections(string whoami, string instance)
             getIPPort(sslurl, ipaddr, port);
             if (inet_pton(AF_INET, ipaddr.c_str(), &iplocal) == 0)
             {
-                unlockConnectionMaps("setupConnections - failure, SSL unable to build local address");
+                unlockConnectionMaps("setupBBproxyListener - failure, SSL unable to build local address");
                 LOG(bb,error) << "SSL - Unable to build local address";
                 delete sslSock;
                 return -1;
@@ -1435,7 +1510,7 @@ int setupConnections(string whoami, string instance)
             }
             catch (std::runtime_error e){
                 LOG(bb,always) << "loadCertificates failed for (SSL) what=" << e.what();
-                unlockConnectionMaps("setupConnections - failure, sslSock->bindCnxSock()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sslSock->bindCnxSock()");
                 delete sslSock;
                 rc=-1;
                 bberror << errloc(rc);
@@ -1448,14 +1523,14 @@ int setupConnections(string whoami, string instance)
             if(rc)
             {
                 LOG(bb,always) << "bind failed for (SSL) " << sslSock->getSockfd() << ", ip=" << ipaddr << ", port=" << port;
-                unlockConnectionMaps("setupConnections - failure, sslSock->bindCnxSock()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sslSock->bindCnxSock()");
                 delete sslSock;
                 return -1;
             }
             rc = sslSock->listen4remote();
             if(rc)
             {
-                unlockConnectionMaps("setupConnections - failure, sslSock->listen4remote()");
+                unlockConnectionMaps("setupBBproxyListener - failure, sslSock->listen4remote()");
                 delete sslSock;
                 return -1;
             }
@@ -1477,58 +1552,34 @@ int setupConnections(string whoami, string instance)
             LOG(bb,info) << "Listening for connections on fd (SSL) " << sslSock->getSockfd() << ", ip=" << ipaddr << ", port=" << port;
         }
 
-        if (process_whoami.find("bb.proxy") != std::string::npos)
-        {
-            if (unixPort != NO_CONFIG_VALUE)
-            {
-                unixSock = new txp::CnxSockUnix(PF_UNIX, SOCK_STREAM,0);
 
-                unixSock->setAddr(unixPort);
-                unixSock->openCnxSock();
-                rc = unixSock->bindCnxSock();
-                if(rc)
-                {
-                    unlockConnectionMaps("setupConnections - failure, could not bind unix socket");
-                    LOG(bb,error) <<  "Could not bind unix socket " << strerror(errno);
-                    delete unixSock;
-                    return -1;
-                }
-                rc = unixSock->listen4remote();
-                if(rc)
-                {
-                    unlockConnectionMaps("setupConnections - failure, unixSock->listen4remote()");
-                    LOG(bb,error) <<  "could not listen unix socket " << strerror(errno);
-                    delete unixSock;
-                    return -1;
-                }
-
-                //changing permission of the file to avoid unreadable file.
-                rc= chmod(unixPort.c_str(), 0777 );
-                if (rc)
-                {
-                    unlockConnectionMaps("setupConnections - failure, could not change permission of unix socket file");
-                    LOG(bb,error) <<  "Could not change permission of unix socket file " << strerror(errno);
-                    delete unixSock;
-                    return -1;
-                }
-
-                unix_listen_socket = unixSock->getSockfd();
-
-                connections[unixSock->getSockfd()] = unixSock;
-                addToNameConnectionMaps(unixSock, "ulistener");
-
-                LOG(bb,info) << "Listening for connections on fd " << unixSock->getSockfd() << ", path=" << unixPort;
-            }
-            else
-            {
-                unlockConnectionMaps("setupConnections - failure no unix path for bb.proxy process");
-                LOG(bb,error) << "setupConnections(): No unix path for bb.proxy process";
-                return -1;
-            }
-        }
     }
-    unlockConnectionMaps("setupConnections");
+    unlockConnectionMaps("setupBBproxyListener");
 
+    int tmp = 0;
+    write(connection_doorbell[1], &tmp, sizeof(tmp));
+    sem_wait(&connection_sem);
+    return 0;
+}
+#endif
+
+int setupConnections(string whoami, string instance)
+{
+
+    process_whoami   = whoami;
+    process_instance = instance;
+
+    LOG(bb,always) << "setupConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
+
+    sem_init(&connection_sem, 0, 0);
+    pthread_mutex_init(&connections_io_mutex, NULL);
+    pthread_mutex_init(&connection_map_mutex, NULL);
+    pthread_mutex_init(&threadFreePool_mutex, NULL);
+    pipe2(connection_doorbell, O_CLOEXEC);
+
+    string ipaddr;
+    string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
+    
     int x;
     pthread_t tid;
     pthread_attr_t attr;
