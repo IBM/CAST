@@ -22,14 +22,9 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_connections_script.sh"
   "csm_db_ras_type_script.sh"
   "csm_db_schema_version_upgrade_16_2.sh"
-  "csm_db_history_table_delete.sh"
-  "csm_history_table_delete_template.sh"
-  "csm_history_wrapper_delete_script_template.sh"
-  "csm_ras_event_action_table_delete.sh"
-  "csm_ras_event_action_wrapper_delete_script.sh"
   "csm_db_backup_script_v1.sh"
-  "csm_db_history_delete.sh"
   "csm_db_history_archive.py"
+  "csm_db_history_delete.py"
 )
 
 # Files that should not be executable when shipped
@@ -45,3 +40,4 @@ file(GLOB INSTALL_FILES
   "csm_ras_type_data.csv"
 )
 install(FILES ${INSTALL_FILES} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME})
+set(CPACK_RPM_${DB_RPM_NAME}_PACKAGE_REQUIRES "python-psycopg2")
