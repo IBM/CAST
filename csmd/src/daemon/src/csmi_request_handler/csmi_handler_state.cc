@@ -231,13 +231,17 @@ void CSMIHandlerState::DefaultHandleError(
     std::string prependString = ctx->GenerateUniqueID() + ";" ;
     ctx->PrependErrorMessage( prependString, ' ');
 
-    if(ctx->GetErrorCode() != CSMI_NO_RESULTS)
+    // Success should NEVER be sent back!
+    switch ( ctx->GetErrorCode() )
     {
-        LOG(csmapi, error) <<  ctx->GetErrorMessage();
-    }
-    else
-    {
-        LOG(csmapi, info) <<  ctx->GetErrorMessage();
+        case CSMI_NO_RESULTS:
+            LOG(csmapi, info) <<  ctx->GetErrorMessage();
+            break;
+        case CSMI_SUCCESS:
+            ctx->SetErrorCode(CSMERR_GENERIC);
+        default:
+            LOG(csmapi, error) <<  ctx->GetErrorMessage();
+            break;
     }
 
     ctx->SetAuxiliaryId( GetFinalState() );
