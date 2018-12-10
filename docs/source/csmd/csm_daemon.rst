@@ -89,6 +89,7 @@ Beginning with the top-level configuration section `csm`.
   * ``data_collection`` enable and configure predefined buckets for environmental data collection. See `The data collection block`_.
 
 
+.. _CSMDLogBlock:
 The log block
 ^^^^^^^^^^^^^
 
@@ -111,6 +112,10 @@ The log block
             "transaction"               :   true,
             "transaction_file"          :   "/var/log/ibm/csm/csm_transaction.log",
             "transaction_rotation_size" :   1000000000
+            "allocation_metrics"                :   true,
+            "allocation_metrics_file"           :   "/var/log/ibm/csm/csm_allocation_metrics.log",
+            "allocation_metrics_rotation_size"  :   1000000000
+
         }
 
 The log block determines what amount of logging goes to which files and/or console and also specifies log rotation options.
@@ -139,9 +144,12 @@ The log block determines what amount of logging goes to which files and/or conso
   * ``csmras`` log level of the RAS component. Includes messages about RAS events and their processing within the daemon.
   * ``csmapi`` log level of CSM API handling. Includes messages about API call processing.
   * ``csmenv`` log level of environmental data handling. Includes messages related primarily to data collection and shipping from compute to aggregators.
-  * ``transaction`` tbd
-  * ``transaction_file`` tdb
-  * ``transaction_rotation_size`` transaction log rotation settings; similar to csm log rotation settings
+  * ``transaction`` Enables the mechanism transaction log mechanism.
+  * ``transaction_file`` Specifies the location the transaction log will be saved to.
+  * ``transaction_rotation_size`` The size of the file (in bytes) to rotate the log at.
+  * ``allocation`` Enables the mechanism allocation metrics log mechanism.
+  * ``allocation_file`` Specifies the location the allocation metrics log will be saved to.
+  * ``allocation_rotation_size`` The size of the file (in bytes) to rotate the log at.
 
 
 The database block
