@@ -102,7 +102,7 @@ The script may largely be broken into
 
 
 .. attention:: If this script below is run manually it will display the results to the screen.  
-    This script only handles per table archiving.
+    This script handles all history table archiving in the database.
 
 Script out results
 ------------------
@@ -142,6 +142,8 @@ Script out results
  [INFO] Processing Table csm_ras_event_action          | User Ct: 100        | Act DB Ct: 0
  ---------------------------------------------------------------------------------------------------------
  DB Name:                           | csmdb
+ DB User Name:                      | postgres
+ Thread Count:                      | 10
  Archiving Log Directory:           | /var/log/ibm/csm/db/csm_db_archive_script.log
  Archiving Data Directory:          | /tmp/test_archive_dir/
  End Script Time:                   | 2018-11-23 11:25:02.130501
@@ -194,6 +196,8 @@ If a user specifies a non related DB in the system or if there are issues connec
  [CRITICAL] Unable to connect to local database.
  ---------------------------------------------------------------------------------------------------------
  DB Name:                           | csmd
+ DB User Name:                      | postgres
+ Thread Count:                      | 10
  Archiving Log Directory:           | /var/log/ibm/csm/db/csm_db_archive_script.log
  Archiving Data Directory:          | /tmp/test_archive_dir/
  End Script Time:                   | 2018-11-23 11:44:17.574674
