@@ -82,6 +82,8 @@ bool ParseResponseSoftFailure(
                 payload->error_code, 
                 payload->error_message);
             
+            if( payload->error_code )
+                mcastProps->PushError(payload->error_code);
 
             csm_free_struct_ptr(csmi_soft_failure_recovery_payload_t, payload);
         }
