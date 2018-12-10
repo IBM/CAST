@@ -1,8 +1,25 @@
-CSM Configuration
-=================
+Configuring the CSM PAM module
+==============================
 
-Soft Failure Recovery
----------------------
+A CSM PAM module is packaged in **ibm-csm-core** RPM, the following files are installed:
+
+* /etc/pam.d/csm/activelist
+
+* /etc/pam.d/csm/whitelist
+
+* /etc/pam.d/csm/README.md
+
+* /usr/lib64/security/libcsmpam.so
+
+The RPM also adds a disabled line of code to ``/etc/pam.d/sshd``.
+
+To enable the module for ssh, simply uncomment the added line in ``/etc/pam.d/sshd`` and restart the ssh daemon as outlined in the CSM PAM Module section in the CSM Installation and Configuration Guide. The basic configuration will restrict ssh connections to the root user and any users with an active allocation on the node (who will be placed in the allocation cgroup).
+
+Adding a user to the ``/etc/pam.d/csm/whitelist`` file will authorize them to access the node at any time. This file is new line delimited and will allow any users defined to access through the CSM PAM module. If the system administrator has modified this file, then it will not be removed when ibm-csm-core is uninstalled.
+
+The ``libcsmpam.so`` PAM module is a session module and conforms to the settings described in the pam.conf man page. The only officially supported configuration, however, is bundled in the RPM installation.
+
+For more details about the CSM PAM module, please refer to the bundled ``/etc/pam.d/csm/README.md`` documentation. This document goes into more depth on the behavior of the module, describes the purpose of the active list and provides additional configurations.
 
 
 CSM Pam Daemon Module
@@ -54,7 +71,6 @@ The following checks are performed to verify that the user is allowed to access 
 
 Module Configuration
 --------------------
-
 Configuration may occur in either a pam configuration file (e.g. `/etc/pam.d/sshd`) or the
 csm pam `whitelist`.
 
@@ -102,7 +118,7 @@ If the user has an active allocation they will be placed into the appropriate cg
 described above.
 
 activelist
-^^^^^^^^^^
+----------
 
 :File location: `/etc/pam.d/csm/whitelist` 
 :Configurable: No                         

@@ -231,7 +231,7 @@ void CSMIHandlerState::DefaultHandleError(
     std::string prependString = ctx->GenerateUniqueID() + ";" ;
     ctx->PrependErrorMessage( prependString, ' ');
 
-    if(ctx->GetErrorCode() == CSMI_NO_RESULTS)
+    if(ctx->GetErrorCode() != CSMI_NO_RESULTS)
     {
         LOG(csmapi, error) <<  ctx->GetErrorMessage();
     }

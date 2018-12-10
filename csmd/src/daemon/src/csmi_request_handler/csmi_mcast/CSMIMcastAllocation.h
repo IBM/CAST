@@ -39,6 +39,7 @@ struct CSMIAllocErrorComparator
             case CSMERR_ALLOC_BAD_FLAGS :
                 returnVal=5;
                 break;
+            case CSMERR_GENERIC:
             case CSMERR_MULTI_GEN_ERROR:
                 returnVal=-1;
                 break;

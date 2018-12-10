@@ -65,10 +65,10 @@ CSMI_VERSION_START(CSM_VERSION_1_3_0)
 CSMI_STRUCT_MEMBER(char, order_by, BASIC, , '\0', ) /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY switch_name ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY switch_name ASC NULLS LAST', [b] =  'ORDER BY switch_name DESC NULLS LAST' */
 CSMI_VERSION_END(0c461722fc61db2f8a2f658e77d8d450)
 
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 CSMI_STRUCT_MEMBER(uint32_t, roles_count, BASIC    ,            , 0   , ) /**< Number of roles being queried, size of @ref roles. */
 CSMI_STRUCT_MEMBER(char**  , roles      , ARRAY_STR, roles_count, NULL, ) /**< List of roles to perform query on, must specify at least one roles. Size defined by @ref roles_count. */
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(0639fbc45753abced9a196a9fe566d92)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

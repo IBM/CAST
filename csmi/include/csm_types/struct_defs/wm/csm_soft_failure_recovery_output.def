@@ -49,12 +49,12 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 
 CSMI_STRUCT_MEMBER(uint32_t, error_count,  BASIC,              ,    0, ) ///< A count of errors.
 CSMI_STRUCT_MEMBER(csm_soft_failure_recovery_node_t**, node_errors, ARRAY_STRUCT, error_count, NULL,csm_soft_failure_recovery_node_t ) ///< Collection of errors which occured on nodes.
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(57e8090ff48173d5f87578d0926ce468)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

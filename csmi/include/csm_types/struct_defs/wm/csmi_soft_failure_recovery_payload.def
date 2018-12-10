@@ -50,7 +50,7 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 
 CSMI_STRUCT_MEMBER(char*   , hostname     , STRING, , NULL, ) /**< The hostname of the node. */
 
@@ -63,7 +63,7 @@ CSMI_STRUCT_MEMBER(char*  , error_message  , STRING, , NULL, ) /**< The error me
 //CSMI_STRUCT_MEMBER(char*   , kv_pairs     , STRING, , NULL, ) /**< The arguments for JSRUN execution. */
 //CSMI_STRUCT_MEMBER(char*  ,  jsm_path     , STRING, , NULL, ) /**< The fully qualified path to the JSM executable, if NULL ignored and the default path is used ( /opt/ibm/spectrum_mpi/jsm_pmix/bin/jsm ). */
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(361d87095663ce471e725f0870b757b1)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

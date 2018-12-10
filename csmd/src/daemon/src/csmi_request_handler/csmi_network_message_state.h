@@ -80,6 +80,11 @@ public:
 
             this->ProcessError(ctx, error);
 
+            if ( ctx->GetErrorCode() >= csmi_cmd_err_t_MAX)
+            {
+                ctx->SetErrorCode(CSMERR_GENERIC);
+            }
+
             if ( ctx->GetErrorCode() == CSMERR_TIMEOUT )
             {
                 this->HandleTimeout(ctx, aEvent, postEventList);
