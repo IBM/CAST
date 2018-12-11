@@ -25,7 +25,7 @@ Configuration
 
 The following is a brief introduction to the installation and configuration of the logstash service.
 CAST provides a set of sample configuration files in the repository at `csm_big_data/logstash/`.
-If the `ibm-csm-bds-*.noarch.rpm` rpm has been installed the sample configurations may be found 
+If the |csm-bds| rpm has been installed the sample configurations may be found 
 in `/opt/ibm/csm/bigdata/logstash/`.
 
 1. Install the logstash rpm and java 1.8.1+ (command run from directory with logstash rpm):
@@ -59,9 +59,10 @@ in `/opt/ibm/csm/bigdata/logstash/`.
    `csm_big_data/logstash`. RPM Directories are relative to `/opt/ibm/csm/bigdata/logstash/`.
 
 .. note:: The `conf.d/logstash.conf` file requires the ELASTIC-INSTANCE field be replaced with
-   your cluster's elastic search nodes.
+   your cluster's Elasticsearch nodes.
    
-.. note:: logstash.yml is not shipped with this version of the RPM please use the following config for logstash.
+.. note:: `logstash.yml` is not shipped with this version of the RPM please use the following config for logstash.
+
 .. code-block:: bash
 
    # logstash.yml

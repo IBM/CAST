@@ -20,7 +20,7 @@ actions (ruby scripts).
 Installation
 ------------
 
-The CSM Event Correlator comes bundled in the `ibm-csm-bds-logstash*.noarch.rpm` rpm. 
+The CSM Event Correlator comes bundled in the |csm-logstash| rpm. 
 When installing the rpm, any old versions of the plugin will be removed and the bundled version
 will be installed.
 

@@ -1,3 +1,5 @@
+.. _CASTSearch:
+
 Cast Search
 ===========
 
@@ -9,7 +11,7 @@ The cast search mechanism is a GUI utility for searching for allocations in the 
 Installation
 ------------
 
-Installation of the `CAST Search` plugin is performed through the `ibm-csm-bds-kibana-*.noarch` rpm:
+Installation of the `CAST Search` plugin is performed through the |csm-kibana| rpm:
 
 .. code:: bash
 
@@ -24,7 +26,7 @@ Configuration
 After installing the plugin the following steps must be taken to begin using the plugin.
 
 
-1. Select the management tab from the sidebar:
+1. Select the `Management` tab from the sidebar:
 
 .. image:: https://user-images.githubusercontent.com/1195452/49386058-bc7fb180-f6ec-11e8-98c2-0621c1212c47.png
     :alt: Step One
@@ -60,7 +62,7 @@ If the index pattern is present skip to `Step Seven`_:
 
 .. _Step Seven:
 
-7. Select the Visualize sidebar tab, then select the `CAST Search` option:
+7. Select the `Visualize` sidebar tab, then select the `CAST Search` option:
 
 .. image:: https://user-images.githubusercontent.com/1195452/49386065-bd184800-f6ec-11e8-9be6-7ea71c1879ce.png
     :alt: Step Seven

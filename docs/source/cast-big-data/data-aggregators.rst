@@ -10,7 +10,7 @@ Elasticsearch.
     bash style `${variable_name}` and followed by an explanation of the variable.
 
 .. contents::
-    :local:
+   :local:
 
 Logs
 ----
@@ -18,8 +18,6 @@ Logs
 The default configuration of the CAST Big Data Store has support for a number of logging types,
 most of which are processed through the syslog utility and then enriched by Logstash and 
 the CAST Event Correlator.
-
-.. TODO: Add more context?
 
 .. _SyslogDataAgg:
 
@@ -31,23 +29,20 @@ Syslog
 Syslog is generally aggregated through the use of the rsyslog daemon. 
 
 Most devices are capable of producing syslogs, and it is suggested that syslogs should be sent
-to Logstash via a redirection hierarchy outlined in the table below: 
+to Logstash via a redirection hierarchy outlined in the diagram below: 
 
-+----------------+--------------------+
-|  Type of Node  | Syslog Destination |
-+================+====================+
-|  Service Node  |    Logstash        |
-+----------------+--------------------+
-|  Compute Node  |    Service Node    |
-+----------------+--------------------+
-|  Utility Node  |    Service Node    |
-+----------------+--------------------+
-|   UFM Server   |    Service Node    | 
-+----------------+--------------------+
-|   IB/Ethernet  |    Logstash Node   | 
-+----------------+--------------------+
-|      PDUs      |    Logstash Node   | 
-+----------------+--------------------+
+.. graphviz::
+
+    digraph G {
+        Logstash [shape=square];
+    
+        "Service Node" -> Logstash
+        "IB/Ethernet"  -> Logstash
+        PDUs           -> Logstash
+        "Compute Node" -> "Service Node"
+        "Utility Node" -> "Service Node"
+        "UFM Server"   -> "Service Node"
+    }
 
 Syslog Redirection
 ^^^^^^^^^^^^^^^^^^
@@ -59,7 +54,8 @@ To redirect a syslog so it is accepted by Logstash the following must be added t
 
 .. code-block:: bash
 
-    $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %syslogseverity-text% %msg%\n"
+    $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% \
+    %PROCID% %syslogseverity-text% %msg%\n"
     
     *.*;cron.none @@${logstash_node}:${syslog_port};logFormat
 
@@ -85,15 +81,17 @@ reproduced below with the types matching directly to the types in
 
 .. code-block:: bash
 
-    RSYSLOGDSV ^(?m)%{TIMESTAMP_ISO8601:timestamp} %{HOSTNAME:hostname} %{DATA:program_name} %{INT:process_id} %{DATA:severity} %{GREEDYDATA:message}$
+    RSYSLOGDSV ^(?m)%{TIMESTAMP_ISO8601:timestamp} %{HOSTNAME:hostname} \
+    %{DATA:program_name} %{INT:process_id} %{DATA:severity} %{GREEDYDATA:message}$
 
-.. note:: This pattern has a 1:1 relationship with the template given above and a 1:many relationship with
-        the index data mapping. Logstash appends some additional fields for metadata analysis.
+.. note:: This pattern has a 1:1 relationship with the template given above and a 1:many 
+   relationship with the index data mapping. Logstash appends some additional fields for 
+   metadata analysis.
 
 GPFS 
 ****
 
-To redirect the GPFS logging data to the syslog please do the following on the Management node for GPFS:
+To redirect the GPFS logging data to the syslog please do the following on the `Management` node for GPFS:
 
 .. code-block:: bash
 
@@ -101,9 +99,10 @@ To redirect the GPFS logging data to the syslog please do the following on the M
 
 After completing this process the gpfs log should now be forwarded to the `syslog` for the configured node.
 
-.. note:: Refer to `Syslog Redirection`_ for gpfs log forwarding, the default syslog port is recommended (10515).
+.. note:: Refer to `Syslog Redirection`_ for gpfs log forwarding, the default syslog port is 
+    recommended (10515).
 
-.. note:: The `systemLogLevel` attribute will forward logs of the specified level and higher to the 
+.. note:: The ``systemLogLevel`` attribute will forward logs of the specified level and higher to the 
    syslog. It supports the following options: **alert**, **critical**, **error**, **warning**, 
    **notice**, **configuration**, **informational**, **detail**, and **debug**.
 
@@ -131,7 +130,6 @@ The System Event Log will report various fabric events that occur in the UFM's n
 *  A link coming up.
 *  A link going down.
 *  UFM module problems.
-*  ...
 
 A sample output showing a downed link can be seen below:
 
@@ -171,7 +169,7 @@ CAST recommends setting the following attributes in `/opt/ufm/files/conf/gv.cfg`
     history_configured = true
 
 
-.. note:: `write_interval and `max_files` were set as a default, change these fields as needed.
+.. note:: ``write_interval`` and ``max_files`` were set as a default, change these fields as needed.
 
 After configuring `/opt/ufm/files/conf/gv.cfg` restart the ufm daemon.
 
@@ -183,23 +181,24 @@ After configuring `/opt/ufm/files/conf/gv.cfg` restart the ufm daemon.
 
 CAST recommends using the same syslog format as shown in `Syslog Redirection`_, however, the message
 in the case of the mellanox event log has a consistent structure which may be parsed by Logstash.
-The pattern and substitutions are used below. Please note that the *timestamp*, *severity* and
-*message* fields are all overwritten from the default syslog pattern.
+The pattern and substitutions are used below. Please note that the ``timestamp``, ``severity`` and
+``message`` fields are all overwritten from the default syslog pattern.
 
 Please consult the event log table in `the elasticsearch documentation <melElastic>` for details on
 the message fields.
 
 .. code-block:: bash
 
-    MELLANOXMSG %{MELLANOXTIME:timestamp} \[%{NUMBER:log_counter}\] \[%{NUMBER:event_id}\] %{WORD:severity} \[%{WORD:event_type}\] %{WORD:category} %{GREEDYDATA:message}
+    MELLANOXMSG %{MELLANOXTIME:timestamp} \[%{NUMBER:log_counter}\] \[%{NUMBER:event_id}\] \
+    %{WORD:severity} \[%{WORD:event_type}\] %{WORD:category} %{GREEDYDATA:message}
 
 .. _ConsoleDataAggregator:
 
 Console
 *******
 
-.. note:: This document is designed to configure the xCAT service nodes to ship goconserver output to logstash 
-    (written using xCAT 2.13.11).
+.. note:: This document is designed to configure the xCAT service nodes to ship goconserver 
+   output to logstash (written using xCAT 2.13.11).
 
 :Logstash Port: 10522
 
@@ -287,7 +286,9 @@ this file will need to be modified to have the CAST syslog template:
 
     vi /etc/rsyslog.d/11-remotesyslog.conf
         
-        $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %syslogseverity-text% %msg%\n"
+        $template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% \
+        %syslogseverity-text% %msg%\n"
+
         *.*;cron.none @@${logstash_node}:${syslog_port};logFormat
     sudo service rsyslog restart
 
@@ -305,7 +306,7 @@ GPFS
 ****
 
 In order to collect counters from the GPFS file system CAST leverages the zimon utility. A python
-script interacting with this utility is provided in the `ibm-csm-bds-*.noarch.rpm`.
+script interacting with this utility is provided in the |csm-bds|.
 
 The following document assumes that the cluster's service nodes be running the `pmcollector`
 service and any nodes requiring metrics be running `pmsensors`.
@@ -395,7 +396,7 @@ be started on the nodes.
 Python Script
 ^^^^^^^^^^^^^
 
-:CAST RPM: `ibm-csm-bds-*.noarch.rpm`
+:CAST RPM: |csm-bds|
 :Script Location: `/opt/ibm/csm/bigdata/data-aggregators/zimonCollector.py`
 :Dependencies: `gpfs.base.ppc64le`  (Version 5.0 or greater)
 
@@ -459,7 +460,7 @@ In the default configuration of this script records will be shipped as `JSONData
 UFM
 ***
 
-:CAST RPM: `ibm-csm-bds-*.noarch.rpm`
+:CAST RPM: |csm-bds|
 :Script Location: `/opt/ibm/csm/bigdata/data-aggregators/ufmCollector.py`
 
 CAST provides a python script to gather UFM counter data. The script is intended to be run
@@ -688,7 +689,7 @@ Database Archiving
 
 :Logstash Port: 10523
 :Script Location: /opt/ibm/csm/db/csm_db_history_archive.sh
-:Script RPM: `csm-csmdb-*.rpm`
+:Script RPM: |csm-db|
 
 CAST supplies a command line utility for archiving the contents of the CSM database history tables. 
 When run the utility (`csm_db_history_archive.sh`) will append to a daily JSON dump file 

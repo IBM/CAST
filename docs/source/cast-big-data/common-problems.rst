@@ -6,7 +6,6 @@ Common Big Data Store Problems
 The following document outlines some common sources of error for the Big Data Store and how to best
 resolve the described issues.
 
-
 .. contents::
     :local:
 
@@ -21,7 +20,7 @@ Elasticsearch will try its best to parse dates, as outlined in the `ELK Date`_ d
 If a date doesn't match the default formats (a usual culprit is epoch time or microseconds) 
 the adminstrator will need to take action.
 
-CAST has two perscribed resolution patterns for this problem:
+CAST has two prescribed resolution patterns for this problem:
 
 1. `Fixing Timestamps in Elasticsearch`_
 2. `Fixing Timestamps in Logstash`_
@@ -40,7 +39,7 @@ Fixing Timestamps in Elasticsearch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is the prefered methodology for resolving issues in the timestamp. CAST supplies 
-a utility in `ibm-csm-bds-*.noarch.rpm` for generating mappings that fix the timestamps in 
+a utility in |csm-bds| for generating mappings that fix the timestamps in 
 data sources outlined in :ref:`CASTDataAgg`.
 
 The index mapping script is present at `/opt/ibm/csm/bigdata/elasticsearch/createIndices.sh`.
@@ -50,7 +49,7 @@ the input to the script) which creates all of the mappings defined in the
 templates/mappings the `/opt/ibm/csm/bigdata/elasticsearch/removeIndices.sh` is provided to delete 
 indices made through the creation script.
 
-If adding a new index to this mapping the following steps should be taken to repair timestamps
+If adding a new index, the following steps should be taken to repair timestamps
 or any other invalid data types on a per index or index pattern basis:
 
 1. Create a `json` file to store the mapping. CAST recommends naming the file `<template-name>.json` 
@@ -95,7 +94,7 @@ or any other invalid data types on a per index or index pattern basis:
             curl -s -o /dev/null -X PUT "${HOST}:9200/_template/${template_name}?pretty"\
                 -H 'Content-Type: application/json' -d ${json-template-file}
 
-    .. attention:: If the template is changed the old template must be removed!
+    .. attention:: If the template is changed the old template must be removed first!
 
 
 To remove a template the admin may either run the `/opt/ibm/csm/bigdata/elasticsearch/removeIndices.sh`

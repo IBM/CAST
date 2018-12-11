@@ -174,7 +174,13 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-
+# A collection of substitutions.
+rst_epilog="""
+.. |csm-kibana| replace:: ``ibm-csm-bds-kibana-1.4.0-*.noarch.rpm``
+.. |csm-bds| replace:: ``ibm-csm-bds-1.4.0-*.noarch.rpm``
+.. |csm-logstash| replace:: ``ibm-csm-bds-logstash-1.4.0-*.noarch.rpm``
+.. |csm-db| replace:: ``csm-csmdb-*.rpm``
+"""
 
 
 
