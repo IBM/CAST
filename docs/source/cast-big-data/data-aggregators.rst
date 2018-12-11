@@ -803,6 +803,7 @@ in the CSM master configuration file:
     }
 
 .. TODO Should this be duplicated here?
+
 :transaction: Enables the mechanism transaction log mechanism. 
 :transaction_file: Specifies the location the transaction log will be saved to.
 :transaction_rotation_size: The size of the file (in bytes) to rotate the log at.

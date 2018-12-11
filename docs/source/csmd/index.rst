@@ -7,4 +7,4 @@ CSM Daemon is the managing process of CSM.
     :maxdepth: 2
 
     csm_daemon.rst
-
+    csmd_config.rst
