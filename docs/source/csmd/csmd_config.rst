@@ -476,14 +476,20 @@ The ufm block configures the location and access to ufm.
         {
             "rest_address"  : "__UFM_REST_ADDRESS__",
             "rest_port"     : 80,
-            "rest_user"     : "admin",
-            "rest_password" : "123456"
+            "ufm_ssl_file_path" : "/etc/ibm/csm",
+            "ufm_ssl_file_name" : "csm_ufm_ssl_key.txt"
         }
 
 :rest_address: The hostname of the UFM server.
 :rest_port: The port UFM is serving the RESTful interface on (generally ``80``).
-:rest_user: The user name for RESTful access.
-:rest_password:  The password for use with ``rest_user`` to allow RESTful access.
+:ufm_ssl_file_path: The path to the SSL file for UFM access.
+:ufm_ssl_file_name: An SSL file for UFM Access.
+
+    May be generated using the following command:
+
+    .. code-block:: bash
+
+        openssl base64 -e <<< ${username}:${password} > /etc/ibm/csm/csm_ufm_ssl_key.txt;
 
 The ``bds`` Block
 _________________

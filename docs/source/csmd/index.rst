@@ -1,3 +1,5 @@
+.. _CSMDInfrastructure:
+
 CSM Infrastructure
 ==================
 
@@ -7,6 +9,7 @@ and the CSM Database and cluster Compute nodes.
 A Broad general visualization of the infrastructure has been reproduced below:
 
 .. graphviz::
+
     digraph G {
         User -> Utility;
         Utility -> Master;

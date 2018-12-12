@@ -181,6 +181,10 @@ rst_epilog="""
 .. |csm-logstash| replace:: ``ibm-csm-bds-logstash-1.4.0-*.noarch.rpm``
 .. |csm-db| replace:: ``csm-csmdb-*.rpm``
 .. |csm-core| replace:: ``csm-core-*.rpm``
+.. |csm-api| replace:: ``csm-api-*.rpm``
+.. |git-repo| replace:: GitHub_
+
+.. _GitHub: https://github.com/IBM/CAST
 """
 
 
