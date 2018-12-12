@@ -1,8 +1,13 @@
-CSM Daemon
-==========
+CSMD Executable
+===============
+
+The ``csmd`` executable is bundled in the |csm-core| at ``/opt/ibm/csm/sbin/csmd``.
+
+This executable has been daemonized to run the CSM Infrastructure. 
 
 .. contents::
    :local:
+
 
 CSMD Command line options
 -------------------------
@@ -20,6 +25,36 @@ CSMD Command line options
 .. note::
   * The role is determined by the first letter of the role argument.
   * The file path should be an absolute path to avoid confusion.
+
+CSMD Services
+-------------
+
+CSM defines four service types that are accessible through ``systemctl``.
+
++------------+---------------------------------+-------------------------+
+| Type       | Config                          | Service                 |
++============+=================================+=========================+
+| Utility    | /etc/ibm/csm/csm_utility.cfg    | csmd-utility.service    |
++------------+---------------------------------+-------------------------+
+| Master     | /etc/ibm/csm/csm_master.cfg     | csmd-master.service     |
++------------+---------------------------------+-------------------------+
+| Aggregator | /etc/ibm/csm/csm_aggregator.cfg | csmd-aggregator.service |
++------------+---------------------------------+-------------------------+
+| Compute    | /etc/ibm/csm/csm_compute.cfg    | csmd-compute.service    |
++------------+---------------------------------+-------------------------+
+
+The following is a sample how to manipulate these services:
+
+.. code-block:: bash
+
+   systemctl [status|start|stop|restart] csmd-utility
+
+
+CSMD Configuration
+------------------
+
+To configure the ``csmd`` daemon please refer to :ref:`CSMDConfig`.
+
 
 .. _CSMDACLConf:
 

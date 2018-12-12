@@ -180,6 +180,7 @@ rst_epilog="""
 .. |csm-bds| replace:: ``ibm-csm-bds-1.4.0-*.noarch.rpm``
 .. |csm-logstash| replace:: ``ibm-csm-bds-logstash-1.4.0-*.noarch.rpm``
 .. |csm-db| replace:: ``csm-csmdb-*.rpm``
+.. |csm-core| replace:: ``csm-core-*.rpm``
 """
 
 
