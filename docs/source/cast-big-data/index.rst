@@ -18,6 +18,7 @@ elasticsearch.
     stored. If this occurs the user will need to reindex the data to fix the problem. Please
     read the elasticsearch section carefully before ingesting data.
 
+.. attention:: It is recommended to review :ref:`CASTBDSCommon` before installing the stack.
 
 .. toctree::
     :maxdepth: 2
@@ -25,6 +26,7 @@ elasticsearch.
     elasticsearch.rst
     kibana.rst
     logstash.rst 
+    common-problems.rst
     data-aggregators.rst
     beats.rst
     python-guide.rst

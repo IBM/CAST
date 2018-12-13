@@ -35,17 +35,18 @@ CAST ships a sample configuration file in the `ibm-csm-bds-*.noarch` rpm at
 at the CSM database archive files and the csm transaction logs. Users will need to replace two
 keywords before using this configuration:
 
-+-------------------------+---------------------------------------------------------+---------------------+
-| Keyword                 | Description                                             | Sample Value        |
-+=========================+=========================================================+=====================+
-| _KIBANA_HOST_PORT_      | A string containing the "hostname:port" pairing of the  | "10.7.4.30:5601"    |
-|                         | Kibana server.                                          |                     |
-+-------------------------+---------------------------------------------------------+---------------------+
-| _LOGSTASH_IP_PORT_LIST_ | A list of "hostname:port" pairs pointing to Logstash    | ["10.7.4.41:10523"] |
-|                         | servers to ingest the data (current CAST recommendation |                     |
-|                         | is a single instance of Logstash).                      |                     |
-+-------------------------+---------------------------------------------------------+---------------------+
-        
+
+:_KIBANA_HOST_PORT_:
+    ``"10.7.4.30:5601"``
+    
+    A string containing the "hostname:port" pairing of the Kibana server.
+
+:_LOGSTASH_IP_PORT_LIST_:
+    ``["10.7.4.41:10523"]``
+
+    A list of "hostname:port" pairs pointing to Logstash servers to ingest the data (current CAST 
+    recommendation is a single instance of Logstash).
+    
 3. Start the filebeats service.
 
 .. code-block:: bash

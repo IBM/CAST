@@ -1,23 +1,36 @@
-Implementing new CSM APIs
+Implementing New CSM APIs
 =========================
 
-CSM is an open source project that can be contributed to by the community. This section is a guide on how to contribute a new CSM API to this project.
+CSM is an open source project that can be contributed to by the community. 
+This section is a guide on how to contribute a new CSM API to this project.
+
+Contributors should visit the |git-repo| and follow the instructions in the **How to Contribute** 
+section of the repository readme. 
 
 Front-end
 ----------
 
-“Front end" is supposed to represent the part of the API a user would interface with and before an API connects and goes into the CSM infrastructure. 
-Follow these steps to create/edit an api. This diagram below shows where to find the appropriate files in the open source repository.
+This is the API an end user would interact with. The front end interacts with the 
+:ref:`CSMDInfrastructure` through network connections to varying results.
+
+Follow these steps to create/edit an api. The diagram below shows where to find the 
+appropriate files in the |git-repo| repository.
 
 .. image:: https://user-images.githubusercontent.com/4662139/49670824-efe77680-fa33-11e8-9703-170a022e9c5c.png
-
-Constructing an API:
+   :height: 400px
 
 The following numbers reference the chart above.
 
-1.	When creating an API it should be determined whether it accepts input and produces output. The CSM design follows the pattern of **<API_Name>_input_t** for input structs and **<API_Name>_output_t** for output structs. These structs should be defined through use of an x-macro in the appropriate folder for the API type under the ``csmi/include/csm_types/struct_defs`` directory. A README is provided in this directory with an in-depth description of the struct definition process. A sample is reproduced below in:
+:1: When creating an API it should be determined whether it accepts input and produces output. 
+    The CSM design follows the pattern of **<API_Name>_input_t** for input structs and 
+    **<API_Name>_output_t** for output structs. These structs should be defined through use of an 
+    x-macro in the appropriate folder for the API type under the ``csmi/include/csm_types/struct_defs`` 
+    directory. 
+    
+    A `struct README`_ is provided in this directory with an in-depth description of the 
+    struct definition process. 
 
-.. code-block:: C
+.. code-block:: none
 
     /*================================================================================*/
     
@@ -27,7 +40,8 @@ The following numbers reference the chart above.
      */
     
     #ifndef CSMI_STRUCT_NAME
-    #define CSMI_STRUCT_NAME csm_example_api_input_t
+    // ! The name of the struct to be generated !
+    #define CSMI_STRUCT_NAME csm_example_api_input_t 
     
     #undef CSMI_BASIC              
     #undef CSMI_STRING             
@@ -41,6 +55,7 @@ The following numbers reference the chart above.
     #undef CSMI_ARRAY_STRUCT_FIXED 
     #undef CSMI_NONE  
     
+    // ! Set to 1 (true) when a field matching the type is present !
     #define CSMI_BASIC               1
     #define CSMI_STRING              1
     #define CSMI_STRING_FIXED        0
@@ -69,78 +84,139 @@ The following numbers reference the chart above.
     #undef CSMI_VERSION_END
     #undef CSMI_STRUCT_MEMBER
 
-
-Important highlights in the struct:
-
-.. image:: https://user-images.githubusercontent.com/4662139/49670829-f249d080-fa33-11e8-9cb9-8a3cd5a9dbb6.png
+    .. attention:: Follow the existing `struct README`_ in the code source for supplemental details.
 
 
-2. The X-Macro definition files will be collated by their ordering in the local ``type_order.def`` file. New files added to this ordering should just be the file name. Specific details for this file are in the README.
+:2: The X-Macro definition files will be collated by their ordering in the local ``type_order.def``
+    file. New files added to this ordering should just be the file name. 
+    
+    Specific details for this file are in the `struct README`_.
 
-3. The ``special_preprocess.def`` file is prepended to the generated header. This file should only be modified if your struct uses a special header or requires some preprocessor directive. Please note that this will apply globally to the generated header file.
+:3: The ``special_preprocess.def`` file is prepended to the generated header. 
+    This file should only be modified if your struct uses a special header or requires some 
+    preprocessor directive. Please note that this will apply globally to the generated header file.
 
-4. After defining the X-Macro files the developer should run the ``regenerate_headers.sh`` script located at ``bluecoral/csmi/include/struct_generator/``. This script will prepare the structs and enumerated types for use in the CSM APIs and infrastructure. Serialization functions and python bindings will also be generated. 
+:4: After defining the X-Macro files the developer should run the ``regenerate_headers.sh`` script 
+    located at ``bluecoral/csmi/include/struct_generator/``. This script will prepare the structs 
+    and enumerated types for use in the CSM APIs and infrastructure. Serialization functions and 
+    python bindings will also be generated. 
 
-The files modified by this script include:
+    The files modified by this script include:
+    
+    :Common:
+    
+        +--------------------+------------------------------+
+        | Type Header        | csmi_type_common.h           |
+        +--------------------+------------------------------+
+        | Function Header    | csmi_type_common_funct.h     |
+        +--------------------+------------------------------+
+        | Serialization Code | csmi_common_serial.c         |
+        +--------------------+------------------------------+
+    
+    :Workload Manager:
+    
+        +--------------------+------------------------------+
+        | Type Header        | csmi_type_wm.h               |
+        +--------------------+------------------------------+
+        | Function Header    | csmi_type_wm_funct.h         |
+        +--------------------+------------------------------+
+        | Serialization Code | csmi_wm_serialization.c      |
+        +--------------------+------------------------------+
+    
+    :Inventory:
+    
+        +--------------------+------------------------------+
+        | Type Header        | csmi_type_inv.h              |
+        +--------------------+------------------------------+
+        | Function Header    | csmi_type_inv_funct.h        |
+        +--------------------+------------------------------+
+        | Serialization Code | csmi_inv_serialization.c     |
+        +--------------------+------------------------------+
+    
+    :Burst Buffer:
+    
+        +--------------------+-----------------------------+ 
+        | Type Header        | csmi_type_bb.h              |
+        +--------------------+-----------------------------+
+        | Function Header    | csmi_type_bb_funct.h        |
+        +--------------------+-----------------------------+
+        | Serialization Code | csmi_bb_serialization.c     |
+        +--------------------+-----------------------------+
+    
+    :RAS:
+    
+        +--------------------+-----------------------------+
+        | Type Header        | csmi_type_ras.h             |
+        +--------------------+-----------------------------+
+        | Function Header    | csmi_type_ras_funct.h       |
+        +--------------------+-----------------------------+
+        | Serialization Code | csmi_ras_serialization.c    |
+        +--------------------+-----------------------------+
+    
+    :Diagnostic:
+    
+        +--------------------+-----------------------------+
+        | Type Header        | csmi_type_diag.h            |
+        +--------------------+-----------------------------+
+        | Function Header    | csmi_type_diag_funct.h      |
+        +--------------------+-----------------------------+
+        | Serialization Code | csmi_diag_serialization.c   |
+        +--------------------+-----------------------------+
+    
+    :Launch:
+    
+        +--------------------+-----------------------------+
+        | Type Header        | csmi_type_launch.h          |
+        +--------------------+-----------------------------+
+        | Function Header    | csmi_type_launch_funct.h    |
+        +--------------------+-----------------------------+
+        | Serialization Code | csmi_launch_serialization.c |
+        +--------------------+-----------------------------+
 
-+------------------+--------------------+----------------------------+-----------------------------+
-| API Type         | Type Header        | Function Header            | Serialization Code          | 
-+==================+====================+============================+=============================+
-| Common           | csmi_type_common.h | csmi_type_common_funct.h   | csmi_common_serial.c        |
-+------------------+--------------------+----------------------------+-----------------------------+
-| Workload Manager | csmi_type_wm.h     | csmi_type_wm_funct.h       | csmi_wm_serialization.c     |
-+------------------+--------------------+----------------------------+-----------------------------+
-| Inventory        | csmi_type_inv.h.   | csmi_type_inv_funct.h      | csmi_inv_serialization.c.   |
-+------------------+--------------------+----------------------------+-----------------------------+
-| Burst Buffer     | csmi_type_bb.h     | csmi_type_bb_funct.h.      | csmi_bb_serialization.c.    |
-+------------------+--------------------+----------------------------+-----------------------------+
-| RAS              | csmi_type_ras.h    | csmi_type_ras_funct.h      | csmi_ras_serialization.c.   |
-+------------------+--------------------+----------------------------+-----------------------------+
-| Diagnostic       | csmi_type_diag.h   | csmi_type_diag_funct.h     | csmi_diag_serialization.c.  |
-+------------------+--------------------+----------------------------+-----------------------------+
-| Launch           | csmi_type_launch.h | csmi_type_launch_funct.h   | csmi_launch_serialization.c |
-+------------------+--------------------+----------------------------+-----------------------------+
 
+:5: Add the API function declaration to the appropriate API file, consult the table below 
+    for the correct file to add your API to (in the ``bluecoral/csmi/include`` directory):
 
-5. Add the API function declaration to the appropriate API file, consult the table below for the correct file to add your API to (in the ``bluecoral/csmi/include`` directory):
+    +------------------+----------------------------+
+    | API Type         | API File                   |
+    +==================+============================+
+    | Common           | csm_api_common.h           |
+    +------------------+----------------------------+
+    | Workload Manager | csm_api_workload_manager.h |
+    +------------------+----------------------------+
+    | Inventory        | csm_api_inventory.h        |
+    +------------------+----------------------------+
+    | Burst Buffer     | csm_api_burst_buffer.h     |
+    +------------------+----------------------------+
+    | RAS              | csm_api_ras.h              |
+    +------------------+----------------------------+
+    | Diagnostic       | csm_api_diagnostic.h       |
+    +------------------+----------------------------+
 
-+------------------+----------------------------+
-| API Type         | API File                   |
-+==================+============================+
-| Common           | csm_api_common.h           |
-+------------------+----------------------------+
-| Workload Manager | csm_api_workload_manager.h |
-+------------------+----------------------------+
-| Inventory        | csm_api_inventory.h        |
-+------------------+----------------------------+
-| Burst Buffer     | csm_api_burst_buffer.h     |
-+------------------+----------------------------+
-| RAS              | csm_api_ras.h              |
-+------------------+----------------------------+
-| Diagnostic       | csm_api_diagnostic.h       |
-+------------------+----------------------------+
+:6: Add a command to the ``csmi/src/common/include/csmi_cmds_def.h`` X-Macro. This will generate an 
+    enumerated type in the format of **CSM_CMD_<csm-contents>** [cmd(<csm-contents>)] on 
+    compilation and used in the front and backend API. 
 
-6. Add a command to the ``csmi/src/common/include/csmi_cmds_def.h`` X-Macro. This will generate an enumerated type in the format of **CSM_CMD_<csm-contents>** [cmd(<csm-contents>)] on compilation and used in the front and backend API. 
+:7: The implementation of the C API should be placed in the appropriate src directory:
 
-7. The implementation of the C API should be placed in the appropriate src directory:
+    +------------------+----------------------------+
+    | API Type         | Source Directory           |
+    +==================+============================+
+    | Common           | csmi/src/common/src        |
+    +------------------+----------------------------+
+    | Workload Manager | csmi/src/wm/src            |
+    +------------------+----------------------------+
+    | Inventory        | csmi/src/inv/src           |
+    +------------------+----------------------------+
+    | Burst Buffer     | csmi/src/bb/src            |
+    +------------------+----------------------------+
+    | RAS              | csmi/src/ras/src           |
+    +------------------+----------------------------+
+    | Diagnostic       | csmi/src/diag/src          |
+    +------------------+----------------------------+
 
-+------------------+----------------------------+
-| API Type         | Source Directory           |
-+==================+============================+
-| Common           | csmi/src/common/src        |
-+------------------+----------------------------+
-| Workload Manager | csmi/src/wm/src            |
-+------------------+----------------------------+
-| Inventory        | csmi/src/inv/src           |
-+------------------+----------------------------+
-| Burst Buffer     | csmi/src/bb/src            |
-+------------------+----------------------------+
-| RAS              | csmi/src/ras/src           |
-+------------------+----------------------------+
-| Diagnostic       | csmi/src/diag/src          |
-+------------------+----------------------------+
-
-Generally speaking the frontend C API implementation should follow a mostly standard pattern as outlined below in **Sample Frontend API Implementation**:
+Generally speaking the frontend C API implementation should follow a mostly 
+standard pattern as outlined below:
 
 .. code-block:: C
 
@@ -248,60 +324,90 @@ Generally speaking the frontend C API implementation should follow a mostly stan
 	     csmutil_logging(info, "csmi_<api>_destroy called");
 	}
 
-8. Optionally, the developer may implement command line interface to the C API. For implementing an API please refer to existing API implementations and section 6.5.4.1.
+:8: Optionally, the developer may implement command line interface to the 
+    C API. For implementing an API please refer to existing API implementations.
 
-.. note:: make section number above a link when page has been created.  
 
 
 Back-end
 --------
 
-“Back end” refers to the part of an API that the user would not interact with and after an API connects and goes into the CSM infrastructure. 
+The he part of the API that the user will not interact with directly. The back end will be invoked
+by the :ref:`CSMDInfrastructure` after receiving user requests.
 
-Follow these steps to create/edit an api. This diagram below shows where to find the appropriate files in the open source repo, along with the numbered order of which ones to work on first.
+This diagram below shows where to find the appropriate files in the |git-repo| repository.
 
 .. image:: https://user-images.githubusercontent.com/4662139/49670832-f4139400-fa33-11e8-8591-c53e50c79f05.png
+   :height: 350px
 
 When implementing a backend API the developer must determine several key details:
 
 * Does the API handler access the database? How many times?
-
 * What daemon will the API handler operate on? 
-
 * Does the API need a privilege mode?
-
 * Will the API perform a multicast?
 
-
-These questions will drive the development process, which in the case of most database APIs is boiler plate as shown in the following sections.
+These questions will drive the development process, which in the case of most database APIs 
+is boiler plate as shown in the following sections.
 
 Determining the Base Handler Class
 **********************************
 
-In the CSM Infrastructure the back-end API is implemented as an API Handler. This **handler** may be considered a static object which maintains no volatile state. The state of API execution is managed by a context **object** initialized when a request is first received by a back-end handler.
+In the :ref:`CSMDInfrastructure` the back-end API is implemented as an API Handler. 
+This **handler** may be considered a static object which maintains no volatile state. 
+The state of API execution is managed by a context **object** initialized when a request is first 
+received by a back-end handler.
 
-CSM has defined several implementations of handler class to best facilitate the rapid creation of back-end handlers. Unless otherwise specified these handlers are located in ``csmd/src/daemon/src/csmi_request_handler`` and handler implementations should be placed in the same directory. 
+CSM has defined several implementations of handler class to best facilitate the rapid creation 
+of back-end handlers. Unless otherwise specified these handlers are located in 
+``csmd/src/daemon/src/csmi_request_handler`` and handler implementations should be placed in 
+the same directory. 
 
 CSMIStatefulDB (csmi_stateful_db.h)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If an API needs to access the database, it is generally recommended to use this handler as a base class. This class provides four virtual functions: 
+If an API needs to access the database, it is generally recommended to use this handler as a base 
+class. This class provides four virtual functions: 
 
-* CreatePayload: Parses the incoming API request, then generates the SQL query.
+:CreatePayload: 
+    Parses the incoming API request, then generates the SQL query.
 
-* CreateByteArray: Parses the response from the database, then generates the serialized response.
+:CreateByteArray: 
+    Parses the response from the database, then generates the serialized response.
 
-* RetrieveDataForPrivateCheck: Generates a query to the database to check the user’s privilege level (optional).
+:RetrieveDataForPrivateCheck: 
+    Generates a query to the database to check the user’s privilege level (optional).
 
-* CompareDataForPrivateCheck: Checks the results of the query in *RetrieveDataForPrivateCheck* returning true or false based on the results (optional).
+:CompareDataForPrivateCheck: 
+    Checks the results of the query in ``RetrieveDataForPrivateCheck``
+    returning true or false based on the results (optional).
 
-In the simplest Database APIs, the developer needs to only implement two functions: CreatePayload and CreateByteArray. In the case of privileged APIs, the RetrieveDataForPrivateCheck and CompareDataForPrivateCheck must be implemented.
+In the simplest Database APIs, the developer needs to only implement two functions: 
+``CreatePayload`` and ``CreateByteArray``. In the case of privileged APIs, the 
+``RetrieveDataForPrivateCheck`` and ``CompareDataForPrivateCheck`` must be implemented.
 
-This handler actually represents a state machine consisting of three states which generalize the most commonly used database access path. If your application requires multiple database accesses or multicasts this state machine may be extended by overriding the constructor. 
+This handler actually represents a state machine consisting of three states which generalize the 
+most commonly used database access path. If your application requires multiple database accesses or 
+multicasts this state machine may be extended by overriding the constructor. 
 
-To facilitate multiple database accesses in a single API call CSM has implemented *StatefulDBRecvSend*. *StatefulDBRecvSend* takes a static function as a template parameter which defines the processing logic for the SQL executed by CreatePayload. The constructor for *StatefulDBRecvSend* then takes an assortment of state transitions for the state machine which will depend on the state machine used for the API. 
+.. graphviz::
 
-An example of this API implementation style can be found in ``CSMIAllocationQuery.cc``. The pertinent section showing expansion of the state machine with the constructor is reproduced and annotated below:
+    digraph G {
+      DB_INIT -> DB_RECV_PRI [color="#993300" labelfontcolor="#993300" label="Privileged"];
+      DB_INIT -> DB_RECV_DB;
+      DB_RECV_PRI -> DB_RECV_DB;
+      DB_RECV_DB -> DB_DONE;
+    }  
+
+To facilitate multiple database accesses in a single API call CSM has implemented 
+``StatefulDBRecvSend``. ``StatefulDBRecvSend`` takes a static function as a template parameter 
+which defines the processing logic for the SQL executed by ``CreatePayload``. The constructor for 
+``StatefulDBRecvSend`` then takes an assortment of state transitions for the state machine 
+which will depend on the state machine used for the API. 
+
+An example of this API implementation style can be found in ``CSMIAllocationQuery.cc``. 
+The pertinent section showing expansion of the state machine with the constructor is 
+reproduced and annotated below:
 
 .. code-block:: C++
 
@@ -332,12 +438,16 @@ An example of this API implementation style can be found in ``CSMIAllocationQuer
 	   // ….
 	}
 
-Multicast operations will follow a largely similar behavior, however they exceed the scope of this document, for more details refer to ``csmd/src/daemon/src/csmi_request_handler/csmi_mcast``.
+Multicast operations will follow a largely similar behavior, however they exceed the scope of this 
+document, for more details refer to ``csmd/src/daemon/src/csmi_request_handler/csmi_mcast``.
 
 CSMIStateful (csmi_stateful.h)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This handler should be used as a base class in handlers where no database operations are required (see `CSMIAllocationStepCGROUPDelete.h`_).  Generally, most API implementations will not use this as a base class. If an API is being implemented as *CSMIStateful* it is recommended to refer the source of `CSMIAllocationStepCGROUPDelete.h`_ and `CSMIAllocationStepCGROUPCreate.h`_.
+This handler should be used as a base class in handlers where no database operations are required 
+(see `CSMIAllocationStepCGROUPDelete.h`_).  Generally, most API implementations will not use this 
+as a base class. If an API is being implemented as *CSMIStateful* it is recommended to refer the 
+source of `CSMIAllocationStepCGROUPDelete.h`_ and `CSMIAllocationStepCGROUPCreate.h`_.
 
 .. _CSMIAllocationStepCGROUPDelete.h: https://github.com/IBM/CAST/blob/master/csmd/src/daemon/src/csmi_request_handler/CSMIAllocationStepCGROUPDelete.h
 
@@ -346,12 +456,16 @@ This handler should be used as a base class in handlers where no database operat
 Adding Handler to Compliation
 *****************************
 
-To add the handler to the compilation path for the daemon add it to the ``csmd/src/daemon/src/CMakeLists.txt`` file’s CSM_DAEMON_SRC file GLOB.
+To add the handler to the compilation path for the daemon add it to the 
+``csmd/src/daemon/src/CMakeLists.txt`` file’s **CSM_DAEMON_SRC** file GLOB.
 
 Registering with a Daemon
 **************************
 
-After implementing the back-end API the user must then register the API with the daemon routing. Most APIs will only need to be registered on the Master Daemon, however if the API performs multicasts it will need to be registered on the Agent and Aggregator Daemons as well. The routing tables are defined in ``csmd/src/daemon/src`` :
+After implementing the back-end API the user must then register the API with the daemon routing. 
+Most APIs will only need to be registered on the Master Daemon, however, if the API performs 
+multicasts it will need to be registered on the Agent and Aggregator Daemons as well. The routing 
+tables are defined in ``csmd/src/daemon/src`` :
 
 +------------------+------------------------------+
 | Daemon           | Routing File                 |
@@ -365,43 +479,66 @@ After implementing the back-end API the user must then register the API with the
 | Utility          | csm_event_routing_utility.cc |
 +------------------+------------------------------+
 
-Generally speaking registering a handler to a router is as simple as adding the following line to the RegisterHandlers function: *Register* < **Handler_Class** > **(CSM_CMD_<api>)** *;*
+Generally speaking registering a handler to a router is as simple as adding the following line to 
+the RegisterHandlers function: *Register* < **Handler_Class** > **(CSM_CMD_<api>)** *;*
 
 
 Return Codes
 ------------
 
-As with all data types that will exist in both the C front-end and C++ back-end return codes are defined with an X-Macro solution. The return code X-Macro file can be located at: `csmi/include/csm_types/enum_defs/common/csmi_errors.def`_
+As with all data types that will exist in both the C front-end and C++ back-end return codes are 
+defined with an X-Macro solution. The return code X-Macro file can be located at: 
+`csmi/include/csm_types/enum_defs/common/csmi_errors.def`_
+
+To protect backwards compatibility this file is guarded by with versioning blocks, for details on 
+how to add error codes please consult the README: `csmi/include/csm_types/enum_defs/README.md`_
+
+The generated error codes may be included from the ``csmi/include/csmi_type_common.h`` header. 
+Generally, the ``CSMI_SUCCESS`` error code should be used in cases of successful execution. Errors 
+should be more granular to make error determination easier for users of the API, consult the list 
+of errors before adding a new one to prevent duplicate error codes.
 
 .. _csmi/include/csm_types/enum_defs/common/csmi_errors.def: https://github.com/IBM/CAST/blob/master/csmi/include/csm_types/enum_defs/common/csmi_errors.def
 
-To protect backwards compatibility this file is guarded by with versioning blocks, for details on how to add error codes please consult the README: `csmi/include/csm_types/enum_defs/README.md`_
-
 .. _csmi/include/csm_types/enum_defs/README.md: https://github.com/IBM/CAST/blob/master/csmi/include/csm_types/enum_defs/README.md
 
-The generated error codes may be included from the ``csmi/include/csmi_type_common.h`` header. Generally, the ``CSMI_SUCCESS`` error code should be used in cases of successful execution. Errors should be more granular to make error determination easier for users of the API, consult the list of errors before adding a new one to prevent duplicate error codes.
 
 CSM API Wrappers
 ----------------
 
-There exist two documented methodologies for wrapping a CSM API to reduce the barrier of usage for system administrators: python bindings and command line interfaces. Generally speaking python bindings are preferred, as they provide more flexibility to system administrators and end users. Command line interfaces are generally written in C and are used to expose basic functionality to an API.
+There exist two documented methodologies for wrapping a CSM API to reduce the barrier of usage for 
+system administrators: python bindings and command line interfaces. Generally speaking python 
+bindings are preferred, as they provide more flexibility to system administrators and end users. 
+
+Command line interfaces are generally written in C and are used to expose basic functionality to an API.
 
 Command Line Interfaces
 ***********************
 
-Command line interfaces in CSM are generally written using native C and expose basic functionality to the API, generally simplifying inputs or control over the output. When properly compiled a native C command line interface will be placed in ``/csm/bin/`` relative to the root of the compiled output. Please consult `csmi/src/wm/cmd/CMakeLists.txt`_ for examples of compilation settings.
+Command line interfaces in CSM are generally written using native C and expose basic functionality 
+to the API, generally simplifying inputs or control over the output. When properly compiled a 
+native C command line interface will be placed in ``/csm/bin/`` relative to the root of the 
+compiled output. Please consult `csmi/src/wm/cmd/CMakeLists.txt`_ for examples of compilation settings.
 
 .. _csmi/src/wm/cmd/CMakeLists.txt: https://github.com/IBM/CAST/blob/master/csmi/src/wm/cmd/CMakeLists.txt
 
 Naming
 ^^^^^^
 
-The name of the CSM command line interface should be matched one to one to the name of the API, especially in cases where the command line interface simply exposes the function of the API with no special modifications. For example, the ``csm_allocation_create`` API is literally ``csm_allocation_create`` on the command line. 
+The name of the CSM command line interface should be matched one to one to the name of the API, 
+especially in cases where the command line interface simply exposes the function of the API with 
+no special modifications. For example, the ``csm_allocation_create`` API is literally 
+``csm_allocation_create`` on the command line. 
 
 Parameters
 ^^^^^^^^^^
 
-CSM command line interfaces must provide long options for all command line parameters. Short options are optional but preferred for more frequently used fields. A sample pairing of short and long options would be in the case of the help flag: ``-h, --help``.  The ``-h, --help`` and ``-v, --verbose`` flag pairings are reserved, always correspond to help and verbose. These flags should be supported in all CSM command line interfaces. 
+CSM command line interfaces must provide long options for all command line parameters. 
+Short options are optional but preferred for more frequently used fields. A sample pairing of 
+short and long options would be in the case of the help flag: ``-h, --help``.  i
+
+The ``-h, --help`` and ``-v, --verbose`` flag pairings are reserved, always correspond to help 
+and verbose. These flags should be supported in all CSM command line interfaces. 
 
 All options should use the ``getopts`` utility, no options should be position dependent.
 
@@ -421,9 +558,12 @@ Bad:
 Output
 ^^^^^^
 
-CSM command line requires that the YAML format is a supported output option. This is to facilitate command line parsers. In cases where YAML output is not ideal for command line readability the format may be changed as in the case of ``csm_node_query_state_history``:
+CSM command line requires that the YAML format is a supported output option. This is to facilitate 
+command line parsers. In cases where YAML output is not ideal for command line readability the 
+format may be changed as in the case of ``csm_node_query_state_history``.
 
-In the following sample output the output is still considered valid YAML (note the open and close tokens). Data that is not YAML formatted will be commented out with the # character.
+In the following sample output the output is still considered valid YAML (note the open and close 
+tokens). Data that is not YAML formatted will be commented out with the # character.
 
 .. code-block:: none
 
@@ -473,7 +613,12 @@ By setting the ``–Y`` flag, the command line will then display in YAML.
 Python Interfaces
 *****************
 
-CSM uses Boost.Python to generate the Python interfaces. Due to warnings in the Boost.Python header used in CSM at this time Python bindings are only supported when building with the Clang compiler. Struct bindings occur automatically when running the ``csmi/include/struct_generator/regenerate_headers.sh`` script. Each API type has its own file to which the struct bindings will be placed by the automated script and function bindings will be placed by the developer. The following documentation assumes the python bindings are being added to one of the following files:
+CSM uses Boost.Python to generate the Python interfaces.  Struct bindings occur automatically when 
+running the ``csmi/include/struct_generator/regenerate_headers.sh`` script. Each API type has its 
+own file to which the struct bindings will be placed by the automated script and function bindings 
+will be placed by the developer. 
+
+The following documentation assumes the python bindings are being added to one of the following files:
 
 +---------------------+-------------------------------------------+-------------------+
 | API Type            | Python Binding File                       | Python Library    |
@@ -529,29 +674,15 @@ Function binding with the Boost.Python library is boilerplate:
 Python Binding Limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As CSM was designed predominantly around its use of pointers, and is a C native API, certain operations using the python bindings are not currently Pythonic.
+As CSM was designed predominantly around its use of pointers, and is a C native API, 
+certain operations using the python bindings are not currently Pythonic.
 
-1.	The output of the apis must be destroyed using ``csm.api_object_destroy(handler_id)``.
+:1:	The output of the apis must be destroyed using ``csm.api_object_destroy(handler_id)``.
 
-2.	Array access/creation must be performed through get and set functions. Once an array is set it is currently immutable from python.
+:2:	Array access/creation must be performed through get and set functions. Once an array is set 
+    it is currently immutable from python.
 
 These limitations are subject to change.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.. _struct README: https://github.com/IBM/CAST/blob/master/csmi/include/csm_types/struct_defs/README.md
 
