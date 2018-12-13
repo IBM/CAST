@@ -570,8 +570,8 @@ the `[notify]` section.
 CAST Data Sources
 -----------------
 
-csmd syslog
-***********
+``csmd`` syslog
+***************
 
 :Logstash Port: 10515
 
@@ -613,6 +613,7 @@ CSM provides a mechanism for running buckets to aggregate environmental and coun
 a variety of sources in the cluster. This data will be aggregated and shipped by the CSM 
 aggregator to a logstash server (typically the local logstash server).
 
+**Format**
 
 Each run of a bucket will be encapsulated in a JSON document with the following pattern:
 
@@ -630,25 +631,23 @@ Each run of a bucket will be encapsulated in a JSON document with the following 
 :type:  The type of the bucket, used to determine the appropriate index.
 :source: The source of the bucket run (typically a hostname, but can depend on the bucket).
 :timestamp: The timestamp of the collection
-:data: The actual data from the bucket run.
+:data: The actual data from the bucket run, varies on bucket specification.
 
 .. note:: Each JSON document is newline delimited.
 
 CSM Configuration
 ^^^^^^^^^^^^^^^^^
 
-In the aggregator configuration file the following must be configured to enable this feature:
+**Compute**
 
-.. code-block:: javascript
-    
-    "bds" : {
-        "host" : "__LOGSTASH_IP__"
-        "port" : 10522
-    }
+Refer to :ref`CSMD_datacollection_Block` for proper compute configuration.
 
-:host: The hostname the logstash server is configured on.
-:port: A tcp port capable of receiving a JSON encoded message. `10522` is the default port in CAST
-    logstash configuration files.
+This configuration will run data collection at specified intervals in one or more buckets. This 
+must be configured on each compute node (compute nodes may have different buckets).
+
+**Aggregator**
+
+Refer to :ref`CSMD_BDS_Block` for proper aggregator configuration.
 
 This will ship the environmental data to the specified ip and port. Officially CAST suggests the
 use of logstash for this feature and suggests targeting the local logstash instance running on the
@@ -676,11 +675,14 @@ Default Buckets
 
 CSM supplies several default buckets for environmental collection:
 
-+-------------+----------+-----------------------------------------------+
-| Bucket Type | Source   | Description                                   |
-+=============+==========+===============================================+
-| csm-env-gpu | Hostname | Environmental counters about the node's GPUs. |
-+-------------+----------+-----------------------------------------------+
++-------------+----------+-------------------------------------------------+
+| Bucket Type | Source   | Description                                     | 
++=============+==========+=================================================+
+| csm-env-gpu | Hostname | Environmental counters about the node's GPUs.   |
++-------------+----------+-------------------------------------------------+
+| csm-env-mem | Hostname | Environmental counters about the node's Memory. |
++-------------+----------+-------------------------------------------------+
+
 
 .. _DataArchiving:
 
@@ -766,13 +768,16 @@ port `10523` for ingesting `beats` records as shown below:
 
 In this sample configuration the archived history will be stored in the *cast-db-<table_name>* indices.
 
-Transaction Log
-***************
+CSM Filebeat Logs
+*****************
 
 :Logstash Port:  10523 
 
-.. note:: CAST only ships the transaction log to a local file, a utility such as Filebeats or
+.. note:: CSM only ships these logs to a local file, a utility such as Filebeats or
     a local Logstash service would be needed to ship the log to a Big Data Store.
+
+Transaction Log
+^^^^^^^^^^^^^^^
 
 CAST offers a transaction log for select CSM API events. Today the following events are tracked:
 
@@ -785,40 +790,15 @@ an event in a Big Data Store.
 In the CSM design these transactions are intended to be stored in a single elasticsearch index
 each transaction should be identified by a `uid` in the index.
 
-CSM Configuration
-^^^^^^^^^^^^^^^^^
-
-To enable the transaction logging mechanism the following configuration settings must be specified
-in the CSM master configuration file:
-
-.. code-block:: javascript
-
-    "log" :
-    {
-        "transaction"                : true,
-        "transaction_file"           : "/var/log/ibm/csm/csm_transaction.log",
-        "transaction_rotation_size"  : 1000000000,
-         "allocation"                : true,
-         "allocation_file"           : "/var/log/ibm/csm/csm_allocation_metrics.log",
-         "allocation_rotation_size"  : 1000000000
-    }
-
-.. TODO Should this be duplicated here?
-
-:transaction: Enables the mechanism transaction log mechanism. 
-:transaction_file: Specifies the location the transaction log will be saved to.
-:transaction_rotation_size: The size of the file (in bytes) to rotate the log at.
-
-:allocation: Enables the mechanism allocation metrics log mechanism. 
-:allocation_file: Specifies the location the allocation metrics log will be saved to.
-:allocation_rotation_size: The size of the file (in bytes) to rotate the log at.
-
 Each transaction record will follow the following pattern:
+
+**Format**
 
 .. code-block:: javascript
     
     { 
         "type": "<transaction-type>", 
+        "@timestamp" : "<timestamp>",
         "data": { <table-row-contents>},
         "traceid":<traceid-api>,
         "uid": <unique-id>
@@ -828,19 +808,103 @@ Each transaction record will follow the following pattern:
 :data: Encapsulates the transactional data.
 :traceid: The API's trace id as used in the CSM API trace functionality.
 :uid: A unique identifier for the record in the elasticsearch index.
+:@timestamp: The timestamp in ISO 8601.
 
-Allocation metrics will match the following pattern:
+Allocation Metrics
+^^^^^^^^^^^^^^^^^^
+
+The CSM Daemon has the ability to report special Allocation metrics on Allocation
+Delete operations. This data includes per gpu usage and per cpu usage metrics.
+
+
+**Format**
 
 .. code-block:: javascript
 
     { 
         "type": "<metric-type>", 
         "data": { <metric data> },
+        "@timestamp" : "<timestamp>"
     }
 
 :type: The type of the allocation metric, converted to index in default configuration.
 :data: Encapsulates the allocation metric data.
+:@timestamp: The timestamp in ISO 8601.
 
+*GPU Data Sample*
+
+.. code-block:: javascript
+
+    {
+        "type":"allocation-gpu",
+        "source":"c650f99p18",
+        "@timestamp" : "4/17/2018T09:42:42Z",
+        "data":
+        {
+            "allocation_id":1,
+            "gpu_id":0,
+            "gpu_usage":33520365,
+            "max_gpu_memory":29993467904
+        }
+    }
+
+
+:allocation_id: The allocation where collection occured.
+:gpu_id: The gpu id on the system.
+:gpu_usage: The usage of the GPU(microseconds) over the allocation.
+:max_gpu_memory: Maximum GPU memory usage over the allocation.
+
+*CPU Data Sample*
+
+.. code-block:: javascript
+    
+    {
+        "type":"allocation-cpu",
+        "source":"c650f99p18",
+        "@timestamp" : "4/17/2018T09:42:42Z",
+        "data":
+        {
+            "allocation_id":1,
+            "cpu_0":777777000000,
+            "cpu_1":777777000001
+            // ...
+        }
+    }
+
+:allocation_id: The allocation where collection occured.
+:cpu_x: The individual CPU usage (nanoseconds) over the allocation.
+
+    
+    
+
+CSM Configuration
+^^^^^^^^^^^^^^^^^
+
+To enable the transaction and allocation metricslogging mechanism the following configuration
+settings must be specified in the CSM master configuration file:
+
+.. code-block:: javascript
+
+    "log" :
+    {
+        "transaction"                       : true,
+        "transaction_file"                  : "/var/log/ibm/csm/csm_transaction.log",
+        "transaction_rotation_size"         : 1000000000,
+        "allocation_metrics"                : true,
+        "allocation_metrics_file"           : "/var/log/ibm/csm/csm_allocation_metrics.log",
+        "allocation_metrics_rotation_size"  : 1000000000
+    }
+
+:transaction: Enables the mechanism transaction log mechanism. 
+:transaction_file: Specifies the location the transaction log will be saved to.
+:transaction_rotation_size: The size of the file (in bytes) to rotate the log at.
+
+:allocation: Enables the mechanism allocation metrics log mechanism. 
+:allocation_file: Specifies the location the allocation metrics log will be saved to.
+:allocation_rotation_size: The size of the file (in bytes) to rotate the log at.
+
+
+.. note:: Please review :ref:`CSMDLogBlock` for additional context.
 
 Filebeats Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -856,6 +920,12 @@ given below:
       paths:
         - /var/log/ibm/csm/csm_transaction.log
       tags: ["transaction"]
+      
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/ibm/csm/csm_allocation_metrics.log
+      tags: ["allocation","metrics"]
 
 .. note:: For the sake of brevity further filebeats configuration documentation will be omitted. 
     Please refer to the `filebeats`_ documentation for more details.
