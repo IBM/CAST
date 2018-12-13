@@ -46,6 +46,7 @@ struct option longopts[] = {
 	{"isolated_cores",   required_argument, 0, 'c'},
     {"shared",           no_argument,       0, 'S'},
 	{"launch_node_name", required_argument, 0, 'l'},
+    {"smt_mode",         required_argument, 0, 'm'},
     //{"user_flags",       required_argument, 0, 'A'},/// FIXME REMOVE IN FINAL 
     //{"system_flags",     required_argument, 0, 'a'},/// FIXME REMOVE IN FINAL 
 	{0, 0, 0, 0}
@@ -97,6 +98,7 @@ static void help() {
 	puts("                           |                 | ");
 	puts("    --isolated_cores       | 0               | (INTEGER) Specifies the number of cores ot isolate in the system cgroup ( if 0 the system cgroup will not be created ).");
 	puts("                           |                 | Valid values: [0 - 4]");
+	puts("    --smt_mode             | 0               | (SHORT) Specifies SMT mode. ");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -199,6 +201,12 @@ int main(int argc, char *argv[])
                 csm_optarg_test( "-l, --launch_node_name", optarg, USAGE )
                 allocation->launch_node_name = strdup(optarg);
                 break;
+            case 'm':
+                csm_optarg_test( "--smt_mode", optarg, USAGE )
+                csm_str_to_int32( i, optarg, arg_check, "--smt_mode", USAGE);
+                allocation->smt_mode = (int16_t) i;
+                break;
+
             /*
             case 'a':
                 csm_optarg_test( optarg, USAGE )

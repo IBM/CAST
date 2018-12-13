@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
 	    	printf("launch_node_name:               %s\n", a->launch_node_name);
 	    	printf("user_flags:                     %s\n", a->user_flags);
 	    	printf("system_flags:                   %s\n", a->system_flags);
+	    	printf("smt_mode:                       %" PRId16 "\n", a->smt_mode);
 	    	printf("ssd_min:                        %" PRId64 "\n", a->ssd_min);
 	    	printf("ssd_max:                        %" PRId64 "\n", a->ssd_max);
 	    	printf("num_processors:                 %" PRId32 "\n", a->num_processors);

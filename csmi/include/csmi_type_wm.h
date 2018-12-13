@@ -220,6 +220,7 @@ typedef struct {
     char* wc_key; /**< Arbitrary string for grouping orthogonal accounts. */
     char** compute_nodes; /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
     csmi_allocation_history_t* history; /**< The history component of the allocation, if the allocation is active this will be **NULL**. */
+    int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
 } csmi_allocation_t;
 /**
  * @brief Defines the accounting values for a compute node.

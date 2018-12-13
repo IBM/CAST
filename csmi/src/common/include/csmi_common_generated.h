@@ -40,6 +40,7 @@ typedef enum {
     case 8: printf("%" PRId8  post, *((int8_t*)ptr));break;\
     case 10: printf("%" PRId64 post, *((int64_t*)ptr));break;\
     case 6: printf("%" PRIu32 post, *((uint32_t*)ptr));break;\
+    case 18: printf("%" PRId16  post, *((int16_t*)ptr));break;\
     case 16: printf("%d" post, *((pid_t*)ptr));break;\
     case 17: printf("%c" post, *((char*)ptr));break;\
 
@@ -56,6 +57,7 @@ typedef enum {
     case 8: str.append(std::to_string(*((int8_t*)ptr))).append(","); break;\
     case 10: str.append(std::to_string(*((int64_t*)ptr))).append(","); break;\
     case 6: str.append(std::to_string(*((uint32_t*)ptr))).append(","); break;\
+    case 18: str.append(std::to_string(*((int16_t*)ptr))).append(","); break;\
     case 16: str.append(std::to_string(*((pid_t*)ptr))).append(","); break;\
     case 17: str.append(std::to_string(*((char*)ptr))).append(","); break;\
 

@@ -790,7 +790,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_num_processors    integer,
     OUT o_projected_memory  integer,
     OUT o_state             text,
-    OUT o_runtime           bigint
+    OUT o_runtime           bigint,
+    OUT o_smt_mode          smallint
 )
 RETURNS record AS $$
 DECLARE
@@ -805,13 +806,14 @@ BEGIN
         state, isolated_cores,
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
-        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint
+        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint,
+        smt_mode
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
         o_shared, o_num_gpus, o_num_processors,
-        o_projected_memory, o_runtime
+        o_projected_memory, o_runtime, o_smt_mode
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 

@@ -165,7 +165,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "job_type,             user_name,            user_id,         user_group_id,"
                 "user_script,          account,              comment,         job_name,"
                 "job_submit_time,      queue,                requeue,         time_limit,"
-                "wc_key,               isolated_cores"
+                "wc_key,               isolated_cores,       smt_mode"
             ") VALUES ("
                 "default,        'now',        $1::bigint,   $2::integer,"
                 "$3::text,       $4::text,     $5::text,     $6::text,"
@@ -174,7 +174,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "$15::text,      $16::text,    $17::integer, $18::integer, "
                 "$19::text,      $20::text,    $21::text,    $22::text,"
                 "$23::timestamp, $24::text,    $25::text,    $26::bigint,"
-                "$27::text,      $28::integer"
+                "$27::text,      $28::integer  $29::smallint"
             ") returning allocation_id, begin_time";
 
         const int paramCount = 28;
@@ -214,6 +214,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
         
         dbReq->AddTextParam(allocation->wc_key); // $27 - text
         dbReq->AddNumericParam<int32_t>(allocation->isolated_cores); // $28 - text
+        dbReq->AddNumericParam<short>(allocation->smt_mode); // $29 - smallint
         // --------------------------------------------------------------------------
         
 
@@ -312,6 +313,7 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
     mcastAlloc->type             = allocation->type;
     mcastAlloc->state            = allocation->state;
     mcastAlloc->user_name        = allocation->user_name;
+    mcastAlloc->smt_mode         = allocation->smt_mode;
 
     // Node details.
     mcastAlloc->shared            = allocation->shared; 
