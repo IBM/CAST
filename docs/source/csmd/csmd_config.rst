@@ -358,6 +358,16 @@ General settings available for all daemon roles:
         allowed to connect to the infrastructure. It is presented to the active/connecting peer to
         prove that the infrastructure is the one the daemon is looking for.
 
+
+.. note::
+   Note that the heartbeat is not determining the overall health of a
+   peer daemon. The daemon might be able to respond to heartbeats..
+   while still impeded to respond to API calls. A successful exchange
+   of heartbeats tells the daemon that there’s a functional network
+   connection and the network mgr thread is able to process inbound
+   and outbound messages. To check if a daemon is able to process API
+   calls, you might use the infrastructure health check tool.
+
 .. note::
    The following is an explaination of the heartbeat mechanism  to show why it takes about 3 
    intervals to detect a dead connection.  
