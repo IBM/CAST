@@ -32,7 +32,7 @@ The ``csm_db_history_delete.py`` script will accept certain flags:
 +------------------------------------+--------------------------------------------+-------------------------------------------+
 |               Options              |                 Description                |                   Result                  |
 +====================================+============================================+===========================================+
-| running the script with no options | ./csm_db_history_delete.py                 | Will prompt a message explaing that the   |
+| running the script with no options | ./csm_db_history_delete.py                 | Will prompt a message explaining that the |
 |                                    |                                            | -n/--count and or -d/--database           |
 |                                    |                                            | is required                               |
 +------------------------------------+--------------------------------------------+-------------------------------------------+
@@ -126,7 +126,7 @@ Script out results
  Finish CSM DB deletion script process
  ---------------------------------------------------------------------------------------------------------
 
-If a user specifies a non related DB in the system, unrelated user name, and or if there are issues connecting to the DB server a message will display.
+If a user specifies a non related DB in the system, unrelated user name, or if there are issues connecting to the DB server a message will display.
 
 .. code-block:: bash
 
