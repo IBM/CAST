@@ -491,7 +491,7 @@ The ufm block configures the location and access to ufm.
 
         openssl base64 -e <<< ${username}:${password} > /etc/ibm/csm/csm_ufm_ssl_key.txt;
 
-.. _CSMD_BDS_Block::
+.. _CSMD_BDS_Block:
 
 The ``bds`` Block
 _________________
