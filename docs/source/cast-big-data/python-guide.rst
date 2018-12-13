@@ -311,7 +311,7 @@ When applied to a real configuration a mapping file will look something like thi
 UFM Collector
 -------------
 
-A tool interacting with the UFM collector is provided in `ibm-csm-bds-*.noarch.rpm`.
+A tool interacting with the UFM collector is provided in |csm-bds|.
 This script performs 3 key operations:
 
 1. Connects to the UFM monitoring snapshot RESTful interface.
