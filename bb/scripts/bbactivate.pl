@@ -329,7 +329,7 @@ sub makeConfigFile
 sub makeLNConfigFile
 {
     setprefix("makeLNConfigFile: ");
-    if(($CFG{"USE_CSM"}) && (!$CFG{"bbProxy"}))
+    if(($CFG{"useCSM"}) && (!$CFG{"bbProxy"}))
     {
         $json->{"bb"}{"cmd"}{"controller"} = "csm";
     }
