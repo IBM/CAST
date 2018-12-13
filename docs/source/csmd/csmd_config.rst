@@ -491,6 +491,8 @@ The ufm block configures the location and access to ufm.
 
         openssl base64 -e <<< ${username}:${password} > /etc/ibm/csm/csm_ufm_ssl_key.txt;
 
+.. _CSMD_BDS_Block::
+
 The ``bds`` Block
 _________________
 
@@ -579,6 +581,8 @@ specified interval for the number of retries specified. For s
     if the daemon is restarted the retry count for the node will be restarted.
 
 .. attention:: This is only defined on the Master Daemon.
+
+.. _CSMD_datacollection_Block:
 
 The ``data_collection`` Block
 _____________________________
