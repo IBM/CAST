@@ -18,7 +18,7 @@ a wide variety of precisions and timestamp formats that may come from different 
 
 Elasticsearch will try its best to parse dates, as outlined in the `ELK Date`_ documentation.
 If a date doesn't match the default formats (a usual culprit is epoch time or microseconds) 
-the adminstrator will need to take action.
+the administrator will need to take action.
 
 CAST has two prescribed resolution patterns for this problem:
 
@@ -38,7 +38,7 @@ The administrator may apply one or more resolution patterns to resolve the issue
 Fixing Timestamps in Elasticsearch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is the prefered methodology for resolving issues in the timestamp. CAST supplies 
+This is the preferred methodology for resolving issues in the timestamp. CAST supplies 
 a utility in |csm-bds| for generating mappings that fix the timestamps in 
 data sources outlined in :ref:`CASTDataAgg`.
 
@@ -59,7 +59,7 @@ or any other invalid data types on a per index or index pattern basis:
     .. code-block:: javascript
 
         {
-            "index_patterns": ["<NEW INDEX PATERN>"],
+            "index_patterns": ["<NEW INDEX PATTERN>"],
             "order" : 0,
             "settings" : {
                 "number_of_shards"   : <SHARDING COUNT>,
@@ -116,7 +116,7 @@ If the user needs more information please consult the official `elastic template
 Fixing Timestamps in Logstash
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the elasticsearch methodology doesn't apply to the use case, logstash timestamp manipultation 
+If the elasticsearch methodology doesn't apply to the use case, logstash timestamp manipulation 
 might be the correct solution. 
 
 .. note:: The following section performs modifications to the `logstash.conf`

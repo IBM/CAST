@@ -130,7 +130,7 @@ An example of editing this field from `info` to `debug` is shown below.
 
 
 If you have trouble finding the config files, then daemon config files are located:
-- source repo: "bluecoral/csmconf/”
+- source repo: "csmconf/”
 - ship to: “/opt/ibm/csm/share/”
 - run from: “etc/ibm/csm/”
 

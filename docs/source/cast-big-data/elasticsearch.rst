@@ -42,7 +42,7 @@ in `/opt/ibm/csm/bigdata/elasticsearch/`.
 
 3. Make an ext4 filesystem on each hard drive designated to be in the Elasticsearch JBOD. 
 
-    The mounted names for these file systems should match the names spcified in `path.data`. 
+    The mounted names for these file systems should match the names specified in `path.data`. 
     Additionally, these mounted file systems should be owned by the ``elasticsearch`` user and 
     in the ``elasticsearch`` group.
 
@@ -68,7 +68,7 @@ be data being written to your index.
 Tuning Elasticsearch
 --------------------
 
-The process of tuning and configuring Elasticsearch is incredibly dependendent on the volume and
+The process of tuning and configuring Elasticsearch is incredibly dependent on the volume and
 type of data ingested the Big Data Store. Due to the nuance of this process it is **STRONGLY** 
 recommended that the system administrator familiarize themselves with `Configuring Elasticsearch`_.
 
