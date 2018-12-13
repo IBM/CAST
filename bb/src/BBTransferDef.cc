@@ -1046,7 +1046,7 @@ BBFILESTATUS BBTransferDef::getFileStatus(const LVKey* pLVKey, ExtentInfo& pExte
         }
         case 0:
         {
-            LOG(bb,error) << "ContribId " << pExtentInfo.getContrib() << "could not be found in the contribid file for jobid " << getJobId() << ", jobstepid " << getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
+            LOG(bb,error) << "ContribId " << pExtentInfo.getContrib() << " could not be found in the contribid file for jobid " << getJobId() << ", jobstepid " << getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
 
             break;
         }
