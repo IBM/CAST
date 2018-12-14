@@ -63,7 +63,9 @@ public:
 
     ContribFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_CONTRIB_VERSION) {}
+        objectVersion(ARCHIVE_CONTRIB_VERSION) {
+        contribs = map<uint32_t,ContribIdFile>();
+    }
 
     virtual ~ContribFile() {}
 

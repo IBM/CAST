@@ -740,8 +740,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
     lv_uuid.copyTo(lv_uuid_str);
 
     ContribFile* l_ContribFile = 0;
-    ContribIdFile* l_ExistingContribFile = 0;
+    ContribFile* l_ContribFileForLVUuid = 0;
+    ContribIdFile* l_ContribIdFile = 0;
     ContribIdFile* l_NewContribIdFile = 0;
+    ContribIdFile* l_ContribIdFileToProcess = 0;
 
     try
     {
@@ -755,112 +757,110 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
         {
             for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
             {
-                if ((l_ExistingContribFile) || (!bfs::is_directory(lvuuid))) continue;
+                if (l_ContribIdFile || (!bfs::is_directory(lvuuid))) continue;
                 bfs::path l_ContribFilePath = lvuuid.path() / "contribs";
                 rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
                 if (!rc)
                 {
+                    if (string(lv_uuid_str) == lvuuid.path().filename().string())
+                    {
+                        l_ContribFileForLVUuid = l_ContribFile;
+                    }
                     for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                     {
                         if (ce->first == pContribId)
                         {
-                            l_ExistingContribFile = new ContribIdFile(ce->second);
-                            rc = 1;
+                            if (string(lv_uuid_str) == lvuuid.path().filename().string())
+                            {
+                                l_ContribIdFile = new ContribIdFile(ce->second);
+                                LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is already registered and currently has " << l_ContribFile->numberOfContribs() << " non-stopped contributor(s)";
+                            }
+                            else
+                            {
+                                // Even for restart, the lvuuid for the already registered contribid must match the lvuuid for the transfer definition being added
+                                rc = -1;
+                                errorText << "Contribid " << pContribId << " is already registered under lvuuid " << lvuuid.path().filename().string() << " for job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
                             break;
                         }
                     }
                 }
 
-                if (l_ExistingContribFile)
-                {
-                    if (string(lv_uuid_str) == lvuuid.path().filename().string())
-                    {
-                        LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is already registered and currently has " << l_ContribFile->numberOfContribs() << " non-stopped contributor(s)";
-                    }
-                    else
-                    {
-                        // Even for restart, the lvuuid for the already registered contribid must match the lvuuid for the transfer definition being added
-                        rc = -1;
-                        errorText << "Contribid " << pContribId << " is already registered under lvuuid " << lvuuid.path().filename().string() << " for job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                    }
-                }
-
-                if (l_ContribFile)
+                if (l_ContribFile && (l_ContribFile != l_ContribFileForLVUuid))
                 {
                     delete l_ContribFile;
-                    l_ContribFile = 0;
                 }
+                l_ContribFile = 0;
             }
 
-            if (!l_ExistingContribFile)
+            if (!l_ContribIdFile)
             {
-                // Validate any data prior to creating the directories in the cross bbServer metadata
-                if (pJob.getJobId() == UNDEFINED_JOBID)
+                if (!pTransferDef->builtViaRetrieveTransferDefinition())
                 {
+                    if (!l_ContribFileForLVUuid)
+                    {
+                        // Validate any data prior to creating the directories in the cross bbServer metadata
+                        if (pJob.getJobId() == UNDEFINED_JOBID)
+                        {
+                            rc = -1;
+                            errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid jobid of " << UNDEFINED_JOBID << " to the cross bbServer metadata";
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
+                        else if (pJob.getJobStepId() == UNDEFINED_JOBSTEPID)
+                        {
+                            rc = -1;
+                            errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid jobstepid of " << UNDEFINED_JOBSTEPID << " to the cross bbServer metadata";
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
+
+                        LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is not already registered.  It will be added.";
+                        bfs::path l_LVUuidPath = handle / bfs::path(lv_uuid_str);
+                        bfs::create_directories(l_LVUuidPath);
+
+                        // Unconditionally perform a chmod to 0770 for the lvuuid directory.
+                        // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
+                        //        contained in this tree is controlled there.
+                        rc = chmod(l_LVUuidPath.c_str(), 0770);
+                        if (rc)
+                        {
+                            stringstream errorText;
+                            errorText << "chmod failed";
+                            bberror << err("error.path", l_LVUuidPath.string());
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        }
+
+                        LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());
+                        bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path(lv_uuid_str);
+                        rc = l_LVUuidFile.save(l_LVUuidFilePathName.string());
+                        if (rc) BAIL;
+
+                        ContribFile l_ContribFileStg;
+                        bfs::path l_ContribFilePath = l_LVUuidPath / "contribs";
+                        rc = l_ContribFileStg.save(l_ContribFilePath.string());
+                        if (rc) BAIL;
+                    }
+
+                    // Create a new ContribIdFile for this contributor
+                    l_NewContribIdFile = new ContribIdFile(pTransferDef);
+                    l_ContribIdFileToProcess = l_NewContribIdFile;
+                }
+                else
+                {
+                    // For a restart, the ContribIdFile must already exist
                     rc = -1;
-                    errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid jobid of " << UNDEFINED_JOBID << " to the cross bbServer metadata";
+                    errorText << "BBTagInfo::update_xbbServerAddData(): For a restart transfer definition operation, could not find the ContribIdFile for " \
+                              << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
-                else if (pJob.getJobStepId() == UNDEFINED_JOBSTEPID)
-                {
-                    rc = -1;
-                    errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid jobstepid of " << UNDEFINED_JOBSTEPID << " to the cross bbServer metadata";
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                }
-
-                LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is not already registered.  It will be added.";
-                bfs::path l_LVUuidPath = handle / bfs::path(lv_uuid_str);
-                bfs::create_directories(l_LVUuidPath);
-
-                // Unconditionally perform a chmod to 0770 for the lvuuid directory.
-                // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
-                //        contained in this tree is controlled there.
-                rc = chmod(l_LVUuidPath.c_str(), 0770);
-                if (rc)
-                {
-                    stringstream errorText;
-                    errorText << "chmod failed";
-                    bberror << err("error.path", l_LVUuidPath.string());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
-                }
-
-                LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());
-                bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path(lv_uuid_str);
-                rc = l_LVUuidFile.save(l_LVUuidFilePathName.string());
-                if (rc) BAIL;
-
-                ContribFile l_ContribFile;
-                bfs::path l_ContribFilePath = l_LVUuidPath / "contribs";
-                rc = l_ContribFile.save(l_ContribFilePath.string());
-                if (rc) BAIL;
             }
-        }
-        else
-        {
-            rc = -1;
-            errorText << "Handle file directory " << handle.string() << " does not exist for " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-        }
-
-        // Create a new ContribIdFile for this contributor
-        ContribIdFile l_NewContribIdFileStg = ContribIdFile(pTransferDef);
-
-        if (!pTransferDef->builtViaRetrieveTransferDefinition())
-        {
-            // Use the newly created ContribIdFile
-            l_NewContribIdFile = &l_NewContribIdFileStg;
-
-            ContribIdFile* l_ContribIdFilePtr = 0;
-            rc = ContribIdFile::loadContribIdFile(l_ContribIdFilePtr, pLVKey, handle, pContribId);
-            switch (rc)
+            else
             {
-                case 0:
-                    break;
-
-                case 1:
+                // ContribIdFile already exists
+                rc = 1;
+                if (!pTransferDef->builtViaRetrieveTransferDefinition())
                 {
-                    if (l_ContribIdFilePtr->extentsAreEnqueued())
+                    if (l_ContribIdFile->extentsAreEnqueued())
                     {
                         // Extents have already been enqueued for this contributor...
                         rc = -1;
@@ -877,60 +877,34 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
                         //        operation.
                         LOG(bb,info) << "ContribId " << pContribId << " already exists in contrib file for " << *pLVKey << ", using handle path " << handle.string() \
                                      << ", but extents have never been enqueued for the transfer definition. ContribIdFile for " << pContribId << " will be reused.";
-                        l_NewContribIdFile = l_ExistingContribFile;
                         rc = 0;
                     }
-
-                    break;
                 }
-
-                default:
-                {
-                    errorText << "Failure when attempting to load the contrib file for " << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                }
-            }
-
-            if (l_ContribIdFilePtr)
-            {
-                delete l_ContribIdFilePtr;
-                l_ContribIdFilePtr = 0;
+                l_ContribIdFileToProcess = l_ContribIdFile;
             }
         }
         else
         {
-            // For a restart, the ContribIdFile already exists...
-            // Use the already existing ContribIdFile...
-            if (l_ExistingContribFile)
-            {
-                l_NewContribIdFile = l_ExistingContribFile;
-            }
-            else
-            {
-                rc = -1;
-                errorText << "BBTagInfo::update_xbbServerAddData(): For a restart transfer definition operation, could not find the ContribIdFile for " \
-                          << *pLVKey << ", contribid " << pContribId << ", using handle path " << handle.string();
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-            }
+            rc = -1;
+            errorText << "Handle file directory " << handle.string() << " does not exist for " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-
-        if (rc < 0) bberror << bailout;
 
         if (!pTransferDef->hasFilesInRequest())
         {
             // No files in the request
-            uint64_t l_OriginalFileFlags = l_NewContribIdFile->flags;
-            SET_FLAG_VAR(l_NewContribIdFile->flags, l_NewContribIdFile->flags, BBTD_Extents_Enqueued, 1);
-            SET_FLAG_VAR(l_NewContribIdFile->flags, l_NewContribIdFile->flags, BBTD_All_Extents_Transferred, 1);
-            SET_FLAG_VAR(l_NewContribIdFile->flags, l_NewContribIdFile->flags, BBTD_All_Files_Closed, 1);
-            if (l_OriginalFileFlags != l_NewContribIdFile->flags)
+            uint64_t l_OriginalFileFlags = l_ContribIdFileToProcess->flags;
+            SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_Extents_Enqueued, 1);
+            SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_All_Extents_Transferred, 1);
+            SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_All_Files_Closed, 1);
+            if (l_OriginalFileFlags != l_ContribIdFileToProcess->flags)
             {
                 LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileFlags << " to 0x" << l_NewContribIdFile->flags << nouppercase << dec << ".";
+                LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileFlags << " to 0x" << l_ContribIdFileToProcess->flags << nouppercase << dec << ".";
             }
         }
 
-        int rc2 = ContribIdFile::saveContribIdFile(l_NewContribIdFile, pLVKey, handle, pContribId);
+        int rc2 = ContribIdFile::saveContribIdFile(l_ContribIdFileToProcess, pLVKey, handle, pContribId);
 
         if (rc2)
         {
@@ -945,10 +919,26 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_ExistingContribFile)
+    if (l_ContribIdFile)
     {
-        delete l_ExistingContribFile;
-        l_ExistingContribFile = 0;
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+
+    if (l_NewContribIdFile)
+    {
+        delete l_NewContribIdFile;
+        l_NewContribIdFile = 0;
+    }
+
+    if (l_ContribFileForLVUuid)
+    {
+        if (l_ContribFile == l_ContribFileForLVUuid)
+        {
+            l_ContribFile = 0;
+        }
+        delete l_ContribFileForLVUuid;
+        l_ContribFileForLVUuid = 0;
     }
 
     if (l_ContribFile)
