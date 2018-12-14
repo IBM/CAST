@@ -142,7 +142,9 @@ public:
         gid(0),
         tag(0),
         flags(0),
-        totalTransferSize(0) {};
+        totalTransferSize(0) {
+        files = vector<FileData>();
+    };
 
     ContribIdFile (BBTransferDef* pTransferDef) :
         serializeVersion(0),
