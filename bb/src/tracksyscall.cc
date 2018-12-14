@@ -15,7 +15,7 @@
 #if BBSERVER
 #include "bbserver_flightlog.h"
 #elif BBPROXY
-#include "bbserver_flightlog.h"
+#include "bbproxy_flightlog.h"
 #endif
 
 #include "bberror.h"
