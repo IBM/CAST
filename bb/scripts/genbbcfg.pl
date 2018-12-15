@@ -23,11 +23,13 @@ $consoleenable = "false";
 
 if(!$rpmbuild)
 {
-    $metadatapath  = "/gpfs/gpfs0/$ENV{USER}/bbserver/bbmetadata";
-    $userindex  = `grep -n $ENV{USER} /etc/passwd`;
+    my $user = "juser";
+    $user = $ENV{"USER"} if(exists $ENV{"USER"});
+    $metadatapath  = "/gpfs/gpfs0/$user/bbserver/bbmetadata";
+    $userindex  = `grep -n $user /etc/passwd`;
     $userindex  =~ s/:.*//;
     $sslport    = 9000 + $userindex;
-    $usersuffix = ".$ENV{USER}";
+    $usersuffix = ".$user";
     $consoleenable = "true";
 }
 
