@@ -22,9 +22,11 @@ $metadatapath  = "/gpfs/gpfs0/bbmetadata";
 
 if(!$rpmbuild)
 {
+    my $user = "juser";
+    $user = $ENV{"USER"} if(exists $ENV{"USER"});
     $cfgfile       = "$workdir/bb/scripts/bb.cfg";
-    $varpath       = "/tmp/bbproxy.$ENV{USER}";
-    $metadatapath  = "/gpfs/gpfs0/$ENV{USER}/bbserver/bbmetadata";
+    $varpath       = "/tmp/bbproxy.$user";
+    $metadatapath  = "/gpfs/gpfs0/$user/bbserver/bbmetadata";
 }
 
 $data =~ s/\@CONFIGFILE\@/$cfgfile/g;

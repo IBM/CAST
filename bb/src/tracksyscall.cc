@@ -11,7 +11,13 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 #include "tracksyscall.h"
+
+#if BBSERVER
 #include "bbserver_flightlog.h"
+#elif BBPROXY
+#include "bbproxy_flightlog.h"
+#endif
+
 #include "bberror.h"
 #include <map>
 
