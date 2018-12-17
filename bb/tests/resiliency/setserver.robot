@@ -232,7 +232,7 @@ Perform admin failover during transfer->PFS and another failover during 2nd tran
     
     Run as user
     Run keyword and ignore error  Create directory  ${source}/tmp
-    Create directory  ${dest}/tmp
+    Run keyword and ignore error  Create directory  ${dest}/tmp
     Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
     Generate File List  ${source}/tmp  ${dest}/tmp  ${MOUNTPT}/filelist2
 
