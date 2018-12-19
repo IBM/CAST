@@ -105,10 +105,10 @@ namespace txp{
 		}
                 
 
-                virtual std::string getRemoteAddrIPv4() const final{
+        virtual std::string getRemoteAddrString() const final{
 			return getAddr4(_sockaddrRemote);
 		}
-                virtual std::string getLocalAddrIPv4() const final{
+                virtual std::string getLocalAddrString() const final{
 			return getAddr4(_sockaddrLocal);
 		}
 
@@ -116,7 +116,7 @@ namespace txp{
                    return "CnxSockSSL=(L)"+getLocalAddr4withPort()+"/(R)"+ getRemoteAddr4withPort();
                 }
         bool remoteAndLocalAddressNotSame(){
-            return (getLocalAddrIPv4() != getRemoteAddrIPv4() );
+            return (getLocalAddrString() != getRemoteAddrString() );
         }
         
     inline void setNoDelay(bool value)

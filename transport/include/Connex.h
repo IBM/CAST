@@ -178,7 +178,7 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         virtual uid_t getUser_ID() { abort(); return 0;}
         virtual gid_t getGrp_ID()  { abort(); return 0;}
 
-        virtual std::string getRemoteAddrIPv4() const {
+        virtual std::string getRemoteAddrString() const {
             std::string temp;
 			return temp;
 		}

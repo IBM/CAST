@@ -384,7 +384,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 		    //       for duration of socket connection between bbproxy and bbserver (use .sequencenumber).
 #ifdef BBSERVER
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance) + string(".") + to_string(++newconnection_name_sequence_number) 
-            + " (" + conn->getRemoteAddrIPv4() + ")";
+            + " (" + conn->getRemoteAddrString() + ")";
 #else
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance);
 #endif
