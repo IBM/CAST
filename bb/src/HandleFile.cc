@@ -665,6 +665,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
 
         case TEST_FOR_HANDLEFILE_LOCK:
         {
+            // The invoked routine dumps info to the console log.
+            // This is a test path only (not in production) and the
+            // return code value is not important here...
             testForLock(l_ArchivePath);
         }
         break;
@@ -693,8 +696,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
 
     if (!rc)
     {
-        if (pLockOption == DO_NOT_LOCK_HANDLEFILE || pLockOption == TEST_FOR_HANDLEFILE_LOCK ||
-            (pLockOption == LOCK_HANDLEFILE && fd >= 0) || (pLockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST && fd >= 0))
+        if (pLockOption == DO_NOT_LOCK_HANDLEFILE ||
+            (pLockOption == LOCK_HANDLEFILE && fd >= 0) ||
+            (pLockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST && fd >= 0))
         {
             rc = loadHandleFile(pHandleFile, l_ArchivePathWithName);
             if (!rc)
@@ -712,18 +716,17 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         break;
                 }
             }
-            else
-            {
-                delete[] l_ArchivePathWithName;
-                l_ArchivePathWithName = 0;
-            }
         }
         else
         {
-            delete[] l_ArchivePathWithName;
-            l_ArchivePathWithName = 0;
             rc = -1;
         }
+    }
+
+    if (pHandleFileName != l_ArchivePathWithName)
+    {
+        delete[] l_ArchivePathWithName;
+        l_ArchivePathWithName = 0;
     }
 
     if (rc && fd >= 0)
