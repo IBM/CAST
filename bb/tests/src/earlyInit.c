@@ -52,6 +52,11 @@ int main(int argc, char **argv)
     
     printf("Performing fopen() operation\n");
     FILE *ptr = fopen("/dev/zero", "r");
+    if(ptr == NULL)
+    {
+        printf("Open of /dev/zero failed.  Failing testcase.  errno=%d", errno);
+        return -1;
+    }
     printf("Performing fclose().  This is intecepted\n");
     fclose(ptr);
     printf("Test passed.  Exiting\n");
