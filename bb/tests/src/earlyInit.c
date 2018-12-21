@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <bbapi.h>
+#include <errno.h>
 
 int expectedRC = -1;
 

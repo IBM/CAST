@@ -229,10 +229,10 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 		FlightRecorderFormatter_t* tmpfmt = (FlightRecorderFormatter_t*)((char*)reg + FLIGHTLOG_OFFSET + reg->flightsize * sizeof(FlightRecorderLog_t));
 		memcpy(tmpfmt, fmt, sizeof(FlightRecorderFormatter_t) * numids);
 		reg->num_ids = numids;
-		reg->registryName[sizeof(reg->registryName)-1] = 0;
+		((char*)reg->registryName)[sizeof(reg->registryName)-1] = 0;
 		strncpy((char*)reg->registryName, name, sizeof(reg->registryName)-1);	
 		
-		reg->decoderName[sizeof(reg->decoderName)-1] = 0;
+		((char*)reg->decoderName)[sizeof(reg->decoderName)-1] = 0;
 		strncpy((char*)reg->decoderName, decoder, sizeof(reg->decoderName)-1);
 	}
 
