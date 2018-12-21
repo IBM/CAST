@@ -32,7 +32,7 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         //        for this LVKey when we are adding an entry to the work queue.
         LVKey l_Key = pWorkItem.getLVKey();
         BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
-        if (getWrkQ_Size() != l_LV_Info->getNumberOfExtents())
+        if (l_LV_Info && (getWrkQ_Size() != l_LV_Info->getNumberOfExtents()))
         {
             LOG(bb,error) << "WRKQE::addWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
             abort();
@@ -202,7 +202,7 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         //        for this LVKey when we are removing the first entry from the work queue.
         LVKey l_Key = (wrkq->front()).getLVKey();
         BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
-        if (getWrkQ_Size() != l_LV_Info->getNumberOfExtents())
+        if (l_LV_Info && (getWrkQ_Size() != l_LV_Info->getNumberOfExtents()))
         {
             LOG(bb,error) << "WRKQE::removeWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
             abort();

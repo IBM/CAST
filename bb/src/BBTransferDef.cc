@@ -100,7 +100,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                     if (!rc)
                                     {
                                         // Early exit if we already have a 'final' status
-                                        if ((pTransferDefs.flags == ALL_DEFINITIONS) || (!(l_HandleFile->status == BBFULLSUCCESS && l_HandleFile->status == BBCANCELED)))
+                                        if ((pTransferDefs.flags == ALL_DEFINITIONS) || (!(l_HandleFile->status == BBFULLSUCCESS || l_HandleFile->status == BBCANCELED)))
                                         {
                                             // NOTE: Cannot early exit for ONLY_DEFINITIONS_WITH_UNFINISHED_FILES case based upon extents being processed
                                             //       because we want to also include transfer definitions with files that are not all closed or have failed.

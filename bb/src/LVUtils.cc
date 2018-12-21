@@ -2130,6 +2130,9 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     // bbServer
                                     srcfile_ptr->setRestartInProgress(false);
 
+                                    delete dstfile_ptr;
+                                    dstfile_ptr = 0;
+
                                     break;
                                 }
                             }

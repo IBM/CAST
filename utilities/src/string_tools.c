@@ -14,7 +14,7 @@
 ================================================================================*/
 
 /*
-* Authors: 
+* Authors:
 *   Nick Buonarota (nbuonar@us.ibm.com)
 *
 */
@@ -34,7 +34,7 @@
 *   char    delimiter:  The delimiter to check for inside the string. (Example: ',' or ' ')
 *   int*    dataCount:  A pointer to an int. When this function finishes, this will contain
 *                       the number of 'seperated values' found in 'myString'.
-* Returns: int 
+* Returns: int
 *   0 Success
 *   1 ERROR: Problem with code. Skipped dataCount check.
 *   2 ERROR: dataCount is negative. Expected to be >= 0
@@ -44,18 +44,18 @@
 int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* dataCount)
 {
 	*dataCount = 0;
-	
+
 	int counter = 0;
 
 	char alreadyPrinted = 0;
-	
+
 	if(myString == NULL){
 		fprintf(stderr, "ERROR: myString is NULL. Can not parse NULL string.\n");
 		return 4;
 	}
-	
+
 	while(*myString)
-	{	
+	{
 		if(delimiter == *myString)
 		{
 			//found a new item, so increase the count
@@ -84,9 +84,9 @@ int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* 
 		myString++;
 	}
 	counter++;
-	
+
 	*dataCount = counter;
-	
+
 	if(*dataCount == 0){
 		//something went very wrong
 		fprintf(stderr, "ERROR: dataCount is 0. Expected to be != 0\n");
@@ -99,7 +99,7 @@ int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* 
 		fprintf(stderr, "ERROR: dataCount is negative. Expected to be >= 0\n");
 		return 2;
 	}
-	
+
 	fprintf(stderr, "ERROR: Problem with code. Skipped dataCount check.\n");
 	return 1;
 }
@@ -112,7 +112,7 @@ int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* 
 *   char*   myString:   The string to parse through.
 *   int*    dataCount:  A pointer to an int. When this function finishes, this will contain
 *                       the number of 'nodes' found in 'myString'.
-* Returns: int 
+* Returns: int
 *   0 Success
 *   1 ERROR: Problem with code. Skipped dataCount check.
 *   2 ERROR: dataCount is negative. Expected to be >= 0
@@ -122,20 +122,20 @@ int CORAL_stringTools_seperatedValuesCount(char* myString, char delimiter, int* 
 int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 {
 	char delimiter = ',';
-	
+
 	*dataCount = 0;
-	
+
 	int counter = 0;
 
 	char alreadyPrinted = 0;
-	
+
 	if(myString == NULL || myString[0] == '\0'){
 		fprintf(stderr, "ERROR: myString is NULL. Can not parse NULL string.\n");
 		return 4;
 	}
-	
+
 	while(*myString)
-	{	
+	{
 		if(delimiter == *myString)
 		{
 			//found a new item, so increase the count
@@ -164,10 +164,10 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 		if(*myString == '[')
 		{
 			//We have found a consecutive range
-			
+
 			//move past the '['
 			myString++;
-			
+
 			// goal of this code is to find this number
 			int totalNumberInRange = 0;
 			// hold the first number in the range, and used to calculate the final total.
@@ -192,7 +192,7 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 			strncpy(temp, startMarker, numChars);
 			//convert the string to an int
 			firstNumberInRange = atoi(temp);
-			
+
 			//Reset helper stuff for the next counting
 			//free the temp string
 			free(temp);
@@ -203,7 +203,7 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 			myString++;
 			//set the new start marker
 			startMarker = myString;
-			
+
 			//start the next counting
 			while(*myString != ']')
 			{
@@ -214,14 +214,14 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 			strncpy(temp, startMarker, numChars);
 			lastNumberInRange = atoi(temp);
 			free(temp);
-			
+
 			//tally the total number of nodes in this nodeRange
 			totalNumberInRange = lastNumberInRange - firstNumberInRange + 1;
 			//add the totalNumberInRange to the main counter
 			counter = counter + totalNumberInRange;
 			// remove one
 			// because the overall function counts this entire range as one comma seperated value.
-			// but we already calulated the proper number in here and added it 
+			// but we already calulated the proper number in here and added it
 			// so cancel out the future count of this comma seperated value
 			counter--;
 		}
@@ -230,7 +230,7 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 	}
 	counter++;
 	*dataCount = counter;
-	
+
 	if(*dataCount == 0){
 		//something went very wrong
 		fprintf(stderr, "ERROR: dataCount is 0. Expected to be != 0\n");
@@ -243,7 +243,7 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 		fprintf(stderr, "ERROR: dataCount is negative. Expected to be >= 0\n");
 		return 2;
 	}
-	
+
 	fprintf(stderr, "ERROR: Problem with code. Skipped dataCount check.\n");
 	return 1;
 }
@@ -258,9 +258,9 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 *   uint32_t* stringCount:  A pointer to an int. When this function finishes, this will contain
 *                           the number of 'seperated values' found in 'myString'.
 *   char***   stringArray:  A pointer to an array of strings. When this function finishes, this will contain
-*                           an array of 'seperated values' found in 'myString' with 'stringCount' elements. 
+*                           an array of 'seperated values' found in 'myString' with 'stringCount' elements.
 *
-* Returns: int 
+* Returns: int
 *   0 Success
 *   1 ERROR: Generic error. Default.
 *   2 ERROR: noderange not present. generic
@@ -273,11 +273,11 @@ int CORAL_stringTools_nodeCount_xCATSyntax(char* myString, int* dataCount)
 int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, char*** stringArray)
 {
 
-	// Function Variables 
-	// pointer location of the opening '[' bracket for the node range 
+	// Function Variables
+	// pointer location of the opening '[' bracket for the node range
 	char* bracket_pointer = NULL;
-	
-	//search for the opening bracket 
+
+	//search for the opening bracket
 	bracket_pointer = strchr(myString,'[');
 
 	if(bracket_pointer == NULL)
@@ -290,7 +290,7 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		//range was found
 
 		// === Function Variables ===
-		// number of reserved characters before the opening bracket. aka, base node name 
+		// number of reserved characters before the opening bracket. aka, base node name
 		int reserved_chars = 0;
 		//number of digits in the node range, calculated later by subtracting pointer locations
 		int range_digits = 0;
@@ -298,13 +298,13 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		int range_digits_begin = 0;
 		//number of digits in the node range after '-', used to compare for a quality check
 		int range_digits_end = 0;
-		//used to later construct the full node name incrementally 
+		//used to later construct the full node name incrementally
 		int range_counter = 0;
 		char range_counter_buffer[512];
-		// a reused string that will contain a full node name. 
+		// a reused string that will contain a full node name.
 		char* base_node_name = NULL;
 		// ===========================
-		
+
 		//record the number of characters in the string before the '['
 		//aka, the base node name
 		reserved_chars = bracket_pointer-myString;
@@ -327,12 +327,12 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 			range_digits = (dash_pointer-myString+1) - (bracket_pointer-myString+1) -1;
 			range_digits_begin = range_digits;
 		}
-		
+
 		//find the end bracket
-		//only needed for testing quality. 
+		//only needed for testing quality.
 		char* end_bracket_pointer = NULL;
 		end_bracket_pointer = strchr(myString,']');
-		
+
 		if(end_bracket_pointer == NULL)
 		{
 			//No range was found
@@ -340,15 +340,15 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 			//fprintf(stderr, "ERROR: determined noderange not present.\n");
 			return 7;
 		}
-		
+
 		//calculate the range digits
 		range_digits = (end_bracket_pointer-myString+1) - (dash_pointer-myString+1) -1;
 		range_digits_end = range_digits;
-		
-		//Quality check to make sure there is no mismatch between the opening range and closing range 
+
+		//Quality check to make sure there is no mismatch between the opening range and closing range
 		if(range_digits_begin != range_digits_end)
 		{
-			//illegal format detected. 
+			//illegal format detected.
 			//fprintf(stderr, "ERROR: node range digits precision don't match.\n");
 			//fprintf(stderr, "ERROR: range_digits_begin: %i\n", range_digits_begin);
 			//fprintf(stderr, "ERROR: range_digits_end: %i\n", range_digits_end);
@@ -362,11 +362,11 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		//memcpy the stuff out of myString
 		memcpy(first_node_digit, bracket_pointer+1, range_digits);
 
-		//grab the first node digit. save to int. 
+		//grab the first node digit. save to int.
 		//use this later to find total number of nodes
 		int first_node_digit_int = 0;
 		first_node_digit_int = atoi(first_node_digit);
-		
+
 		free(first_node_digit);
 
 		//find end of range
@@ -378,16 +378,16 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 		//grab the last node digit. save to int. use this later to find total number of nodes
 		int last_node_digit_int = 0;
 		last_node_digit_int = atoi(last_node_digit);
-		
+
 		free(last_node_digit);
 
 		int totalNumberOfNodesInNodeRange = 0;
 		totalNumberOfNodesInNodeRange = last_node_digit_int - first_node_digit_int + 1;
-		
-		//make sure the begining of the node range is smaller than the end. 
+
+		//make sure the begining of the node range is smaller than the end.
 		if(totalNumberOfNodesInNodeRange < 0)
 		{
-			//illegal format detected. 
+			//illegal format detected.
 			//fprintf(stderr, "ERROR: node range is negative: %i\n", totalNumberOfNodesInNodeRange);
 			//fprintf(stderr, "ERROR: determined noderange was not properly formatted.\n");
 			return 4;
@@ -437,13 +437,14 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 			range_counter++;
 			free(full_node_name);
 		}
+        free(base_node_name);
 	}
-	
-	//ToDo: What about a case where the node range has text? 
+
+	//ToDo: What about a case where the node range has text?
 	//Example: node[001-f45]
 	//it currently returns as node range is negative, improperly formatted.
-	//prevents an error, but could be more specific 
-	
+	//prevents an error, but could be more specific
+
 	return 0;
 }
 
@@ -461,7 +462,7 @@ int CORAL_stringTools_nodeRangeParser(char* myString, uint32_t* stringCount, cha
 *   1 keyword detected but no known match
 *   2 #CSM_NULL
 *
-* Returns: int 
+* Returns: int
 *   0 Success
 *   1 ERROR: Generic error. Default.
 *   2 ERROR: myString is NULL. Can not parse NULL string.
@@ -471,27 +472,27 @@ int CAST_stringTools_CSM_KEYWORD_Compare(char* myString, int* compareCode)
 {
 	//reset to 0 (no match), just to be safe.
 	*compareCode = 0;
-	
-	//Get some early returns out of the way. 
+
+	//Get some early returns out of the way.
 	if(myString[0] == '\0')
 	{
 		//The string passed in was NULL.
 		//Return an error code.
 		return 2;
 	}
-	
+
 	//check for special keywords that begin with '#'
 	if(myString[0] != '#')
 	{
 		//CSM Keywords all begin with '#'
-		//If one isn't found then its not a keyword. 
+		//If one isn't found then its not a keyword.
 		//return success with no match.
 		*compareCode = 0;
 		return 0;
 	}
-	
-	//If we made it this far, then we know we have a 'KEYWORD' 
-	
+
+	//If we made it this far, then we know we have a 'KEYWORD'
+
 	//a special CSM API keyword was found
 	//go through all keywords
 	// which keyword? -- too bad I can't use a switch statement
@@ -501,24 +502,24 @@ int CAST_stringTools_CSM_KEYWORD_Compare(char* myString, int* compareCode)
 		//this means reset Database field to NULL
 		*compareCode = 2;
 		return 0;
-		
+
 	}else{
 		//final default case
-		
+
 		//unknown keyword
 		//treat as normal value? -- well that's what i'll do for now
-		
+
 		//CSM Keywords all begin with '#'
 		//we found the '#' but it didn't match any of our keywords.
 		// i could treat this as a 'no match'
 		// but i wanted to specfify that we found a 'no match' and a '#'
 		// in case the caller wants to do something with this info.
-		
+
 		//return success with no match and '#'.
 		*compareCode = 1;
 		return 0;
 	}
-	
+
 	// we should not have gotten here. something else should have triggered.
 	return 3;
 }
