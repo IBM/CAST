@@ -122,12 +122,12 @@ int main(int argc, char** argv)
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;}
 
     tdefPtr=NULL;
-    BB_StartTransfer(tdefPtr, 0);
+    rc = BB_StartTransfer(tdefPtr, 0);
     print_bberror(rc);
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;}
 
     tdefPtr=(BBTransferDef_t*)1;;
-    BB_StartTransfer(tdefPtr, 0);
+    rc = BB_StartTransfer(tdefPtr, 0);
     print_bberror(rc);
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;}
     
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;}
 
     //invalid pHandle=0
-    BB_StartTransfer(tdefPtr, 0);
+    rc = BB_StartTransfer(tdefPtr, 0);
     print_bberror(rc);
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;}
 
@@ -185,7 +185,7 @@ int main(int argc, char** argv)
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;} 
 
     //printf("StartTransfer of freed tdefPtr\n");
-    BB_StartTransfer(tdefPtr, 0);
+    rc = BB_StartTransfer(tdefPtr, 0);
     print_bberror(rc);
     if (!rc) { printf("%s error at %d\n",argv[0],__LINE__); return __LINE__;}
 

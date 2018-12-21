@@ -35,31 +35,31 @@ namespace po = boost::program_options;
 int main(int argc, char *argv[])
 {
     po::variables_map vm;
-    po::options_description desc("Allowed options");
-    
-    desc.add_options()
-	("help", "Display this help message")
-	("file", po::value<string>()->default_value("random_file"))
-	
-        ("genfilelist", "Generate a list of files")
-        ("sourcepath", po::value<string>()->default_value("/tmp/source_not_specified"))
-        ("targetpath", po::value<string>()->default_value("/tmp/target_not_specified"))	
-	("minfiles", po::value<unsigned long>()->default_value(1))
-	("maxfiles", po::value<unsigned long>()->default_value(1))
-	
-	("size", po::value<unsigned long>(), "fixed size of file")
-	("minsize", po::value<unsigned long>()->default_value(65536))
-	("maxsize", po::value<unsigned long>()->default_value(65536))
-	("by",   po::value<unsigned long>()->default_value(4))
-	("seed", po::value<unsigned long>(), "Random seed")
-	("specialChars", po::value<string>(), "Special Characters")
-        
-        ("buffersize", po::value<unsigned long>()->default_value(16*1024*1024), "buffer size for write syscall")
-        ("barriersize", po::value<unsigned long>()->default_value(0), "barrier size")
-	;
-    
     try
     {
+        po::options_description desc("Allowed options");
+        
+        desc.add_options()
+        ("help", "Display this help message")
+        ("file", po::value<string>()->default_value("random_file"))
+        
+            ("genfilelist", "Generate a list of files")
+            ("sourcepath", po::value<string>()->default_value("/tmp/source_not_specified"))
+            ("targetpath", po::value<string>()->default_value("/tmp/target_not_specified"))	
+        ("minfiles", po::value<unsigned long>()->default_value(1))
+        ("maxfiles", po::value<unsigned long>()->default_value(1))
+        
+        ("size", po::value<unsigned long>(), "fixed size of file")
+        ("minsize", po::value<unsigned long>()->default_value(65536))
+        ("maxsize", po::value<unsigned long>()->default_value(65536))
+        ("by",   po::value<unsigned long>()->default_value(4))
+        ("seed", po::value<unsigned long>(), "Random seed")
+        ("specialChars", po::value<string>(), "Special Characters")
+            
+            ("buffersize", po::value<unsigned long>()->default_value(16*1024*1024), "buffer size for write syscall")
+            ("barriersize", po::value<unsigned long>()->default_value(0), "barrier size")
+        ;
+    
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }
@@ -145,56 +145,71 @@ int main(int argc, char *argv[])
 #endif
 	randfiles.push_back(filename);
     }
-    
-    for(auto& fn : randfiles)
+
+    for (auto &fn : randfiles)
     {
-	size_t filesize = 0;
-	if(vm.count("size") > 0)
-	{
-	    filesize = vm["size"].as<unsigned long>();
-	    cerr << "fixed size: " << filesize << endl;
-	}
-	else
-	{
-	    filesize = sizerange(gen);
-	    cerr << "random size: " << filesize << endl;
-	}
-	
-	size_t skipby   = vm["by"].as<unsigned long>();
-	
-	cout << "filename: " << fn << endl;
-        
-        int fd;
-        unsigned long BUFFERSIZE = vm["buffersize"].as<unsigned long>();
-        uint32_t* buffer = (uint32_t*)malloc(BUFFERSIZE);
-        memset(buffer,0,BUFFERSIZE);
-        
-#if USE_MPI
-        unsigned long barriersize  = vm["barriersize"].as<unsigned long>();
-        unsigned long barriercount = size-barriersize;
-#endif
-        
-        fd = open(fn.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
-        for(unsigned long x = 0; x<filesize; x+=BUFFERSIZE)
+        size_t filesize = 0;
+        if (vm.count("size") > 0)
         {
-            for(unsigned long y=0; y<BUFFERSIZE; y+=skipby)
+            filesize = vm["size"].as<unsigned long>();
+            cerr << "fixed size: " << filesize << endl;
+        }
+        else
+        {
+            filesize = sizerange(gen);
+            cerr << "random size: " << filesize << endl;
+        }
+
+        size_t skipby = vm["by"].as<unsigned long>();
+
+        cout << "filename: " << fn << endl;
+
+        int fd;
+        unsigned long BUFFERSIZE = 0;
+        uint32_t* buffer;
+        try
+        {
+            BUFFERSIZE = vm["buffersize"].as<unsigned long>();
+            buffer = (uint32_t*)malloc(BUFFERSIZE);
+            if(buffer == NULL) throw runtime_error("malloc returned NULL");
+            memset(buffer, 0, BUFFERSIZE);
+        }
+        catch(exception& e)
+        {
+            cerr << "Error: " << e.what() << "\n";
+            exit(1);
+        }
+
+#if USE_MPI
+        unsigned long barriersize = vm["barriersize"].as<unsigned long>();
+        unsigned long barriercount = size - barriersize;
+#endif
+
+        fd = open(fn.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+        if(fd < 0)
+        {
+            cout << "Unable to open " << fn << "  Skipping." << endl;
+            continue;
+        }
+        for (unsigned long x = 0; x < filesize; x += BUFFERSIZE)
+        {
+            for (unsigned long y = 0; y < BUFFERSIZE; y += skipby)
             {
-                buffer[y/4] = bufrange(gen);
+                buffer[y / 4] = bufrange(gen);
             }
 #if USE_MPI
-            if(barriersize > 0)
+            if (barriersize > 0)
             {
                 do
                 {
                     MPI_Barrier(MPI_COMM_WORLD);
-                    barriercount+=barriersize;
-                }
-                while((barriercount % size)/barriersize != rank/barriersize);
+                    barriercount += barriersize;
+                } while ((barriercount % size) / barriersize != rank / barriersize);
             }
 #endif
-            write(fd, buffer, MIN(filesize-x, BUFFERSIZE));
+            write(fd, buffer, MIN(filesize - x, BUFFERSIZE));
 #if USE_MPI
-            if(barriersize > 0)
+            if (barriersize > 0)
             {
                 syncfs(fd);
             }
@@ -203,18 +218,18 @@ int main(int argc, char *argv[])
         free(buffer);
         fsync(fd);
 #if USE_MPI
-            if(barriersize > 0)
+        if (barriersize > 0)
+        {
+            int remainder = (size - 1) / barriersize - (barriercount % size) / barriersize;
+            for (; remainder > 0; remainder--)
             {
-                int remainder = (size-1)/barriersize - (barriercount % size)/barriersize;
-                for(; remainder > 0; remainder--)
-                {
-                    MPI_Barrier(MPI_COMM_WORLD);
-                }
+                MPI_Barrier(MPI_COMM_WORLD);
             }
+        }
 #endif
         close(fd);
     }
-    
+
 #if USE_MPI
     MPI_Finalize();
 #endif

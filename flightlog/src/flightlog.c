@@ -57,8 +57,8 @@ int FL_CreateRegistries(const char* rootpath, unsigned int numreg, FlightRecorde
 
 int FL_AttachRegistry(FlightRecorderRegistryList_t** reglist, const char* filename, FlightRecorderRegistry_t* reg)
 {
-        int rc;
-        int fdout;
+	int rc;
+	int fdout;
 	struct stat statbuffer;
 	if(reg == NULL)
 	{
@@ -66,7 +66,12 @@ int FL_AttachRegistry(FlightRecorderRegistryList_t** reglist, const char* filena
 		if(fdout == -1)
 		    return -1;
 		
-		fstat(fdout, &statbuffer);
+		rc = fstat(fdout, &statbuffer);
+		if(rc != 0)
+		{
+			close(fdout);
+			return -1;
+		}
 		reg = (FlightRecorderRegistry_t*)mmap(NULL, (size_t)statbuffer.st_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FILE, fdout, 0);
 	}
 	
@@ -171,6 +176,11 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 		char line[256];
 		float tmpf;
 		f = fopen("/proc/cpuinfo", "r");
+		if(f == NULL)
+		{
+			printf("Unable to open /proc/cpuinfo, failing.  errno=%d", errno);
+			exit(-1);
+		}
 		while (!feof(f))
 		{
 			char *str = fgets(line, sizeof(line), f);
@@ -219,9 +229,11 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 		FlightRecorderFormatter_t* tmpfmt = (FlightRecorderFormatter_t*)((char*)reg + FLIGHTLOG_OFFSET + reg->flightsize * sizeof(FlightRecorderLog_t));
 		memcpy(tmpfmt, fmt, sizeof(FlightRecorderFormatter_t) * numids);
 		reg->num_ids = numids;
-		strncpy((char*)reg->registryName, name, sizeof(reg->registryName));	
+		((char*)reg->registryName)[sizeof(reg->registryName)-1] = 0;
+		strncpy((char*)reg->registryName, name, sizeof(reg->registryName)-1);	
 		
-		strncpy((char*)reg->decoderName, decoder, sizeof(reg->decoderName));
+		((char*)reg->decoderName)[sizeof(reg->decoderName)-1] = 0;
+		strncpy((char*)reg->decoderName, decoder, sizeof(reg->decoderName)-1);
 	}
 
 //	rc = loadPlugin(reg);
@@ -252,9 +264,12 @@ int displayTime(char* buffer, size_t bufferSize, uint64_t timebase, double scale
     if(rc >= 0)
 	{
 		buffer = strstr(buffer, ".0000");
-		char tmpbuffer[16];
-		snprintf(tmpbuffer, sizeof(tmpbuffer), ".%09llu", (unsigned long long)wallTimeFraction);
-		memcpy(buffer, tmpbuffer, 10);
+		if(buffer)
+		{
+			char tmpbuffer[16];
+			snprintf(tmpbuffer, sizeof(tmpbuffer), ".%09llu", (unsigned long long)wallTimeFraction);
+			memcpy(buffer, tmpbuffer, 10);
+		}
 	}
 	return rc;
 }

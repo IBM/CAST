@@ -52,21 +52,20 @@ void displayMiscompare(size_t low, size_t high, uint64_t count, size_t blockSize
 int main(int argc, char *argv[])
 {
     po::variables_map vm;
-    po::options_description desc("Allowed options");
-    boost::property_tree::ptree config;
-    config.put("comparefiles.log.consoleLog", true);
-    config.put("comparefiles.log.consoleStream", "stdout");
-    config.put("comparefiles.log.default_sev", "info");
-    
-    initializeLogging("comparefiles.log", config);
-    
-    desc.add_options()
-	("help", "Display this help message")
-        ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"))
-	;
-    
     try
     {
+        po::options_description desc("Allowed options");
+        boost::property_tree::ptree config;
+        config.put("comparefiles.log.consoleLog", true);
+        config.put("comparefiles.log.consoleStream", "stdout");
+        config.put("comparefiles.log.default_sev", "info");
+        
+        initializeLogging("comparefiles.log", config);
+        
+        desc.add_options()
+        ("help", "Display this help message")
+            ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"));
+    
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }

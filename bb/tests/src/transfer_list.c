@@ -40,7 +40,7 @@ void dumpJSON(char*  data, size_t size)
        memset(command, '\0', size+100);
        sprintf( command, "echo '%s' | python -mjson.tool", data );  /* Format JSON output */
        FILE *sz = popen(command, "r");
-       while (fgets(buf, sizeof(buf), sz) != 0) {
+       while (fgets(buf, size*sizeof(char), sz) != 0) {
            printf("%s", buf);
        } /*..end of pstream */
        pclose(sz);

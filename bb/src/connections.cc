@@ -114,7 +114,7 @@ int dumpReplyWaiters(){
         int j=0;
         for (auto& waiters: list.second){
             j++;
-            l_MsgIdStr[64] = {'\0'};
+            l_MsgIdStr[sizeof(l_MsgIdStr)-1] = {'\0'};
             txp::Msg::msgIdToChar(waiters.first->msgid, l_MsgIdStr, sizeof(l_MsgIdStr));
             printf("%u msgid=%u (%s) \n",j,waiters.first->msgid,l_MsgIdStr);
             i++;

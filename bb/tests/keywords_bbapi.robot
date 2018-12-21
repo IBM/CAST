@@ -4,14 +4,6 @@ Library           String
 
 
 *** Keywords ***
-Check bad parameters on transfer APIs
-    [Arguments] 
-    parmchecktransfer  
-
-Check bad parameters on get Version API
-    [Arguments]
-    parmcheckGetVersion
-
 API_Create directory
     [Arguments]    ${path}  ${expect_rc}=0
     [Timeout]  10 seconds
