@@ -125,10 +125,13 @@ namespace utility
 int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 {
     static bool alreadyInitialized = false;
+    int rc = -1;
     if(alreadyInitialized)
 	    return 0;
     alreadyInitialized = true;
 
+    try
+    {
 #define SUBCOMPONENT(n) maxsubcomponentwidth = max(strlen(#n), maxsubcomponentwidth);
 #include "subcomponent.h"
 #undef SUBCOMPONENT
@@ -137,131 +140,137 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
 #include "severity.h"
 #undef SEVERITY
 
-    int x;
-    string defaultsev = config.get(ptree_prefix + ".default_sev", "info");
-    for(x=0; x<NUM_SUBCOMPONENTS; x++)
-    {
-	    string setlvl = config.get(ptree_prefix + "." + subcomponent_str[x], defaultsev);
-	    if(str2severity.find(setlvl) != str2severity.end())
-	    {
-	        minlevel[x] = str2severity[setlvl];
-	    }
-	    else
-	    {
-	        cout << "Invalid severity: " << subcomponent_str[x] << " = " << setlvl << endl;
-	    }
-    }
-
-    logging::add_common_attributes();
-    logging::register_simple_formatter_factory< bluecoral_sevs, char >("Severity");
-    logging::register_simple_formatter_factory< bluecoral_subcomponents, char >("SubComponent");
-    logging::register_simple_formatter_factory< bluecoral_filename*, char >("FileName");
-
-/*
-  The following are parameters that initializeLogging can take.
-  e.g., ptree_pretix could point to "bb.server.log" which specifies the parameter subtree of the config.
-
-  "log" :
-  {
-    "format"       :   "%TimeStamp% %SubComponent%::%Severity% | %Message%"  // format string for log
-    "consoleLog"   :   true                                                  // enable console logging
-    "fileLog"      :   "none"                                                // filename
-    "rotationSize" :   -1                                                    // rotationsize (bytes)
-    "default_sev"  :   "info"                                                // default minimum severity
-    <subcomponent> :   <default_sev>                                         // minimum severity for a subcomponent
-  }
- */
-    if(config.get(ptree_prefix + ".consoleLog", true))
-    {
-	logging::add_console_log
-	    (
-		((config.get(ptree_prefix + ".consoleStream", "stdout") == "stdout")?(std::cout):(std::cerr)),
-		keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
-        keywords::filter = channel == "LOG"
-		);
-    }
-
-    if(config.get(ptree_prefix + ".fileLog", "none") != "none")
-    {
-        auto mode = std::ios::out;
-        if(config.get(ptree_prefix + ".fileAppend", false) == true)
+        int x;
+        string defaultsev = config.get(ptree_prefix + ".default_sev", "info");
+        for(x=0; x<NUM_SUBCOMPONENTS; x++)
         {
-            mode |= std::ios::app;
+            string setlvl = config.get(ptree_prefix + "." + subcomponent_str[x], defaultsev);
+            if(str2severity.find(setlvl) != str2severity.end())
+            {
+                minlevel[x] = str2severity[setlvl];
+            }
+            else
+            {
+                cout << "Invalid severity: " << subcomponent_str[x] << " = " << setlvl << endl;
+            }
         }
-	    auto sink = logging::add_file_log
-	    (
-		    keywords::file_name = config.get(ptree_prefix + ".fileLog", "none"),
-		    keywords::rotation_size = config.get(ptree_prefix + ".rotationSize", (~0)),
-		    keywords::auto_flush = true,
-		    keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
-            keywords::open_mode = mode,
+
+        logging::add_common_attributes();
+        logging::register_simple_formatter_factory< bluecoral_sevs, char >("Severity");
+        logging::register_simple_formatter_factory< bluecoral_subcomponents, char >("SubComponent");
+        logging::register_simple_formatter_factory< bluecoral_filename*, char >("FileName");
+
+    /*
+    The following are parameters that initializeLogging can take.
+    e.g., ptree_pretix could point to "bb.server.log" which specifies the parameter subtree of the config.
+
+    "log" :
+    {
+        "format"       :   "%TimeStamp% %SubComponent%::%Severity% | %Message%"  // format string for log
+        "consoleLog"   :   true                                                  // enable console logging
+        "fileLog"      :   "none"                                                // filename
+        "rotationSize" :   -1                                                    // rotationsize (bytes)
+        "default_sev"  :   "info"                                                // default minimum severity
+        <subcomponent> :   <default_sev>                                         // minimum severity for a subcomponent
+    }
+    */
+        if(config.get(ptree_prefix + ".consoleLog", true))
+        {
+        logging::add_console_log
+            (
+            ((config.get(ptree_prefix + ".consoleStream", "stdout") == "stdout")?(std::cout):(std::cerr)),
+            keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
             keywords::filter = channel == "LOG"
-		);
-
-        if(config.get(ptree_prefix + ".archiveLogs", "none") != "none")
-        {
-            sink->locked_backend()->set_file_collector(sinks::file::make_collector(
-                                                           keywords::target = config.get(ptree_prefix + ".archiveLogs", "none"),
-                                                           keywords::max_size = config.get(ptree_prefix + ".archiveSize", 1024 * 1024 * 1024),
-                                                           keywords::min_free_space = config.get(ptree_prefix + ".archiveMinDiskSize", 1024 * 1024 * 1024)
-                                                           ));
-
-            sink->locked_backend()->scan_for_files(sinks::file::scan_all);
+            );
         }
-    }
 
-    if(config.get(ptree_prefix + ".sysLog", false))
-    {
-        boost::shared_ptr< logging::core > core = logging::core::get();
-        boost::shared_ptr< logging::sinks::syslog_backend > backend(
-            new logging::sinks::syslog_backend(
-                keywords::facility = logging::sinks::syslog::local0,
-                keywords::use_impl = logging::sinks::syslog::udp_socket_based,
+        if(config.get(ptree_prefix + ".fileLog", "none") != "none")
+        {
+            auto mode = std::ios::out;
+            if(config.get(ptree_prefix + ".fileAppend", false) == true)
+            {
+                mode |= std::ios::app;
+            }
+            auto sink = logging::add_file_log
+            (
+                keywords::file_name = config.get(ptree_prefix + ".fileLog", "none"),
+                keywords::rotation_size = config.get(ptree_prefix + ".rotationSize", (~0)),
+                keywords::auto_flush = true,
+                keywords::format = config.get(ptree_prefix + ".format", "%TimeStamp% %SubComponent%::%Severity% | %Message%"),
+                keywords::open_mode = mode,
                 keywords::filter = channel == "LOG"
-        ));
-        
-        backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"), 
-                                    config.get(ptree_prefix + ".port",   514));
+            );
 
-        // Map severities into syslog levels:
-        logging::sinks::syslog::custom_severity_mapping< bluecoral_sevs > mapping("Severity");
-        mapping[off]      = logging::sinks::syslog::debug;
-        mapping[trace]    = logging::sinks::syslog::debug;
-        mapping[debug]    = logging::sinks::syslog::debug;
-        mapping[info]     = logging::sinks::syslog::info;
-        mapping[warning]  = logging::sinks::syslog::warning;
-        mapping[error]    = logging::sinks::syslog::error;
-        mapping[critical] = logging::sinks::syslog::critical;
-        mapping[always]   = logging::sinks::syslog::info;
-        backend->set_severity_mapper(mapping);
-        
-        auto sink = boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend);
-        sink->set_formatter(
-            boost::log::parse_formatter("CAST[-]:%SubComponent% %Message%")
-        );
-        core->add_sink(sink);
+            if(config.get(ptree_prefix + ".archiveLogs", "none") != "none")
+            {
+                sink->locked_backend()->set_file_collector(sinks::file::make_collector(
+                                                            keywords::target = config.get(ptree_prefix + ".archiveLogs", "none"),
+                                                            keywords::max_size = config.get(ptree_prefix + ".archiveSize", 1024 * 1024 * 1024),
+                                                            keywords::min_free_space = config.get(ptree_prefix + ".archiveMinDiskSize", 1024 * 1024 * 1024)
+                                                            ));
+
+                sink->locked_backend()->scan_for_files(sinks::file::scan_all);
+            }
+        }
+
+        if(config.get(ptree_prefix + ".sysLog", false))
+        {
+            boost::shared_ptr< logging::core > core = logging::core::get();
+            boost::shared_ptr< logging::sinks::syslog_backend > backend(
+                new logging::sinks::syslog_backend(
+                    keywords::facility = logging::sinks::syslog::local0,
+                    keywords::use_impl = logging::sinks::syslog::udp_socket_based,
+                    keywords::filter = channel == "LOG"
+            ));
+            
+            backend->set_target_address(config.get(ptree_prefix + ".server", "127.0.0.1"), 
+                                        config.get(ptree_prefix + ".port",   514));
+
+            // Map severities into syslog levels:
+            logging::sinks::syslog::custom_severity_mapping< bluecoral_sevs > mapping("Severity");
+            mapping[off]      = logging::sinks::syslog::debug;
+            mapping[trace]    = logging::sinks::syslog::debug;
+            mapping[debug]    = logging::sinks::syslog::debug;
+            mapping[info]     = logging::sinks::syslog::info;
+            mapping[warning]  = logging::sinks::syslog::warning;
+            mapping[error]    = logging::sinks::syslog::error;
+            mapping[critical] = logging::sinks::syslog::critical;
+            mapping[always]   = logging::sinks::syslog::info;
+            backend->set_severity_mapper(mapping);
+            
+            auto sink = boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend);
+            sink->set_formatter(
+                boost::log::parse_formatter("CAST[-]:%SubComponent% %Message%")
+            );
+            core->add_sink(sink);
+        }
+
+        if(config.get(ptree_prefix + ".transaction", true))
+        {
+            auto sink = logging::add_file_log(
+                keywords::file_name = config.get(ptree_prefix + ".transaction_file", "none"),
+                keywords::rotation_size = config.get(ptree_prefix + ".transaction_rotation_size", (~0)),
+                keywords::auto_flush = true,
+                keywords::open_mode = std::ios::app,
+                keywords::filter = channel == "BDS");
+        }
+
+        if(config.get(ptree_prefix + ".allocation_metrics", true))
+        {
+            auto sink = logging::add_file_log(
+                keywords::file_name = config.get(ptree_prefix + ".allocation_metrics_file", "none"),
+                keywords::rotation_size = config.get(ptree_prefix + ".allocation_metrics_rotation_size", (~0)),
+                keywords::auto_flush = true,
+                keywords::open_mode = std::ios::app,
+                keywords::filter = channel == "ALC");
+        }
+        rc = 0;
     }
-
-    if(config.get(ptree_prefix + ".transaction", true))
+    catch(exception& e)
     {
-         auto sink = logging::add_file_log(
-		    keywords::file_name = config.get(ptree_prefix + ".transaction_file", "none"),
-		    keywords::rotation_size = config.get(ptree_prefix + ".transaction_rotation_size", (~0)),
-		    keywords::auto_flush = true,
-            keywords::open_mode = std::ios::app,
-            keywords::filter = channel == "BDS");
+        rc = -1;
     }
 
-    if(config.get(ptree_prefix + ".allocation_metrics", true))
-    {
-         auto sink = logging::add_file_log(
-		    keywords::file_name = config.get(ptree_prefix + ".allocation_metrics_file", "none"),
-		    keywords::rotation_size = config.get(ptree_prefix + ".allocation_metrics_rotation_size", (~0)),
-		    keywords::auto_flush = true,
-            keywords::open_mode = std::ios::app,
-            keywords::filter = channel == "ALC");
-    }
-
-    return 0;
+    return rc;
 }
 

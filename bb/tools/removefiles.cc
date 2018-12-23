@@ -36,14 +36,13 @@ int main(int argc, char *argv[])
 {
     po::variables_map vm;
     po::options_description desc("Allowed options");
-    
-    desc.add_options()
-	("help", "Display this help message")
-        ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"))
-	;
-    
+
     try
     {
+        desc.add_options()
+        ("help", "Display this help message")
+        ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"));
+    
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }

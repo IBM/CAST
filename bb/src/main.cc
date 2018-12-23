@@ -293,6 +293,7 @@ void* mainThread(void* ptr)
 int main(int argc, char** argv)
 {
     int              rc = 0;
+    ssize_t          signalBufferReadLen;
     struct sigaction sact;
     size_t           signalBufferSize;
     char*            signalBuffer;
@@ -361,8 +362,9 @@ int main(int argc, char** argv)
     pthread_sigmask(SIG_UNBLOCK, &sigmask, NULL);
 
     // Read data from signal pipe.  Print each line to log.
-    while(read(signalPipe[0], signalBuffer, signalBufferSize) > 0)
+    while((signalBufferReadLen = read(signalPipe[0], signalBuffer, signalBufferSize)) > 0)
     {
+        signalBuffer[signalBufferReadLen-1] = 0; // ensure null terminated
         for(auto line : buildTokens(string(signalBuffer), "\n"))
         {
             LOG(bb,error) << line;

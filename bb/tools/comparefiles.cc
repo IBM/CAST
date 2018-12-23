@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     }
     catch (exception& e)
     {
-        LOG(bb,error) << "Exception: " << e.what();
+        LOG(bb,error) << "Early exit exception: " << e.what();
         exit(-1);
     }
 
@@ -80,9 +80,9 @@ int main(int argc, char *argv[])
 #endif
     
     bool mismatch = false;
-    for(auto& ln : runCommand(vm["filelist"].as<string>(), true))
+    try
     {
-        try
+        for(auto& ln : runCommand(vm["filelist"].as<string>(), true))
         {
             vector<string> toks;
             
@@ -191,11 +191,11 @@ int main(int argc, char *argv[])
                 LOG(bb,always) << "File sizes are different";
             }
         }
-        catch(exception& e)
-        {
-            LOG(bb,always) << "Exception: " << e.what();
-            mismatch = true;
-        }
+    }
+    catch(exception& e)
+    {
+        LOG(bb,always) << "Exception: " << e.what();
+        mismatch = true;
     }
     
 #if USE_MPI
