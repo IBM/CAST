@@ -26,6 +26,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/filesystem.hpp>
+#include "tstate.h"
 #include "logging.h"
 #include "util.h"
 
@@ -191,6 +192,11 @@ int main(int argc, char *argv[])
                 LOG(bb,always) << "File sizes are different";
             }
         }
+    }
+    catch(ExceptionBailout& e)
+    {
+        LOG(bb,always) << "ExceptionBailout";
+        mismatch = true;
     }
     catch(exception& e)
     {

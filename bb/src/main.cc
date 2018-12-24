@@ -305,6 +305,7 @@ int main(int argc, char** argv)
     // Configure exit signal handlers
     pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK);
     signalBufferSize = fcntl(signalPipe[0], F_GETPIPE_SZ);
+    assert(signalBufferSize > 0);
     signalBuffer = (char*)malloc(signalBufferSize+1);
     memset(signalBuffer,0,signalBufferSize+1);
 

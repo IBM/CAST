@@ -34,6 +34,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
+    int exitrc = 0;
     po::variables_map vm;
     po::options_description desc("Allowed options");
 
@@ -89,15 +90,17 @@ int main(int argc, char *argv[])
     }
     catch(ExceptionBailout& e)
     {
+        LOG(bb,always) << "ExceptionBailout";
+        exitrc = -1;
     }
     catch (exception& e)
     {
         LOG(bb,error) << "Exception: " << e.what();
-        exit(-1);
+        exitrc = -1;
     }
 
 #if USE_MPI
     MPI_Finalize();
 #endif
-    return 0;
+    return exitrc;
 }

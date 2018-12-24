@@ -34,6 +34,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
+    int exitrc = 0;
     po::variables_map vm;
     try
     {
@@ -62,45 +63,51 @@ int main(int argc, char *argv[])
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
+    }
+    catch (exception& e)
+    {
+        cerr << "Error: " << e.what() << "\n";
+        exit(1);
+    }
 
-        int rank;
+    int rank;
 #if USE_MPI
-        int size;
-        MPI_Init(&argc, &argv);
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &size);
+    int size;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 #else
-        rank = getpid();
+    rank = getpid();
 #endif
-        
+    try
+    {
         unsigned long seed;
-        if(vm.count("seed") > 0)
+        if (vm.count("seed") > 0)
         {
-        seed = vm["seed"].as<unsigned long>();
+            seed = vm["seed"].as<unsigned long>();
         }
         else
         {
-        seed = time(NULL) + rank;
+            seed = time(NULL) + rank;
         }
-        
+
         boost::random::mt19937 gen(seed);
         boost::random::uniform_int_distribution<unsigned long> sizerange(vm["minsize"].as<unsigned long>(), vm["maxsize"].as<unsigned long>());
         boost::random::uniform_int_distribution<> bufrange(0, 0x8000);
-        
-        vector<string> randfiles;
-        if(vm.count("genfilelist") > 0)
-        {
-        boost::random::uniform_int_distribution<> filerange(vm["minfiles"].as<unsigned long>(), vm["maxfiles"].as<unsigned long>());
-        unsigned long numfiles = filerange(gen);
 
-        FILE* filelist = fopen(vm["file"].as<string>().c_str(), "w");
-            if(filelist == NULL)
-            {
-                cerr << "Unable to create+open filelist: " << vm["file"].as<string>() << endl;
-                exit(2);
-            }
-        for(unsigned long x=0; x<numfiles; x++)
+        vector<string> randfiles;
+        if (vm.count("genfilelist") > 0)
         {
+            boost::random::uniform_int_distribution<> filerange(vm["minfiles"].as<unsigned long>(), vm["maxfiles"].as<unsigned long>());
+            unsigned long numfiles = filerange(gen);
+
+            FILE *filelist = fopen(vm["file"].as<string>().c_str(), "w");
+            if (filelist == NULL) 
+            {
+                throw runtime_error("Unable to create+open filelist");
+            }
+            for (unsigned long x = 0; x < numfiles; x++)
+            {
                 string srcpath = vm["sourcepath"].as<string>();
                 if((srcpath != "/dev/null") && (srcpath != "/dev/zero"))
                 {
@@ -215,17 +222,15 @@ int main(int argc, char *argv[])
             }
 #endif
             close(fd);
-
-#if USE_MPI
-        MPI_Finalize();
-#endif
         }
     }
     catch (exception& e)
     {
         cerr << "Error: " << e.what() << "\n";
-        exit(1);
+        exitrc = 1;
     }
-
-    return 0;
+#if USE_MPI
+        MPI_Finalize();
+#endif
+    return exitrc;
 }
