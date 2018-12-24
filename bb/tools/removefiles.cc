@@ -91,7 +91,6 @@ int main(int argc, char *argv[])
     catch(ExceptionBailout& e)
     {
         LOG(bb,always) << "ExceptionBailout";
-        exitrc = -1;
     }
     catch (exception& e)
     {
