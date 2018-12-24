@@ -121,8 +121,10 @@ private:
         if(fd == NULL)
             return -1;
         
-        getline(&line, &linelength, fd);
+        ssize_t llen = getline(&line, &linelength, fd);
         fclose(fd);
+        if(llen < 1)
+            return -1;
         string line_str = line;
         free(line);
         
