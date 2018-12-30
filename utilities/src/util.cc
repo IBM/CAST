@@ -109,25 +109,30 @@ int getIPPort(std::string pUrl, std::string& pIPAddress, uint16_t& pPort)
 int getIPAddrByInterface(const std::string& pInterface, std::string& pIPAddress)
 {
     int l_RC = 0;
-
     int fd;
-    struct ifreq ifr;
-
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd<=0) {
+    if (fd<=0) 
+    {
         l_RC=-errno;
         pIPAddress="0.0.0.0";
     }
-    ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, pInterface.c_str(), IFNAMSIZ-1);
-    if (!ioctl(fd, SIOCGIFADDR, &ifr)) {
-//        printf("getIPAddrByInterface: pInterface=%s, pIPAddress=%s\n", pInterface.c_str(), inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-        pIPAddress.assign(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-    } else {
-        l_RC = -errno;
-    }
+    else
+    {
+        struct ifreq ifr;
+        ifr.ifr_addr.sa_family = AF_INET;
+        strncpy(ifr.ifr_name, pInterface.c_str(), IFNAMSIZ-1);
+        if (!ioctl(fd, SIOCGIFADDR, &ifr)) 
+        {
+    //        printf("getIPAddrByInterface: pInterface=%s, pIPAddress=%s\n", pInterface.c_str(), inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+            pIPAddress.assign(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+        } 
+        else 
+        {
+            l_RC = -errno;
+        }
 
-    close(fd);
+        close(fd);
+    }
     return l_RC;
 }
 
