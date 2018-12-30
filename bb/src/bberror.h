@@ -111,23 +111,31 @@
 }
 
 #define LOG_ERROR_RC_WITH_EXCEPTION(FILE,FUNC,LINE,EXCEPTION,RC) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << err("rc", RC) << EXCEPTION; \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << err("rc", RC) << EXCEPTION; \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(FILE,FUNC,LINE,EXCEPTION,RC,RASID) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << err("rc", RC) << EXCEPTION << RAS(RASID); \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << err("rc", RC) << EXCEPTION << RAS(RASID); \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_WITH_EXCEPTION(FILE,FUNC,LINE,EXCEPTION) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << EXCEPTION; \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << EXCEPTION; \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_WITH_EXCEPTION_AND_RAS(FILE,FUNC,LINE,EXCEPTION,RASID) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << EXCEPTION << RAS(RASID); \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << EXCEPTION << RAS(RASID); \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_TEXT(TEXT) { \
