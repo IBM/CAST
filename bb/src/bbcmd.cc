@@ -942,8 +942,10 @@ int bbcmd_adminfailover(po::variables_map& vm)
     return 0;
 }
 
-int main(int argc, const char** argv)
+int main(int orig_argc, const char** orig_argv)
 {
+    int argc          = orig_argc;
+    const char** argv = orig_argv;
     int rc = -999;
     stringstream errorText;
 
