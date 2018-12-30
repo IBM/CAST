@@ -295,6 +295,7 @@ int main(int argc, char** argv)
     int              rc = 0;
     ssize_t          signalBufferReadLen;
     struct sigaction sact;
+    int              fcntl_rc;
     size_t           signalBufferSize;
     char*            signalBuffer;
 
@@ -304,8 +305,9 @@ int main(int argc, char** argv)
 
     // Configure exit signal handlers
     pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK);
-    signalBufferSize = fcntl(signalPipe[0], F_GETPIPE_SZ);
-    assert(signalBufferSize > 0);
+    fcntl_rc = fcntl(signalPipe[0], F_GETPIPE_SZ);
+    assert(fcntl_rc > 0);
+    signalBufferSize = (size_t)fcntl_rc;
     signalBuffer = (char*)malloc(signalBufferSize+1);
     memset(signalBuffer,0,signalBufferSize+1);
 

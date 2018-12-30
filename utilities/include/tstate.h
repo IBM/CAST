@@ -303,13 +303,7 @@ inline TSHandler& operator<<(TSHandler& tsthis, const std::pair<const char*,std:
 
 inline TSHandler& operator<<(TSHandler& tsthis, const std::exception& e)
 {
-    try
-    {
-        tsthis.add("error.text", e.what());
-    }
-    catch(std::exception& e)
-    {
-    }
+    tsthis.add("error.text", e.what());
     return tsthis;
 };
 
