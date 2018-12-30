@@ -111,7 +111,7 @@ int getIPAddrByInterface(const std::string& pInterface, std::string& pIPAddress)
     int l_RC = 0;
     int fd;
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd<=0) 
+    if (fd < 0) 
     {
         l_RC=-errno;
         pIPAddress="0.0.0.0";
