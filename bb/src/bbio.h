@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    bbio.h
  |
- |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  ï¿½ Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -119,8 +119,6 @@ class BBIO
 
     // Returns the fd for the associated SSD
     int getReadFdByExtent(Extent* pExtent);
-
-    virtual unsigned int getBacklog(uint32_t pFileIndex) { return 0; };
 
     // Invoked by doTransfer() by a worker thread to perform the I/O for a given extent taken from the work queue.
     int performIO(LVKey& pKey, Extent* pExtent);
