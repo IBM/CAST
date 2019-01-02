@@ -25,7 +25,7 @@
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/expressions/keyword_fwd.hpp>
 #include <boost/log/expressions/keyword.hpp>
-
+#include <boost/io/ios_state.hpp>
 
 #include "logging.h"
 
@@ -72,7 +72,7 @@ namespace utility
 
     void touch_unused_variable()
     {
-	cout << timestamp.get_name() << endl;
+	    cout << timestamp.get_name() << endl;
     }
 
     /**
@@ -83,6 +83,8 @@ namespace utility
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_sevs lvl)
     {
+        boost::io::ios_flags_saver iosflag(strm);
+        boost::io::ios_width_saver ioswidth(strm);
 	if ((lvl < NUM_SEVERITIES) && (lvl >= 0))
 	    strm << setw(maxseveritywidth) << left << severity_level_str[lvl];
 	else
@@ -93,22 +95,24 @@ namespace utility
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_subcomponents subcomponent)
     {
+        boost::io::ios_flags_saver iosflag(strm);
+        boost::io::ios_width_saver ioswidth(strm);
         if ((subcomponent < NUM_SUBCOMPONENTS) && (subcomponent >= 0))
-            strm << setw(maxsubcomponentwidth) << right << subcomponent_str[subcomponent] << left;
+            strm << setw(maxsubcomponentwidth) << right << subcomponent_str[subcomponent];
         else
-            strm << setw(maxsubcomponentwidth) << right << static_cast< int >(subcomponent) << left;
+            strm << setw(maxsubcomponentwidth) << right << static_cast< int >(subcomponent);
         return strm;
     }
 
     template< typename CharT, typename TraitsT >
     basic_ostream< CharT, TraitsT >& operator<< (basic_ostream< CharT, TraitsT >& strm, bluecoral_filename* bfn)
     {
-	const char* filename = (const char*)bfn;
-	if(strncmp(filename, __SOURCEROOT__, strlen(__SOURCEROOT__)) == 0)
-	{
-	    filename += strlen(__SOURCEROOT__)+1;
-	}
-	strm << filename;
+        const char* filename = (const char*)bfn;
+        if(strncmp(filename, __SOURCEROOT__, strlen(__SOURCEROOT__)) == 0)
+        {
+            filename += strlen(__SOURCEROOT__)+1;
+        }
+        strm << filename;
         return strm;
     }
 

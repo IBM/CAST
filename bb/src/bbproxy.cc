@@ -4382,22 +4382,29 @@ int bb_exit(std::string who)
 //    printf("bb_exit: who = %s\n", who.c_str());
     if (!who.empty() )
     {
-        string upath = config.get("bb.unixpath", DEFAULT_UNIXPATH);
-        LOG(bb,info) << "Process " << who << " have upath " << upath;
-        if (upath != NO_CONFIG_VALUE)
+        try
         {
-            struct stat sb;
-            LOG(bb,info) << "Cleaning upath";
-
-            if ((stat (upath.c_str(), &sb) == 0) && S_ISSOCK (sb.st_mode))
+            string upath = config.get("bb.unixpath", DEFAULT_UNIXPATH);
+            LOG(bb,info) << "Process " << who << " have upath " << upath;
+            if (upath != NO_CONFIG_VALUE)
             {
-                LOG(bb,info) << "Unlinking upath";
-                unlink (upath.c_str());
+                struct stat sb;
+                LOG(bb,info) << "Cleaning upath";
+
+                if ((stat (upath.c_str(), &sb) == 0) && S_ISSOCK (sb.st_mode))
+                {
+                    LOG(bb,info) << "Unlinking upath";
+                    unlink (upath.c_str());
+                }
+            }
+            else
+            {
+                LOG(bb,info) << "No file to unlink";
             }
         }
-        else
+        catch(exception& e)
         {
-            LOG(bb,info) << "No file to unlink";
+            LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
         }
     }
 

@@ -618,6 +618,7 @@ sub isNVMeTargetOffloadCapable
 
 sub filterLVM
 {
+    setprefix("Filter LVM: ");
     my $nvmelistout = safe_cmd("nvme list");      # "nvme list -o json" doesn't work well
 
     # Scan for "real" nvme devices, ignore NVMe over Fabrics connections that may have duplicate volume groups
