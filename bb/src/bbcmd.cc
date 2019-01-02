@@ -952,7 +952,7 @@ int main(int orig_argc, const char** orig_argv)
     int argc_cmd;
     int contribid = UNDEFINED_CONTRIBID;
     string command;
-    string executable = argv[0];
+    static string executable = argv[0];  // persist this variable for argv during early exit processing
     vector<string> carrotTokens;
     list<int> contribidlist;
     map<int, string> contribResults;
