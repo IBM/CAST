@@ -45,9 +45,9 @@ CnxSockUnix::CnxSockUnix(int sockFamily, int sockType, int protocol) :
     _localAddr.sun_family=AF_UNIX;
     _dialRemote=0; //assume listening
     _rcLast=0;
-        _user_cred.pid_read = static_cast<pid_t>(-1);
-        _user_cred.uid_read = static_cast<uid_t>(-1);
-        _user_cred.gid_read = static_cast<gid_t>(-1);
+    _user_cred.pid_read = static_cast<pid_t>(-1);
+    _user_cred.uid_read = static_cast<uid_t>(-1);
+    _user_cred.gid_read = static_cast<gid_t>(-1);
 };
 
 
@@ -63,6 +63,9 @@ CnxSockUnix::CnxSockUnix(const CnxSockUnix &pCnxSock) :
     _pathLength=pCnxSock._pathLength;
     _rcLast=pCnxSock._rcLast ;
     memcpy(&_localAddr, (void*)&(pCnxSock._localAddr), sizeof(struct sockaddr_un));
+    _user_cred.pid_read = static_cast<pid_t>(-1);
+    _user_cred.uid_read = static_cast<uid_t>(-1);
+    _user_cred.gid_read = static_cast<gid_t>(-1);
 };
 
 CnxSockUnix::CnxSockUnix() :
@@ -77,6 +80,9 @@ CnxSockUnix::CnxSockUnix() :
     _localAddr.sun_family=AF_UNIX;
     _dialRemote=0; //assume listening
     _rcLast=0;
+    _user_cred.pid_read = static_cast<pid_t>(-1);
+    _user_cred.uid_read = static_cast<uid_t>(-1);
+    _user_cred.gid_read = static_cast<gid_t>(-1);
 };
 
 
