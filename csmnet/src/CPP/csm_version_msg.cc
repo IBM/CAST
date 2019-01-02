@@ -22,9 +22,6 @@
 
 csm::network::VersionMsg* csm::network::VersionMsg::_version = NULL;
 
-#define SUPPORTED_CAST_100_COMMIT_PUB "675a5de990b20fcd"
-#define SUPPORTED_CAST_100_COMMIT_IBM "12194309a3636ef6"
-
 unsigned
 csm::network::ExtractVersionMajor( const std::string &vStr )
 {
