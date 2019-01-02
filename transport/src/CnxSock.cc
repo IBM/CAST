@@ -108,7 +108,6 @@ int CnxSock::accept(txp::Connex* &pNewSock) {
 			l_NewSock->_sockfd = l_NewSock->_rcLast;
 			l_NewSock->keepAlive();
 			int RCgetpeername = getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
-                        getsockname(l_NewSock->_sockfd, &(l_NewSock->_sockaddrLocal), &l_Sockaddrlen);
             if (RCgetpeername){//error to log
                 LOG(txp,always)<<"CnxSock::accept(p) "<<"getpeername errno="<<errno<<", "<<strerror(errno);
             }
