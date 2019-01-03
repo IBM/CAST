@@ -170,7 +170,7 @@ void CSMINodeQueryStateHistory::CreateOutputStruct(
 	o->history_time            = strdup(fields->data[i]);                                                        i++;
     o->state                   = (csmi_node_state_t)csm_get_enum_from_string(csmi_node_state_t,fields->data[i]); i++;
 	
-	if(o->state == CSM_NODE_SOFT_FAILURE){
+	if(o->state == CSM_NODE_SOFT_FAILURE || o->state == CSM_NODE_HARD_FAILURE){
 		o->alteration = CSM_NODE_ALTERATION_RAS_EVENT;
 		o->ras_rec_id = strdup(fields->data[i]); i++;
 		o->ras_msg_id = strdup(fields->data[i]); i++;
