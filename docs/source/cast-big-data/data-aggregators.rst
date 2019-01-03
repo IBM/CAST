@@ -598,9 +598,13 @@ The syslog will follow the *RFC 3164* syslog protocol. After being filtered thro
 
 .. code-block:: bash
 
-    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - debug     csmapi TIMING: 1525910812,17,2,1526570252507364568,1526570252508039085,674517
-    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi [1525910812]; csm_allocation_query_active_all end
-    2018-05-17T11:17:32-04:00 c650f03p37-mgt CAST - info     csmapi CSM_CMD_allocation_query_active_all[1525910812]; Client Recv; PID: 14921; UID:0; GID:0
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt csmd 1032 debug     csmapi; TIMING: 1525910812,17,2,1526570252507364568,1526570252508039085,674517
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt csmd 1032 info     csmapi; [1525910812]; csm_allocation_query_active_all end
+    2018-05-17T11:17:32-04:00 c650f03p37-mgt csmd 1032 info     csmapi; CSM_CMD_allocation_query_active_all[1525910812]; Client Recv; PID: 14921; UID:0; GID:0
+
+
+Please note `csmd` is stored in the `APP-NAME` field of rsyslog and `1031` is stored in the `PROCID`.
+`csmapi` represents the CSM subcomponent, this is included in the `msg` field of rsyslog.
 
 These logs will then stored in the *cast-log-syslog* index using the default CAST configuration.
 
