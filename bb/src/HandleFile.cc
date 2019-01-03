@@ -707,6 +707,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                 switch (pLockOption)
                 {
                     case LOCK_HANDLEFILE:
+                    case LOCK_HANDLEFILE_WITH_TEST_FIRST:
                     {
                         pHandleFile->lockfd = fd;
                     }
@@ -731,7 +732,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
 
     if (rc && fd >= 0)
     {
-        if (pLockOption == LOCK_HANDLEFILE)
+        if (pLockOption == LOCK_HANDLEFILE || pLockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST)
         {
             unlock(fd);
         }
