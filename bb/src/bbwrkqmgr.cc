@@ -624,21 +624,30 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
     FILE* fd = openAsyncRequestFile("rb", l_SeqNbr);
     if (fd != NULL)
     {
-        fseek(fd, pWorkItem.getTag(), SEEK_SET);
-        size_t l_Size = fread(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
-        fclose(fd);
-
-        if (l_Size == sizeof(AsyncRequest))
+        rc = fseek(fd, pWorkItem.getTag(), SEEK_SET);
+        if (!rc)
         {
-            pRequest = AsyncRequest(l_Buffer, l_Buffer+AsyncRequest::MAX_HOSTNAME_LENGTH);
+            size_t l_Size = fread(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
+
+            if (l_Size == sizeof(AsyncRequest))
+            {
+                pRequest = AsyncRequest(l_Buffer, l_Buffer+AsyncRequest::MAX_HOSTNAME_LENGTH);
+            }
+            else
+            {
+                LOG(bb,error) << "getAsyncRequest(): Number of bytes read for async request invalid. Expecting " << sizeof(AsyncRequest) << " bytes, but " << l_Size << " byte(s) read. Processing of async request failed.";
+                rc = -1;
+            }
         }
         else
         {
-            rc = -1;
+            LOG(bb,error) << "getAsyncRequest(): fseek() failed for offset " << pWorkItem.getTag() << ", sequence number " << l_SeqNbr << ". Processing of async request failed.";
         }
+        fclose(fd);
     }
     else
     {
+        LOG(bb,error) << "getAsyncRequest(): Open of async request file with sequence number " << l_SeqNbr << " failed. Processing of async request failed.";
         rc = -1;
     }
 
