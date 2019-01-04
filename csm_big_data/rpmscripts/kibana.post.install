@@ -1,6 +1,7 @@
+echo "Adding Cast Visulizer to kibana plugins."
 
-if [ -f /usr/share/kibana/bin/kibana-plugin ]
-then 
-    /usr/share/kibana/bin/kibana-plugin remove cast_visualizer
-    /usr/share/kibana/bin/kibana-plugin install file:///opt/ibm/csm/bigdata/kibana/cast_visualizer-1.0.0.zip
-fi
+/usr/share/kibana/bin/kibana-plugin remove cast_visualizer
+/usr/share/kibana/bin/kibana-plugin install file:///opt/ibm/csm/bigdata/kibana/cast_visualizer-1.0.0.zip
+
+echo "Cast Visulizer added to kibana plugins."
+

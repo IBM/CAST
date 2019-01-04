@@ -143,55 +143,43 @@ int main(int argc, char *argv[])
                     // Only print non negative accounting data.
                     if( ad->node_accounting[i] )
                     {
-                        if( ad->node_accounting[i]->ib_rx > 0 )
-                            printf("   ib_rx:                       %"PRId64 "\n",
-                                ad->node_accounting[i]->ib_rx);
+                        printf("   ib_rx:                       %"PRId64 "\n",
+                            ad->node_accounting[i]->ib_rx);
 
-                        if( ad->node_accounting[i]->ib_tx > 0 )
-                            printf("   ib_tx:                       %"PRId64 "\n",
-                                ad->node_accounting[i]->ib_tx);
+                        printf("   ib_tx:                       %"PRId64 "\n",
+                            ad->node_accounting[i]->ib_tx);
 
                         // ======================================================
 
-                        if( ad->node_accounting[i]->gpfs_read > 0 )
-                            printf("   gpfs_read:                   %"PRId64 "\n", 
-                                ad->node_accounting[i]->gpfs_read);
+                        printf("   gpfs_read:                   %"PRId64 "\n", 
+                            ad->node_accounting[i]->gpfs_read);
 
-                        if( ad->node_accounting[i]->gpfs_write > 0 )
-                            printf("   gpfs_write:                  %"PRId64 "\n",
-                                ad->node_accounting[i]->gpfs_write);
+                        printf("   gpfs_write:                  %"PRId64 "\n",
+                            ad->node_accounting[i]->gpfs_write);
 
-                        if( ad->node_accounting[i]->energy_consumed > 0 )
-                            printf("   energy_consumed:             %"PRId64 "\n",
-                                ad->node_accounting[i]->energy_consumed);
+                        printf("   energy_consumed:             %"PRId64 "\n",
+                            ad->node_accounting[i]->energy_consumed);
 
-                        if( ad->node_accounting[i]->power_cap > 0 )
-                            printf("   power_cap:                   %"PRId32 "\n",
-                                ad->node_accounting[i]->power_cap);
+                        printf("   power_cap:                   %"PRId32 "\n",
+                            ad->node_accounting[i]->power_cap);
 
-                        if( ad->node_accounting[i]->power_shifting_ratio > 0 )
-                            printf("   power_shifting_ratio:        %"PRId32 "\n",
-                                ad->node_accounting[i]->power_shifting_ratio);
+                        printf("   power_shifting_ratio:        %"PRId32 "\n",
+                            ad->node_accounting[i]->power_shifting_ratio);
 
-                        if( ad->node_accounting[i]->power_cap_hit > 0 )
-                            printf("   power_cap_hit:               %"PRId64 "\n",
-                                ad->node_accounting[i]->power_cap_hit );
+                        printf("   power_cap_hit:               %"PRId64 "\n",
+                            ad->node_accounting[i]->power_cap_hit );
 
-                        if( ad->node_accounting[i]->gpu_energy > 0 )
-                            printf("   gpu_energy:                  %"PRId64 "\n",
-                                ad->node_accounting[i]->gpu_energy);
+                        printf("   gpu_energy:                  %"PRId64 "\n",
+                            ad->node_accounting[i]->gpu_energy);
 
-                        if( ad->node_accounting[i]->gpu_usage > 0 )
-                            printf("   gpu_usage:                   %"PRId64 "\n",
-                                ad->node_accounting[i]->gpu_usage);
+                        printf("   gpu_usage:                   %"PRId64 "\n",
+                            ad->node_accounting[i]->gpu_usage);
 
-                        if( ad->node_accounting[i]->cpu_usage > 0 )
-                            printf("   cpu_usage:                   %"PRId64 "\n",
-                                ad->node_accounting[i]->cpu_usage);
+                        printf("   cpu_usage:                   %"PRId64 "\n",
+                            ad->node_accounting[i]->cpu_usage);
 
-                        if( ad->node_accounting[i]->memory_usage_max > 0 )
-                            printf("   memory_usage_max:            %"PRId64 "\n",
-                                ad->node_accounting[i]->memory_usage_max);
+                        printf("   memory_usage_max:            %"PRId64 "\n",
+                            ad->node_accounting[i]->memory_usage_max);
                     }
 	    		}
 	    	}

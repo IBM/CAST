@@ -1,9 +1,7 @@
-if [ -f /usr/share/logstash/bin/logstash-plugin ] 
-then 
-    /usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator 2>/dev/null
-    /usr/share/logstash/bin/logstash-plugin install \
-        file:///opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator.zip
+echo "Adding Event Correlator to logstash plugins."
+/usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator 2>/dev/null
+/usr/share/logstash/bin/logstash-plugin install \
+    file:///opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator.zip
 
-    echo "Event Correlator has been added to logstash plugins."
-fi
+echo "Event Correlator has been added to logstash plugins."
 

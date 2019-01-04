@@ -1,5 +1,0 @@
-
-if [ -f /usr/share/kibana/bin/kibana-plugin ]
-then 
-    /usr/share/kibana/bin/kibana-plugin remove cast_visualizer
-fi

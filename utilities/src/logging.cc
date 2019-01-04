@@ -14,6 +14,9 @@
 
 #define BOOST_LOG_DYN_LINK 1
 
+// Since this is only supported on POSIX systems.
+//#define BOOST_LOG_USE_NATIVE_SYSLOG 1
+
 #include <string>
 #include <map>
 
@@ -23,11 +26,27 @@
 #include <boost/log/utility/setup/formatter_parser.hpp>
 #include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/support/date_time.hpp>
+#include <boost/io/ios_state.hpp>
+#include <boost/log/expressions/attr_fwd.hpp>
+#include <boost/log/expressions/attr.hpp>
+
+
+// Syslog data.
 #include <boost/log/expressions/keyword_fwd.hpp>
 #include <boost/log/expressions/keyword.hpp>
-#include <boost/io/ios_state.hpp>
+#include <boost/log/attributes/attribute.hpp>
+#include <boost/log/attributes/current_process_id.hpp>
+#include <boost/log/attributes/current_thread_id.hpp>
+#include <boost/log/attributes/current_process_name.hpp>
+#include <boost/phoenix/bind/bind_function.hpp>
 
 #include "logging.h"
+
+namespace logging = boost::log;
+namespace src = boost::log::sources;
+namespace expr = boost::log::expressions;
+namespace sinks = boost::log::sinks;
+namespace keywords = boost::log::keywords;
 
 using namespace std;
 using namespace utility;
@@ -39,7 +58,11 @@ namespace sinks    = boost::log::sinks;
 BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", boost::posix_time::ptime)
 BOOST_LOG_ATTRIBUTE_KEYWORD(channel, "Channel", std::string)
 
+BOOST_LOG_ATTRIBUTE_KEYWORD(process_id,   "ProcessID",   boost::log::attributes::current_process_id::value_type )
+BOOST_LOG_ATTRIBUTE_KEYWORD(thread_id,    "ThreadID",    boost::log::attributes::current_thread_id::value_type )
+BOOST_LOG_ATTRIBUTE_KEYWORD(process,      "Process",     std::string )
 
+ 
 static const char* severity_level_str[] =
 {
 #define SEVERITY(n) #n,
@@ -220,8 +243,11 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
         if(config.get(ptree_prefix + ".sysLog", false))
         {
             boost::shared_ptr< logging::core > core = logging::core::get();
+
+            core->add_global_attribute("ProcessName", boost::log::attributes::current_process_name());
+
             boost::shared_ptr< logging::sinks::syslog_backend > backend(
-                new logging::sinks::syslog_backend(
+                new sinks::syslog_backend(
                     keywords::facility = logging::sinks::syslog::local0,
                     keywords::use_impl = logging::sinks::syslog::udp_socket_based,
                     keywords::filter = channel == "LOG"
@@ -242,9 +268,13 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
             mapping[always]   = logging::sinks::syslog::info;
             backend->set_severity_mapper(mapping);
             
-            auto sink = boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(backend);
+            auto sink = boost::make_shared< logging::sinks::synchronous_sink< logging::sinks::syslog_backend > >(
+                backend               
+            );
+
             sink->set_formatter(
-                boost::log::parse_formatter("CAST[-]:%SubComponent% %Message%")
+                boost::log::parse_formatter("%ProcessName%[" + std::to_string(getpid()) + 
+                    "]:%SubComponent%; %Message%")
             );
             core->add_sink(sink);
         }
