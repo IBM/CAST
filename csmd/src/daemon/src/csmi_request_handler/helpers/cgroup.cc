@@ -61,6 +61,13 @@
 
 #define KB_TO_B(kB) kB * 1024
 
+
+///< CPUBLINK/SMT tools.
+#define CPU_PATH_MAX 128
+#define CPU_ONLINE_STR "/sys/devices/system/cpu/cpu%d/online"
+#define CPU_ONLINE 1
+#define CPU_OFFLINE 0
+
 /// Enables a check for development enviroment.
 //#define VM_DEVELOPMENT 1
 
@@ -164,11 +171,9 @@ bool CGroup::RepairSMTChange()
 
 
 
-
-
-
 CGroup::CGroup( int64_t allocationId ):
-       _CGroupName(ALLOC_CGROUP)
+       _CGroupName(ALLOC_CGROUP),
+       _smtMode(0)
 {
     // Build the core cgroup name.
     if ( allocationId >= 0 )
@@ -208,10 +213,13 @@ void CGroup::DeleteCGroups( bool removeSystem )
     LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Exit";
 }
 
-void CGroup::SetupCGroups(int64_t cores)
+void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
 {
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter";
     static_assert(CG_CPUSET == 0, "CG_CPUSET must have a value of 0.");
+
+    // The SMT mode.
+    _smtMode = smtMode;
 
     // First create the control groups.
     const std::string groupCpuset = CreateCGroup( CGroup::CPUSET, _CGroupName );
@@ -575,7 +583,6 @@ void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32
         bool availableCores[cores];
         for(int32_t i = 0; i < cores; ++i) availableCores[i] = true;
         
-    
         DIR *sysDir =  opendir(cpusetRoot.c_str());  // Open the directory to search for subdirs.
         dirent *dirDetails;                         // Output struct for directory contents.
         
@@ -980,6 +987,27 @@ void CGroup::DeleteChildren(
             }
         }
     }
+}
+
+int CGroup::CPUPower(
+    const uint32_t thread,
+    const int online ) 
+{
+    char path[CPU_PATH_MAX];
+    int rc = 0;
+
+    sprintf(path, CPU_ONLINE_STR, thread);
+
+    int fileDescriptor = open( path,  O_WRONLY );
+    if( fileDescriptor >= 0 )
+    {
+        errno=0;
+        write(fileDescriptor, &online, sizeof(online));
+        rc=errno;
+        close( fileDescriptor );
+    }
+
+    return rc;
 }
 
 void CGroup::WriteToParameter( 
@@ -1391,6 +1419,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                 string.append(std::to_string(thread - 1)).append(_GROUP_DELIM);\
             }
 
+
 #ifdef VM_DEVELOPMENT
         sockets        = 1;
         threadsPerCore = 1;
@@ -1404,12 +1433,16 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         // Maximum number of logical cores per core.
         const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
         // Difference between the maximum and actual thread count per core.
-        const int32_t threadsPerCoreOffset = (threads / (sockets * coresPerSocket)) - threadsPerCore;
+        const int32_t threadsPerCoreOffset = _smtMode > 0 ? threadsPerCoreMax - _smtMode : 0;
+
+        // Compute the threads pre core, derived from smt mode.
+        threadsPerCore = threadsPerCoreMax - threadsPerCoreOffset;
 #endif
         // If SMT is not fully enabled (e.g. SMT=4 on the GTW), set the range to be disjointed. 
         const bool rangeDisjointed = threadsPerCoreMax != threadsPerCore;
         // Start of the system cgroup on the socket.
         const int32_t SYSTEM_CORE_START = coresPerSocket - cores;
+
 
         // For each socket build the system and allocation groups.
         for( int32_t socket =0, thread = 0, groupStart = thread; 
@@ -1421,7 +1454,14 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             // Then isolate the allocation cgroup.
             for(; core < SYSTEM_CORE_START; ++core ) 
             {
-                thread += threadsPerCore;
+                // Online all of the CPUs.
+                for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
+                {
+                    CPUPower(thread++, CPU_OFFLINE);
+                }
+            
+                // Remove the offset.
+                thread -=threadsPerCoreOffset;
                 if ( rangeDisjointed )
                 {
                     assembleGroup(groupCores);
@@ -1441,21 +1481,33 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             // First the socket should get the system cgroup.
             for(; core < coresPerSocket; ++core ) 
             {
-                thread += threadsPerCore;
-                if ( rangeDisjointed )
+                // Online all of the CPUs.
+                for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
                 {
-                    assembleGroup(sysCores);
+                    CPUPower(thread++, CPU_ONLINE);
                 }
-                thread += threadsPerCoreOffset;
                 groupStart = thread;
             } 
             // If the range was not disjointed assemble the range one time.
-            if ( !rangeDisjointed )
-            {
-                groupStart = continuousRangeStart;
-                assembleGroup(sysCores);
-            }
+            groupStart = continuousRangeStart;
+            assembleGroup(sysCores);
             groupStart = thread;
+        }
+
+        // Bring the allocation cores online.
+        for( int32_t socket =0, thread = 0, core = 0; socket < sockets; ++socket )
+        {
+            // Then isolate the allocation cgroup.
+            for(; core < SYSTEM_CORE_START; ++core ) 
+            {
+                // Online all of the CPUs.
+                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+                {
+                    CPUPower(thread++, CPU_ONLINE);
+                } 
+                thread +=threadsPerCoreOffset;
+            }
+            thread += threadsPerCoreMax * (coresPerSocket - core);
         }
     }
     else

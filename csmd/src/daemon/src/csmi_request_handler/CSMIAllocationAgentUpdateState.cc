@@ -218,7 +218,7 @@ bool AllocationAgentUpdateState::InitNode(
         {
             // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
             cgroup.ClearCGroups( payload->isolated_cores == 0 );
-            cgroup.SetupCGroups( payload->isolated_cores );
+            cgroup.SetupCGroups( payload->isolated_cores, payload->smt_mode );
         }
         else 
         {
