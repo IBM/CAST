@@ -77,6 +77,7 @@ int csmi_client(int argc, char *argv[])
 
 
     assert (csm_init_lib() == 0);
+    free(step);
 
     printf("\ncsmi_allocation_step_cgroup_create:\n");
 

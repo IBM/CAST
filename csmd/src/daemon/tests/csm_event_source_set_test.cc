@@ -72,7 +72,11 @@ csm::daemon::Configuration* getConfig( int argc, char **argv )
   try
   {
     csm::daemon::RunMode runmode;
-    return csm::daemon::Configuration::Instance( nargc, nargv, &runmode );
+    csm::daemon::Configuration* conf = csm::daemon::Configuration::Instance( nargc, nargv, &runmode );
+
+    if(nargv) free(nargv);
+
+    return conf;
   }
   catch( csm::daemon::Exception &e )
   {

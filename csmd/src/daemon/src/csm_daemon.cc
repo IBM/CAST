@@ -403,6 +403,9 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
 
   } while((GetRunMode() != csm::daemon::RUN_MODE::EXIT));
 
+  if( threadMgr ) delete threadMgr;
+  if( DaemonCore ) delete DaemonCore;
+
   return _RunMode.GetErrorCode();
 }
 

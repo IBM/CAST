@@ -440,6 +440,7 @@ int client( const config *conf )
       << std::endl;
 
   MEP.Clear();
+  if(st) free(st);
   return rc;
 }
 

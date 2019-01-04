@@ -162,6 +162,7 @@ csm::daemon::EventManagerBDS::Connect()
       if( fcntl(_Socket, F_SETFL, current_setting ) != 0 )
       {
         CSMLOG( csmd, warning ) << "Unable to change BDS socket to non-blocking: " << strerror( errno );
+        freeaddrinfo( clist );
         return false;
       }
     }

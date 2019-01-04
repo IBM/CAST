@@ -159,6 +159,7 @@ int send_large_msg_test( ErrorInjectionData &data )
     rc++;
   }
 
+  if ( recvData ) free(recvData);
   return rc;
 }
 
@@ -190,6 +191,7 @@ int bad_msg_test( ErrorInjectionData &data, const int testcase )
       break;
   }
 
+  if ( recvData ) free(recvData);
   return rc;
 }
 
@@ -282,6 +284,8 @@ int client_test(ErrorInjectionData& data)
   }
   
   std::cout << "Test complete: rc=" << rc << std::endl;
+  if ( recvData ) free(recvData);
+
   return rc;
 
 }
