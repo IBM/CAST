@@ -1236,7 +1236,7 @@ uint64_t CGroup::KillTasks( const std::string& controlGroup, bool printPids ) co
         
         // XXX This makes it work, but we need to stress test it.
         int fileDescriptor = open( taskFile.c_str(),  O_WRONLY | O_CLOEXEC );
-        if( fileDescriptor > 0 )
+        if( fileDescriptor >= 0 )
         {
             syncfs( fileDescriptor );
             close( fileDescriptor );

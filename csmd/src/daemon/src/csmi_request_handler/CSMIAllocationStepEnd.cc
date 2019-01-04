@@ -225,6 +225,9 @@ bool CSMIAllocationStepEnd::CreatePayload(
     }
     else
     {
+        // Failes the cases where no history is present.
+        if( input ) csm_free_struct_ptr( INPUT_STRUCT, input );
+
         LOG( csmapi, error ) << STATE_NAME ":CreatePayload: argUnpackFunc failed...";
         LOG( csmapi, trace  ) << STATE_NAME ":CreatePayload: Exit";
         

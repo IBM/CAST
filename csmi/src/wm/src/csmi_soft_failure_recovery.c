@@ -72,6 +72,8 @@ int csm_soft_failure_recovery(
                      strdup(csm_get_string_from_enum(csmi_cmd_err_t, CSMERR_MSG_UNPACK_ERROR)));
                  error_code = CSMERR_MSG_UNPACK_ERROR;
              }
+
+             free(return_buffer);
          }
          else
          {

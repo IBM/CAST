@@ -184,6 +184,8 @@ bool GetOCCSensorData(std::unordered_map<std::string,int64_t> &valueMap)
     char* buffer = (char*)malloc(OCC_SENSOR_DATA_BLOCK_SIZE);
     if ( !buffer )
     {
+        // Close the file descriptor.
+        close(fd);
         // TODO throw exception.
         return false;
     }
@@ -320,6 +322,8 @@ bool GetExtendedOCCSensorData( std::unordered_map<std::string,CsmOCCSensorRecord
     char* buffer = (char*)malloc(OCC_SENSOR_DATA_BLOCK_SIZE);
     if ( !buffer )
     {
+        // Close the file descriptor.
+        close(fd);
         // TODO throw exception.
         return false;
     }

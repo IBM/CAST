@@ -75,6 +75,9 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
         int errorCode = csm::daemon::helper::ExecuteSFRecovery(&cmd_out, (csm_get_agent_timeout(CMD_ID)/1000));
         LOG( csmapi, info ) <<  ctx << "Soft failure recovery exited with error code: " << errorCode;
 
+        // Today the command output is totally unused.
+        if( cmd_out ) free(cmd_out);
+
         if(errorCode)
         {
             std::string error = hostname + "[" + std::to_string(errorCode) + 

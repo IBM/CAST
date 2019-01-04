@@ -58,8 +58,8 @@ void StatefulForwardResponse::Process(
                     dataStr = std::string(buffer, bufLen);
                     free(buffer);
                 }
-                csmi_err_free(err);
             }
+            csmi_err_free(err);
         }
         else
         {
