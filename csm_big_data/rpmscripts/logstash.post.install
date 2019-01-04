@@ -1,3 +1,4 @@
+echo "Adding Event Correlator to logstash plugins."
 /usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator 2>/dev/null
 /usr/share/logstash/bin/logstash-plugin install \
     file:///opt/ibm/csm/bigdata/logstash/plugins/logstash-filter-csm-event-correlator.zip
