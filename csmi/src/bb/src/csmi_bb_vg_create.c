@@ -115,12 +115,7 @@ int csm_bb_vg_create(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE *input)
                 input->ssd_info[ssd_idx]->ssd_serial_number == NULL ||
                 input->ssd_info[ssd_idx]->ssd_allocation < 0 )
         {
-            if ( !input )
-            {
-                csmutil_logging(error, "Invalid parameter: 'ssd_info[%i]' was null.",
-                    ssd_idx);
-            }
-            else if ( input->ssd_info[ssd_idx]->ssd_serial_number == NULL )
+            if ( input->ssd_info[ssd_idx]->ssd_serial_number == NULL )
             {
                 csmutil_logging(error, "Invalid parameter: "
                     "'ssd_info[%i]->ssd_serial_number' was null.",
