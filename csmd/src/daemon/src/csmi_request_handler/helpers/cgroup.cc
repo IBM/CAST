@@ -1403,6 +1403,8 @@ bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets,
 void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string &groupCores)
 {
     int32_t threads, sockets, threadsPerCore, coresPerSocket;
+    bool threadBlinkFailure = false;
+
     // Get the CPUS and do a sanity check.
     if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
             threads > 0        && 
@@ -1443,7 +1445,6 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         // Start of the system cgroup on the socket.
         const int32_t SYSTEM_CORE_START = coresPerSocket - cores;
 
-
         // For each socket build the system and allocation groups.
         for( int32_t socket =0, thread = 0, groupStart = thread; 
                 socket < sockets; ++socket )
@@ -1454,10 +1455,17 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             // Then isolate the allocation cgroup.
             for(; core < SYSTEM_CORE_START; ++core ) 
             {
-                // Online all of the CPUs.
+                // Offline all of the CPUs.
                 for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
                 {
-                    CPUPower(thread++, CPU_OFFLINE);
+                    // If the core blink fails, turn core zero back on and set the coreBlinkFailure flag.
+                    if ( CPUPower(thread++, CPU_OFFLINE) )
+                    {
+                        CPUPower(0, CPU_ONLINE);
+                        threadBlinkFailure = true;
+                        CPUPower(thread-1,CPU_OFFLINE);
+                    }
+
                 }
             
                 // Remove the offset.
@@ -1507,7 +1515,17 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                 } 
                 thread +=threadsPerCoreOffset;
             }
+
+
             thread += threadsPerCoreMax * (coresPerSocket - core);
+        }
+
+        // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
+        // in failure cases.
+        if ( threadBlinkFailure )
+        {
+            CPUPower( 0, CPU_OFFLINE );
+            CPUPower( 0, CPU_ONLINE );
         }
     }
     else
