@@ -91,10 +91,10 @@ inline int SetSMTLevelCSM( int smtLevel )
 {
     // Get the current SMT level.
     int32_t threads, sockets, oldSMT = 0, coresPerSocket;
-    CGroup::GetCPUs(threads, sockets, oldSMT, coresPerSocket );
+    bool success = CGroup::GetCPUs(threads, sockets, oldSMT, coresPerSocket );
     
     // EARLY RETURN If the smt level is unchanged. 
-    if ( smtLevel == oldSMT && smtLevel < 0) return 0;
+    if ( !success || (smtLevel == oldSMT && smtLevel < 0)) return 0;
 
     // Convert the SMT level to a string.
     std::string smtStr(CSM_SMT_SMT_ARG);

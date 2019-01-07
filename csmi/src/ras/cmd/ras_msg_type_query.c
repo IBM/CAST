@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
             case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
+                break;
 			case 's':
 				/*severity*/
                 csm_optarg_test( "-s, --severity", optarg, USAGE )
