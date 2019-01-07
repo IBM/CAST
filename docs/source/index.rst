@@ -43,5 +43,6 @@ Table of Contents
     csm-apis/index.rst
     csmd/index.rst
     csmdb/index.rst
+    csm-integration/index.rst
     cast-big-data/index.rst
     tools.rst
