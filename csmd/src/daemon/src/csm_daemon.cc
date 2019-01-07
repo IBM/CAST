@@ -97,6 +97,15 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
       case csm::daemon::RUN_MODE::CONFIGURED:
       {
+        // Break if the configuraation is null.
+        if ( CSMDaemonConfig == nullptr )
+        {
+            errno = EINVAL;
+            CSMLOG( csmd, error ) << "Daemon Role Setup: config missing; errno=" << errno;
+            perror("Daemon Role Setup:");
+            return errno;
+        }
+
         // create the daemon cores, etc...
         // have to set up the pack/unpack functions in CSMI_MAPPING before creating DaemonCore
         csmi_cmd_hdl_init();

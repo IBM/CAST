@@ -52,7 +52,7 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
     if( ! aMgr->GetThreadKeepRunning() )
       break;
 
-    csm::daemon::BDSEvent *bds_ev = dynamic_cast<csm::daemon::BDSEvent*>( timers->FetchEvent() );
+    csm::daemon::BDSEvent *bds_ev = timers ? dynamic_cast<csm::daemon::BDSEvent*>( timers->FetchEvent() ) : nullptr;
     idle = ( bds_ev == nullptr );
 
     // if nothing to do, just wait for regular wakeup

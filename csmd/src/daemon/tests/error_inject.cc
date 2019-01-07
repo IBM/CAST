@@ -133,7 +133,7 @@ int echo_test( const int expected )
   csm_api_object_destroy(csm_obj);
 
   // Clean up.
-  if (recvDataLen) free(recvDataLen);
+  if (recvData) free(recvData);
   if (sendData) free(sendData);
   return rc;
 }

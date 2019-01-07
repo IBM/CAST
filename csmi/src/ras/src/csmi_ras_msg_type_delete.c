@@ -64,8 +64,8 @@ int csm_ras_msg_type_delete(
             csmutil_logging(error, "Invalid parameter: 'msg_ids_count' and 'msg_ids' must define"
                 " a list of message ids to be removed. " );
         }
-        csm_api_object_errcode_set(*handle, CSMERR_INVALID_PARAM);
-        csm_api_object_errmsg_set(*handle,
+        csm_api_object_errcode_set(*csm_obj, CSMERR_INVALID_PARAM);
+        csm_api_object_errmsg_set(*csm_obj,
             strdup(csm_get_string_from_enum(csmi_cmd_err_t,CSMERR_INVALID_PARAM)));
 
         return CSMERR_INVALID_PARAM;

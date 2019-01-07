@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 	int return_value = 0;
     int opt;
     int indexptr = 0;
-    char *format = NULL;
+    //char *format = NULL;
 	/*CSM Variables*/
 	csm_api_object    *csm_obj = NULL;
 	/*API Variables*/
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
 	    	printf("%s FAILED: errcode: %d errmsg: %s\n", argv[0], return_value,  csm_api_object_errmsg_get(csm_obj));
 	}
 	
-    if ( format ) free(format);
+    //if ( format ) free(format);
 
     csm_api_object_destroy(csm_obj);
 

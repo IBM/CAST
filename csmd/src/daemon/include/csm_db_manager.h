@@ -53,13 +53,15 @@ public:
   }
   inline void AckRequest( const int i_ConnectionID )
   {
-    dynamic_cast<csm::daemon::EventSinkDB*>(_Sink)->AckEvent( i_ConnectionID );
+    csm::daemon::EventSinkDB* sink = dynamic_cast<csm::daemon::EventSinkDB*>( _Sink );
+    if (sink) sink->AckEvent( i_ConnectionID );
   }
   
   // restore the event to the front queue
   inline void RestoreRequestEvent(csm::daemon::DBReqEvent *dbe)
   {
-    dynamic_cast<csm::daemon::EventSinkDB*>( _Sink )->RestoreRequestEvent( dbe );
+        csm::daemon::EventSinkDB* sink = dynamic_cast<csm::daemon::EventSinkDB*>( _Sink );
+        if (sink) sink->RestoreRequestEvent( dbe );
   }
   
   inline csm::db::DBConnectionPool* GetDBConnectionPool() { return _DBConnectionPool; }
