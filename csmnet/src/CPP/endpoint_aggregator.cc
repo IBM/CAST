@@ -86,6 +86,9 @@ csm::network::EndpointAggregator_plain::SendTo( const csm::network::Message &aMs
                                                 const Address_sptr aRemoteAddr )
 {
   const csm::network::AddressAggregator *addr = dynamic_cast<const csm::network::AddressAggregator*>( aRemoteAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionEndpointDown("Remote address has wrong type.", ENOTCONN );
+
   if( *addr != *(csm::network::AddressAggregator*)_RemoteAddr.get() )
     LOG( csmnet, warning ) << "EndpointAggregator_plain::SendTo(): Request to send to different address than connected. Given address IGNORED!";
 
@@ -148,6 +151,9 @@ ssize_t csm::network::EndpointAggregator_sec::SendTo( const csm::network::Messag
                                                    const csm::network::Address_sptr aRemoteAddr )
 {
   const csm::network::AddressAggregator *addr = dynamic_cast<const csm::network::AddressAggregator*>( aRemoteAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionEndpointDown("Remote address is null.", ENOTCONN );
+
   if( *addr != *(csm::network::AddressAggregator*)_RemoteAddr.get() )
     LOG( csmnet, warning ) << "EndpointAggregator_sec::SendTo(): Request to send to different address than connected. Given address IGNORED!";
 

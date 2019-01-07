@@ -122,8 +122,10 @@ public:
         throw csm::network::ExceptionEndpointDown( "Failed to retrieve error code from socket after connect." );
       LOG( csmnet, trace) << "ConnectionActivity: status returned: " << rc;
     }
+    else if (rc < 0 )
+      throw csm::network::ExceptionEndpointDown("Error during select on socket", errno );
     else
-      throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", rc );
+      throw csm::network::ExceptionEndpointDown("Connection Timeout will not retry.", ETIMEDOUT );
 
     return rc;
   }
@@ -141,19 +143,22 @@ protected:
     if( rc )
       throw csm::network::Exception("setsocket: SO_REUSEADDR");
 
+    AddressClass *bindaddr = dynamic_cast<AddressClass*>(_LocalAddr.get());
+    if( bindaddr == nullptr )
+      throw csm::network::ExceptionProtocol("Invalid address type while binding server socket.");
     rc = bind( _Socket,
-               (sockaddr*)&( dynamic_cast<AddressClass*>(_LocalAddr.get())->_SockAddr ),
+               (sockaddr*)&( bindaddr->_SockAddr ),
                sizeof( sockaddr_in ) );
     if( rc )
       throw csm::network::ExceptionEndpointDown("Bind error");
 
-    LOG(csmnet, debug) << "PrepareServerSocket(): bind to " << *dynamic_cast<AddressClass*>(_LocalAddr.get());
+    LOG(csmnet, debug) << "PrepareServerSocket(): bind to " << *bindaddr;
 
     rc = listen( _Socket, 128 );
     if( rc )
       throw csm::network::Exception("Listen");
     LOG(csmnet, debug) << "PrepareServerSocket(): Now listening on addr: "
-       << dynamic_cast<AddressClass*>(_LocalAddr.get())->Dump();
+       << bindaddr->Dump();
 
     return rc;
   }
@@ -162,16 +167,26 @@ protected:
   int ConnectPrep( const csm::network::Address_sptr aSrvAddr )
   {
     int rc = 0;
-    const AddressClass* AddrPTP = dynamic_cast<const AddressClass*>( aSrvAddr.get() );
-    sockaddr_in* SrvAddr = (sockaddr_in*) ((&(AddrPTP->_SockAddr)));
+
+    if( aSrvAddr == nullptr )
+      throw csm::network::ExceptionProtocol("Nullptr Address while preparing connection.");
+
+    const AddressClass* DestAddr = dynamic_cast<const AddressClass*>( aSrvAddr.get() );
+    if( DestAddr == nullptr )
+      throw csm::network::ExceptionProtocol("Invalid Address Type while preparing connection.");
+
+    sockaddr_in* SrvAddr = (sockaddr_in*) ((&(DestAddr->_SockAddr)));
+    if( SrvAddr == nullptr )
+      throw csm::network::Exception("Destination has nullptr address.");
+
     LOG(csmnet, info) << "Connecting socket: " << _Socket << " to " << AddressClass( *SrvAddr ).Dump();
 
     if( IsServerEndpoint() )
       throw csm::network::ExceptionEndpointDown( "Trying to call connect() on server endpoint.", EBADFD );
 
-    if(( _RemoteAddr != nullptr ) &&
-        ( *dynamic_cast<const AddressClass*>( _RemoteAddr.get() ) ==
-            *dynamic_cast<const AddressClass*>( aSrvAddr.get() ) ))
+
+    const AddressClass *remote = ( _RemoteAddr == nullptr ) ? nullptr : dynamic_cast<const AddressClass*>( _RemoteAddr.get() );
+    if(( _RemoteAddr != nullptr ) && ( remote != nullptr ) && ( *remote == *DestAddr ))
     {
       LOG(csmnet, debug) << "Endpoint already connected to destination: " << aSrvAddr->Dump()
           << ". skipping without error."<< std::endl;
@@ -186,8 +201,7 @@ protected:
       if( (current_setting & O_NONBLOCK) == 0 )
       {
         current_setting |= O_NONBLOCK;
-        rc = fcntl(_Socket, F_SETFL, current_setting );
-        if( rc )
+        if( fcntl(_Socket, F_SETFL, current_setting ) < 0 )
           throw csm::network::Exception("fcntl: NONBLOCK");
       }
 
@@ -222,7 +236,8 @@ protected:
       // return the socket to blocking after completion of the connect
       current_setting = fcntl( _Socket, F_GETFL, NULL );
       current_setting &= (~O_NONBLOCK);
-      fcntl( _Socket, F_SETFL, current_setting );
+      if( fcntl( _Socket, F_SETFL, current_setting ) < 0 )
+        throw csm::network::Exception("fcntl: NONBLOCK reset");
     }
     else
     {
@@ -290,10 +305,17 @@ protected:
     {
       std::shared_ptr<AddressClass> raddr = std::make_shared<AddressClass>( htonl( CltAddr.sin_addr.s_addr ),
                                                                             htons( CltAddr.sin_port ) );
-      uint32_t interval = std::dynamic_pointer_cast<csm::network::EndpointOptionsPTP_base>(GetOptions())->getHeartbeatInterval();
+      std::shared_ptr<csm::network::EndpointOptionsPTP_base> options = std::dynamic_pointer_cast<csm::network::EndpointOptionsPTP_base>(GetOptions());
+      if( options == nullptr )
+        throw csm::network::ExceptionProtocol("Invalid EndpointOptions type." );
+
+      uint32_t interval = options->getHeartbeatInterval();
       LOG(csmnet, debug) << "GenericAccept(): new client: " << (raddr->Dump());
       std::shared_ptr<csm::network::EndpointOptionsPTP<AddressClass>> opts =
           std::make_shared<csm::network::EndpointOptionsPTP<AddressClass>>( false, false, interval );
+
+      if( opts == nullptr )
+        throw csm::network::Exception("Failed to create EndpointOptions for accepted connection." );
 
       ret = new EndpointClass( newsock, _LocalAddr, opts );
       ret->SetRemoteAddr( raddr );
