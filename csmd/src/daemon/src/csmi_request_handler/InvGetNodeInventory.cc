@@ -58,6 +58,7 @@ InvGetNodeInventory::Process( const csm::daemon::CoreEvent &aEvent,
     {
       // add the inventory msg regardless of the db result because this is for connection book keeping and not for the API queries
       csm::daemon::NetworkEvent *ev = dynamic_cast<csm::daemon::NetworkEvent*>( ctx->GetReqEvent() );
+
       csm::network::MessageAndAddress reqContent = ev->GetContent();
 
       csm::network::Address_sptr addr = reqContent.GetAddr();
@@ -66,25 +67,27 @@ InvGetNodeInventory::Process( const csm::daemon::CoreEvent &aEvent,
       {
         // if the response was good, then we add the utility or aggregator node's data
         csm::daemon::DaemonStateMaster *daemonState = dynamic_cast<csm::daemon::DaemonStateMaster*>( GetDaemonState() );
-
-        // Try to unpack the csm_node_inventory_t structure and add a node name to the node-Info
-        csm_full_inventory_t inventory;
-        uint32_t bytes_unpacked;
-
-        bytes_unpacked = get_node_inventory_unpack(reqContent._Msg.GetData(), inventory);
-        if( bytes_unpacked )
+        if ( daemonState ) 
         {
-          // Filter out compute inventory received on aggregator connections 
-          // by confirming that the addr type matches the inventory type
-          const string inv_type(inventory.node.type);
-          if( (( inv_type == CSM_NODE_TYPE_AGGREGATOR ) && 
-               ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_AGGREGATOR )) ||
-              (( inv_type == CSM_NODE_TYPE_UTILITY ) && 
-               ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_UTILITY )) )
+          // Try to unpack the csm_node_inventory_t structure and add a node name to the node-Info
+          csm_full_inventory_t inventory;
+          uint32_t bytes_unpacked;
+
+          bytes_unpacked = get_node_inventory_unpack(reqContent._Msg.GetData(), inventory);
+          if( bytes_unpacked )
           {
-            daemonState->SetNodeInfo( addr, inventory.node.node_name, &reqContent._Msg );
-            NodeConnectRasEvent( inventory.node.node_name, postEventList );
-          }
+            // Filter out compute inventory received on aggregator connections 
+            // by confirming that the addr type matches the inventory type
+            const string inv_type(inventory.node.type);
+            if( (( inv_type == CSM_NODE_TYPE_AGGREGATOR ) && 
+                 ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_AGGREGATOR )) ||
+                (( inv_type == CSM_NODE_TYPE_UTILITY ) && 
+                 ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_UTILITY )) )
+            {
+              daemonState->SetNodeInfo( addr, inventory.node.node_name, &reqContent._Msg );
+              NodeConnectRasEvent( inventory.node.node_name, postEventList );
+            }
+        }
         }
       }
     }

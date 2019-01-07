@@ -99,8 +99,15 @@ bool CSMIJSRUNCMD_Master::RetrieveDataForPrivateCheck(
 
     if( csm_deserialize_struct(INPUT_STRUCT, &input, arguments.c_str(), len) == 0 )
     {
-        csm::network::MessageAndAddress msg = 
-            dynamic_cast<const csm::daemon::NetworkEvent *>( ctx->GetReqEvent() )->GetContent();
+        const csm::daemon::NetworkEvent * event = 
+            dynamic_cast<const csm::daemon::NetworkEvent *>( ctx->GetReqEvent() );
+        // Low risk error.
+        if (!event)
+        {
+            csm_free_struct_ptr( INPUT_STRUCT, input);
+            return false;
+        }
+        csm::network::MessageAndAddress msg =  event->GetContent();
 
         // Generate multicast context object.
         MCAST_STRUCT* mcast = new MCAST_STRUCT();

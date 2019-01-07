@@ -51,8 +51,10 @@ CSM_ENVDATA_HANDLER::Process( const csm::daemon::CoreEvent &aEvent,
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Store the env data to the node status map
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  csm::daemon::DaemonStateAgg *daemonState = dynamic_cast<csm::daemon::DaemonStateAgg*>(_handlerOptions.GetDaemonState() );
-  if( daemonState->UpdateEnvironmentalData( msgAddr.GetAddr(), envData ) == false )
+  csm::daemon::DaemonStateAgg *daemonState = 
+    dynamic_cast<csm::daemon::DaemonStateAgg*>(_handlerOptions.GetDaemonState() );
+
+  if( !daemonState || daemonState->UpdateEnvironmentalData( msgAddr.GetAddr(), envData ) == false )
   {
     LOG( csmenv, error ) << "CSM_ENVDATA_HANDLER: Failed to store environmental data.";
     return;

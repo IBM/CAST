@@ -40,6 +40,12 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
     
   csm::daemon::DaemonStateAgg * daemonState = dynamic_cast<csm::daemon::DaemonStateAgg *> (GetDaemonState());
   
+  if ( !daemonState )
+  {
+      LOG(csmd, error) << "Aggregator Daemon State could not be retrieved.";
+      return;
+  }
+
   switch (context->GetAuxiliaryId())
   {
     case INITIAL_STATE:
@@ -330,7 +336,9 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
       LOG( csmd, debug ) << "CSM_INFRASTRUCTURE_TEST_AGG: Forwarding response from Master to the local client";
       if( isTimerEvent( aEvent ) )
       {
-        if( dynamic_cast<const csm::daemon::TimerEvent*>( &aEvent )->GetContent().GetTargetStateId() != LOCAL_RESPONSE )
+
+        const csm::daemon::TimerEvent* timeEvent = dynamic_cast<const csm::daemon::TimerEvent*>( &aEvent );
+        if( !timeEvent || timeEvent->GetContent().GetTargetStateId() != LOCAL_RESPONSE )
           return;
 
         // handle timeout

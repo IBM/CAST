@@ -186,10 +186,17 @@ public:
             csmi_allocation_mcast_context_t* allocation = mcastProps->GetData();
             // Return true if the allocation exists and the 
             // allocation is in a multicast state.
-            success =  allocation && 
-                !(allocation->type == CSM_DIAGNOSTICS ||
-                  allocation->state != CSM_RUNNING);
-            allocation->save_allocation = 1;
+            if (allocation)
+            {
+                success =  
+                    !(allocation->type == CSM_DIAGNOSTICS ||
+                        allocation->state != CSM_RUNNING);
+                allocation->save_allocation = 1;
+            }
+            else
+            {
+                success = false;
+            }
         }
         else
             success = false;

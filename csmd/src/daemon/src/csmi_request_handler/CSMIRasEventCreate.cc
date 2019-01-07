@@ -158,14 +158,16 @@ void CSMIRasEventCreate::returnErrorMsg(csm::network::Address_sptr addr,
 {
     LOG(csmras, trace) << "Enter " << __PRETTY_FUNCTION__;
     
-    char *buf=nullptr;
+    const char *buf="";
     uint32_t bufLen = 0;
     buf = csmi_err_pack(errcode, errmsg.c_str(), &bufLen);
     uint8_t flags = CSM_HEADER_RESP_BIT | CSM_HEADER_ERR_BIT;
 
     csm::network::Message rspMsg;
-    CreateNetworkMessage(inMsg, buf, bufLen, flags, rspMsg);
-    if (buf) free(buf);
+    
+    // Test the buffer, if the buffer is still present after the create delete it.
+    if (buf) CreateNetworkMessage(inMsg, buf, bufLen, flags, rspMsg);
+    //if (buf) free(buf);
 
     csm::network::Address_sptr rspAddress( CreateReplyAddress(addr.get()));
     if (rspAddress) {
@@ -722,7 +724,7 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                 //     only reply if the return is for CSMapi.
                 if (! content._Msg.GetInt() ) 
                 {
-                    char *buf=nullptr;      // return null response...
+                    const char *buf="";      // return null response...
                     uint32_t bufLen=0;
                     uint8_t flags = CSM_HEADER_RESP_BIT;
                     if (errcode != CSMI_SUCCESS) flags |= CSM_HEADER_ERR_BIT;;

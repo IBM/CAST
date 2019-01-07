@@ -48,13 +48,13 @@ bool SoftFailureRecoveryAgentState::HandleNetworkMessage(
     csmi_soft_failure_recovery_payload_t *payload = nullptr;
     csm_init_struct_ptr(csmi_soft_failure_recovery_payload_t, payload);
 
-    if( !payload )
-    {
-        ctx->SetErrorCode(CSMERR_PAYLOAD_EMPTY);
-        ctx->SetErrorMessage("Message: Payload could not be initialized on " + 
-            csm::daemon::Configuration::Instance()->GetHostname());
-        return false;
-    }
+    //if( !payload )
+    //{
+    //    ctx->SetErrorCode(CSMERR_PAYLOAD_EMPTY);
+    //    ctx->SetErrorMessage("Message: Payload could not be initialized on " + 
+    //        csm::daemon::Configuration::Instance()->GetHostname());
+    //    return false;
+    //}
     
     std::string hostname = csm::daemon::Configuration::Instance()->GetHostname();
 
