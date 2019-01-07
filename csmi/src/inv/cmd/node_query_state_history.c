@@ -235,11 +235,11 @@ int main(int argc, char *argv[])
 				printf("#         history_time        |      state     |      alteration      | RAS_rec_id, RAS_msg_id \n");
 				printf("# ----------------------------+----------------+----------------------+------------------------\n");
 				for(i = 0; i < output->results_count; i++){
-					if(output->results[i]->state == CSM_NODE_SOFT_FAILURE)
+					if(output->results[i]->state == CSM_NODE_SOFT_FAILURE || output->results[i]->state == CSM_NODE_HARD_FAILURE )
 					{
-						printf("#  %s | %-15s| %-21s| %s, %s\n", output->results[i]->history_time, csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state), csm_get_string_from_enum(csmi_node_alteration_t, output->results[i]->alteration), output->results[i]->ras_rec_id, output->results[i]->ras_msg_id);
+						printf("#  %-27s| %-15s| %-21s| %s, %s\n", output->results[i]->history_time, csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state), csm_get_string_from_enum(csmi_node_alteration_t, output->results[i]->alteration), output->results[i]->ras_rec_id, output->results[i]->ras_msg_id);
 					}else{
-						printf("#  %s | %-15s| %-21s| \n", output->results[i]->history_time, csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state), csm_get_string_from_enum(csmi_node_alteration_t, output->results[i]->alteration));
+						printf("#  %-27s| %-15s| %-21s| \n", output->results[i]->history_time, csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state), csm_get_string_from_enum(csmi_node_alteration_t, output->results[i]->alteration));
 					}
 				}
 				puts("...");
