@@ -24,6 +24,7 @@
 #include <errno.h>     ///< Errno
 #include <signal.h>    ///< Kill System call.
 #include <dirent.h>    ///< DIR and Directory sys calls.
+#include "csm_daemon_config.h"
 #include "logging.h"   ///< CSM logging.
 #include "cgroup.h" 
 #include "csm_handler_exception.h"
@@ -1402,8 +1403,29 @@ bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets,
 
 void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string &groupCores)
 {
+    // Assemble the thread grouping 
+    #define assembleGroup( string )                                        \
+        string.append(std::to_string(groupStart)).append(DELIM);           \
+        if ( groupStart != thread - 1 )                                    \
+        {                                                                  \
+            string.append(std::to_string(thread - 1)).append(_GROUP_DELIM);\
+        }
+
+    // Configured cores may be system or allocation.
+    enum coreState
+    {
+        STATE_START = 0,
+        ALLOC_NOW,
+        SYSTEM_NOW
+    }
+
+    // Get the jitter info.
+    csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
+
     int32_t threads, sockets, threadsPerCore, coresPerSocket;
     bool threadBlinkFailure = false;
+    
+    // ================================================================================
 
     // Get the CPUS and do a sanity check.
     if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
@@ -1413,14 +1435,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             coresPerSocket > 0 &&
             (threads % sockets) == 0)
     {
-        // Assemble the thread grouping 
-        #define assembleGroup( string )                                        \
-            string.append(std::to_string(groupStart)).append(DELIM);           \
-            if ( groupStart != thread - 1 )                                    \
-            {                                                                  \
-                string.append(std::to_string(thread - 1)).append(_GROUP_DELIM);\
-            }
-
+        
 
 #ifdef VM_DEVELOPMENT
         sockets        = 1;
@@ -1440,22 +1455,49 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         // Compute the threads pre core, derived from smt mode.
         threadsPerCore = threadsPerCoreMax - threadsPerCoreOffset;
 #endif
+
+        // Cache the system map locally.
+        std::string configuredCores = jitterInfo.GetSystemMap();
+        size_t      configCoreCount = configuredCores.size();
+
+        // Setup the system SMT.
+        uint32_t    systemSMT       = jitterInfo.GetSystemMap();
+        if ( systemSMT == 0 || systemSMT > threadsPerCore ) systemSMT = threadsPerCoreMax;
+
+
+        coreState currentState = STATE_START;  // The current state of the processing.
+        int32_t thread   = 0;                  // The active thread being processed.
+        int32_t continuousRangeStart = 0;      // A continuous range for groups.
+        int64_t isolation            = cores;  // Cores available for isolation.
+        size_t  core                 = 0;      // The active core being processed.
+        
         // If SMT is not fully enabled (e.g. SMT=4 on the GTW), set the range to be disjointed. 
-        const bool rangeDisjointed = threadsPerCoreMax != threadsPerCore;
-        // Start of the system cgroup on the socket.
-        const int32_t SYSTEM_CORE_START = coresPerSocket - cores;
+        const bool allocRangeDisjointed = threadsPerCoreMax != threadsPerCore;
+        const bool sysRangeDisjointed   = threadsPerCoreMax != systemSMT;
 
-        // For each socket build the system and allocation groups.
-        for( int32_t socket =0, thread = 0, groupStart = thread; 
-                socket < sockets; ++socket )
+        // ================================================================================
+
+        for ( int32_t thread = 0; core < configCoreCount; ++core )
         {
-            int32_t core = 0;
-            int32_t continuousRangeStart = groupStart;
-
-            // Then isolate the allocation cgroup.
-            for(; core < SYSTEM_CORE_START; ++core ) 
+            // If true considered an allocation core.
+            bool allocCore = (configuredCores[core] == '0');
+            
+            // On new sockets reset the cores for isolation.
+            if ( core % coresPerSocket ) isolation = cores;
+            
+            // Process the allocation core.
+            if ( allocCore || isolation == 0 )
             {
-                // Offline all of the CPUs.
+                // If the system range is not disjointed and the state changes assemble the continuous string.
+                if (!sysRangeDisjointed && currentState == SYSTEM_NOW )
+                {
+                    groupStart           = continuousRangeStart;
+                    continuousRangeStart = thread;
+                    assembleGroup(sysCores);
+                }
+                currentState = ALLOC_NOW;
+                
+                // Offline all of the CPUs in the allocation section.
                 for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
                 {
                     // If the core blink fails, turn core zero back on and set the coreBlinkFailure flag.
@@ -1465,60 +1507,86 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                         threadBlinkFailure = true;
                         CPUPower(thread-1,CPU_OFFLINE);
                     }
-
                 }
-            
-                // Remove the offset.
-                thread -=threadsPerCoreOffset;
-                if ( rangeDisjointed )
+
+                // If the allocation
+                if ( allocRangeDisjointed )
                 {
+                    thread -=threadsPerCoreOffset;
+                    assembleGroup(groupCores);
+                    thread +=threadsPerCoreOffset;
+                }
+                groupStart = thread;
+            }
+            else
+            {
+                // If the range is not disjointed and the state changes assemble the continuous string.
+                if (!allocRangeDisjointed && currentState == ALLOC_NOW )
+                {
+                    groupStart           = continuousRangeStart;
+                    continuousRangeStart = thread;
                     assembleGroup(groupCores);
                 }
-                thread +=threadsPerCoreOffset;
-                groupStart = thread;
-            }
-            // If the range was not disjointed assemble the range one time.
-            if ( !rangeDisjointed )
-            {
-                groupStart = continuousRangeStart;
-                assembleGroup(groupCores);
-            }
+                currentState = SYSTEM_NOW;
 
-            // Start the continuous range.
-            continuousRangeStart = groupStart = thread;
-            // First the socket should get the system cgroup.
-            for(; core < coresPerSocket; ++core ) 
-            {
-                // Online all of the CPUs.
-                for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
+                // Iterate over the cores, bring all online cores online.
+                int32_t cpu = 0; 
+                for(; cpu < systemSMT      ; ++cpu ) CPUPower(thread++, CPU_ONLINE);
+                for(; cpu < threadsPerCore ; ++cpu ) CPUPower(thread++, CPU_OFFLINE);
+                
+                // If the range is disjointed build the 
+                if ( sysRangeDisjointed )
                 {
-                    CPUPower(thread++, CPU_ONLINE);
+                    thread -= threadsPerCoreOffset;
+                    assembleGroup(sysCores);
+                    thread += threadsPerCoreOffset;
                 }
                 groupStart = thread;
-            } 
-            // If the range was not disjointed assemble the range one time.
-            groupStart = continuousRangeStart;
-            assembleGroup(sysCores);
-            groupStart = thread;
+                isolation--;
+            }
         }
 
-        // Bring the allocation cores online.
-        for( int32_t socket =0, thread = 0, core = 0; socket < sockets; ++socket )
+        // ================================================================================
+        
+        // Clear the remaining groupings.
+        groupStart = continuousRangeStart;
+        if (!allocRangeDisjointed && currentState == ALLOC_NOW )
         {
-            // Then isolate the allocation cgroup.
-            for(; core < SYSTEM_CORE_START; ++core ) 
+            assembleGroup(groupCores);
+        }
+        else if (!sysRangeDisjointed && currentState == SYSTEM_NOW)
+        {
+            assembleGroup(sysCores);
+        }
+        
+        // ================================================================================
+        
+        // Bring the allocation nodes back up with the correct smt mode.
+        for ( int32_t thread = 0; core < configCoreCount; ++core )
+        {
+            // If true considered an allocation core.
+            bool allocCore = (configuredCores[core] == '0');
+            
+            // On new sockets reset the cores for isolation.
+            if ( core % coresPerSocket ) isolation = cores;
+            
+            // Process the allocation core.
+            if ( allocCore || isolation == 0 )
             {
-                // Online all of the CPUs.
                 for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
                 {
                     CPUPower(thread++, CPU_ONLINE);
                 } 
                 thread +=threadsPerCoreOffset;
             }
-
-
-            thread += threadsPerCoreMax * (coresPerSocket - core);
+            else
+            {
+                thread += threadsPerCoreMax;
+                isolation--;
+            }
         }
+
+        // ================================================================================
 
         // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
         // in failure cases.
