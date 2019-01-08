@@ -174,10 +174,10 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "$15::text,      $16::text,    $17::integer, $18::integer, "
                 "$19::text,      $20::text,    $21::text,    $22::text,"
                 "$23::timestamp, $24::text,    $25::text,    $26::bigint,"
-                "$27::text,      $28::integer  $29::smallint"
+                "$27::text,      $28::integer, $29::smallint"
             ") returning allocation_id, begin_time";
 
-        const int paramCount = 28;
+        const int paramCount = 29;
         csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
         dbReq->AddNumericParam<int64_t>(allocation->primary_job_id);                // $1 - bigint
         dbReq->AddNumericParam<int32_t>(allocation->secondary_job_id);              // $2 - integer

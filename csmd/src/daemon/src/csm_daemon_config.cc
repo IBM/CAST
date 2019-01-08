@@ -211,7 +211,10 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
 
   // set up several intervals and the jitter window configuration
   ConfigureDaemonTimers();
+
   SetRecurringTasks();
+
+  LoadJitterMitigation();
 }
 
 void Configuration::SetHostname()
@@ -1270,6 +1273,81 @@ void Configuration::CreateThreadPool()
     if( _Cron.IsEnabled() )
       CSMLOG( csmd, info ) << "Recurring tasks config: " << _Cron;
   }
+    
+    std::string Configuration::ParseHexString(std::string hexStr)
+    {
+        std::string bitMapStr = "";
+        std::string hexStrLower = hexStr;
+        boost::algorithm::to_lower(hexStrLower);
+
+        bool success       = true; 
+        size_t strLen = hexStrLower.size();
+
+        for ( size_t i = 0; success && i < strLen; ++i )
+        {
+            switch ( hexStrLower[i] ) 
+            {
+                case '0': { bitMapStr.append("0000"); break; } 
+                case '1': { bitMapStr.append("0001"); break; } 
+                case '2': { bitMapStr.append("0010"); break; }
+                case '3': { bitMapStr.append("0011"); break; }
+                case '4': { bitMapStr.append("0100"); break; }
+                case '5': { bitMapStr.append("0101"); break; }
+                case '6': { bitMapStr.append("0110"); break; }
+                case '7': { bitMapStr.append("0111"); break; }
+                case '8': { bitMapStr.append("1000"); break; }
+                case '9': { bitMapStr.append("1001"); break; }
+                case 'a': { bitMapStr.append("1010"); break; }
+                case 'b': { bitMapStr.append("1011"); break; }
+                case 'c': { bitMapStr.append("1100"); break; }
+                case 'd': { bitMapStr.append("1101"); break; }
+                case 'e': { bitMapStr.append("1110"); break; }
+                case 'f': { bitMapStr.append("1111"); break; }
+                default: success = false; break;
+            }
+        }
+
+        if ( !success ) bitMapStr ="";
+            
+        return bitMapStr;
+    }
+
+    void Configuration::LoadJitterMitigation ()
+    {
+        const std::string SECTION    = "csm.jitter_mitigation.";
+        const std::string SYSTEM_MAP = SECTION + "system_map";
+        const std::string SYSTEM_SMT = SECTION + "system_smt";
+        const std::string IRQ_MAP    = SECTION + "irq_affinity";
+        const std::string CORE_ISO   = SECTION + "core_isolation";
+        const std::string CORE_BLINK = SECTION + "core_blink";  
+        std::string keyStr = "";
+
+        // Parse core mappings.
+        std::string systemMap      = ParseHexString(GetValueInConfig(SYSTEM_MAP));
+
+        // Parse SMT for system.
+        keyStr = GetValueInConfig(SYSTEM_SMT);
+        uint32_t systemSMT      = std::strtoul(keyStr.c_str(), nullptr, 10);
+
+        keyStr     = GetValueInConfig(IRQ_MAP);
+        boost::algorithm::to_lower(keyStr);
+        bool irqAffinity=  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
+
+        /*
+        // If the core isolation flag is unset default to true.
+        keyStr     = GetValueInConfig(CORE_ISO);
+        boost::algorithm::to_lower(keyStr);
+        bool coreIsolation  =  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
+
+        // If the Core Blink flag is unset default to true.
+        keyStr     = GetValueInConfig( CORE_BLINK ) ;
+        boost::algorithm::to_lower(keyStr);
+        bool coreBlink =  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
+        */
+
+        // Build the object.
+        _JitterInfo.Init(systemMap, systemSMT, irqAffinity);
+    } 
 
 }  // namespace daemon
 } // namespace csm

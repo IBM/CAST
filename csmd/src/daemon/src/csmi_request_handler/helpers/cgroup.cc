@@ -1470,7 +1470,14 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         int32_t continuousRangeStart = 0;      // A continuous range for groups.
         int64_t isolation            = cores;  // Cores available for isolation.
         size_t  core                 = 0;      // The active core being processed.
-        
+
+
+        // Setup affinity blocks for IRQ affinity
+        size_t numAffinityBlocks   = (size_t)ceil( threads / 32.f );
+        size_t activeAffinityBlock = 0;
+        std::vector<uint32_t> affinityBlocks ( numAffinityBlocks, 0 );
+        uint32_t IRQMask = ((uint32_t)pow(2, systemSMT)) - 1;
+
         // If SMT is not fully enabled (e.g. SMT=4 on the GTW), set the range to be disjointed. 
         const bool allocRangeDisjointed = threadsPerCoreMax != threadsPerCore;
         const bool sysRangeDisjointed   = threadsPerCoreMax != systemSMT;
@@ -1543,6 +1550,11 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                 }
                 groupStart = thread;
                 isolation--;
+
+
+                // XXX Today this assumes < 32 threads per core!
+                IRQMask[activeAffinityBlock] |= (IRQMask << (thread % 32));
+                activeAffinityBlock = (size_t)(thread / 32);
             }
         }
 
@@ -1559,6 +1571,24 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             assembleGroup(sysCores);
         }
         
+        // ================================================================================
+        
+        // Create the IRQ Mask.
+        
+        std::stringstream affinityStream;
+        for ( int i = numAffinityBlocks - 1; i >= 0; --i);
+        {
+            affinityStream << std::hex << IRQMask[i] << ",";
+        }
+        
+        if ( jitterInfo.GetIRQAffinity() )
+        {
+            std::string affinityString = affinityStream.str();
+            affinityString.back() = '\0';
+            LOG(csmapi, error) << "Affinity String: " << affinityString;
+        }
+
+
         // ================================================================================
         
         // Bring the allocation nodes back up with the correct smt mode.
