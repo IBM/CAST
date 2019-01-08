@@ -51,15 +51,26 @@ check_return_exit $? 0 "Test Case 1: Calling csm_db_script.sh -n fvttestdb"
 su -c "psql -d fvttestdb -c \"\q\"" postgres > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: Checking fvttestdb exists"
 
-# Test Case 3: Calling csm_db_script.sh -d fvttestdb
+# Test Case 3: csm_db_backup_script - run script
+${DB_PATH}/csm_db_backup_script_v1.sh fvttestdb > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 3: csm_db_backup_script - run script"
+
+# Test Case 3: csm_db_backup_script - check for backup
+ls /var/lib/pgsql/backups/fvttestdb* > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 3: csm_db_backup_script - check for backup"
+
+# Test Case 4: Calling csm_db_script.sh -d fvttestdb
 echo "y" | ${DB_PATH}/csm_db_script.sh -d fvttestdb > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 3: Calling csm_db_script.sh -d fvttestdb"
+check_return_exit $? 0 "Test Case 4: Calling csm_db_script.sh -d fvttestdb"
 
-# Test Case 4: Checking fvttestdb was deleted
+# Test Case 5: Checking fvttestdb was deleted
 su -c "psql -d fvttestdb -c \"\q\"" postgres > ${TEMP_LOG} 2>&1
-check_return_exit $? 2 "Test Case 4: Checking fvttestdb was deleted"
+check_return_exit $? 2 "Test Case 5: Checking fvttestdb was deleted"
 
+# Cleanup
 rm -f ${TEMP_LOG}
+rm -f /var/lib/pgsql/backups/fvttestdb*
+
 echo "------------------------------------------------------------" >> ${LOG}
 echo "CSM DB Scripts Bucket PASSED" >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
