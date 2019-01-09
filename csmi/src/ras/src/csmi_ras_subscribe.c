@@ -46,6 +46,7 @@ int csm_ras_subscribe(csm_api_object **csm_obj,
     
     // FIXME strdup really isn't needed.
     input.topic = topic ? strdup(topic) : NULL;
+    csm_init_struct_versioning(&input);
     
     // EARLY RETURN
     // Construct the buffer.

@@ -32,15 +32,13 @@ class Exception : public std::exception {
 public:
     Exception( const std::string &aMsg = "", const int aError = errno ) : std::exception(), _Error(aError)
     {
-      _Msg = aMsg;
+      _Msg = std::string( "CSM Daemon Error: " );
+      _Msg.append(aMsg);
+      _Msg.append(" rc=").append(std::to_string( _Error ));
     }
     virtual const char* what() const throw()
     {
-        std::string rs = std::string( "CSM Daemon Error: " );
-        rs.append( _Msg );
-        rs.append( std::string( " rc=" ) );
-        rs.append( std::to_string( _Error ) );
-        return rs.c_str();
+        return _Msg.c_str();
     }
 
 };

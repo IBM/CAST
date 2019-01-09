@@ -1112,7 +1112,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
 
     csm_net_msg_t * ret = (csm_net_msg_t*)EPBS->_BufferedData;
     char * data = (char*) EPBS->_BufferedData + sizeof(csm_net_msg_t);
-    ssize_t rlen;
+    ssize_t rlen = 0;
 
     do
     {

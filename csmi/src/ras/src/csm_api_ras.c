@@ -175,10 +175,11 @@ int csm_ras_create_event_kv_json(char const *msg_id,
             if (kv == NULL)
                 break;
            key = strtok_r(kv, "=", &sp2);   // key=value next...
+
            if (key == NULL) {nc =  -EINVAL; goto fail; }
            value = strtok_r(NULL, "=", &sp2);   // key=value next...
-           if (key == NULL) {nc =  -EINVAL; goto fail; }
-           nc = csm_ras_add_kv_pair(jb, lenremaining, key, value,",\n"); 
+           nc = csm_ras_add_kv_pair(jb, lenremaining, key, value,",\n");
+
            if (nc < 0) goto fail;
            lenremaining -= nc; jb += nc;
          }
@@ -195,10 +196,6 @@ fail:
         free(kbuff);
     return(nc);
 
-    // add the final json termination...
-    *jb++ = '\n'; *jb++ = '}'; *jb++ = '\n'; *jb++ = 0;
-
-    return(0);
 }
     
 

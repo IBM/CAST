@@ -368,7 +368,7 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
     dataLock.unlock();
 
     LOG(csmapi,trace) << STATE_NAME ":ReserveNodes: Exit";
-    return dbPayload != nullptr; // The status of the payload is all that matters.
+    return dbReq != nullptr; // The status of the payload is all that matters.
 }
 
 csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(

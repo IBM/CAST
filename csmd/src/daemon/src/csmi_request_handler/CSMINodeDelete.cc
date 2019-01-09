@@ -124,6 +124,13 @@ bool CSMINodeDelete::CreateByteArray(
 			success = false;
 			ctx->SetErrorCode( CSMERR_DB_ERROR );
 		}
+
+        if ( output )
+        {
+            csm_serialize_struct( API_PARAMETER_OUTPUT_TYPE, output, stringBuffer, &bufferLength );
+            csm_free_struct_ptr( API_PARAMETER_OUTPUT_TYPE, output );
+        }
+
     }else{
 		//bad stuff
 		LOG( csmapi, error  ) << STATE_NAME ":CreateByteArray: DATABASE FUNCTION ERROR.";
@@ -133,9 +140,6 @@ bool CSMINodeDelete::CreateByteArray(
         ctx->SetErrorMessage( "DATABASE FUNCTION numRecord != 1" );
         success = false;
 	}
-
-    csm_serialize_struct( API_PARAMETER_OUTPUT_TYPE, output, stringBuffer, &bufferLength );
-    csm_free_struct_ptr( API_PARAMETER_OUTPUT_TYPE, output );
 
     LOG( csmapi, trace ) << STATE_NAME ":CreateByteArray: Exit";
 

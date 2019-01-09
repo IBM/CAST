@@ -31,12 +31,11 @@ class Exception : public std::exception {
 public:
     Exception( const std::string &aMsg = "") : std::exception()
     {
-      _Msg = aMsg;
+      _Msg = "CSM Database Error: " + aMsg + " rc=" + std::to_string( errno );
     }
     virtual const char* what() const throw()
     {
-        std::string rs = "CSM Database Error: " + _Msg + " rc=" + std::to_string( errno );
-        return rs.c_str();
+        return _Msg.c_str();
     }
 
 };

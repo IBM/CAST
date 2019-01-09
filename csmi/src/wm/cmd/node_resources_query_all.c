@@ -99,10 +99,10 @@ int main(int argc, char *argv[])
 	csm_api_object *csm_obj = NULL;
 	/*Helper Variables*/
 	int return_value = 0;
-	int requiredParameterCounter = 0;
-	int optionalParameterCounter = 0;
-	const int NUMBER_OF_REQUIRED_ARGUMENTS = 0;
-	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
+	//int requiredParameterCounter = 0;
+	//int optionalParameterCounter = 0;
+	//const int NUMBER_OF_REQUIRED_ARGUMENTS = 0;
+	//const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
 	int opt;
 	/* getopt_long stores the option index here. */
@@ -148,16 +148,18 @@ int main(int argc, char *argv[])
 	
 	/*Collect mandatory args*/
 	/*Check to see if expected number of arguments is correct.*/
-	if(requiredParameterCounter < NUMBER_OF_REQUIRED_ARGUMENTS || optionalParameterCounter < MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS){
-		/*We don't have the correct number of needed arguments passed in.*/
-		csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
-		csmutil_logging(error, "  Missing operand(s).");
-		csmutil_logging(error, "    Encountered %i required parameter(s). Expected %i required parameter(s).", requiredParameterCounter, NUMBER_OF_REQUIRED_ARGUMENTS);
-		csmutil_logging(error, "    Encountered %i optional parameter(s). Expected at least %i optional parameter(s).", optionalParameterCounter, MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS);
-        USAGE();
-		return CSMERR_MISSING_PARAM;
+	//if(requiredParameterCounter < NUMBER_OF_REQUIRED_ARGUMENTS || 
+    //    optionalParameterCounter < MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS)
+    //{
+	//	/*We don't have the correct number of needed arguments passed in.*/
+	//	csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+	//	csmutil_logging(error, "  Missing operand(s).");
+	//	csmutil_logging(error, "    Encountered %i required parameter(s). Expected %i required parameter(s).", requiredParameterCounter, NUMBER_OF_REQUIRED_ARGUMENTS);
+	//	csmutil_logging(error, "    Encountered %i optional parameter(s). Expected at least %i optional parameter(s).", optionalParameterCounter, MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS);
+    //    USAGE();
+	//	return CSMERR_MISSING_PARAM;
 
-	}
+	//}
 	
 	/* Success required to be able to communicate between library and daemon - csmi calls must be made inside the frame created by csm_init_lib() and csm_term_lib()*/
 	return_value = csm_init_lib();

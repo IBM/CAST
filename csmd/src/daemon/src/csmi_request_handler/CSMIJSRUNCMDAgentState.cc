@@ -163,7 +163,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         else
         {
             std::string error = "Message: jsm_path not legal/found ";
-            error.append(jsrun_cmd->jsm_path);
+            if (jsrun_cmd->jsm_path) error.append(jsrun_cmd->jsm_path);
             ctx->SetErrorMessage(error);
         }
     }

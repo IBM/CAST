@@ -21,6 +21,13 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
   csm::daemon::EventSourceTimer *src = dynamic_cast<csm::daemon::EventSourceTimer*>( aMgr->GetEventSource() );
   csm::daemon::EventSinkTimer *timers = dynamic_cast<csm::daemon::EventSinkTimer*>( aMgr->GetEventSink() );
 
+  // If the src and timers weren't set return.
+  if (!(src && timers)) 
+  {
+      LOG( csmd, error ) << "Unable to retrieve EventSourceTimer or EventSinkTimer.";
+      return;
+  }
+
   csm::daemon::RetryBackOff *retry = aMgr->GetRetryBackoff();
 
   bool idle = true;

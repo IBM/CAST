@@ -609,6 +609,7 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::RcvMessagesFromAgg(const csm::daemon::CoreE
 void CSM_INFRASTRUCTURE_TEST_MASTER::UpdateHealthInfo( std::vector<csm::network::AddressCode> &remaining, EventContextTestMaster_sptr context )
 {
   csm::daemon::DaemonStateMaster *dState = dynamic_cast<csm::daemon::DaemonStateMaster*>( GetDaemonState() );
+  if ( !dState ) return;
 
   // then add the list of known disconnected nodes
   csm::daemon::AddressListType disconnected;
@@ -682,6 +683,12 @@ void CSM_INFRASTRUCTURE_TEST_MASTER::FlowTest( const csm::daemon::CoreEvent &aEv
 
   csm::daemon::DaemonStateMaster *dState = dynamic_cast<csm::daemon::DaemonStateMaster*>( _handlerOptions.GetDaemonState() );
 
+  if( context == nullptr )
+  {
+    LOG( csmd, debug ) << "CSM_INFRASTRUCTURE_TEST_MASTER: Master Daemon State was empty.";
+    return;
+  }
+  
   // wait for some reasonable time for Agg
   if (isTimerEvent(aEvent))
   {

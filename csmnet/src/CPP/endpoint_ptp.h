@@ -286,7 +286,7 @@ protected:
     int newsock = accept( _Socket, (sockaddr*)&CltAddr, &addrsize );
 
     EndpointClass *ret = nullptr;
-    if( newsock > 0 )
+    if( newsock >= 0 )
     {
       std::shared_ptr<AddressClass> raddr = std::make_shared<AddressClass>( htonl( CltAddr.sin_addr.s_addr ),
                                                                             htons( CltAddr.sin_port ) );

@@ -128,6 +128,7 @@ int server_echo( )
         rc = 1;
       }
     }
+    if(buffer) free(buffer);
   }
   else {
     perror("Server: Binding");

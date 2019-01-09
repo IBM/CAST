@@ -224,7 +224,7 @@ int RasRunActionScript::Run(const std::string &script, const std::string &arg)
         }
         
         // Flush and close the script log file
-        if (scrlogFd > 0)
+        if (scrlogFd >= 0)
         {
             flushScrLogfile(scrlogFd);
             close(scrlogFd);

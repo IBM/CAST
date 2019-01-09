@@ -151,31 +151,51 @@ inline csm::network::Address_sptr CreateReplyAddress(const csm::network::Address
     switch ( addr_type )
     {
         case csm::network::CSM_NETWORK_TYPE_AGGREGATOR:
-            rspAddress = std::make_shared<csm::network::AddressAggregator>(
-                *dynamic_cast<const csm::network::AddressAggregator*>( reqAddress ));
+        {
+            const csm::network::AddressAggregator* aggAddr = 
+                dynamic_cast<const csm::network::AddressAggregator*>( reqAddress );
+
+            if ( aggAddr )
+                rspAddress = std::make_shared<csm::network::AddressAggregator>( *aggAddr );
             break;
+        }
 
         case csm::network::CSM_NETWORK_TYPE_UTILITY:
-            rspAddress = std::make_shared<csm::network::AddressUtility>(
-                *dynamic_cast<const csm::network::AddressUtility*>( reqAddress ));
-            break;
+        {
+            const csm::network::AddressUtility* utilAddr = 
+                dynamic_cast<const csm::network::AddressUtility*>( reqAddress );
 
+            if ( utilAddr )
+                rspAddress = std::make_shared<csm::network::AddressUtility>( *utilAddr );
+            break;
+        }
         case csm::network::CSM_NETWORK_TYPE_LOCAL:
-            rspAddress = std::make_shared<csm::network::AddressUnix>( 
-                *dynamic_cast<const csm::network::AddressUnix*>( reqAddress ));
+        {
+            const csm::network::AddressUnix* unixAddr = 
+                dynamic_cast<const csm::network::AddressUnix*>( reqAddress );
+
+            if ( unixAddr )
+                rspAddress = std::make_shared<csm::network::AddressUnix>( *unixAddr );
             break;
-        
+        }
         case csm::network::CSM_NETWORK_TYPE_PTP:
-            rspAddress = std::make_shared<csm::network::AddressPTP>( 
-                *dynamic_cast<const csm::network::AddressPTP*>( reqAddress ));
+        {
+            const csm::network::AddressPTP* ptpAddr = 
+                dynamic_cast<const csm::network::AddressPTP*>( reqAddress );
+            
+            if ( ptpAddr )
+                rspAddress = std::make_shared<csm::network::AddressPTP>( *ptpAddr );
             break; 
-
+        }
         case csm::network::CSM_NETWORK_TYPE_ABSTRACT:                                           
-            rspAddress = std::make_shared<csm::network::AddressAbstract>( 
-                *dynamic_cast<const csm::network::AddressAbstract*>( reqAddress ));
+        {
+            const csm::network::AddressAbstract* absAddr = 
+                dynamic_cast<const csm::network::AddressAbstract*>( reqAddress );
+
+            if ( absAddr )
+                rspAddress = std::make_shared<csm::network::AddressAbstract>( *absAddr );
             break;
-
-
+        }
         default:
             LOG(csmapi, warning) << "csm::daemon::helper::CreateReplyAddress():"
                 " Unexpected Address Type: " << addr_type;
@@ -441,28 +461,32 @@ inline csm::daemon::NetworkEvent* CreateErrorEventAgg(
 {
     csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)&aEvent;
     csm::network::MessageAndAddress reqContent = ev->GetContent();
+    csm::daemon::NetworkEvent *netEvent = nullptr;
 
     uint32_t bufLen = 0;
     char*    buf    = csmi_err_pack(errcode, errmsg.c_str(), &bufLen); 
     uint8_t flags = CSM_HEADER_RESP_BIT | CSM_HEADER_ERR_BIT;
 
-    csm::network::Message rspMsg;
-    bool ret = CreateNetworkMessage(reqContent._Msg, buf, bufLen, flags, rspMsg);
-    if (buf) free(buf);
-    
-    // If the context exists get and cast its handler, otherwise set it to a nullptr
-    CSMI_BASE* handler = aContext ? 
-        static_cast<CSMI_BASE*>( aContext->GetEventHandler() ) : nullptr;
-    csm::daemon::NetworkEvent *netEvent = nullptr;
 
-    if ( handler && ret )
+    if ( buf )
     {
-      csm::network::MessageAndAddress errContent ( 
-                                        rspMsg, 
-                                        handler->GetAbstractAggregator());
-      
-      netEvent = new csm::daemon::NetworkEvent(errContent,
-                            csm::daemon::EVENT_TYPE_NETWORK, nullptr);
+        csm::network::Message rspMsg;
+        bool ret = CreateNetworkMessage(reqContent._Msg, buf, bufLen, flags, rspMsg);
+        free(buf);
+        
+        // If the context exists get and cast its handler, otherwise set it to a nullptr
+        CSMI_BASE* handler = aContext ? 
+            static_cast<CSMI_BASE*>( aContext->GetEventHandler() ) : nullptr;
+
+        if ( handler && ret )
+        {
+          csm::network::MessageAndAddress errContent ( 
+                                            rspMsg, 
+                                            handler->GetAbstractAggregator());
+          
+          netEvent = new csm::daemon::NetworkEvent(errContent,
+                                csm::daemon::EVENT_TYPE_NETWORK, nullptr);
+        }
     }
     return netEvent;
 }

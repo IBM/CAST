@@ -52,7 +52,7 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
     if( ! aMgr->GetThreadKeepRunning() )
       break;
 
-    csm::daemon::BDSEvent *bds_ev = dynamic_cast<csm::daemon::BDSEvent*>( timers->FetchEvent() );
+    csm::daemon::BDSEvent *bds_ev = timers ? dynamic_cast<csm::daemon::BDSEvent*>( timers->FetchEvent() ) : nullptr;
     idle = ( bds_ev == nullptr );
 
     // if nothing to do, just wait for regular wakeup
@@ -162,6 +162,7 @@ csm::daemon::EventManagerBDS::Connect()
       if( fcntl(_Socket, F_SETFL, current_setting ) != 0 )
       {
         CSMLOG( csmd, warning ) << "Unable to change BDS socket to non-blocking: " << strerror( errno );
+        freeaddrinfo( clist );
         return false;
       }
     }

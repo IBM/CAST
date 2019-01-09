@@ -38,7 +38,7 @@ public:
     //_startItem = csm::daemon::CPU;
     
     //InitUserData();
-    Environmental_data = new CSM_Environmental_Data();
+    //Environmental_data = new CSM_Environmental_Data();
   }
   
   virtual void Process( const csm::daemon::CoreEvent &aEvent,

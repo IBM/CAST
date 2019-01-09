@@ -58,8 +58,8 @@ void StatefulForwardResponse::Process(
                     dataStr = std::string(buffer, bufLen);
                     free(buffer);
                 }
-                csmi_err_free(err);
             }
+            csmi_err_free(err);
         }
         else
         {
@@ -69,15 +69,20 @@ void StatefulForwardResponse::Process(
         // Specialized Network event creation for forwarding.
         const csm::daemon::NetworkEvent *ctxEvent = 
             dynamic_cast<const csm::daemon::NetworkEvent*>(ctx->GetReqEvent());
-        csm::network::MessageAndAddress ctxContent = ctxEvent->GetContent();
 
-        csm::network::Message msg = ctxContent._Msg;
-        msg.SetErr();
-        msg.SetResp();
-        msg.SetData(dataStr);
-        msg.CheckSumUpdate();
-        forwardEvent = csm::daemon::helper::CreateNetworkEvent(
-            msg, ctxContent.GetAddr());
+        // if the context can be cast create a network event.
+        if ( ctxEvent )
+        {
+            csm::network::MessageAndAddress ctxContent = ctxEvent->GetContent();
+
+            csm::network::Message msg = ctxContent._Msg;
+            msg.SetErr();
+            msg.SetResp();
+            msg.SetData(dataStr);
+            msg.CheckSumUpdate();
+            forwardEvent = csm::daemon::helper::CreateNetworkEvent(
+                msg, ctxContent.GetAddr());
+        }
     }
     else
     {

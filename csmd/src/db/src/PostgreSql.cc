@@ -38,6 +38,10 @@ PGconn* PQ_CreateConn(const char *server, const char *user,
 
   char *info = NULL;
   info = (char *) malloc(sizeof(char)*len);
+
+  // If the info wasn't initialized return.
+  if (!info ) return NULL;
+
   char *tmp = info;
   
   sprintf(info, "host=%s", server);
@@ -62,16 +66,17 @@ PGconn* PQ_CreateConn(const char *server, const char *user,
   if (strlen(info) != (len - 1))
   {
     LOG(csmdb, error) << "Fail to construct the parameters for PGconnectdb...";
+    free(info);
+
     return NULL;
   }
 
   PGconn *conn =  PQconnectdb(info);
   if (conn == NULL) {
     LOG(csmdb, error) << "Return NULL from PQConnectdb";
-    return NULL;
   }
 
-  if (info) free(info);
+  free(info);
 
   return conn;
 }

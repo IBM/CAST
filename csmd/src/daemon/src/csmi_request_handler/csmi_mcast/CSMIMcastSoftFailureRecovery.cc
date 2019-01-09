@@ -87,6 +87,10 @@ bool ParseResponseSoftFailure(
 
             csm_free_struct_ptr(csmi_soft_failure_recovery_payload_t, payload);
         }
+        else if( payload) 
+        {
+            csm_free_struct_ptr(csmi_soft_failure_recovery_payload_t, payload);
+        }
     }
 
     return success;

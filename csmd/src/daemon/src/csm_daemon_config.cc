@@ -177,7 +177,15 @@ Configuration::Configuration( int argc, char **argv, const RunMode *runmode )
   daemonID = (daemonID << MSGID_BITS_PER_PID) + ( getpid() & ((1 << MSGID_BITS_PER_PID)-1) );
   SetDaemonState( daemonID & ((1ull << MSGID_BITS_PER_DAEMON_ID)-1ull) );
 
-  CSMLOG( csmd, info ) << "DaemonID: " << _DaemonState->GetDaemonID() << " using hostname: " << _Hostname << " PID: " << getpid();
+  if  (_DaemonState)
+  {
+    CSMLOG( csmd, info ) << "DaemonID: " <<  _DaemonState->GetDaemonID()  
+        << " using hostname: " << _Hostname << " PID: " << getpid();
+  }
+  else
+  {
+    CSMLOG( csmd, info ) << "DaemonID: MISSING  using hostname: " << _Hostname << " PID: " << getpid();
+  }
   
   // after parsing the command line and the configuration file,
   // can try to set up the DBConnectionPool here. Now only Master has the premission.

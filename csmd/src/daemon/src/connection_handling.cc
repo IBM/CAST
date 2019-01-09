@@ -491,7 +491,10 @@ csm::daemon::ConnectionHandling_aggregator::ConnectionHandling_aggregator( const
     throw csm::daemon::Exception( "Invalid initialization data for master address." );
 
   if( _DaemonState != nullptr )
-    dynamic_cast<csm::daemon::DaemonStateAgg*>( _DaemonState )->InitActiveAddresses();
+  {
+      csm::daemon::DaemonStateAgg* state = dynamic_cast<csm::daemon::DaemonStateAgg*>( _DaemonState ); 
+      if ( state ) state->InitActiveAddresses();
+  }
 }
 
 int
