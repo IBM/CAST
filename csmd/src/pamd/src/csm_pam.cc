@@ -23,6 +23,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include "csmi/include/csm_api_workload_manager.h"
+#include "csmutil/include/csmutil_logging.h"
 
 #define WHITELIST "/etc/pam.d/csm/whitelist"
 #define NO_CG "CSM_NO_CGROUP"
@@ -38,7 +39,7 @@ int check_users(const char* userName, char migrate_pid)
         return PAM_SUCCESS;
 
     // Disable logging.
-    csmutil_logging_level_set("off");
+    csmutil_logging_level_set((char*)"off");
 
     // 1. Check the active list if the NO_CG flag is not set.
     csm_init_lib();
