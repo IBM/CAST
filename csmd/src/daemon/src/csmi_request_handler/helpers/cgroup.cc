@@ -1489,11 +1489,11 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         // Cache the system map locally.
         std::string configuredCores = jitterInfo.GetSystemMap();
         int32_t     configCoreCount = configuredCores.size();
-        int32_t     totalCores      = coresPerSocket * sockets
+        int32_t     totalCores      = coresPerSocket * sockets;
 
         // TODO Cache this somehow.
         // If there's any disconnect pad the configured cores with zero.
-        for (configCoreCount ; configCoreCount < totalCores; ++configCoreCount)
+        for (; configCoreCount < totalCores; ++configCoreCount)
         {
             configuredCores.append("0");
         }
