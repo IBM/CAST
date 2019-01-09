@@ -320,14 +320,18 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         }
                         else
                         {
+                            rc = -2;
                             LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
-                                         << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo).  Cancel request ignored.";
+                                         << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo). Cancel request ignored.";
+                            LOG_RC_AND_BAIL(rc);
                         }
                     }
                     else
                     {
+                        rc = -2;
                         LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
-                                     << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo).  Cancel request ignored.";
+                                     << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo). Cancel request ignored.";
+                        LOG_RC_AND_BAIL(rc);
                     }
                 }
 
@@ -341,14 +345,44 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     rc = HandleFile::get_xbbServerGetJobForHandle(l_JobId, l_JobStepId, l_Handle);
                     if (!rc)
                     {
-                        //  Cancel the transfer for the entire handle
-                        string l_HostName;
-                        activecontroller->gethostname(l_HostName);
-                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                        BBSTATUS l_Status;
+                        rc = HandleFile::get_xbbServerHandleStatus(l_Status, (LVKey*)0, l_JobId, l_JobStepId, l_Handle);
+                        if (!rc)
+                        {
+                            switch (l_Status)
+                            {
+                                case BBFULLSUCCESS:
+                                {
+                                    // If the handle status is BBFULLSUCCESS, do not allow the cancel
+                                    rc = -2;
+                                    LOG(bb,info) << "A cancel request was made for handle " << l_Handle \
+                                                 << ". However, the handle currently has a status of BBFULLSUCCESS. Cancel request ignored.";
+                                    LOG_RC_AND_BAIL(rc);
+                                }
+                                break;
+
+                                default:
+                                {
+                                    //  Cancel the transfer for the entire handle
+                                    string l_HostName;
+                                    activecontroller->gethostname(l_HostName);
+                                    rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                                }
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            errorText << "Could not determine the handle status for job " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << l_Handle \
+                                      << ". Request to cancel a transfer with a cancel scope of BBSCOPETAG failed.";
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
                     }
                     else
                     {
-                        LOG_RC_AND_BAIL(rc);
+                        errorText << "Could not determine the jobid for handle " << l_Handle \
+                                  << ". Request to cancel a transfer with a cancel scope of BBSCOPETAG failed.";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
 
