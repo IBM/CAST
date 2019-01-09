@@ -281,7 +281,6 @@ CREATE TABLE csm_allocation (
     isolated_cores                  int         default 0,
     user_flags                      text,
     system_flags                    text,
-    smt_mode                        smallint    default 0,
     ssd_min                         bigint,
     ssd_max                         bigint,
     num_nodes                       int         not null,
@@ -305,6 +304,7 @@ CREATE TABLE csm_allocation (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
+    smt_mode                        smallint    default 0,
 
     
     -- resource_comments            tbd     not null,
@@ -336,7 +336,6 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.isolated_cores is 'cgroup: 0 - No cgroups, 1 - Allocation Cgroup, 2 - Allocation and Core Isolation Cgroup, >2 || <0 unsupported';
     COMMENT ON COLUMN csm_allocation.user_flags is 'user space prolog/epilog flags';
     COMMENT ON COLUMN csm_allocation.system_flags is 'system space prolog/epilog flags';
-    COMMENT ON COLUMN csm_allocation.smt_mode is 'the smt mode of the allocation';
     COMMENT ON COLUMN csm_allocation.ssd_min is 'minimum ssd size (in bytes) for this allocation';
     COMMENT ON COLUMN csm_allocation.ssd_max is 'maximum ssd size (in bytes) for this allocation';
     COMMENT ON COLUMN csm_allocation.num_nodes is 'number of nodes in this allocation,also see csm_node_allocation';
@@ -360,6 +359,7 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.requeue is 'identifies (requeue) if the allocation is requeued it will attempt to have the previous allocation id';
     COMMENT ON COLUMN csm_allocation.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation.wc_key is 'arbitrary string for grouping orthogonal accounts together';
+    COMMENT ON COLUMN csm_allocation.smt_mode is 'the smt mode of the allocation';
     COMMENT ON INDEX csm_allocation_pkey IS 'pkey index on allocation_id';
 --  COMMENT ON INDEX uk_csm_allocation_b IS 'uniqueness on primary_job_id, secondary_job_id';
     COMMENT ON SEQUENCE csm_allocation_allocation_id_seq IS 'used to generate primary keys on allocation ids';
@@ -416,7 +416,6 @@ CREATE TABLE csm_allocation_history (
     isolated_cores                  int,
     user_flags                      text,
     system_flags                    text,
-    smt_mode                        smallint    default 0,
     ssd_min                         bigint,
     ssd_max                         bigint,
     num_nodes                       int         not null,
@@ -442,7 +441,8 @@ CREATE TABLE csm_allocation_history (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
-    archive_history_time            timestamp
+    archive_history_time            timestamp,
+    smt_mode                        smallint    default 0
 
 );
 
@@ -475,7 +475,6 @@ CREATE INDEX ix_csm_allocation_history_d
     COMMENT ON COLUMN csm_allocation_history.isolated_cores is 'cgroup: 0 - No cgroups, 1 - Allocation Cgroup, 2 - Allocation and Core Isolation Cgroup, >2 || <0 unsupported';
     COMMENT ON COLUMN csm_allocation_history.user_flags is 'user space prolog/epilog flags';
     COMMENT ON COLUMN csm_allocation_history.system_flags is 'system space prolog/epilog flags';
-    COMMENT ON COLUMN csm_allocation_history.smt_mode is 'the smt mode of the allocation';
     COMMENT ON COLUMN csm_allocation_history.ssd_min is 'minimum ssd size (in bytes) for this allocation';
     COMMENT ON COLUMN csm_allocation_history.ssd_max is 'maximum ssd size (in bytes) for this allocation';
     COMMENT ON COLUMN csm_allocation_history.num_nodes is 'number of nodes in allocation, see csm_node_allocation';
@@ -502,6 +501,7 @@ CREATE INDEX ix_csm_allocation_history_d
     COMMENT ON COLUMN csm_allocation_history.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation_history.wc_key is 'arbitrary string for grouping orthogonal accounts together';
     COMMENT ON COLUMN csm_allocation_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
+    COMMENT ON COLUMN csm_allocation_history.smt_mode is 'the smt mode of the allocation';
     COMMENT ON INDEX ix_csm_allocation_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_history_b IS 'index on allocation_id';
     COMMENT ON INDEX ix_csm_allocation_history_c IS 'index on ctid';
