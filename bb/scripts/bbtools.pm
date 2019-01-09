@@ -35,6 +35,7 @@ $VERSION = '0.01';
 
 use JSON;
 use Sys::Hostname;
+use File::Temp qw/ tempfile /;
 
 sub isSetuid
 {
@@ -230,12 +231,27 @@ sub untaint
 
 sub bpost
 {
-    my($desc, $mailbox) = @_;
+    my($desc, $mailbox, $filedata) = @_;
     $bpostbin = $ENV{'LSF_BINDIR'};
     if(($bpostbin ne "") && ($::SRMTYPE eq "LSF"))    # LSF available
     {
+        my $fh;
+        my $tmpfilename;
+        my $fileoption = "";
         $mailbox = $::BPOSTMBOX if(!defined $mailbox);
-        cmd("$bpostbin/bpost -d '$desc' -i $mailbox $::JOBID");
+        if($filedata ne "")
+        {
+            ($fh, $tmpfilename) = tempfile();
+            $fileoption = "-a $tmpfilename";
+            print $fh $filedata;
+        }
+        cmd("$bpostbin/bpost $fileoption -d '$desc' -i $mailbox $::JOBID");
+        
+        if($filedata ne "")
+        {
+            close($fh);
+            unlink($tmpfilename);
+        }
     }
     else
     {
@@ -309,7 +325,8 @@ sub bbgetrc
 
 sub cmd
 {
-    my($cmd, $timeout) = @_;
+    my($cmd, $timeout, $postresults) = @_;
+    undef $::LASTOUTPUT;
     $cmd = untaint($cmd);
     if(!$QUIET) 
     { 
@@ -321,7 +338,22 @@ sub cmd
     alarm($timeout) if($timeout);
     eval
     {
-        system($cmd);
+        if($postresults)
+        {
+            my @lines = ();
+            open(CMD, "$cmd |");
+            while(my $line = <CMD>)
+            {
+                chomp($line);
+                push(@lines, $line);
+            }
+            close(CMD);
+            $::LASTOUTPUT = join("\n", @lines);
+        }
+        else
+        {
+            system($cmd);
+        }
     };
     alarm(0) if($timeout);
 

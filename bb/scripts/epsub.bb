@@ -89,20 +89,22 @@ if(exists $ENV{LSF_SUB4_SUB_ENV_VARS})
     push(@vars, "BSCFS_MNT_PATH=" . $ENV{"BSCFS_MNT_PATH"}) if(exists $ENV{"BSCFS_MNT_PATH"});;
 }
 
+%SKIP = ( "CSM_ALLOCATION_ID" => 1);
+
 openBBENV();
 foreach $var (@vars)
 {
     if($var =~ /all/)
     {
-	foreach $key (keys %ENV)
-	{
-	    print BBENV "$key=$ENV{$key}\n" if(exists $ENV{$key});
-	}
+        foreach $key (keys %ENV)
+        {
+            print BBENV "$key=$ENV{$key}\n" if(!exists $SKIP{$key});
+        }
     }
     else
     {
-	($key,$value) = $var =~ /(\S+?)=(\S+)/;
-	print BBENV "$key=$value\n";
+        ($key, $value) = $var =~ /(\S+?)=(\S+)/;
+        print BBENV "$key=$value\n";
     }
 }
 close(BBENV);
