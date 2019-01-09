@@ -1467,13 +1467,15 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     {
         
 
+//#define VM_DEVELOPMENT 1
 #ifdef VM_DEVELOPMENT
-        sockets        = 1;
-        threadsPerCore = 1;
-        coresPerSocket = 4;
-        const int32_t threadsPerCoreMax    = 1;
-        const int32_t threadsPerCoreOffset = 0;
-        const char* DELIM = _RANGE_DELIM;
+        threads        = 160;
+        sockets        = 2;//1;
+        threadsPerCore = 8;//1;
+        coresPerSocket = 10;//4;
+        //const int32_t threadsPerCoreMax    = 1;
+        //const int32_t threadsPerCoreOffset = 0;
+        //const char* DELIM = _RANGE_DELIM;
 #else
         // Determine the delimiter based on the number of PerSocket/hreads per core.
         const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
@@ -1508,7 +1510,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         int32_t groupStart           = 0;      // Start of group.
         int64_t isolation            = cores;  // Cores available for isolation.
         int32_t core                 = 0;      // The active core being processed.
-
+        
         // Setup affinity blocks for IRQ affinity
         int32_t numAffinityBlocks   = (int32_t)ceil( threads / 32.f );
         int32_t activeAffinityBlock = 0;
@@ -1521,13 +1523,13 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
         // ================================================================================
 
-        for ( int32_t thread = 0; core < totalCores; ++core )
+        for ( ; core < totalCores; ++core )
         {
             // If true considered an allocation core.
             bool allocCore = (configuredCores[core] == '0');
             
             // On new sockets reset the cores for isolation.
-            if ( core % coresPerSocket ) isolation = cores;
+            if ( (core % coresPerSocket) == 0 ) isolation = cores;
             
             // Process the allocation core.
             if ( allocCore || isolation == 0 )
