@@ -37,6 +37,9 @@ int check_users(const char* userName, char migrate_pid)
     if ( strcmp(SUPER_USER,userName) == 0 )
         return PAM_SUCCESS;
 
+    // Disable logging.
+    csmutil_logging_level_set("off");
+
     // 1. Check the active list if the NO_CG flag is not set.
     csm_init_lib();
     csm_api_object   *csm_obj = NULL;
