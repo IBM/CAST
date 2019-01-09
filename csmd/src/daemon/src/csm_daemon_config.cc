@@ -1327,7 +1327,7 @@ void Configuration::CreateThreadPool()
 
         // Parse SMT for system.
         keyStr = GetValueInConfig(SYSTEM_SMT);
-        uint32_t systemSMT      = std::strtoul(keyStr.c_str(), nullptr, 10);
+        int32_t systemSMT      = std::strtol(keyStr.c_str(), nullptr, 10);
 
         keyStr     = GetValueInConfig(IRQ_MAP);
         boost::algorithm::to_lower(keyStr);

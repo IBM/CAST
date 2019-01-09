@@ -1011,6 +1011,36 @@ int CGroup::CPUPower(
     return rc;
 }
 
+
+int CGroup::IRQRebalance( const std::string bannedCPUs )
+{
+    // XXX Might need to set all of the affinity masks?
+    #define IRQBALANCE_BANNED_CPUS "IRQBALANCE_BANNED_CPUS"
+    
+    // Export IRQBALANCE_BANNED_CPUS
+    setenv( IRQBALANCE_BANNED_CPUS, bannedCPUs.c_str(), 1 );
+
+    // run irqbalance as a oneshot.
+    char* scriptArgs[] = { (char*)"irqbalance", (char*)"--oneshot", NULL };
+
+    LOG(csmapi, info) << "CGroup::IRQRebalance: Executing IRQ Balance with following banned cpus: " 
+        << bannedCPUs;
+
+    errno = 0;
+    int exit = execv(*scriptArgs, scriptArgs);
+    if ( exit != -1 )
+    {
+        LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
+    }
+    else
+    {
+        exit = errno;
+        LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit);
+    }
+    
+    return exit;
+}
+
 void CGroup::WriteToParameter( 
     const char* parameter, 
     const std::string& groupController, 
@@ -1417,7 +1447,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         STATE_START = 0,
         ALLOC_NOW,
         SYSTEM_NOW
-    }
+    };
 
     // Get the jitter info.
     csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
@@ -1458,23 +1488,24 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
         // Cache the system map locally.
         std::string configuredCores = jitterInfo.GetSystemMap();
-        size_t      configCoreCount = configuredCores.size();
+        int32_t     configCoreCount = configuredCores.size();
 
         // Setup the system SMT.
-        uint32_t    systemSMT       = jitterInfo.GetSystemMap();
+        int32_t    systemSMT       =  jitterInfo.GetSystemSMT();
         if ( systemSMT == 0 || systemSMT > threadsPerCore ) systemSMT = threadsPerCoreMax;
 
 
         coreState currentState = STATE_START;  // The current state of the processing.
         int32_t thread   = 0;                  // The active thread being processed.
         int32_t continuousRangeStart = 0;      // A continuous range for groups.
+        int32_t groupStart           = 0;      // Start of group.
         int64_t isolation            = cores;  // Cores available for isolation.
-        size_t  core                 = 0;      // The active core being processed.
+        int32_t core                 = 0;      // The active core being processed.
 
 
         // Setup affinity blocks for IRQ affinity
-        size_t numAffinityBlocks   = (size_t)ceil( threads / 32.f );
-        size_t activeAffinityBlock = 0;
+        int32_t numAffinityBlocks   = (int32_t)ceil( threads / 32.f );
+        int32_t activeAffinityBlock = 0;
         std::vector<uint32_t> affinityBlocks ( numAffinityBlocks, 0 );
         uint32_t IRQMask = ((uint32_t)pow(2, systemSMT)) - 1;
 
@@ -1553,8 +1584,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
 
                 // XXX Today this assumes < 32 threads per core!
-                IRQMask[activeAffinityBlock] |= (IRQMask << (thread % 32));
-                activeAffinityBlock = (size_t)(thread / 32);
+                affinityBlocks[activeAffinityBlock] |=  (IRQMask << (thread % 32));
+                activeAffinityBlock = (int32_t)(thread / 32);
             }
         }
 
@@ -1576,18 +1607,22 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         // Create the IRQ Mask.
         
         std::stringstream affinityStream;
-        for ( int i = numAffinityBlocks - 1; i >= 0; --i);
-        {
-            affinityStream << std::hex << IRQMask[i] << ",";
-        }
-        
+        std::string affinityString;         // The list of banned CPUs for the affinity setting.
         if ( jitterInfo.GetIRQAffinity() )
         {
-            std::string affinityString = affinityStream.str();
+            for ( int i = numAffinityBlocks - 1; i >= 0; --i)
+            {
+                affinityStream << std::hex << !(affinityBlocks[i]) << ",";
+            }
+            affinityString = affinityStream.str();
             affinityString.back() = '\0';
-            LOG(csmapi, error) << "Affinity String: " << affinityString;
+        }
+        else
+        {
+            affinityString = "0";
         }
 
+        IRQRebalance(affinityString);
 
         // ================================================================================
         

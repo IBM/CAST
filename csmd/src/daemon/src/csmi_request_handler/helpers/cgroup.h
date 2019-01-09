@@ -237,6 +237,15 @@ private:
      */
     static int CPUPower(const uint32_t thread, const int online);
 
+    /**
+     * @brief Applies the IRQ affinity using the irqbalance daemon in oneshot mode.
+     *
+     * @param[in] bannedCPUs A list of banned CPUs as hex strings, sets env `IRQBALANCE_BANNED_CPUS`.
+     *
+     * @return 0 on success, errno on failure.
+     */
+    static int IRQRebalance(const std::string bannedCPUs);
+
     /** @brief Write the supplied value to the specified parameter for the controller.
      *
      * @todo update controller strings?

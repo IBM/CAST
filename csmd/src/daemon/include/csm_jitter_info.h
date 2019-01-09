@@ -28,7 +28,7 @@ class CSM_Jitter_Info
 private:
 
     std::string _SystemMap;
-    uint32_t    _SystemSMT;
+    int32_t     _SystemSMT;
     bool        _IRQAffinity;
 
 public:
@@ -37,7 +37,7 @@ public:
 
     void Init(
             std::string systemMap,
-            uint32_t    systemSMT,
+            int32_t     systemSMT,
             bool        irqAffinity) 
     {
         _SystemMap     = systemMap;
@@ -48,7 +48,7 @@ public:
     ~CSM_Jitter_Info() {}
    
     std::string GetSystemMap()     const { return _SystemMap;     } 
-    uint32_t    GetSystemSMT()     const { return _SystemSMT;     }
+    int32_t     GetSystemSMT()     const { return _SystemSMT;     }
     bool        GetIRQAffinity()   const { return _IRQAffinity;   }
 
     std::string toString()
