@@ -30,7 +30,8 @@ errors indicate formatting problems in the config file.
         "ufm" : { },
         "bds" : { },
         "recurring_tasks": { },
-        "data_collection" : { }
+        "data_collection" : { },
+        "jitter_mitigation" : { }
     }
   }
 
@@ -107,6 +108,10 @@ Beginning with the top-level configuration section `csm`.
     
     See `The data_collection block`_.
 
+:jitter_mitigation: 
+    Configures the Mitigation strategy for core isolation and CGroups.
+
+    See `The jitter_mitigation block`_.
 
 .. _CSMDLogBlock:
 
@@ -617,5 +622,66 @@ effect on other daemon roles.
         | ``environmental`` | A set of CPU and machine stats and counters. |
         +-------------------+----------------------------------------------+
         
+
+The ``jitter_mitigation`` block
+________________________________
+
+The jitter mitigation block is used to configure how core isolation functions in regards to 
+Allocations. This block will only be required on Compute Node configurations.
+
+
+.. code-block:: JavaScript
+
+    "jitter_mitigation" :
+    {
+        "system_map"     : "F03C0",
+        "system_smt"     : 0,
+        "irq_affinity"   : true
+    }
+
+:system_map:
+    
+    The system map is a hexadecimal string representing the cores that will be considered for
+    core isolation in non shared allocations. To create the hexadecimal string the following 
+    procedure is recommended:
+
+    1. Determine the number of cores on the machine.
+
+        cores : 20
+        
+        .. note:: The CSM team also recommends planning on a per socket basis. 
+
+    2. Write the isolation schema as a binary string, each binary digit should be one core:
+
+        ``1110 0000 0011 1100 0000``
+
+    3. Convert the binary string to hex:
+
+        ``F03C0``
+        
+    This pattern will then be used to select cores that are to be used in the system cgroup
+    in conjunction with the user defined ``core_isolation``. The cores are selected left to right
+    per socket. 
+    
+    Using the above example, if a core isolation of ``2`` is selected then cores 0, 1, 9 and 10
+    will be selected for the system cgroup. 
+
+    Likewise if the user uses a core isolation that would exceed the pattern (``4`` in the above example)
+    the core isolation mechanism will only reserve cores up until the admin allowed cores for the 
+    system cgroup.
+
+:system_smt:
+    The SMT mode of the system cgroup, if unset this will use the maximum SMT mode.
+
+    Setting this option to ``0`` will maximize the SMT mode.
+    Setting this option higher than the allowed SMT mode will clamp to the maximum SMT mode.
+
+:irq_affinity:
+    Flag determining the behavior of Allocation Creation in relation to IRQ rebalancing. 
+
+    If set to true the cores isolated by the ``system_map`` and ``core isolation`` for the 
+    system cgroup will have all IRQ rebalanced to them. 
+    
+    If no core isolation occurs or this is set to false a rebalance across all cores will be performed.
 
 
