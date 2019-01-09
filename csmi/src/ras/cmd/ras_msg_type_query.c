@@ -41,7 +41,7 @@ void help(){
 	puts("_____CSM_RAS_MSG_TYPE_QUERY_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_ras_msg_type_query ARGUMENTS [OPTIONS]");
-	puts("  csm_ras_msg_type_query [-c control_action] [-m msg_id] [-M message] [-s severity] [-l limit] [-o offset] [-h] [-v verbose_level]");
+	puts("  csm_ras_msg_type_query [-c control_action] [-m msg_id] [-M message] [-s severity] [-S set_state] [-l limit] [-o offset] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Used to query the 'csm_ras_type' table of the CSM database.");
 	puts("");
@@ -52,13 +52,14 @@ void help(){
 	puts("ARGUMENTS:");
 	puts("  OPTIONAL:");
 	puts("    csm_ras_msg_type_query can have 4 optional arguments and requires at least 1");
-	puts("    Argument             | Example value            | Description  ");                                                 
-	puts("    ---------------------|--------------------------|--------------");
-	puts("    -c, --control_action | \"node_not_ready\"         | (STRING) 'control_action' search string. The 'control_action' is the name of control action script to invoke for this event.");
-	puts("    -m, --msg_id         | \"csm.%%\"                 | (STRING) The 'msg_id' search string. The 'msg_id' is the identifier string for this RAS event.");
-	puts("    -M, --message        | \"Message for RAS system\" | (STRING) 'message' search string. 'message' is the RAS message to display to the user (pre-variable substitution).");	
-	puts("    -s, --severity       | \"INFO\"                   | (STRING) 'severity' search string. 'severity' is the severity of the RAS event.");
-	puts("                         |                          | Valid Values: \"INFO\", \"WARNING\", or \"FATAL\"");
+	puts("    Argument             | Example value               | Description  ");                                                 
+	puts("    ---------------------|-----------------------------|--------------");
+	puts("    -c, --control_action | \"node_not_ready\"            | (STRING) 'control_action' search string. The 'control_action' is the name of control action script to invoke for this event.");
+	puts("    -m, --msg_id         | \"csm.%%\"                    | (STRING) The 'msg_id' search string. The 'msg_id' is the identifier string for this RAS event.");
+	puts("    -M, --message        | \"Message for RAS system\"    | (STRING) 'message' search string. 'message' is the RAS message to display to the user (pre-variable substitution).");	
+	puts("    -s, --severity       | \"INFO\"                      | (STRING) 'severity' search string. 'severity' is the severity of the RAS event.");
+	puts("                         |                             | Valid Values: \"INFO\", \"WARNING\", or \"FATAL\"");
+	puts("    -S, --set_state      | \"SOFT_FAILURE,HARD_FAILURE\" | (STRING) This is a csv field of 'set_state' search string. 'set_state' is the state the RAS event will set a node to after the event triggers.");
 	puts("  FILTERS:");
 	puts("    csm_ras_msg_type_query can have 2 optional filters.");
 	puts("    Argument      | Example value | Description  ");                                                 
@@ -71,7 +72,7 @@ void help(){
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_ras_msg_type_query -s \"%INFO%\"");
+	puts("  csm_ras_msg_type_query -s \"INFO\"");
 	puts("____________________");
 }
 
@@ -84,6 +85,7 @@ struct option longopts[] = {
 	{"msg_id",           required_argument, 0, 'm'},
 	{"message",          required_argument, 0, 'M'},
 	{"severity",         required_argument, 0, 's'},
+	{"set_state",        required_argument, 0, 'S'},
 	//filters
 	{"limit",            required_argument, 0, 'l'},
 	{"offset",           required_argument, 0, 'o'},
@@ -116,7 +118,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:c:l:m:M:o:s:", longopts, &option_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:c:l:m:M:o:s:S:", longopts, &option_index)) != -1) {
 		switch (opt) {
 			case 'h':
                 USAGE();
@@ -167,6 +169,27 @@ int main(int argc, char *argv[])
 				}
 				optionalParameterCounter++;
 				break;
+			case 'S':
+			{
+				csm_optarg_test( "-s, --set_state", optarg, USAGE );
+				csm_parse_csv( optarg, input->set_states, input->set_states_count,
+                            char*, csm_str_to_char, NULL, "-s, --set_state", USAGE );
+
+				//see if those are all valid states.
+				for(i = 0; i < input->set_states_count; i++){
+					if( -1 == csm_get_enum_from_string(csmi_node_state_t, input->set_states[i] ))
+					{
+						csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
+						csmutil_logging(error, "  \"%s\" is not a valid value for set_states. Must be a valid csmi_node_state_t", input->set_states[i]);
+	                    USAGE();
+						return CSMERR_INVALID_PARAM;
+					}
+				}
+
+
+				optionalParameterCounter++;
+				break;
+			}
 			default:
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
                 USAGE();
@@ -211,6 +234,11 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "    message:        %s", input->message);
 	csmutil_logging(debug, "    offset:         %i", input->offset);
 	csmutil_logging(debug, "    severity:       %s", csm_get_string_from_enum(csmi_ras_severity_t, input->severity));
+	csmutil_logging(debug, "    set_states_count: %i", input->set_states_count);
+	csmutil_logging(debug, "    set_states:       %p", input->set_states);
+	for(i = 0; i < input->set_states_count; i++){
+		csmutil_logging(debug, "      set_states[%i]: %s", i, input->set_states[i]);
+	}
 	csmutil_logging(debug, "  value of output:        %p", output);
 	csmutil_logging(debug, "  address of output:      %p", &output);
 

@@ -63,6 +63,8 @@ bool CSMIRasMsgTypeQuery::CreatePayload(
         "message = $","::text AND ")
     add_param_sql( stmtParams, input->severity > CSM_RAS_NO_SEV && input->severity < csm_enum_max(csmi_ras_severity_t), ++SQLparameterCount, 
         "severity = $","::ras_event_severity AND ")
+    add_param_sql( stmtParams, input->set_states_count > 0, ++SQLparameterCount, 
+        "set_state = ANY ( $","::compute_node_states[] ) AND ")
     
     // TODO should this fail if the parameter count is zero?
     // Replace the last 4 characters if any parameters were found.
@@ -107,6 +109,7 @@ bool CSMIRasMsgTypeQuery::CreatePayload(
 	if(input->msg_id[0]         != '\0') dbReq->AddTextParam(input->msg_id);
 	if(input->message[0]        != '\0') dbReq->AddTextParam(input->message);
 	if(input->severity > CSM_RAS_NO_SEV && input->severity < csm_enum_max(csmi_ras_severity_t) ) dbReq->AddTextParam(csm_get_string_from_enum(csmi_ras_severity_t, input->severity) );
+	if(input->set_states_count > 0 ) dbReq->AddTextArrayParam(input->set_states, input->set_states_count);
 	if(input->limit > 0)                 dbReq->AddNumericParam<int>(input->limit);
 	if(input->offset > 0)                dbReq->AddNumericParam<int>(input->offset);
 	
@@ -114,6 +117,8 @@ bool CSMIRasMsgTypeQuery::CreatePayload(
 
 	//release memory using CSM API function
 	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
+
+	LOG(csmapi, debug ) << STATE_NAME ":SQL: " << stmt;
 	
     LOG(csmapi, trace) << STATE_NAME ":CreatePayload: Exit";
 
