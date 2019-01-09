@@ -1489,11 +1489,18 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         // Cache the system map locally.
         std::string configuredCores = jitterInfo.GetSystemMap();
         int32_t     configCoreCount = configuredCores.size();
+        int32_t     totalCores      = coresPerSocket * sockets
+
+        // TODO Cache this somehow.
+        // If there's any disconnect pad the configured cores with zero.
+        for (configCoreCount ; configCoreCount < totalCores; ++configCoreCount)
+        {
+            configuredCores.append("0");
+        }
 
         // Setup the system SMT.
         int32_t    systemSMT       =  jitterInfo.GetSystemSMT();
         if ( systemSMT == 0 || systemSMT > threadsPerCore ) systemSMT = threadsPerCoreMax;
-
 
         coreState currentState = STATE_START;  // The current state of the processing.
         int32_t thread   = 0;                  // The active thread being processed.
@@ -1501,7 +1508,6 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         int32_t groupStart           = 0;      // Start of group.
         int64_t isolation            = cores;  // Cores available for isolation.
         int32_t core                 = 0;      // The active core being processed.
-
 
         // Setup affinity blocks for IRQ affinity
         int32_t numAffinityBlocks   = (int32_t)ceil( threads / 32.f );
@@ -1515,7 +1521,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
         // ================================================================================
 
-        for ( int32_t thread = 0; core < configCoreCount; ++core )
+        for ( int32_t thread = 0; core < totalCores; ++core )
         {
             // If true considered an allocation core.
             bool allocCore = (configuredCores[core] == '0');
@@ -1604,30 +1610,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         
         // ================================================================================
         
-        // Create the IRQ Mask.
-        
-        std::stringstream affinityStream;
-        std::string affinityString;         // The list of banned CPUs for the affinity setting.
-        if ( jitterInfo.GetIRQAffinity() )
-        {
-            for ( int i = numAffinityBlocks - 1; i >= 0; --i)
-            {
-                affinityStream << std::hex << !(affinityBlocks[i]) << ",";
-            }
-            affinityString = affinityStream.str();
-            affinityString.back() = '\0';
-        }
-        else
-        {
-            affinityString = "0";
-        }
-
-        IRQRebalance(affinityString);
-
-        // ================================================================================
-        
         // Bring the allocation nodes back up with the correct smt mode.
-        for ( int32_t thread = 0; core < configCoreCount; ++core )
+        for ( int32_t thread = 0; core < totalCores; ++core )
         {
             // If true considered an allocation core.
             bool allocCore = (configuredCores[core] == '0');
@@ -1660,6 +1644,27 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             CPUPower( 0, CPU_OFFLINE );
             CPUPower( 0, CPU_ONLINE );
         }
+        
+        // ================================================================================
+        
+        // Create the IRQ Mask.
+        std::stringstream affinityStream;
+        std::string affinityString;         // The list of banned CPUs for the affinity setting.
+        if ( jitterInfo.GetIRQAffinity() )
+        {
+            for ( int i = numAffinityBlocks - 1; i >= 0; --i)
+            {
+                affinityStream << std::hex << !(affinityBlocks[i]) << ",";
+            }
+            affinityString = affinityStream.str();
+            affinityString.back() = '\0';
+        }
+        else
+        {
+            affinityString = "0";
+        }
+
+        IRQRebalance(affinityString);
     }
     else
     {

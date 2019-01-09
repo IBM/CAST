@@ -670,6 +670,10 @@ Allocations. This block will only be required on Compute Node configurations.
     the core isolation mechanism will only reserve cores up until the admin allowed cores for the 
     system cgroup.
 
+
+    .. warning:: If any cores aren't configured in this variable they will not be considered for 
+        the system cgroup.
+
 :system_smt:
     The SMT mode of the system cgroup, if unset this will use the maximum SMT mode.
 
