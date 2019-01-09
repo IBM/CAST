@@ -106,17 +106,17 @@ int NodeController_CSM::gethostlist(string& hostlist)
     const char* jobindex= getenv("LSF_STAGE_JOBINDEX");
 
     csm_allocation_query_input_t input;
-    if(jobid && jobindex)
-    {
-        input.allocation_id    = 0;
-        input.primary_job_id   = stol(jobid);
-        input.secondary_job_id = stol(jobindex);
-    }
-    else if(allocid)
+    if(allocid)
     {
         input.allocation_id    = stol(allocid);
         input.primary_job_id   = 0;
         input.secondary_job_id = 0;
+    }
+    else if(jobid && jobindex)
+    {
+        input.allocation_id    = 0;
+        input.primary_job_id   = stol(jobid);
+        input.secondary_job_id = stol(jobindex);
     }
     else
     { 
