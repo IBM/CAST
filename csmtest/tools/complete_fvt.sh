@@ -30,16 +30,27 @@ else
 fi
 
 source /etc/profile.d/xcat.sh
+MEMORY_LOG=${LOG_PATH}/performance/memory_usage.log
 
 run_bucket () {
 	bucket_type=$1
 	bucket_name=$2
+	
+	# Collect memory usage before bucket
+	memory_usage=`ps -eo rss -o args | grep "csm[d]\b" | grep master | cut -d ' ' -f 1`
+	printf "%-40s %10s\n" "${bucket_type} ${bucket_name}" "BEFORE: ${memory_usage}" >> ${MEMORY_LOG}
+
+	# Run bucket script
 	${FVT_PATH}/buckets/${bucket_type}/${bucket_name}.sh
 	rc=$?
 	if [ "$rc" -ne 0 ]
 	then
 		exit 1
 	fi
+
+	# Collect memory usage after bucket
+	memory_usage=`ps -eo rss -o args | grep "csm[d]\b" | grep master | cut -d ' ' -f 1`
+	printf "%-40s %10s\n" "${bucket_type} ${bucket_name}" "AFTER:  ${memory_usage}" >> ${MEMORY_LOG}
 }
 
 run_bucket "basic" "node"
