@@ -193,7 +193,9 @@ BOOST_PYTHON_MODULE(lib_csm_ras_py)
 		.add_property("severity", &csm_ras_msg_type_query_input_t::severity,&csm_ras_msg_type_query_input_t::severity," Severity of the RAS event. INFO/WARNING/FATAL. optional. ")
 		STRING_PROPERTY(csm_ras_msg_type_query_input_t, char*, control_action, , NULL, )
 		STRING_PROPERTY(csm_ras_msg_type_query_input_t, char*, msg_id, , NULL, )
-		STRING_PROPERTY(csm_ras_msg_type_query_input_t, char*, message, , NULL, );
+		STRING_PROPERTY(csm_ras_msg_type_query_input_t, char*, message, , NULL, )
+		.add_property("set_states_count", &csm_ras_msg_type_query_input_t::set_states_count,&csm_ras_msg_type_query_input_t::set_states_count," Number of set_states being queried, size of @ref set_states. ")
+		ARRAY_STR_PROPERTY(csm_ras_msg_type_query_input_t, char**, set_states, set_states_count, NULL, );
 
     class_<csm_ras_msg_type_query_output_t,csm_ras_msg_type_query_output_t*>("ras_msg_type_query_output_t")
 		.add_property("results_count", &csm_ras_msg_type_query_output_t::results_count,&csm_ras_msg_type_query_output_t::results_count," The number of records retrieved by the query, size of @ref results. ")
