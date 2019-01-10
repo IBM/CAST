@@ -132,7 +132,7 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int t
         }
     }
     
-    // Dulplicate the file descriptors for processing.
+    // Duplicate the file descriptors for processing.
     if ( execPid == 0  )
     {
         close(uni_pipe[FROM_CHILD]);
@@ -154,7 +154,7 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int t
         std::string fd_out("");        
 
         // TODO might be some buffer weirdness here.
-        while( (buffer_read = read( uni_pipe[FROM_CHILD], buffer, BUFFER_SIZE) )  )
+        while( (buffer_read = read( uni_pipe[FROM_CHILD], buffer, BUFFER_SIZE) ) > 0 )
         {
             buffer_total += buffer_read;
             fd_out.append(buffer, buffer_read);
@@ -162,7 +162,7 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int t
         close(uni_pipe[FROM_CHILD]);
 
         // If less than zero store a failure string.
-        if ( buffer_total < 0 )
+        if ( buffer_total > 0 )
         {
             *output = (char*)malloc(buffer_total);
             strcpy(*output, fd_out.c_str());
