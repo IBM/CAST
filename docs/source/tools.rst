@@ -93,7 +93,10 @@ Output
 ^^^^^^
 Reports will be caluclated and saved to individual files under ``opt/csm/tools/Reports`` under their respective log types. (The script will output to the screen as well). The report includes errors and calculated statistics.
 
+CSM standalone inventory collection
+-----------------------------------
 
+This tool connects to UFM and collects inventory information on all Mellanox hardware in the system.
 
 
 
