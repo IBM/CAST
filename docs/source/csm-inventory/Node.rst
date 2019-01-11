@@ -4,11 +4,9 @@ Node Inventory
 Overview
 --------
 
-CSM can collect and store hardware information about a node and store it in the `CSM Database`_. 
+CSM can collect and store hardware information about a node and store it in the :ref:`CSM_Database`. 
 
-.. _CSM Database: https://cast.readthedocs.io/en/latest/csmdb/index.html
-
-Below is a table outlining what information is collected and where in the `CSM Database`_ it is stored:
+Below is a table outlining what information is collected and where in the :ref:`CSM_Database` it is stored:
 
 +--------------------+------------------------------+
 | *INFORMATION*      | *Database Table*             |

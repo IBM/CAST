@@ -93,6 +93,8 @@ Output
 ^^^^^^
 Reports will be caluclated and saved to individual files under ``opt/csm/tools/Reports`` under their respective log types. (The script will output to the screen as well). The report includes errors and calculated statistics.
 
+.. _CSM_standalone_inventory_collection:
+
 CSM standalone inventory collection
 -----------------------------------
 
