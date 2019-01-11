@@ -25,6 +25,7 @@
 #include "bbserver_flightlog.h"
 #include "bbwrkqmgr.h"
 #include "identity.h"
+#include "tracksyscall.h"
 #include "Uuid.h"
 
 namespace bfs = boost::filesystem;
@@ -124,7 +125,9 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         char l_Buffer[sizeof(AsyncRequest)+1] = {'\0'};
         pRequest.str(l_Buffer, sizeof(l_Buffer));
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fwritesyscall, fd, __LINE__, sizeof(AsyncRequest));
         size_t l_Size = fwrite(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
+        threadLocalTrackSyscallPtr->clearTrack();
         fclose(fd);
 
         if (l_Size != sizeof(AsyncRequest))
@@ -531,10 +534,14 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
     FILE* fd = openAsyncRequestFile("rb", pSeqNbr);
     if (fd != NULL)
     {
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, fd, __LINE__);
         rc = fseek(fd, 0, SEEK_END);
+        threadLocalTrackSyscallPtr->clearTrack();
         if (!rc)
         {
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, fd, __LINE__);
             pOffset = (int64_t)ftell(fd);
+            threadLocalTrackSyscallPtr->clearTrack();
         }
         else
         {
@@ -624,10 +631,14 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
     FILE* fd = openAsyncRequestFile("rb", l_SeqNbr);
     if (fd != NULL)
     {
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, fd, __LINE__);
         rc = fseek(fd, pWorkItem.getTag(), SEEK_SET);
+        threadLocalTrackSyscallPtr->clearTrack();
         if (!rc)
         {
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::freadsyscall, fd, __LINE__, sizeof(AsyncRequest), pWorkItem.getTag());
             size_t l_Size = fread(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
+            threadLocalTrackSyscallPtr->clearTrack();
 
             if (l_Size == sizeof(AsyncRequest))
             {
@@ -1064,11 +1075,15 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
         while (!l_AllDone)
         {
             l_AllDone = true;
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
             l_FilePtr = fopen(l_AsyncRequestFileNamePtr, pOpenOption);
+            threadLocalTrackSyscallPtr->clearTrack();
             if (l_FilePtr != NULL && pOpenOption[0] == 'a')
             {
                 // Append mode...  Check the file size...
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
                 uint64_t l_Offset = (int64_t)ftell(l_FilePtr);
+                threadLocalTrackSyscallPtr->clearTrack();
                 if (crossingAsyncFileBoundary(l_Offset))
                 {
                     // Time for a new async request file...
@@ -1740,7 +1755,9 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                 {
                                     // Old async file....  If old enough, delete it...
                                     struct stat l_Statinfo;
+                                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::statsyscall, asyncfile.path().c_str(), __LINE__);
                                     int rc2 = stat(asyncfile.path().c_str(), &l_Statinfo);
+                                    threadLocalTrackSyscallPtr->clearTrack();
                                     if (!rc2)
                                     {
                                         time_t l_CurrentTime = time(0);
