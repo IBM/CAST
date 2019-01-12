@@ -714,11 +714,11 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const stri
 {
     int rc = 0;
 
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     if (pHandle == transferHandle)
     {
-        rc = parts.stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
+        rc = parts.stopTransfer(pLVKey, pHostName, pLV_Info, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
         if (rc == 1)
         {
             int l_Value = 1;

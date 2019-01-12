@@ -1400,7 +1400,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
     int rc = 0;
     stringstream errorText;
 
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
