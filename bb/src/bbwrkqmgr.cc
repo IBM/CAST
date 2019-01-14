@@ -124,8 +124,18 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 
   	becomeUser(0, 0);
 
+    int l_Maintenance = NO_MAINTENANCE;
+    char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+    int rc2 = sscanf(pRequest.getData(), "%s", l_Cmd);
+    if (rc2 == 1 && strstr(l_Cmd, "heartbeat"))
+    {
+        // NOTE:  Only perform async request file pruning maintenance
+        //        for a heartbeat operation, which is only every 5 minutes...
+        l_Maintenance = MINIMAL_MAINTENANCE;
+    }
+
     int l_SeqNbr = 0;
-    FILE* fd = openAsyncRequestFile("ab", l_SeqNbr, MINIMAL_MAINTENANCE);
+    FILE* fd = openAsyncRequestFile("ab", l_SeqNbr, l_Maintenance);
     if (fd != NULL)
     {
         char l_Buffer[sizeof(AsyncRequest)+1] = {'\0'};
