@@ -586,7 +586,9 @@ BEGIN
             a.queue,
             a.requeue,
             a.time_limit,
-            a.wc_key
+            a.wc_key,
+            NULL,
+            a.smt_mode
         );
         DELETE FROM csm_allocation WHERE allocation_id=allocationid;
 
@@ -670,7 +672,8 @@ BEGIN
             queue,
             requeue,
             time_limit,
-            wc_key)
+            wc_key,
+            smt_mode)
         VALUES
             (now(),
             NEW.allocation_id,
@@ -703,7 +706,8 @@ BEGIN
             NEW.queue,
             NEW.requeue,
             NEW.time_limit,
-            NEW.wc_key);
+            NEW.wc_key, 
+            NEW.smt_mode);
         RETURN NEW;
     END IF;
 RETURN NULL;
@@ -790,7 +794,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_num_processors    integer,
     OUT o_projected_memory  integer,
     OUT o_state             text,
-    OUT o_runtime           bigint
+    OUT o_runtime           bigint,
+    OUT o_smt_mode          smallint
 )
 RETURNS record AS $$
 DECLARE
@@ -805,13 +810,14 @@ BEGIN
         state, isolated_cores,
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
-        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint
+        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint,
+        smt_mode
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
         o_shared, o_num_gpus, o_num_processors,
-        o_projected_memory, o_runtime
+        o_projected_memory, o_runtime, o_smt_mode
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 
@@ -909,7 +915,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode          smallint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 
 -----------------------------------------------------------

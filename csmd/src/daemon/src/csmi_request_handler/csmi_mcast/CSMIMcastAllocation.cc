@@ -41,6 +41,7 @@ void CSMIMcast<STRUCT_TYPE,CSMIAllocErrorComparator>::BuildMcastPayload(char** b
     allocPayload->system_flags     = _Data->system_flags ? strdup(_Data->system_flags) : nullptr;
     allocPayload->user_name        = _Data->user_name ? strdup(_Data->user_name) : nullptr;
     allocPayload->create           = _Create;
+    allocPayload->smt_mode         = _Data->smt_mode;
     
 
     // Create only 

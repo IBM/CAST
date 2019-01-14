@@ -94,6 +94,10 @@ CSMI_VERSION_START(CSM_VERSION_1_4_0)
 CSMI_STRUCT_MEMBER(csmi_allocation_gpu_metrics_t**, gpu_metrics, ARRAY_STRUCT, num_nodes, NULL, csmi_allocation_gpu_metrics_t ) /**< Detailed gpu metrics for each node */
 CSMI_VERSION_END(3499cc33b2a83b231e2166374f7f97d4)
 
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int16_t,  smt_mode,        BASIC,  ,    0, ) /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

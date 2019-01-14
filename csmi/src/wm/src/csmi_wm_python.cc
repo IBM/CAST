@@ -478,7 +478,8 @@ BOOST_PYTHON_MODULE(lib_csm_wm_py)
 		STRING_PROPERTY(csmi_allocation_t, char*, requeue, , NULL, )
 		STRING_PROPERTY(csmi_allocation_t, char*, wc_key, , NULL, )
 		ARRAY_STR_PROPERTY(csmi_allocation_t, char**, compute_nodes, num_nodes, NULL, )
-		STRUCT_PROPERTY(csmi_allocation_t, csmi_allocation_history_t*, history, , NULL, &csmi_allocation_t::history);
+		STRUCT_PROPERTY(csmi_allocation_t, csmi_allocation_history_t*, history, , NULL, &csmi_allocation_t::history)
+		.add_property("smt_mode", &csmi_allocation_t::smt_mode,&csmi_allocation_t::smt_mode," The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. ");
 
     class_<csmi_allocation_accounting_t,csmi_allocation_accounting_t*>("allocation_accounting_t")
 		.add_property("ib_rx", &csmi_allocation_accounting_t::ib_rx,&csmi_allocation_accounting_t::ib_rx," Total count of Data Octets received on all Infiniband ports, 0 if the job is active ( multiply by 4 for bytes ).")

@@ -100,6 +100,7 @@ typedef struct {
     csmi_state_t start_state; /**< State of allocation at the start of the , refer to @ref csmi_state_t for details. */
     int64_t runtime; /**< The run time of the allocation so far. */
     csmi_allocation_gpu_metrics_t** gpu_metrics; /**< Detailed gpu metrics for each node */
+    int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
 } csmi_allocation_mcast_context_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *
@@ -151,6 +152,7 @@ typedef struct {
     char* user_flags; /**< User flags for the epilog/prolog. */
     char* system_flags; /**< System flags for the epilog/prolog. */
     int64_t runtime; /**< The run time of the allocation so far. */
+    int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
 } csmi_allocation_mcast_payload_request_t;
  /**  @brief Serializes the supplied structure into a char buffer.
 *

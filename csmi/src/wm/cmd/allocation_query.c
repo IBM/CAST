@@ -156,6 +156,7 @@ int main(int argc, char *argv[])
 	    	printf("launch_node_name:               %s\n", allocation->launch_node_name);
 	    	printf("user_flags:                     %s\n", allocation->user_flags);
 	    	printf("system_flags:                   %s\n", allocation->system_flags);
+	    	printf("smt_mode:                       %" PRId16 "\n", allocation->smt_mode);
 	    	printf("ssd_min:                        %" PRId64 "\n", allocation->ssd_min);
 	    	printf("ssd_max:                        %" PRId64 "\n", allocation->ssd_max);
 	    	printf("num_processors:                 %" PRId32 "\n", allocation->num_processors);

@@ -17,8 +17,9 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   16.2
 --   create:            12-14-2015
---   last modified:     11-08-2018
+--   last modified:     12-13-2018
 --   change log:    
+--   16.3   Added smt_mode to csm_allocation and csm_allocation_history
 --   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
 --          COMMENT ON COLUMN csm_node.state
 --          COMMENT ON COLUMN csm_node_history.state
@@ -303,6 +304,8 @@ CREATE TABLE csm_allocation (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
+    smt_mode                        smallint    default 0,
+
     
     -- resource_comments            tbd     not null,
     -- health_check_allocation      tbd     not null,
@@ -356,6 +359,7 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.requeue is 'identifies (requeue) if the allocation is requeued it will attempt to have the previous allocation id';
     COMMENT ON COLUMN csm_allocation.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation.wc_key is 'arbitrary string for grouping orthogonal accounts together';
+    COMMENT ON COLUMN csm_allocation.smt_mode is 'the smt mode of the allocation';
     COMMENT ON INDEX csm_allocation_pkey IS 'pkey index on allocation_id';
 --  COMMENT ON INDEX uk_csm_allocation_b IS 'uniqueness on primary_job_id, secondary_job_id';
     COMMENT ON SEQUENCE csm_allocation_allocation_id_seq IS 'used to generate primary keys on allocation ids';
@@ -437,7 +441,8 @@ CREATE TABLE csm_allocation_history (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
-    archive_history_time            timestamp
+    archive_history_time            timestamp,
+    smt_mode                        smallint    default 0
 
 );
 
@@ -496,6 +501,7 @@ CREATE INDEX ix_csm_allocation_history_d
     COMMENT ON COLUMN csm_allocation_history.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation_history.wc_key is 'arbitrary string for grouping orthogonal accounts together';
     COMMENT ON COLUMN csm_allocation_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
+    COMMENT ON COLUMN csm_allocation_history.smt_mode is 'the smt mode of the allocation';
     COMMENT ON INDEX ix_csm_allocation_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_history_b IS 'index on allocation_id';
     COMMENT ON INDEX ix_csm_allocation_history_c IS 'index on ctid';
