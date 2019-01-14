@@ -1,5 +1,7 @@
+.. _CSM_Network_Inventory:
+
 Network Inventory
-==================
+=================
 
 Overview
 --------
