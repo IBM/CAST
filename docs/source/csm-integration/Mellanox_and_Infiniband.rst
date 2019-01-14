@@ -3,6 +3,8 @@ Mellanox and Infiniband
 
 CSM can be integrated with Mellanox to enhance usability of your cluster. CSM can collect inventory on Mellanox hardware, listen to Mellanox events and create relative CSM RAS events, and run diagnostics and health check tests with regards to Mellanox systems. 
 
+.. _UFM_Credentials:
+
 Credentials
 -----------
 
