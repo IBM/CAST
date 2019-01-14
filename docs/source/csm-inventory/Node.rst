@@ -1,3 +1,5 @@
+.. _Node_Inventory_Collection:
+
 Node Inventory
 ==============
 
