@@ -47,17 +47,19 @@ Inventory collection has been modularly developed. We separated the external inv
 
 Because of this development choice, CSM can easily be adapted to work with multiple external programs and services. 
 
-.. note: As of CSM 1.0, CSM supports Mellanox and IB inventory collection. 
+.. note:: As of CSM 1.0, CSM supports Mellanox and IB inventory collection. 
 
 For ease of use, CSM provides a tool: :ref:`CSM_standalone_inventory_collection` which will collect inventory information from Mellanox and insert that data into the CSM Database. 
 
 RAS Events
 ----------
 
+.. note:: As of CSM 1.4, CSM supports RAS event integration with Mellanox. 
+
 CSM monitors Mellanox events and will create relative CSM RAS events when a Mellanox event triggers. This CSM RAS event will be recorded into the :ref:`CSM_Database`.
 
 Diagnostics
 -----------
 
-.. note: For CSM 1.5, CSM will support an integration between CSM Diagnostics and Health check with Mellanox Diagnostics. 
+.. note:: For CSM 1.5, CSM will support an integration between CSM Diagnostics and Health check with Mellanox Diagnostics. 
 
