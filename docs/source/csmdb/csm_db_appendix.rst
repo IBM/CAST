@@ -829,6 +829,8 @@ csm_vg_history
 Switch & ib cable tables
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. _csm_switch_table:
+
 csm_switch
 """"""""""
 
@@ -869,6 +871,8 @@ csm_switch_history
             | ix_csm_switch_history_d on (archive_history_time)        |
 =========== ========================================================== ==========================
 
+.. _csm_ib_cable_table:
+
 csm_ib_cable
 """"""""""""
 
@@ -904,6 +908,8 @@ csm_ib_cable_history
             | ix_csm_ib_cable_history_c on (ctid)                 |
             | ix_csm_ib_cable_history_d on (archive_history_time) |
 =========== ===================================================== ==========================
+
+.. _csm_switch_inventory_table:
 
 csm_switch_inventory
 """"""""""""""""""""
