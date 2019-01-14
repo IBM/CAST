@@ -45,7 +45,11 @@ The :ref:`CSM_Network_Inventory` (such as: switches, switch modules, and cables)
 
 Inventory collection has been modularly developed. We separated the external inventory data collection from the internal CSM Database insertion. Once data has been collected, you can then insert that collected data into the CSM Database by using a CSM API. We do this for ease of future updates, should an external component change the way it collects and presents its data. 
 
-Because of this development choice, CSM can easily be adapted to work with multiple external programs and services. As of CSM 1.0, CSM supports Mellanox and IB inventory collection. For ease of use, CSM provides a tool: :ref:`CSM_standalone_inventory_collection` which will collect inventory information from Mellanox and insert that data into the CSM Database. 
+Because of this development choice, CSM can easily be adapted to work with multiple external programs and services. 
+
+.. note: As of CSM 1.0, CSM supports Mellanox and IB inventory collection. 
+
+For ease of use, CSM provides a tool: :ref:`CSM_standalone_inventory_collection` which will collect inventory information from Mellanox and insert that data into the CSM Database. 
 
 RAS Events
 ----------
