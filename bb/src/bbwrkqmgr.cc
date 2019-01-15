@@ -36,10 +36,59 @@ FL_SetSize(FLError, 16384)
 FL_SetName(FLAsyncRqst, "Async Request Flightlog")
 FL_SetSize(FLAsyncRqst, 16384)
 
+#ifndef GPFS_SUPER_MAGIC
+#define GPFS_SUPER_MAGIC 0x47504653
+#endif
+
 
 /*
  * Static data
  */
+static int asyncRequestFile_ReadSeqNbr  = 0;
+static FILE* asyncRequestFile_Read  = (FILE*)0;
+
+
+/*
+ * Helper methods
+ */
+int isGpfsFile(const char* pFileName, bool& pValue)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    pValue = false;
+    struct statfs l_Statbuf;
+
+    bfs::path l_Path(pFileName);
+    rc = statfs(pFileName, &l_Statbuf);
+    while ((rc) && ((errno == ENOENT)))
+    {
+        l_Path = l_Path.parent_path();
+        if (l_Path.string() == "")
+        {
+            break;
+        }
+        rc = statfs(l_Path.string().c_str(), &l_Statbuf);
+    }
+
+    if (rc)
+    {
+        FL_Write(FLServer, StatfsFailedGpfs, "Statfs failed", 0, 0 ,0, 0);
+        errorText << "Unable to statfs file " << l_Path.string();
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+    }
+
+    if((l_Statbuf.f_type == GPFS_SUPER_MAGIC))
+    {
+        pValue = true;
+    }
+
+    FL_Write(FLServer, Statfs_isGpfsFile, "rc=%ld, isGpfsFile=%ld, magic=%lx", rc, pValue, l_Statbuf.f_type, 0);
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
 
 
 /*
@@ -122,8 +171,18 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 
   	becomeUser(0, 0);
 
+    int l_Maintenance = NO_MAINTENANCE;
+    char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+    int rc2 = sscanf(pRequest.getData(), "%s", l_Cmd);
+    if (rc2 == 1 && strstr(l_Cmd, "heartbeat"))
+    {
+        // NOTE:  Only perform async request file pruning maintenance
+        //        for a heartbeat operation, which is only every 5 minutes...
+        l_Maintenance = MINIMAL_MAINTENANCE;
+    }
+
     int l_SeqNbr = 0;
-    FILE* fd = openAsyncRequestFile("ab", l_SeqNbr, MINIMAL_MAINTENANCE);
+    FILE* fd = openAsyncRequestFile("ab", l_SeqNbr, l_Maintenance);
     if (fd != NULL)
     {
         char l_Buffer[sizeof(AsyncRequest)+1] = {'\0'};
@@ -132,8 +191,8 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
         size_t l_Size = fwrite(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
         threadLocalTrackSyscallPtr->clearTrack();
         FL_Write(FLAsyncRqst, Append, "Append to async request file having seqnbr %ld for %ld bytes. File pointer %p, %ld bytes written.", l_SeqNbr, sizeof(AsyncRequest), (uint64_t)(void*)fd, l_Size);
-        fclose(fd);
         FL_Write(FLAsyncRqst, CloseAfterAppend, "Close for async request file having seqnbr %ld, file pointer %p.", l_SeqNbr, (uint64_t)(void*)fd, 0, 0);
+        fclose(fd);
 
         if (l_Size != sizeof(AsyncRequest))
         {
@@ -549,12 +608,12 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
             pOffset = (int64_t)ftell(fd);
             threadLocalTrackSyscallPtr->clearTrack();
             FL_Write(FLAsyncRqst, RtvEndOffsetForFind, "End of async request file with seqnbr %ld is at offset %ld.", pSeqNbr, pOffset, 0, 0);
+            LOG(bb,debug) << "findOffsetToNextAsyncRequest(): SeqNbr: " << pSeqNbr << ", Offset: " << pOffset;
         }
         else
         {
             rc = -1;
         }
-        fclose(fd);
     }
     else
     {
@@ -663,7 +722,6 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
         {
             LOG(bb,error) << "getAsyncRequest(): fseek() failed for offset " << pWorkItem.getTag() << ", sequence number " << l_SeqNbr << ". Processing of async request failed.";
         }
-        fclose(fd);
     }
     else
     {
@@ -1084,43 +1142,78 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
         while (!l_AllDone)
         {
             l_AllDone = true;
-            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
-            l_FilePtr = fopen(l_AsyncRequestFileNamePtr, pOpenOption);
-            threadLocalTrackSyscallPtr->clearTrack();
-            if (pOpenOption[0] == 'a')
+            if (pOpenOption[0] != 'a')
             {
-                FL_Write(FLAsyncRqst, OpenAppend, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
-            }
-            else
-            {
-                FL_Write(FLAsyncRqst, OpenRead, "Open async request file having seqnbr %ld using mode 'rb', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
-            }
-            if (l_FilePtr != NULL && pOpenOption[0] == 'a')
-            {
-                // Append mode...  Check the file size...
-                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
-                uint64_t l_Offset = (int64_t)ftell(l_FilePtr);
-                threadLocalTrackSyscallPtr->clearTrack();
-                FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", pSeqNbr, l_Offset, 0, 0);
-                if (crossingAsyncFileBoundary(l_Offset))
+                if (pSeqNbr == asyncRequestFile_ReadSeqNbr)
                 {
-                    // Time for a new async request file...
-                    delete [] l_AsyncRequestFileNamePtr;
-                    l_AsyncRequestFileNamePtr = 0;
-                    rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, CREATE_NEW_FILE);
-                    if (!rc)
-                    {
-                        // Close the file...
-                        fclose(l_FilePtr);
-                        FL_Write(FLAsyncRqst, CloseForNewFile, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, pMaintenanceOption, 0);
-                        l_FilePtr = 0;
+                    l_FilePtr = asyncRequestFile_Read;
+                }
+            }
 
-                        // Iterate to open the new file...
-                        l_AllDone = false;
+            if (l_FilePtr == NULL)
+            {
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
+                l_FilePtr = fopen(l_AsyncRequestFileNamePtr, pOpenOption);
+                threadLocalTrackSyscallPtr->clearTrack();
+                if (pOpenOption[0] != 'a')
+                {
+                    if (l_FilePtr != NULL)
+                    {
+                        FL_Write(FLAsyncRqst, OpenRead, "Open async request file having seqnbr %ld using mode 'rb', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
+                        // NOTE:  All closes for fds opened for read are done via the cached
+                        //        fd that has been stashed in asyncRequestFile_Read.
+                        if (asyncRequestFile_Read != NULL)
+                        {
+                            LOG(bb,debug) << "openAsyncRequestFile(): Close cached file for read";
+                            FL_Write(FLAsyncRqst, CloseForRead, "Close async request file having seqnbr %ld using mode 'rb', maintenance option %ld. File pointer is %p.", pSeqNbr, (uint64_t)(void*)asyncRequestFile_Read, pMaintenanceOption, 0);
+                            fclose(asyncRequestFile_Read);
+                        }
+                        LOG(bb,debug) << "openAsyncRequestFile(): Cache open for read, seqnbr " << pSeqNbr;
+                        asyncRequestFile_ReadSeqNbr = pSeqNbr;
+                        asyncRequestFile_Read = l_FilePtr;
                     }
                     else
                     {
-                        // Error case...  Just return this file...
+                        FL_Write(FLAsyncRqst, OpenReadFailed, "Open async request file having seqnbr %ld using mode 'rb', maintenance option %ld failed.", pSeqNbr, pMaintenanceOption, 0, 0);
+                        LOG(bb,error) << "Open async request file having seqnbr " << pSeqNbr << " using mode 'rb', maintenance option " << pMaintenanceOption << " failed.";
+                    }
+                }
+                else
+                {
+                    if (l_FilePtr != NULL)
+                    {
+                        FL_Write(FLAsyncRqst, OpenAppend, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
+                        // Append mode...  Check the file size...
+                        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
+                        uint64_t l_Offset = (int64_t)ftell(l_FilePtr);
+                        threadLocalTrackSyscallPtr->clearTrack();
+                        FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", pSeqNbr, l_Offset, 0, 0);
+                        if (crossingAsyncFileBoundary(l_Offset))
+                        {
+                            // Time for a new async request file...
+                            delete [] l_AsyncRequestFileNamePtr;
+                            l_AsyncRequestFileNamePtr = 0;
+                            rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, CREATE_NEW_FILE);
+                            if (!rc)
+                            {
+                                // Close the file...
+                                FL_Write(FLAsyncRqst, CloseForNewFile, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, pMaintenanceOption, 0);
+                                fclose(l_FilePtr);
+                                l_FilePtr = 0;
+
+                                // Iterate to open the new file...
+                                l_AllDone = false;
+                            }
+                            else
+                            {
+                                // Error case...  Just return this file...
+                            }
+                        }
+                    }
+                    else
+                    {
+                        FL_Write(FLAsyncRqst, OpenAppendFailed, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld failed.", pSeqNbr, pMaintenanceOption, 0, 0);
+                        LOG(bb,error) << "Open async request file having seqnbr " << pSeqNbr << " using mode 'ab', maintenance option " << pMaintenanceOption << " failed.";
                     }
                 }
             }
@@ -1644,6 +1737,35 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 {
                     if (pMaintenanceOption == START_BBSERVER)
                     {
+                        // Ensure that the bbServer metadata is on a parallel file system
+                        // NOTE:  We invoke isGpfsFile() even if we are not to enforce the condition so that
+                        //        we flightlog the statfs() result...
+                        bool l_GpfsMount = false;
+                        rc = isGpfsFile(pAsyncRequestFileName, l_GpfsMount);
+                        if (!rc)
+                        {
+                            if (!l_GpfsMount)
+                            {
+                                if (config.get("bb.requireMetadataOnParallelFileSystem", DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM))
+                                {
+                                    rc = -1;
+                                    errorText << "bbServer metadata is required to be on a parallel file system. Current data store path is " << l_DataStorePath \
+                                              << ". Set bb.bbserverMetadataPath properly in the configuration.";
+                                    bberror << err("error.asyncRequestFile", pAsyncRequestFileName);
+                                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                                }
+                                else
+                                {
+                                    LOG(bb,info) << "WRKQMGR: bbServer metadata is NOT on a parallel file system, but is currently allowed";
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // bberror was filled in...
+                            BAIL;
+                        }
+
                         // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
                         rc = chown(l_DataStorePath.c_str(), 0, 0);
                         if (rc)
@@ -1811,6 +1933,8 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
        }
     }
+
+    LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;
 
     if (rc)
     {

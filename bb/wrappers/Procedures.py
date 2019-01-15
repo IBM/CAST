@@ -550,7 +550,10 @@ def RemoveLogicalVolume(pEnv):
 
     try:
         bb.initEnv(pEnv)
-        l_Mountpoint = pEnv["MOUNT"]
+        if (pEnv["procedure_args"] == ""):
+            l_Mountpoint = pEnv["MOUNT"]
+        else:
+            l_Mountpoint = pEnv["procedure_args"]
 
         BB_RemoveLogicalVolume(l_Mountpoint)
     except BBError as error:
