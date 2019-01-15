@@ -164,7 +164,10 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
 
   // it's safe to unlink for later cleanup: according to man-page:
   // "socket can be unlinked at any time and will be finally removed from the file system when the last reference to it is closed."
-  unlink( dynamic_cast<csm::network::AddressUnix*>( GetLocalAddr().get() )->_SockAddr.sun_path );
+  csm::network::AddressUnix *uep = dynamic_cast<csm::network::AddressUnix*>( GetLocalAddr().get() );
+  if( uep == nullptr )
+    throw csm::network::Exception( "Local address is null", EBADFD );
+  unlink( uep->_SockAddr.sun_path );
 
   // bind
   LOG(csmnet,debug) << "binding " << _Socket << " to " << addr->_SockAddr.sun_path;
@@ -182,7 +185,8 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
     throw csm::network::Exception("Access");
 
   // make sure server socket is accessible by others
-  chmod(addr->_SockAddr.sun_path, _UnixOptions->_Permissions );
+  if( chmod(addr->_SockAddr.sun_path, _UnixOptions->_Permissions ) != 0 )
+    LOG( csmnet, warning ) << "Failed to change client socket permissions. Unintended consequences for client access might occur. chmod returned: " << strerror( errno );
 
   struct group *grp = getgrnam( _UnixOptions->_Group.c_str() );
   if( grp == nullptr )
@@ -223,15 +227,19 @@ csm::network::EndpointUnix::EndpointUnix( const std::string &aPath,
 
 csm::network::EndpointUnix::EndpointUnix( const Endpoint *aEP )
 : csm::network::Endpoint( aEP ),
-  _Socket( dynamic_cast<const EndpointUnix*>(aEP)->_Socket ),
+  _Socket( ( dynamic_cast<const EndpointUnix*>(aEP) == nullptr ) ? -1 : dynamic_cast<const EndpointUnix*>(aEP)->_Socket ),
   _CtrlBuf( nullptr ),
-  _RecvBufferState( dynamic_cast<const EndpointUnix*>(aEP)->_RecvBufferState ),
-  _UnixOptions( std::dynamic_pointer_cast<csm::network::EndpointOptionsUnix>( aEP->GetOptions() )),
-  _MaxPayloadLen( dynamic_cast<const EndpointUnix*>(aEP)->_MaxPayloadLen )
+  _RecvBufferState( ( dynamic_cast<const EndpointUnix*>(aEP) == nullptr ) ? csm::network::EndpointStateUnix() : dynamic_cast<const EndpointUnix*>(aEP)->_RecvBufferState ),
+  _UnixOptions( std::dynamic_pointer_cast<csm::network::EndpointOptionsUnix>( (aEP == nullptr ) ? nullptr : aEP->GetOptions() )),
+  _MaxPayloadLen( ( dynamic_cast<const EndpointUnix*>(aEP) == nullptr ) ? 0 : dynamic_cast<const EndpointUnix*>(aEP)->_MaxPayloadLen )
 {
   _CtrlBuf = new char[ 2 * CSM_UNIX_CREDENTIAL_LENGTH ];
+  const csm::network::EndpointUnix *uep = dynamic_cast<const csm::network::EndpointUnix*>( aEP );
+  if( uep == nullptr )
+    throw csm::network::ExceptionProtocol("Attempted copy from incompatible type", EBADFD );
+
   memcpy( _CtrlBuf,
-          dynamic_cast<const csm::network::EndpointUnix*>( aEP )->_CtrlBuf,
+          uep->_CtrlBuf,
           2 * CSM_UNIX_CREDENTIAL_LENGTH );
 }
 
@@ -258,9 +266,10 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
   if( aSrvAddr == nullptr )
     throw csm::network::Exception("EndpointUnix::Connect(): destination address == nullptr.");
 
-  if(( _RemoteAddr != nullptr ) &&
-      ( *dynamic_cast<const csm::network::AddressUnix*>( _RemoteAddr.get() ) ==
-          *dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() ) ))
+  const csm::network::AddressUnix *remote = (_RemoteAddr == nullptr ) ? nullptr : dynamic_cast<const csm::network::AddressUnix*>( _RemoteAddr.get() );
+  const csm::network::AddressUnix *dest = dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() );
+
+  if(( _RemoteAddr != nullptr ) && ( *remote == *dest ))
   {
     LOG(csmnet, debug) << "Endpoint already connected to destination: " << aSrvAddr->Dump()
         << ". skipping without error."<< std::endl;
@@ -268,7 +277,13 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
   }
 
   const csm::network::AddressUnix* AddrUnix = dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() );
+  if( AddrUnix == nullptr )
+    throw csm::network::Exception("Invalid server address provided to Connect", EBADFD );
+
   sockaddr_un* SrvAddr = (sockaddr_un*) ((&(AddrUnix->_SockAddr)));
+  if( SrvAddr == nullptr )
+    throw csm::network::Exception("Invalid server address provided to Connect", EBADFD );
+
   LOG(csmnet, debug) << "connecting " << _Socket << " to " << SrvAddr->sun_path;
   if( _Socket && !IsServer() )
   {
