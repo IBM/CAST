@@ -53,6 +53,7 @@ private:
     static const std::string MEM_DIR;
     
     std::string _CGroupName;            ///< The name of the allocation/step cgroup.
+    int16_t     _smtMode;               ///< The smt mode for the current cgroups.
 
 public:
     /**
@@ -83,12 +84,13 @@ public:
     /** @brief Creates the cgroups for an allocation.
      *
      * @param[in] cores The number of cores to isolate in the system cgroup.
+     * @param[in] smtMode The smt mode for the allocation cgroup.
      * @param[in] projectedMemory The amount of memory to allocate for the allocation cgroup.
      *                              This is in kB
      *
      * @throw CSMHandlerException If the core isolation failed.
      */
-    void SetupCGroups( int64_t cores );
+    void SetupCGroups( int64_t cores, int16_t smtMode=0 );
     
     /**@brief Creates a CGroup for the specified component.
      *
@@ -225,6 +227,24 @@ private:
      */
     void DeleteChildren(const char* controller, const std::string& groupName, 
         const std::string& groupPath, bool migrateTasksUp = false) const;
+
+    /** @brief Turns a CPU on or off depending on the supplied @p online parameter.
+     *
+     * @param[in] thread The thread to turn on or off.
+     * @param[in] online {0,1} Whether or not the cpu should be turned on or off.
+     *
+     * @return The Errno of the operation.
+     */
+    static int CPUPower(const uint32_t thread, const int online);
+
+    /**
+     * @brief Applies the IRQ affinity using the irqbalance daemon in oneshot mode.
+     *
+     * @param[in] bannedCPUs A list of banned CPUs as hex strings, sets env `IRQBALANCE_BANNED_CPUS`.
+     *
+     * @return 0 on success, errno on failure.
+     */
+    static int IRQRebalance(const std::string bannedCPUs);
 
     /** @brief Write the supplied value to the specified parameter for the controller.
      *

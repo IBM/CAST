@@ -731,7 +731,7 @@ given below:
 
 .. code-block:: YAML
 
-    filebeat.prospectors:
+    filebeat.inputs:
     - type: log 
       enabled: true
       paths:
@@ -918,7 +918,7 @@ given below:
 
 .. code-block:: YAML
 
-    filebeat.prospectors:
+    filebeat.inputs:
     - type: log
       enabled: true
       paths:

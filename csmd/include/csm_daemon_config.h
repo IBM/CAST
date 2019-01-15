@@ -45,6 +45,7 @@
 #include "csmd/src/daemon/include/csm_daemon_role.h"
 #include "csmd/src/daemon/include/csm_tweaks.h"
 #include "csmd/src/daemon/include/bds_info.h"
+#include "csmd/src/daemon/include/csm_jitter_info.h"
 #include "csmd/src/daemon/include/csm_recurring_tasks.h"
 
 #ifndef DB_SCHEMA_VERSION
@@ -81,6 +82,7 @@ enum HostNameConfigState_t
   HOST_CONFIG_VALID,
   HOST_CONFIG_INVALID
 };
+
 
 class Configuration
 {
@@ -184,6 +186,9 @@ public:
   DBDefinitionInfo GetDBDefinitionInfo() const { return _dbInfo; }
 
   csm::daemon::BDS_Info GetBDS_Info() const { return _BDS_Info; }
+    
+    // Jitter Mitigation
+  csm::daemon::CSM_Jitter_Info GetJitterInfo() const{ return _JitterInfo; }
   
 private:
   Configuration( int argc, char **argv, const RunMode *runmode );
@@ -215,6 +220,20 @@ private:
   
   void ConfigureDaemonTimers();
   void SetRecurringTasks();
+
+    
+    /**
+     * @brief Parses a hex string into a binary value.
+     * @param[in] hexStr The hexadecimal string to convert to binary.
+     *
+     * @return A binary string.
+     */
+    std::string ParseHexString (std::string hexStr);
+
+    /**
+     * @brief Loads the csmi.jitter_mitigation section of the configuration file.
+     */
+    void LoadJitterMitigation();
 
   // retrieve hostname from xCAT
   void SetHostname();
@@ -266,6 +285,11 @@ private:
   csm::network::Address_sptr _Master;
   csm::network::Address_sptr _Aggregator;
   
+
+  // Jitter Mitigation
+  csm::daemon::CSM_Jitter_Info _JitterInfo;
+
+
   boost::posix_time::time_duration _timer_interval;
   boost::posix_time::time_duration _window_duration;  // kind of obsolete, window is not in use any more
   unsigned _window_extension_factor;

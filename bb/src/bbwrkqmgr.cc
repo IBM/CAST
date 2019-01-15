@@ -25,12 +25,16 @@
 #include "bbserver_flightlog.h"
 #include "bbwrkqmgr.h"
 #include "identity.h"
+#include "tracksyscall.h"
 #include "Uuid.h"
 
 namespace bfs = boost::filesystem;
 
 FL_SetName(FLError, "Errordata flightlog")
 FL_SetSize(FLError, 16384)
+
+FL_SetName(FLAsyncRqst, "Async Request Flightlog")
+FL_SetSize(FLAsyncRqst, 16384)
 
 
 /*
@@ -124,8 +128,12 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         char l_Buffer[sizeof(AsyncRequest)+1] = {'\0'};
         pRequest.str(l_Buffer, sizeof(l_Buffer));
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fwritesyscall, fd, __LINE__, sizeof(AsyncRequest));
         size_t l_Size = fwrite(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
+        threadLocalTrackSyscallPtr->clearTrack();
+        FL_Write(FLAsyncRqst, Append, "Append to async request file having seqnbr %ld for %ld bytes. File pointer %p, %ld bytes written.", l_SeqNbr, sizeof(AsyncRequest), (uint64_t)(void*)fd, l_Size);
         fclose(fd);
+        FL_Write(FLAsyncRqst, CloseAfterAppend, "Close for async request file having seqnbr %ld, file pointer %p.", l_SeqNbr, (uint64_t)(void*)fd, 0, 0);
 
         if (l_Size != sizeof(AsyncRequest))
         {
@@ -531,10 +539,16 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
     FILE* fd = openAsyncRequestFile("rb", pSeqNbr);
     if (fd != NULL)
     {
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, fd, __LINE__);
         rc = fseek(fd, 0, SEEK_END);
+        threadLocalTrackSyscallPtr->clearTrack();
+        FL_Write(FLAsyncRqst, SeekEnd, "Seeking the end of async request file having seqnbr %ld, rc %ld.", pSeqNbr, rc, 0, 0);
         if (!rc)
         {
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, fd, __LINE__);
             pOffset = (int64_t)ftell(fd);
+            threadLocalTrackSyscallPtr->clearTrack();
+            FL_Write(FLAsyncRqst, RtvEndOffsetForFind, "End of async request file with seqnbr %ld is at offset %ld.", pSeqNbr, pOffset, 0, 0);
         }
         else
         {
@@ -624,10 +638,16 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
     FILE* fd = openAsyncRequestFile("rb", l_SeqNbr);
     if (fd != NULL)
     {
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, fd, __LINE__);
         rc = fseek(fd, pWorkItem.getTag(), SEEK_SET);
+        threadLocalTrackSyscallPtr->clearTrack();
+        FL_Write(FLAsyncRqst, Position, "Positioning async request file having seqnbr %ld to offset %ld, rc %ld.", l_SeqNbr, pWorkItem.getTag(), rc, 0);
         if (!rc)
         {
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::freadsyscall, fd, __LINE__, sizeof(AsyncRequest), pWorkItem.getTag());
             size_t l_Size = fread(l_Buffer, sizeof(char), sizeof(AsyncRequest), fd);
+            threadLocalTrackSyscallPtr->clearTrack();
+            FL_Write6(FLAsyncRqst, Read, "Read async request file having seqnbr %ld starting at offset %ld for %ld bytes. File pointer %p, %ld bytes read.", l_SeqNbr, pWorkItem.getTag(), sizeof(AsyncRequest), (uint64_t)(void*)fd, l_Size, 0);
 
             if (l_Size == sizeof(AsyncRequest))
             {
@@ -1064,11 +1084,24 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
         while (!l_AllDone)
         {
             l_AllDone = true;
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
             l_FilePtr = fopen(l_AsyncRequestFileNamePtr, pOpenOption);
+            threadLocalTrackSyscallPtr->clearTrack();
+            if (pOpenOption[0] == 'a')
+            {
+                FL_Write(FLAsyncRqst, OpenAppend, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
+            }
+            else
+            {
+                FL_Write(FLAsyncRqst, OpenRead, "Open async request file having seqnbr %ld using mode 'rb', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
+            }
             if (l_FilePtr != NULL && pOpenOption[0] == 'a')
             {
                 // Append mode...  Check the file size...
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
                 uint64_t l_Offset = (int64_t)ftell(l_FilePtr);
+                threadLocalTrackSyscallPtr->clearTrack();
+                FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", pSeqNbr, l_Offset, 0, 0);
                 if (crossingAsyncFileBoundary(l_Offset))
                 {
                     // Time for a new async request file...
@@ -1079,6 +1112,7 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                     {
                         // Close the file...
                         fclose(l_FilePtr);
+                        FL_Write(FLAsyncRqst, CloseForNewFile, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, pMaintenanceOption, 0);
                         l_FilePtr = 0;
 
                         // Iterate to open the new file...
@@ -1740,7 +1774,10 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                 {
                                     // Old async file....  If old enough, delete it...
                                     struct stat l_Statinfo;
+                                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::statsyscall, asyncfile.path().c_str(), __LINE__);
                                     int rc2 = stat(asyncfile.path().c_str(), &l_Statinfo);
+                                    threadLocalTrackSyscallPtr->clearTrack();
+                                    FL_Write(FLAsyncRqst, Stat, "Get stats for async request file having seqnbr %ld for aging purposes, rc %ld.", l_CurrentSeqNbr, rc2, 0, 0);
                                     if (!rc2)
                                     {
                                         time_t l_CurrentTime = time(0);

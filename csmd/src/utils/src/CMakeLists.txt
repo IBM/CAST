@@ -20,9 +20,9 @@ set(CSM_SMT_SRC
 )
 add_definitions(-DUSE_SC_LOGGER)
     
-add_executable(csm_smt ${CSM_SMT_SRC})
-target_link_libraries(csm_smt fsutil csmi_serialization csmutil ${Boost_LIBRARIES} -lpthread -lpq)
-install(TARGETS csm_smt COMPONENT csm-core DESTINATION csm/bin)
+#add_executable(csm_smt ${CSM_SMT_SRC})
+#target_link_libraries(csm_smt fsutil csmi_serialization csmutil ${Boost_LIBRARIES} -lpthread -lpq)
+#install(TARGETS csm_smt COMPONENT csm-core DESTINATION csm/bin)
 
 
 

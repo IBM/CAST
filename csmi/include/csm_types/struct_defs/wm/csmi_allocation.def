@@ -91,6 +91,11 @@ CSMI_STRUCT_MEMBER(char*,    wc_key,               STRING, , NULL, ) /**< Arbitr
 CSMI_STRUCT_MEMBER(char**                   , compute_nodes, ARRAY_STR, num_nodes, NULL,                          ) /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
 CSMI_STRUCT_MEMBER(csmi_allocation_history_t*, history      , STRUCT   ,          , NULL, csmi_allocation_history_t ) /**< The history component of the allocation, if the allocation is active this will be **NULL**. */
 CSMI_VERSION_END(ff627f40b48e636bc51d42a9ddcd9be7)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(int16_t,  smt_mode,        BASIC,  ,    0, ) /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
+
+CSMI_VERSION_END(0)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

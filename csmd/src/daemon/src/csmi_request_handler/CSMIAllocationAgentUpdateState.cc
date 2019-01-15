@@ -27,38 +27,11 @@
 #include <fstream>     ///< ofstream and ifstream used.
 #include <algorithm>
 
-#define GARRISON 
-// Garrison sample amounts.
-#ifdef GARRISON
-
-#define CPUSET_COR   1
-#define CPUSET_TPC   8
-#define CPUSET_CPS   10
-#define CPUSET_SOC   2
-
-#else
-// Cores to isolate
-#define CPUSET_COR   1
-// Threads per core
-#define CPUSET_TPC   1
-// Cores per socket
-#define CPUSET_CPS   4
-// Sockets
-#define CPUSET_SOC   1
-#define CPUSET_MEM  "0"
-#define MEMLIMIT_HARD "6000M"
-#define MEMLIMIT_SOFT "5000M"
-
-#endif
-
-
 #define PROLOG_RAS(message)  this->PushRASEvent(ctx, postEventList, message,\
     respPayload->hostname, ctx->GetErrorMessage(), "rc=" + std::to_string(ctx->GetErrorCode()));
 
 const char* CSM_ACTIVELIST = "/etc/pam.d/csm/activelist";
 const char* CSM_ACTIVELIST_SWAP = "/etc/pam.d/csm/activelist.swp";
-
-#undef GARRISON
 
 #define STATE_NAME "AllocationAgentUpdateState:"
 
@@ -218,7 +191,7 @@ bool AllocationAgentUpdateState::InitNode(
         {
             // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
             cgroup.ClearCGroups( payload->isolated_cores == 0 );
-            cgroup.SetupCGroups( payload->isolated_cores );
+            cgroup.SetupCGroups( payload->isolated_cores, payload->smt_mode );
         }
         else 
         {
