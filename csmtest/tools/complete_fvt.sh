@@ -31,6 +31,29 @@ fi
 
 source /etc/profile.d/xcat.sh
 MEMORY_LOG=${LOG_PATH}/performance/memory_usage.log
+SEGFAULT_LOG=${LOG_PATH}/performance/segfault.log
+
+segfault_scan () {
+	bucket_type=$1
+	bucket_name=$2
+
+	# Collect CSM logs
+	xdcp ${MASTER} -P /var/log/ibm/csm/csm_master.log ${LOG_PATH}/performance/
+	xdcp ${AGGREGATOR_A} -P /var/log/ibm/csm/csm_aggregator.log ${LOG_PATH}/performance/
+	xdcp ${AGGREGATOR_B} -P /var/log/ibm/csm/csm_aggregator.log ${LOG_PATH}/performance/
+	xdcp utility -P /var/log/ibm/csm/csm_utility.log ${LOG_PATH}/performance/
+	xdcp csm_comp -P /var/log/ibm/csm/csm_compute.log ${LOG_PATH}/performance/
+
+	# Grep for segfault
+	# Exit if found
+	grep segfault ${LOG_PATH}/performance/*
+	rc=$?
+	if [ "$rc" -eq 0 ]
+	then
+		echo "SEGFAULT DETECTED" >> ${LOG_PATH}/buckets/${bucket_type}/${bucket_name}.log
+		exit 1
+	fi
+}
 
 run_bucket () {
 	bucket_type=$1
@@ -51,6 +74,9 @@ run_bucket () {
 	# Collect memory usage after bucket
 	memory_usage=`ps -eo rss -o args | grep "csm[d]\b" | grep master | cut -d ' ' -f 1`
 	printf "%-40s %10s\n" "${bucket_type} ${bucket_name}" "AFTER:  ${memory_usage}" >> ${MEMORY_LOG}
+
+	# Segfault scan
+	segfault_scan ${bucket_type} ${bucket_name}
 }
 
 run_bucket "basic" "node"
