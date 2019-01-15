@@ -46,6 +46,9 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
   _RecvBufferState(),
   _UnixOptions( std::dynamic_pointer_cast<csm::network::EndpointOptionsUnix>( aOptions ) )
 {
+  if( _UnixOptions == nullptr )
+    throw csm::network::Exception("UnixOptions are NULL. Can't continue.", EINVAL );
+
   LOG(csmnet,debug) << "Creating endpoint isServer=" << IsServer()
       << " Perm=" << std::oct << _UnixOptions->_Permissions << std::resetiosflags(std::ios::oct)
       << " Grp=" << _UnixOptions->_Group;
@@ -65,6 +68,8 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
   }
 
   const csm::network::AddressUnix *addr = dynamic_cast<const csm::network::AddressUnix*>( _LocalAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionEndpointDown("Wrong address type",EBADF );
 
   // check if socket file exists
   int rc = unlink( addr->_SockAddr.sun_path );
@@ -168,6 +173,7 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
   if( uep == nullptr )
     throw csm::network::Exception( "Local address is null", EBADFD );
   unlink( uep->_SockAddr.sun_path );
+  // the result doesn't matter here
 
   // bind
   LOG(csmnet,debug) << "binding " << _Socket << " to " << addr->_SockAddr.sun_path;
@@ -184,9 +190,10 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
   if( rc )
     throw csm::network::Exception("Access");
 
-  // make sure server socket is accessible by others
+  // make sure server socket is accessible as configured
   if( chmod(addr->_SockAddr.sun_path, _UnixOptions->_Permissions ) != 0 )
     LOG( csmnet, warning ) << "Failed to change client socket permissions. Unintended consequences for client access might occur. chmod returned: " << strerror( errno );
+    // todo: should this cause the creation to fail because it might have security implications?
 
   struct group *grp = getgrnam( _UnixOptions->_Group.c_str() );
   if( grp == nullptr )
@@ -206,6 +213,8 @@ csm::network::EndpointUnix::EndpointUnix( const Address_sptr aLocalAddr,
   {
     LOG(csmnet, warning) << "UnixEndpoint creation without AuthList.";
     _UnixOptions->_AuthList = std::make_shared<csm::daemon::CSMIAuthList>("nofile");
+    if( _UnixOptions->_AuthList == nullptr )
+      throw csm::network::Exception("Failed to initialize API permissions." );
   }
   LOG(csmnet,debug) << "Created endpoint " << _UnixOptions->_IsServer << " complete";
 
@@ -233,6 +242,9 @@ csm::network::EndpointUnix::EndpointUnix( const Endpoint *aEP )
   _UnixOptions( std::dynamic_pointer_cast<csm::network::EndpointOptionsUnix>( (aEP == nullptr ) ? nullptr : aEP->GetOptions() )),
   _MaxPayloadLen( ( dynamic_cast<const EndpointUnix*>(aEP) == nullptr ) ? 0 : dynamic_cast<const EndpointUnix*>(aEP)->_MaxPayloadLen )
 {
+  if( dynamic_cast<const EndpointUnix*>(aEP) == nullptr )
+    throw csm::network::Exception("Wrong endpoint type", EBADF );
+
   _CtrlBuf = new char[ 2 * CSM_UNIX_CREDENTIAL_LENGTH ];
   const csm::network::EndpointUnix *uep = dynamic_cast<const csm::network::EndpointUnix*>( aEP );
   if( uep == nullptr )
@@ -256,6 +268,8 @@ csm::network::EndpointUnix::~EndpointUnix()
     delete [] _CtrlBuf;
 
   csm::network::AddressUnix_sptr addr = std::dynamic_pointer_cast<csm::network::AddressUnix>( GetLocalAddr() );
+  if( addr == nullptr )
+    throw csm::network::Exception("Wrong address type", EBADF );
   if( addr->_SockAddr.sun_path[0] != 0 )
     unlink( addr->_SockAddr.sun_path );
 }
@@ -266,14 +280,22 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
   if( aSrvAddr == nullptr )
     throw csm::network::Exception("EndpointUnix::Connect(): destination address == nullptr.");
 
-  const csm::network::AddressUnix *remote = (_RemoteAddr == nullptr ) ? nullptr : dynamic_cast<const csm::network::AddressUnix*>( _RemoteAddr.get() );
-  const csm::network::AddressUnix *dest = dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() );
-
-  if(( _RemoteAddr != nullptr ) && ( *remote == *dest ))
+  if( _RemoteAddr != nullptr )
   {
-    LOG(csmnet, debug) << "Endpoint already connected to destination: " << aSrvAddr->Dump()
-        << ". skipping without error."<< std::endl;
-    return 0;
+    const csm::network::AddressUnix *remote = dynamic_cast<const csm::network::AddressUnix*>( _RemoteAddr.get() );
+    if( remote == nullptr )
+      throw csm::network::Exception("Unrecognized or empty remote address", EBADF );
+
+    const csm::network::AddressUnix *server = dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() );
+    if( server == nullptr )
+      throw csm::network::Exception("Unrecognized or empty server/destination address", EBADF );
+
+    if( *remote == *server )
+    {
+      LOG(csmnet, debug) << "Endpoint already connected to destination: " << aSrvAddr->Dump()
+          << ". skipping without error."<< std::endl;
+      return 0;
+    }
   }
 
   const csm::network::AddressUnix* AddrUnix = dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() );
@@ -309,8 +331,11 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
   SetRemoteAddr( aSrvAddr );
 
   // skip any connection message if this we're "connecting" to ourselves...
-  if( *std::dynamic_pointer_cast<csm::network::AddressUnix>( aSrvAddr ) ==
-      *std::dynamic_pointer_cast<csm::network::AddressUnix>( GetLocalAddr() ) )
+  csm::network::AddressUnix_sptr local_addr = std::dynamic_pointer_cast<csm::network::AddressUnix>( GetLocalAddr() );
+  const csm::network::AddressUnix *server = dynamic_cast<const csm::network::AddressUnix*>( aSrvAddr.get() );
+  if(( local_addr == nullptr ) || ( server == nullptr ))
+    throw csm::network::Exception("Wrong address type", EBADF );
+  if( *server == *local_addr )
     return rc;
 
   csm::network::Message ConnectMsg;
@@ -330,6 +355,9 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
       // repeat until we got a ACK or HEARTBEAT msg with address
       if( AcceptMsgAddr.GetAddr() == nullptr )
         continue;
+      if(( std::dynamic_pointer_cast<csm::network::AddressUnix>(AcceptMsgAddr.GetAddr()) == nullptr ) ||
+          (std::dynamic_pointer_cast<csm::network::AddressUnix>(GetRemoteAddr()) == nullptr ))
+        throw csm::network::ExceptionEndpointDown("Wrong address types while waiting for ACCEPT message from peer", EBADF );
       if( *std::dynamic_pointer_cast<csm::network::AddressUnix>(AcceptMsgAddr.GetAddr()) !=
              *std::dynamic_pointer_cast<csm::network::AddressUnix>(GetRemoteAddr()) )
         throw csm::network::ExceptionEndpointDown("Expected ACCEPT Message from peer.", EPROTO );
@@ -337,6 +365,8 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
         break;
       AcceptMsgAddr.SetAddr( nullptr );
     }
+    if( AcceptMsgAddr.GetAddr() == nullptr )
+      throw csm::network::ExceptionEndpointDown("Accept message with empty address", ENOENT );
     LOG( csmnet, debug ) << "Received Heartbeat Acceptance Msg from: " << AcceptMsgAddr.GetAddr()->Dump();
   }
   catch ( csm::network::ExceptionRecv &e )
@@ -351,6 +381,8 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
 ssize_t
 csm::network::EndpointUnix::SendMsgWrapper( struct msghdr *aMsg, const int aFlags )
 {
+  if( aMsg == nullptr )
+    throw csm::network::ExceptionSend("Nullptr Message", EINVAL );
   aMsg->msg_control = _CtrlBuf;
   aMsg->msg_controllen = CSM_UNIX_CREDENTIAL_LENGTH;
 
@@ -464,6 +496,9 @@ csm::network::EndpointUnix::SendTo( const csm::network::Message &aMsg,
   iov[1].iov_base = (void*)aMsg.GetDataPtr();
   iov[1].iov_len = aMsg.GetDataLen();
 
+  if(( iov[0].iov_base == nullptr ) || ( iov[1].iov_base == nullptr ))
+    throw csm::network::ExceptionSend("Nullptr data buffers detected", EINVAL );
+
   char Remote[ sizeof( struct sockaddr_un ) ];
   bzero( Remote, sizeof( struct sockaddr_un ) );
 
@@ -493,6 +528,9 @@ csm::network::EndpointUnix::Send( const csm::network::Message &aMsg )
   iov[1].iov_base = (void*)aMsg.GetDataPtr();
   iov[1].iov_len = aMsg.GetDataLen();
 
+  if(( iov[0].iov_base == nullptr ) || ( iov[1].iov_base == nullptr ))
+    throw csm::network::ExceptionSend("Nullptr data buffers detected", EINVAL );
+
   char Remote[ sizeof( struct sockaddr_un ) ];
   bzero( Remote, sizeof( struct sockaddr_un ) );
 
@@ -519,6 +557,9 @@ csm::network::EndpointUnix::RecvFrom( csm::network::MessageAndAddress &aMsgAddr 
     struct iovec iov[2];
     iov[0].iov_base = _RecvBufferState.GetRecvBufferPtr();
     iov[0].iov_len = _RecvBufferState.GetRecvSpace();
+
+    if( iov[0].iov_base == nullptr )
+      throw csm::network::ExceptionRecv("Nullptr data buffers detected", EINVAL );
 
     char Remote[ sizeof( struct sockaddr_un ) ];
     bzero( Remote, sizeof( struct sockaddr_un ) );
