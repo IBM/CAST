@@ -36,12 +36,59 @@ FL_SetSize(FLError, 16384)
 FL_SetName(FLAsyncRqst, "Async Request Flightlog")
 FL_SetSize(FLAsyncRqst, 16384)
 
+#ifndef GPFS_SUPER_MAGIC
+#define GPFS_SUPER_MAGIC 0x47504653
+#endif
+
 
 /*
  * Static data
  */
 static int asyncRequestFile_ReadSeqNbr  = 0;
 static FILE* asyncRequestFile_Read  = (FILE*)0;
+
+
+/*
+ * Helper methods
+ */
+int isGpfsFile(const char* pFileName, bool& pValue)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    pValue = false;
+    struct statfs l_Statbuf;
+
+    bfs::path l_Path(pFileName);
+    rc = statfs(pFileName, &l_Statbuf);
+    while ((rc) && ((errno == ENOENT)))
+    {
+        l_Path = l_Path.parent_path();
+        if (l_Path.string() == "")
+        {
+            break;
+        }
+        rc = statfs(l_Path.string().c_str(), &l_Statbuf);
+    }
+
+    if (rc)
+    {
+        FL_Write(FLServer, StatfsFailedGpfs, "Statfs failed", 0, 0 ,0, 0);
+        errorText << "Unable to statfs file " << l_Path.string();
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+    }
+
+    if((l_Statbuf.f_type == GPFS_SUPER_MAGIC))
+    {
+        pValue = true;
+    }
+
+    FL_Write(FLServer, Statfs_isGpfsFile, "rc=%ld, isGpfsFile=%ld, magic=%lx", rc, pValue, l_Statbuf.f_type, 0);
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
 
 
 /*
@@ -1690,6 +1737,35 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 {
                     if (pMaintenanceOption == START_BBSERVER)
                     {
+                        // Ensure that the bbServer metadata is on a parallel file system
+                        // NOTE:  We invoke isGpfsFile() even if we are not to enforce the condition so that
+                        //        we flightlog the statfs() result...
+                        bool l_GpfsMount = false;
+                        rc = isGpfsFile(pAsyncRequestFileName, l_GpfsMount);
+                        if (!rc)
+                        {
+                            if (!l_GpfsMount)
+                            {
+                                if (config.get("bb.requireMetadataOnParallelFileSystem", DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM))
+                                {
+                                    rc = -1;
+                                    errorText << "bbServer metadata is required to be on a parallel file system. Current data store path is " << l_DataStorePath \
+                                              << ". Set bb.bbserverMetadataPath properly in the configuration.";
+                                    bberror << err("error.asyncRequestFile", pAsyncRequestFileName);
+                                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                                }
+                                else
+                                {
+                                    LOG(bb,info) << "WRKQMGR: bbServer metadata is NOT on a parallel file system, but is currently allowed";
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // bberror was filled in...
+                            BAIL;
+                        }
+
                         // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
                         rc = chown(l_DataStorePath.c_str(), 0, 0);
                         if (rc)
