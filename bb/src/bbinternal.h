@@ -110,6 +110,7 @@ const int RESUME = 0;
 const int SUSPEND = 1;
 
 const bool DEFAULT_USE_DISCARD_ON_MOUNT_OPTION = false;
+const bool DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM = true;
 
 const uint64_t DEFAULT_JOBID = 1;
 const uint64_t NO_JOBID = 0;
