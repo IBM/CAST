@@ -1247,7 +1247,8 @@ int main(int orig_argc, const char** orig_argv)
                 rc = activecontroller->gethostlist(hostlist);
                 if(rc)
                 {
-                    LOG_RC_AND_BAIL(rc);
+                    errorText << "Unable to obtain host list";
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             }
             hosts = buildTokens(hostlist, ",");

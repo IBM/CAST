@@ -275,6 +275,8 @@ typedef struct {
     char* control_action; /**< The control action script to query on, optional. */
     char* msg_id; /**< The identifier string for this RAS event ( **system.component.id ** ), optional. */
     char* message; /**< The message of the RAS event to query for, optional. */
+    uint32_t set_states_count; /**< Number of set_states being queried, size of @ref set_states. */
+    char** set_states; /**< List of set_states to perform query on. Will filter results to only include specified set_states. Size defined by @ref set_states_count. */
 } csm_ras_msg_type_query_input_t;
 /**
  * @brief A wrapper for the output of @ref csm_ras_msg_type_query.

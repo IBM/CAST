@@ -38,7 +38,7 @@
     #define CSMI_STRING_FIXED        0
     #define CSMI_ARRAY               0
     #define CSMI_ARRAY_FIXED         0
-    #define CSMI_ARRAY_STR           0
+    #define CSMI_ARRAY_STR           1
     #define CSMI_ARRAY_STR_FIXED     0
     #define CSMI_STRUCT              0
     #define CSMI_ARRAY_STRUCT        0
@@ -56,6 +56,11 @@ CSMI_STRUCT_MEMBER(char*              , control_action, STRING, , NULL          
 CSMI_STRUCT_MEMBER(char*              , msg_id        , STRING, , NULL          , ) /**< The identifier string for this RAS event ( **system.component.id ** ), optional. */
 CSMI_STRUCT_MEMBER(char*              , message       , STRING, , NULL          , ) /**< The message of the RAS event to query for, optional. */
 CSMI_VERSION_END(c606032c5ce8b65dae80bc5d9a41567e)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(uint32_t, set_states_count, BASIC    ,                 , 0   , ) /**< Number of set_states being queried, size of @ref set_states. */
+CSMI_STRUCT_MEMBER(char**  , set_states      , ARRAY_STR, set_states_count, NULL, ) /**< List of set_states to perform query on. Will filter results to only include specified set_states. Size defined by @ref set_states_count. */
+CSMI_VERSION_END(0)
 
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END

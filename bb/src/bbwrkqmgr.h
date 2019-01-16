@@ -40,7 +40,8 @@ class WorkID;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;   // In seconds, default 5 minutes
+const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 3600;   // In seconds, default 1 hour
+//const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;   // In seconds, default 5 minutes
 const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;  // Default 16M
 //const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 32 * 1024;
 const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wrkqmgr

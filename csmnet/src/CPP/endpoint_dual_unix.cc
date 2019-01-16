@@ -79,8 +79,11 @@ csm::network::EndpointDualUnix::EndpointDualUnix( const Endpoint *aEP )
   _DualOptions( std::dynamic_pointer_cast<csm::network::EndpointOptionsDual>( aEP->GetOptions() ) ),
   _CallBackRefCount( dynamic_cast<const csm::network::EndpointDualUnix*>(aEP)->_CallBackRefCount )
 {
-  _Default = new csm::network::EndpointUnix( dynamic_cast<const csm::network::EndpointDualUnix*>(aEP)->_Default );
-  _Callback = new csm::network::EndpointUnix( dynamic_cast<const csm::network::EndpointDualUnix*>(aEP)->_Callback );
+  const csm::network::EndpointDualUnix *duep = dynamic_cast<const csm::network::EndpointDualUnix*>(aEP);
+  if( duep == nullptr )
+    throw csm::network::Exception("Endpoint copy from wrong type", EBADFD );
+  _Default = new csm::network::EndpointUnix( duep->_Default );
+  _Callback = new csm::network::EndpointUnix( duep->_Callback );
 }
 
 csm::network::EndpointDualUnix::~EndpointDualUnix()

@@ -36,11 +36,12 @@ def CancelTransfers(pEnv):
         bb.initEnv(pEnv)
 
         l_TargetHandle = pEnv["handle"]
+        l_CancelScope = pEnv["cancelscope"]
         l_Handles = bb.getHandles()
         for l_Handle in l_Handles:
             try:
                 if (l_TargetHandle == bb.NO_HANDLE or l_TargetHandle == l_Handle):
-                    BB_CancelTransfer(l_Handle)
+                    BB_CancelTransfer(l_Handle, l_CancelScope)
             except BBError as error:
                 error.handleError()
     except BBError as error:
@@ -549,7 +550,10 @@ def RemoveLogicalVolume(pEnv):
 
     try:
         bb.initEnv(pEnv)
-        l_Mountpoint = pEnv["MOUNT"]
+        if (pEnv["procedure_args"] == ""):
+            l_Mountpoint = pEnv["MOUNT"]
+        else:
+            l_Mountpoint = pEnv["procedure_args"]
 
         BB_RemoveLogicalVolume(l_Mountpoint)
     except BBError as error:

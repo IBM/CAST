@@ -305,7 +305,7 @@ int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const s
 {
     int rc = 0;
 
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     for (auto it = tagInfoMap.begin(); ((!rc) && it != tagInfoMap.end()); ++it)
     {
