@@ -43,10 +43,10 @@ Recurring Task Configuration
 ----------------------------
 
 To configure the `Soft Failure` recovery mechanism, please refer to the  
-:ref: `csm_soft_failure_recovery-config` documentation.
+:ref:`csm_soft_failure_recovery-config` documentation.
 
 Additionally, depending on the complexity of the `Recovery Script`_, the admin should modify 
-the :ref: `API Configuration` timeout time of `csm_soft_failure_recovery` to account for at least 
+the :ref:`CSMDAPIConf` timeout time of `csm_soft_failure_recovery` to account for at least 
 twice the projected runtime of the recovery script.
 
 Command Line Interface
