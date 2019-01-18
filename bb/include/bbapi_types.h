@@ -116,6 +116,8 @@ typedef enum BBERRORFORMAT BBERRORFORMAT;
     
     typedef enum BBServerQuery BBServerQuery;
 
+#define BBUSAGE_COUNT 0
+
 /**
  *  \brief Burst Buffer SSD usage
  *  \ingroup bbapi
@@ -129,6 +131,10 @@ typedef struct BBusage
     uint64_t localBytesWritten;  ///< Number of bytes read from the logical volume via compute node
     uint64_t burstBytesRead;     ///< Number of bytes written to the logical volume via burst buffer transfers
     uint64_t burstBytesWritten;  ///< Number of bytes read from the logical volume via burst buffer transfers
+#if BBUSAGE_COUNT
+    uint64_t localReadCount;     ///< Number of write operations to the logical volume via burst buffer transfers
+    uint64_t localWriteCount;  ///< Number of read operations to the logical volume via burst buffer transfers
+#endif
 #ifdef __cplusplus
     BBusage()
 {
@@ -138,6 +144,10 @@ typedef struct BBusage
    localBytesWritten=0;
    burstBytesRead=0;
    burstBytesWritten=0;
+#if BBUSAGE_COUNT
+   localReadCount=0;
+   localWriteCount=0;
+#endif
 }
 #endif
 } BBUsage_t;

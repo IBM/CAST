@@ -1938,6 +1938,10 @@ int BB_GetUsage(const char* mountpoint, BBUsage_t* usage)
             ADDFIELD(totalBytesWritten);
             ADDFIELD(localBytesRead);
             ADDFIELD(localBytesWritten);
+#if BBUSAGE_COUNT
+            ADDFIELD(localReadCount);
+            ADDFIELD(localWriteCount);
+#endif
             ADDFIELD(burstBytesRead);
             ADDFIELD(burstBytesWritten);
 #undef ADDFIELD
