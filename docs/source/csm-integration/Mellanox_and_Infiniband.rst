@@ -1,7 +1,11 @@
 Mellanox and Infiniband
 =======================
 
-CSM can be integrated with Mellanox to enhance usability of your cluster. CSM can collect inventory on Mellanox hardware, listen to Mellanox events and create relative CSM RAS events, and run diagnostics and health check tests with regards to Mellanox systems. 
+CSM can be integrated with Mellanox to enhance usability of your cluster. CSM can collect inventory on Mellanox hardware and convert Mellanox events into corresponding CSM RAS events. 
+
+.. Replace below with above when we add diags.
+
+.. CSM can be integrated with Mellanox to enhance usability of your cluster. CSM can collect inventory on Mellanox hardware, listen to Mellanox events and create relative CSM RAS events, and run diagnostics and health check tests with regards to Mellanox systems. 
 
 .. _UFM_Credentials:
 
@@ -49,19 +53,14 @@ Inventory collection has been modularly developed. We separated the external inv
 
 Because of this development choice, CSM can easily be adapted to work with multiple external programs and services. 
 
-.. note:: As of CSM 1.0, CSM supports Mellanox and IB inventory collection. 
-
 For ease of use, CSM provides a tool: :ref:`CSM_standalone_inventory_collection` which will collect inventory information from Mellanox and insert that data into the CSM Database. 
 
 RAS Events
 ----------
 
-.. note:: As of CSM 1.4, CSM supports RAS event integration with Mellanox. 
+CSM monitors Mellanox events and creates corresponding CSM RAS events when a Mellanox event triggers. This CSM RAS event is recorded into the :ref:`CSM_Database`.
 
-CSM monitors Mellanox events and will create relative CSM RAS events when a Mellanox event triggers. This CSM RAS event will be recorded into the :ref:`CSM_Database`.
+.. Diagnostics
+  -----------
 
-Diagnostics
------------
-
-.. note:: For CSM 1.5, CSM will support an integration between CSM Diagnostics and Health check with Mellanox Diagnostics. 
 
