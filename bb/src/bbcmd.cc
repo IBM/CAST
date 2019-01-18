@@ -710,6 +710,10 @@ int bbcmd_getusage(po::variables_map& vm)
     bberror.errdirect("out.totalBytesWritten", usage.totalBytesWritten);
     bberror.errdirect("out.localBytesRead", usage.localBytesRead);
     bberror.errdirect("out.localBytesWritten", usage.localBytesWritten);
+#if BBUSAGE_COUNT
+    bberror.errdirect("out.localReadCount", usage.localReadCount);
+    bberror.errdirect("out.localWriteCount", usage.localWriteCount);
+#endif
     bberror.errdirect("out.burstBytesRead", usage.burstBytesRead);
     bberror.errdirect("out.burstBytesWritten", usage.burstBytesWritten);
 

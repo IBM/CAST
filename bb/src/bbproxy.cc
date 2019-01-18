@@ -680,6 +680,10 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     ADDFIELD(totalBytesWritten);
     ADDFIELD(localBytesRead);
     ADDFIELD(localBytesWritten);
+#if BBUSAGE_COUNT
+    ADDFIELD(localReadCount);
+    ADDFIELD(localWriteCount);
+#endif
     ADDFIELD(burstBytesRead);
     ADDFIELD(burstBytesWritten);
 #undef ADDFIELD

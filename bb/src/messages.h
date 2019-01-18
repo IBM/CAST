@@ -58,4 +58,6 @@ typedef struct BB_Attributes_s {
     int version;
     int knownSerials;
     int nackSerials;
+    int localReadCount;
+    int localWriteCount;
 } BB_Attributes;
