@@ -1,3 +1,5 @@
+.. _CSM_Database:
+
 CSM Database
 ============
 
