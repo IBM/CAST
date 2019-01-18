@@ -76,7 +76,7 @@ void csmiGenerateJSON(
             
             determine_array_size(array_size, node->type, node->size_offset, target);
             json.append("\"").append(node->name).append("\":");
-            
+        
             switch ( type )
             {
             case CSM_STRING_TYPE:
@@ -93,8 +93,9 @@ void csmiGenerateJSON(
                             json.append("\"").append(
                                 escapeString((*array)[i])).append("\",");
                         }
+
                     }
-                    json.pop_back();
+                    if ( array_size > 0 ) json.pop_back();
                     json.append("],");
                 }
                 else
