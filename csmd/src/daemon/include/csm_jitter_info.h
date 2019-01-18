@@ -30,23 +30,27 @@ private:
     std::string _SystemMap;
     int32_t     _SystemSMT;
     bool        _IRQAffinity;
+    std::string _SocketOrder;
 
 public:
     CSM_Jitter_Info():
-        _SystemMap(""), _SystemSMT(0), _IRQAffinity(true) {}
+        _SystemMap(""), _SystemSMT(0), _IRQAffinity(true), _SocketOrder("") {}
 
     void Init(
             std::string systemMap,
+            std::string socketOrder,
             int32_t     systemSMT,
             bool        irqAffinity) 
     {
         _SystemMap     = systemMap;
         _SystemSMT     = systemSMT;
         _IRQAffinity   = irqAffinity;
+        _SocketOrder   = socketOrder;
     }
 
     ~CSM_Jitter_Info() {}
    
+    std::string GetSocketOrder()   const { return _SocketOrder;   } 
     std::string GetSystemMap()     const { return _SystemMap;     } 
     int32_t     GetSystemSMT()     const { return _SystemSMT;     }
     bool        GetIRQAffinity()   const { return _IRQAffinity;   }
