@@ -228,6 +228,7 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
                 keywords::filter = channel == "LOG"
             );
 
+
             if(config.get(ptree_prefix + ".archiveLogs", "none") != "none")
             {
                 sink->locked_backend()->set_file_collector(sinks::file::make_collector(
@@ -282,21 +283,40 @@ int initializeLogging(string ptree_prefix, boost::property_tree::ptree& config)
         if(config.get(ptree_prefix + ".transaction", true))
         {
             auto sink = logging::add_file_log(
-                keywords::file_name = config.get(ptree_prefix + ".transaction_file", "none"),
+                keywords::file_name = config.get(ptree_prefix + ".transaction_file", "none") + ".%N",
                 keywords::rotation_size = config.get(ptree_prefix + ".transaction_rotation_size", (~0)),
                 keywords::auto_flush = true,
                 keywords::open_mode = std::ios::app,
+                boost::log::keywords::scan_method           = boost::log::sinks::file::scan_matching,
                 keywords::filter = channel == "BDS");
+
+            
+            /*
+            sink->locked_backend()->set_file_collector(sinks::file::make_collector(
+            ));
+
+            sink->locked_backend()->scan_for_files(sinks::file::scan_all);*/
         }
 
         if(config.get(ptree_prefix + ".allocation_metrics", true))
         {
             auto sink = logging::add_file_log(
-                keywords::file_name = config.get(ptree_prefix + ".allocation_metrics_file", "none"),
+                keywords::file_name = config.get(ptree_prefix + ".allocation_metrics_file", "none")  + ".%N",
                 keywords::rotation_size = config.get(ptree_prefix + ".allocation_metrics_rotation_size", (~0)),
                 keywords::auto_flush = true,
                 keywords::open_mode = std::ios::app,
+                boost::log::keywords::scan_method           = boost::log::sinks::file::scan_matching,
                 keywords::filter = channel == "ALC");
+            
+            /*
+            sink->locked_backend()->set_file_collector(sinks::file::make_collector(
+                    keywords::target         = "none",
+                    keywords::max_size       = 1024 * 1024 * 1024,
+                    keywords::min_free_space = 1024 * 1024 * 1024
+            ));
+
+            sink->locked_backend()->scan_for_files(sinks::file::scan_all);
+            */
         }
         rc = 0;
     }
