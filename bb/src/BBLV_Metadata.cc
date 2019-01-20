@@ -50,7 +50,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 for(auto& elements: boost::make_iterator_range(bfs::directory_iterator(job), {}))
                 {
                     LOG(bb,info) << "elements: " << elements;
-                    count++;
+                    ++count;
                 }
                 LOG(bb,info) << "xbbServer: JobId " << pJobId << " is already registered and currently has " << count << " associated job step(s)";
             }
