@@ -1,0 +1,6 @@
+#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users
+bmc.1,FATAL,TEST 1,,NONE,1,0,true,,true
+bmc.2,FATAL,TEST 2,,NONE,1,0,true,,true
+bmc.3,FATAL,TEST 3,,NONE,1,0,true,,true
+bmc.4,FATAL,TEST 4,,NONE,1,0,true,,true
+bmc.5,FATAL,TEST 5,,NONE,1,0,true,,true
