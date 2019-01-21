@@ -107,7 +107,7 @@ described above.
 activelist
 ^^^^^^^^^^
 
-:File location: ``/etc/pam.d/csm/whitelist``
+:File location: ``/etc/pam.d/csm/activelist``
 :Configurable:  No                         
 
 The `activelist` file should not be modified by the admin or user. CSM will modify this file
