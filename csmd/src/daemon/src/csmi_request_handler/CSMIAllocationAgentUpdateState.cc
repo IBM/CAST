@@ -555,41 +555,25 @@ int AllocationAgentUpdateState::RegisterAllocation( int64_t allocationId, const 
     int errorCode = 0;
     std::string allocationString(username);
     allocationString.append(";").append(std::to_string(allocationId)).append("\n");
-    
-    int openFlag = O_WRONLY | O_CLOEXEC;
-    
-    if ( shared )
-        openFlag |= O_APPEND;
-    else
-        openFlag |= O_TRUNC;
 
-    // Open the file descriptor.
-    errno=0;
-    int fileDescriptor = open(CSM_ACTIVELIST, openFlag );
-    errorCode = errno;
-
-    // Attempt to write the descriptor.
-    if( fileDescriptor >= 0 )
+    std::ofstream activelistStream(CSM_ACTIVELIST);
+    try
     {
-        errno=0;
-        write( fileDescriptor, allocationString.c_str(), allocationString.size() );
-        errorCode = errno;
-
-        errno=0;
-        close( fileDescriptor );
-    }
+        activelistStream << allocationString;
     
-    // If the error code is not zero report a warning.
-    if ( errorCode != 0 )
-    {
-        LOG( csmapi, warning ) <<  "Allocation ID: "
+        // Close the stream so it can be swapped.
+        activelistStream.close();
+
+    } catch (const std::ifstream::failure& e){
+        LOG( csmapi, error ) <<  "Allocation ID: "
             << std::to_string(allocationId) << 
-            "; Message: Unable to register allocation with daemon; errno string: "
-            << strerror(errorCode);
+            "; Message: Unable to register allocation with daemon; Extended Message: "
+            << e.what();
+        errorCode = 1;
     }
 
     LOG( csmapi, trace ) << STATE_NAME ":RegisterAllocation; Exit";
-
+    
     return errorCode;
 }
 
@@ -629,6 +613,7 @@ int AllocationAgentUpdateState::RemoveAllocation( int64_t allocationId )
             
             // Swap the temporary list with the official one.
             if ( !std::remove(CSM_ACTIVELIST) ) 
+                std::remove(CSM_ACTIVELIST_SWAP);
                 LOG( csmapi, warning ) <<  "Allocation ID: " << std::to_string(allocationId)
                     << "; Message: Activelist couldn't be removed;";
 
