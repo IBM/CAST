@@ -1326,8 +1326,9 @@ void Configuration::CreateThreadPool()
         const std::string SYSTEM_MAP = SECTION + "system_map";
         const std::string SYSTEM_SMT = SECTION + "system_smt";
         const std::string IRQ_MAP    = SECTION + "irq_affinity";
-        const std::string CORE_ISO   = SECTION + "core_isolation";
-        const std::string CORE_BLINK = SECTION + "core_blink";  
+        const std::string SOCK_ORDER = SECTION + "socket_order";
+        //const std::string CORE_ISO   = SECTION + "core_isolation";
+        //const std::string CORE_BLINK = SECTION + "core_blink";  
         std::string keyStr = "";
 
         // Parse core mappings.
@@ -1340,6 +1341,8 @@ void Configuration::CreateThreadPool()
         keyStr     = GetValueInConfig(IRQ_MAP);
         boost::algorithm::to_lower(keyStr);
         bool irqAffinity=  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
+
+        std::string socketOrder = GetValueInConfig(SOCK_ORDER);
 
         /*
         // If the core isolation flag is unset default to true.
@@ -1354,7 +1357,7 @@ void Configuration::CreateThreadPool()
         */
 
         // Build the object.
-        _JitterInfo.Init(systemMap, systemSMT, irqAffinity);
+        _JitterInfo.Init(systemMap, socketOrder, systemSMT, irqAffinity );
     } 
 
 }  // namespace daemon

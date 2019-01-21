@@ -647,6 +647,7 @@ Allocations. This block will only be required on Compute Node configurations.
         "system_map"     : "F03C0",
         "system_smt"     : 0,
         "irq_affinity"   : true
+        "socket_order"   : "00"
     }
 
 :system_map:
@@ -697,5 +698,25 @@ Allocations. This block will only be required on Compute Node configurations.
     system cgroup will have all IRQ rebalanced to them. 
     
     If no core isolation occurs or this is set to false a rebalance across all cores will be performed.
+
+:socket_order:
+    A mask determining the direction which the isolated cores will be allocated for the 
+    system cgroup, per socket. ``0`` indicates the cores will be allocated by the cgroup left to right.
+    ``1`` indicates that the cores will be allocated by the cgroupright to left. 
+
+    Each character in the mapping string corresponds to a socket on the node. If a socket is not
+    defined by the mapping it will be set to ``0``.
+
+    The default ``00`` would allocate the isolated cores left to right on all cores specified by
+    ``system_map`` for the first and second socket. A core isolation of 1 and using the mapping of
+    ``F03C0`` the cpus isolated by the system cgroup  (8 threads per core) would be:  ``0-7,80-87``
+
+    Specifying ``01``,a core isolation of 1 and using the mapping of ``F03C0`` the cpus
+    isolated by the system cgroup  (8 threads per core) would be:  ``0-7,104-111``
+
+    
+
+
+    
 
 
