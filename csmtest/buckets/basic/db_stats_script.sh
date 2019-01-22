@@ -1,8 +1,8 @@
 #================================================================================
 #   
-#    buckets/basic/db_stats.sh
+#    buckets/basic/db_stats_script.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
