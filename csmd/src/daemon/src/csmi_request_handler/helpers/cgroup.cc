@@ -1435,11 +1435,12 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 {
     // Assemble the thread grouping 
     #define assembleGroup( string )                                        \
-        string.append(std::to_string(groupStart)).append(DELIM);           \
+        string.append(std::to_string(groupStart));                         \
         if ( groupStart != thread - 1 )                                    \
         {                                                                  \
-            string.append(std::to_string(thread - 1)).append(_GROUP_DELIM);\
-        }
+            string.append(_RANGE_DELIM).append(std::to_string(thread - 1)); \
+        }\
+        string.append(_GROUP_DELIM);
 
     // Get the jitter info.
     csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
@@ -1459,7 +1460,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     {
         
 
-#define VM_DEVELOPMENT 1
+//#define VM_DEVELOPMENT 1
 #ifdef VM_DEVELOPMENT
         threads        = 160;
         sockets        = 2;//1;
@@ -1469,9 +1470,9 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
  //       const int32_t threadsPerCoreOffset = 0;
 //        const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
         //const char* DELIM = _RANGE_DELIM;
-//#else
+#else
         // Determine the delimiter based on the number of PerSocket/hreads per core.
-        const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
+        //const char* DELIM = _smtMode > 2 ? _RANGE_DELIM : _GROUP_DELIM;
         // Maximum number of logical cores per core.
         const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
         // Difference between the maximum and actual thread count per core.
@@ -1530,8 +1531,9 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             for ( core=0; core < coresPerSocket; ++core )
             {
                 // thread = (left to right increase) :  (right to left decrease)
-                thread = LTOR ? ( ( socket * coresPerSocket * threadsPerCore ) + (core * threadsPerCore ) ) : 
-                    ( ( coresPerSocket * (socket + 1) * threadsPerCore) - ( ( core + 1 ) * threadsPerCore ) );
+                thread = LTOR ? 
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                    ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
                 
                 // If true considered an allocation core.
                 bool allocCore = configuredCores[(int)(thread / threadsPerCore)] == '0';
