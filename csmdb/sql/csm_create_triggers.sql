@@ -2,7 +2,7 @@
 --
 --   csm_create_triggers.sql
 --
--- © Copyright IBM Corporation 2015-2018. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2019. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,14 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.2
+--   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         11-26-2018
+--   last modified:         01-22-2019
 --   change log:
+--     17.0   - Moving this version to sync with DB schema version
+--            - fn_csm_allocation_history_dump -        added field:    smt_mode
+--            - fn_csm_allocation_update -              added field:    smt_mode
+--            - fn_csm_allocation_update_state -        added field:    o_smt_mode
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -915,8 +919,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode          smallint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
-
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode smallint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 -----------------------------------------------------------
 -- fn_csm_allocation_dead_records_on_lv 
