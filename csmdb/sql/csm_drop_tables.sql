@@ -2,7 +2,7 @@
 --
 --   csm_drop_tables.sql
 --
--- © Copyright IBM Corporation 2015-2018. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2019. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -e (drop all the csm_db tables)
---   current_version:   16.2
+--   current_version:   17.0
 --   create:            04-25-2015
---   last modified:     10-24-2018
+--   last modified:     01-22-2019
 --   log change:
+--      17.0 -          Moving this version to sync with DB schema version
 --      16.2 -          Moving this version to sync with DB schema version
 --      16.1 -          Moving this version to sync with DB schema version
 --      16.0 -          Moving this version to sync with DB schema version

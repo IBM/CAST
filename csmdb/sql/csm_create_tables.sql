@@ -15,11 +15,11 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   16.2
+--   current_version:   17.0
 --   create:            12-14-2015
---   last modified:     12-13-2018
+--   last modified:     01-22-2019
 --   change log:    
---   16.3   Added smt_mode to csm_allocation and csm_allocation_history
+--   17.0   Added smt_mode to csm_allocation and csm_allocation_history
 --   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
 --          COMMENT ON COLUMN csm_node.state
 --          COMMENT ON COLUMN csm_node_history.state
