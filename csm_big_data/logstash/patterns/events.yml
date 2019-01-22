@@ -48,15 +48,14 @@ data_sources:                                  # Mandatory, Map with the keys co
   event_data:    "message" 
   category_key:  "program_name" 
   categories:
-   eventlog:
-     - tag:        "UFM_391"
-       pattern:    "."
+    eventlog:
+     - tag:        "UFM_LOCATION"
+       pattern:    "%{MELLANOX_INFO}"
        ras_msg_id: "ufm.%{event_type}.%{event_id}"
-       action:     ".send_ras;" 
+       action:     "post_ras(ras_msg_id,%{hostname},%{timestamp},%{message});"
+
      - tag:        "UFM_GENERIC"
        pattern:    "."
        ras_msg_id: "ufm.%{event_type}.%{event_id}"
-       action:     ".send_ras;" 
-
-
+       action:     ".send_ras;"
 ...
