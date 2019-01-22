@@ -315,23 +315,33 @@ static int newconnection_name_sequence_number=0;
 /**
    \brief Connection authentication response handler
  */
+static boost::property_tree::ptree myV;
+boost::property_tree::ptree getVersionPropertyTree(){
+    return myV;
+}
+
+static bool myVersionInit(){
+   bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
+   return true;
+}
+static bool myV_set = myVersionInit();
+
 int versionCheck(const std::string& pReceivedVersion){
     boost::property_tree::ptree receivedV;
-    boost::property_tree::ptree myV;
-
+    
     bbVersionToTree(pReceivedVersion, receivedV);
-    bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
 
-    if(myV.get("version.major", "abc") != receivedV.get("version.major", "xyz"))
+    std::string myVersionString = myV.get("version.major", "NOTFOUND_"+process_whoami);
+    if(myVersionString != receivedV.get("version.major", "xyz"))
     {
         stringstream errorText;
         errorText << "Version mismatch.  Received version.major="<<pReceivedVersion<<" My version="<<BBAPI_CLIENTVERSIONSTR;
         bberror << err("error.receivedversion", pReceivedVersion);
-        bberror << err("error.myversion",BBAPI_CLIENTVERSIONSTR);
+        bberror << err("error.myversion",myVersionString);
         bberror << err("error.whoami", process_whoami);
         LOG_RC_AND_RAS_AND_BAIL(-1, bb.cfgerr.versionmismatch);
     }
-    if(myV.get("gitcommit", "abc") != receivedV.get("gitcommit", "xyz"))
+    if( myV.get("gitcommit", "commit_NOTFOUND_"+process_whoami) != receivedV.get("gitcommit", "xyz"))
         LOG(bb,info)<<"gitcommit levels are different,  received="<<pReceivedVersion<<" my Version="<<BBAPI_CLIENTVERSIONSTR;
     return 0;
 }

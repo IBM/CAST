@@ -113,6 +113,7 @@ extern int closeConnectionFD(const std::string& name);
 extern int takeActivebbserverOffline(const std::string& pName);
 extern int makeInitialConnection2bbserver();
 extern int openConnectionToBBserver();
+boost::property_tree::ptree getVersionPropertyTree();
 #if BBPROXY
 extern int countWaitReplyList(const std::string& pConnectionName);
 extern CONNECTION_SUSPEND_OPTION getSuspendState(const std::string& pName);
