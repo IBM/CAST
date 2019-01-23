@@ -1,5 +1,5 @@
 # CAST
-CAST can enhance the system management of cluster-wide resources. It consists of the open source tools: Cluster System Management (CSM), Burst Buffer and Function Shipping. 
+Cluster Administration and Storage Tools, or CAST, can enhance the system management of cluster-wide resources. It consists of the open source tools: Cluster System Management (CSM), Burst Buffer and Function Shipping. 
 
 **CSM** provides an integrated view of your large cluster and includes discovery and management of system resources, database integration, support of job launches, diagnostics, RAS events and actions, and health check. 
 
