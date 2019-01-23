@@ -1460,7 +1460,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     {
         
 
-//#define VM_DEVELOPMENT 1
+#define VM_DEVELOPMENT 1
 #ifdef VM_DEVELOPMENT
         threads        = 160;
         sockets        = 2;//1;
@@ -1470,7 +1470,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
  //       const int32_t threadsPerCoreOffset = 0;
 //        const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
         //const char* DELIM = _RANGE_DELIM;
-#else
+//#else
         // Determine the delimiter based on the number of PerSocket/hreads per core.
         //const char* DELIM = _smtMode > 2 ? _RANGE_DELIM : _GROUP_DELIM;
         // Maximum number of logical cores per core.
@@ -1565,15 +1565,18 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     // Iterate over the cores, bring all online cores online.
                     int32_t cpu = 0; 
                     for(; cpu < systemSMT      ; ++cpu ) CPUPower(thread++, CPU_ONLINE);
-                    for(; cpu < threadsPerCore ; ++cpu ) CPUPower(thread++, CPU_OFFLINE);
+
+                    int32_t extra_thread = thread;
+                    for(; cpu < threadsPerCore ; ++cpu ) CPUPower(extra_thread++, CPU_OFFLINE);
                     
-                    thread -= threadsPerCoreOffset;
                     assembleGroup(sysCores);
                     isolation--;
 
                     // XXX Today this assumes < 32 threads per core!
-                    affinityBlocks[activeAffinityBlock] |=  (IRQMask << (thread % 32));
                     activeAffinityBlock = (int32_t)(thread / 32);
+                    int32_t coreShift=(thread % 32)*systemSMT;
+                    affinityBlocks[activeAffinityBlock] |=  (IRQMask << coreShift);
+
                 }
             }
         }
@@ -1623,12 +1626,14 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         std::string affinityString;         // The list of banned CPUs for the affinity setting.
         if ( jitterInfo.GetIRQAffinity() )
         {
-            for ( int i = numAffinityBlocks - 1; i >= 0; --i)
+            for ( int i = numAffinityBlocks ; i >= 0; --i)
             {
-                affinityStream << std::hex << !(affinityBlocks[i]) << ",";
+                affinityStream << std::hex << ~(affinityBlocks[i] ) << ",";
             }
             affinityString = affinityStream.str();
-            affinityString.back() = '\0';
+            affinityString.back() = ' ';
+
+            LOG(csmapi,trace) << "Affinity Ban List: " << affinityString;
         }
         else
         {
@@ -1647,6 +1652,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // Clear the last character.
     groupCores.back() = ' ';
     sysCores.back()   = ' ';
+
+    LOG(csmapi, trace) << "System: " << sysCores << " Allocation: " << groupCores;
 }
 
 } // End namespace helpers
