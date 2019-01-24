@@ -1551,7 +1551,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     for(; cpu < systemSMT      ; ++cpu ) CPUPower(thread++, CPU_ONLINE);
 
                     int32_t extra_thread = thread;
-                    for(; cpu < threadsPerCore ; ++cpu ) CPUPower(extra_thread++, CPU_OFFLINE);
+                    for(; cpu < threadsPerCoreMax; ++cpu ) CPUPower(extra_thread++, CPU_OFFLINE);
                     
                     assembleGroup(sysCores);
                     isolation--;
@@ -1597,11 +1597,14 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         
         bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
         
-        for ( ; core < coresPerSocket; ++core )
+        for ( core=0; core < coresPerSocket; ++core )
         {
             // thread = (left to right increase) :  (right to left decrease)
-            thread = LTOR ? ( ( socket * coresPerSocket ) + (core * threadsPerCore ) ) : 
-                ( ( coresPerSocket * (socket + 1) ) - ( ( core + 1 ) * threadsPerCore ) );
+            thread = LTOR ? 
+                ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
+            //thread = LTOR ? ( ( socket * coresPerSocket ) + (core * threadsPerCore ) ) : 
+            //    ( ( coresPerSocket * (socket + 1) ) - ( ( core + 1 ) * threadsPerCore ) );
 
             // Process the allocation core.
             if ( isolation == 0 )
@@ -1611,6 +1614,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     CPUPower(thread++, CPU_ONLINE);
                 } 
             }
+            else
+                --isolation;
         }
     }
 
