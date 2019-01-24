@@ -644,46 +644,11 @@ Allocations. This block will only be required on Compute Node configurations.
 
     "jitter_mitigation" :
     {
-        "system_map"     : "F03C0",
-        "system_smt"     : 0,
-        "irq_affinity"   : true
-        "socket_order"   : "00"
+        "system_smt"         : 0,
+        "irq_affinity"       : true,
+        "core_isolation_max" : 4,
+        "socket_order"       : "00"
     }
-
-:system_map:
-    
-    The system map is a hexadecimal string representing the cores that will be considered for
-    core isolation in non shared allocations. To create the hexadecimal string the following 
-    procedure is recommended:
-
-    1. Determine the number of cores on the machine.
-
-        cores : 20
-        
-        .. note:: The CSM team also recommends planning on a per socket basis. 
-
-    2. Write the isolation schema as a binary string, each binary digit should be one core:
-
-        ``1110 0000 0011 1100 0000``
-
-    3. Convert the binary string to hex:
-
-        ``F03C0``
-        
-    This pattern will then be used to select cores that are to be used in the system cgroup
-    in conjunction with the user defined ``core_isolation``. The cores are selected left to right
-    per socket. 
-    
-    Using the above example, if a core isolation of ``2`` is selected then cores 0, 1, 9 and 10
-    will be selected for the system cgroup. 
-
-    Likewise if the user uses a core isolation that would exceed the pattern (``4`` in the above example)
-    the core isolation mechanism will only reserve cores up until the admin allowed cores for the 
-    system cgroup.
-
-
-    .. warning:: If any cores aren't configured in this variable they will not be considered for 
-        the system cgroup.
 
 :system_smt:
     The SMT mode of the system cgroup, if unset this will use the maximum SMT mode.
@@ -699,20 +664,18 @@ Allocations. This block will only be required on Compute Node configurations.
     
     If no core isolation occurs or this is set to false a rebalance across all cores will be performed.
 
+:core_isolation_max:
+    The maximum number of cores allowed on the node to be set aside for the system cgroup.
+    By default this will be set to ``4``.
+
 :socket_order:
     A mask determining the direction which the isolated cores will be allocated for the 
     system cgroup, per socket. ``0`` indicates the cores will be allocated by the cgroup left to right.
-    ``1`` indicates that the cores will be allocated by the cgroupright to left. 
+    ``1`` indicates that the cores will be allocated by the cgroup right to left. 
 
     Each character in the mapping string corresponds to a socket on the node. If a socket is not
     defined by the mapping it will be set to ``0``.
 
-    The default ``00`` would allocate the isolated cores left to right on all cores specified by
-    ``system_map`` for the first and second socket. A core isolation of 1 and using the mapping of
-    ``F03C0`` the cpus isolated by the system cgroup  (8 threads per core) would be:  ``0-7,80-87``
-
-    Specifying ``01``,a core isolation of 1 and using the mapping of ``F03C0`` the cpus
-    isolated by the system cgroup  (8 threads per core) would be:  ``0-7,104-111``
 
     
 
