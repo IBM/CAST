@@ -265,31 +265,26 @@ void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
     CopyParameter( MEMS, CGroup::CPUSET_DIR, groupCpuset );
 
     //WriteToParameter( MEM_LIMIT, CGroup::MEM_DIR, allocProjected.c_str(), allocProjected.size() );
-    // Generate the system cpuset if the cores are greater than zero.
-    if ( cores > 0)
-    {
-        const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
+    const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
 
-        WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
-        WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
+    WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
+    WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
  
-        CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
-        MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
+    CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
+    MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
 
-        // Migrate the tasks.
-        for( uint32_t controller = CG_CPUSET + 1;
-            controller < csm_enum_max(csmi_cgroup_controller_t);
-            ++controller )
-        {
-            std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
-            MigrateTasks( 
-                std::string(CGroup::CONTROLLER_DIR)
-                    .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
-                cg );
-        }
-
-        // TODO Compute System CGroup limit.
+    // Migrate the tasks.
+    for( uint32_t controller = CG_CPUSET + 1;
+        controller < csm_enum_max(csmi_cgroup_controller_t);
+        ++controller )
+    {
+        std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
+        MigrateTasks( 
+            std::string(CGroup::CONTROLLER_DIR)
+                .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
+            cg );
     }
+
 
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Exit";
 }
