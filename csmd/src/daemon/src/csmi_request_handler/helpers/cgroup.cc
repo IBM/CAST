@@ -19,7 +19,7 @@
 #include <sys/types.h> ///< File Status types.
 #include <sys/stat.h>  ///< File Status Functions.
 #include <sys/mount.h> ///< Mount function
-#include <unistd.h>    ///< Write/sync function
+#include <unistd.h>    ///< Write/sync function; environ
 #include <fcntl.h>     ///< Open function
 #include <errno.h>     ///< Errno
 #include <signal.h>    ///< Kill System call.
@@ -29,6 +29,7 @@
 #include "cgroup.h" 
 #include "csm_handler_exception.h"
 #include "csmi/include/csm_api_macros.h" // csm_get_enum_from_stringget_enum_from_string
+
 
 // TODO Might want to migrate to consts.
 ///< Syntactic sugar for directory flags.
@@ -1022,7 +1023,7 @@ int CGroup::IRQRebalance( const std::string bannedCPUs )
         << bannedCPUs;
 
     errno = 0;
-    int exit = execv(*scriptArgs, scriptArgs);
+    int exit = execve(*scriptArgs, scriptArgs,environ);
     if ( exit != -1 )
     {
         LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
