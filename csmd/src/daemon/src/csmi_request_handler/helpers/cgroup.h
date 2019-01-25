@@ -235,7 +235,7 @@ private:
      *
      * @return The Errno of the operation.
      */
-    static int CPUPower(const uint32_t thread, const int online);
+    static int CPUPower(const uint32_t thread, const char online);
 
     /**
      * @brief Applies the IRQ affinity using the irqbalance daemon in oneshot mode.

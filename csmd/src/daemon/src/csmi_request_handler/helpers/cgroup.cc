@@ -67,8 +67,6 @@
 ///< CPUBLINK/SMT tools.
 #define CPU_PATH_MAX 128
 #define CPU_ONLINE_STR "/sys/devices/system/cpu/cpu%d/online"
-#define CPU_ONLINE 1
-#define CPU_OFFLINE 0
 
 /// Enables a check for development enviroment.
 //#define VM_DEVELOPMENT 1
@@ -77,6 +75,8 @@ namespace csm {
 namespace daemon {
 namespace helper {
 
+static const char CPU_ONLINE  = '1';
+static const char CPU_OFFLINE = '0';
 static const char ENABLE_CONTROLLER         = '1'; ///< Syntactic Sugar
 static const char DISABLE_CONTROLLER        = '0'; ///< Syntactic Sugar
 
@@ -988,7 +988,7 @@ void CGroup::DeleteChildren(
 
 int CGroup::CPUPower(
     const uint32_t thread,
-    const int online ) 
+    const char online ) 
 {
     char path[CPU_PATH_MAX];
     int rc = 0;
