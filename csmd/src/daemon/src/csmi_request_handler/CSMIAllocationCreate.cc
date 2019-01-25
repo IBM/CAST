@@ -153,7 +153,12 @@ bool CSMIAllocationCreate_Master::CreatePayload(
 
         // Compute what state the create should start in.
         csmi_state_t creating_state = allocation->state == CSM_RUNNING ? CSM_TO_RUNNING : allocation->state;
-       
+
+        if ( allocation->_metadata < CSM_VERSION_1_5_0 )
+        {
+            allocation->smt_mode = 0;
+        }
+
         // --------------------------------------------------------------------------
         // Build the insert allocation statement.
         // --------------------------------------------------------------------------
