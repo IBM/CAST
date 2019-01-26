@@ -50,11 +50,6 @@ const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when
 const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 12;    // Default, if no activity, dump every hour
 const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 300.0;    // In seconds, default is to dump wrkqmgr every 5 minutes
 
-const int CREATE_NEW_FILE = 4;
-const int START_BBSERVER = 3;
-const int FULL_MAINTENANCE = 2;
-const int MINIMAL_MAINTENANCE = 1;
-const int NO_MAINTENANCE = 0;
 const uint64_t DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL = 1000;
 const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
 
@@ -62,12 +57,24 @@ const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
 /*******************************************************************************
  | Enumerators
  *******************************************************************************/
-enum DUMP_OPTION {
+enum DUMP_OPTION
+{
     DUMP_ALWAYS             = 0,
     DUMP_ONLY_IF_THROTTLING = 1,
     DUMP_UNCONDITIONALLY    = 2
 };
 typedef enum DUMP_OPTION DUMP_OPTION;
+
+enum MAINTENANCE_OPTION
+{
+    NO_MAINTENANCE = 0,
+    FORCE_REOPEN = 1,
+    MINIMAL_MAINTENANCE = 2,
+    FULL_MAINTENANCE = 3,
+    START_BBSERVER = 4,
+    CREATE_NEW_FILE = 5
+};
+typedef MAINTENANCE_OPTION MAINTENANCE_OPTION;
 
 
 /*******************************************************************************
@@ -578,7 +585,7 @@ class WRKQMGR
     void loadBuckets();
     void lock(const LVKey* pLVKey, const char* pMethod);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
-    FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const int pMaintenanceOption=NO_MAINTENANCE);
+    FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
     void pinLock(const LVKey* pLVKey, const char* pMethod);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
     void processThrottle(LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
@@ -595,7 +602,7 @@ class WRKQMGR
     void updateHeartbeatData(const string& pHostName);
     void updateHeartbeatData(const string& pHostName, const string& pServerTimeStamp);
     void verify();
-    int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const int pMaintenanceOption=FULL_MAINTENANCE);
+    int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=FULL_MAINTENANCE);
 
     // Data members
     int                 throttleMode;
