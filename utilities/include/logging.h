@@ -102,7 +102,7 @@ namespace utility
                                << boost::log::add_value("Line"        , __LINE__) \
                                << boost::log::add_value("Function"    , __func__)
 
-#define TIMESTAMP_NOW() ",\"@timestamp\":\"" << utility::GetUTCTimestampNow() << "\""
+#define TIMESTAMP_NOW() ",\"timestamp\":\"" << utility::GetUTCTimestampNow() << "\""
 
 #define TRANSACTION(type, traceid, uid, data) BOOST_LOG(utility::bds_logger) << "{\"type\":\"" << type << \
     "\",\"traceid\":" << traceid << ",\"uid\":" << uid << TIMESTAMP_NOW() <<",\"data\":" << data << "}"
