@@ -43,7 +43,7 @@ void help() {
 	puts("_____CSM_BB_LV_DELETE_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_bb_lv_delete ARGUMENTS [OPTIONS]");
-	puts("  csm_bb_lv_delete -a allocation_id -l logical_volume_name -n node_name -r num_bytes_read  -w num_bytes_written [-h] [-v verbose_level]");
+	puts("  csm_bb_lv_delete -a allocation_id -l logical_volume_name -n node_name -r num_bytes_read  -w num_bytes_written [-R num_reads] [-W num_writes] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Intended to be used by a system administrator to manually remove an entry from the 'csm_bb_lv' table in the CSM database. This cmd line interface should be used in the event of an error occur causing an lv entry to not get deleted properly. This cmd line interface should not be used as the main way of removing entries from 'csm_bb_lv'.");
 	puts("");
@@ -62,13 +62,19 @@ void help() {
 	puts("    -n, --node_name           | \"node_01\"                  | (STRING) Name of the node where this LV is located.");
 	puts("    -r, --num_bytes_read      | 1                          | (INT64) Number of bytes read during the life of this partition.");
 	puts("    -w, --num_bytes_written   | 1                          | (INT64) Number of bytes written during the life of this partition.");
+	puts("  MANDATORY:");
+	puts("    csm_bb_lv_delete has 2 optional arguments");
+	puts("    Argument         | Example value | Description  ");                                                 
+	puts("    -----------------|---------------|--------------");
+	puts("    -R, --num_reads  | 0             | (INT64) Number of bytes read during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
+	puts("    -W, --num_writes | 0             | (INT64) Number of bytes written during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h]                  | Help.");
 	puts("[-v verbose_level]    | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_bb_lv_delete -a 1 -l \"my logical volume name\" -n \"node_01\" -r 1 -w 1");
+	puts("  csm_bb_lv_delete -a 1 -l \"my logical volume name\" -n \"node_01\" -r 1 -w 1 -R 0 -W 0");
 	puts("____________________");
 }
 
@@ -83,6 +89,8 @@ static struct option long_options[] =
 	{"node_name",           required_argument, 0, 'n'},
 	{"num_bytes_read",      required_argument, 0, 'r'},
 	{"num_bytes_written",   required_argument, 0, 'w'},
+	{"num_reads",           required_argument, 0, 'R'},
+	{"num_writes",          required_argument, 0, 'W'},
 	{0, 0, 0, 0}
 };
 
@@ -115,7 +123,7 @@ int main(int argc, char *argv[])
 	
 	/*check optional args*/
 	/*Only include 'hv:' to limit single char parameters*/
-	while((opt = getopt_long (argc, argv, "hv:a:l:n:r:w:", long_options, &indexptr)) != -1){
+	while((opt = getopt_long (argc, argv, "hv:a:l:n:r:w:R:W:", long_options, &indexptr)) != -1){
 		switch(opt){
 			/*Single char common options. */
 			case 'h':      
@@ -155,6 +163,16 @@ int main(int argc, char *argv[])
                 csm_optarg_test( "-w, --num_bytes_written", optarg, USAGE )
                 csm_str_to_int64( input->num_bytes_written, optarg, arg_check, "-w, --num_bytes_written", USAGE )
 				requiredParameterCounter++;
+				break;
+			case 'R':
+                csm_optarg_test( "-R, --num_reads", optarg, USAGE )
+                csm_str_to_int64( input->num_reads, optarg, arg_check, "-R, --num_reads", USAGE )
+				optionalParameterCounter++;
+				break;
+			case 'W':
+                csm_optarg_test( "-W, --num_writes", optarg, USAGE )
+                csm_str_to_int64( input->num_writes, optarg, arg_check, "-W, --num_writes", USAGE )
+				optionalParameterCounter++;
 				break;
 			default:
 				csmutil_logging(error, "unknown arg: '%c'\n", opt);
@@ -199,6 +217,8 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "    node_name:           %s",  input->node_name);
 	csmutil_logging(debug, "    num_bytes_read:      %"PRId64,  input->num_bytes_read);
 	csmutil_logging(debug, "    num_bytes_written:   %"PRId64,  input->num_bytes_written);
+	csmutil_logging(debug, "    num_reads:           %"PRId64,  input->num_reads);
+	csmutil_logging(debug, "    num_writes:          %"PRId64,  input->num_writes);
 	
 	/*Call the api.*/
 	return_value = csm_bb_lv_delete(&csm_obj, input);

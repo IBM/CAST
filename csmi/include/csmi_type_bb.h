@@ -114,6 +114,8 @@ typedef struct {
     int64_t num_bytes_written; /**< Number of bytes written during the life of this partition.*/
     char* logical_volume_name; /**< Unique identifier for this ssd partition.*/
     char* node_name; /**< Name of the node where this logical volume is located.*/
+    int64_t num_reads; /**< Number of reads during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
+    int64_t num_writes; /**< Number of writes during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
 } csm_bb_lv_delete_input_t;
 /**
  * @brief An input wrapper for @ref csm_bb_lv_query.
