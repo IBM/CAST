@@ -108,7 +108,7 @@ namespace utility
     "\",\"traceid\":" << traceid << ",\"uid\":" << uid << TIMESTAMP_NOW() <<",\"data\":" << data << "}"
 
 #define ALLOCATION(type, source, data) BOOST_LOG(utility::allocation_logger) << "{\"type\":\"" << type << \
-"\",\"source\":\"" << source << "\"" TIMESTAMP_NOW() <<",\"data\":" << data << "}"
+"\""  TIMESTAMP_NOW() <<",\"data\":" << data << ",\"source\":\"" << source << "\"}"
 
 #define setLoggingLevel(subcomponent, setlevel) \
     utility::minlevel[utility::bluecoral_subcomponents::subcomponent] = utility::bluecoral_sevs::setlevel
