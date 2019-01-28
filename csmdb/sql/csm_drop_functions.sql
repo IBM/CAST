@@ -21,7 +21,7 @@
 --   change log:
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
---           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes).
+--           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
 --     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
