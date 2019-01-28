@@ -1017,7 +1017,7 @@ int CGroup::IRQRebalance( const std::string bannedCPUs )
     setenv( IRQBALANCE_BANNED_CPUS, bannedCPUs.c_str(), 1 );
 
     // run irqbalance as a oneshot.
-    char* scriptArgs[] = { (char*)"irqbalance", (char*)"--oneshot", NULL };
+    char* scriptArgs[] = { (char*)"/usr/sbin/irqbalance", (char*)"--oneshot", NULL };
 
     LOG(csmapi, info) << "CGroup::IRQRebalance: Executing IRQ Balance with following banned cpus: " 
         << bannedCPUs;
@@ -1031,7 +1031,10 @@ int CGroup::IRQRebalance( const std::string bannedCPUs )
     else
     {
         exit = errno;
-        LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit);
+        LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit)
+            << "; Error Message: " << strerror(exit);
+        errno=0;
+
     }
     
     return exit;
@@ -1575,17 +1578,21 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
         // Set the cores up.
         sysCores = groupCores = "";
-        for ( core=0; core < coresPerSocket; ++core )
+        for (int32_t socket=0; socket < sockets; ++socket)
         {
-            thread =  
-                ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) );
-
-            for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+            for ( core=0; core < coresPerSocket; ++core )
             {
-                 sysCores.append(std::to_string(thread++)).append(",");
-            } 
+                thread =
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) ;
+
+
+                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+                {
+                     sysCores.append(std::to_string(thread++)).append(",");
+                } 
+            }
         }
-        sysCores.back() = "";
+        sysCores.back() = ' ';
         groupCores = sysCores; 
 
         
