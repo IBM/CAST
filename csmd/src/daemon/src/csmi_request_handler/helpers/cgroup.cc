@@ -1574,7 +1574,20 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         threadBlinkFailure = true;
 
         // Set the cores up.
-        sysCores = groupCores = "0-" + std::to_string(threads-1);
+        sysCores = groupCores = "";
+        for ( core=0; core < coresPerSocket; ++core )
+        {
+            thread =  
+                ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) );
+
+            for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+            {
+                 sysCores.append(std::to_string(thread++)).append(",");
+            } 
+        }
+        sysCores.back() = "";
+        groupCores = sysCores; 
+
         
         // Enable IRQ on all cores.
         for ( int i = numAffinityBlocks ; i >= 0; --i)
