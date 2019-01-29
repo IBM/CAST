@@ -652,14 +652,14 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
                 FL_Write(FLAsyncRqst, SeekEnd, "Seeking the end of async request file having seqnbr %ld, rc %ld.", pSeqNbr, rc, 0, 0);
                 if (!rc)
                 {
-                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, fd, __LINE__);
                     int64_t l_Offset = -1;
+                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, fd, __LINE__);
                     l_Offset = (int64_t)::ftell(fd);
+                    threadLocalTrackSyscallPtr->clearTrack();
                     if (l_Offset >= 0)
                     {
                         l_Retry = 0;
                         pOffset = l_Offset;
-                        threadLocalTrackSyscallPtr->clearTrack();
                         FL_Write(FLAsyncRqst, RtvEndOffsetForFind, "End of async request file with seqnbr %ld is at offset %ld.", pSeqNbr, pOffset, 0, 0);
                         LOG(bb,debug) << "findOffsetToNextAsyncRequest(): SeqNbr: " << pSeqNbr << ", Offset: " << pOffset;
                     }
