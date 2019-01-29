@@ -4,7 +4,7 @@ csmi_bb_vg_ssd_info.def 2 8daa8ae26e3f5608f8fd3b6641759761
 csm_bb_cmd_input.def 3 95abcf946e52d7205b95166cd678c6aa
 csm_bb_cmd_output.def 1 495bb9ab77b01cc76a3239af0f6b5a42
 csm_bb_lv_create_input.def 8 087bfb1dc7a266d902c6da65ce027c55
-csm_bb_lv_delete_input.def 5 b5f20193198e156ddf90cac0ecce9271
+csm_bb_lv_delete_input.def 7 
 csm_bb_lv_query_input.def 8 fd3081bf3af8ad9c85e7629c323844fb
 csm_bb_lv_query_output.def 2 ceadb739a002b109244c0d1eefa63d87
 csm_bb_lv_update_input.def 5 5e621f62b6726a033d55a09f39e0ccd0

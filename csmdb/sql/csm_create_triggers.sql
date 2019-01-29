@@ -17,12 +17,15 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         01-22-2019
+--   last modified:         01-25-2019
 --   change log:
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
 --            - fn_csm_allocation_update_state -        added field:    o_smt_mode
+--            - fn_csm_lv_history_dump - 		added fields:	num_reads, num_writes
+--            - fn_csm_allocation_dead_records_on_lv -  added in 'null' values for PERFORM fn_csm_lv_history_dump
+--            - fn_csm_ssd_dead_records -               added in 'null' values for PERFORM fn_csm_lv_history_dump
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -986,7 +989,7 @@ BEGIN
                         node_name = matching_node_names[i]
                     );
 
-                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null, null, null);
                 END LOOP;
             END IF;
         END LOOP;
@@ -2926,7 +2929,7 @@ BEGIN
                         node_name = matching_node_names[j]
                     );
 
-                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null, null, null);
                 END LOOP;
             END IF;
             -- once cleaned up all lvs on a vg, then we can remove the vg itself
@@ -4683,7 +4686,9 @@ CREATE OR REPLACE FUNCTION fn_csm_lv_history_dump(
     i_updated_time        timestamp,
     i_end_time            timestamp,
     i_num_bytes_read      bigint,
-    i_num_bytes_written   bigint)
+    i_num_bytes_written   bigint,
+    i_num_reads           bigint,
+    i_num_writes          bigint)
 RETURNS void AS
 $$
 DECLARE
@@ -4721,7 +4726,10 @@ BEGIN
             l.file_system_type,    -- file_system_mount
             i_num_bytes_read,      -- num_bytes_read
             i_num_bytes_written,   -- num_bytes_written
-            'D'                    -- operation, NOTE: Manually set to 'D' for delete
+            'D',                   -- operation, NOTE: Manually set to 'D' for delete
+            NULL,                  -- archive_history_time
+            i_num_reads,           -- num_reads
+            i_num_writes           -- num_writes
         );
         -- copy into the transaction history
         INSERT INTO csm_lv_update_history VALUES(
@@ -4765,7 +4773,7 @@ $$ LANGUAGE plpgsql;
 -- csm_lv_history_dump_function_comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_lv_history_dump(text, text, bigint, timestamp, timestamp, bigint, bigint)
+COMMENT ON FUNCTION fn_csm_lv_history_dump(text, text, bigint, timestamp, timestamp, bigint, bigint, bigint, bigint)
     is 'csm_lv function to amend summarized column(s) on DELETE. (csm_lv_history_dump)';
 
 -----------------------------------------------------------------------------------------------
