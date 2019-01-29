@@ -23,6 +23,7 @@
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
 --            - fn_csm_allocation_update_state -        added field:    o_smt_mode
+--            - fn_csm_allocation_finish_data_stats -   disables trigger to prevent duplication.
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -267,6 +268,8 @@ DECLARE
     BIGINT_MAX CONSTANT bigint := 9223372036854775807; -- Maximum value for bigint
     current_state text; -- current state of the allocation.
 BEGIN
+    ALTER TABLE csm_allocation_node DISABLE TRIGGER tr_csm_allocation_node_change;
+
     -- UPDATE the node table, if the incoming value is greater than the original, assume the
     -- counter overflowed. In the event of an overflow subtract the difference from BIGINT_MAX
     UPDATE csm_allocation_node
@@ -324,6 +327,8 @@ BEGIN
                 unnest(gpu_energy_list) as l_gpu_energy
             ) d
         WHERE allocation_id = allocationid AND node_name = d.node;
+
+    ALTER TABLE csm_allocation_node ENABLE TRIGGER tr_csm_allocation_node_change;
 
     -- If this state was called directly by the API.
     IF (i_state != '' ) THEN
@@ -546,6 +551,7 @@ BEGIN
         -- Save the data aggregator stats.
 
         IF (finalize)  THEN
+            -- Disable the trigger temporarily.
             PERFORM fn_csm_allocation_finish_data_stats( allocationid, '', node_names, ib_rx_list, 
                 ib_tx_list, gpfs_read_list,gpfs_write_list, energy_list,
                 pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list, gpu_energy_list);
