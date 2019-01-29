@@ -1323,20 +1323,24 @@ void Configuration::CreateThreadPool()
     void Configuration::LoadJitterMitigation ()
     {
         const std::string SECTION    = "csm.jitter_mitigation.";
-        const std::string SYSTEM_MAP = SECTION + "system_map";
+        //const std::string SYSTEM_MAP = SECTION + "system_map";
         const std::string SYSTEM_SMT = SECTION + "system_smt";
         const std::string IRQ_MAP    = SECTION + "irq_affinity";
         const std::string SOCK_ORDER = SECTION + "socket_order";
-        //const std::string CORE_ISO   = SECTION + "core_isolation";
-        //const std::string CORE_BLINK = SECTION + "core_blink";  
+        const std::string CORE_ISO   = SECTION + "core_isolation_max";
+        const int32_t     CORE_ISO_MAX= 4;
+        const std::string ENABLED    = SECTION + "enabled";  
         std::string keyStr = "";
 
         // Parse core mappings.
-        std::string systemMap      = ParseHexString(GetValueInConfig(SYSTEM_MAP));
+        //std::string systemMap      = ParseHexString(GetValueInConfig(SYSTEM_MAP));
 
         // Parse SMT for system.
         keyStr = GetValueInConfig(SYSTEM_SMT);
         int32_t systemSMT      = std::strtol(keyStr.c_str(), nullptr, 10);
+
+        keyStr = GetValueInConfig(CORE_ISO);
+        int32_t maxCoreIso     = keyStr.empty() ? CORE_ISO_MAX : std::strtol(keyStr.c_str(), nullptr, 10);
 
         keyStr     = GetValueInConfig(IRQ_MAP);
         boost::algorithm::to_lower(keyStr);
@@ -1344,12 +1348,12 @@ void Configuration::CreateThreadPool()
 
         std::string socketOrder = GetValueInConfig(SOCK_ORDER);
 
-        /*
-        // If the core isolation flag is unset default to true.
-        keyStr     = GetValueInConfig(CORE_ISO);
+        // Undocumented chicken switch for disabling cgroup in containers.
+        keyStr     = GetValueInConfig(ENABLED);
         boost::algorithm::to_lower(keyStr);
-        bool coreIsolation  =  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
+        bool jitterEnabled  =  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
 
+        /*
         // If the Core Blink flag is unset default to true.
         keyStr     = GetValueInConfig( CORE_BLINK ) ;
         boost::algorithm::to_lower(keyStr);
@@ -1357,7 +1361,7 @@ void Configuration::CreateThreadPool()
         */
 
         // Build the object.
-        _JitterInfo.Init(systemMap, socketOrder, systemSMT, irqAffinity );
+        _JitterInfo.Init( socketOrder, maxCoreIso, systemSMT, irqAffinity, jitterEnabled);
     } 
 
 }  // namespace daemon

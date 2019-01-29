@@ -19,7 +19,7 @@
 #include <sys/types.h> ///< File Status types.
 #include <sys/stat.h>  ///< File Status Functions.
 #include <sys/mount.h> ///< Mount function
-#include <unistd.h>    ///< Write/sync function
+#include <unistd.h>    ///< Write/sync function; environ
 #include <fcntl.h>     ///< Open function
 #include <errno.h>     ///< Errno
 #include <signal.h>    ///< Kill System call.
@@ -29,6 +29,7 @@
 #include "cgroup.h" 
 #include "csm_handler_exception.h"
 #include "csmi/include/csm_api_macros.h" // csm_get_enum_from_stringget_enum_from_string
+
 
 // TODO Might want to migrate to consts.
 ///< Syntactic sugar for directory flags.
@@ -66,8 +67,6 @@
 ///< CPUBLINK/SMT tools.
 #define CPU_PATH_MAX 128
 #define CPU_ONLINE_STR "/sys/devices/system/cpu/cpu%d/online"
-#define CPU_ONLINE 1
-#define CPU_OFFLINE 0
 
 /// Enables a check for development enviroment.
 //#define VM_DEVELOPMENT 1
@@ -76,6 +75,8 @@ namespace csm {
 namespace daemon {
 namespace helper {
 
+static const char CPU_ONLINE  = '1';
+static const char CPU_OFFLINE = '0';
 static const char ENABLE_CONTROLLER         = '1'; ///< Syntactic Sugar
 static const char DISABLE_CONTROLLER        = '0'; ///< Syntactic Sugar
 
@@ -174,8 +175,13 @@ bool CGroup::RepairSMTChange()
 
 CGroup::CGroup( int64_t allocationId ):
        _CGroupName(ALLOC_CGROUP),
-       _smtMode(0)
+       _smtMode(0),
+       _enabled(true)
 {
+    // Get the jitter info.
+    csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
+    _enabled = jitterInfo.GetJitterMitigation();
+
     // Build the core cgroup name.
     if ( allocationId >= 0 )
         _CGroupName.append(std::to_string(allocationId)).append(_DIR_DELIM);
@@ -218,7 +224,7 @@ void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
 {
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter";
     static_assert(CG_CPUSET == 0, "CG_CPUSET must have a value of 0.");
-
+    
     // The SMT mode.
     _smtMode = smtMode;
 
@@ -265,31 +271,26 @@ void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
     CopyParameter( MEMS, CGroup::CPUSET_DIR, groupCpuset );
 
     //WriteToParameter( MEM_LIMIT, CGroup::MEM_DIR, allocProjected.c_str(), allocProjected.size() );
-    // Generate the system cpuset if the cores are greater than zero.
-    if ( cores > 0)
-    {
-        const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
+    const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
 
-        WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
-        WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
+    WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
+    WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
  
-        CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
-        MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
+    CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
+    MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
 
-        // Migrate the tasks.
-        for( uint32_t controller = CG_CPUSET + 1;
-            controller < csm_enum_max(csmi_cgroup_controller_t);
-            ++controller )
-        {
-            std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
-            MigrateTasks( 
-                std::string(CGroup::CONTROLLER_DIR)
-                    .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
-                cg );
-        }
-
-        // TODO Compute System CGroup limit.
+    // Migrate the tasks.
+    for( uint32_t controller = CG_CPUSET + 1;
+        controller < csm_enum_max(csmi_cgroup_controller_t);
+        ++controller )
+    {
+        std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
+        MigrateTasks( 
+            std::string(CGroup::CONTROLLER_DIR)
+                .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
+            cg );
     }
+
 
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Exit";
 }
@@ -992,7 +993,7 @@ void CGroup::DeleteChildren(
 
 int CGroup::CPUPower(
     const uint32_t thread,
-    const int online ) 
+    const char online ) 
 {
     char path[CPU_PATH_MAX];
     int rc = 0;
@@ -1021,13 +1022,13 @@ int CGroup::IRQRebalance( const std::string bannedCPUs )
     setenv( IRQBALANCE_BANNED_CPUS, bannedCPUs.c_str(), 1 );
 
     // run irqbalance as a oneshot.
-    char* scriptArgs[] = { (char*)"irqbalance", (char*)"--oneshot", NULL };
+    char* scriptArgs[] = { (char*)"/usr/sbin/irqbalance", (char*)"--oneshot", NULL };
 
     LOG(csmapi, info) << "CGroup::IRQRebalance: Executing IRQ Balance with following banned cpus: " 
         << bannedCPUs;
 
     errno = 0;
-    int exit = execv(*scriptArgs, scriptArgs);
+    int exit = execve(*scriptArgs, scriptArgs,environ);
     if ( exit != -1 )
     {
         LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
@@ -1035,7 +1036,10 @@ int CGroup::IRQRebalance( const std::string bannedCPUs )
     else
     {
         exit = errno;
-        LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit);
+        LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit)
+            << "; Error Message: " << strerror(exit);
+        errno=0;
+
     }
     
     return exit;
@@ -1435,11 +1439,12 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 {
     // Assemble the thread grouping 
     #define assembleGroup( string )                                        \
-        string.append(std::to_string(groupStart)).append(DELIM);           \
+        string.append(std::to_string(groupStart));                         \
         if ( groupStart != thread - 1 )                                    \
         {                                                                  \
-            string.append(std::to_string(thread - 1)).append(_GROUP_DELIM);\
-        }
+            string.append(_RANGE_DELIM).append(std::to_string(thread - 1)); \
+        }\
+        string.append(_GROUP_DELIM);
 
     // Get the jitter info.
     csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
@@ -1450,94 +1455,83 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // ================================================================================
 
     // Get the CPUS and do a sanity check.
-    if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
+    if ( !( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
             threads > 0        && 
             sockets > 0        && 
             threadsPerCore > 0 && 
             coresPerSocket > 0 &&
-            (threads % sockets) == 0)
+            (threads % sockets) == 0 ) )
     {
-        
+        // Build the error for reporting the failure.
+        std::string error("CreateCGroup; CPU data was invalid, couldn't create cgroup." );
+        throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
+    }
 
-#define VM_DEVELOPMENT 1
+//#define VM_DEVELOPMENT 1
 #ifdef VM_DEVELOPMENT
-        threads        = 160;
-        sockets        = 2;//1;
-        threadsPerCore = 8;//1;
-        coresPerSocket = 10;//4;
-  //      const int32_t threadsPerCoreMax    = 1;
- //       const int32_t threadsPerCoreOffset = 0;
-//        const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
-        //const char* DELIM = _RANGE_DELIM;
-//#else
-        // Determine the delimiter based on the number of PerSocket/hreads per core.
-        const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
-        // Maximum number of logical cores per core.
-        const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
-        // Difference between the maximum and actual thread count per core.
-        const int32_t threadsPerCoreOffset = _smtMode > 0 ? threadsPerCoreMax - _smtMode : 0;
-
-        // Compute the threads pre core, derived from smt mode.
-        threadsPerCore = threadsPerCoreMax - threadsPerCoreOffset;
+    threads        = 160;
+    sockets        = 2;
+    threadsPerCore = 8;
+    coresPerSocket = 10;
 #endif
+    // Maximum number of logical cores per core.
+    const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
+    // Difference between the maximum and actual thread count per core.
+    const int32_t threadsPerCoreOffset = _smtMode > 0 ? threadsPerCoreMax - _smtMode : 0;
 
-        // Cache the system map locally.
-        std::string configuredCores = jitterInfo.GetSystemMap();
-        int32_t     configCoreCount = configuredCores.size();
-        int32_t     totalCores      = coresPerSocket * sockets;
+    // Compute the threads pre core, derived from smt mode.
+    threadsPerCore = threadsPerCoreMax - threadsPerCoreOffset;
 
-        // TODO Cache this somehow.
-        // If there's any disconnect pad the configured cores with zero.
-        for (; configCoreCount < totalCores; ++configCoreCount)
-        {
-            configuredCores.append("0");
-        }
-        
-        // Cache the socket ordering locally.
-        // Character indicating that the core isolation direction.
-        const char L_TO_R_ISO          = '0';
-        std::string socketOrder        = jitterInfo.GetSocketOrder();
-        int32_t      configSocketCount = socketOrder.size();
+    // Cache the socket ordering locally.
+    // Character indicating that the core isolation direction.
+    const char L_TO_R_ISO          = '0';
+    std::string socketOrder        = jitterInfo.GetSocketOrder();
+    int32_t      configSocketCount = socketOrder.size();
 
-        for(; configSocketCount <  sockets; ++configSocketCount)
-        {
-            socketOrder.append("0");
-        }
-    
-        // Setup the system SMT.
-        int32_t    systemSMT       =  jitterInfo.GetSystemSMT();
-        if ( systemSMT == 0 || systemSMT > threadsPerCore ) systemSMT = threadsPerCoreMax;
+    for(; configSocketCount <  sockets; ++configSocketCount)
+    {
+        socketOrder.append("0");
+    }
 
-        int32_t thread   = 0;                  // The active thread being processed.
-        int32_t groupStart           = 0;      // Start of group.
-        int64_t isolation            = cores;  // Cores available for isolation.
-        int32_t core                 = 0;      // The active core being processed.
-        
-        // Setup affinity blocks for IRQ affinity
-        int32_t numAffinityBlocks   = (int32_t)ceil( threads / 32.f );
-        int32_t activeAffinityBlock = 0;
-        std::vector<uint32_t> affinityBlocks ( numAffinityBlocks, 0 );
-        uint32_t IRQMask = ((uint32_t)pow(2, systemSMT)) - 1;
+    // Setup the core isolation.
+    const int32_t ISO_MAX        = cores < jitterInfo.GetMaxCoreIso() ?
+        cores : jitterInfo.GetMaxCoreIso(); 
+    int32_t isolation            = ISO_MAX;  // Cores available for isolation.
 
-        // ================================================================================
+    // Setup the system SMT.
+    int32_t    systemSMT       =  jitterInfo.GetSystemSMT();
+    if ( systemSMT == 0 || systemSMT > threadsPerCore ) systemSMT = threadsPerCoreMax;
+ 
+    // Setup affinity blocks for IRQ affinity
+    int32_t numAffinityBlocks   = (int32_t)ceil( threads / 32.f );
+    int32_t activeAffinityBlock = 0;
+    uint32_t IRQMask = ((uint32_t)pow(2, systemSMT)) - 1;
+    std::vector<uint32_t> affinityBlocks ( numAffinityBlocks, 0 );
 
+    // ================================================================================
+
+    int32_t thread     = 0; // The active thread being processed.
+    int32_t groupStart = 0; // Start of group.
+    int32_t core       = 0; // The active core being processed.
+
+    // If core Isolation is zero expand to the whole system.
+    if ( isolation > 0 )
+    {
         for (int32_t socket=0; socket < sockets; ++socket)
         {
-            isolation = cores;
+            isolation = ISO_MAX;
             
             bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
             
             for ( core=0; core < coresPerSocket; ++core )
             {
                 // thread = (left to right increase) :  (right to left decrease)
-                thread = LTOR ? ( ( socket * coresPerSocket * threadsPerCore ) + (core * threadsPerCore ) ) : 
-                    ( ( coresPerSocket * (socket + 1) * threadsPerCore) - ( ( core + 1 ) * threadsPerCore ) );
-                
-                // If true considered an allocation core.
-                bool allocCore = configuredCores[(int)(thread / threadsPerCore)] == '0';
+                thread = LTOR ? 
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                    ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
                 
                 // Process the allocation core.
-                if ( allocCore || isolation == 0 )
+                if ( isolation == 0 )
                 {
                     groupStart = thread;
 
@@ -1563,88 +1557,123 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     // Iterate over the cores, bring all online cores online.
                     int32_t cpu = 0; 
                     for(; cpu < systemSMT      ; ++cpu ) CPUPower(thread++, CPU_ONLINE);
-                    for(; cpu < threadsPerCore ; ++cpu ) CPUPower(thread++, CPU_OFFLINE);
+
+                    int32_t extra_thread = thread;
+                    for(; cpu < threadsPerCoreMax; ++cpu ) CPUPower(extra_thread++, CPU_OFFLINE);
                     
-                    thread -= threadsPerCoreOffset;
                     assembleGroup(sysCores);
                     isolation--;
 
                     // XXX Today this assumes < 32 threads per core!
-                    affinityBlocks[activeAffinityBlock] |=  (IRQMask << (thread % 32));
                     activeAffinityBlock = (int32_t)(thread / 32);
+                    int32_t coreShift=(thread % 32)*systemSMT;
+                    affinityBlocks[activeAffinityBlock] |=  (IRQMask << coreShift);
                 }
             }
         }
-        // ================================================================================
         
-        // Bring the allocation nodes back up with the correct smt mode.
-        for (int32_t socket=0; socket < sockets; ++socket)
-        {
-            isolation = cores;
-            
-            bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
-            
-            for ( ; core < coresPerSocket; ++core )
-            {
-                // If true considered an allocation core.
-                bool allocCore = (configuredCores[core] == '0');
-
-                // thread = (left to right increase) :  (right to left decrease)
-                thread = LTOR ? ( ( socket * coresPerSocket ) + (core * threadsPerCore ) ) : 
-                    ( ( coresPerSocket * (socket + 1) ) - ( ( core + 1 ) * threadsPerCore ) );
-
-                // Process the allocation core.
-                if ( allocCore || isolation == 0 )
-                {
-                    for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
-                    {
-                        CPUPower(thread++, CPU_ONLINE);
-                    } 
-                }
-            }
-        }
-
-        // ================================================================================
-
-        // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
-        // in failure cases.
-        if ( threadBlinkFailure )
-        {
-            CPUPower( 0, CPU_OFFLINE );
-            CPUPower( 0, CPU_ONLINE );
-        }
-        
-        // ================================================================================
-        
-        // Create the IRQ Mask.
-        std::stringstream affinityStream;
-        std::string affinityString;         // The list of banned CPUs for the affinity setting.
-        if ( jitterInfo.GetIRQAffinity() )
-        {
-            for ( int i = numAffinityBlocks - 1; i >= 0; --i)
-            {
-                affinityStream << std::hex << !(affinityBlocks[i]) << ",";
-            }
-            affinityString = affinityStream.str();
-            affinityString.back() = '\0';
-        }
-        else
-        {
-            affinityString = "0";
-        }
-
-        IRQRebalance(affinityString);
+        // Clear the last character.
+        groupCores.back() = ' ';
+        sysCores.back()   = ' ';
     }
     else
     {
-        // Build the error for reporting the failure.
-        std::string error("CreateCGroup; CPU data was invalid, couldn't create cgroup." );
-        throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
+        // Set this to blink the primary thread later.
+        threadBlinkFailure = true;
+
+        // Set the cores up.
+        sysCores = groupCores = "";
+        for (int32_t socket=0; socket < sockets; ++socket)
+        {
+            for ( core=0; core < coresPerSocket; ++core )
+            {
+                thread =
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) ;
+
+
+                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+                {
+                     sysCores.append(std::to_string(thread++)).append(",");
+                } 
+            }
+        }
+        sysCores.back() = ' ';
+        groupCores = sysCores; 
+
+        
+        // Enable IRQ on all cores.
+        for ( int i = numAffinityBlocks ; i >= 0; --i)
+        {
+            affinityBlocks[i] = ~(0);
+        }
+
+        // Shut down all of the cores.
+        for (thread=1; thread < threads; ++thread)
+        {
+            CPUPower(thread, CPU_OFFLINE);
+        }
+    }
+    // ================================================================================
+    
+    // Bring the allocation nodes back up with the correct smt mode.
+    for (int32_t socket=0; socket < sockets; ++socket)
+    {
+        isolation = ISO_MAX;
+        
+        bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
+        
+        for ( core=0; core < coresPerSocket; ++core )
+        {
+            // thread = (left to right increase) :  (right to left decrease)
+            thread = LTOR ? 
+                ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
+            //thread = LTOR ? ( ( socket * coresPerSocket ) + (core * threadsPerCore ) ) : 
+            //    ( ( coresPerSocket * (socket + 1) ) - ( ( core + 1 ) * threadsPerCore ) );
+
+            // Process the allocation core.
+            if ( isolation == 0 )
+            {
+                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+                {
+                    CPUPower(thread++, CPU_ONLINE);
+                } 
+            }
+            else
+                --isolation;
+        }
     }
 
-    // Clear the last character.
-    groupCores.back() = ' ';
-    sysCores.back()   = ' ';
+    // ================================================================================
+
+    // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
+    // in failure cases.
+    if ( threadBlinkFailure )
+    {
+        CPUPower( 0, CPU_OFFLINE );
+        CPUPower( 0, CPU_ONLINE );
+    }
+    
+    // ================================================================================
+    
+    // Create the IRQ Mask.
+    if ( jitterInfo.GetIRQAffinity() )
+    {
+        std::string affinityString;         // The list of banned CPUs for the affinity setting.
+        std::stringstream affinityStream;
+        for ( int i = numAffinityBlocks ; i >= 0; --i)
+        {
+            affinityStream << std::hex << ~(affinityBlocks[i] ) << ",";
+        }
+        affinityString = affinityStream.str();
+        affinityString.back() = ' ';
+        IRQRebalance(affinityString);
+        LOG(csmapi, trace) << "Affinity Ban List:" << affinityString;
+    }
+
+    // ================================================================================
+    
+    LOG(csmapi, trace) << "System: " << sysCores << "; Allocation: " << groupCores ;
 }
 
 } // End namespace helpers
