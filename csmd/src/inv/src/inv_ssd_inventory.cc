@@ -2,7 +2,7 @@
    
     csmd/src/inv/src/inv_ssd_inventory.cc
 
-  © Copyright IBM Corporation 2017-2018. All Rights Reserved
+  © Copyright IBM Corporation 2017-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -20,7 +20,6 @@
 #include <glob.h>
 #include <unistd.h>
 
-#include <string>
 #include <fstream>
 #include <list>
 #include <stdint.h>
@@ -172,6 +171,12 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
       LOG(csmd, error) << "Error: could not determine pci_bus_id, errno: " << strerror(errno) << " (" << errno << ")";
     }
 
+    // Get the SSD wear information
+    // TODO: Generate devicename from the sysfs file system tokens
+    std::string devicename("/dev/nvme0n1");
+    GetSsdWear(devicename, ssd_inventory[i].wear_lifespan_used, ssd_inventory[i].wear_percent_spares_remaining, 
+               ssd_inventory[i].wear_total_bytes_written, ssd_inventory[i].wear_total_bytes_read);
+
     ssd_itr++;
     ssd_count++;
   } 
@@ -196,4 +201,99 @@ void setSsdInventoryValue(const string& field, const string& value, char* dest_p
   {
     LOG(csmd, error) << "Error: could not determine " << field;
   }
+}
+
+bool GetSsdWear(const std::string &devicename, int32_t &wear_lifespan_used, int32_t &wear_percent_spares_remaining, 
+                int64_t &wear_total_bytes_written, int64_t &wear_total_bytes_read)
+{
+   // Success of the execution
+   bool success = true;
+   wear_lifespan_used = -1;
+   wear_percent_spares_remaining = -1;
+   wear_total_bytes_written = -1;
+   wear_total_bytes_read = -1;
+
+   // Open a pipe to execute the nvme command.
+   std::array<char, 128> buffer;
+   std::stringstream outputStream;
+   string cmd = "/usr/sbin/nvme";
+   cmd = cmd + " smart-log " + devicename + " 2>&1";
+
+   FILE* pipe = popen( cmd.c_str(), "r" );
+
+   // If the pipe was successfully opened execute.
+   if ( pipe )
+   {
+      // Build a string stream from the buffer.
+      while(!feof(pipe))
+      {
+         if ( fgets( buffer.data(), 128, pipe) != nullptr)
+         {
+            outputStream << buffer.data();
+         }
+      }
+
+      // Iterate over the stream to extract the usable values.
+      std::string outputLine;
+      while (std::getline(outputStream, outputLine, '\n'))
+      {
+         LOG(csmd, trace) << "GetSsdWear() read: " << outputLine;
+      
+         // nvme smart-log /dev/nvme0n1 | egrep "available_spare |percentage_used |data_units_read |data_units_written "
+         // available_spare                     : 100%
+         // percentage_used                     : 0%
+         // data_units_read                     : 9,412,417
+         // data_units_written                  : 7,324,282
+
+         // Errors:
+         // command not found
+         // No such file or directory
+         // Usage:
+
+         if ( outputLine.find("command not found") != std::string::npos )
+         {
+            LOG(csmd, error) << "GetSsdWear(): " << outputLine; 
+         }
+         else if ( outputLine.find("No such file or directory") != std::string::npos )
+         {
+            LOG(csmd, error) << "GetSsdWear(): " << outputLine; 
+         }
+         else if ( outputLine.find("Usage:") != std::string::npos )
+         {
+            LOG(csmd, error) << "GetSsdWear(): " << outputLine;
+         }
+         else if ( outputLine.find("available_spare ") != std::string::npos )
+         {
+            LOG(csmd, debug) << "GetSsdWear(): found available_spare";
+            wear_percent_spares_remaining = 100;
+         }
+         else if ( outputLine.find("percentage_used ") != std::string::npos )
+         {
+            LOG(csmd, debug) << "GetSsdWear(): found percentage_used";
+            wear_lifespan_used = 100;
+         }
+         else if ( outputLine.find("data_units_read ") != std::string::npos )
+         {
+            LOG(csmd, debug) << "GetSsdWear(): found data_units_read";
+            wear_total_bytes_read = 100;
+         }
+         else if ( outputLine.find("data_units_written ") != std::string::npos )
+         {
+            LOG(csmd, debug) << "GetSsdWear(): found data_units_written";
+            wear_total_bytes_written = 100;
+         }
+      }
+
+      if ( pclose(pipe) < 0 )
+      {
+         LOG(csmd, warning) << "GetSsdWear(): pclose() error errno: " << strerror(errno) << " (" << errno << ")";
+      }
+   }
+   else
+   {
+      LOG(csmd, warning) << "GetSsdWear(): popen() error errno: " << strerror(errno) << " (" << errno << ")";
+      success = false;
+   }
+  
+   return success;
 }
