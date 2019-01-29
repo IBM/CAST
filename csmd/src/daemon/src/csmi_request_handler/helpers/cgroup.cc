@@ -1013,22 +1013,13 @@ int CGroup::CPUPower(
 }
 
 
-int CGroup::IRQRebalance( const std::string bannedCPUs )
+int CGroup::IRQRebalance( const std::string CPUs )
 {
-    // XXX Might need to set all of the affinity masks?
-    #define IRQBALANCE_BANNED_CPUS "IRQBALANCE_BANNED_CPUS"
-    
-    // Export IRQBALANCE_BANNED_CPUS
-    setenv( IRQBALANCE_BANNED_CPUS, bannedCPUs.c_str(), 1 );
-
-    // run irqbalance as a oneshot.
-    char* scriptArgs[] = { (char*)"/usr/sbin/irqbalance", (char*)"--oneshot", NULL };
-
-    LOG(csmapi, info) << "CGroup::IRQRebalance: Executing IRQ Balance with following banned cpus: " 
-        << bannedCPUs;
+    // stop irqbalance
+    char* scriptArgs[] = { (char*)"systemctl", (char*)"stop", (char*)"irqbalance", NULL };
 
     errno = 0;
-    int exit = execve(*scriptArgs, scriptArgs,environ);
+    int exit = execv(*scriptArgs, scriptArgs);
     if ( exit != -1 )
     {
         LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
@@ -1042,6 +1033,64 @@ int CGroup::IRQRebalance( const std::string bannedCPUs )
 
     }
     
+    #define IRQ_PATH "/proc/irq/"
+    const char* CPUList = CPUs.c_str();
+    size_t CPUListLen   = CPUs.size();
+
+    DIR *sysDir =  opendir(IRQ_PATH);  // Open the directory to search for subdirs.
+    dirent *dirDetails;                         // Output struct for directory contents.
+    
+    // If the system directory could not be retrieved throw an exception.
+    if ( !sysDir )
+    {
+        std::string error = "IRQ directory was missing.";
+        error.append(strerror(errno));
+
+        LOG( csmapi, error ) << _LOG_PREFIX << error;
+        throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
+    }
+
+    // Construct a shared pointer to let RAII handle the close in the event of a thrown error.
+    std::shared_ptr<DIR> sysDirShared(sysDir, closedir);
+        
+    // Build the path for processing.
+    while ( ( dirDetails = readdir( sysDir ) ) ) // While this assignment is successful.
+    {
+        std::string affinityList(IRQ_PATH);
+        affinityList.append(dirDetails->d_name).append("/smp_affinity");
+        int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
+
+        if( fileDescriptor >= 0 )
+        {
+            errno=0;
+            write( fileDescriptor, CPUList, CPUListLen);
+            int errorCode = errno;
+            close( fileDescriptor );
+        
+            // Build a verbose error for the user.
+            if ( errorCode != 0 )
+            {
+                LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+            }
+        }
+    }
+    
+    std::string affinityList(IRQ_PATH "default_smp_affinity");
+    int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
+    if( fileDescriptor >= 0 )
+    {
+        errno=0;
+        write( fileDescriptor, CPUList, CPUListLen);
+        int errorCode = errno;
+        close( fileDescriptor );
+    
+        // Build a verbose error for the user.
+        if ( errorCode != 0 )
+        {
+            LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+        }
+    }
+
     return exit;
 }
 
@@ -1663,7 +1712,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         std::stringstream affinityStream;
         for ( int i = numAffinityBlocks ; i >= 0; --i)
         {
-            affinityStream << std::hex << ~(affinityBlocks[i] ) << ",";
+            affinityStream << std::hex << (affinityBlocks[i] ) << ",";
         }
         affinityString = affinityStream.str();
         affinityString.back() = ' ';
