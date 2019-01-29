@@ -1657,9 +1657,9 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // ================================================================================
     
     // Create the IRQ Mask.
-    std::string affinityString;         // The list of banned CPUs for the affinity setting.
     if ( jitterInfo.GetIRQAffinity() )
     {
+        std::string affinityString;         // The list of banned CPUs for the affinity setting.
         std::stringstream affinityStream;
         for ( int i = numAffinityBlocks ; i >= 0; --i)
         {
@@ -1667,18 +1667,13 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
         }
         affinityString = affinityStream.str();
         affinityString.back() = ' ';
+        IRQRebalance(affinityString);
+        LOG(csmapi, trace) << "Affinity Ban List:" << affinityString;
     }
-    else
-    {
-        affinityString = "0";
-    }
-
-    IRQRebalance(affinityString);
 
     // ================================================================================
     
-    LOG(csmapi, trace) << "System: " << sysCores << "; Allocation: " << groupCores << 
-        "; Affinity Ban List:" << affinityString;
+    LOG(csmapi, trace) << "System: " << sysCores << "; Allocation: " << groupCores ;
 }
 
 } // End namespace helpers

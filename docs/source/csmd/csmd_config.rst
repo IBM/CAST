@@ -662,7 +662,9 @@ Allocations. This block will only be required on Compute Node configurations.
     If set to true the cores isolated by the ``system_map`` and ``core isolation`` for the 
     system cgroup will have all IRQ rebalanced to them. 
     
-    If no core isolation occurs or this is set to false a rebalance across all cores will be performed.
+    If no core isolation occurs a rebalance across all cores will be performed.
+
+    If set to false, no rebalancing occurs.
 
 :core_isolation_max:
     The maximum number of cores allowed on the node to be set aside for the system cgroup.
