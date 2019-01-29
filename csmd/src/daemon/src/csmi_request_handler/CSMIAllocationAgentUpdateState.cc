@@ -186,18 +186,21 @@ bool AllocationAgentUpdateState::InitNode(
         csm::daemon::helper::CGroup cgroup = 
                 csm::daemon::helper::CGroup(payload->allocation_id);
 
-        // If the payload was not for a shared allocation
-        if (payload->shared != CSM_TRUE)
+        if ( cgroup.IsEnabled() )
         {
-            // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
-            cgroup.ClearCGroups( payload->isolated_cores == 0 );
-            cgroup.SetupCGroups( payload->isolated_cores, payload->smt_mode );
-        }
-        else 
-        {
-            cgroup.SetupCGroups( 0 );
-            // TODO num processors and num gpus.
-            cgroup.ConfigSharedCGroup( payload->projected_memory, payload->num_gpus, payload->num_processors );
+            // If the payload was not for a shared allocation
+            if (payload->shared != CSM_TRUE)
+            {
+                // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
+                cgroup.ClearCGroups( payload->isolated_cores == 0 );
+                cgroup.SetupCGroups( payload->isolated_cores, payload->smt_mode );
+            }
+            else 
+            {
+                cgroup.SetupCGroups( 0 );
+                // TODO num processors and num gpus.
+                cgroup.ConfigSharedCGroup( payload->projected_memory, payload->num_gpus, payload->num_processors );
+            }
         }
 
         LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
@@ -394,22 +397,25 @@ bool AllocationAgentUpdateState::RevertNode(
         csm::daemon::helper::CGroup cgroup = 
                 csm::daemon::helper::CGroup(payload->allocation_id);
 
-        respPayload->cpu_usage = cgroup.GetCPUUsage();       // Agregate the cpu usage before leaving.
-        respPayload->memory_max = cgroup.GetMemoryMaximum(); // Get the high water mark of the memory usage.
+        if ( cgroup.IsEnabled() )
+        {
+            respPayload->cpu_usage = cgroup.GetCPUUsage();       // Agregate the cpu usage before leaving.
+            respPayload->memory_max = cgroup.GetMemoryMaximum(); // Get the high water mark of the memory usage.
 
-        // Get detailed cpu_usage for each physical core
-        std::vector<int64_t> cpu_usage;
-        cgroup.GetDetailedCPUUsage(cpu_usage);           
+            // Get detailed cpu_usage for each physical core
+            std::vector<int64_t> cpu_usage;
+            cgroup.GetDetailedCPUUsage(cpu_usage);           
  
-        respPayload->gpu_metrics->num_cpus = cpu_usage.size();
+            respPayload->gpu_metrics->num_cpus = cpu_usage.size();
 
-        // Allocate memory for the per cpu arrays
-        respPayload->gpu_metrics->cpu_usage = (int64_t*)calloc(respPayload->gpu_metrics->num_cpus, sizeof(int64_t));
+            // Allocate memory for the per cpu arrays
+            respPayload->gpu_metrics->cpu_usage = (int64_t*)calloc(respPayload->gpu_metrics->num_cpus, sizeof(int64_t));
 
-        // Copy cpu metrics into response payload
-        std::copy(cpu_usage.begin(), cpu_usage.end(), respPayload->gpu_metrics->cpu_usage);  
+            // Copy cpu metrics into response payload
+            std::copy(cpu_usage.begin(), cpu_usage.end(), respPayload->gpu_metrics->cpu_usage);  
 
-        cgroup.DeleteCGroups( true ); // Delete the system cgroup as well.
+            cgroup.DeleteCGroups( true ); // Delete the system cgroup as well.
+        }
 
         LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
             "; Message: Closed cgroups;";

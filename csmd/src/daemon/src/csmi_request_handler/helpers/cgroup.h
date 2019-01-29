@@ -54,13 +54,18 @@ private:
     
     std::string _CGroupName;            ///< The name of the allocation/step cgroup.
     int16_t     _smtMode;               ///< The smt mode for the current cgroups.
+    bool        _enabled;               ///< Flag to determine if the cgroup module is enabled.
 
 public:
+    /**
+     *  @return True if the cgroup jitter mitigation is enabled.
+     */
+    bool IsEnabled() { return _enabled; }
+
     /**
      *  @brief Scans the cpuset
      */
     static bool RepairSMTChange();
-
 
     /** @brief Constructs the cgroup string for the allocation/step and verifies the cgroup can function.
      *
@@ -70,7 +75,6 @@ public:
      */
     explicit CGroup( int64_t allocationId );
     
-
     /** @brief Deletes any cgroups associated with this object. 
      *
      * @note This should be used to remove the Allocation cgroup.

@@ -175,8 +175,13 @@ bool CGroup::RepairSMTChange()
 
 CGroup::CGroup( int64_t allocationId ):
        _CGroupName(ALLOC_CGROUP),
-       _smtMode(0)
+       _smtMode(0),
+       _enabled(true)
 {
+    // Get the jitter info.
+    csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
+    _enabled = jitterInfo.GetJitterMitigation();
+
     // Build the core cgroup name.
     if ( allocationId >= 0 )
         _CGroupName.append(std::to_string(allocationId)).append(_DIR_DELIM);
@@ -219,7 +224,7 @@ void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
 {
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter";
     static_assert(CG_CPUSET == 0, "CG_CPUSET must have a value of 0.");
-
+    
     // The SMT mode.
     _smtMode = smtMode;
 

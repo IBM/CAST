@@ -30,22 +30,26 @@ private:
     int32_t     _MaxCoreIsolation;
     int32_t     _SystemSMT;
     bool        _IRQAffinity;
+    bool        _JitterMitigationEnabled;
     std::string _SocketOrder;
 
 public:
     CSM_Jitter_Info():
-        _MaxCoreIsolation(0), _SystemSMT(0), _IRQAffinity(true), _SocketOrder("") {}
+        _MaxCoreIsolation(0), _SystemSMT(0), _IRQAffinity(true), _JitterMitigationEnabled(true),
+        _SocketOrder("") {}
 
     void Init(
             std::string socketOrder,
             int32_t     maxCoreIsolation,
             int32_t     systemSMT,
-            bool        irqAffinity) 
+            bool        irqAffinity,
+            bool        jitterMitigationEnabled) 
     {
         _MaxCoreIsolation = maxCoreIsolation;
         _SystemSMT        = systemSMT;
         _IRQAffinity      = irqAffinity;
         _SocketOrder      = socketOrder;
+        _JitterMitigationEnabled = jitterMitigationEnabled;
     }
 
     ~CSM_Jitter_Info() {}
@@ -54,6 +58,7 @@ public:
     int32_t     GetMaxCoreIso()    const { return _MaxCoreIsolation; }
     int32_t     GetSystemSMT()     const { return _SystemSMT;        }
     bool        GetIRQAffinity()   const { return _IRQAffinity;      }
+    bool        GetJitterMitigation()   const { return _JitterMitigationEnabled; }
 
     std::string toString()
     {
