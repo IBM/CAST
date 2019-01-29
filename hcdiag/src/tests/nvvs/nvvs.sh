@@ -25,8 +25,6 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 fi
 
 
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
-#export SMI_TOOL=/usr/bin/nvidia-smi
 export NVVS_TOOL=/usr/share/nvidia-validation-suite/nvvs 
 
 RUN_LEVEL=3
@@ -40,8 +38,6 @@ export thishost=`hostname -s`
 
 # nvidia diagnostic has to run as root
 # ====================================
-
-#sudo -E bash <<"EOF"
 
 source $thisdir/../common/functions
 source $thisdir/../common/gpu_functions
@@ -63,7 +59,7 @@ if [ "$ret" -ne "0" ]; then echo "$me test FAIL, rc=$ret"; exit $ret; fi
 if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
 
 
-status=( PASS SKIP FAIL FAIL_UNKNOWN )
+status=( PASS SKIP WARN FAIL FAIL_UNKNOWN )
 
 case $RUN_LEVEL in
     1) run_level=short ;;
@@ -79,16 +75,8 @@ NVVS_ARGS="--specifiedtest $run_level --verbose --statsonfail"
 trap 'rm -f /tmp/$$' EXIT
 trap 'rm -f /tmp/$$r' EXIT
 
-#if [ ! -x $SMI_TOOL ]; then echo "$SMI_TOOL not found or invalid permission."  ; exit 2; fi
 if [ ! -x $NVVS_TOOL ]; then echo "$NVVS_TOOL not found or invalid permission."; exit 2; fi
 
-# Enable Persistent Mode, we always save/restore persistent mode
-# param has the indexes that were modified
-# ==============================================================
-#set_gpu_pm 1
-#rc=$ret
-#if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi  
-#indexes="$param"
 
 # start the daemon
 # =================
@@ -109,11 +97,6 @@ rc=$?
 
 echo -e "\n$NVVS_TOOL ${NVVS_ARGS}, rc= $rc"
 
-
-#  restoring the Persistence Mode
-#  ==============================
-#restore_gpu_pm 0 "$indexes"
-#rc=$ret
 
 # stop the daemon 
 # ===============
@@ -179,6 +162,3 @@ else
 fi
   
 exit $rc
-
-
-#EOF
