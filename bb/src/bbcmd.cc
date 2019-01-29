@@ -392,6 +392,7 @@ int bbcmd_copy(po::variables_map& vm)
             
             string src, dst, flags;
             
+            if (!strs.size() ) continue;
             if((strs.size() < 2) || (strs.size() > 3))
             {
                 rc = -1;
