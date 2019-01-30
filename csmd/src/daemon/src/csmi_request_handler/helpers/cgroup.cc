@@ -291,7 +291,6 @@ void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
             cg );
     }
 
-
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Exit";
 }
 
@@ -1015,8 +1014,10 @@ int CGroup::CPUPower(
 
 int CGroup::IRQRebalance( const std::string CPUs )
 {
+    LOG(csmapi, trace) << "CGroup::IRQRebalance Enter";
     // stop irqbalance
-    char* scriptArgs[] = { (char*)"systemctl", (char*)"stop", (char*)"irqbalance", NULL };
+    /*
+    char* scriptArgs[] = { (char*)"/bin/systemctl", (char*)"stop", (char*)"irqbalance", NULL };
 
     errno = 0;
     int exit = execv(*scriptArgs, scriptArgs);
@@ -1032,6 +1033,7 @@ int CGroup::IRQRebalance( const std::string CPUs )
         errno=0;
 
     }
+    */
     
     #define IRQ_PATH "/proc/irq/"
     const char* CPUList = CPUs.c_str();
@@ -1091,7 +1093,9 @@ int CGroup::IRQRebalance( const std::string CPUs )
         }
     }
 
-    return exit;
+    LOG(csmapi, trace) << "CGroup::IRQRebalance Exit";
+
+    return 0;
 }
 
 void CGroup::WriteToParameter( 
@@ -1236,6 +1240,7 @@ uint64_t CGroup::MigrateTasks(
 
         // Open the file descriptor.
         fileDescriptor = open( targetTasks.c_str(),  O_WRONLY | O_CLOEXEC );
+        LOG(csmapi, trace) << "Opening File " << targetTasks;
         if( fileDescriptor < 0 )
         { 
             std::string error = "MigrateTasks; Could not open target file descriptor: " + 
@@ -1486,6 +1491,7 @@ bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets,
 
 void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string &groupCores)
 {
+    LOG(csmapi, trace) << "CGroup::GetCoreIsolation Enter";
     // Assemble the thread grouping 
     #define assembleGroup( string )                                        \
         string.append(std::to_string(groupStart));                         \
@@ -1651,9 +1657,9 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
         
         // Enable IRQ on all cores.
-        for ( int i = numAffinityBlocks ; i >= 0; --i)
+        for ( int i = affinityBlocks.size()-1; i >= 0; --i)
         {
-            affinityBlocks[i] = ~(0);
+            affinityBlocks[i] = UINT32_MAX; 
         }
 
         // Shut down all of the cores.
@@ -1710,7 +1716,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     {
         std::string affinityString;         // The list of banned CPUs for the affinity setting.
         std::stringstream affinityStream;
-        for ( int i = numAffinityBlocks ; i >= 0; --i)
+        for ( int i = affinityBlocks.size()-1 ; i >= 0; --i)
         {
             affinityStream << std::hex << (affinityBlocks[i] ) << ",";
         }
@@ -1722,7 +1728,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
     // ================================================================================
     
-    LOG(csmapi, trace) << "System: " << sysCores << "; Allocation: " << groupCores ;
+    LOG(csmapi, trace) << "CGroup::GetCoreIsolation Enter; System: " << 
+        sysCores << "; Allocation: " << groupCores ;
 }
 
 } // End namespace helpers
