@@ -23,6 +23,7 @@
 #include <fstream>
 #include <list>
 #include <stdint.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -32,6 +33,11 @@ using namespace std;
 // dest_ptr is a pointer to the destination in the structure (like snprintf)
 // DEST_MAX is the size of the dest_ptr buffer (like snprintf)
 void setSsdInventoryValue(const string& field, const string& value, char* dest_ptr, const uint32_t& DEST_MAX);
+
+// Helper function for extracting field values from the nvme command output lines
+// Returns -1 if an error occurs, otherwise returns the fields value
+// Logs a message that includes the fieldname for both successful and unsuccessful operation 
+int64_t getNvmeFieldInt64Value(string outputline, const string &fieldname);
 
 bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uint32_t& ssd_count)
 {
@@ -215,7 +221,7 @@ bool GetSsdWear(const std::string &devicename, int32_t &wear_lifespan_used, int3
 
    // Open a pipe to execute the nvme command.
    std::array<char, 128> buffer;
-   std::stringstream outputStream;
+   std::stringstream outputstream;
    string cmd = "/usr/sbin/nvme";
    cmd = cmd + " smart-log " + devicename + " 2>&1";
 
@@ -229,15 +235,15 @@ bool GetSsdWear(const std::string &devicename, int32_t &wear_lifespan_used, int3
       {
          if ( fgets( buffer.data(), 128, pipe) != nullptr)
          {
-            outputStream << buffer.data();
+            outputstream << buffer.data();
          }
       }
 
       // Iterate over the stream to extract the usable values.
-      std::string outputLine;
-      while (std::getline(outputStream, outputLine, '\n'))
+      std::string outputline;
+      while (std::getline(outputstream, outputline, '\n'))
       {
-         LOG(csmd, trace) << "GetSsdWear() read: " << outputLine;
+         LOG(csmd, trace) << "GetSsdWear() read: " << outputline;
       
          // nvme smart-log /dev/nvme0n1 | egrep "available_spare |percentage_used |data_units_read |data_units_written "
          // available_spare                     : 100%
@@ -250,37 +256,47 @@ bool GetSsdWear(const std::string &devicename, int32_t &wear_lifespan_used, int3
          // No such file or directory
          // Usage:
 
-         if ( outputLine.find("command not found") != std::string::npos )
+         if ( outputline.find("command not found") != std::string::npos )
          {
-            LOG(csmd, error) << "GetSsdWear(): " << outputLine; 
+            LOG(csmd, error) << "GetSsdWear(): " << outputline; 
          }
-         else if ( outputLine.find("No such file or directory") != std::string::npos )
+         else if ( outputline.find("No such file or directory") != std::string::npos )
          {
-            LOG(csmd, error) << "GetSsdWear(): " << outputLine; 
+            LOG(csmd, error) << "GetSsdWear(): " << outputline; 
          }
-         else if ( outputLine.find("Usage:") != std::string::npos )
+         else if ( outputline.find("Usage:") != std::string::npos )
          {
-            LOG(csmd, error) << "GetSsdWear(): " << outputLine;
+            LOG(csmd, error) << "GetSsdWear(): " << outputline;
          }
-         else if ( outputLine.find("available_spare ") != std::string::npos )
+         else if ( outputline.find("available_spare ") != std::string::npos )
          {
-            LOG(csmd, debug) << "GetSsdWear(): found available_spare";
-            wear_percent_spares_remaining = 100;
+            wear_percent_spares_remaining = getNvmeFieldInt64Value(outputline, "available_spare");
          }
-         else if ( outputLine.find("percentage_used ") != std::string::npos )
+         else if ( outputline.find("percentage_used ") != std::string::npos )
          {
-            LOG(csmd, debug) << "GetSsdWear(): found percentage_used";
-            wear_lifespan_used = 100;
+            wear_lifespan_used = getNvmeFieldInt64Value(outputline, "percentage_used");
          }
-         else if ( outputLine.find("data_units_read ") != std::string::npos )
+         else if ( outputline.find("data_units_read ") != std::string::npos )
          {
-            LOG(csmd, debug) << "GetSsdWear(): found data_units_read";
-            wear_total_bytes_read = 100;
+            int64_t data_units_read(-1);
+            data_units_read = getNvmeFieldInt64Value(outputline, "data_units_read");
+
+            if (data_units_read != -1)
+            {
+               wear_total_bytes_read = data_units_read*512000;
+               LOG(csmd, debug) << "GetSsdWear(): wear_total_bytes_read: " << wear_total_bytes_read;
+            }
          }
-         else if ( outputLine.find("data_units_written ") != std::string::npos )
+         else if ( outputline.find("data_units_written ") != std::string::npos )
          {
-            LOG(csmd, debug) << "GetSsdWear(): found data_units_written";
-            wear_total_bytes_written = 100;
+            int64_t data_units_written(-1);
+            data_units_written = getNvmeFieldInt64Value(outputline, "data_units_written");
+
+            if (data_units_written != -1)
+            {
+               wear_total_bytes_written = data_units_written*512000;
+               LOG(csmd, debug) << "GetSsdWear(): wear_total_bytes_written: " << wear_total_bytes_written;
+            }
          }
       }
 
@@ -296,4 +312,36 @@ bool GetSsdWear(const std::string &devicename, int32_t &wear_lifespan_used, int3
    }
   
    return success;
+}
+
+int64_t getNvmeFieldInt64Value(string outputline, const string &fieldname)
+{
+   int64_t value(-1);
+            
+   // Example expected line formats:
+   // available_spare                     : 100%
+   // percentage_used                     : 0%
+   // data_units_read                     : 9,412,417
+   // data_units_written                  : 7,324,282
+            
+   // Remove commas
+   outputline.erase(std::remove(outputline.begin(), outputline.end(), ','), outputline.end()); 
+   
+   istringstream ss_in(outputline);
+   string token("");
+
+   ss_in >> token;     // Read field name
+   ss_in >> token;     // Read :
+   ss_in >> value;     // Read field value
+
+   if ( value != -1 )
+   {
+      LOG(csmd, debug) << "getNvmeFieldInt64Value(): Read " << fieldname << " value: " << value;
+   }
+   else
+   {
+      LOG(csmd, warning) << "getNvmeFieldInt64Value(): Unable to read " << fieldname << " value from: [" << outputline << "]";
+   } 
+
+   return value;
 }
