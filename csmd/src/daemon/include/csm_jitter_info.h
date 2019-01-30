@@ -27,37 +27,42 @@ class CSM_Jitter_Info
 {
 private:
 
-    std::string _SystemMap;
+    int32_t     _MaxCoreIsolation;
     int32_t     _SystemSMT;
     bool        _IRQAffinity;
+    bool        _JitterMitigationEnabled;
     std::string _SocketOrder;
 
 public:
     CSM_Jitter_Info():
-        _SystemMap(""), _SystemSMT(0), _IRQAffinity(true), _SocketOrder("") {}
+        _MaxCoreIsolation(0), _SystemSMT(0), _IRQAffinity(true), _JitterMitigationEnabled(true),
+        _SocketOrder("") {}
 
     void Init(
-            std::string systemMap,
             std::string socketOrder,
+            int32_t     maxCoreIsolation,
             int32_t     systemSMT,
-            bool        irqAffinity) 
+            bool        irqAffinity,
+            bool        jitterMitigationEnabled) 
     {
-        _SystemMap     = systemMap;
-        _SystemSMT     = systemSMT;
-        _IRQAffinity   = irqAffinity;
-        _SocketOrder   = socketOrder;
+        _MaxCoreIsolation = maxCoreIsolation;
+        _SystemSMT        = systemSMT;
+        _IRQAffinity      = irqAffinity;
+        _SocketOrder      = socketOrder;
+        _JitterMitigationEnabled = jitterMitigationEnabled;
     }
 
     ~CSM_Jitter_Info() {}
    
-    std::string GetSocketOrder()   const { return _SocketOrder;   } 
-    std::string GetSystemMap()     const { return _SystemMap;     } 
-    int32_t     GetSystemSMT()     const { return _SystemSMT;     }
-    bool        GetIRQAffinity()   const { return _IRQAffinity;   }
+    std::string GetSocketOrder()   const { return _SocketOrder;      } 
+    int32_t     GetMaxCoreIso()    const { return _MaxCoreIsolation; }
+    int32_t     GetSystemSMT()     const { return _SystemSMT;        }
+    bool        GetIRQAffinity()   const { return _IRQAffinity;      }
+    bool        GetJitterMitigation()   const { return _JitterMitigationEnabled; }
 
     std::string toString()
     {
-        return GetSystemMap() + " " + std::to_string(GetSystemSMT()) + " ";
+        return "";
             //( GetIRQAffinity() ? "true" : "false" ) + " " +
             //( GetCoreIsolation() ? "true" : "false" ) + " " + 
             //( GetCoreIsolation() ? "true" : "false" );

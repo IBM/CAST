@@ -17,10 +17,11 @@
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
 --   current_version:   17.0
 --   create:            06-13-2016
---   last modified:     01-22-2019
+--   last modified:     01-28-2019
 --   change log:
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
+--           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
 --     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
@@ -111,7 +112,7 @@ DROP FUNCTION IF EXISTS fn_csm_gpu_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_hca_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_history_dump();
-DROP FUNCTION IF EXISTS fn_csm_lv_history_dump(text,text,bigint,timestamp,timestamp,bigint,bigint);
+DROP FUNCTION IF EXISTS fn_csm_lv_history_dump(text,text,bigint,timestamp,timestamp,bigint,bigint,bigint,bigint);
 DROP FUNCTION IF EXISTS fn_csm_lv_update_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_lv_modified_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_processor_socket_history_dump();
