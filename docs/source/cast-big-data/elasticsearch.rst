@@ -206,6 +206,8 @@ This script need only be run once on a node in the elasticsearch cluster.
 reindexIndices.py
 +++++++++++++++++
 
+.. attention:: This script is currently not supported, a future release of CSM BDS will have a script matching this description.
+
 A tool for performing in place reindexing of an elasticsearch index.
 
 .. warning:: This script should only be used to reindex a handful of indices at a time as 
