@@ -271,40 +271,34 @@ DECLARE
     BIGINT_MAX CONSTANT bigint := 9223372036854775807; -- Maximum value for bigint
     current_state text; -- current state of the allocation.
 BEGIN
-    ALTER TABLE csm_allocation_node DISABLE TRIGGER tr_csm_allocation_node_change;
+    --ALTER TABLE csm_allocation_node DISABLE TRIGGER tr_csm_allocation_node_change;
 
     -- UPDATE the node table, if the incoming value is greater than the original, assume the
     -- counter overflowed. In the event of an overflow subtract the difference from BIGINT_MAX
     UPDATE csm_allocation_node
         SET
             ib_tx      = (CASE WHEN(d.tx > 0 AND ib_tx >= 0) THEN 
-                            CASE WHEN ( d.tx  >= ib_tx ) THEN d.tx - ib_tx
-                            ELSE BIGINT_MAX - (ib_tx - d.tx) END
+                            d.tx - ib_tx
                           ELSE -1 * ABS(ib_tx) END ),
 
             ib_rx      = (CASE WHEN(d.rx > 0 AND ib_rx >= 0) THEN 
-                            CASE WHEN ( d.rx  >= ib_rx ) THEN d.rx - ib_rx 
-                            ELSE BIGINT_MAX - (ib_rx - d.rx) END 
+                            d.rx - ib_rx 
                           ELSE -1 * ABS(ib_rx) END ),
 
             gpfs_read  = (CASE WHEN(d.g_read > 0 AND gpfs_read  >= 0) THEN 
-                            CASE WHEN ( d.g_read >= gpfs_read ) THEN d.g_read  - gpfs_read
-                            ELSE BIGINT_MAX - (gpfs_read - d.g_read) END
+                            d.g_read  - gpfs_read
                           ELSE -1 * ABS(gpfs_read ) END ),
 
             gpfs_write = (CASE WHEN(d.g_write> 0 AND gpfs_write >= 0) THEN 
-                            CASE WHEN (d.g_write >= gpfs_write) THEN  d.g_write - gpfs_write 
-                            ELSE BIGINT_MAX - (gpfs_write - d.g_write) END
+                            d.g_write - gpfs_write 
                           ELSE -1 * ABS(gpfs_write) END ),
 
             energy     = (CASE WHEN(d.l_energy > 0 AND energy   >= 0) THEN 
-                            CASE WHEN ( d.l_energy >= energy ) THEN  d.l_energy  - energy 
-                            ELSE BIGINT_MAX - (energy - d.l_energy) END
+                            d.l_energy  - energy 
                           ELSE -1 * ABS(energy    ) END ),
 
             power_cap_hit = (CASE WHEN(d.pc_hit > 0 AND power_cap_hit >= 0) THEN 
-                            CASE WHEN ( d.pc_hit >= power_cap_hit ) THEN  d.pc_hit  - power_cap_hit
-                            ELSE BIGINT_MAX - (power_cap_hit- d.pc_hit) END
+                            d.pc_hit  - power_cap_hit
                           ELSE -1 * ABS(power_cap_hit) END ), 
 
             gpu_usage = d.gpu_use,
@@ -312,8 +306,7 @@ BEGIN
             memory_usage_max = d.mem_max,
 
             gpu_energy = (CASE WHEN(d.l_gpu_energy > 0 AND gpu_energy >= 0) THEN 
-                            CASE WHEN ( d.l_gpu_energy >= gpu_energy ) THEN  d.l_gpu_energy - gpu_energy
-                            ELSE BIGINT_MAX - (gpu_energy- d.l_gpu_energy) END
+                            d.l_gpu_energy - gpu_energy
                           ELSE -1 * ABS(gpu_energy ) END )
         FROM
             ( SELECT
@@ -331,7 +324,7 @@ BEGIN
             ) d
         WHERE allocation_id = allocationid AND node_name = d.node;
 
-    ALTER TABLE csm_allocation_node ENABLE TRIGGER tr_csm_allocation_node_change;
+    --ALTER TABLE csm_allocation_node ENABLE TRIGGER tr_csm_allocation_node_change;
 
     -- If this state was called directly by the API.
     IF (i_state != '' ) THEN
@@ -1858,46 +1851,46 @@ CREATE FUNCTION fn_csm_allocation_node_change()
             OLD.cpu_usage,
             OLD.memory_usage_max);
          RETURN OLD;
-    ELSEIF (TG_OP = 'UPDATE') THEN
-         INSERT INTO csm_allocation_node_history(
-            history_time,
-            allocation_id,
-            node_name,
-            state,
-            shared,
-            energy,
-            gpfs_read,
-            gpfs_write,
-            ib_tx,
-            ib_rx,
-            power_cap,
-            power_shifting_ratio,
-            power_cap_hit,
-            gpu_usage,
-            gpu_energy,
-            cpu_usage,
-            memory_usage_max)
-         VALUES(
-            now(),
-            NEW.allocation_id,
-            NEW.node_name,
-            NEW.state,
-            NEW.shared,
-            NEW.energy,
-            NEW.gpfs_read,
-            NEW.gpfs_write,
-            NEW.ib_tx,
-            NEW.ib_rx,
-            NEW.power_cap,
-            NEW.power_shifting_ratio,
-            NEW.power_cap_hit,
-            NEW.gpu_usage,
-            NEW.gpu_energy,
-            NEW.cpu_usage,
-            NEW.memory_usage_max);
-         RETURN NEW;
+    --ELSEIF (TG_OP = 'UPDATE') THEN
+    --    INSERT INTO csm_allocation_node_history(
+    --       history_time,
+    --       allocation_id,
+    --       node_name,
+    --       state,
+    --       shared,
+    --       energy,
+    --       gpfs_read,
+    --       gpfs_write,
+    --       ib_tx,
+    --       ib_rx,
+    --       power_cap,
+    --       power_shifting_ratio,
+    --       power_cap_hit,
+    --       gpu_usage,
+    --       gpu_energy,
+    --       cpu_usage,
+    --       memory_usage_max)
+    --    VALUES(
+    --       now(),
+    --       NEW.allocation_id,
+    --       NEW.node_name,
+    --       NEW.state,
+    --       NEW.shared,
+    --       NEW.energy,
+    --       NEW.gpfs_read,
+    --       NEW.gpfs_write,
+    --       NEW.ib_tx,
+    --       NEW.ib_rx,
+    --       NEW.power_cap,
+    --       NEW.power_shifting_ratio,
+    --       NEW.power_cap_hit,
+    --       NEW.gpu_usage,
+    --       NEW.gpu_energy,
+    --       NEW.cpu_usage,
+    --       NEW.memory_usage_max);
+    --    END IF;
     END IF;
---RETURN NULL;
+    RETURN NULL;
 END;
 $$
 LANGUAGE 'plpgsql';
@@ -1907,7 +1900,7 @@ LANGUAGE 'plpgsql';
 ---------------------------------------------------------------------------------------------------
 
 CREATE TRIGGER tr_csm_allocation_node_change
-    BEFORE UPDATE -- OR DELETE(UPDATE was commented out due to replecation of records 02-28-2018)
+    BEFORE DELETE  --UPDATE -- OR DELETE(UPDATE was commented out due to replecation of records 02-28-2018)
     ON csm_allocation_node
     FOR EACH ROW
     EXECUTE PROCEDURE fn_csm_allocation_node_change()
