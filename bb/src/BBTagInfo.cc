@@ -144,7 +144,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
 
     // NOTE: The handle file is locked exclusive here to serialize amongst multiple bbServers
     //       adding transfer definitions...
-    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle, LOCK_HANDLEFILE);
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc)
     {
         rc = update_xbbServerAddData(pLVKey, pJob, pLV_Info, pContribId, pHandle, pTransferDef);
@@ -222,7 +223,7 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     }
     if (l_HandleFile)
     {
-        l_HandleFile->close();
+        l_HandleFile->close(l_LockFeedback);
         delete l_HandleFile;
         l_HandleFile = 0;
     }

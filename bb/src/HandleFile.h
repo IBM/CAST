@@ -36,11 +36,18 @@ namespace bfs = boost::filesystem;
  | Forward declarations
  *******************************************************************************/
 
+
 /*******************************************************************************
  | Constants
  *******************************************************************************/
 const uint32_t ARCHIVE_HANDLE_VERSION = 1;
 const char LOCK_FILENAME[] = "lockfile";
+
+
+/*******************************************************************************
+ | External data
+ *******************************************************************************/
+extern thread_local int handleFileLockFd;
 
 
 /*******************************************************************************
@@ -66,7 +73,6 @@ public:
         pArchive & transferKeys;
         pArchive & lockfd;          // NOTE: On load, we will either overlay this with the fd
                                     //       of the handle file locked or reset this value to -1
-
         return;
     }
 
@@ -112,7 +118,7 @@ public:
     static int get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     static int get_xbbServerHandleTransferKeys(string& pTransferKeys, const uint64_t pJobId, const uint64_t pHandle);
     static int loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFileName);
-    static int loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pLockOption=DO_NOT_LOCK_HANDLEFILE);
+    static int loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const HANDLEFILE_LOCK_OPTION pLockOption, HANDLEFILE_LOCK_FEEDBACK* pLockFeedback=NULL);
     static int lock(const char* pFile);
     static int processTransferHandleForJobStep(vector<uint64_t>& pHandles, const char* pDataStoreName, const BBSTATUS pMatchStatus);
     static int saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pTag, BBTagInfo& pTagInfo, const uint64_t pHandle);
@@ -125,8 +131,7 @@ public:
     static int update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle);
 
     // Non-static methods
-
-    void close();
+    void close(HANDLEFILE_LOCK_FEEDBACK pLockFeedback);
     void close(const int pFd);
     void getContribArray(uint64_t &pNumContribsInArray, uint32_t* &pContribArray);
     BBSTATUS getLocalStatus(const uint64_t pNumberOfReportingContribs, ContribIdFile* pContribIdFile);
@@ -182,7 +187,13 @@ public:
 
     virtual ~HandleFile()
     {
-        close();
+        // NOTE:  We do not close the lock file here as the
+        //        handle file being deleted is a local copy.
+        //        If the handle file in the metadata is deleted,
+        //        the lockfile should already be closed.  If not,
+        //        we leak the descriptor, but since the handle file
+        //        will be deleted, there is no lock conflict.
+//        close();
     }
 
     uint32_t serializeVersion;
@@ -194,7 +205,8 @@ public:
     uint64_t numContrib;
     string   expectContrib;
     string   transferKeys;
-    int      lockfd;
+    int      lockfd;        // This really isn't used anymore.  It has been replaced by
+                            // the thread_local variable handleFileLockFd.
 };
 
 #endif /* BB_HANDLEFILE_H_ */

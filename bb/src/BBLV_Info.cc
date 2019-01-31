@@ -42,7 +42,7 @@ int BBLV_Info::allContribsReported(const uint64_t pHandle, const BBTagID& pTagId
     // Check the cross bbServer metadata and return the flag indicator for BBTI_All_Contribs_Reported.
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
-    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
+    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle, DO_NOT_LOCK_HANDLEFILE);
     if (!rc)
     {
         rc = l_HandleFile->allContribsReported();

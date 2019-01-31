@@ -97,10 +97,6 @@ const int ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED = 0;
 const int ASYNC_REQUEST_HAS_BEEN_APPENDED = 1;
 const int MORE_EXTENTS_TO_TRANSFER_FOR_FILE = 1;
 const int NO_MORE_EXTENTS_TO_TRANSFER_FOR_FILE = 0;
-const int LOCK_HANDLEFILE_WITH_TEST_FIRST = 2;
-const int LOCK_HANDLEFILE = 1;
-const int DO_NOT_LOCK_HANDLEFILE = 0;
-const int TEST_FOR_HANDLEFILE_LOCK = -1;
 const int LOCK_TRANSFER_QUEUE = 1;
 const int DO_NOT_LOCK_TRANSFER_QUEUE = 0;
 const int FIRST_PASS = 1;
@@ -198,6 +194,22 @@ enum TRANSFER_QUEUE_RELEASED
     TRANSFER_QUEUE_LOCK_RELEASED        = 1
 };
 typedef enum TRANSFER_QUEUE_RELEASED TRANSFER_QUEUE_RELEASED;
+
+enum HANDLEFILE_LOCK_OPTION
+{
+    TEST_FOR_HANDLEFILE_LOCK        = -1,   // Not currently used
+    DO_NOT_LOCK_HANDLEFILE          = 0,
+    LOCK_HANDLEFILE                 = 1,
+    LOCK_HANDLEFILE_WITH_TEST_FIRST = 2     // Not curently used
+};
+typedef enum HANDLEFILE_LOCK_OPTION HANDLEFILE_LOCK_OPTION;
+
+enum HANDLEFILE_LOCK_FEEDBACK
+{
+    HANDLEFILE_WAS_NOT_LOCKED       = 0,
+    HANDLEFILE_WAS_LOCKED           = 1
+};
+typedef enum HANDLEFILE_LOCK_FEEDBACK HANDLEFILE_LOCK_FEEDBACK;
 
 /*******************************************************************************
  | Macro definitions

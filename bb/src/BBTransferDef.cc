@@ -1404,7 +1404,6 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
-    bool l_HandleFileLocked = false;
 
     bool l_StopDefinition = false;
 
@@ -1429,16 +1428,15 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
         {
             // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer checking for
             //       the extents to be enqueued and another thread/bbServer enqueuing those extents.
-            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+            HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
             if (!rc)
             {
-                l_HandleFileLocked = true;
                 rc = extentsAreEnqueued();
                 if (!rc)
                 {
                     // Release the handle file
-                    l_HandleFileLocked = false;
-                    l_HandleFile->close();
+                    l_HandleFile->close(l_LockFeedback);
 
                     unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                     {
@@ -1466,12 +1464,6 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                               << " when attempting to determine if all extents had been enqueued during stop transfer processing";
             }
 
-            if (l_HandleFileLocked)
-            {
-                // Release the handle file
-                l_HandleFileLocked = false;
-                l_HandleFile->close();
-            }
             if (l_HandleFileName)
             {
                 delete[] l_HandleFileName;
@@ -1480,6 +1472,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
             if (l_HandleFile)
             {
+                l_HandleFile->close(l_LockFeedback);
                 delete l_HandleFile;
                 l_HandleFile = 0;
             }

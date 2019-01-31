@@ -23,6 +23,12 @@
 #include <dirent.h>
 
 
+/*******************************************************************************
+ | External data
+ *******************************************************************************/
+thread_local int handleFileLockFd = -1;
+
+
 /*
  * Static methods
  */
@@ -437,7 +443,7 @@ int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
-    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle);
+    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, DO_NOT_LOCK_HANDLEFILE);
 //    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
     if (!rc)
     {
@@ -642,7 +648,7 @@ int HandleFile::loadHandleFile(HandleFile* &ptr, const char* filename)
     return rc;
 }
 
-int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pLockOption)
+int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const HANDLEFILE_LOCK_OPTION pLockOption, HANDLEFILE_LOCK_FEEDBACK* pLockFeedback)
 {
     int rc = 0;
     stringstream errorText;
@@ -655,7 +661,36 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     snprintf(l_ArchivePath, PATH_MAX-64, "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
     snprintf(l_ArchivePathWithName, PATH_MAX, "%s/%lu", l_ArchivePath, pHandle);
 
-    switch (pLockOption)
+    int l_LockOption = pLockOption;
+    if (pLockFeedback)
+    {
+        *pLockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+    }
+
+    if (handleFileLockFd != -1)
+    {
+        // Handle file already locked - downgrade lock option if necessary
+        // NOTE:  We have to downgrade, because if we were to open/close
+        //        the lockfile again, the first lock would be released on the
+        //        close.
+        switch (pLockOption)
+        {
+            case TEST_FOR_HANDLEFILE_LOCK:          // Not currently used
+            case LOCK_HANDLEFILE:
+            case LOCK_HANDLEFILE_WITH_TEST_FIRST:   // Not currnetly used
+            {
+                l_LockOption = DO_NOT_LOCK_HANDLEFILE;
+            }
+
+            case DO_NOT_LOCK_HANDLEFILE:
+            default:
+            {
+                // Nothing to do
+            }
+        }
+    }
+
+    switch (l_LockOption)
     {
         case LOCK_HANDLEFILE:
         {
@@ -696,20 +731,25 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
 
     if (!rc)
     {
-        if (pLockOption == DO_NOT_LOCK_HANDLEFILE ||
-            (pLockOption == LOCK_HANDLEFILE && fd >= 0) ||
-            (pLockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST && fd >= 0))
+        if (l_LockOption == DO_NOT_LOCK_HANDLEFILE ||
+            (l_LockOption == LOCK_HANDLEFILE && fd >= 0) ||
+            (l_LockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST && fd >= 0))
         {
             rc = loadHandleFile(pHandleFile, l_ArchivePathWithName);
             if (!rc)
             {
                 pHandleFileName = l_ArchivePathWithName;
-                switch (pLockOption)
+                switch (l_LockOption)
                 {
                     case LOCK_HANDLEFILE:
                     case LOCK_HANDLEFILE_WITH_TEST_FIRST:
                     {
                         pHandleFile->lockfd = fd;
+                        handleFileLockFd = fd;
+                        if (pLockFeedback)
+                        {
+                            *pLockFeedback = HANDLEFILE_WAS_LOCKED;
+                        }
                     }
                     break;
 
@@ -732,7 +772,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
 
     if (rc && fd >= 0)
     {
-        if (pLockOption == LOCK_HANDLEFILE || pLockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST)
+        if (l_LockOption == LOCK_HANDLEFILE || l_LockOption == LOCK_HANDLEFILE_WITH_TEST_FIRST)
         {
             unlock(fd);
         }
@@ -908,10 +948,6 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
             rc = -1;
             LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
         }
-
-        // If the Handlefile was locked, this close will drop that lock
-        pHandleFile->close();
-
     } else {
         rc = -1;
         errorText << "Failure when attempting to save the handle file for job " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
@@ -1036,7 +1072,8 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
-    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc) {
         uint64_t l_Flags = l_HandleFile->flags;
         uint64_t l_NewFlags = 0;
@@ -1083,9 +1120,7 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
     }
     if (l_HandleFile)
     {
-        // The lock on the handle file should have been released by the save code
-        // above.  We ensure that it is unlocked here (e.g. the save code didn't run above)
-        l_HandleFile->close();
+        l_HandleFile->close(l_LockFeedback);
 
         delete l_HandleFile;
         l_HandleFile = 0;
@@ -1103,7 +1138,8 @@ int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uin
     char* l_HandleFileName = 0;
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
-    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc)
     {
         l_HandleFile->status = BBNONE;
@@ -1119,9 +1155,7 @@ int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uin
     }
     if (l_HandleFile)
     {
-        // The lock on the handle file should have been released by the save code
-        // above.  We ensure that it is unlocked here (e.g. the save code didn't run above)
-        l_HandleFile->close();
+        l_HandleFile->close(l_LockFeedback);
 
         delete l_HandleFile;
         l_HandleFile = 0;
@@ -1139,7 +1173,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     char* l_HandleFileName = 0;
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
-    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc)
     {
         uint64_t l_StartingFlags = l_HandleFile->flags;
@@ -1412,9 +1447,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     }
     if (l_HandleFile)
     {
-        // The lock on the handle file should have been released by the save code
-        // above.  We ensure that it is unlocked here (e.g. the save code didn't run above)
-        l_HandleFile->close();
+        l_HandleFile->close(l_LockFeedback);
 
         delete l_HandleFile;
         l_HandleFile = 0;
@@ -1432,6 +1465,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     char* l_HandleFileName = 0;
     uint64_t l_JobId = 0;
     uint64_t l_JobStepId = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(!bfs::is_directory(datastore)) return rc;
@@ -1458,7 +1492,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                         {
                             // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
                             //       be updating simultaneously
-                            rc = loadHandleFile(l_HandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, LOCK_HANDLEFILE);
+                            rc = loadHandleFile(l_HandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
                             if (!rc)
                             {
                                 string l_TransferKeys = l_HandleFile->transferKeys;
@@ -1504,9 +1538,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                 }
                 if (l_HandleFile)
                 {
-                    // The lock on the handle file should have been released by the save code
-                    // above.  We ensure that it is unlocked here (e.g. the save code didn't run above)
-                    l_HandleFile->close();
+                    l_HandleFile->close(l_LockFeedback);
 
                     delete l_HandleFile;
                     l_HandleFile = 0;
@@ -1535,9 +1567,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     }
     if (l_HandleFile)
     {
-        // The lock on the handle file should have been released by the save code
-        // above.  We ensure that it is unlocked here (e.g. the save code didn't run above)
-        l_HandleFile->close();
+        l_HandleFile->close(l_LockFeedback);
 
         delete l_HandleFile;
         l_HandleFile = 0;
@@ -1550,16 +1580,19 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
  * Non-static methods
  */
 
-void HandleFile::close()
+void HandleFile::close(HANDLEFILE_LOCK_FEEDBACK pLockFeedback)
 {
-    close(lockfd);
+    if (pLockFeedback == HANDLEFILE_WAS_LOCKED)
+    {
+        close(handleFileLockFd);
+    }
 }
 
 void HandleFile::close(const int pFd)
 {
     if (pFd >= 0)
     {
-        if (pFd == lockfd)
+        if (pFd == handleFileLockFd)
         {
             unlock();
         }
@@ -1634,6 +1667,10 @@ BBSTATUS HandleFile::getLocalStatus(const uint64_t pNumberOfReportingContribs, C
 
 void HandleFile::unlock()
 {
-    unlock(lockfd);
-    lockfd = -1;
+    if (handleFileLockFd != -1)
+    {
+        unlock(handleFileLockFd);
+        handleFileLockFd = -1;
+        lockfd = -1;
+    }
 }
