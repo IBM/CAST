@@ -28,6 +28,8 @@
 #include "logging.h"   ///< CSM logging.
 #include "cgroup.h" 
 #include "csm_handler_exception.h"
+#include "Agent.h"
+
 #include "csmi/include/csm_api_macros.h" // csm_get_enum_from_stringget_enum_from_string
 
 
@@ -1016,24 +1018,24 @@ int CGroup::IRQRebalance( const std::string CPUs )
 {
     LOG(csmapi, trace) << "CGroup::IRQRebalance Enter";
     // stop irqbalance
-    /*
+    
     char* scriptArgs[] = { (char*)"/bin/systemctl", (char*)"stop", (char*)"irqbalance", NULL };
 
     errno = 0;
-    int exit = execv(*scriptArgs, scriptArgs);
-    if ( exit != -1 )
-    {
-        LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
-    }
-    else
-    {
-        exit = errno;
-        LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit)
-            << "; Error Message: " << strerror(exit);
-        errno=0;
-
-    }
-    */
+    ForkAndExec(scriptArgs);
+    //int exit = execv(*scriptArgs, scriptArgs);
+    //if ( exit != -1 )
+    //{
+    //    LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
+    //}
+    //else
+    //{
+    //    exit = errno;
+    //    LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit)
+    //        << "; Error Message: " << strerror(exit);
+    //    errno=0;
+    //}
+   
     
     #define IRQ_PATH "/proc/irq/"
     const char* CPUList = CPUs.c_str();
