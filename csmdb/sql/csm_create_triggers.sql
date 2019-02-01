@@ -823,7 +823,7 @@ BEGIN
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
-        o_shared, o_num_gpus, o_num_processors,
+        o_num_gpus, o_num_processors,
         o_projected_memory, o_runtime, o_smt_mode
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
