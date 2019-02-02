@@ -1545,7 +1545,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     BBTransferDef* l_TransferPtr = &l_Transfer;
     BBTransferDef* l_OrgTransferPtr = l_TransferPtr;
     bool l_LockHeld = false;
-    bool l_HandleFileLocked = false;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;;
 
     try
     {
@@ -1857,10 +1857,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         {
                                             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
                                             //       bbServer that is marking the handle/contribid file as 'stopped'
-                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE);
+                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE, &l_LockFeedback);
                                             if (!rc)
                                             {
-                                                l_HandleFileLocked = true;
                                                 rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
                                                 if (rc == 1)
                                                 {
@@ -1941,10 +1940,10 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 if (rc && l_Continue)
                                                 {
                                                     // Release the lock on the handle file
-                                                    l_HandleFileLocked = false;
-                                                    l_HandleFile->close();
+                                                    l_HandleFile->close(l_LockFeedback);
 
-                                                    if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
+                                                    uint64_t l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
+                                                    if ((l_SecondsWaiting % 15) == 1)
                                                     {
                                                         // Display this message every 15 seconds...
                                                         FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
@@ -1953,6 +1952,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                                      << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
                                                                      << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
                                                                      << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                                                    }
+                                                    // If we will wait for at least another minute, re-append the stop transfer request
+                                                    // every 60 seconds in case the 'old' bbServer just came online...
+                                                    if ((l_Continue > 60) && (l_SecondsWaiting % 60) == 0)
+                                                    {
+                                                        BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
+                                                                                                         (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
                                                     }
                                                     unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
                                                     {
@@ -1977,11 +1983,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                     delete l_ContribIdFile;
                                                     l_ContribIdFile = 0;
                                                 }
-                                                if (l_HandleFileLocked)
-                                                {
-                                                    l_HandleFileLocked = false;
-                                                    l_HandleFile->close();
-                                                }
                                                 if (l_HandleFileName)
                                                 {
                                                     delete[] l_HandleFileName;
@@ -1989,6 +1990,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 }
                                                 if (l_HandleFile)
                                                 {
+                                                    l_HandleFile->close(l_LockFeedback);
                                                     delete l_HandleFile;
                                                     l_HandleFile = 0;
                                                 }
@@ -2314,12 +2316,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         l_ContribIdFile = 0;
     }
 
-    if (l_HandleFileLocked)
-    {
-        l_HandleFileLocked = false;
-        l_HandleFile->close();
-    }
-
     if (l_HandleFileName)
     {
         delete[] l_HandleFileName;
@@ -2329,6 +2325,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     if (l_HandleFile)
     {
+        l_HandleFile->close(l_LockFeedback);
         delete l_HandleFile;
         l_HandleFile = 0;
     }

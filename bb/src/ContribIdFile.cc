@@ -687,6 +687,14 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
                 }
             }
 
+            string l_Hostname;
+            activecontroller->gethostname(l_Hostname);
+            if (l_ContribIdFile->hostname != l_Hostname)
+            {
+                LOG(bb,info) << "xbbServer: Servicing hostname for " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << " changed from " << l_ContribIdFile->hostname << " to " << l_Hostname;
+                l_ContribIdFile->hostname = l_Hostname;
+            }
+
             rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
             if (rc)
             {

@@ -178,24 +178,25 @@ def createRandomFile(pEnv, pFile, pSize):
 def flushWaiters(pActiveServer):
     # Flush the waiters for the input active server
 
-    l_StartingValue = 5
+    if (pActiveServer != ""):
+        l_StartingValue = 5
 
-    if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", False)) == 0):
-        l_Continue = l_StartingValue - 1;
-    else:
-        l_Continue = l_StartingValue
-    l_Attempts = 1
-
-    while (l_Continue > 0):
-        time.sleep(0.05)
-        l_PrintOption = False;
-        if (l_Attempts % 200 == 0):
-            l_PrintOption = True
-        if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", l_PrintOption)) == 0):
-            l_Continue -= 1;
+        if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", False)) == 0):
+            l_Continue = l_StartingValue - 1;
         else:
             l_Continue = l_StartingValue
-        l_Attempts += 1
+        l_Attempts = 1
+
+        while (l_Continue > 0):
+            time.sleep(0.05)
+            l_PrintOption = False;
+            if (l_Attempts % 200 == 0):
+                l_PrintOption = True
+            if (int(BB_GetServerByName(pActiveServer, "waitforreplycount", l_PrintOption)) == 0):
+                l_Continue -= 1;
+            else:
+                l_Continue = l_StartingValue
+            l_Attempts += 1
 
     return;
 
