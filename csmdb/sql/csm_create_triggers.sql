@@ -278,27 +278,33 @@ BEGIN
     UPDATE csm_allocation_node
         SET
             ib_tx      = (CASE WHEN(d.tx > 0 AND ib_tx >= 0) THEN 
-                            d.tx - ib_tx
+                            CASE WHEN ( d.tx  >= ib_tx ) THEN d.tx - ib_tx
+                            ELSE -2 END
                           ELSE -1 END ),
 
             ib_rx      = (CASE WHEN(d.rx > 0 AND ib_rx >= 0) THEN 
-                            d.rx - ib_rx 
+                            CASE WHEN ( d.rx  >= ib_rx ) THEN d.rx - ib_rx 
+                            ELSE -2 END
                           ELSE -1 END ),
 
             gpfs_read  = (CASE WHEN(d.g_read > 0 AND gpfs_read  >= 0) THEN 
-                            d.g_read  - gpfs_read
+                            CASE WHEN ( d.g_read >= gpfs_read ) THEN d.g_read  - gpfs_read
+                            ELSE -2 END
                           ELSE -1 END ),
 
             gpfs_write = (CASE WHEN(d.g_write> 0 AND gpfs_write >= 0) THEN 
-                            d.g_write - gpfs_write 
+                            CASE WHEN (d.g_write >= gpfs_write) THEN d.g_write - gpfs_write 
+                            ELSE -2 END
                           ELSE -1 END ),
 
             energy     = (CASE WHEN(d.l_energy > 0 AND energy   >= 0) THEN 
-                            d.l_energy  - energy 
+                            CASE WHEN ( d.l_energy >= energy ) THEN d.l_energy  - energy 
+                            ELSE -2 END
                           ELSE -1 END ),
 
             power_cap_hit = (CASE WHEN(d.pc_hit > 0 AND power_cap_hit >= 0) THEN 
-                            d.pc_hit  - power_cap_hit
+                            CASE WHEN ( d.pc_hit >= power_cap_hit ) THEN d.pc_hit  - power_cap_hit
+                            ELSE -2 END
                           ELSE -1 END ), 
 
             gpu_usage = d.gpu_use,
@@ -306,7 +312,8 @@ BEGIN
             memory_usage_max = d.mem_max,
 
             gpu_energy = (CASE WHEN(d.l_gpu_energy > 0 AND gpu_energy >= 0) THEN 
-                            d.l_gpu_energy - gpu_energy
+                            CASE WHEN ( d.l_gpu_energy >= gpu_energy ) THEN d.l_gpu_energy - gpu_energy
+                            ELSE -2 END
                           ELSE -1 END )
         FROM
             ( SELECT
