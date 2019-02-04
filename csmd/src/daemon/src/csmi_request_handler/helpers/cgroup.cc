@@ -1014,28 +1014,16 @@ int CGroup::CPUPower(
 }
 
 
-int CGroup::IRQRebalance( const std::string CPUs )
+int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
 {
     LOG(csmapi, trace) << "CGroup::IRQRebalance Enter";
     // stop irqbalance
     
-    char* scriptArgs[] = { (char*)"/bin/systemctl", (char*)"stop", (char*)"irqbalance", NULL };
+    char* scriptArgs[] = { (char*)"/bin/systemctl", !startIRQBalance ?  (char*)"stop" : (char*)"start", 
+        (char*)"irqbalance", NULL };
 
     errno = 0;
     ForkAndExec(scriptArgs);
-    //int exit = execv(*scriptArgs, scriptArgs);
-    //if ( exit != -1 )
-    //{
-    //    LOG(csmapi, debug) << "CGroup::IRQRebalance: IRQ Balance Completed successfully";
-    //}
-    //else
-    //{
-    //    exit = errno;
-    //    LOG(csmapi, error) << "CGroup::IRQRebalance: IRQ Balance Failed; Error Code: " << std::to_string(exit)
-    //        << "; Error Message: " << strerror(exit);
-    //    errno=0;
-    //}
-   
     
     #define IRQ_PATH "/proc/irq/"
     const char* CPUList = CPUs.c_str();
@@ -1570,6 +1558,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     int32_t thread     = 0; // The active thread being processed.
     int32_t groupStart = 0; // Start of group.
     int32_t core       = 0; // The active core being processed.
+    bool    startIRQBalance = false;
 
     // If core Isolation is zero expand to the whole system.
     if ( isolation > 0 )
@@ -1620,11 +1609,12 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     
                     assembleGroup(sysCores);
                     isolation--;
-
+                    
                     // XXX Today this assumes < 32 threads per core!
-                    activeAffinityBlock = (int32_t)(thread / 32);
-                    int32_t coreShift=(thread % 32)*systemSMT;
-                    affinityBlocks[activeAffinityBlock] |=  (IRQMask << coreShift);
+                    activeAffinityBlock = (int32_t)((extra_thread - threadsPerCoreMax) / 32);
+                    int32_t coreShift=((extra_thread - threadsPerCoreMax) % 32);
+                    int32_t coreValue = IRQMask << coreShift;
+                    affinityBlocks[activeAffinityBlock] |=  coreValue;
                 }
             }
         }
@@ -1637,7 +1627,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     {
         // Set this to blink the primary thread later.
         threadBlinkFailure = true;
-
+        startIRQBalance    = true;
+        
         // Set the cores up.
         sysCores = groupCores = "";
         for (int32_t socket=0; socket < sockets; ++socket)
@@ -1718,14 +1709,14 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     {
         std::string affinityString;         // The list of banned CPUs for the affinity setting.
         std::stringstream affinityStream;
-        for ( int i = affinityBlocks.size()-1 ; i >= 0; --i)
+        for ( int i = affinityBlocks.size()-1; i >= 0; --i)
         {
             affinityStream << std::hex << (affinityBlocks[i] ) << ",";
         }
         affinityString = affinityStream.str();
         affinityString.back() = ' ';
-        IRQRebalance(affinityString);
-        LOG(csmapi, trace) << "Affinity Ban List:" << affinityString;
+        IRQRebalance(affinityString, startIRQBalance);
+        LOG(csmapi, trace) << "Affinity List:" << affinityString;
     }
 
     // ================================================================================
