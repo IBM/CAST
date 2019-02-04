@@ -719,6 +719,13 @@ csm::network::EndpointUnix::RecvFrom( csm::network::MessageAndAddress &aMsgAddr 
   }
   else
   {
+    LOG (csmapi,warning)           << cmd_to_string( aMsgAddr._Msg.GetCommandType())
+        << "["                     << aMsgAddr._Msg.GetReservedID()
+        << "]; Client "
+        << "  PID: "               << credentials.pid
+        << "; UID:"                << credentials.uid
+        << "; GID:"                << credentials.gid
+        << ": Permission Denied.";
     csm::network::ExceptionRecv ex = csm::network::ExceptionRecv( "Permission Denied", EPERM );
     throw ex;
   }
