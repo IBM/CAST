@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/csm_environmental_handler.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -87,6 +87,11 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
           {
             LOG(csmenv, debug) << "Collecting node environmental data.";
             envData.CollectEnvironmentalData();
+            break;
+          }
+          case csm::daemon::SSD:
+          {
+            LOG(csmenv, info) << "Collecting SSD Wear data.";
             break;
           }
           case csm::daemon::NETWORK:
