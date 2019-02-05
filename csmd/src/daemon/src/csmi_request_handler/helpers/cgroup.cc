@@ -1062,7 +1062,7 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
             // Build a verbose error for the user.
             if ( errorCode != 0 )
             {
-                LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+                LOG(csmapi, trace) << "Could not write: \"" << CPUs << "\" to " << affinityList;
             }
         }
     }
