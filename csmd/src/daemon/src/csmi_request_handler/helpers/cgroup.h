@@ -245,10 +245,13 @@ private:
      * @brief Applies the IRQ affinity using the irqbalance daemon in oneshot mode.
      *
      * @param[in] bannedCPUs A list of banned CPUs as hex strings, sets env `IRQBALANCE_BANNED_CPUS`.
+     * @param[in] startIRQBalance If set true the IRQBalance daemon will be started, if set false
+     *  it will stop the IRQBalance Daemon.
+     *
      *
      * @return 0 on success, errno on failure.
      */
-    static int IRQRebalance(const std::string bannedCPUs);
+    static int IRQRebalance(const std::string bannedCPUs, bool startIRQBalance);
 
     /** @brief Write the supplied value to the specified parameter for the controller.
      *
