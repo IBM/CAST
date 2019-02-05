@@ -2,9 +2,9 @@
 # encoding: utf-8
 #================================================================================
 #
-#    node_attributes_query.py
+#    node_attributes_query_with_xcat.py
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -14,6 +14,16 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 #================================================================================
+
+
+# ABOUT: 
+# -------
+# This is an example python script of how to use xCAT python API to gather 
+# node range information and pass that into CSM APIs. 
+# -------
+# author: Nick Buonarota
+# email: nbuonar@us.ibm.com
+
 
 # import generic
 import sys
@@ -29,64 +39,84 @@ import lib_csm_py as csm
 import lib_csm_inv_py as inv
 from pprint import pprint
 
-# Get the node names from xcat
+# PART 1 ====  Get the node names from xcat
 
-XCATMN        = "127.0.0.1"
-username      = "wsuser"
-password = "cluster_rest"
+# set up xCAT info
+# replace this with your xCAT info
+XCATMN = "127.0.0.1"
+username = "admin"
+password = "password"
+
+# set your xCAT restAPI url
+REST_ENDPOINT = "https://" + XCATMN + "/xcatws"
+
+# Here is your xcat search. 
+# replace as needed for your search. 
+# examples:
+# nodes - c650f03p[07,09,11]
+# node range - c650f03p[07-10]
+# node group - all
+node_string = "c650f03p[07,09,11]"
+
+# use the xCAT restAPI url to construct a message that will return the information you want.
+get_node_range = REST_ENDPOINT + "/nodes/" + node_string + "/nodels/"
 
 
-
-REST_ENDPOINT    = "https://" + XCATMN + "/xcatws"
-create_node      = REST_ENDPOINT + "/nodes/"
-get_all_nodes    = REST_ENDPOINT + "/nodes/"
-get_token = REST_ENDPOINT + "/tokens"
-
-get_node_range    = REST_ENDPOINT + "/nodes/n[1-3]/nodels"
-
-
+# Here we:
+# Send a request to get all nodes, using the url above and passing in user and password
 #
-# Send a request to get all nodes, passing in user and password
-#
-all_nodes = requests.get(get_node_range + "?userName=" + username + "&userPW=" + password, verify=False)
+response = requests.get(get_node_range + "?userName=" + username + "&userPW=" + password, verify=False)
 
-# Display returned data
-print "List of all nodes extracted with userid and password:"
-print all_nodes.content
+# get the data
+#
+# save the json data as a python list
+# nodes_j = response.json()
+# 
+# change the data from unicode to utf8
+# This is needed for csm api "set_ARRAY" function
+# nodes_j1 = [x.encode('utf8') for x in nodes_j]
+
+# Once you understand the above you can combine as in below. 
+# The above code in comments has been combined into one line.
+nodes = [x.encode('utf8') for x in response.json()]
+
+# Once the nodes have been gathered. You can call the CSM API. 
+
+
+# PART 2 ==== CSM API
 
 
 # CSM API
-
 csm.init_lib()
 
 input = inv.node_attributes_query_input_t()
-#input.node_names = ["node_01", "n01"]
-#input.node_names_count = len(input.node_names)
-nodes=["node_01","n01"]
+
+# set nodes from gathered xCAT data above.
 input.set_node_names(nodes)
-#input.set_node_names(["node_01","n01"])
+
+# set other input data
 input.limit=-1
 input.offset=-1
 
+# Call the CSM API
 rc,handler,output = inv.node_attributes_query(input)
+
+# Access csm api output how ever you want. 
 
 if(rc == csm.csmi_cmd_err_t.CSMI_SUCCESS):
     for i in range (0, output.results_count):
-        node = output.get_results(i)
-        pprint(node.node_name)
-        pprint(node.collection_time)
-        pprint(node.update_time)
-        print(node.state)
-        print("node_state_value: " + str(node.state))
-        pprint(node.state)
-        pprint("node_state_value: " + str(node.state))
-        print(node.state)
-        print(node.node_name)
-        #print(csm.csm_get_string_from_enum(csm.csmi_node_state_t, node.state))
+        record = output.get_results(i)
+        pprint(record.node_name)
+        pprint(record.collection_time)
+        pprint(record.update_time)
+        print(record.state)
+        print("node_state_value: " + str(record.state))
+        pprint(record.state)
+        pprint("node_state_value: " + str(record.state))
+        print(record.state)
+        print(record.node_name)
 else:
     print("No matching records found.")
-	
-# csm_get_string_from_enum(csmi_node_state_t, output->results[i]->state)
 
 
 csm.api_object_destroy(handler)
