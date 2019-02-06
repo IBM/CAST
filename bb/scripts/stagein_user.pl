@@ -13,50 +13,49 @@
 ###########################################################
 
 use JSON;
+use lib '/opt/ibm/bb/scripts';
 use Cwd 'abs_path';
-BEGIN
-{
-    ($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
-    unshift(@INC, abs_path($dir));
-}
 use bbtools;
 
 print "*** Entering user stage-in script ***\n";
 
 $USER_STGIN_LISTFILE = $ENV{"USER_STGIN_LISTFILE"};
-$USER_PFS_PATH = $ENV{"USER_PFS_PATH"};
+$USER_PFS_PATH       = $ENV{"USER_PFS_PATH"};
 
-if ("$USER_STGIN_LISTFILE" ne "") {
-    if (! open($IN_LIST, '<', $USER_STGIN_LISTFILE)) {
-	die "Could not open input list_file $USER_STGIN_LISTFILE\n";
+if("$USER_STGIN_LISTFILE" ne "")
+{
+    if(!open($IN_LIST, '<', $USER_STGIN_LISTFILE))
+    {
+        die "Could not open input list_file $USER_STGIN_LISTFILE\n";
     }
 
-    $PRESTAGE_TDEF = `mktemp /tmp/prestage_tdef_XXXX`;
+    $PRESTAGE_TDEF = `mktemp $USER_PFS_PATH/prestage_tdef_XXXX`;
     chomp $PRESTAGE_TDEF;
-    if (! open($TDEF, '>', $PRESTAGE_TDEF)) {
-	die "Could not open transfer definition file $PRESTAGE_TDEF\n";
+    if(!open($TDEF, '>', $PRESTAGE_TDEF))
+    {
+        die "Could not open transfer definition file $PRESTAGE_TDEF\n";
     }
 
-    while ($LINE = <$IN_LIST>) {
-	chomp $LINE;
-	($SOURCE, $TARGET) = split /\s+/, $LINE;
-	$SOURCE =~ s/<PFS>/$USER_PFS_PATH/;
-	$TARGET =~ s/<BB>/$BBPATH/;
-	print "SOURCE=$SOURCE, TARGET=$TARGET\n";
-	print $TDEF "$SOURCE $TARGET 0\n";
+    while($LINE = <$IN_LIST>)
+    {
+        chomp $LINE;
+        ($SOURCE, $TARGET) = split /\s+/, $LINE;
+        $SOURCE =~ s/<PFS>/$USER_PFS_PATH/;
+        $TARGET =~ s/<BB>/$BBPATH/;
+        print "SOURCE=$SOURCE, TARGET=$TARGET\n";
+        print $TDEF "$SOURCE $TARGET 0\n";
     }
 
     close $IN_LIST;
     close $TDEF;
 
-    $CONTRIBS = `seq -s, 0 $LAST_NODE`;
+    $CONTRIBS = `seq -s, 0 $#HOSTLIST_ARRAY;
     chomp $CONTRIBS;
 
     $result = bbcmd("$TARGET_NODE0 gethandle --tag=1 --contrib=$CONTRIBS");
-    bbcmd("$TARGET_ALL copy --handle=$result->{'0'}{'transferHandle'}" .
-	  " --filelist=$PRESTAGE_TDEF");
+    bbcmd("$TARGET_ALL copy --handle=$result->{'0'}{'out'}{'transferHandle'}" . " --filelist=$PRESTAGE_TDEF");
 
-    system("rm -f $PRESTAGE_TDEF");
+    unlink($PRESTAGE_TDEF);
 }
 
 print "*** Exiting user stage-in script ***\n";
