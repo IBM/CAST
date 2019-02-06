@@ -118,9 +118,13 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           case CSM_DAEMON_ROLE_MASTER:
               DaemonCore = new csm::daemon::CoreMaster();
               connHdl = new csm::daemon::ConnectionHandling_master( CSMDaemonConfig->GetCriticalConnectionList(), &_RunMode );
-              dbMgr = new csm::daemon::EventManagerDB( CSMDaemonConfig->GetDBDefinitionInfo(), connHdl, DaemonCore->GetRetryBackOff() );
-              if( !dbMgr )
-                throw csm::daemon::Exception("BUG: failed to create database manager.");
+              try {
+                dbMgr = new csm::daemon::EventManagerDB( CSMDaemonConfig->GetDBDefinitionInfo(), connHdl, DaemonCore->GetRetryBackOff() );
+              }
+              catch( csm::daemon::Exception &e ) {
+                CSMLOG( csmd, debug ) << e.what();
+                _RunMode.Transition( csm::daemon::REASON_ERROR, EPROTONOSUPPORT );
+              }
               evMgrPool.push_back( dbMgr );
 
               break;
