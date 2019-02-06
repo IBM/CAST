@@ -322,6 +322,19 @@ sub bbgetrc
     return $json->{"rc"};
 }
 
+sub killpids
+{
+    open(TMP, "ps -o pid,ppid | grep $$ |");
+    while($line = <TMP>)
+    {
+        ($pid,$ppid) = $line =~ /(\d+)\s+(\d+)/;
+        if($ppid == $$)
+        {
+            system("kill -9 $pid");
+        }
+    }
+    close(TMP);
+}
 
 sub cmd
 {
@@ -335,13 +348,15 @@ sub cmd
     $oldpath = $ENV{'PATH'};
     $ENV{'PATH'} = '/bin:/usr/bin';
 
-    alarm($timeout) if($timeout);
     eval
     {
+        local $SIG{"ALRM"} = sub { die "alarm timeout\n" };
+        alarm($timeout) if($timeout);
         if($postresults)
         {
             my @lines = ();
-            open(CMD, "$cmd |");
+            open(CMD, "$cmd |") || die "Unable to open $cmd";
+            local $SIG{"ALRM"} = sub { killpids(); close(CMD); die "alarm timeout\n" };
             while(my $line = <CMD>)
             {
                 chomp($line);
@@ -354,11 +369,13 @@ sub cmd
         {
             system($cmd);
         }
+        alarm(0);
     };
-    alarm(0) if($timeout);
+    alarm(0);
 
     $rc = $?;
     $rc = 110 if($@ =~ /alarm timeout/);  # ETIMEDOUT=110
+    $rc = 2   if($@ =~ /Unable to open/); # ENOENT=2
 
     print "command rc: $rc\n";
     $ENV{'PATH'} = $oldpath;

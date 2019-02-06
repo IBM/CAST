@@ -15,6 +15,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <queue>
+#include <algorithm>
 #include "csm_api_burst_buffer.h"
 #include "csm_api_ras.h"
 #include "csm_api_common.h"
@@ -97,6 +98,14 @@ NodeController_CSM::NodeController_CSM()
 #endif
 };
 
+static bool hostnamecmp(const std::string& s1, const std::string& s2)
+{
+    int result = strverscmp(s1.c_str(), s2.c_str());
+    if(result < 0)
+        return true;
+    return false;
+}
+
 int NodeController_CSM::gethostlist(string& hostlist)
 {
     int rc = 0;
@@ -137,10 +146,20 @@ int NodeController_CSM::gethostlist(string& hostlist)
                         return -1;
                     }
 
-                    hostlist = output->allocations[x]->compute_nodes[0];
-                    for(unsigned int y=1; y<output->allocations[x]->num_nodes; y++)
+                    vector<string> hostvector;
+                    for(unsigned int y=0; y<output->allocations[x]->num_nodes; y++)
                     {
-                        hostlist += string(",") + string(output->allocations[x]->compute_nodes[y]);
+                        hostvector.push_back(string(output->allocations[x]->compute_nodes[y]));
+                    }
+                    sort(hostvector.begin(), hostvector.end(), hostnamecmp);
+                    hostlist = "";
+                    for(const auto& ahost: hostvector)
+                    {
+                        if(hostlist.size() > 0)
+                        {
+                            hostlist += string(",");
+                        }
+                        hostlist += ahost;
                     }
                     found = true;
                     break;
