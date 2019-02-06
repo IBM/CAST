@@ -47,3 +47,4 @@ Table of Contents
     csm-inventory/index.rst
     cast-big-data/index.rst
     tools.rst
+    releases/index.rst

@@ -632,6 +632,7 @@ effect on other daemon roles.
         | ``environmental`` | A set of CPU and machine stats and counters. |
         +-------------------+----------------------------------------------+
         
+.. _CSMD_jittermitigation_Block:
 
 The ``jitter_mitigation`` block
 ________________________________
@@ -659,10 +660,11 @@ Allocations. This block will only be required on Compute Node configurations.
 :irq_affinity:
     Flag determining the behavior of Allocation Creation in relation to IRQ rebalancing. 
 
-    If set to true the cores isolated by the ``system_map`` and ``core isolation`` for the 
-    system cgroup will have all IRQ rebalanced to them. 
-    
-    If no core isolation occurs a rebalance across all cores will be performed.
+    If set to true the cores in system cgroup will have all IRQ rebalanced to them and the IRQ Balance
+    Daemon will be shut down. 
+
+    If no core isolation occurs a rebalance across all cores will be performed and the IRQ Balance
+    Daemon will be reset.
 
     If set to false, no rebalancing occurs.
 

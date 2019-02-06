@@ -333,6 +333,8 @@ Sometimes between major versions fields may be renamed in the Big Data Store (th
 only performed in the event of a major bug). When CSM performs such a change a `transition-script`
 will be provided on the GitHub repository in the ``csm_big_data/transition-scripts`` directory.
 
+.. _metric-transaction :
+
 metric-transaction_140-150.py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
