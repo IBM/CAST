@@ -19,7 +19,6 @@ set( CPACK_RPM_csm-bds_POST_INSTALL_SCRIPT_FILE
 set( CPACK_RPM_csm-bds_PRE_UNINSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.pre.uninstall" )
 set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python-psycopg2 >= 2.5.1, python-elasticsearch >= 1.9")
-#set(CPACK_RPM_csm-bds_PACKAGE_AUTOREQ 1)
 
 # Setup Kibana RPM
 SET(CPACK_RPM_csm-bds-kibana_PACKAGE_ARCHITECTURE "noarch")

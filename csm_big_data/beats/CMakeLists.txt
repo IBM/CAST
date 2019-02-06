@@ -19,6 +19,7 @@ set(CONFDIR beats/config)
 file(GLOB INSTALL_PROGRAMS
     "config-scripts/deployConfigs.sh"
     "config-scripts/removeConfigs.sh"
+    "utility-scripts/csm_transaction_rebuild.py"
 )
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
 

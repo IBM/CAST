@@ -40,4 +40,4 @@ file(GLOB INSTALL_FILES
   "csm_ras_type_data.csv"
 )
 install(FILES ${INSTALL_FILES} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME})
-set(CPACK_RPM_${DB_RPM_NAME}_PACKAGE_REQUIRES "python-psycopg2")
+set(CPACK_RPM_${DB_RPM_NAME}_PACKAGE_REQUIRES "python-psycopg2 >= 2.5.1")
