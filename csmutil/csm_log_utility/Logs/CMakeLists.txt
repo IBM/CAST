@@ -29,7 +29,7 @@ file(GLOB INSTALL_U_Logs
     "Utility/ReadMe.md"
 )
 
-install(FILES ${INSTALL_A_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Aggregator)
+install(FILES ${INSTALL_A_Logs} COMPONENT csm-tools DESTINATION csm/tools/Logs/Aggregator)
 install(FILES ${INSTALL_C_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Compute)
 install(FILES ${INSTALL_M_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Master)
 install(FILES ${INSTALL_U_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Utility)

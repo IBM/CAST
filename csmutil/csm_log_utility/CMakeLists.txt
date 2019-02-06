@@ -23,4 +23,7 @@ file(GLOB INSTALL_SCRIPTS
     "API_Statistics.py"
 )
 
-install(FILES ${INSTALL_SCRIPTS} COMPONENT csm-core DESTINATION csm/tools)
+install(FILES ${INSTALL_SCRIPTS} COMPONENT csm-tools DESTINATION csm/tools)
+set(CPACK_RPM_csm-tools_PACKAGE_REQUIRES "numpy == 1.7.1")
+SET(CPACK_RPM_csm-tools_PACKAGE_ARCHITECTURE "noarch")
+

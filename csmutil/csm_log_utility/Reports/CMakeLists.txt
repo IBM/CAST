@@ -29,7 +29,7 @@ file(GLOB INSTALL_U_REPORTS
     "Utility_Reports/Utility_Reports.md"
 )
 
-install(FILES ${INSTALL_AGG_REPORTS} COMPONENT csm-core DESTINATION csm/tools/Reports/Aggregator_Reports)
-install(FILES ${INSTALL_C_REPORTS} COMPONENT csm-core DESTINATION csm/tools/Reports/Compute_Reports)
-install(FILES ${INSTALL_M_REPORTS} COMPONENT csm-core DESTINATION csm/tools/Reports/Master_Reports)
-install(FILES ${INSTALL_U_REPORTS} COMPONENT csm-core DESTINATION csm/tools/Reports/Utility_Reports)
+install(FILES ${INSTALL_AGG_REPORTS} COMPONENT csm-tools DESTINATION csm/tools/Reports/Aggregator_Reports)
+install(FILES ${INSTALL_C_REPORTS} COMPONENT csm-tools DESTINATION csm/tools/Reports/Compute_Reports)
+install(FILES ${INSTALL_M_REPORTS} COMPONENT csm-tools DESTINATION csm/tools/Reports/Master_Reports)
+install(FILES ${INSTALL_U_REPORTS} COMPONENT csm-tools DESTINATION csm/tools/Reports/Utility_Reports)
