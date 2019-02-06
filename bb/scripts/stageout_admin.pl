@@ -122,11 +122,11 @@ sub phase4
     bbcmd("$TARGET_ALL rmdir --path=$BBPATH");
 
     # Check for failures before removing metadata
-    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBFAILED");
+    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBPARTIALSUCCESS");
     $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
     if($numfailed > 0)
     {
-        bpost("BB: Transfer(s) marked in BBFAILED state");
+        bpost("BB: Transfer(s) marked in BBPARTIALSUCCESS (failed) state");
         $exitstatus = 1;
     }
     

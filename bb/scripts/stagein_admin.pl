@@ -123,7 +123,7 @@ sub phase3
         &bbwaitTransfersComplete();
         
         # Check for any failed transfers and halt job execution phase if found
-        $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS,BBFAILED");
+        $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS,BBPARTIALSUCCESS");
         $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
         if($numfailed > 0)
         {
