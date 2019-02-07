@@ -59,7 +59,7 @@ bool CSMIBBLVDelete::CreatePayload(
         // num_bytes_written
         if(input->num_bytes_written < 0)
         {
-            stmt.append("NULL, ) ");
+            stmt.append("NULL, ");
         }else{
             paramCount++;
             stmt.append("$").append(std::to_string(paramCount)).append("::bigint) ");
