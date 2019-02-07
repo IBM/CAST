@@ -483,8 +483,10 @@ int bbcmd_gethandle(po::variables_map& vm)
     }
 
     rc = BB_GetTransferHandle((BBTAG)(vm["tag"].as<int>()), l_NumContribs, l_Contrib, &l_TransferHandle);
-    bberror.errdirect("out.transferHandle", l_TransferHandle);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.transferHandle", l_TransferHandle);
+    }
     if (l_Contrib)
     {
         delete[] l_Contrib;
@@ -506,8 +508,8 @@ int bbcmd_getserver(po::variables_map& vm)
         buffer[0]=0;
         std::string l_requestString = (vm["connected"].as<string>());
         rc=BB_GetServer(l_requestString.c_str(), bufsize, buffer);
-        bberror.errdirect("out.serverList", buffer);
         if (rc) return rc;
+        bberror.errdirect("out.serverList", buffer);
     }
     if (vm.count("waitforreplycount") )
     {
@@ -516,8 +518,8 @@ int bbcmd_getserver(po::variables_map& vm)
         buffer[0]=0;
         std::string l_requestString = (vm["waitforreplycount"].as<string>());
         rc=BB_GetServerByName(l_requestString.c_str(),"waitforreplycount", bufsize, buffer);
-        bberror.errdirect("out.waitforreplycount", buffer);
         if (rc) return rc;
+        bberror.errdirect("out.waitforreplycount", buffer);
     }
     return rc;
 }
@@ -707,17 +709,19 @@ int bbcmd_getusage(po::variables_map& vm)
 
     rc = BB_GetUsage(vm["mount"].as<string>().c_str(), &usage);
 
-    bberror.errdirect("out.totalBytesRead", usage.totalBytesRead);
-    bberror.errdirect("out.totalBytesWritten", usage.totalBytesWritten);
-    bberror.errdirect("out.localBytesRead", usage.localBytesRead);
-    bberror.errdirect("out.localBytesWritten", usage.localBytesWritten);
+    if(rc == 0)
+    {
+        bberror.errdirect("out.totalBytesRead",    usage.totalBytesRead);
+        bberror.errdirect("out.totalBytesWritten", usage.totalBytesWritten);
+        bberror.errdirect("out.localBytesRead",    usage.localBytesRead);
+        bberror.errdirect("out.localBytesWritten", usage.localBytesWritten);
 #if BBUSAGE_COUNT
-    bberror.errdirect("out.localReadCount", usage.localReadCount);
-    bberror.errdirect("out.localWriteCount", usage.localWriteCount);
+        bberror.errdirect("out.localReadCount",    usage.localReadCount);
+        bberror.errdirect("out.localWriteCount",   usage.localWriteCount);
 #endif
-    bberror.errdirect("out.burstBytesRead", usage.burstBytesRead);
-    bberror.errdirect("out.burstBytesWritten", usage.burstBytesWritten);
-
+        bberror.errdirect("out.burstBytesRead",    usage.burstBytesRead);
+        bberror.errdirect("out.burstBytesWritten", usage.burstBytesWritten);
+    }
     return rc;
 }
 
@@ -744,21 +748,23 @@ int bbcmd_getdeviceusage(po::variables_map& vm)
 
     rc = BB_GetDeviceUsage(vm["device"].as<int>(), &usage);
 
-    bberror.errdirect("out.critical_warning", usage.critical_warning);
-    bberror.errdirect("out.temperature", usage.temperature);
-    bberror.errdirect("out.available_spare", usage.available_spare);
-    bberror.errdirect("out.percentage_used", usage.percentage_used);
-    bberror.errdirect("out.data_read", usage.data_read);
-    bberror.errdirect("out.data_written", usage.data_written);
-    bberror.errdirect("out.num_read_commands", usage.num_read_commands);
-    bberror.errdirect("out.num_write_commands", usage.num_write_commands);
-    bberror.errdirect("out.busy_time", usage.busy_time);
-    bberror.errdirect("out.power_cycles", usage.power_cycles);
-    bberror.errdirect("out.power_on_hours", usage.power_on_hours);
-    bberror.errdirect("out.unsafe_shutdowns", usage.unsafe_shutdowns);
-    bberror.errdirect("out.media_errors", usage.media_errors);
-    bberror.errdirect("out.num_err_log_entries", usage.num_err_log_entries);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.critical_warning",    usage.critical_warning);
+        bberror.errdirect("out.temperature",         usage.temperature);
+        bberror.errdirect("out.available_spare",     usage.available_spare);
+        bberror.errdirect("out.percentage_used",     usage.percentage_used);
+        bberror.errdirect("out.data_read",           usage.data_read);
+        bberror.errdirect("out.data_written",        usage.data_written);
+        bberror.errdirect("out.num_read_commands",   usage.num_read_commands);
+        bberror.errdirect("out.num_write_commands",  usage.num_write_commands);
+        bberror.errdirect("out.busy_time",           usage.busy_time);
+        bberror.errdirect("out.power_cycles",        usage.power_cycles);
+        bberror.errdirect("out.power_on_hours",      usage.power_on_hours);
+        bberror.errdirect("out.unsafe_shutdowns",    usage.unsafe_shutdowns);
+        bberror.errdirect("out.media_errors",        usage.media_errors);
+        bberror.errdirect("out.num_err_log_entries", usage.num_err_log_entries);
+    }
     return rc;
 }
 
@@ -770,8 +776,10 @@ int bbcmd_getthrottle(po::variables_map& vm)
     VMEXISTS("rate");
 
     rc = BB_GetThrottleRate(vm["mount"].as<string>().c_str(), &rate);
-    bberror.errdirect("out.rate", rate);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.rate", rate);
+    }
     return rc;
 }
 

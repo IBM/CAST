@@ -313,7 +313,10 @@ int NodeController_CSM::lvremove(const string& lvname, const BBUsage_t& usage)
     bbargs.node_name           = (char*)myhostname.c_str();
     bbargs.num_bytes_read      = usage.totalBytesRead;
     bbargs.num_bytes_written   = usage.totalBytesWritten;
-
+#if BBUSAGE_COUNT
+    bbargs.num_writes          = usage.localWriteCount;
+    bbargs.num_reads           = usage.localReadCount;
+#endif
     FL_Write(FLCSM, CSMLVDelete, "CSM: call csm_bb_lv_delete.  AllocID=%ld",allocinfo.allocation_id, 0,0,0);
     rc = csm_bb_lv_delete(&csmhandle, &bbargs);
     FL_Write(FLCSM, CSMLVDeleteRC, "CSM: call csm_bb_lv_delete.  AllocID=%ld.  rc=%ld",allocinfo.allocation_id,rc,0,0);
