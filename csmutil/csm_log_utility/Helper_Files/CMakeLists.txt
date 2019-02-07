@@ -21,4 +21,4 @@ file(GLOB INSTALL_HELPER_SCRIPTS
     "Log_Object.py"
 )
 
-install(FILES ${INSTALL_HELPER_SCRIPTS} COMPONENT csm-core DESTINATION csm/tools/Helper_Files)
+install(FILES ${INSTALL_HELPER_SCRIPTS} COMPONENT csm-tools DESTINATION csm/tools/Helper_Files)

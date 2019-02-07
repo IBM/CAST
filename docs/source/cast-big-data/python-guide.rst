@@ -323,6 +323,37 @@ This script performs 3 key operations:
 
 3. Opens a socket to a target logstash instance and writes the payload.
 
+Beats
+-----
+
+The following scripts are bundled in the ``/opt/ibm/csm/bigdata/beats/`` directory. They 
+are generally used to regenerate logs for filebeat ingestion.
+
+csmTransactionRebuild.py
+^^^^^^^^^^^^^^^^^^^^^^^^
+:Script Location: ``/opt/ibm/csm/bigdata/beats/csmTransactionRebuild.py``
+:RPM: ``ibm-csm-bds-*.noarch.rpm``
+
+This script is used to regenerate the CSM transaction log from the postgresql databse. It is
+recommended when using this script for the first time to back up your original transactional logs.
+
+The core objective of this script is to repair issues with the transactional index that were
+exposed in the transitory steps of the CSM Big Data development. As such, this script should only 
+be run in clusters which were running pre ``1.5.0`` level code.
+
+.. code-black:: bash
+
+    usage: csmTransactionRebuild.py [-h] [-d db] [-u user] [-o output]
+
+    A tool for regenerating the csm transactional logs from the database.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -d db, --database db  Database to archive tables from. Default: csmdb
+      -u user, --user user  The database user. Default: postgres
+      -o output, --output output
+                            The output file, overwrites existing file. Default:
+                            csm-transaction.log
 
 Transition scripts
 ------------------
