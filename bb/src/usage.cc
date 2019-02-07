@@ -144,8 +144,8 @@ private:
         
         pLocalRead       = values[6-4] * sectorsize;
         pLocalWrite      = values[10-4] * sectorsize;
-        pLocalReadCount  = values[4-4] * sectorsize;
-        pLocalWriteCount = values[8-4] * sectorsize;
+        pLocalReadCount  = values[4-4];
+        pLocalWriteCount = values[8-4];
         return rc;
     }
     
