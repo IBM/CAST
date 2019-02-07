@@ -39,14 +39,31 @@ bool CSMIBBLVDelete::CreatePayload(
     if ( csm_deserialize_struct(INPUT_STRUCT, &input, arguments.c_str(), len) == 0)
     {
         //Number of parameters from input. Let's database know how many parameters to expect. 
-        int paramCount = 5;
+        int paramCount = 3;
 
         std::string stmt= "SELECT fn_csm_lv_history_dump ( "
             "$1::text, "   // logical_volume_name
 			"$2::text, "   // node_name
 			"$3::bigint, " // allocation_id
-			"'now', 'now',"      // updated_time, end_time
-            "$4::bigint, $5::bigint, "; // num_bytes_read,num_bytes_written
+			"'now', 'now',";      // updated_time, end_time
+
+        // num_bytes_read
+        if(input->num_bytes_read < 0)
+        {
+            stmt.append("NULL, ");
+        }else{
+            paramCount++;
+            stmt.append("$").append(std::to_string(paramCount)).append("::bigint, ");
+        }
+
+        // num_bytes_written
+        if(input->num_bytes_written < 0)
+        {
+            stmt.append("NULL) ");
+        }else{
+            paramCount++;
+            stmt.append("$").append(std::to_string(paramCount)).append("::bigint) ");
+        }
 
         // num_reads
         if(input->num_reads < 0)
@@ -74,8 +91,8 @@ bool CSMIBBLVDelete::CreatePayload(
         dbReq->AddTextParam(input->logical_volume_name);
 		dbReq->AddTextParam(input->node_name);
         dbReq->AddNumericParam<int64_t>(input->allocation_id);
-		dbReq->AddNumericParam<int64_t>(input->num_bytes_read);
-		dbReq->AddNumericParam<int64_t>(input->num_bytes_written);
+		if(input->num_bytes_read >= 0) { dbReq->AddNumericParam<int64_t>(input->num_bytes_read); }
+		if(input->num_bytes_written >= 0) { dbReq->AddNumericParam<int64_t>(input->num_bytes_written); }
         if(input->num_reads >= 0) { dbReq->AddNumericParam<int64_t>(input->num_reads); }
         if(input->num_writes >= 0) { dbReq->AddNumericParam<int64_t>(input->num_writes); }
         
