@@ -45,7 +45,7 @@ bool CSMIBBLVDelete::CreatePayload(
             "$1::text, "   // logical_volume_name
 			"$2::text, "   // node_name
 			"$3::bigint, " // allocation_id
-			"'now', 'now',";      // updated_time, end_time
+			"'now', 'now', ";      // updated_time, end_time
 
         // num_bytes_read
         if(input->num_bytes_read < 0)
@@ -62,7 +62,7 @@ bool CSMIBBLVDelete::CreatePayload(
             stmt.append("NULL, ");
         }else{
             paramCount++;
-            stmt.append("$").append(std::to_string(paramCount)).append("::bigint) ");
+            stmt.append("$").append(std::to_string(paramCount)).append("::bigint, ");
         }
 
         // num_reads
