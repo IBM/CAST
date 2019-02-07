@@ -218,7 +218,7 @@ did not match C++ signature:
 
 ```
 
-When using the `set_` function to set an array for CSM. The python list should be encoded via `utf8`. A list encoded via `unicode` can not be properly set. 
+When using the `set_` function to set a `string` array for CSM. The python list should be encoded via `utf8`. A list encoded via `unicode` can not be properly set. 
 
 Example:
 ```Python
