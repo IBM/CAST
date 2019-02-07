@@ -10,6 +10,7 @@
 1. [Conclusion](#conclusion)
 1. [FAQ - Frequently Asked Questions](#faq---frequently-asked-questions)
    1. [How do I access and set arrays in the CSM Python library?](#how-do-i-access-and-set-arrays-in-the-csm-python-library)
+   1. [Why am I getting an error when I use "set_ARRAY()" with my python list?](#why-am-i-getting-an-error-when-i-use-set-array-with-my-python-list)
 
 ## About
 The CSM API Python Bindings library works similar to other C Python binding libraries. CSM APIs can be accessed in Python because they are bound to C via Boost. More technical details can be found here: https://wiki.python.org/moin/boost.python/GettingStarted but understanding all of this is not required to use CSM APIs in Python. This guide provides a central location for users looking to utilize CSM APIs via Python. If you believe this guide to be incomplete, then please make a pull request with your additional content. 
@@ -197,3 +198,31 @@ Once `nodes` has been defined, we can call: `set_node_names(nodes)`.
 Arrays in the CSM Python library must be set using this `set_` function. Following the pattern of `set_ARRAYNAME`. The `set_` function requires a single parameter of a populated array. (Here that is `nodes`.) The array names and fields of a CSM struct are the same as the C versions. Please look at CSM API documentation for a list of your struct and struct field names. 
 
 So in our example here, our struct has an array named `node_names`. To set it, we must call `input.set_node_names(nodes)`. `nodes` here represents the Python array we already created in the previous line. `input` represents the parent struct that contains this array. 
+
+### Why am I getting an error when I use "set_ARRAY()" with my python list?
+
+Common errors: 
+
+```
+TypeError: No registered converter was able to produce a C++ rvalue of type std::string from this Python object of type unicode
+```
+
+```
+Traceback (most recent call last):
+  File "node_attributes_query_with_xcat.py", line 95, in <module>
+    input.set_node_names(nodes_j)
+Boost.Python.ArgumentError: Python argument types in
+    node_attributes_query_input_t.set_node_names(node_attributes_query_input_t, dict)
+did not match C++ signature:
+    set_node_names(csm_node_attributes_query_input_t {lvalue}, boost::python::list {lvalue} e)
+
+```
+
+When using the `set_` function to set a `string` array for CSM. The python list should be encoded via `utf8`. A list encoded via `unicode` can not be properly set. 
+
+Example:
+```Python
+nodes_j1 = [x.encode('utf8') for x in nodes_j]
+```
+
+
