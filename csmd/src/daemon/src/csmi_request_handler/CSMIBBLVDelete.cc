@@ -59,7 +59,7 @@ bool CSMIBBLVDelete::CreatePayload(
         // num_bytes_written
         if(input->num_bytes_written < 0)
         {
-            stmt.append("NULL) ");
+            stmt.append("NULL, ) ");
         }else{
             paramCount++;
             stmt.append("$").append(std::to_string(paramCount)).append("::bigint) ");
@@ -77,6 +77,9 @@ bool CSMIBBLVDelete::CreatePayload(
         // num_writes
         if(input->num_writes < 0)
         {
+            // Because this is the last possible parameter it doesn't need a comma. 
+            // Note: because of you lazy copy pasting coders... a_a
+            // be careful if you copy this line
             stmt.append("NULL) ");
         }else{
             paramCount++;
