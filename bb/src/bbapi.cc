@@ -1939,8 +1939,12 @@ int BB_GetUsage(const char* mountpoint, BBUsage_t* usage)
             ADDFIELD(localBytesRead);
             ADDFIELD(localBytesWritten);
 #if BBUSAGE_COUNT
-            ADDFIELD(localReadCount);
-            ADDFIELD(localWriteCount);
+            auto vt = getVersionPropertyTree();
+            if(vt.get("version.bbusage", 1) >= 2)  // caller has older structure allocation that predates these fields
+            {
+                ADDFIELD(localReadCount);
+                ADDFIELD(localWriteCount);
+            }
 #endif
             ADDFIELD(burstBytesRead);
             ADDFIELD(burstBytesWritten);
