@@ -42,6 +42,7 @@ extern string getNVMeDeviceInfo(string device, string key);
 extern vector<string> getDeviceSerials();
 extern void findSerials(void);
 extern int removeDeviceSerial(string serial);
+extern string getKeyByHostname(string hostname);
 
 extern int convertLVMSizeToBytes(const string& size, ssize_t& bytes);
 extern int getVGSize(const string& vg, ssize_t& vgfree, ssize_t& vgtotal);

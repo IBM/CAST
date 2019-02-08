@@ -20,7 +20,7 @@
     {
       "allowed_hosts": [], 
       "attr": {
-        "allow_any_host": "1"
+        "allow_any_host": "0"
       }, 
       "namespaces": [
         {

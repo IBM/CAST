@@ -22,7 +22,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #if BBSERVER
@@ -38,6 +38,7 @@ void set_use_NVMF(int pValue){USE_NVMF=pValue;}
 #endif
 
 using namespace std;
+namespace bfs = boost::filesystem;
 
 #include "bbinternal.h"
 
@@ -46,6 +47,7 @@ static vector<string>                    SerialOrder;
 static map<string, string>               SerialByDrive;
 static vector<string>                    nvme_devices;
 static map<string, map<string, string> > nvmeDeviceInfo;
+static map<string, string>               KeyByHostname;
 static pthread_once_t  findSerialInit  = PTHREAD_ONCE_INIT;
 static pthread_mutex_t findSerialMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -218,44 +220,50 @@ void look4NVMFtargetDevices(){
         if (USE_NVMF) // \TODO remove in an updated
         for(auto device: nvme_devices)
         {
-            if(nvmeDeviceInfo[device]["mn"] != "Linux")
+            if (nvmeDeviceInfo[device]["mn"] != "Linux")
             {
                 // This is a potential target device for NVMe over Fabrics.
                 // If NVMe over Fabrics target is configured, fabricate a serial number using connectivity info.
+                for(auto& hostpath : boost::make_iterator_range(bfs::directory_iterator(bfs::path("/sys/kernel/config/nvmet/hosts")), {}))
+                {
+                    vector<string> values = buildTokens(hostpath.path().filename().string(), "#");
+                    KeyByHostname[values[0]] = hostpath.path().filename().string();
+                }
+
                 cmd = string("grep -l ") + device + string(" /sys/kernel/config/nvmet/ports/*/subsystems/*/namespaces/*/device_path");
                 for(auto line : runCommand(cmd))
                 {
-                vector<string> values = buildTokens(line, "/");
+                    vector<string> values = buildTokens(line, "/");
 
-                string port = values[5];
-                string subsysnqn = values[7];
-                string nvmenamespace = values[9];
-                string nvmet_pseudoserial = subsysnqn;
-                vector<string> files = {"addr_trtype"};
-                for(unsigned int index=0; index<files.size(); index++)
-                {
-                    cmd = string("/sys/kernel/config/nvmet/ports/") + port + string("/") + files[index];
-                    for(auto line : runCommand(cmd, true))
+                    string port = values[5];
+                    string subsysnqn = values[7];
+                    string nvmenamespace = values[9];
+                    string nvmet_pseudoserial = subsysnqn;
+                    vector<string> files = {"addr_trtype"};
+                    for(unsigned int index = 0; index < files.size(); index++)
                     {
-                    if(files[index] == "addr_trtype")
-                    {
-                        if(line == string("loop"))
+                        cmd = string("/sys/kernel/config/nvmet/ports/") + port + string("/") + files[index];
+                        for(auto line : runCommand(cmd, true))
                         {
-                        }
-                        else if(line == string("rdma"))
-                        {
-                        files.push_back("addr_traddr");
-                        files.push_back("addr_trsvcid");
+                            if(files[index] == "addr_trtype")
+                            {
+                                if(line == string("loop"))
+                                {
+                                }
+                                else if(line == string("rdma"))
+                                {
+                                    files.push_back("addr_traddr");
+                                    files.push_back("addr_trsvcid");
+                                }
+                            }
+                            nvmet_pseudoserial = nvmet_pseudoserial + "," + line;
                         }
                     }
-                    nvmet_pseudoserial = nvmet_pseudoserial + "," + line;
-                    }
-                }
-                LOG(bb,info) << "NVMe device " << device << " : port=" << port << "  subsystem=" << subsysnqn << "   namespace=" << nvmenamespace << "   pseudosn=" << nvmet_pseudoserial;
+                    LOG(bb,info) << "NVMe device " << device << " : port=" << port << "  subsystem=" << subsysnqn << "   namespace=" << nvmenamespace << "   pseudosn=" << nvmet_pseudoserial;
 
-                nvmeDeviceInfo[device]["pseudosn"] = nvmet_pseudoserial;
-                        SerialOrder.push_back(nvmeDeviceInfo[device]["pseudosn"]);
-                DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
+                    nvmeDeviceInfo[device]["pseudosn"] = nvmet_pseudoserial;
+                    SerialOrder.push_back(nvmeDeviceInfo[device]["pseudosn"]);
+                    DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
                 }
             }
         }
@@ -281,6 +289,7 @@ void findSerials(void)
         SerialByDrive.clear();
         nvme_devices.clear();
         nvmeDeviceInfo.clear();
+        KeyByHostname.clear();
         
         // find valid drives
         cmd = config.get("bb.lsblkPath", "lsblk") + " -n --nodeps -o name,type,serial";
@@ -385,7 +394,7 @@ bool foundDeviceBySerial(const string& serial)
 }
 
 // handle nvmf connect for pseudo serial such as serial: burstbuffer,rdma,20.7.6.27,1023
-int nvmfConnectPath(const string& serial)
+int nvmfConnectPath(const string& serial, const string& connectionKey)
 {
     if (!bb_nvmfConnectPath.size()) //check for 0 length string
     {
@@ -402,6 +411,11 @@ int nvmfConnectPath(const string& serial)
     string ipAddr = ele[2];
     vector<string> ipv4_ele = buildTokens(ipAddr,".");
     
+    size_t keyenvsize = 16 + connectionKey.size();
+    char*  keyenv     = (char*)malloc(keyenvsize);
+    snprintf(keyenv, keyenvsize, "NVMEKEY=%s", connectionKey.c_str());
+    putenv(keyenv);
+
     string cmd =  bb_nvmfConnectPath  +" "+network+" " + nameSpace+" "+ipAddr+" "+ port +" 2>&1; echo  rc=$?;";
     LOG(bb,info) << " cmd=" << cmd;
     bool success = false;
@@ -595,6 +609,26 @@ string getNVMeDeviceInfo(string device, string key)
         return tmp;
     }//end try block    
     catch(exception& e){
+        pthread_mutex_unlock(&findSerialMutex);
+        int rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        throw;
+    }
+}
+
+string getKeyByHostname(string hostname)
+{
+    pthread_once(&findSerialInit, findSerials);
+    
+    pthread_mutex_lock(&findSerialMutex);
+    try
+    {
+        auto tmp = KeyByHostname[hostname];
+        pthread_mutex_unlock(&findSerialMutex);
+        return tmp;
+    }
+    catch(exception& e)
+    {
         pthread_mutex_unlock(&findSerialMutex);
         int rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
