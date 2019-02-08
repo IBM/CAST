@@ -547,102 +547,96 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
     return rc;
 }
 
-int HandleFile::loadHandleFile(HandleFile* &ptr, const char* filename)
+int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFileName)
 {
-    HandleFile* tmparchive = NULL;
-    ptr = NULL;
+    int rc;
 
-    int rc = -1;
-    bool doover;
-    bool didretry = false;
-    struct timeval start, stop;
+    pHandleFile = NULL;
+    HandleFile* l_HandleFile = new HandleFile();
+
+    bool l_AllDone = false;
+    bool l_FirstAttempt = true;
+    struct timeval l_StartTime, l_StopTime;
+    int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
 
-    start.tv_sec = 0; // resolve gcc optimizer complaint
-    LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
+    l_StartTime.tv_sec = 0; // resolve gcc optimizer complaint
 
-    do
+    while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_HANDLEFILE_LOADTIME))
     {
-        doover = false;
+        rc = 0;
+        l_AllDone = true;
         try
         {
-            ifstream l_ArchiveFile{filename};
+            ifstream l_ArchiveFile{pHandleFileName};
             text_iarchive l_Archive{l_ArchiveFile};
-            if (!tmparchive)
-            {
-                tmparchive = new HandleFile();
-            }
-            l_Archive >> *tmparchive;
-            ptr = tmparchive;
-            rc = 0;
-        }
-        catch(ExceptionBailout& e)
-        {
-            rc = -1;
-            if(tmparchive)
-            {
-                delete tmparchive;
-            }
-            ptr = tmparchive = NULL;
+            l_Archive >> *l_HandleFile;
+            pHandleFile = l_HandleFile;
         }
         catch(archive_exception& e)
         {
+            // NOTE: If we take an 'archieve exception' we do not delay before attempting the next
+            //       read of the archive file.  More than likely, we just had a concurrent update
+            //       to the handle file.
             rc = -1;
+            l_AllDone = false;
 
-            gettimeofday(&stop, NULL);
-            if (didretry == false)
+            gettimeofday(&l_StopTime, NULL);
+            if (l_FirstAttempt)
             {
-                start = stop;
-                didretry = true;
+                l_StartTime = l_StopTime;
             }
+            l_ElapsedTime = int(l_StopTime.tv_sec - l_StartTime.tv_sec);
 
-            int l_Time = int(stop.tv_sec - start.tv_sec);
-            if (l_Time < 30)
+            if (l_ElapsedTime && (l_ElapsedTime % 3 == 0) && (l_ElapsedTime != l_LastConsoleOutput))
             {
-                doover = true;
-            }
-
-            if (((l_Time % 5) == 0) && (l_Time != l_LastConsoleOutput))
-            {
-                l_LastConsoleOutput = l_Time;
+                l_LastConsoleOutput = l_ElapsedTime;
                 LOG(bb,warning) << "Archive exception thrown in " << __func__ << " was " << e.what() \
-                                << " when attempting to load archive " << filename << "  Retrying..." << " time=" << l_Time << " second(s)";
+                                << " when attempting to load archive " << pHandleFileName << ". Elapsed time=" << l_ElapsedTime << " second(s). Retrying...";
             }
         }
         catch(exception& e)
         {
             rc = -1;
-            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << filename;
+            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pHandleFileName;
         }
+        l_FirstAttempt = false;
+    }
 
-        if (doover)
+    if (l_LastConsoleOutput > 0)
+    {
+       gettimeofday(&l_StopTime, NULL);
+       if (!rc)
         {
-            usleep(250000);
+            LOG(bb,warning) << "Loading " << pHandleFileName << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " after recovering from archive exception(s)";
+        }
+        else
+        {
+            LOG(bb,error) << "Loading " << pHandleFileName << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " when attempting to recover from archive exception(s)";
         }
     }
-    while (rc && doover);
 
     if (!rc)
     {
-        if (ptr)
+        if (pHandleFile)
         {
             // NOTE: After the initial load, we always set the lockfd
             //       value to -1.  A prior fd value could have been saved.
             //       If this load request has also locked the Handlefile,
             //       then the lockfd value will be filled in by our invoker.
-            ptr->lockfd = -1;
-        }
-        if (didretry)
-        {
-            gettimeofday(&stop, NULL);
-            LOG(bb,info) << __func__ << " became successful after recovering from exception after " << (stop.tv_sec-start.tv_sec) << " second(s)";
+            //
+            // NOTE: This value isn't really used anymore...  Has been replaed with
+            //       thread_local handleFileLockFd.
+            pHandleFile->lockfd = -1;
         }
     }
-
-    if (rc && tmparchive)
+    else
     {
-        delete tmparchive;
-        tmparchive = NULL;
+        if (l_HandleFile)
+        {
+            delete l_HandleFile;
+            l_HandleFile = NULL;
+        }
     }
 
     return rc;

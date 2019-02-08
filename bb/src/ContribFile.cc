@@ -18,101 +18,107 @@
  * Static methods
  */
 
-int ContribFile::loadContribFile(ContribFile* &ptr, const bfs::path& filename)
+int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pContribFileName)
 {
-    ContribFile* tmparchive = NULL;
-    ptr = NULL;
+    int rc;
 
-    int rc = -1;
-    bool doover;
-    bool didretry = false;
-    struct timeval start, stop;
+    pContribFile = NULL;
+    ContribFile* l_ContribFile = new ContribFile();
+
+    bool l_AllDone = false;
+    bool l_FirstAttempt = true;
+    struct timeval l_StartTime, l_StopTime;
+    int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
-    
-    start.tv_sec = 0;  // address gcc optimizer confusion
-    
-    LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
 
-    do
+    l_StartTime.tv_sec = 0; // resolve gcc optimizer complaint
+
+    while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_CONTRIBFILE_LOADTIME))
     {
-        doover = false;
+        rc = 0;
+        l_AllDone = true;
         try
         {
-            ifstream l_ArchiveFile(filename.c_str());
-            text_iarchive l_Archive(l_ArchiveFile);
-            if (!tmparchive)
-            {
-                tmparchive = new ContribFile();
-            }
-            l_Archive >> *tmparchive;
-            ptr = tmparchive;
-            rc = 0;
-//          ptr->dump("xbbServer: Loaded contrib file contents");
-        }
-        catch(ExceptionBailout& e)
-        {
-            rc = -1;
-            if(tmparchive)
-            {
-                delete tmparchive;
-            }
-            ptr = tmparchive = NULL;
+            ifstream l_ArchiveFile{pContribFileName.c_str()};
+            text_iarchive l_Archive{l_ArchiveFile};
+            l_Archive >> *l_ContribFile;
+            pContribFile = l_ContribFile;
         }
         catch(archive_exception& e)
         {
+            // NOTE: If we take an 'archieve exception' we do not delay before attempting the next
+            //       read of the archive file.  More than likely, we just had a concurrent update
+            //       to the contrib file.
             rc = -1;
+            l_AllDone = false;
 
-            gettimeofday(&stop, NULL);
-            if(didretry == false)
+            gettimeofday(&l_StopTime, NULL);
+            if (l_FirstAttempt)
             {
-                start = stop;
-                didretry = true;
+                l_StartTime = l_StopTime;
             }
+            l_ElapsedTime = int(l_StopTime.tv_sec - l_StartTime.tv_sec);
 
-            int l_Time = int(stop.tv_sec - start.tv_sec);
-            if (l_Time < 30)
+            if (l_ElapsedTime && (l_ElapsedTime % 3 == 0) && (l_ElapsedTime != l_LastConsoleOutput))
             {
-                doover = true;
-            }
-
-            if (((l_Time % 5) == 0) && (l_Time != l_LastConsoleOutput))
-            {
-                l_LastConsoleOutput = l_Time;
+                l_LastConsoleOutput = l_ElapsedTime;
                 LOG(bb,warning) << "Archive exception thrown in " << __func__ << " was " << e.what() \
-                                << " when attempting to load archive " << filename << "  Retrying..." << " time=" << l_Time << " second(s)";
+                                << " when attempting to load archive " << pContribFileName.c_str() << ". Elapsed time=" << l_ElapsedTime << " second(s). Retrying...";
             }
         }
         catch(exception& e)
         {
             rc = -1;
-            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << filename;
+            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pContribFileName.c_str();
         }
+        l_FirstAttempt = false;
+    }
 
-        if(doover)
+    if (l_LastConsoleOutput > 0)
+    {
+       gettimeofday(&l_StopTime, NULL);
+       if (!rc)
         {
-            usleep(250000);
+            LOG(bb,warning) << "Loading " << pContribFileName.c_str() << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " after recovering from archive exception(s)";
         }
-    }
-    while(rc && doover);
-
-    if (!rc)
-    {
-        if (didretry)
+        else
         {
-            gettimeofday(&stop, NULL);
-            LOG(bb,info) << __func__ << " became successful after recovering from exception after " << (stop.tv_sec-start.tv_sec) << " second(s)";
-//            ptr->dump("xbbServer: Loaded contrib file contents after recovering from exception");
+            LOG(bb,error) << "Loading " << pContribFileName.c_str() << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " when attempting to recover from archive exception(s)";
         }
     }
-    else
+
+    if (rc)
     {
-//        ptr->dump("xbbServer: Loaded contrib file contents with no exception");
+        if (l_ContribFile)
+        {
+            delete l_ContribFile;
+            l_ContribFile = NULL;
+        }
     }
 
-    if (rc && tmparchive)
+    return rc;
+}
+
+/*
+ * Non-static methods
+ */
+
+int ContribFile::save(const string& pContribFileName)
+{
+    int rc = 0;
+
+    try
     {
-        delete tmparchive;
-        tmparchive = NULL;
+        LOG(bb,debug) << "Writing:" << pContribFileName;
+        ofstream l_ArchiveFile{pContribFileName};
+        text_oarchive l_Archive{l_ArchiveFile};
+        l_Archive << *this;
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     return rc;
