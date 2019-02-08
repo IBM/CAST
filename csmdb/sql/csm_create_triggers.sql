@@ -17,16 +17,19 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         01-25-2019
+--   last modified:         02-06-2019
 --   change log:
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
 --            - fn_csm_allocation_update_state -        added field:    o_smt_mode
 --            - fn_csm_allocation_finish_data_stats -   disables trigger to prevent duplication.
---            - fn_csm_lv_history_dump - 		added fields:	num_reads, num_writes
+--            - fn_csm_lv_history_dump - 		        added fields:	num_reads, num_writes
 --            - fn_csm_allocation_dead_records_on_lv -  added in 'null' values for PERFORM fn_csm_lv_history_dump
 --            - fn_csm_ssd_dead_records -               added in 'null' values for PERFORM fn_csm_lv_history_dump
+--            - func_alt_type_val -                     added function for altering db types
+--            - func_csm_delete_func -                  added function for dropping all db functions
+--            - func_csm_drop_all_triggers -            added function for dropping all db triggers
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -5116,5 +5119,91 @@ CREATE TRIGGER tr_csm_db_schema_version_history_dump
 
 COMMENT ON FUNCTION fn_csm_db_schema_version_history_dump() is 'csm_db_schema_version function to amend summarized column(s) on UPDATE and DELETE.';
 COMMENT ON TRIGGER tr_csm_db_schema_version_history_dump ON csm_db_schema_version is 'csm_db_schema_version trigger to amend summarized column(s) on UPDATE and DELETE.';
+
+------------------------------------------------------------------------------------------------------------
+-- Function to drop all the existing triggers in the db
+------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION func_csm_drop_all_triggers()
+RETURNS text AS $$
+
+DECLARE
+    fn_csm_trigger_name_rec RECORD;
+    fn_csm_trigger_table_rec RECORD;
+
+BEGIN
+    FOR fn_csm_trigger_name_rec IN select distinct(trigger_name) from information_schema.triggers where trigger_schema = 'public' LOOP
+        FOR fn_csm_trigger_table_rec IN SELECT distinct(event_object_table) from information_schema.triggers where trigger_name = fn_csm_trigger_name_rec.trigger_name LOOP
+            EXECUTE 'DROP TRIGGER ' || fn_csm_trigger_name_rec.trigger_name || ' ON ' || fn_csm_trigger_table_rec.event_object_table || ';';
+        END LOOP;
+    END LOOP;
+
+    RETURN 'done';
+END;
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- func_csm_delete_func comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION func_csm_drop_all_triggers() is 'function to drop all existing db triggers.';
+
+------------------------------------------------------------------------------------------------------------
+-- Function to drop all the existing functions in the db
+------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION func_csm_delete_func(_name text, OUT func_dropped int)
+AS $$
+
+DECLARE
+   _sql text;
+
+   BEGIN
+   SELECT count(*)::int,
+    'DROP FUNCTION ' || string_agg(oid::regprocedure::text, '; DROP FUNCTION ')
+   FROM   pg_proc
+   WHERE  proname LIKE '%fn_csm%'
+   AND    pg_function_is_visible(oid)
+   INTO   func_dropped, _sql;  -- only returned if trailing DROPs succeed
+
+   IF func_dropped > 0 THEN    -- only if function(s) found
+     EXECUTE _sql;
+   END IF;
+END
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- func_csm_delete_func comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION func_csm_delete_func(_name text, OUT func_dropped int) is 'function to drop all existing db functions.';
+
+----------------------------------------------------------------------------------------------------------------------------------
+-- Function to append to an existing db TYPE
+----------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE function func_alt_type_val(_type regtype, _val  text)
+RETURNS void
+AS $$
+BEGIN
+    IF NOT EXISTS
+        (SELECT enumlabel FROM pg_enum
+            WHERE enumtypid = _type
+            AND enumlabel = _val) THEN
+            INSERT INTO pg_enum (enumtypid, enumlabel, enumsortorder) SELECT _type::regtype::oid, _val, ( SELECT MAX(enumsortorder) + 1 FROM pg_enum WHERE enumtypid = _type::regtype );
+    END IF;
+    EXCEPTION
+    WHEN others THEN
+        RAISE EXCEPTION
+        USING ERRCODE = sqlstate,
+            MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+END
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- func_alt_type_val comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION func_alt_type_val(_type regtype, _val  text) is 'function to alter existing db types.';
 
 COMMIT;
