@@ -132,7 +132,7 @@ int bbproxy_SayHello(const string& pConnectionName)
 
         auto key = getKeyByHostname(pConnectionName);
         msg->addAttribute(txp::connectionKey, key.c_str(), key.size()+1);
-        
+
         // Send the message to bbserver
         rc = sendMessage(pConnectionName, msg, reply,MUSTADDUIDGID);
         delete msg;
@@ -407,6 +407,7 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
     return;
 }
 
+#define DELAY_SECONDS 60
 void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -430,11 +431,11 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG(bb,info) << "msgin_removedirectory: pathname=" << pathname;
 
         // NOTE: If l_ErrorCode.value() is returned as 16 (Device or resource busy), we delay
-        //       for 3 seconds and retry.  For this error, we will attempt the bfs::remove_all()
+        //       for 1 second and retry.  For this error, we will attempt the bfs::remove_all()
         //       for 1 minute before we fail the operation.
         bfs::path l_PathName(pathname);
         bs::error_code l_ErrorCode;
-        int l_Continue = 20;
+        int l_Continue = DELAY_SECONDS;
         while (l_Continue--)
         {
             bfs::remove_all(l_PathName, l_ErrorCode);
@@ -442,7 +443,17 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
             {
                 case 16:
                 {
-                    usleep((useconds_t)3000000);    // Delay 3 seconds
+                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                    if ((l_SecondsWaiting % 15) == 1)
+                    {
+                        // Display this message every 15 seconds...
+                        FL_Write(FLDelay, RmDirWaitForNotBusy, "Attempting to remove a directory, but device or resource busy. Delay of 1 second before retry. %ld seconds remain waiting for the directory to be removed.",
+                                 0, 0, 0, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_removedirectory: Attempting to remove directory " << l_PathName \
+                                     << ", but device or resource busy. Delay of 1 second before retry. " << l_Continue \
+                                     << " seconds remain waiting for the directory to be removed.";
+                    }
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 break;
 
@@ -481,6 +492,7 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
+#undef DELAY_SECONDS
 
 void msgin_changeowner(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
@@ -4036,7 +4048,12 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
                                 // Wait for the response
                                 rc = waitReply(reply, msgserver);
-                                if (rc)
+                                if (!rc)
+                                {
+                                    LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                 << " was registered to the new server for jobid " << l_LV_Data.jobid;
+                                }
+                                else
                                 {
                                     errorText << "waitReply failure when processing device " << l_DevNames[i];
                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText,rc);
@@ -4053,6 +4070,8 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                                 // No logical volume currently defined for this connection
                                 // NOTE:  This is the case where getLogicalVolumeData() passed back a
                                 //        default constructed LV_Data().
+                                LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                             << " was not registered to the new server because no logical volume is currently associated with the connection";
                             }
                         }
                         else
@@ -4174,6 +4193,7 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     return;
     }
 
+#define DELAY_SECONDS 120
 void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -4223,21 +4243,28 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             //         all closes for those transfer definitions before the connection is closed.  Otherwise,
             //         nothing other than a remove logical volume will close the files.
             //
-            //         It is possible for new start transfers to be initialted to the new server and those
-            //         file handles would be inserted into the fh map.  But, we don't care about those file
+            //         It is possible for new start transfers to be initiated to the new server and those
+            //         file handles would also be inserted into the fh map.  But, we don't care about those file
             //         handles and the only harm is the 2 minute wait.
-            int l_Continue = 120;
+            int l_Continue = DELAY_SECONDS;
             rc = -1;
             while ((rc) && (l_Continue--))
             {
                 rc = fileHandleCount();
                 if (rc)
                 {
-                    usleep((useconds_t)1000000);    // Delay 1 second
-                    if (l_Continue % 10 == 0)
+                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                    if ((l_SecondsWaiting % 15) == 1)
                     {
+                        // Display this message every 15 seconds...
+                        FL_Write(FLDelay, CloseWaitForFhMap, "Attempting to close a server connection, but waiting for the fh map to be empty. Delay of 1 second before retry. %ld seconds remain waiting for the map to be empty.",
+                                 0, 0, 0, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_closeserver: Attempting to close server connection " << pConnectionName \
+                                     << " for " << serverName << " server, but the fh map is not empty. Delay of 1 second before retry. " \
+                                     << l_Continue << " seconds remain waiting for the map to be empty.";
                         dumpFileHandleMap("info", "msgin_closeserver() - Waiting for all files to be closed, ");
                     }
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
             }
 
