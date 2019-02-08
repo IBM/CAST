@@ -76,14 +76,12 @@ int BBIO_Regular::fstat(uint32_t pFileIndex, struct stat* pStats)
         LOG(bb,debug) << "BBIO_Regular(): fstat for " << fh->getfn() << ", file index " << pFileIndex;
         rc = fh->getstats(*pStats);
         FL_Write(FLXfer, BBIORegFstat, "pFileIndex=%ld fd=%ld rc=%ld errno=%ld",pFileIndex,fh->getfd(),rc,errno);
-        if(rc == 0)
-        {
-            LOG(bb,debug) << "BBIO_Regular::fstat(): " << fh->getfn() << ": st_dev=" << pStats->st_dev << ", st_mode=0" << std::oct << pStats->st_mode << std::dec << ", st_size=" << pStats->st_size;
-        }
+        LOG(bb,info) << "BBIO_Regular::fstat(): " << fh->getfn() << ": st_dev=" << pStats->st_dev << ", st_mode=0" << std::oct << pStats->st_mode << std::dec \
+                     << ", st_size=" << pStats->st_size << ", errno=" << errno << ", rc=" << rc;
     }
     else
     {
-        LOG(bb,error) << __PRETTY_FUNCTION__ << " NULL file handle for index="<<pFileIndex;
+        LOG(bb,error) << __PRETTY_FUNCTION__ << " NULL file handle for index=" << pFileIndex;
         rc = -1;
     }
 
