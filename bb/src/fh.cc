@@ -435,9 +435,9 @@ int filehandle::getstats(struct stat& statbuf)
             if(isdevzero)
             {
                 statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
-                LOG(bb,info) << "Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
+                LOG(bb,info) << "getstats(): Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+            LOG(bb,info) << "getstats(): fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
             statbuf = statinfo;
         }
         else
