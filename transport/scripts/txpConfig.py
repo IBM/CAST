@@ -83,6 +83,7 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                           'variable',                           # char*
                           'uuid',                               # char*
                           'workitemspertransfertimeinterval',   # __s32
+                          'connectionKey',                      # char*
                          )
 
 CORAL_IDS = {'CORAL_AUTHENTICATE':1,

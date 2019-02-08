@@ -128,9 +128,11 @@ int bbproxy_SayHello(const string& pConnectionName)
             LOG(bb,info) << "Adding device serial: " << serial;
             knownSerials_attr.push_back(make_pair(serial.length()+1, (char*)serial.c_str()));
         }
-
         msg->addAttribute(txp::knownSerials, &knownSerials_attr);
 
+        auto key = getKeyByHostname(pConnectionName);
+        msg->addAttribute(txp::connectionKey, key.c_str(), key.size()+1);
+        
         // Send the message to bbserver
         rc = sendMessage(pConnectionName, msg, reply,MUSTADDUIDGID);
         delete msg;

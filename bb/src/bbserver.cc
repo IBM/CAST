@@ -2519,7 +2519,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
 //  Initial handshake with bbproxy
 //*****************************************************************************
 
-int nvmfConnectPath(const string& serial);
+int nvmfConnectPath(const string& serial, const string& connectionKey);
 void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -2544,6 +2544,8 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
         uint64_t numserials          = ((txp::AttrPtr_array_of_char_arrays*)msg->retrieveAttrs()->at(txp::knownSerials))->getNumberOfElementsArrayOfCharArrays();
         txp::CharArray* knownSerials = (txp::CharArray*)msg->retrieveAttrs()->at(txp::knownSerials)->getDataPtr();
 
+        string connectionKey =  string((char*)(msg->retrieveAttrs()->at(txp::connectionKey)->getDataPtr()));
+
         for(uint64_t x=0; x<numserials; x++)
         {
             try
@@ -2553,7 +2555,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
             }
             catch(exception& e)
             {
-                int nCrc=nvmfConnectPath( (*knownSerials)[x].second);
+                int nCrc=nvmfConnectPath( (*knownSerials)[x].second, connectionKey);
                 if (nCrc)
                 {
                     LOG(bb,info) << "Serial (" << (*knownSerials)[x].second << ") not available on bbServer.  Telling bbProxy to remove from its list.";
