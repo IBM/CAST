@@ -39,7 +39,7 @@ namespace bfs = boost::filesystem;
  | Constants
  *******************************************************************************/
 const uint32_t ARCHIVE_LVUUID_VERSION = 1;
-
+const int MAXIMUM_LVUUIDFILE_LOADTIME = 30;
 
 /*******************************************************************************
  | Classes
@@ -76,81 +76,29 @@ public:
         connectionName(pConnectionName),
         hostname(pHostName) {}
 
+    virtual ~LVUuidFile() {}
+
+    /*
+     * Static methods
+     */
 //    static int loadLVUuidFile(LVUuidFile* &pLVUuidFile, const char* pLVUuidFileName);
 //    static int loadLVUuidFile(LVUuidFile* &pLVUuidFile, const LVKey* pLVKey, uint64_t pJobId, uint64_t pJobStepId, uint64_t pHandle);
 //    static int saveLVUuidFile(LVUuidFile* &pLVUuidFile, const LVKey* pLVKey, uint64_t pJobId, uint64_t pJobStepId, uint64_t pHandle);
     static int update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pFlags, const int pValue=1);
 
-    inline int load(const string& metadatafile)
+    /*
+     * Inlined methods
+     */
+    inline void dump(const char* pPrefix)
     {
-        int rc = -1;
-        const int MAX_ATTEMPTS_TO_LOAD = 100;
-
-        int i = 0;
-        while (rc && ++i <= MAX_ATTEMPTS_TO_LOAD)
-        {
-            rc = 0;
-            if (i > 1)
-            {
-                usleep((useconds_t)250000);
-            }
-            try
-            {
-                LOG(bb,debug) << "Reading:" << metadatafile;
-                ifstream l_ArchiveFile{metadatafile};
-                text_iarchive l_Archive{l_ArchiveFile};
-                l_Archive >> *this;
-            }
-            catch(ExceptionBailout& e) { }
-            catch(archive_exception& e)
-            {
-                rc = -1;
-                LOG(bb,error) << "Archive exception thrown in " << __func__ << " was " << e.what() << " when attempting to load LVUuidFile " << metadatafile;
-            }
-            catch(exception& e)
-            {
-                rc = -1;
-                if (i < MAX_ATTEMPTS_TO_LOAD)
-                {
-                    LOG(bb,warning) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load LVUuidFile " << metadatafile << ". Retrying operation...";
-                }
-                else
-                {
-                    LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load LVUuidFile " << metadatafile;
-                }
-            }
-        }
-
-        return rc;
-    }
-
-    inline int save(const string& metadatafile)
-    {
-        int rc = 0;
-        try
-        {
-            LOG(bb,debug) << "Writing:" << metadatafile;
-            ofstream l_ArchiveFile{metadatafile};
-            text_oarchive l_Archive{l_ArchiveFile};
-            l_Archive << *this;
-        }
-        catch(ExceptionBailout& e) { }
-        catch(exception& e)
-        {
-            rc = -1;
-            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        }
-        return rc;
-    }
-
-    inline void dump(const char* pPrefix) {
         stringstream l_Line;
 
-        if (pPrefix) {
+        if (pPrefix)
+        {
             l_Line << pPrefix << ": ";
         }
-//        l_Line << "sVrsn=" << serializeVersion
-//               << ", oVrsn=" << objectVersion
+    //    l_Line << "sVrsn=" << serializeVersion
+    //           << ", oVrsn=" << objectVersion
         l_Line << hex << uppercase << ", flags=0x" << flags << nouppercase << dec \
                << ", connection name " << connectionName \
                << ", hostname " << hostname;
@@ -159,8 +107,15 @@ public:
         return;
     }
 
-    virtual ~LVUuidFile() {}
+    /*
+     * Non-static methods
+     */
+    int load(const string& pLVUuidFileName);
+    int save(const string& pLVUuidFileName);
 
+    /*
+     * Data members
+     */
     uint32_t serializeVersion;
     uint32_t objectVersion;
     uint64_t flags;
@@ -169,4 +124,3 @@ public:
 };
 
 #endif /* BB_LVUUIDFILE_H_ */
-

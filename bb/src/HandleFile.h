@@ -42,6 +42,7 @@ namespace bfs = boost::filesystem;
  *******************************************************************************/
 const uint32_t ARCHIVE_HANDLE_VERSION = 1;
 const char LOCK_FILENAME[] = "lockfile";
+const int MAXIMUM_HANDLEFILE_LOADTIME = 30;     // In seconds
 
 
 /*******************************************************************************
@@ -104,11 +105,21 @@ public:
         lockfd = -1;
     }
 
+    virtual ~HandleFile()
+    {
+        // NOTE:  We do not close the lock file here as the
+        //        handle file being deleted is a local copy.
+        //        If the handle file in the metadata is deleted,
+        //        the lockfile should already be closed.  If not,
+        //        we leak the descriptor, but since the handle file
+        //        will be deleted, there is no lock conflict.
+//        close();
+    }
 
-    // Static methods
-
+    /*
+     * Static methods
+     */
 //    static int calculate_xbbServerHandleStatus(HandleFile* pHandleFile, const char* pHandleFilePath, uint64_t& pStatus);
-
     static int createLockFile(const char* pFilePath);
     static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer);
     static int get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle);
@@ -130,16 +141,9 @@ public:
     static int update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize);
     static int update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle);
 
-    // Non-static methods
-    void close(HANDLEFILE_LOCK_FEEDBACK pLockFeedback);
-    void close(const int pFd);
-    void getContribArray(uint64_t &pNumContribsInArray, uint32_t* &pContribArray);
-    BBSTATUS getLocalStatus(const uint64_t pNumberOfReportingContribs, ContribIdFile* pContribIdFile);
-    void unlock();
-
-
-    // Inlined methods
-
+    /*
+     * Inlined methods
+     */
     inline int allContribsReported()
     {
         RETURN_FLAG(BBTI_All_Contribs_Reported);
@@ -185,17 +189,18 @@ public:
         RETURN_FLAG(BBTD_Stopped);
     }
 
-    virtual ~HandleFile()
-    {
-        // NOTE:  We do not close the lock file here as the
-        //        handle file being deleted is a local copy.
-        //        If the handle file in the metadata is deleted,
-        //        the lockfile should already be closed.  If not,
-        //        we leak the descriptor, but since the handle file
-        //        will be deleted, there is no lock conflict.
-//        close();
-    }
+    /*
+     * Non-static methods
+     */
+    void close(HANDLEFILE_LOCK_FEEDBACK pLockFeedback);
+    void close(const int pFd);
+    void getContribArray(uint64_t &pNumContribsInArray, uint32_t* &pContribArray);
+    BBSTATUS getLocalStatus(const uint64_t pNumberOfReportingContribs, ContribIdFile* pContribIdFile);
+    void unlock();
 
+    /*
+     * Data members
+     */
     uint32_t serializeVersion;
     uint32_t objectVersion;
     uint64_t tag;
