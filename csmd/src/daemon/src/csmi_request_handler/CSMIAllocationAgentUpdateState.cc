@@ -613,7 +613,7 @@ int AllocationAgentUpdateState::RemoveAllocation( int64_t allocationId )
             
             // Swap the temporary list with the official one.
             std::remove(CSM_ACTIVELIST);
-            if ( !std::rename(CSM_ACTIVELIST_SWAP, CSM_ACTIVELIST) )
+            if ( std::rename(CSM_ACTIVELIST_SWAP, CSM_ACTIVELIST) )
                 LOG( csmapi, warning ) <<  "Allocation ID: " << std::to_string(allocationId)
                 << "; Message: Activelist couldn't be swapped;";
         }
