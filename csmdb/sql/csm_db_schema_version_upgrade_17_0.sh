@@ -19,7 +19,7 @@
 #   current_version:    01.0
 #   migration_version:  17.0 # <--------example version after the DB upgrade
 #   create:             01-30-2019
-#   last modified:      02-06-2019
+#   last modified:      02-08-2019
 #--------------------------------------------------------------------------------
 
 #set -x
@@ -336,6 +336,7 @@ fi
 #----------------------------------------------------------
 
 if [[ $(bc <<< "${version} == ${migration_db_version}") -eq 1 ]]; then
+    echo "[Info    ] ${line4_out}"
     echo "[Info    ] $dbname is currently running db schema version: $version"
     echo "[Info    ] Log Dir: $logdir/$logname"
     LogMsg "[Info    ] $dbname is currently running db schema version: $version"
@@ -343,9 +344,11 @@ if [[ $(bc <<< "${version} == ${migration_db_version}") -eq 1 ]]; then
     echo "${line3_log}" >> $logfile
     exit 0
 else
+    echo "[Info    ] ${line4_out}"
     echo "[Info    ] $dbname current_schema_version is running: $version"
     echo "[Info    ] Log Dir: $logdir/$logname"
     LogMsg "[Info    ] $dbname current_schema_version is running: $version"
+    echo "[Info    ] ${line4_out}"
 fi
 
 #-----------------------------------------
@@ -355,9 +358,116 @@ fi
 if [[ $(bc <<< "${version}") < "$ga_version" ]]; then
     echo "[Error   ] The database migration script does not support versions below $ga_version"
     LogMsg "[Error   ] The database migration script does not support versions below $ga_version"
+    echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2"
+    LogMsg "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit 0
+fi
+
+#----------------------------------------------------------
+# Checks the files and compares to see if they are
+# previous versions currently running that are not up
+# to date.
+#----------------------------------------------------------
+
+if  [[ "${migration_db_version}" != "${version_comp_2}" ]] || [[ "${migration_db_version}" != "${csm_db_schema_version_comp}" ]] || \
+    [[ "${migration_db_version}" != "${trigger_version_2}" ]]; then
+
+        echo "[Error   ] Cannot perform action because not compatible."
+        echo "[Info    ] Required: appropriate files in directory"
+        echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
+        echo "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
+        echo "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
+        echo "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
+        LogMsg "[Error   ] Cannot perform action because not compatible."
+        LogMsg "[Info    ] Required: appropriate files in directory"
+        LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
+        LogMsg "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
+        LogMsg "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
+        LogMsg "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 0
+fi
+
+    #------------------------------
+    # Checks to see if file exists
+    # and version # (csv)
+    #------------------------------
+
+    if [ ! -f $cur_path/$csm_db_schema_csv ]; then
+        echo "[Error   ] Cannot perform action because the $csm_db_schema_csv file does not exist."
+        echo "${line1_out}"
+        exit 1
+    fi
+
+    #------------------------------
+    # Checks to see if file exists
+    # and version # (create tables)
+    #------------------------------
+
+    if [ ! -f $cur_path/$version_comp ]; then
+        echo "[Error   ] Cannot perform action because the $version_comp is not compatible."
+        LogMsg "[Error   ] Cannot perform action because the $version_comp is not compatible."
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 1
+    fi
+
+#----------------------------------------------------------------------------------------------------
+# This queries the actual database to see which version it
+# is currently running.
+#----------------------------------------------------------------------------------------------------
+#version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db_schema_version"`
+# return code added to ensure it was successful or failed during this step
+#----------------------------------------------------------------------------------------------------
+
+upgradedb="no"
+return_code=0
+
+#--------------------------------
+# Checks the current connections
+#--------------------------------
+
+connections_count=`psql -v ON_ERROR_STOP=1 -t -U $db_username -c "select count(*) from pg_stat_activity WHERE datname='$dbname';"`
+
+#-----------------------------------------------
+# If there are connections the script will exit
+#-----------------------------------------------
+
+if [ $connections_count -gt 0 ]; then
+    LogMsg "[Error   ] $dbname can not proceed because of existing connection(s) to the database."
+    psql -v ON_ERROR_STOP=1 -t -A -U $db_username -c "select to_char(now(),'YYYY-MM-DD HH24:MI:SS') || ' ($current_user) [Info    ] Current Connection | User: ' || usename || ' ',' Datebase: ' \
+    || datname, ' Connection(s): ' || count(*), ' Duration: ' || now() - backend_start as Duration \
+    from pg_stat_activity WHERE datname='$dbname' group by usename, datname, Duration order by datname, Duration desc;" &>> $logfile
+    connections=`psql -t -U $db_username -c "select distinct usename from pg_stat_activity WHERE datname='$dbname';"`
+    
+    #-----------------------------------------------------
+    # Array created for each connections that are present
+    #-----------------------------------------------------
+
+    if [ ${#connections[@]} -gt 0 ]; then
+        echo "[Error   ] $dbname has existing connection(s) to the database."
+        
+        #----------------------------------------------
+        # Loops through in case of multiple connections
+        #----------------------------------------------
+        
+        for i in ${connections[@]}; do
+            connection_count=`psql -v ON_ERROR_STOP=1 -t -U $db_username -c "select count(*) from pg_stat_activity WHERE datname='$dbname' and usename='$i';"`
+            shopt -s extglob
+            connection_count="${connection_count##*( )}"
+            connection_count="${connection_count%%*( )}"
+            echo "[Error   ] User: $i has $connection_count connection(s)"
+        done
+        echo "[Info    ] See log file for connection details"
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+    fi
+#else
+#echo "[Info    ] There are no connections to $dbname"
+#LogMsg "[Info    ] There are no connections to $dbname"
 fi
 
 #-----i------------------------------------------------------------------
@@ -365,10 +475,7 @@ fi
 # in the directory
 #------------------------------------------------------------------------
 
-if [ -f $dtf ] && [ -f $dbu_16_0 ] && [ -f $dbu_16_2 ] && [ -f $dbu_17_0 ]; then
-    echo "[Info    ] $dbname schema_version_upgrade_files exist"
-    LogMsg "[Info    ] $dbname schema_version_upgrade_files exist"
-else
+if [ ! -f $dtf ] && [ -f $dbu_16_0 ] && [ -f $dbu_16_2 ] && [ -f $dbu_17_0 ]; then
     echo "[Error   ] Cannot perform action because the migration files may not exist."
     LogMsg "[Error   ] Cannot perform action because the migration files may not exist."
     echo "${line1_out}"
@@ -380,13 +487,12 @@ fi
 # Checks the existing version which to migrate from 
 #----------------------------------------------------------
 
-if [[ $(bc <<< "${version}") < "$required_pre_migration" ]]; then
-    #echo "${line1_out}"
-    echo "[Info    ] ${line4_out}"
-    echo "[Info    ] There are critical migration steps needed to get to the latest schema version: $migration_db_version"
-    LogMsg "[Info    ] There are critical migration steps needed to get to the latest schema version: $migration_db_version"
+if [[ $(bc <<< "${version}") < "$migration_db_version" ]]; then
+    if [[ $(bc <<< "${version}") < "$required_pre_migration" ]]; then
+        echo "[Info    ] There are critical migration steps needed to get to the latest schema version: $migration_db_version"
+        LogMsg "[Info    ] There are critical migration steps needed to get to the latest schema version: $migration_db_version"
+    fi
     
-
     #----------------------------------------------------------
     # Check which version before the migration process.
     # Then display which steps are needed to get to the 
@@ -409,8 +515,9 @@ if [[ $(bc <<< "${version}") < "$required_pre_migration" ]]; then
         echo "[Info    ] This includes version 16.2"
         LogMsg "[Info    ] This includes versions 16.2"
         echo "[Warning ] Do you want to continue [y/n]?:"
+    elif [[ $(bc <<< "${version}") == 16.2 ]]; then
+        echo "[Warning ] This will migrate $dbname database to schema version $migration_db_version. Do you want to continue [y/n]?:"
     fi
-
 #----------------------------------------------------------
 # Read in the users response from prompt
 #----------------------------------------------------------
@@ -422,6 +529,13 @@ read -s -n 1 confirm
         LogMsg "[Info    ] User response: $confirm"
         echo "[Info    ] $dbname migration process begin."
         LogMsg "[Info    ] $dbname migration process begin."
+        
+        #----------------------------------------------------------
+        # Drop Triggers and Functions for all previous versions
+        # If response is "y"
+        #----------------------------------------------------------
+        
+        db_drop_trgs_funcs 2>&1
     else
         echo "[Info    ] User response: $confirm"
         LogMsg "[Info    ] User response: $confirm"
@@ -433,15 +547,6 @@ read -s -n 1 confirm
     fi
 fi
 
-#------------------------------
-# Drop Triggers and Functions
-# for all previous versions
-#------------------------------
-
-if [[ $(bc <<< "${version}") < "$migration_db_version" ]]; then
-
-db_drop_trgs_funcs 2>&1
-    
     #----------------------------------------------------------------
     # This checks the return code of the drop process
     # if there is a DB error message then this is captured in the
@@ -455,7 +560,7 @@ db_drop_trgs_funcs 2>&1
         echo "${line1_out}"
         echo "${line3_log}" >> $logfile
     fi
-fi
+#fi
 
 #----------------------------------------------------------------
 # Previous db upgrades that get executed
@@ -503,7 +608,7 @@ db_prev_ver_to_16_2 2>&1
         echo "[Info    ] ${line4_out}"
         echo "[Info    ] Migration from $version to $required_pre_migration [Complete]"
         LogMsg "[Info    ] Migration from $version to $required_pre_migration [Complete]"
-        echo "[Info    ] ${line4_out}"
+        #echo "[Info    ] ${line4_out}"
         LogMsg "${line2_log}" >> $logfile
     fi
 fi
@@ -511,145 +616,6 @@ fi
 #----------------------------------------------------------
 # Then you can proceed to migrated to the latest version
 #----------------------------------------------------------
-
-#----------------------------------------------------------
-# Then checks the files and compares to see if they are
-# previous versions currently running that are not up
-# to date.
-#----------------------------------------------------------
-
-if [[ $(bc <<< "${version} < ${version_comp_2}") -eq 0 ]] || [[ $(bc <<< "${version} < ${csm_db_schema_version_comp}") -eq 0 ]] || [[ $(bc <<< "${version} < $ga_version") -eq 1 ]] || [[ $(bc <<< "${migration_db_version} == ${trigger_version_2}") -eq 0 ]]; then
-    echo "[Error   ] Cannot perform action because not compatible."
-    echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2 or appropriate files in directory"
-    LogMsg "[Error   ] Cannot perform action because not compatible."
-    LogMsg "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2 or appropriate files in directory"
-    echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
-    LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
-    echo "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
-    LogMsg "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
-    echo "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
-    LogMsg "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
-    echo "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
-    LogMsg "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
-    echo "${line1_out}"
-    echo "${line3_log}" >> $logfile
-exit 0
-fi
-
-#------------------------------
-# Checks to see if file exists
-# and version # (csv)
-#------------------------------
-
-if [ -f $cur_path/$csm_db_schema_csv ]; then
-    updated_version=`awk -F ',' ' NR==2 {print $1}' $cur_path/$csm_db_schema_csv`
-    echo "[Info    ] $dbname current_schema_version.csv $updated_version"
-    LogMsg "[Info    ] $dbname current_schema_version.csv $updated_version"
-else
-    echo "[Error   ] Cannot perform action because the $csm_db_schema_csv file does not exist."
-    echo "${line1_out}"
-    exit 1
-fi
-
-#------------------------------
-# Checks to see if file exists
-# and version # (create tables)
-#------------------------------
-
-if [ -f $cur_path/$version_comp ]; then
-    echo "[Info    ] $dbname schema_version_upgrade_tables: $migration_db_version"
-    LogMsg "[Info    ] $dbname schema_version_upgrade_tables: $migration_db_version"
-else
-    echo "[Error   ] Cannot perform action because the $version_comp is not compatible."
-    LogMsg "[Error   ] Cannot perform action because the $version_comp is not compatible."
-    echo "${line1_out}"
-    echo "${line3_log}" >> $logfile
-    exit 1
-fi
-
-#----------------------------------------------------------------------------------------------------
-# This queries the actual database to see which version it
-# is currently running.
-#----------------------------------------------------------------------------------------------------
-#version=`psql -X -A -U $db_username -d $dbname -t -c "SELECT version FROM csm_db_schema_version"`
-# return code added to ensure it was successful or failed during this step
-#----------------------------------------------------------------------------------------------------
-
-upgradedb="no"
-return_code=0
-
-#----------------------------------------------------------------------------------------------------
-# Checks before the migration process
-#----------------------------------------------------------------------------------------------------
-# 1. Current db is less than the upgrade version.
-# 2. Migration script version is equal to the create_tables.sql file
-#----------------------------------------------------------------------------------------------------
-
-if [[ $(bc <<< "$version < $updated_version") -eq 1 ]] && [ $migration_db_version == $version_comp_2 ]; then
-  echo "[Warning ] This will migrate $dbname database to schema version $migration_db_version. Do you want to continue [y/n]?:"
-
-#---------------------------------------------------------
-# Read in the users response confirming migration process
-#---------------------------------------------------------
-
-read -s -n 1 confirm
-
-if [ "$confirm" = "y" ]; then
-    echo "[Info    ] User response: $confirm"
-    LogMsg "[Info    ] User response: $confirm"
-    echo "[Info    ] $dbname migration process begin."
-    LogMsg "[Info    ] $dbname migration process begin."
-else
-    echo "[Info    ] User response: $confirm"
-    LogMsg "[Info    ] User response: $confirm"
-    echo "[Error   ] Migration session for DB: $dbname User response: ****(NO)****  not updated"
-    LogMsg "[Error   ] Migration session for DB: $dbname User response: ****(NO)****  not updated"
-    echo "${line1_out}"
-    echo "${line3_log}" >> $logfile
-    exit 0
-fi 
-    #--------------------------------
-    # Checks the current connections
-    #--------------------------------
-    
-    connections_count=`psql -v ON_ERROR_STOP=1 -t -U $db_username -c "select count(*) from pg_stat_activity WHERE datname='$dbname';"`
-    
-    #-----------------------------------------------
-    # If there are connections the script will exit
-    #-----------------------------------------------
-    
-    if [ $connections_count -gt 0 ]; then
-        LogMsg "[Error   ] $dbname can not proceed because of existing connection(s) to the database."
-        psql -v ON_ERROR_STOP=1 -t -A -U $db_username -c "select to_char(now(),'YYYY-MM-DD HH24:MI:SS') || ' ($current_user) [Info    ] Current Connection | User: ' || usename || ' ',' Datebase: ' \
-        || datname, ' Connection(s): ' || count(*), ' Duration: ' || now() - backend_start as Duration \
-        from pg_stat_activity WHERE datname='$dbname' group by usename, datname, Duration order by datname, Duration desc;" &>> $logfile
-        connections=`psql -t -U $db_username -c "select distinct usename from pg_stat_activity WHERE datname='$dbname';"`
-        
-        #-----------------------------------------------------
-        # Array created for each connections that are present
-        #-----------------------------------------------------
-
-        if [ ${#connections[@]} -gt 0 ]; then
-            echo "[Error   ] $dbname has existing connection(s) to the database."
-            
-            #----------------------------------------------
-            # Loops through in case of multiple connections
-            #----------------------------------------------
-            
-            for i in ${connections[@]}; do
-                connection_count=`psql -v ON_ERROR_STOP=1 -t -U $db_username -c "select count(*) from pg_stat_activity WHERE datname='$dbname' and usename='$i';"`
-                shopt -s extglob
-                connection_count="${connection_count##*( )}"
-                connection_count="${connection_count%%*( )}"
-                echo "[Error   ] User: $i has $connection_count connection(s)"
-            done
-            echo "[Info    ] See log file for connection details"
-            echo "${line1_out}"
-            echo "${line3_log}" >> $logfile
-        fi
-    else
-    echo "[Info    ] There are no connections to $dbname"
-    LogMsg "[Info    ] There are no connections to $dbname"
 
 #---------------------------------------------
 # CSM DB schema upgrade to the latest version
@@ -736,11 +702,5 @@ if [ $? -eq 0  ]; then
             #return_code=1
         fi
 fi
-else
-echo "[Info    ] $dbname is currently running db schema version: $version"
-LogMsg "[Info    ] $dbname is currently running db schema version: $version"
-echo "${line1_out}"
-echo "${line3_log}" >> $logfile
-#fi
 exit $return_code
 fi
