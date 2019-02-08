@@ -422,6 +422,9 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                                      << ", handle " << transferdefs[i]->getTransferHandle() << ", contribid " << transferdefs[i]->getContribId() \
                                      << " failed.  The job may have exited the system.";
 
+                        // Clear bberror for the tolerated exception
+                        bberror.forceClear();
+
                         break;
                     }
                 }
