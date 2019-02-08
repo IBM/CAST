@@ -79,6 +79,20 @@ def GetTransferInfo(pEnv):
 
     return rc
 
+def GetUsage(pEnv):
+    rc = 0
+
+    try:
+        bb.initEnv(pEnv)
+
+        l_Mount = pEnv["MOUNT"]
+        BB_GetUsage(l_Mount)
+    except BBError as error:
+        error.handleError()
+        rc = error.rc
+
+    return rc
+
 def GetWaitForReplyCount(pEnv):
     rc = 0
 
