@@ -1523,6 +1523,12 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
         wrkqs.erase(it);
         if (l_WrkQE)
         {
+            if (l_WrkQE->getRate())
+            {
+                // Removing a work queue that had a transfer rate.
+                // Re-calculate the indication of throttle mode...
+                calcThrottleMode();
+            }
             delete l_WrkQE;
         }
     }
