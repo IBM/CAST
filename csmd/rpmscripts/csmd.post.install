@@ -6,7 +6,26 @@ p_al="activelist"
 
 if [ -f /etc/pam.d/sshd ]
 then
-    echo "#account    required     libcsmpam.so" >> /etc/pam.d/sshd
+    mv -f /etc/pam.d/sshd /etc/pam.d/.sshd.bak
+    IFS=$'\n'
+    line_found="FALSE"
+
+    # Iterate over sshd and insert the account before the account password authentication.
+    for line in `cat /etc/pam.d/.sshd.bak`
+    do
+        if [ "account    include      password-auth" == ${line} ]
+        then
+            echo "#account    required     libcsmpam.so" >> /etc/pam.d/sshd
+            line_found="TRUE"
+        fi
+        echo ${line} >> /etc/pam.d/sshd
+    done
+
+    # If the account wasn't written write it. 
+    if [ ${line_found} == "FALSE" ]
+    then
+        echo "#account    required     libcsmpam.so" >> /etc/pam.d/sshd
+    fi
     echo "#session    required     libcsmpam.so" >> /etc/pam.d/sshd
 
     # Initialize the csm directory.
