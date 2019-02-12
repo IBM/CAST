@@ -337,6 +337,9 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, XF_ContribIdStopped, "xfer contribIdStopped, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
     // First, ensure that this handle/transfer definition is marked as stopped in the cross bbServer metadata...
     // NOTE:  This must be a restart scenario...
     ContribIdFile* l_ContribIdFile = 0;
@@ -346,6 +349,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     l_HandleFilePath /= bfs::path(to_string(pHandle));
 
     int l_Attempts = 1;
+    int l_RetryAttempts = 0;
     bool l_AllDone = false;
     while (!l_AllDone)
     {
@@ -355,6 +359,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
         while ((rc != 1) && (l_Continue--))
         {
+            ++l_RetryAttempts;
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
             //       bbServer that is marking the handle/contribid file as 'stopped'
             // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
@@ -630,6 +635,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
             }
         }
     }
+
+    FL_Write6(FLMetaData, XF_ContribIdStopped_End, "xfer contribIdStopped, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pContribId, l_RetryAttempts, rc);
 
     return rc;
 }

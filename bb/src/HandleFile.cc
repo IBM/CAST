@@ -16,6 +16,7 @@
 
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
+#include "bbserver_flightlog.h"
 #include "ContribIdFile.h"
 #include "HandleFile.h"
 #include "LVUuidFile.h"
@@ -90,6 +91,7 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
     return rc;
 }
 
+#define ATTEMPTS 10
 int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle) {
     int rc = -1;
     stringstream errorText;
@@ -97,11 +99,15 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
     pJobId = 0;
     pJobStepId = 0;
 
+    int l_catch_count=ATTEMPTS;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetJobForHandle, "get jobid for handle, counter=%ld, handle=%ld", l_FL_Counter, pHandle, 0, 0);
+
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(bfs::is_directory(datastore))
     {
         bool l_AllDone = false;
-        int l_catch_count=10;
 
         while (!l_AllDone)
         {
@@ -147,6 +153,8 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
         }
     }
 
+    FL_Write6(FLMetaData, HF_GetJobForHandle_End, "get jobid for handle, counter=%ld, handle=%ld, jobid=%ld, attempts=%ld, rc=%ld", l_FL_Counter, pHandle, pJobId, (uint64_t)(l_catch_count>=0 ? ATTEMPTS-l_catch_count+1 : ATTEMPTS+1), rc, 0);
+
     return rc;
 }
 
@@ -158,15 +166,17 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     uint32_t* l_ContribArray = 0;
     HandleFile* l_HandleFile = 0;
     uint64_t l_NumOfContribsInArray = 0;
+    int l_catch_count=ATTEMPTS;
 
     pHandle = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandle, "get handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
 
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(bfs::is_directory(datastore))
     {
         bool l_AllDone = false;
-        int l_catch_count=10;
-
         while (!l_AllDone)
         {
             l_AllDone = true;
@@ -243,6 +253,9 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
+    FL_Write6(FLMetaData, HF_GetHandle_End, "get handle, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(l_catch_count>=0 ? ATTEMPTS-l_catch_count+1 : ATTEMPTS+1), rc, 0);
+
     return rc;
 }
 
@@ -260,6 +273,10 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     uint64_t l_JobId = 0;
     uint64_t l_JobStepId = 0;
 //    char* l_HandleFileName = 0;
+    int l_catch_count=ATTEMPTS;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleInfo, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
 
     // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
     //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
@@ -269,7 +286,6 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     if(bfs::is_directory(datastore))
     {
         bool l_AllDone = false;
-        int l_catch_count=10;
         while (!l_AllDone)
         {
             l_AllDone = true;
@@ -387,12 +403,19 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
         }
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleInfo_End, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJobId, pHandle, pContribId, (uint64_t)(l_catch_count>=0 ? ATTEMPTS-l_catch_count+1 : ATTEMPTS+1), rc);
+
     return rc;
 }
+#undef ATTEMPTS
 
 int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus)
 {
     int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleList, "get handle list, counter=%ld, jobid=%ld, status=%ld", l_FL_Counter, pJob.getJobId(), (uint64_t)pMatchStatus, 0);
 
     try
     {
@@ -432,6 +455,8 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleList_End, "get handle list, counter=%ld, jobid=%ld, status=%ld, number returned=%ld, rc=%ld", l_FL_Counter, pJob.getJobId(), (uint64_t)pMatchStatus, (uint64_t)pHandles.size(), rc, 0);
+
     return rc;
 }
 
@@ -440,6 +465,9 @@ int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey
     stringstream errorText;
 
     pStatus = BBNONE;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleStatus, "get handle status, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -466,10 +494,12 @@ int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey
         l_HandleFile = 0;
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleStatus_End, "get handle status, counter=%ld, jobid=%ld, handle=%ld, status=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pStatus, rc, 0);
+
     return rc;
 }
 
-
+#define ATTEMPTS 10
 int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uint64_t pJobId, const uint64_t pHandle)
 {
     int rc = 0;
@@ -477,10 +507,13 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
 
     pTransferKeys = "";
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleKeys, "get handle transfer keys, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
+
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(!bfs::is_directory(datastore)) return rc;
     bool l_AllDone = false;
-    int l_catch_count=10;
+    int l_catch_count=ATTEMPTS;
 
     while (!l_AllDone)
     {
@@ -544,19 +577,26 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
         }
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleKeys_End, "get handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJobId, pHandle, (uint64_t)(l_catch_count>=0 ? ATTEMPTS-l_catch_count+1 : ATTEMPTS+1), rc, 0);
+
     return rc;
 }
+#undef ATTEMPTS
 
 int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFileName)
 {
     int rc;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Load, "loadHandleFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+
     pHandleFile = NULL;
     HandleFile* l_HandleFile = new HandleFile();
 
-    bool l_AllDone = false;
-    bool l_FirstAttempt = true;
     struct timeval l_StartTime, l_StopTime;
+    bool l_AllDone = false;
+    int l_Attempts = 0;
     int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
 
@@ -566,6 +606,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
     {
         rc = 0;
         l_AllDone = true;
+        ++l_Attempts;
         try
         {
             ifstream l_ArchiveFile{pHandleFileName};
@@ -582,7 +623,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
             l_AllDone = false;
 
             gettimeofday(&l_StopTime, NULL);
-            if (l_FirstAttempt)
+            if (l_Attempts == 1)
             {
                 l_StartTime = l_StopTime;
             }
@@ -600,7 +641,6 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
             rc = -1;
             LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pHandleFileName;
         }
-        l_FirstAttempt = false;
     }
 
     if (l_LastConsoleOutput > 0)
@@ -639,6 +679,8 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
         }
     }
 
+    FL_Write(FLMetaData, HF_Load_End, "loadHandleFile, counter=%ld, attempts=%ld, rc=%ld", l_FL_Counter, l_Attempts, rc, 0);
+
     return rc;
 }
 
@@ -654,6 +696,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, PATH_MAX-64, "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
     snprintf(l_ArchivePathWithName, PATH_MAX, "%s/%lu", l_ArchivePath, pHandle);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Load_wLock, "load HF with lock option, counter=%ld, handle=%ld, lock option=%ld", l_FL_Counter, pHandle, (uint64_t)pLockOption, 0);
 
     int l_LockOption = pLockOption;
     if (pLockFeedback)
@@ -774,6 +819,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
         ::close(fd);
     }
 
+    FL_Write6(FLMetaData, HF_Load_wLock_End, "load HF with lock option, counter=%ld, handle=%ld, lock option=%ld, lock feedback=%ld, rc=%ld",
+              l_FL_Counter, pHandle, (uint64_t)pLockOption, (pLockFeedback ? (uint64_t)(*pLockFeedback) : 0), rc, 0);
+
     return rc;
 }
 
@@ -785,6 +833,9 @@ int HandleFile::lock(const char* pFilePath)
 
     char l_LockFile[PATH_MAX] = {'\0'};
     snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
     fd = open(l_LockFile, O_WRONLY);
@@ -832,6 +883,8 @@ int HandleFile::lock(const char* pFilePath)
             break;
     }
 
+    FL_Write(FLMetaData, HF_Lock_End, "lock HF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
+
     return fd;
 }
 
@@ -839,6 +892,9 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
 {
     int rc = 0;
     HandleFile* l_HandleFile = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleForJobStep, "process handle for jobstep, counter=%ld, status=%ld", l_FL_Counter, pMatchStatus, 0, 0);
 
     bfs::path jobstep(pDataStoreName);
     if(!bfs::is_directory(jobstep)) return rc;
@@ -866,6 +922,8 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         }
     }
 
+    FL_Write(FLMetaData, HF_GetHandleForJobStep_End, "process handle for jobstep, counter=%ld, number of handles returned=%ld, status=%ld, rc=%ld", l_FL_Counter, pHandles.size(), pMatchStatus, rc);
+
     return rc;
 }
 
@@ -874,6 +932,9 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     int rc = 0;
     char l_ArchivePath[PATH_MAX-64] = {'\0'};
     char l_ArchivePathWithName[PATH_MAX] = {'\0'};
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Save1, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
@@ -914,6 +975,8 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
+    FL_Write(FLMetaData, HF_Save1_End, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+
     return rc;
 }
 
@@ -922,6 +985,9 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     int rc = 0;
     stringstream errorText;
     char l_ArchiveName[PATH_MAX] = {'\0'};
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Save2, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
@@ -948,6 +1014,8 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
                   << ". Pointer to the handle file was passed as NULL.";
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
+
+    FL_Write(FLMetaData, HF_Save2_End, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
 
     return rc;
 }
@@ -1026,6 +1094,9 @@ int HandleFile::testForLock(const char* pFilePath)
 
 void HandleFile::unlock(const int pFd)
 {
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Unlock, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
     if (pFd >= 0)
     {
         try
@@ -1055,6 +1126,10 @@ void HandleFile::unlock(const int pFd)
             LOG(bb,info) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
         }
     }
+
+    FL_Write(FLMetaData, HF_Unlock_End, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
+    return;
 }
 
 int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue)
@@ -1063,6 +1138,9 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
     stringstream errorText;
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_UpdateFile, "update handle file, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
@@ -1120,6 +1198,8 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         l_HandleFile = 0;
     }
 
+    FL_Write(FLMetaData, HF_UpdateFile_End, "update handle file, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+
     return rc;
 }
 
@@ -1127,6 +1207,9 @@ int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uin
 {
     int rc = 0;
     stringstream errorText;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_ResetStatus, "reset handle file status, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1155,6 +1238,8 @@ int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uin
         l_HandleFile = 0;
     }
 
+    FL_Write(FLMetaData, HF_ResetStatus_End, "reset handle file status, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+
     return rc;
 }
 
@@ -1162,6 +1247,9 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
 {
     int rc = 0;
     stringstream errorText;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld", l_FL_Counter, pJobId, pHandle, (uint64_t)pSize);
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1447,9 +1535,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         l_HandleFile = 0;
     }
 
+    FL_Write6(FLMetaData, HF_UpdateStatus_End, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, rc, 0);
+
     return rc;
 }
 
+#define ATTEMPTS 10
 int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle)
 {
     int rc = 0;
@@ -1460,6 +1551,9 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     uint64_t l_JobId = 0;
     uint64_t l_JobStepId = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_UpdateTransferKeys, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJob.getJobId(), pHandle, 0);
 
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(!bfs::is_directory(datastore)) return rc;
@@ -1567,8 +1661,12 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
         l_HandleFile = 0;
     }
 
+    FL_Write6(FLMetaData, HF_UpdateTransferKeys_End, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ls, rc=%ld",
+              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(l_catch_count>=0 ? ATTEMPTS-l_catch_count+1 : ATTEMPTS+1), rc, 0);
+
     return rc;
 }
+#undef ATTEMPTS
 
 /*
  * Non-static methods

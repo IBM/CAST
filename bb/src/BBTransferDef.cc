@@ -22,6 +22,7 @@ using namespace boost::archive;
 #include "bbio.h"
 #include "BBLV_ExtentInfo.h"
 #include "BBLV_Metadata.h"
+#include "bbserver_flightlog.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
 
@@ -67,7 +68,11 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
 
     HandleFile* l_HandleFile = 0;
     ContribFile* l_ContribFile = 0;
+    int l_Attempts = 0;
     bool l_HostNameFound = false;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TD_RetrieveTransfers, "BBTransferDef retrieve transfers, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     // Iterate through the jobs...
     bfs::path jobpath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
@@ -78,6 +83,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
         l_HostNameFound = false;
         for (auto& l_JobId : boost::make_iterator_range(bfs::directory_iterator(jobpath), {}))
         {
+            ++l_Attempts;
             try
             {
                 if (!bfs::is_directory(l_JobId)) continue;
@@ -271,6 +277,9 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
         //        completeness of the overall design...
         rc = 2;
     }
+
+    FL_Write(FLMetaData, TD_RetrieveTransfers_End, "BBTransferDef retrieve transfers, counter=%ld, attempts=%ld, number returned=%ld, rc=%ld",
+             l_FL_Counter, l_Attempts, (uint64_t)pTransferDefs.getNumberOfDefinitions(), rc);
 
     return rc;
 }

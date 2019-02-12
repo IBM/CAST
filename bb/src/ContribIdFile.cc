@@ -12,6 +12,7 @@
  *******************************************************************************/
 
 #include "bbfileflags.h"
+#include "bbserver_flightlog.h"
 #include "BBTagID.h"
 #include "ContribFile.h"
 #include "ContribIdFile.h"
@@ -30,6 +31,9 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     handle /= bfs::path(to_string(pTagId.getJobId()));
     handle /= bfs::path(to_string(pTagId.getJobStepId()));
     handle /= bfs::path(to_string(pHandle));
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_AllExtentsXfered, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTagId.getJobId(), pHandle, pContribId);
 
     if (bfs::exists(handle))
     {
@@ -71,6 +75,8 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
         rc = -1;  //  Error case...
         LOG(bb,error) << "Handle file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << handle.string() << " does not exist.";
     }
+
+    FL_Write6(FLMetaData, CIF_AllExtentsXfered_End, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pTagId.getJobId(), pHandle, pContribId, rc, 0);
 
     return rc;
 }
@@ -125,6 +131,9 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
     int rc = 0;
     ContribFile* l_ContribFile = 0;
     bool l_ContribIdFound = false;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_Load1, "load contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     pContribIdFile = 0;
     if(bfs::exists(pHandleFilePath))
@@ -188,6 +197,8 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
         LOG(bb,warning) << "Path to the handle file does not exist " << pHandleFilePath.string();
     }
 
+    FL_Write(FLMetaData, CIF_Load1_End, "load contribid file, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+
     return rc;
 }
 
@@ -203,6 +214,9 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
     bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path("contribs");
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_Load2, "load contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     if(bfs::exists(l_ContribFilePath))
     {
@@ -246,6 +260,8 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
         LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
     }
 
+    FL_Write(FLMetaData, CIF_Load2_End, "load contribid file, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+
     return rc;
 }
 
@@ -256,6 +272,9 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pContribIdFile = 0;
     pNumHandleContribs = 0;
     pNumLVUuidContribs = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_Load3, "load contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     ContribFile* l_ContribFile = 0;
     for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
@@ -305,6 +324,8 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pNumHandleContribs = ((rc == -1) ? 0 : pNumHandleContribs);
     pNumLVUuidContribs = ((rc != 1) ? 0 : pNumLVUuidContribs);
 
+    FL_Write6(FLMetaData, CIF_Load3_End, "load contribid file, counter=%ld, contribid=%ld, number of handle contribs=%ld, number of LVUuid contribs=%ld, rc=%ld", l_FL_Counter, pContribId, pNumHandleContribs, pNumLVUuidContribs, rc, 0);
+
     return rc;
 }
 
@@ -316,6 +337,9 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
     bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path("contribs");
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_Save, "save contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     if(bfs::exists(l_ContribFilePath))
     {
@@ -350,12 +374,17 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
         LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
     }
 
+    FL_Write(FLMetaData, CIF_Save_End, "save contribid file, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+
     return rc;
 }
 
 int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue)
 {
     int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_UpdateFile, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
 
     ContribIdFile* l_ContribIdFile = 0;
     bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
@@ -425,6 +454,8 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
         l_ContribIdFile = 0;
     }
 
+    FL_Write6(FLMetaData, CIF_UpdateFile_End, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
+
     return rc;
 }
 
@@ -436,6 +467,9 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, uint64_t pHandle, uint32_t pContribId, Extent* pExtent, const uint64_t pFlags, const int pValue)
 {
     int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_UpdateStatus, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId);
 
     ContribIdFile* l_ContribIdFile = 0;
     bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
@@ -619,6 +653,8 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
         l_ContribIdFile = 0;
     }
 
+    FL_Write6(FLMetaData, CIF_UpdateStatus_End, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId, rc, 0);
+
     return rc;
 }
 
@@ -626,6 +662,9 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
 {
     int rc = 0;
     typedef pair<uint16_t, size_t> BUNDLE_ID_ENTRY;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_UpdateStatusForRestart, "update contribid status for restart, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pRebuiltTransferDef->getJobId(), pHandle, pContribId);
 
     ContribIdFile* l_ContribIdFile = 0;
     int64_t l_Size = 0;
@@ -729,6 +768,8 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
     {
         pSize = -l_Size;
     }
+
+    FL_Write6(FLMetaData, CIF_UpdateStatusForRestart_End, "update contribid status for restart, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pRebuiltTransferDef->getJobId(), pHandle, pContribId, rc, 0);
 
     return rc;
 }

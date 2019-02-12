@@ -11,6 +11,7 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include "bbserver_flightlog.h"
 #include "LVUuidFile.h"
 
 
@@ -27,6 +28,9 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
     bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     job /= bfs::path(to_string(pJobId));
     if(!bfs::is_directory(job)) return -2;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, LF_UpdateFile, "update LVUuid file, counter=%ld, job=%ld", l_FL_Counter, pJobId, 0, 0);
 
     for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
     {
@@ -66,6 +70,8 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
         }
     }
 
+    FL_Write(FLMetaData, LF_UpdateFile_End, "update LVUuid file, counter=%ld, job=%ld, rc=%ld", l_FL_Counter, pJobId, rc, 0);
+
     return rc;
 }
 
@@ -77,9 +83,12 @@ int LVUuidFile::load(const string& pLVUuidFileName)
 {
     int rc;
 
-    bool l_AllDone = false;
-    bool l_FirstAttempt = true;
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, LF_Load, "load LVUuid file, counter=%ld", l_FL_Counter, 0, 0, 0);
+
     struct timeval l_StartTime, l_StopTime;
+    bool l_AllDone = false;
+    int l_Attempts = 0;
     int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
 
@@ -89,6 +98,7 @@ int LVUuidFile::load(const string& pLVUuidFileName)
     {
         rc = 0;
         l_AllDone = true;
+        ++l_Attempts;
         try
         {
             ifstream l_ArchiveFile{pLVUuidFileName};
@@ -104,7 +114,7 @@ int LVUuidFile::load(const string& pLVUuidFileName)
             l_AllDone = false;
 
             gettimeofday(&l_StopTime, NULL);
-            if (l_FirstAttempt)
+            if (l_Attempts == 1)
             {
                 l_StartTime = l_StopTime;
             }
@@ -122,7 +132,6 @@ int LVUuidFile::load(const string& pLVUuidFileName)
             rc = -1;
             LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pLVUuidFileName;
         }
-        l_FirstAttempt = false;
     }
 
     if (l_LastConsoleOutput > 0)
@@ -138,12 +147,17 @@ int LVUuidFile::load(const string& pLVUuidFileName)
         }
     }
 
+    FL_Write(FLMetaData, LF_Load_End, "load LVUuid file, counter=%ld, attempts=%ld, rc=%ld", l_FL_Counter, l_Attempts, rc, 0);
+
     return rc;
 }
 
 int LVUuidFile::save(const string& pLVUuidFileName)
 {
     int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, LF_Save, "save LVUuid file, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     try
     {
@@ -158,6 +172,8 @@ int LVUuidFile::save(const string& pLVUuidFileName)
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
+
+    FL_Write(FLMetaData, LF_Save_End, "save LVUuid file, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
 
     return rc;
 }

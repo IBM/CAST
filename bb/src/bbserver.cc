@@ -52,6 +52,9 @@ using namespace std;
 
 namespace po = boost::program_options;
 
+// Define flightlog for bbServer metadata
+FL_SetName(FLMetaData, "bbServer MetaData Flightlog")
+FL_SetSize(FLMetaData, 16384)
 
 // Metadata that is kept on each bbserver...
 BBLV_Metadata metadata;
@@ -69,6 +72,9 @@ double Throttle_TimeInterval;
 LVKey HPWrkQE_LVKeyStg;
 const LVKey* HPWrkQE_LVKey = &HPWrkQE_LVKeyStg;
 WRKQE* HPWrkQE;
+
+// Metadata counter for flight logging
+AtomicCounter metadataCounter;
 
 
 //*****************************************************************************

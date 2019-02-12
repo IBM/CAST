@@ -11,6 +11,7 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include "bbserver_flightlog.h"
 #include "ContribFile.h"
 
 
@@ -22,12 +23,15 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
 {
     int rc;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CF_Load, "loadContribFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+
     pContribFile = NULL;
     ContribFile* l_ContribFile = new ContribFile();
 
-    bool l_AllDone = false;
-    bool l_FirstAttempt = true;
     struct timeval l_StartTime, l_StopTime;
+    bool l_AllDone = false;
+    int l_Attempts = 0;
     int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
 
@@ -37,6 +41,7 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
     {
         rc = 0;
         l_AllDone = true;
+        ++l_Attempts;
         try
         {
             ifstream l_ArchiveFile{pContribFileName.c_str()};
@@ -53,7 +58,7 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
             l_AllDone = false;
 
             gettimeofday(&l_StopTime, NULL);
-            if (l_FirstAttempt)
+            if (l_Attempts == 1)
             {
                 l_StartTime = l_StopTime;
             }
@@ -71,7 +76,6 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
             rc = -1;
             LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pContribFileName.c_str();
         }
-        l_FirstAttempt = false;
     }
 
     if (l_LastConsoleOutput > 0)
@@ -96,6 +100,8 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
         }
     }
 
+    FL_Write(FLMetaData, CF_Load_End, "loadContribFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
+
     return rc;
 }
 
@@ -106,6 +112,9 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
 int ContribFile::save(const string& pContribFileName)
 {
     int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CF_Save, "saveContribFile, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     try
     {
@@ -120,6 +129,8 @@ int ContribFile::save(const string& pContribFileName)
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
+
+    FL_Write(FLMetaData, CF_Save_End, "saveContribFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
 
     return rc;
 }

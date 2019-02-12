@@ -18,8 +18,9 @@
 
 #include "bberror.h"
 #include "bbinternal.h"
-#include "bbwrkqmgr.h"
 #include "BBLV_Metadata.h"
+#include "bbserver_flightlog.h"
+#include "bbwrkqmgr.h"
 #include "LVKey.h"
 #include "LVUuidFile.h"
 #include "Uuid.h"
@@ -250,6 +251,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
     return rc;
 }
 
+#define ATTEMPTS 10
 int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
@@ -258,9 +260,13 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
     HandleFile* l_HandleFile = NULL;
     ContribIdFile* l_ContribIdFile = NULL;
     char* l_HandleFileName = NULL;
+    int l_Attempts = ATTEMPTS;
 
     std::string l_HostName;
     activecontroller->gethostname(l_HostName);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, LVM_UnconditionallyStop, "BBLV_Metadata attempt to unconditionally stop transfer definition, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
 
     // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
     //       bbServer that is marking the handle/contribid file as 'stopped'
@@ -270,7 +276,6 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
     {
         bfs::path l_HandleFilePath = bfs::path(string(l_HandleFileName)).parent_path();
 
-        int l_Attempts = 10;
         bool l_AllDone = false;
         while ((!l_AllDone) && l_Attempts--)
         {
@@ -403,8 +408,12 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
         l_ContribIdFile = NULL;
     }
 
+    FL_Write6(FLMetaData, LVM_UnconditionallyStop_End, "BBLV_Metadata attempt to unconditionally stop transfer definition, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJobId, pHandle, pContribId, (uint64_t)(ATTEMPTS-l_Attempts), rc);
+
     return rc;
 }
+#undef ATTEMPTS
 
 int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
     int rc = 0;

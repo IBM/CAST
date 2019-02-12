@@ -290,6 +290,9 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
     HandleFile* l_HandleFile = 0;
     uint64_t l_NumOfContribsInArray = 0;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TI_GetServerHandle, "BBTagInfo get server handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
+
     bfs::path jobstep(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     jobstep /= bfs::path(to_string(pJob.getJobId()));
     jobstep /= bfs::path(to_string(pJob.getJobStepId()));
@@ -336,6 +339,8 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
             l_HandleFile = 0;
         }
     }
+
+    FL_Write(FLMetaData, TI_GetServerHandle_End, "BBTagInfo get server handle, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJob.getJobId(), l_Handle, 0);
 
     return l_Handle;
 }
@@ -746,6 +751,9 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
     ContribIdFile* l_NewContribIdFile = 0;
     ContribIdFile* l_ContribIdFileToProcess = 0;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TI_AddData, "BBTagInfo server add data, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJob.getJobId(), pHandle, pContribId);
+
     try
     {
         // NOTE: If this is a restart for a transfer definition, we verify that the ContribIdFile
@@ -947,6 +955,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
         delete l_ContribFile;
         l_ContribFile = 0;
     }
+
+    FL_Write6(FLMetaData, TI_AddData_End, "BBTagInfo server add data, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pJob.getJobId(), pHandle, pContribId, rc, 0);
 
     return rc;
 }
