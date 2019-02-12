@@ -7,7 +7,7 @@ The ``libcsmpam.so`` module is installed by the |csm-core| rpm to ``/usr/lib64/s
 
 To enable the this module for sshd perform the following steps:
 
-:1: Uncomment the following line in ``/etc/pam.d/sshd``
+1. Uncomment the following lines in ``/etc/pam.d/sshd``
 
     .. code-block:: none
 
@@ -16,13 +16,16 @@ To enable the this module for sshd perform the following steps:
 
     .. note:: 
 
-        The ``libcsmpam.so`` module is deliberately configured to be the last session in this file. 
+        The session ``libcsmpam.so`` module is deliberately configured to be the last session in this file. 
         
         If the configuration changes this make sure the ``libcsmpam.so`` is loaded after the default 
         session modules. It is recommended that ``libcsmpam.so`` be immediately after the default 
         ``postlogin`` line in the sshd config if the admin is adding additional session modules.
+
+        The account ``libcsmpam.so`` module should be configured before the account ``password-auth``.
       
-:2: Run `systemctl restart  sshd.service` to restart the sshd daemon with the new config.
+2. Run `systemctl restart  sshd.service` to restart the sshd daemon with the new config.
+
     After the daemon has been restarted the modified pam sshd configuration should now be used.
 
 Contents
@@ -38,20 +41,27 @@ This module is designed for account authentication and cgroup session assignment
 The following checks are performed to verify that the user is allowed to access the system:
 
 1. The user is root.
+
     * Allow entry.
     * Place the user in the default cgroup (session only).
     * Exit module with success.
+
 2. The user is defined in `/etc/pam.d/csm/activelist`.
+
     * Allow entry.
     * Place the session in the cgroup that the user is associated with in the `activelist` (session only).
     * *note:* The `activelist` is modified by csm, admins should not modify.
     * Exit module with success.
+
 3. The user is defined in `/etc/pam.d/csm/whitelist`.
+    
     * Allow entry.
     * Place the user in the default cgroup (session only).
     * *note:* The `whitelist` is modified by the admin.
     * Exit module with success.
+
 4. The user was not found.
+
     * Exit the module, rejecting the user.
     
 
@@ -131,9 +141,13 @@ In order to compile this module the ``pam-devel`` package is required to compile
 Troubleshooting 
 ---------------
 
+Core Isolation
+^^^^^^^^^^^^^^
+
 If users are having problems with core isolation, unable to log onto the node, or not being placed into the correct cgroup, first perform the following steps.
 
-:1: Manually create an allocation on a node that has the PAM module configured. 
+1. Manually create an allocation on a node that has the PAM module configured. 
+    
     This should be executed from the launch node as a non root user.
 
     .. code-block:: bash 
@@ -182,7 +196,7 @@ If users are having problems with core isolation, unable to log onto the node, o
         If the user is not present and the allocation create is functioning this may be a CSM bug, 
         open a defect to the CSM team.
          
- 3. Check the cgroup of the user's ssh session.
+3. Check the cgroup of the user's ssh session.
 
     .. code-block:: bash
 
@@ -214,6 +228,26 @@ If users are having problems with core isolation, unable to log onto the node, o
       Indicates that core isolation was not performed, verify core isolation is enabled in the 
       allocation create step.
       
- 4. Any further issues are beyond the scope of this troubleshooting document, contacting the 
-    CSM team or opening a new issue is the recommended course of action.
+4. Any further issues are beyond the scope of this troubleshooting document, contacting the CSM team or opening a new issue is the recommended course of action.
     
+Users Without Access Being Given Access
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If a user who doesn't have access is capable of logging into a node configured with the pam
+library perform the following steps:
+
+1. Verify that the following lines are uncommented in ``/etc/pam.d/sshd``
+    
+    .. code-block:: bash
+        
+        account    required     libcsmpam.so
+        session    required     libcsmpam.so
+
+2. Verify that ``account required libcsmpam.so`` is located above ``account include password-auth``
+
+3. Verify that ``session required libcsmpam.so`` is located after the other ``session`` modules.
+
+4. Verify that a "`csm_cgroup_login[.*]; User not authorized`" entry is present in ``/var/log/ibm/csm/csm_compute.log``
+
+5. Any further issues are beyond the scope of this troubleshooting document, contacting the CSM team or opening a new issue is the recommended course of action.
+

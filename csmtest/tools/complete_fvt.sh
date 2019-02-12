@@ -108,3 +108,6 @@ run_bucket "error_injection" "versioning"
 ${FVT_PATH}/setup/csm_uninstall.sh
 ${FVT_PATH}/setup/csm_install.sh
 run_bucket "basic" "python_libraries"
+
+## TODO DON'T USE THIS IF USER AND SECOND_USER ARE NOT SET AND CONFIGURED!
+#run_bucket "basic" "pamd"

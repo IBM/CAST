@@ -69,6 +69,26 @@ check_return_exit () {
 }
 
 # ----------------------------------------------------------------
+# check_return_exit 
+# Input 1: return code from command line API 
+# Input 2: Invalid Error Code (
+# Input 3: Test Case name
+# Functionality:Verifies that input 1 doesn't match input 2. If the
+#    two match fail the test.
+# ----------------------------------------------------------------
+check_return_error () {
+        if [ $1 -eq $2 ]
+        then
+            printf "%-100s %8s\n" "$3:" "FAILED" >> ${LOG}
+            printf "\n$3\n" >> ${TEMP_LOG}
+		    printf "Invalid RC: $1\n" >> ${TEMP_LOG}
+		    exit 1
+        else
+            printf "%-100s %8s\n" "$3:" "PASS" >> ${LOG}
+        fi
+}
+
+# ----------------------------------------------------------------
 # check_return_flag
 # Input 1: return come from command line API
 # Input 2: Test Case name
