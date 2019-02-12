@@ -2,7 +2,7 @@
 #   
 #    csm_db_script.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,9 +15,9 @@
 
 #================================================================================
 #   usage:              ./csm_db_script.sh <----- to create the csm_db
-#   current_version:    10.15
+#   current_version:    10.16
 #   create:             12-14-2015
-#   last modified:      12-05-2018
+#   last modified:      02-12-2019
 #================================================================================
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -110,6 +110,7 @@ echo "$now ($current_user) $1[Complete] $dbname database created user: $csmdb_us
 echo "${line1_out}"
 echo "[Start   ] Welcome to CSM database automation script."
 LogMsg "[Start   ] Welcome to CSM database automation script."
+echo "[Info    ] Log Dir: $logfile"
 
 #=====================================
 # Usage function (help menu options)

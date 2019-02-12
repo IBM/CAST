@@ -4,7 +4,7 @@
 #   
 #    csm_db_history_delete.py
 # 
-#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,11 +15,19 @@
 # 
 #================================================================================
 
+#================================================================================
+# usage             ./csm_db_history_delete.py
+# current_version   2.0
+# date_created:     12-07-2018
+# date_modified:    02-12-2019
+#================================================================================
+
 import psycopg2
 import argparse
 import json
 import sys
 import os
+import commands
 import logging.config
 import logging.handlers as handlers
 import time
@@ -35,6 +43,9 @@ DEFAULT_THREAD_POOL=10
 
 # Additional Formatting style
 line1 = "---------------------------------------------------------------------------------------------------------"
+
+# username defined
+username = commands.getoutput("whoami")
 
 if not os.geteuid() == 0:
     print "{0}".format(line1)
@@ -66,12 +77,14 @@ if '-n' in argumentList and '-d' in argumentList or \
     print "{0}".format(line1)
     print "Welcome to the CSM DB deletion of history table records script"
     print "{0}".format(line1)
-    print "Start Script Time:                 | {0}".format(a)
+    print "Start Script Time:                                    | {0}".format(a)
     print "{0}".format(line1)
+    print "Deletion Log Directory:                               | {0}".format(DEFAULT_LOG)
     logger.info("Welcome to the CSM DB deletion of history table records script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
     logger.info("{0}".format(line1))
+    logging.info("Deletion Log Directory:            | {0}".format(DEFAULT_LOG))
 else:
     print "{0}".format(line1) 
 
@@ -85,7 +98,6 @@ TABLES=[ "csm_allocation_history", "csm_allocation_node_history", "csm_allocatio
 
 RAS_TABLES=["csm_ras_event_action"]
 
-#def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
 def dump_table( db, user, table_name, count, is_ras=False ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
@@ -136,6 +148,21 @@ def main(args):
     # Input parsing
     args = parser.parse_args()
 
+    # Process the script detail info. for screen and logging.
+    
+    logger.info("{0}".format(line1))
+    logging.info("DB Name:                           | {0}".format(args.db))
+    logging.info("DB User Name:                      | {0}".format(args.user))
+    logging.info("Script User Name:                  | {0}".format(username))
+    logging.info("Thread Count:                      | {0}".format(args.threads))
+    logger.info("{0}".format(line1))
+    print "{0}".format(line1)
+    print "DB Name:                                              | {0}".format(args.db)
+    print "DB User Name:                                         | {0}".format(args.user)
+    print "Script User Name:                                     | {0}".format(username)
+    print "Thread Count:                                         | {0}".format(args.threads)
+    print "{0}".format(line1)
+    
     pool = ThreadPool(int(args.threads))
 
     pool.map( lambda table: dump_table( args.db, args.user, table, args.count), TABLES)
@@ -146,23 +173,16 @@ def main(args):
     # Process the finishing info. for screen and logging.
     ft = datetime.datetime.now()
     delta2 = ft - a
+    
     logger.info("{0}".format(line1))
-    logging.info("DB Name:                           | {0}".format(args.db))
-    logging.info("DB User Name:                      | {0}".format(args.user))
-    logging.info("Thread Count:                      | {0}".format(args.threads))
-    logging.info("Deletion Log Directory:            | {0}".format(DEFAULT_LOG))
     logging.info("End Script Time:                   | {0}".format(ft))
     logging.info("Total Process Time:                | {0}".format(delta2))
     logger.info("{0}".format(line1))
     logging.info("Finish CSM DB deletion script process")
     logger.info("{0}".format(line1))
     print "{0}".format(line1)
-    print "DB Name:                           | {0}".format(args.db)
-    print "DB User Name:                      | {0}".format(args.user)
-    print "Thread Count:                      | {0}".format(args.threads)
-    print "Deletion Log Directory:            | {0}".format(DEFAULT_LOG)
-    print "End Script Time:                   | {0}".format(ft)
-    print "Total Process Time:                | {0}".format(delta2)
+    print "End Script Time:                                      | {0}".format(ft)
+    print "Total Process Time:                                   | {0}".format(delta2)
     print "{0}".format(line1)
     print "Finish CSM DB deletion script process"
     print "{0}".format(line1)
