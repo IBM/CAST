@@ -54,8 +54,8 @@
 CSMI_VERSION_START(CSM_VERSION_0_4_1)
 
 CSMI_STRUCT_MEMBER(int64_t, allocation_id      ,  BASIC, ,   -1, ) /**< Unique identifier of an allocation. */
-CSMI_STRUCT_MEMBER(int64_t, num_bytes_read     ,  BASIC, ,   -1, ) /**< Number of bytes read during the life of this partition.*/
-CSMI_STRUCT_MEMBER(int64_t, num_bytes_written  ,  BASIC, ,   -1, ) /**< Number of bytes written during the life of this partition.*/
+CSMI_STRUCT_MEMBER(int64_t, num_bytes_read     ,  BASIC, ,   -1, ) /**< Number of bytes read during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
+CSMI_STRUCT_MEMBER(int64_t, num_bytes_written  ,  BASIC, ,   -1, ) /**< Number of bytes written during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
 CSMI_STRUCT_MEMBER(char*  , logical_volume_name, STRING, , NULL, ) /**< Unique identifier for this ssd partition.*/
 CSMI_STRUCT_MEMBER(char*  , node_name          , STRING, , NULL, ) /**< Name of the node where this logical volume is located.*/
 
