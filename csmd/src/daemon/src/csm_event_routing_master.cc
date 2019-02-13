@@ -101,6 +101,7 @@ void EventRoutingMaster::RegisterHandlers()
    // Internal node inventory functions
    Register<InvGetNodeInventory>(CSM_CMD_INV_get_node_inventory);
    AddInitEventHandler( createInstance_sptr<INV_MASTER_HANDLER>() );
+   Register<InvSsdWearUpdate>(CSM_CMD_ssd_wear_update);
 
    // Environmental data handling
    Register<CSM_ENVDATA_HANDLER>( CSM_environmental_data );

@@ -183,10 +183,15 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
     GetSsdWear(devicename, ssd_inventory[i].wear_lifespan_used, ssd_inventory[i].wear_percent_spares_remaining, 
                ssd_inventory[i].wear_total_bytes_written, ssd_inventory[i].wear_total_bytes_read);
 
+    LOG(csmd, info) << "wear_lifespan_used: " << ssd_inventory[i].wear_lifespan_used
+                    << " wear_percent_spares_remaining: " << ssd_inventory[i].wear_percent_spares_remaining;
+    LOG(csmd, info) << "wear_total_bytes_written: " << ssd_inventory[i].wear_total_bytes_written
+                    << " wear_total_bytes_read: " << ssd_inventory[i].wear_total_bytes_read;
+
     ssd_itr++;
     ssd_count++;
   } 
- 
+
   if (ssdlist.size() > CSM_SSD_MAX_DEVICES)
   {
     LOG(csmd, warning) << "ssd_inventory truncated to " << ssd_count << " entries, " << ssdlist.size() << " ssds discovered.";
