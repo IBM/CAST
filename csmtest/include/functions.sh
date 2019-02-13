@@ -135,3 +135,22 @@ check_return_flag_nz () {
                 printf "%-100s %8s\n" "$3:" "PASS" >> ${LOG}
         fi
 }
+
+# ----------------------------------------------------------------
+# clear_allocations
+# Functionality: queries for and deletes any active allocations 
+#                returns all nodes to IN_SERVICE state
+# ----------------------------------------------------------------
+clear_allocations()
+{
+    # Clean up the allocations.
+    allocations=$(${CSM_PATH}/csm_allocation_query_active_all | grep allocation_id| tr -s " " | cut -d" " -f4)
+
+    for allocation in ${allocations}
+    do
+        ${CSM_PATH}/csm_allocation_delete -a ${allocation}
+    done
+
+    # Drop all of the nodes into in service
+    ${CSM_PATH}/csm_node_attributes_update -n ${COMPUTE_NODES} -s IN_SERVICE
+}
