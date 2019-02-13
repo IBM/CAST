@@ -19,7 +19,7 @@
 # usage             ./csm_db_history_archive.py
 # current_version   2.0
 # date_created:     10-12-2018
-# date_modified:    02-12-2019
+# date_modified:    02-13-2019
 #================================================================================
 
 import psycopg2
@@ -240,17 +240,17 @@ def main(args):
     pool = ThreadPool(int(args.threads))
 
     tmp_list =  pool.map( lambda table: dump_table( args.db, args.user, table, args.count, args.target ), TABLES )
-    #pool.map( lambda table: dump_table( args.db, args.user, table, args.count, args.target ), TABLES )
     
     for entry in tmp_list:
         if entry is None:0
         else:
             print entry
-
+    
     for table in RAS_TABLES:
+        entry = dump_table( args.db, args.user, table, args.count, args.target, True)
         if entry is None:0
         else:
-            print dump_table( args.db, args.user, table, args.count, args.target, True)
+            print entry
 
     # Process the finishing info. for screen and logging.
     ft = datetime.datetime.now()
