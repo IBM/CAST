@@ -1031,6 +1031,23 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
 
     DIR *sysDir =  opendir(IRQ_PATH);  // Open the directory to search for subdirs.
     dirent *dirDetails;                         // Output struct for directory contents.
+
+    std::string affinityList(IRQ_PATH "default_smp_affinity");
+    int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
+    if( fileDescriptor >= 0 )
+    {
+        errno=0;
+        write( fileDescriptor, CPUList, CPUListLen);
+        int errorCode = errno;
+        close( fileDescriptor );
+    
+        // Build a verbose error for the user.
+        if ( errorCode != 0 )
+        {
+            LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+        }
+    }
+
     
     // If the system directory could not be retrieved throw an exception.
     if ( !sysDir )
@@ -1067,21 +1084,6 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
         }
     }
     
-    std::string affinityList(IRQ_PATH "default_smp_affinity");
-    int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
-    if( fileDescriptor >= 0 )
-    {
-        errno=0;
-        write( fileDescriptor, CPUList, CPUListLen);
-        int errorCode = errno;
-        close( fileDescriptor );
-    
-        // Build a verbose error for the user.
-        if ( errorCode != 0 )
-        {
-            LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
-        }
-    }
 
     LOG(csmapi, trace) << "CGroup::IRQRebalance Exit";
 
