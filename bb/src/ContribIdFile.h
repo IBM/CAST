@@ -380,7 +380,7 @@ public:
     uint64_t            flags;
     uint64_t            totalTransferSize;
     vector<FileData>    files;
-    string              hostname;
+    string              hostname;   // Added for ARCHIVE_CONTRIBID_VERSION_2
 };
 
 #endif /* BB_CONTRIBIDFILE_H_ */

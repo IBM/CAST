@@ -24,7 +24,8 @@
  * Static methods
  */
 
-int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle, const BBTagID& pTagId, const uint32_t pContribId) {
+int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle, const BBTagID& pTagId, const uint32_t pContribId)
+{
     int rc = 1;   // Success, all extents transferred...
 
     bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
@@ -614,18 +615,18 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                     {
                         LOG(bb,info) << "           ContribId transferred size changing from " << l_IncomingTransferSize << " to " << l_ContribIdFile->totalTransferSize << ".";
                     }
-                }
 
-                // Save the contribid file
-                rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                if (!rc) {
-                    if (HandleFile::update_xbbServerHandleStatus(pLVKey, pTransferDef->getJobId(), pTransferDef->getJobStepId(), pHandle, (int64_t)(l_ContribIdFile->totalTransferSize-l_IncomingTransferSize))) {
-                        LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to update the cross bbServer handle status for jobid " << pTransferDef->getJobId() \
+                    // Save the contribid file
+                    rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                    if (!rc) {
+                        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pTransferDef->getJobId(), pTransferDef->getJobStepId(), pHandle, (int64_t)(l_ContribIdFile->totalTransferSize-l_IncomingTransferSize))) {
+                            LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to update the cross bbServer handle status for jobid " << pTransferDef->getJobId() \
+                                          << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
+                        }
+                    } else {
+                        LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to save the cross bbServer contribs file for jobid " << pTransferDef->getJobId() \
                                       << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
                     }
-                } else {
-                    LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to save the cross bbServer contribs file for jobid " << pTransferDef->getJobId() \
-                                  << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
                 }
             } else {
                 LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Invalid sourceindex " << pExtent->sourceindex << " for jobid " << pTransferDef->getJobId() \
