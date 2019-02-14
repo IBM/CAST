@@ -154,19 +154,33 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
             // NOTE:  rc=0 means that the contribid was added to the ContribFile.
             //        rc=1 means that the contribid already existed in the ContribFile.
             //             This is normal for the restart of a transfer definition.
-            if (rc == 1)
+            switch (rc)
             {
-                if (pTransferDef->builtViaRetrieveTransferDefinition())
+                case 0:
                 {
-                    rc = 0;
+                    uint32_t l_PrevNumberOfReportingContribs = l_HandleFile->getNumOfContribsReported();
+                    l_HandleFile->incrNumOfContribsReported();
+                    LOG(bb,info) << "xbbServer: For jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ":";
+                    LOG(bb,info) << "           Number of reporting contribs changing from " << l_PrevNumberOfReportingContribs << " to " << l_HandleFile->getNumOfContribsReported() << ".";
+                    HandleFile::saveHandleFile(l_HandleFile, pLVKey, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
                 }
-                else
+                break;
+
+                case 1:
                 {
-                    rc = -1;
-                    errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
-                              << " was already known to the cross-bbServer metadata.";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    if (pTransferDef->builtViaRetrieveTransferDefinition())
+                    {
+                        rc = 0;
+                    }
+                    else
+                    {
+                        rc = -1;
+                        errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
+                                  << " was already known to the cross-bbServer metadata.";
+                        LOG_ERROR_TEXT_RC(errorText, rc);
+                    }
                 }
+                break;
             }
 
             if (!rc)

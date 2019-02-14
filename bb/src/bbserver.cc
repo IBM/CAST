@@ -54,7 +54,7 @@ namespace po = boost::program_options;
 
 // Define flightlog for bbServer metadata
 FL_SetName(FLMetaData, "bbServer MetaData Flightlog")
-FL_SetSize(FLMetaData, 16384)
+FL_SetSize(FLMetaData, 65536)
 
 // Metadata that is kept on each bbserver...
 BBLV_Metadata metadata;
@@ -377,8 +377,8 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                 case BBSCOPETAG:
                 {
                     // Retrieve the real jobid, jobstepid for the handle
-                    uint64_t l_JobId = 0;
-                    uint64_t l_JobStepId = 0;
+                    uint64_t l_JobId = UNDEFINED_JOBID;
+                    uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
                     rc = HandleFile::get_xbbServerGetJobForHandle(l_JobId, l_JobStepId, l_Handle);
                     if (!rc)
                     {
@@ -841,8 +841,8 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     uint64_t l_Handle = 0;
     uint32_t l_ContribId;
 
-    uint64_t l_JobId = 0;
-    uint64_t l_JobStepId = 0;
+    uint64_t l_JobId = UNDEFINED_JOBID;
+    uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
     uint64_t l_Tag = 0;
     uint64_t l_NumContrib = 0;
     uint64_t l_NumOfContribsInArray = 0;
