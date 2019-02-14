@@ -40,7 +40,9 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const uint32_t ARCHIVE_HANDLE_VERSION = 1;
+const uint32_t ARCHIVE_HANDLE_VERSION_1 = 1;
+const uint32_t ARCHIVE_HANDLE_VERSION_2 = 2;
+
 const char LOCK_FILENAME[] = "lockfile";
 const int MAXIMUM_HANDLEFILE_LOADTIME = 30;     // In seconds
 
@@ -74,12 +76,27 @@ public:
         pArchive & transferKeys;
         pArchive & lockfd;          // NOTE: On load, we will either overlay this with the fd
                                     //       of the handle file locked or reset this value to -1
+        switch (objectVersion)
+        {
+            case ARCHIVE_HANDLE_VERSION_2:
+            {
+                pArchive & numReportingContribs;
+            }
+            break;
+
+            case ARCHIVE_HANDLE_VERSION_1:
+            default:
+            {
+                // No additional fields
+            }
+            break;
+        }
         return;
     }
 
     HandleFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION),
+        objectVersion(ARCHIVE_HANDLE_VERSION_2),
         tag(0),
         flags(0),
         status((uint64_t)BBNOTSTARTED),
@@ -87,11 +104,12 @@ public:
         numContrib(0),
         expectContrib(""),
         transferKeys(""),
-        lockfd(-1) {}
+        lockfd(-1),
+        numReportingContribs(0) {}
 
     HandleFile (const uint64_t pTag, BBTagInfo& pTagInfo) :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION) {
+        objectVersion(ARCHIVE_HANDLE_VERSION_2) {
         tag = pTag;
         flags = 0;
         status = ((uint64_t)BBNOTSTARTED);
@@ -103,6 +121,7 @@ public:
         expectContrib = l_Temp.str();
         transferKeys = "";
         lockfd = -1;
+        numReportingContribs = 0;
     }
 
     virtual ~HandleFile()
@@ -122,6 +141,7 @@ public:
 //    static int calculate_xbbServerHandleStatus(HandleFile* pHandleFile, const char* pHandleFilePath, uint64_t& pStatus);
     static int createLockFile(const char* pFilePath);
     static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer);
+    static int get_xbbServerGetCurrentJobIds(vector<string>& pJobIds);
     static int get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle);
     static int get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32_t>& pContrib, uint64_t& pHandle);
     static int get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, uint64_t& pNumberOfReportingContribs, HandleFile* &pHandleFile, ContribIdFile* &pContribIdFile, const uint64_t pHandle, const uint32_t pContribId);
@@ -167,8 +187,9 @@ public:
         l_Line << "tagId=" << tag \
                << hex << uppercase << ", flags=0x" << flags << nouppercase << dec \
                << ", status=" << l_Status \
+               << ", # of reporting contribs=" << numReportingContribs \
                << ", totalTransferSize=" << totalTransferSize \
-               << ", numContrib=" << numContrib \
+               << ", # of contribs=" << numContrib \
                << ", expectContrib=" << expectContrib;
         if (transferKeys.size())
         {
@@ -182,6 +203,18 @@ public:
     inline uint64_t getNumContrib()
     {
         return numContrib;
+    }
+
+    inline uint32_t getNumOfContribsReported()
+    {
+        return numReportingContribs;
+    }
+
+    inline void incrNumOfContribsReported()
+    {
+        ++numReportingContribs;
+
+        return;
     }
 
     inline int stopped()
@@ -212,6 +245,8 @@ public:
     string   transferKeys;
     int      lockfd;        // This really isn't used anymore.  It has been replaced by
                             // the thread_local variable handleFileLockFd.
+    uint32_t numReportingContribs;
+                            // Added for ARCHIVE_HANDLE_VERSION_2
 };
 
 #endif /* BB_HANDLEFILE_H_ */
