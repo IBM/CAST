@@ -1127,6 +1127,13 @@ void BBTransferDef::markAsStopped(const LVKey* pLVKey, const uint64_t pHandle, c
     // Mark this transfer definition as canceled
     setCanceled(pLVKey, pHandle, pContribId);
 
+    // Now update the status for the Handle file in the xbbServer data to be STOPPED...
+    if (HandleFile::update_xbbServerHandleFile(pLVKey, getJobId(), getJobStepId(), pHandle, BBTD_Stopped, 1))
+    {
+        LOG(bb,error) << "BBTransferDef::markAsStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << getJobId() \
+                      << ", jobstepid " << getJobStepId() << ", handle " << pHandle;
+    }
+
     return;
 }
 
