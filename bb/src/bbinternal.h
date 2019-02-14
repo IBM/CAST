@@ -52,7 +52,7 @@ typedef struct fiemap_extent fiemap_extent_t;
 class AtomicCounter
 {
 public:
-   AtomicCounter() : value(1) {};
+   AtomicCounter() : value(0) {};
 
    uint64_t getNext()
    {

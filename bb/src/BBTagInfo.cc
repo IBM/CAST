@@ -311,46 +311,47 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
     jobstep /= bfs::path(to_string(pJob.getJobId()));
     jobstep /= bfs::path(to_string(pJob.getJobStepId()));
 
-    if(!bfs::exists(jobstep)) return 0;
-
-    for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+    if(bfs::exists(jobstep))
     {
-        bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
-        int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
-        if (!rc)
+        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
-            if (l_HandleFile->tag == pTag)
+            bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
+            int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
+            if (!rc)
             {
-                // Tags match...  Now, compare the list of contribs...
-                l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
-
-                if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                if (l_HandleFile->tag == pTag)
                 {
-                    l_Handle = stoul(handle.path().filename().string());
+                    // Tags match...  Now, compare the list of contribs...
+                    l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+
+                    if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                    {
+                        l_Handle = stoul(handle.path().filename().string());
+                    }
+                    else
+                    {
+                        LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                    }
+                    delete[] l_ContribArray;
+                    l_ContribArray = 0;
                 }
                 else
                 {
-                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
                 }
-                delete[] l_ContribArray;
-                l_ContribArray = 0;
+
+                if (l_Handle) break;
             }
             else
             {
-                LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
+                LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
             }
 
-            if (l_Handle) break;
-        }
-        else
-        {
-            LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
-        }
-
-        if (l_HandleFile)
-        {
-            delete l_HandleFile;
-            l_HandleFile = 0;
+            if (l_HandleFile)
+            {
+                delete l_HandleFile;
+                l_HandleFile = 0;
+            }
         }
     }
 

@@ -125,10 +125,10 @@ int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds)
             }
             catch(exception& e)
             {
-//                LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
 
                 if (--l_catch_count)
                 {
+//                    LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
                     l_AllDone = false;
                     pJobIds.clear();
                 }
@@ -151,7 +151,8 @@ int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds)
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    FL_Write(FLMetaData, HF_GetCurrentJobIds_End, "get current jobids, counter=%ld, attempts=%ld, errno=%ld, rc=%ld", l_FL_Counter, (uint64_t)(ATTEMPTS-l_catch_count), errno, rc);
+    FL_Write(FLMetaData, HF_GetCurrentJobIds_End, "get current jobids, counter=%ld, attempts=%ld, errno=%ld, rc=%ld",
+             l_FL_Counter, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), errno, rc);
 
     return rc;
 }
@@ -173,6 +174,10 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
     // First, build a vector of jobids that the current uid/gid is authorized to access.
     // We will iterate over these jobids in reverse order, as it is almost always
     // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
     rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
 
     if (!rc)
@@ -208,7 +213,7 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                      if (--l_catch_count)
                      {
 //                         LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
-                         l_AllDone = false;
+                        l_AllDone = false;
                      }
                      else //RAS
                      {
@@ -228,7 +233,8 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
         // bberror has already been filled in
     }
 
-    FL_Write6(FLMetaData, HF_GetJobForHandle_End, "get jobid for handle, counter=%ld, handle=%ld, jobid=%ld, attempts=%ld, rc=%ld", l_FL_Counter, pHandle, pJobId, (uint64_t)(ATTEMPTS-l_catch_count), rc, 0);
+    FL_Write6(FLMetaData, HF_GetJobForHandle_End, "get jobid for handle, counter=%ld, handle=%ld, jobid=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pHandle, pJobId, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }
@@ -253,6 +259,10 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     // First, build a vector of jobids that the current uid/gid is authorized to access.
     // We will iterate over these jobids in reverse order, as it is almost always
     // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
     rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
 
     if (!rc)
@@ -309,9 +319,9 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                     }
                     catch(exception& e)
                     {
-//                        LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
                         if (--l_catch_count)
                         {
+//                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
                             l_AllDone = false;
                         }
                         else //RAS
@@ -335,7 +345,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     }
 
     FL_Write6(FLMetaData, HF_GetHandle_End, "get handle, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
-              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(ATTEMPTS-l_catch_count), rc, 0);
+              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }
@@ -368,6 +378,10 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     // First, build a vector of jobids that the current uid/gid is authorized to access.
     // We will iterate over these jobids in reverse order, as it is almost always
     // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
     rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
 
     if (!rc)
@@ -489,7 +503,7 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     }
 
     FL_Write6(FLMetaData, HF_GetHandleInfo_End, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld",
-              l_FL_Counter, pJobId, pHandle, pContribId, (uint64_t)(ATTEMPTS-l_catch_count), rc);
+              l_FL_Counter, pJobId, pHandle, pContribId, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc);
 
     return rc;
 }
@@ -605,6 +619,10 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
     // First, build a vector of jobids that the current uid/gid is authorized to access.
     // We will iterate over these jobids in reverse order, as it is almost always
     // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
     rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
 
     if (!rc)
@@ -678,7 +696,7 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
     }
 
     FL_Write6(FLMetaData, HF_GetHandleKeys_End, "get handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
-              l_FL_Counter, pJobId, pHandle, (uint64_t)(ATTEMPTS-l_catch_count), rc, 0);
+              l_FL_Counter, pJobId, pHandle, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }
@@ -1624,6 +1642,10 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     // First, build a vector of jobids that the current uid/gid is authorized to access.
     // We will iterate over these jobids in reverse order, as it is almost always
     // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
     rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
 
     if (!rc)
@@ -1736,7 +1758,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     }
 
     FL_Write6(FLMetaData, HF_UpdateTransferKeys_End, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
-              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(ATTEMPTS-l_catch_count), rc, 0);
+              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }

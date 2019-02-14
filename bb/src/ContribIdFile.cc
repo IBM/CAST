@@ -134,7 +134,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
     bool l_ContribIdFound = false;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, CIF_Load1, "load contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
+    FL_Write(FLMetaData, CIF_Load1, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     pContribIdFile = 0;
     if(bfs::exists(pHandleFilePath))
@@ -198,7 +198,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
         LOG(bb,warning) << "Path to the handle file does not exist " << pHandleFilePath.string();
     }
 
-    FL_Write(FLMetaData, CIF_Load1_End, "load contribid file, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+    FL_Write(FLMetaData, CIF_Load1_End, "loadContribIdFile1, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
 
     return rc;
 }
@@ -217,7 +217,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path("contribs");
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, CIF_Load2, "load contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
+    FL_Write(FLMetaData, CIF_Load2, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     if(bfs::exists(l_ContribFilePath))
     {
@@ -261,7 +261,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
         LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
     }
 
-    FL_Write(FLMetaData, CIF_Load2_End, "load contribid file, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+    FL_Write(FLMetaData, CIF_Load2_End, "loadContribIdFile, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
 
     return rc;
 }
@@ -275,7 +275,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pNumLVUuidContribs = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, CIF_Load3, "load contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
+    FL_Write(FLMetaData, CIF_Load3, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     ContribFile* l_ContribFile = 0;
     for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
@@ -325,7 +325,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pNumHandleContribs = ((rc == -1) ? 0 : pNumHandleContribs);
     pNumLVUuidContribs = ((rc != 1) ? 0 : pNumLVUuidContribs);
 
-    FL_Write6(FLMetaData, CIF_Load3_End, "load contribid file, counter=%ld, contribid=%ld, number of handle contribs=%ld, number of LVUuid contribs=%ld, rc=%ld", l_FL_Counter, pContribId, pNumHandleContribs, pNumLVUuidContribs, rc, 0);
+    FL_Write6(FLMetaData, CIF_Load3_End, "loadContribIdFile, counter=%ld, contribid=%ld, number of handle contribs=%ld, number of LVUuid contribs=%ld, rc=%ld", l_FL_Counter, pContribId, pNumHandleContribs, pNumLVUuidContribs, rc, 0);
 
     return rc;
 }
@@ -340,7 +340,7 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path("contribs");
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, CIF_Save, "save contribid file, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
+    FL_Write(FLMetaData, CIF_Save, "saveContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     if(bfs::exists(l_ContribFilePath))
     {
@@ -375,7 +375,7 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
         LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
     }
 
-    FL_Write(FLMetaData, CIF_Save_End, "save contribid file, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+    FL_Write(FLMetaData, CIF_Save_End, "saveContribIdFile, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
 
     return rc;
 }
