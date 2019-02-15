@@ -128,9 +128,15 @@ int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds)
 
                 if (--l_catch_count)
                 {
-//                    LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
-                    l_AllDone = false;
+                    // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                    //        If not that, log the error and retry.
+                    if (errno != ENOENT)
+                    {
+                        LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                        << ". Attempting to rebuild the vector of jobids again...";
+                    }
                     pJobIds.clear();
+                    l_AllDone = false;
                 }
                 else //RAS
                 {
@@ -210,9 +216,18 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                 }
                 catch(exception& e)
                 {
-                     if (--l_catch_count)
-                     {
-//                         LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                    if (--l_catch_count)
+                    {
+                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                        //        If not that, log the error and retry.  Before retrying, remove the
+                        //        jobid that failed...
+                        if (errno != ENOENT)
+                        {
+                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                            << ". Retrying the operation...";
+                        }
+    		        	advance(rit, 1);
+    			        l_PathJobIds.erase(rit.base());
                         l_AllDone = false;
                      }
                      else //RAS
@@ -321,7 +336,16 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                     {
                         if (--l_catch_count)
                         {
-//                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                            // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                            //        If not that, log the error and retry.  Before retrying, remove the
+                            //        jobid that failed...
+                            if (errno != ENOENT)
+                            {
+                                LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                                << ". Retrying the operation...";
+                            }
+    	    	        	advance(rit, 1);
+    	    		        l_PathJobIds.erase(rit.base());
                             l_AllDone = false;
                         }
                         else //RAS
@@ -458,7 +482,16 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                     }
                     if (--l_catch_count)
                     {
-//                        LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                        //        If not that, log the error and retry.  Before retrying, remove the
+                        //        jobid that failed...
+                        if (errno != ENOENT)
+                        {
+                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                            << ". Retrying the operation...";
+                        }
+    		        	advance(rit, 1);
+    			        l_PathJobIds.erase(rit.base());
                         l_AllDone = false;
                     }
                     else //RAS
@@ -554,7 +587,8 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    FL_Write6(FLMetaData, HF_GetHandleList_End, "get handle list, counter=%ld, jobid=%ld, status=%ld, number returned=%ld, rc=%ld", l_FL_Counter, pJob.getJobId(), (uint64_t)pMatchStatus, (uint64_t)pHandles.size(), rc, 0);
+    FL_Write6(FLMetaData, HF_GetHandleList_End, "get handle list, counter=%ld, jobid=%ld, status=%ld, number returned=%ld, rc=%ld",
+              l_FL_Counter, pJob.getJobId(), (uint64_t)pMatchStatus, (uint64_t)pHandles.size(), rc, 0);
 
     return rc;
 }
@@ -673,7 +707,16 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
                     {
                         if (--l_catch_count)
                         {
-//                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                            // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                            //        If not that, log the error and retry.  Before retrying, remove the
+                            //        jobid that failed...
+                            if (errno != ENOENT)
+                            {
+                                LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                                << ". Retrying the operation...";
+                            }
+        		        	advance(rit, 1);
+        			        l_PathJobIds.erase(rit.base());
                             l_AllDone = false;
                         }
                         else //RAS
@@ -955,9 +998,15 @@ int HandleFile::lock(const char* pFilePath)
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
 
+    uint64_t l_FL_Counter2 = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Open, "open HF, counter=%ld", l_FL_Counter2, 0, 0, 0);
+
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
     fd = open(l_LockFile, O_WRONLY);
     threadLocalTrackSyscallPtr->clearTrack();
+
+    FL_Write(FLMetaData, HF_Open_End, "open HF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
+
     if (fd >= 0)
     {
         // Exclusive lock and this will block if needed
@@ -989,7 +1038,10 @@ int HandleFile::lock(const char* pFilePath)
             if (fd >= 0)
             {
                 LOG(bb,debug) << "lock(): Issue close for handle file fd " << fd;
+                uint64_t l_FL_Counter = metadataCounter.getNext();
+                FL_Write(FLMetaData, HF_CouldNotLockExcl, "open HF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
                 ::close(fd);
+                FL_Write(FLMetaData, HF_CouldNotLockExcl_End, "open HF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
             }
             fd = -1;
         }
@@ -1093,7 +1145,15 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    FL_Write(FLMetaData, HF_Save1_End, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+    if (!pHandleFile)
+    {
+        FL_Write(FLMetaData, HF_Save1_End, "saveHandleFile, counter=%ld, new handle file saved for jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+    }
+    else
+    {
+        FL_Write6(FLMetaData, HF_Save1b_End, "saveHandleFile, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, pHandleFile->flags, pHandleFile->totalTransferSize, (uint64_t)pHandleFile->numReportingContribs, rc);
+    }
 
     return rc;
 }
@@ -1133,7 +1193,15 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    FL_Write(FLMetaData, HF_Save2_End, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+    if (pHandleFile)
+    {
+        FL_Write6(FLMetaData, HF_Save2_End, "saveHandleFile, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, pHandleFile->flags, pHandleFile->totalTransferSize, (uint64_t)pHandleFile->numReportingContribs, rc);
+    }
+    else
+    {
+        FL_Write(FLMetaData, HF_Save2_ErrEnd, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
+    }
 
     return rc;
 }
@@ -1308,15 +1376,22 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
+        FL_Write6(FLMetaData, HF_UpdateFile_End, "update handle file, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, l_HandleFile->flags, l_HandleFile->totalTransferSize, l_HandleFile->numReportingContribs, rc);
         delete l_HandleFile;
         l_HandleFile = 0;
     }
-
-    FL_Write(FLMetaData, HF_UpdateFile_End, "update handle file, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+    else
+    {
+        FL_Write(FLMetaData, HF_UpdateFile_ErrEnd, "update handle file, counter=%ld, handle=%ld, rc=%ld",
+                 l_FL_Counter, pHandle, rc, 0);
+    }
 
     return rc;
 }
@@ -1348,15 +1423,22 @@ int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uin
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
+        FL_Write6(FLMetaData, HF_ResetStatus_End, "reset handle file status, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, l_HandleFile->flags, l_HandleFile->totalTransferSize, l_HandleFile->numReportingContribs, rc);
         delete l_HandleFile;
         l_HandleFile = 0;
     }
-
-    FL_Write(FLMetaData, HF_ResetStatus_End, "reset handle file status, counter=%ld, jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+    else
+    {
+        FL_Write(FLMetaData, HF_ResetStatus_ErrEnd, "reset handle file status, counter=%ld, handle=%ld, rc=%ld",
+                 l_FL_Counter, pHandle, rc, 0);
+    }
 
     return rc;
 }
@@ -1368,7 +1450,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     HANDLEFILE_SCAN_OPTION l_ScanOption = pScanOption;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld", l_FL_Counter, pJobId, pHandle, (uint64_t)pSize);
+    FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
+              l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1396,6 +1479,11 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         if (l_StartingStatus == BBPARTIALSUCCESS || l_StartingStatus == BBSTOPPED)
         {
             l_ScanOption = FULL_SCAN;
+        }
+        if (l_ScanOption == FULL_SCAN)
+        {
+            FL_Write(FLMetaData, HF_UpdateStatusFullScan, "update handle status, counter=%ld, starting status=%ld, original scan option=%ld, performing FULL_SCAN",
+                     l_FL_Counter, (uint64_t)l_StartingStatus, (uint64_t)pScanOption, 0);
         }
 
         if ((!(l_StartingStatus == BBFULLSUCCESS)) &&
@@ -1626,15 +1714,22 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
+        FL_Write6(FLMetaData, HF_UpdateStatus_End, "update handle status, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, l_HandleFile->flags, l_HandleFile->totalTransferSize, l_HandleFile->numReportingContribs, rc);
         delete l_HandleFile;
         l_HandleFile = 0;
     }
-
-    FL_Write6(FLMetaData, HF_UpdateStatus_End, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, rc, 0);
+    else
+    {
+        FL_Write(FLMetaData, HF_UpdateStatus_ErrEnd, "update handle status, counter=%ld, handle=%ld, rc=%ld",
+                 l_FL_Counter, pHandle, rc, 0);
+    }
 
     return rc;
 }
@@ -1747,7 +1842,16 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                     }
                     if (--l_catch_count)
                     {
-//                        LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                        //        If not that, log the error and retry.  Before retrying, remove the
+                        //        jobid that failed...
+                        if (errno != ENOENT)
+                        {
+                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                            << ". Retrying the operation...";
+                        }
+    		        	advance(rit, 1);
+    			        l_PathJobIds.erase(rit.base());
                         l_AllDone = false;
                     }
                     else //RAS
@@ -1774,6 +1878,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
@@ -1805,12 +1910,18 @@ void HandleFile::close(const int pFd)
 {
     if (pFd >= 0)
     {
+        uint64_t l_FL_Counter = metadataCounter.getNext();
+        FL_Write(FLMetaData, HF_Close, "close HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
         if (pFd == handleFileLockFd)
         {
             unlock();
         }
         LOG(bb,debug) << "close(): Issue close for handle file fd " << pFd;
+
         ::close(pFd);
+
+        FL_Write(FLMetaData, HF_Close_End, "close HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
     }
 }
 

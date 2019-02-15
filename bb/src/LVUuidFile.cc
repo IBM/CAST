@@ -24,6 +24,8 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
     Uuid lv_uuid = pLVKey->second;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
+    uint64_t l_Flags = 0;
+    uint64_t l_NewFlags = 0;
 
     bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     job /= bfs::path(to_string(pJobId));
@@ -49,8 +51,7 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
                     int rc2 = l_LVUuidFile.load(metafile.string());
                     if (!rc2)
                     {
-                        uint64_t l_Flags = l_LVUuidFile.flags;
-                        uint64_t l_NewFlags = 0;
+                        l_Flags = l_LVUuidFile.flags;
                         SET_FLAG_VAR(l_NewFlags, l_Flags, pFlags, pValue);
                         if (l_Flags != l_NewFlags)
                         {
@@ -70,7 +71,16 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
         }
     }
 
-    FL_Write(FLMetaData, LF_UpdateFile_End, "update LVUuid file, counter=%ld, job=%ld, rc=%ld", l_FL_Counter, pJobId, rc, 0);
+    if (!rc)
+    {
+        FL_Write6(FLMetaData, LF_UpdateFile_End, "update LVUuid file, counter=%ld, job=%ld, original flags=0x%lx, new flags=0x%lx, rc=%ld",
+                  l_FL_Counter, pJobId, l_Flags, l_NewFlags, rc, 0);
+    }
+    else
+    {
+        FL_Write(FLMetaData, LF_UpdateFile_ErrEnd, "update LVUuid file, counter=%ld, job=%ld, rc=%ld",
+                  l_FL_Counter, pJobId, rc, 0);
+    }
 
     return rc;
 }
@@ -173,7 +183,7 @@ int LVUuidFile::save(const string& pLVUuidFileName)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    FL_Write(FLMetaData, LF_Save_End, "save LVUuid file, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
+    FL_Write(FLMetaData, LF_Save_End, "save LVUuid file, counter=%ld, flags=0x%lx, rc=%ld", l_FL_Counter, flags, rc, 0);
 
     return rc;
 }

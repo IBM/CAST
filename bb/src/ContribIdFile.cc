@@ -77,7 +77,8 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
         LOG(bb,error) << "Handle file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << handle.string() << " does not exist.";
     }
 
-    FL_Write6(FLMetaData, CIF_AllExtentsXfered_End, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pTagId.getJobId(), pHandle, pContribId, rc, 0);
+    FL_Write6(FLMetaData, CIF_AllExtentsXfered_End, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
+              l_FL_Counter, pTagId.getJobId(), pHandle, pContribId, rc, 0);
 
     return rc;
 }
@@ -325,7 +326,8 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     pNumHandleContribs = ((rc == -1) ? 0 : pNumHandleContribs);
     pNumLVUuidContribs = ((rc != 1) ? 0 : pNumLVUuidContribs);
 
-    FL_Write6(FLMetaData, CIF_Load3_End, "loadContribIdFile, counter=%ld, contribid=%ld, number of handle contribs=%ld, number of LVUuid contribs=%ld, rc=%ld", l_FL_Counter, pContribId, pNumHandleContribs, pNumLVUuidContribs, rc, 0);
+    FL_Write6(FLMetaData, CIF_Load3_End, "loadContribIdFile, counter=%ld, contribid=%ld, number of handle contribs=%ld, number of LVUuid contribs=%ld, rc=%ld",
+              l_FL_Counter, pContribId, pNumHandleContribs, pNumLVUuidContribs, rc, 0);
 
     return rc;
 }
@@ -375,7 +377,16 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
         LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
     }
 
-    FL_Write(FLMetaData, CIF_Save_End, "saveContribIdFile, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
+    if (pContribIdFile)
+    {
+        FL_Write6(FLMetaData, CIF_Save_End, "saveContribIdFile, counter=%ld, contribid=%ld, flags=0x%lx, transfer size=%ld, rc=%ld",
+                  l_FL_Counter, pContribId, pContribIdFile->flags, pContribIdFile->totalTransferSize, rc, 0);
+    }
+    else
+    {
+        FL_Write(FLMetaData, CIF_Save_ErrEnd, "saveContribIdFile, counter=%ld, contribid=%ld, rc=%ld",
+                  l_FL_Counter, pContribId, rc, 0);
+    }
 
     return rc;
 }
@@ -452,13 +463,19 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
         }
     }
 
+
     if (l_ContribIdFile)
     {
+        FL_Write6(FLMetaData, CIF_UpdateFile_End, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, flags=0x%lx, rc=%ld",
+                  l_FL_Counter, pJobId, pHandle, pContribId, l_ContribIdFile->flags, rc);
         delete l_ContribIdFile;
         l_ContribIdFile = 0;
     }
-
-    FL_Write6(FLMetaData, CIF_UpdateFile_End, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
+    else
+    {
+        FL_Write6(FLMetaData, CIF_UpdateFile_ErrEnd, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
+                  l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
+    }
 
     return rc;
 }
@@ -651,13 +668,19 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
         }
     }
 
+
     if (l_ContribIdFile)
     {
+        FL_Write6(FLMetaData, CIF_UpdateStatus_End, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, flags=0x%lx, rc=%ld", \
+                  l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId, l_ContribIdFile->flags, rc);
         delete l_ContribIdFile;
         l_ContribIdFile = 0;
     }
-
-    FL_Write6(FLMetaData, CIF_UpdateStatus_End, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId, rc, 0);
+    else
+    {
+        FL_Write6(FLMetaData, CIF_UpdateStatus_ErrEnd, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", \
+                  l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId, rc, 0);
+    }
 
     return rc;
 }
@@ -773,7 +796,8 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
         pSize = -l_Size;
     }
 
-    FL_Write6(FLMetaData, CIF_UpdateStatusForRestart_End, "update contribid status for restart, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pRebuiltTransferDef->getJobId(), pHandle, pContribId, rc, 0);
+    FL_Write6(FLMetaData, CIF_UpdateStatusForRestart_End, "update contribid status for restart, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
+              l_FL_Counter, pRebuiltTransferDef->getJobId(), pHandle, pContribId, rc, 0);
 
     return rc;
 }
