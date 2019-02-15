@@ -63,7 +63,11 @@ Example (usage)
  usage: csm_db_history_delete.py [-h] -n count -d db [-u user]
                                  [--threads threads]
  
+ ------------------------------------------------------------------------------
  A tool for deleting the CSM Database history table records.
+ ------------------------------------------------------------------------------
+ LogDir:/var/log/ibm/csm/db/csm_db_history_delete.log
+ ------------------------------------------------------------------------------
  
  optional arguments:
    -h, --help            show this help message and exit
@@ -88,7 +92,14 @@ Script out results
  ---------------------------------------------------------------------------------------------------------
  Welcome to the CSM DB deletion of history table records script
  ---------------------------------------------------------------------------------------------------------
- Start Script Time:                 | 2018-12-10 11:56:13.395135
+ Start Script Time:                                    | 2019-02-13 18:45:06.385337
+ ---------------------------------------------------------------------------------------------------------
+ Deletion Log Directory:                               | /var/log/ibm/csm/db/csm_db_history_delete.log
+ ---------------------------------------------------------------------------------------------------------
+ DB Name:                                              | csmdb
+ DB User Name:                                         | postgres
+ Script User Name:                                     | root
+ Thread Count:                                         | 10
  ---------------------------------------------------------------------------------------------------------
  [INFO] Processing Table csm_allocation_state_history  | User Ct (time(mins)): 2880       | Act DB Ct: 0
  [INFO] Processing Table csm_config_history            | User Ct (time(mins)): 2880       | Act DB Ct: 0
@@ -116,12 +127,8 @@ Script out results
  [INFO] Processing Table csm_vg_ssd_history            | User Ct (time(mins)): 2880       | Act DB Ct: 0
  [INFO] Processing Table csm_ras_event_action          | User Ct (time(mins)): 2880       | Act DB Ct: 0
  ---------------------------------------------------------------------------------------------------------
- DB Name:                           | csmdb
- DB User Name:                      | postgres
- Thread Count:                      | 10
- Deletion Log Directory:            | /var/log/ibm/csm/db/csm_db_history_delete.log
- End Script Time:                   | 2018-12-10 11:56:13.441324
- Total Process Time:                | 0:00:00.046189
+ End Script Time:                                      | 2019-02-13 18:45:06.432052
+ Total Process Time:                                   | 0:00:00.046715
  ---------------------------------------------------------------------------------------------------------
  Finish CSM DB deletion script process
  ---------------------------------------------------------------------------------------------------------
@@ -130,11 +137,18 @@ If a user specifies a non related DB in the system, unrelated user name, or if t
 
 .. code-block:: bash
 
- [root@c650mnp02 db]# /opt/ibm/csm/db/csm_db_history_delete.py -d csmdb123 -n 1 -u abcd
+ [root@c650mnp02 db]# /opt/ibm/csm/db/csm_db_history_delete.py -d csmdb -n 1
  ---------------------------------------------------------------------------------------------------------
  Welcome to the CSM DB deletion of history table records script
  ---------------------------------------------------------------------------------------------------------
- Start Script Time:                 | 2018-12-10 11:56:19.555008
+ Start Script Time:                                    | 2019-02-13 18:48:43.727626
+ ---------------------------------------------------------------------------------------------------------
+ Deletion Log Directory:                               | /var/log/ibm/csm/db/csm_db_history_delete.log
+ ---------------------------------------------------------------------------------------------------------
+ DB Name:                                              | csmdb
+ DB User Name:                                         | postgres
+ Script User Name:                                     | root
+ Thread Count:                                         | 10
  ---------------------------------------------------------------------------------------------------------
  [CRITICAL] Unable to connect to local database.
  [CRITICAL] Unable to connect to local database.
@@ -162,12 +176,8 @@ If a user specifies a non related DB in the system, unrelated user name, or if t
  [CRITICAL] Unable to connect to local database.
  [CRITICAL] Unable to connect to local database.
  ---------------------------------------------------------------------------------------------------------
- DB Name:                           | csmdb123
- DB User Name:                      | abcd
- Thread Count:                      | 10
- Deletion Log Directory:            | /var/log/ibm/csm/db/csm_db_history_delete.log
- End Script Time:                   | 2018-12-10 11:56:19.601613
- Total Process Time:                | 0:00:00.046605
+ End Script Time:                                      | 2019-02-13 18:48:43.771443
+ Total Process Time:                                   | 0:00:00.043817
  ---------------------------------------------------------------------------------------------------------
  Finish CSM DB deletion script process
  ---------------------------------------------------------------------------------------------------------

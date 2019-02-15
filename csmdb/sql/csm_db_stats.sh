@@ -1,9 +1,9 @@
 #!/bin/bash
-#================================================================================
+#--------------------------------------------------------------------------------
 #   
 #    csm_db_stats.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -12,14 +12,14 @@
 #    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 # 
-#================================================================================
+#--------------------------------------------------------------------------------
 
-#================================================================================
+#--------------------------------------------------------------------------------
 #   usage:              ./csm_db_stats.sh
-#   current_version:    01.9
+#   current_version:    01.10
 #   create:             08-02-2016
-#   last modified:      12-04-2018
-#================================================================================
+#   last modified:      02-15-2019
+#--------------------------------------------------------------------------------
 
 export PGOPTIONS='--client-min-messages=warning'
 
@@ -33,28 +33,28 @@ line1_out="---------------------------------------------------------------------
 line2_log="------------------------------------------------------------------------------------"
 line3_log="---------------------------------------------------------------------------------------------------------------------------"
 
-#==============================================
+#----------------------------------------------
 # Current user connected---
-#==============================================
+#----------------------------------------------
 current_user=`id -u -n`
 db_username="postgres"
 now1=$(date '+%Y-%m-%d %H:%M:%S')
 
 BASENAME=`basename "$0"`
 
-#==============================================
+#----------------------------------------------
 # Log Message---
-#================================================================================
+#----------------------------------------------------------------------------
 # This checks the existence of the default log directory.
 # If the default doesn't exist it will write the log filesto /tmp directory
 # The current version will only display results to the screen
-#================================================================================
+#----------------------------------------------------------------------------
 
-#==============================================
+#----------------------------------------------
 # This checks the existence of the default
 # log directory.  If the default doesn't exist
 # it will write the log files to /tmp directory
-#==============================================
+#----------------------------------------------
 
 if [ -w "$logpath" ]; then
     logdir="$logpath"
@@ -63,64 +63,75 @@ else
 fi
 logfile="${logdir}/${logname}"
 
-#==============================================
+#----------------------------------------------
 # Log Message function
-#==============================================
+#----------------------------------------------
 
 function LogMsg () {
 now=$(date '+%Y-%m-%d %H:%M:%S')
 echo "$now ($current_user) $1" >> $logfile
 }
 
-#================================
+#----------------------------------------------
 # Log messaging intro. header
-#================================
+#----------------------------------------------
+echo "${line1_out}"
+echo "[Start ] Welcome to CSM datatbase automation stats script."
+#echo "${line3_log}" >> $logfile
 LogMsg "[Start ] Welcome to CSM datatbase automation stats script."
+echo "${line1_out}"
+echo "[Info  ] Log Dir: $logdir/$logname"
 
-#==============================================
+
+
+#----------------------------------------------
 # Usage Command Line Functions
-#==============================================
+#----------------------------------------------
 
 function usage () {
-echo "================================================================================================="
+echo "------------------------------------------------------------------------------------------------------------------------"
 echo "[Info ] $BASENAME : List/Kill database user sessions"
 echo "[Usage] $BASENAME : [OPTION]... [DBNAME]"
-echo "-------------------------------------------------------------------------------------------------"
-echo "  Argument               |  DB Name  | Description                                               "
-echo "-------------------------|-----------|-----------------------------------------------------------"
-echo " -t, --tableinfo         | [db_name] | Populates Database Table Stats:                           "
-echo "                         |           | Live Row Count, Inserts, Updates, Deletes, and Table Size "
-echo " -i, --indexinfo         | [db_name] | Populates Database Index Stats:                           "
-echo "                         |           | tablename, indexname, num_rows, tbl_size, ix_size, uk,    "
-echo "                         |           | num_scans, tpls_read, tpls_fetched                        "
-echo " -x, --indexanalysis     | [db_name] | Displays the index usage analysis                         "
-echo " -l, --lockinfo          | [db_name] | Displays any locks that might be happening within the DB  "
-echo " -s, --schemaversion     | [db_name] | Displays the current CSM DB version                       "
-echo " -c, --connectionsdb     | [db_name] | Displays the current DB connections                       "
-echo " -u, --usernamedb        | [db_name] | Displays the current DB user names and privileges         "
-echo " -v, --postgresqlversion | [db_name] | Displays the current version of PostgreSQL installed      "
-echo "                         |           | along with environment details                            "
-echo " -a, --archivecount      | [db_name] | Displays the archived and non archive record counts       "
-echo " -h, --help              |           | help                                                      "
-echo "-------------------------|-----------|-----------------------------------------------------------"
+echo "------------------------------------------------------------------------------------------------------------------------"
+echo "  Argument               |  DB Name  | Description"
+echo "-------------------------|-----------|----------------------------------------------------------------------------------"
+echo " -t, --tableinfo         | [db_name] | Populates Database Table Stats:"
+echo "                         |           | Live Row Count, Inserts, Updates, Deletes, and Table Size"
+echo " -i, --indexinfo         | [db_name] | Populates Database Index Stats:"
+echo "                         |           | tablename, indexname, num_rows, tbl_size, ix_size, uk,"
+echo "                         |           | num_scans, tpls_read, tpls_fetched"
+echo " -x, --indexanalysis     | [db_name] | Displays the index usage analysis"
+echo " -l, --lockinfo          | [db_name] | Displays any locks that might be happening within the DB"
+echo " -s, --schemaversion     | [db_name] | Displays the current CSM DB version"
+echo " -c, --connectionsdb     | [db_name] | Displays the current DB connections"
+echo " -u, --usernamedb        | [db_name] | Displays the current DB user names and privileges"
+echo " -v, --postgresqlversion | [db_name] | Displays the current version of PostgreSQL installed"
+echo "                         |           | along with environment details"
+echo " -a, --archivecount      | [db_name] | Displays the archived and non archive record counts"
+echo " -d, --deletecount       | [db_name] | Displays the total record count based on time interval"
+echo " -k, --vacuumstats       | [db_name] | Displays the DB vacuum statistics"
+echo " -h, --help              |           | help"
+echo "-------------------------|-----------|----------------------------------------------------------------------------------"
 echo "[Examples]"
-echo "-------------------------------------------------------------------------------------------------"
-echo "   $BASENAME -t, --tableinfo          [dbname]    | Database table stats"
-echo "   $BASENAME -i, --indexinfo          [dbname]    | Database index stats"
-echo "   $BASENAME -x, --indexanalysisinfo  [dbname]    | Database index usage analysis stats"
-echo "   $BASENAME -l, --lockinfo           [dbname]    | Database lock stats"
-echo "   $BASENAME -s, --schemaversion      [dbname]    | Database schema version (CSM_DB only)"
-echo "   $BASENAME -c, --connectionsdb      [dbname]    | Database connections stats"
-echo "   $BASENAME -u, --usernamedb         [dbname]    | Database user stats"
-echo "   $BASENAME -v, --postgresqlversion  [dbname]    | Database (PostgreSQL) version"
-echo "   $BASENAME -a, --archivecount       [dbname]    | Database archive stats"
-echo "   $BASENAME -h, --help               [dbname]    | Help menu"
-echo "================================================================================================="
+echo "------------------------------------------------------------------------------------------------------------------------"
+echo "   $BASENAME -t, --tableinfo         | [dbname] |        | Database table stats"
+echo "   $BASENAME -i, --indexinfo         | [dbname] |        | Database index stats"
+echo "   $BASENAME -x, --indexanalysisinfo | [dbname] |        | Database index usage analysis stats"
+echo "   $BASENAME -l, --lockinfo          | [dbname] |        | Database lock stats"
+echo "   $BASENAME -s, --schemaversion     | [dbname] |        | Database schema version (CSM_DB only)"
+echo "   $BASENAME -c, --connectionsdb     | [dbname] |        | Database connections stats"
+echo "   $BASENAME -u, --usernamedb        | [dbname] |        | Database user stats"
+echo "   $BASENAME -v, --postgresqlversion | [dbname] |        | Database (PostgreSQL) version"
+echo "   $BASENAME -a, --archivecount      | [dbname] |        | Database archive stats"
+echo "   $BASENAME -d, --deletecount       | [dbname] | [time] | Database delete count stats"
+echo "   $BASENAME -k, --vacuumstats       | [dbname] |        | Database vacuum stats"
+echo "   $BASENAME -h, --help              | [dbname] |        | Help menu"
+echo "------------------------------------------------------------------------------------------------------------------------"
 }
 
-#==============================================
+#----------------------------------------------
 #---Default flags---
-#==============================================
+#----------------------------------------------
 
 createdbstats="no"
 createixstats="no"
@@ -131,10 +142,12 @@ usernamedb="no"
 postgresqlversion="no"
 archivecount="no"
 indexanalysis="no"
+deletecount="no"
+vacuumstats="no"
 
-#==============================================
+#----------------------------------------------
 # long options to short along with fixed length
-#==============================================
+#----------------------------------------------
 
 reset=true
 for arg in "$@"
@@ -144,115 +157,143 @@ do
       set --      # this resets the "$@" array
     fi
     case "$arg" in
-        --tableinfo)                    set -- "$@" -t ;;
-        -tableinfo)                     usage && exit 0 ;;
-        --indexinfo)                    set -- "$@" -i ;;
-        -indexinfo)                     usage && exit 0 ;;
-        --lockinfo)                     set -- "$@" -l ;;
-        -lockinfo)                      usage && exit 0 ;;
-        --schemaversion)                set -- "$@" -s ;;
-        -schemaversion)                 usage && exit 0 ;;
-        --connectionsdb)                set -- "$@" -c ;;
-        -connectionsdb)                 usage && exit 0 ;;
-        --usernamedb)                   set -- "$@" -c ;;
-        -usernamedb)                    usage && exit 0 ;;
-        --postgresqlversion)            set -- "$@" -v ;;
-        -postgresqlversion)             usage && exit 0 ;;
-        --archivecount)                 set -- "$@" -a ;;
-        -archivecount)                  usage && exit 0 ;;
-        --indexanalysis)                set -- "$@" -x ;;
-        -indexanalysis)                 usage && exit 0 ;;
-        --help)                         set -- "$@" -h ;;
-        -help)                          usage && exit 0 ;;
-        -t|-i|-l|-s|-c|-u|-v|-a|-x|-h)  set -- "$@" "$arg" ;;
-        #-*)                            usage && exit 0 ;;
-        -*)                             usage
-                                        LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
-                                        LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
-                                        LogMsg "[End   ] Please choose another option"
-                                        echo "${line3_log}" >> $logfile
-                                        exit 0 ;;
+        --tableinfo)                            set -- "$@" -t ;;
+        -tableinfo)                             usage && exit 0 ;;
+        --indexinfo)                            set -- "$@" -i ;;
+        -indexinfo)                             usage && exit 0 ;;
+        --lockinfo)                             set -- "$@" -l ;;
+        -lockinfo)                              usage && exit 0 ;;
+        --schemaversion)                        set -- "$@" -s ;;
+        -schemaversion)                         usage && exit 0 ;;
+        --connectionsdb)                        set -- "$@" -c ;;
+        -connectionsdb)                         usage && exit 0 ;;
+        --usernamedb)                           set -- "$@" -c ;;
+        -usernamedb)                            usage && exit 0 ;;
+        --postgresqlversion)                    set -- "$@" -v ;;
+        -postgresqlversion)                     usage && exit 0 ;;
+        --archivecount)                         set -- "$@" -a ;;
+        -archivecount)                          usage && exit 0 ;;
+        --indexanalysis)                        set -- "$@" -x ;;
+        -indexanalysis)                         usage && exit 0 ;;
+        --deletecount)                          set -- "$@" -d ;;
+        -deletecount)                           usage && exit 0 ;;
+        --help)                                 set -- "$@" -h ;;
+        -help)                                  usage && exit 0 ;;
+        -t|-i|-l|-s|-c|-u|-v|-a|-x|-d|-k|-h)    set -- "$@" "$arg" ;;
+        #-*)                                    usage && exit 0 ;;
+        -*)                                     usage
+                                                LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
+                                                LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
+                                                LogMsg "[End   ] Please choose another option"
+                                                echo "${line3_log}" >> $logfile
+                                                exit 0 ;;
        # pass through anything else
-       *)                               set -- "$@" "$arg" ;;
+       *)                                       set -- "$@" "$arg" ;;
     esac
 done
 
-#==============================================
+#----------------------------------------------
 # now we can drop into the short getopts
-#==============================================
+#----------------------------------------------
 # Also checks the existence of the user and pid
 # If neither of these are available then an
 # error message will prompt and will be logged.
-#==============================================
+#----------------------------------------------
 
-while getopts "t:i:l:s:c:u:v:a:x:h:" arg; do
+while getopts "t:i:l:s:c:u:v:a:x:d:k:h:" arg; do
     case ${arg} in
         t)
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Populate Stats on the DB
             # (Live row count, Insert, Update, Delete)
             # probably want to set populate below during conflict checks
-            #============================================================================
+            #----------------------------------------------------------------------------
             createdbstats="yes"
             dbname=$OPTARG
             ;;
         i)  
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Populate Stats on the DB (tablename|indexname|num_rows
             # |tbl_size| ix_size|uk|num_scans|tpls_read|tpls_fetched)
-            #============================================================================
+            #----------------------------------------------------------------------------
             createixstats="yes"
             dbname=$OPTARG
             ;;
         l)  
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display DB Lock ( blocked_pid | blocked_user | blocking_pid |
             # blocking_user | blocked_statement | current_statement_in_blocking_process |
             # blocked_application | blocking_application)
-            #============================================================================
+            #----------------------------------------------------------------------------
             createlstats="yes"
             dbname=$OPTARG
             ;;
         s)  
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display CSM DB Schema Version currently running
-            #============================================================================
+            #----------------------------------------------------------------------------
             schemaversion="yes"
             dbname=$OPTARG
             ;;
         c)
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display current postgresql DB connections
-            #============================================================================
+            #----------------------------------------------------------------------------
             connectionsdb="yes"
             dbname=$OPTARG
             ;;
         u)
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display current postgresql DB usernames and privileges
-            #============================================================================
+            #----------------------------------------------------------------------------
             usernamedb="yes"
             dbname=$OPTARG
             ;;
         v)
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display current postgresql version installed
-            #============================================================================
+            #----------------------------------------------------------------------------
             postgresqlversion="yes"
             dbname=$OPTARG
             ;;
         a)
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display current postgresql DB archive record counts
-            #============================================================================
+            #----------------------------------------------------------------------------
             archivecount="yes"
             dbname=$OPTARG
             ;;
         x)
-            #============================================================================
+            #----------------------------------------------------------------------------
             # Display current postgresql DB index analysis
-            #============================================================================
+            #----------------------------------------------------------------------------
             indexanalysis="yes"
+            dbname=$OPTARG
+            ;;
+        d)
+            #----------------------------------------------------------------------------
+            # Display current postgresql DB index analysis
+            #----------------------------------------------------------------------------
+            deletecount="yes"
+            dbname=$OPTARG
+            if [[ -z "$3" ]]; then
+                echo "${line1_out}"
+                echo "[Error ] Please specify the time interval"
+                echo "[Info  ] Example: ./csm_db_stats.sh -d csmdb 1 [min(s)]"
+                LogMsg "[Error ] Please specify the time interval"
+                LogMsg "[Info  ] Example: ./csm_db_stats.sh -d csmdb 1 [min(s)]"
+                echo "${line1_out}"
+                echo "${line3_log}" >> $logfile
+                exit 0
+            fi
+            #htn=$3
+            time=$3
+            ;;
+        k)
+            #----------------------------------------------------------------------------
+            # Display current postgresql DB index analysis
+            #----------------------------------------------------------------------------
+            vacuumstats="yes"
             dbname=$OPTARG
             ;;
         #h|*)
@@ -274,9 +315,9 @@ while getopts "t:i:l:s:c:u:v:a:x:h:" arg; do
     esac
 done
 
-#=================================================
+#-------------------------------------------------
 # Check if postgresql exists already and root user
-#=================================================
+#-------------------------------------------------
 string1="$now1 ($current_user) [Info  ] DB Users:"
     psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
         if [ $? -ne 0 ]; then
@@ -293,9 +334,9 @@ EOF`
             exit 0
         fi
 
-#=================================================
+#-------------------------------------------------
 # Check if postgresql exists already and DB name
-#=================================================
+#-------------------------------------------------
 string2="$now1 ($current_user) [Info  ] DB Names:"
     psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
         if [ $? -eq 0 ]; then       #<------------This is the error return code
@@ -316,9 +357,9 @@ EOF`
             exit 1
         fi
 
-#==============================================
+#-------------------------------------------------
 # Checks to see if no arguments are passed in
-#==============================================
+#-------------------------------------------------
 
 if [ $# -eq 0 ]; then
     usage
@@ -329,9 +370,9 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
-#==============================================
+#-------------------------------------------------
 # Create Table stats
-#=========================================================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -349,6 +390,8 @@ return_code=0
             cast(n_tup_del AS numeric)
         AS 
             delete_count,
+            n_dead_tup 
+        AS  dead_tuples,
             pg_size_pretty(pg_relation_size(quote_ident(relname)::text)) AS table_size
         FROM
             pg_stat_user_tables 
@@ -369,9 +412,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # CSM_DB_Index_Information
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -421,9 +464,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # CSM_DB_Index_Analysis
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -456,9 +499,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # Lock Monitoring
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -492,9 +535,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # DB connections stats
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -515,9 +558,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # DB usernames stats
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -537,9 +580,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # Schema Version stats
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -559,9 +602,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # DB history archiving stats
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -597,9 +640,9 @@ return_code=0
         exit $return_code
     fi
 
-#==============================================
+#-------------------------------------------------
 # PostgreSQL Version stats
-#==============================================
+#-------------------------------------------------------------------------
 # return code added to ensure it was successful or failed during this step
 #-------------------------------------------------------------------------
 return_code=0
@@ -615,6 +658,97 @@ return_code=0
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -v, --postgresqlversion (db_name): $dbname"
         LogMsg "[End   ] PostgeSQL version and environment query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
+    fi
+
+#-------------------------------------------------
+# CSM DB archive history record count
+#-------------------------------------------------------------------------
+# return code added to ensure it was successful or failed during this step
+#-------------------------------------------------------------------------
+
+#---------------------------------------------
+# A list of history tables for processing.
+#---------------------------------------------
+
+TABLES=(
+    csm_allocation_history csm_allocation_node_history csm_allocation_state_history \
+    csm_config_history csm_db_schema_version_history csm_diag_result_history \
+    csm_diag_run_history csm_dimm_history csm_gpu_history csm_hca_history \
+    csm_ib_cable_history csm_lv_history csm_lv_update_history csm_node_history \
+    csm_node_state_history csm_processor_socket_history csm_ssd_history \
+    csm_ssd_wear_history csm_step_history csm_step_node_history csm_switch_history \
+    csm_switch_inventory_history csm_vg_history csm_vg_ssd_history)
+
+#---------------------------------------------
+# The list of RAS tables.
+#---------------------------------------------
+
+RAS_TABLES=(csm_ras_event_action)
+
+return_code=0
+
+    if [ $deletecount == "yes" ]; then
+	    echo "${line1_out}"
+	    printf '%-1s %-32s %-16s %-18s\n'"" "[Info  ] " " Table Name: " " | Time interval: " "   | Total Records: "
+        echo "${line1_out}"
+
+    #-------------------------------------------
+    # Looping through each of the history tables
+    #-------------------------------------------
+
+    for table in "${TABLES[@]}"
+    do
+        delete_query_1=$(psql -q -t -U $db_username -d $dbname -P format=wrapped -c "SELECT count(history_time) \
+		FROM ${table} WHERE history_time < (NOW() - INTERVAL '$time MIN') \
+		AND archive_history_time IS NOT NULL" 2>>/dev/null)
+    	printf '%0s %-32s %-20s %-18s\n'"" "[Info  ] " " ${table}" " | $time (mins)" " | $delete_query_1"
+    done
+
+    #---------------------------------------
+    # Looping through each of the RAS tables
+    #---------------------------------------
+
+    for table in "${RAS_TABLES[@]}"
+    do
+        delete_query_2=$(psql -q -t -U $db_username -d $dbname -P format=wrapped -c "SELECT count(master_time_stamp) \
+		FROM ${table} WHERE master_time_stamp < (NOW() - INTERVAL '$time MIN') \
+		AND archive_history_time IS NOT NULL" 2>>/dev/null)
+    	printf '%-1s %-32s %-20s %-18s\n'"" "[Info  ] " " ${table}" " | $time (mins)" " | $delete_query_2"
+    done
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table or database does not exist in the system or time interval not specified"
+                LogMsg "[Error ] Table or database does not exist in the system or time interval not specified"
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -d, --deletecount (db_name): $dbname"
+        LogMsg "[End   ] DB schema version query executed"
+        echo "${line3_log}" >> $logfile
+        exit $return_code
+    fi
+
+#-------------------------------------------------
+# DB vacuum stats
+#-------------------------------------------------------------------------
+# return code added to ensure it was successful or failed during this step
+#-------------------------------------------------------------------------
+return_code=0
+    if [ $vacuumstats == "yes" ]; then
+        echo "${line1_out}"
+        psql -U $db_username $dbname -P format=wrapped -c "
+        select relname AS table_name, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze from pg_stat_user_tables;" 2>>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "[Error ] Table and or database does not exist in the system"
+                LogMsg "[Error ] Table and or database does not exist in the system" 
+                echo "${line1_out}"
+            else
+                echo "${line1_out}"
+            fi
+        LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -k, --vacuumstats (db_name): $dbname"
+        LogMsg "[End   ] DB vacuum stats query executed"
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi

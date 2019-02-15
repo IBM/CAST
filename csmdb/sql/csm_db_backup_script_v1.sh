@@ -1,9 +1,9 @@
 #!/bin/bash
-#================================================================================
+#--------------------------------------------------------------------------------
 #
 #    csm_db_backup_script_v1.sh
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -12,14 +12,14 @@
 #    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
-#================================================================================
+#--------------------------------------------------------------------------------
 
-#================================================================================
+#--------------------------------------------------------------------------------
 #   usage:              Backup CSM DB related data, tables, triggers, functions, etc.
-#   current_version:    1.2
+#   current_version:    1.3
 #   created:            03-26-2018
-#   last modified:      12-05-2018
-#================================================================================
+#   last modified:      02-15-2019
+#--------------------------------------------------------------------------------
 
 #----------------------------------------------------------------
 # Defined variables
@@ -46,6 +46,9 @@ script_name="csm_db_backup_script_v1.sh"
 line1_out="------------------------------------------------------------------------------------------------------------------------"
 line2_log="------------------------------------------------------------------------------------"
 line3_log="-------------------------------------------------------------------------------------------------------------------"
+line4_out="-------------------------------------------------------------------------------------------------------------"
+
+res1=$(date +%s.%N)
 
 #-------------------------------------------------------------------------------
 # Current user connected
@@ -60,24 +63,27 @@ now1=$(date '+%Y-%m-%d %H:%M:%S')
 #------------------------------------------------------------------------------------------------------------------------------
 
 function usage () {
-    echo "================================================================================================================="
-    echo "[Info ] $BASENAME : csmdb /tmp/csmdb_backup/"
-    echo "[Info ] $BASENAME : csmdb"
-    #echo "----------------------------------------------------------------------------------------------------------------"
-    echo "[Usage] $BASENAME : [OPTION]... [/DIR/]"
-    echo "-----------------------------------------------------------------------------------------------------------------"
-    echo "[Options]"
-    echo "----------------|------------------------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------------------------------------------------"
+    echo "[Info    ] $BASENAME : csmdb /tmp/csmdb_backup/"
+    echo "[Info    ] $BASENAME : csmdb"
+    echo "[Usage   ] $BASENAME : [OPTION]... [/DIR/]"
+    echo "[Usage   ] $BASENAME : [OPTION]... [/DIR/]"
+    echo "------------------------------------------------------------------------------------------------------------------------"
+    echo "[Log Dir ] /var/log/ibm/csm/db/csm_db_backup_script.log   (if root user and able to write to directory)"
+    echo "[Log Dir ] /tmp/csm_db_backup_script.log                  (if postgres user and or not able to write to specific directory"
+    echo "------------------------------------------------------------------------------------------------------------------------"
+    echo "[Options ]"
+    echo "----------------|-------------------------------------------------------------------------------------------------------"
     echo "  Argument      | Description"
-    echo "----------------|------------------------------------------------------------------------------------------------"
+    echo "----------------|-------------------------------------------------------------------------------------------------------"
     echo "   -h, --help   | help menu"
-    echo "----------------|------------------------------------------------------------------------------------------------"
+    echo "----------------|-------------------------------------------------------------------------------------------------------"
     echo "[Examples]"
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------------------------------------------------"
     echo "   $BASENAME [DBNAME]                 | (default) will backup database to /var/lib/pgpsql/backups/ (directory)"
     echo "   $BASENAME [DBNAME] [/DIRECTORY/]   | will backup database to specified directory"
     echo "                                                       | if the directory doesn't exist then it will be made and written."
-    echo "================================================================================================================="
+    echo "------------------------------------------------------------------------------------------------------------------------"
 }
 
 #----------------------------------------------------
@@ -117,7 +123,8 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
 #----------------------------------------------------------------
 
     if [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; then
-        echo "[Info   ] Database name is required"
+        echo "${line1_out}"
+        echo "[Info    ] Database name is required"
         usage
         exit 1
     fi
@@ -140,10 +147,10 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
         mkdir -p $data_dir 2>>/dev/null
         if [ $? -ne 0 ]; then
             echo "${line1_out}"
-            echo "[Error  ] make directory failed for: $data_dir" 2>>/dev/null
-            echo "[Info   ] User: $current_user does not have permission to write to this directory"
-            echo "[Info   ] Please specify a valid directory"
-            echo "[Info   ] Or log in as the appropriate user"
+            echo "[Error   ] make directory failed for: $data_dir" 2>>/dev/null
+            echo "[Info    ] User: $current_user does not have permission to write to this directory"
+            echo "[Info    ] Please specify a valid directory"
+            echo "[Info    ] Or log in as the appropriate user"
             echo "${line1_out}"
             exit 1
         else
@@ -178,22 +185,24 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
 
     echo "${line1_out}"
     echo "[Start   ] Welcome to CSM datatbase backup process:"
-    LogMsg "[Start ] Welcome to CSM datatbase backup process:"
+    LogMsg "[Start   ] Welcome to CSM datatbase backup process:"
     LogMsg "${line2_log}"
 
 #-------------------------------------------------
 # Check if postgresql exists already and root user
 #-------------------------------------------------
-string1="$now1 ($current_user) [Info  ] DB Users:"
+string1="$now1 ($current_user) [Info    ] DB Users:"
     psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
         if [ $? -ne 0 ]; then
             db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
             \set ON_ERROR_STOP true
             select string_agg(usename,' | ') from pg_user;
 EOF`
-            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
+            echo "$string1 $db_user_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile
             echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
-            LogMsg "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 0
@@ -202,7 +211,7 @@ EOF`
 #-------------------------------------------------
 # Check if postgresql exists already and DB name
 #-------------------------------------------------
-string2="$now1 ($current_user) [Info  ] DB Names:"
+string2="$now1 ($current_user) [Info    ] DB Names:"
     psql -lqt | cut -d \| -f 1 | grep -qw $dbname 2>>/dev/null
         if [ $? -eq 0 ]; then       #<------------This is the error return code
             db_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
@@ -210,19 +219,23 @@ string2="$now1 ($current_user) [Info  ] DB Names:"
             select string_agg(datname,' | ') from pg_database;
 EOF`
             echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
-            LogMsg "[Info  ] PostgreSQL is installed"
+            LogMsg "${line2_log}"
+            LogMsg "[Info    ] PostgreSQL is installed"
         else
             echo "${line1_out}"
-            echo "[Error ] PostgreSQL may not be installed or DB: $dbname may not exist."
-            echo "[Info  ] Please check configuration settings or psql -l"
+            echo "[Error   ] PostgreSQL may not be installed or DB: $dbname may not exist."
+            echo "[Info    ] Please check configuration settings or psql -l"
+            echo "[Info    ] Log directory: $logdir/$logname"
             echo "${line1_out}"
-            LogMsg "[Error ] PostgreSQL may not be installed or DB $dbname may not exist."
-            LogMsg "[Info  ] Please check configuration settings or psql -l"
+            LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
+            LogMsg "[Info    ] Please check configuration settings or psql -l"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
             echo "${line3_log}" >> $logfile
             exit 1
         fi
 
-        LogMsg "[Info  ] csm_db_backup_script_v1.sh"
+        LogMsg "[Info    ] csm_db_backup_script_v1.sh"
 
 #----------------------------------------------------------------
 # Check if database exists
@@ -241,16 +254,17 @@ EOF`
 
     if [ $db_exists == "no" ]; then
 
-        LogMsg "[Info  ] Database does not exist."
+        LogMsg "[Info    ] Database does not exist."
         echo "${line1_out}"
         echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
         echo "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
         echo "[Info    ] Backup/log directory:    | $data_dir"
         echo "${line1_out}"
-        LogMsg "[Error ] Cannot perform action because the $dbname database does not exist. Exiting."
-        LogMsg "[Info  ] Backup/log directory:  |   $cur_path"
-        echo "${line2_log}" >> $logfile
-        LogMsg "[End   ] Please provide a valid DB that exists on the system (hint: psql -l)."
+        LogMsg "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
+        LogMsg "[Info    ] Backup/log directory:  |   $cur_path"
+        LogMsg "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
         echo "${line3_log}" >> $logfile
         exit 1
     fi
@@ -282,22 +296,62 @@ conn_trim=$(echo "$conn_count" | sed 's/^ //')
 #----------------------------------------------------------------
 
 if [ $conn_count == "0" ]; then
-    #echo "${line1_out}"
-    echo "[Info    ] There are no connections to: $dbname DB                                "
-    LogMsg "[Info  ] There are no connections to: $dbname DB                                  "
-    echo "[Info    ] Backing up: $dbname DB                                                 "
-    LogMsg "[Info  ] Backing up: $dbname DB                                                   "
+    echo "${line1_out}"
+    echo "[Info    ] There are no connections to: |  $dbname"
+    LogMsg "${line2_log}"
+    LogMsg "[Info    ] There are no connections to: | $dbname"
+    echo "[Info    ] Backup directory:            |  $data_dir"
+    LogMsg "[Info    ] Backup directory:            | $cur_path"
+    echo "[Info    ] Log directory:               |  $logdir/$logname"
+    LogMsg "[Info    ] Log directory:               | $logdir/$logname"
+    echo "[Info    ] Backing up DB:               |  $dbname"
+    LogMsg "[Info    ] Backing up DB:               | $dbname"
+    echo "[Info    ] DB_Version:                  |  $trim"
+    LogMsg "[Info    ] DB_Version:                  | $trim"
+    echo "[Info    ] DB User Name:                |  $db_username"
+    LogMsg "[Info    ] DB User Name:                | $db_username"
+    echo "[Info    ] Script User:                 |  $current_user"
+    LogMsg "[Info    ] Script User:                 | $current_user"
+
     [ "${data_dir: -1}" != "/" ] && data_dir="${data_dir}/"
-    pg_dump -U $db_username -Fc $dbname > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
+        
+    #-----------------------------------
+    # Check to see if 'pv' is installed
+    #-----------------------------------
+
+    FILE="/usr/bin/pv" 2>&1
+        if [ -f $FILE ]; then
+            pg_dump -U $db_username -Fc $dbname | pv -w 80 -F '[Info    ] Script Stats:                |  [%b] [%t] %r %a %e' > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
+        else
+            echo "[Info    ] PV statistics:               |  Might not be installed (continuing process)"
+            LogMsg "[Info    ] PV statistics:               | Might not be installed (continuing process)"
+            pg_dump -U $db_username -Fc $dbname > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
+        fi
 else
     echo "${line1_out}"
     echo "[Error   ] Cannot perform action because the $dbname database currently has connections. Exiting."
-    LogMsg "[Error ] Cannot perform action because the $dbname database currently has connections. Exiting."
+    LogMsg "[Error   ] Cannot perform action because the $dbname database currently has connections. Exiting."
     echo "[Info    ] Please kill all connections to $dbname database before backing up."
-    LogMsg "[Info  ] Please kill all connections to $dbname database before backing up."
+    LogMsg "[Info    ] Please kill all connections to $dbname database before backing up."
     echo "[Info    ] (hint: run ./csm_db_connections_script.sh -h for more options)."
-    LogMsg "[Info  ] (hint: run ./csm_db_connections_script.sh -h for more options)."
+    LogMsg "[Info    ] (hint: run ./csm_db_connections_script.sh -h for more options)."
+    echo "${line1_out}"
+    echo "[Info    ] Log directory: $logdir/$logname"
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
+    exit 0
 fi
+
+res2=$(date +%s.%N)
+dt=$(echo "$res2 - $res1" | bc)
+dd=$(echo "$dt/86400" | bc)
+dt2=$(echo "$dt-86400*$dd" | bc)
+dh=$(echo "$dt2/3600" | bc)
+dt3=$(echo "$dt2-3600*$dh" | bc)
+dm=$(echo "$dt3/60" | bc)
+ds=$(echo "$dt3-60*$dm" | bc)
 
 #----------------------------------------------------------------
 # Output results to the screen.
@@ -307,28 +361,24 @@ fi
 # 4. Backup log directory
 #----------------------------------------------------------------
 
-    echo "[Info    ] ${line2_log}"
+    echo "[Info    ] ${line4_out}"
     LogMsg "${line2_log}"
-    echo "[Info    ] Database_Name:           |  $dbname"
-    LogMsg "[Info  ] Database_Name:         |   $dbname"
-    echo "[Info    ] Connection_count:        |  $conn_count"
-    LogMsg "[Info  ] Connection_count:      |   $conn_count"
-    echo "[Info    ] DB_Version:              |  $trim"
-    LogMsg "[Info  ] DB_Version:            |   $trim"
-    echo "[Info    ] Backup directory:        | $data_dir"
-    LogMsg "[Info  ] Backup directory:      |   $cur_path"
-    echo "[Info    ] Log directory:           | $logdir/$logname"
-    LogMsg "[Info  ] Log directory:         |   $logdir/$logname"
-    
+    printf "[Info    ] Timing:                      |  %d:%02d:%02d:%02.4f\n" $dd $dh $dm $ds
+    LogMsg "[Info    ] Timing:                      | $dd:$dh:$dm:0$ds"
+
     #-----------------------------------------
     # Logging info based on connection status
     #-----------------------------------------
     if [ $conn_count == "0"  ]; then
-        echo "${line3_log}" >> $logfile
-        LogMsg "[End   ] Backup process complete"
+        echo "${line1_out}"
+        echo "[End     ] Backup process complete"
+        LogMsg "[Info    ] Backup process               | [Complete]"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
     else
-        echo "${line2_log}" >> $logfile
-        LogMsg "[End   ] Backup process aborted"
+        LogMsg "[Info    ] Backup process               | [Aborted]"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
     fi
     echo "${line1_out}"
 echo "${line3_log}" >> $logfile
