@@ -424,7 +424,10 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
             rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
             if (!rc) {
                 // NOTE:  Pass a zero for the size.  Size is only updated when the last extent for a file is transferred.
-                if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+                // NOTE:  If the stopped, failed, or canceled flag is set, specify that a full scan be performed by
+                //        update_xbbServerHandleStatus() so that the handle status is set correctly.
+                if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0,
+                     ((l_ContribIdFile->flags & BBTD_Stopped || l_ContribIdFile->flags & BBTD_Failed || l_ContribIdFile->flags & BBTD_Canceled) ? FULL_SCAN : NORMAL_SCAN)))
                 {
                     LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFile():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
                                   << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;

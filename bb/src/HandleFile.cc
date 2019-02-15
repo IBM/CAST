@@ -1361,10 +1361,11 @@ int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uin
     return rc;
 }
 
-int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize)
+int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption)
 {
     int rc = 0;
     stringstream errorText;
+    HANDLEFILE_SCAN_OPTION l_ScanOption = pScanOption;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld", l_FL_Counter, pJobId, pHandle, (uint64_t)pSize);
@@ -1381,16 +1382,24 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         uint64_t l_StartingStatus = l_HandleFile->status;
         uint64_t l_StartingTotalTransferSize = l_HandleFile->totalTransferSize;
         //  NOTE: Full success and canceled are the only final states so we don't have to recalculate the handle status.
-        //  NOTE: Partial success and stopped are temporary final states until the status is reset during restart processing.
-        //        Therefore, at this point in the processing, we don't have to recalculate the handle status.
         //  NOTE: A canceled handle is a final state because it only becomes canceled after all associated files are
         //        closed and the handle itself is marked as canceled.  No additional transitions can occur.
+        //  NOTE: Partial success and stopped are temporary final states until the status is reset during restart processing.
+        //        We will ALWAYS do a FULL scan if the current status is BBSTOPPED or BBPARTIALSUCCESS.  Multiple contributors
+        //        could be causing the BBSTOPPED or BBPARTIALSUCCESS state, so we always have to do a FULL scan to determine
+        //        when, and if, the state should transition to BBINPROGRESS.
+        //  NOTE: For a transfer definition having it's status set to failed, canceled, or stopped, update_xbbServerContribIdFile()
+        //        first updates the appropriate ContribIdFile.  After updating the ContribIdFile, this method is then invoked to update
+        //        the handle status.  It is invoked with a scan option of FULL_SCAN so that the handle file status is properly set.
         //  NOTE: A stopped handle can become canceled;  A failed handle can become stopped;
         //  NOTE: For restart scenarios, a partially successful status can transition to stopped and then to in-progress.
-        if ( (!(l_StartingStatus == BBFULLSUCCESS)) &&
-             (!(l_StartingStatus == BBCANCELED)) &&
-             (!(l_StartingStatus == BBPARTIALSUCCESS)) &&
-             (!(l_StartingStatus == BBSTOPPED)))
+        if (l_StartingStatus == BBPARTIALSUCCESS || l_StartingStatus == BBSTOPPED)
+        {
+            l_ScanOption = FULL_SCAN;
+        }
+
+        if ((!(l_StartingStatus == BBFULLSUCCESS)) &&
+            (!(l_StartingStatus == BBCANCELED)))
         {
             bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
             handle /= bfs::path(to_string(pJobId));
@@ -1404,6 +1413,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             uint64_t l_NumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
             bool l_CanceledDefinitions = false;
             bool l_FailedDefinitions = false;
+            bool l_StoppedDefinitions = false;
             bool l_ExitEarly = false;
             for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
             {
@@ -1419,15 +1429,23 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         {
                             // Not all extents have been transferred yet...
                             l_AllExtentsTransferred = 0;
-                            l_ExitEarly = true;
                             LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not all extents transferred";
-                            break;
+                            if (l_ScanOption == NORMAL_SCAN)
+                            {
+                                l_ExitEarly = true;
+                                break;
+                            }
                         }
                         if ((ce->second.flags & BBTD_All_Files_Closed) == 0)
                         {
                             // Not all files have been closed yet...
                             l_AllFilesClosed = 0;
                             LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not closed";
+                        }
+                        if (ce->second.flags & BBTD_Stopped)
+                        {
+                            l_StoppedDefinitions = true;
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
                         }
                         if (ce->second.flags & BBTD_Failed)
                         {
@@ -1474,41 +1492,47 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 //       BBSTOPPED state, awaiting for the proper restart operation(s) to eventually transition
                 //       the handle back to the BBINPROGRESS state.  The handle is transitioned to the STOPPED
                 //       state directly by the code setting an individual transfer definition as STOPPED.
-                l_HandleFile->status = BBNONE;
-                if (l_NumberOfHandleReportingContribs == l_HandleFile->numContrib)
+                if (!l_StoppedDefinitions)
                 {
-                    // All contributors have reported...
-                    l_HandleFile->flags |= BBTI_All_Contribs_Reported;
-                    if (!l_AllExtentsTransferred)
+                    if (l_NumberOfHandleReportingContribs == l_HandleFile->numContrib)
                     {
-                        l_HandleFile->status = BBINPROGRESS;
-                    }
-                    else
-                    {
-                        // All extents have been transferred
-                        // NOTE: This indication is turned on in the cross-bbServer metadata
-                        //       before it is turned on in the local metadata for the 'last'
-                        //       bbServer to do processing for this handle.  It will be turned
-                        //       on in the local metadata when BBTagInfo::setAllExtentsTransferred()
-                        //       is invoked a little later on in this code path during the processing
-                        //       for the last extent.  It is turned on here as this is the only
-                        //       place where we determine when all extents have been processed
-                        //       across ALL bbServers associated with this handle.
-                        l_HandleFile->flags |= BBTD_All_Extents_Transferred;
-                        if (l_AllFilesClosed)
+                        // All contributors have reported...
+                        l_HandleFile->flags |= BBTI_All_Contribs_Reported;
+                        if (!l_AllExtentsTransferred)
                         {
-                            // All files have been marked as closed (but maybe not successfully,
-                            // but then those files are marked as BBFAILED...)
-                            l_HandleFile->flags |= BBTD_All_Files_Closed;
-                            if (!l_FailedDefinitions)
+                            l_HandleFile->status = BBINPROGRESS;
+                        }
+                        else
+                        {
+                            // All extents have been transferred
+                            // NOTE: This indication is turned on in the cross-bbServer metadata
+                            //       before it is turned on in the local metadata for the 'last'
+                            //       bbServer to do processing for this handle.  It will be turned
+                            //       on in the local metadata when BBTagInfo::setAllExtentsTransferred()
+                            //       is invoked a little later on in this code path during the processing
+                            //       for the last extent.  It is turned on here as this is the only
+                            //       place where we determine when all extents have been processed
+                            //       across ALL bbServers associated with this handle.
+                            l_HandleFile->flags |= BBTD_All_Extents_Transferred;
+                            if (l_AllFilesClosed)
                             {
-                                if (!l_CanceledDefinitions)
+                                // All files have been marked as closed (but maybe not successfully,
+                                // but then those files are marked as BBFAILED...)
+                                l_HandleFile->flags |= BBTD_All_Files_Closed;
+                                if (!l_FailedDefinitions)
                                 {
-                                    l_HandleFile->status = BBFULLSUCCESS;
-                                }
-                                else if (l_HandleFile->flags & BBTD_Canceled)
-                                {
-                                    l_HandleFile->status = BBCANCELED;
+                                    if (!l_CanceledDefinitions)
+                                    {
+                                        l_HandleFile->status = BBFULLSUCCESS;
+                                    }
+                                    else if (l_HandleFile->flags & BBTD_Canceled)
+                                    {
+                                        l_HandleFile->status = BBCANCELED;
+                                    }
+                                    else
+                                    {
+                                        l_HandleFile->status = BBPARTIALSUCCESS;
+                                    }
                                 }
                                 else
                                 {
@@ -1517,8 +1541,16 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             }
                             else
                             {
-                                l_HandleFile->status = BBPARTIALSUCCESS;
+                                l_HandleFile->status = BBINPROGRESS;
                             }
+                        }
+                    }
+                    else
+                    {
+                        // Not all contributors have reported
+                        if (!l_NumberOfHandleReportingContribs)
+                        {
+                            l_HandleFile->status = BBNOTSTARTED;
                         }
                         else
                         {
@@ -1528,15 +1560,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 }
                 else
                 {
-                    // Not all contributors have reported
-                    if (!l_NumberOfHandleReportingContribs)
-                    {
-                        l_HandleFile->status = BBNOTSTARTED;
-                    }
-                    else
-                    {
-                        l_HandleFile->status = BBINPROGRESS;
-                    }
+                    l_HandleFile->status = BBSTOPPED;
                 }
             }
 
@@ -1587,7 +1611,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         }
         else
         {
-            // Status already set for handle...
+            // Final status already set for the handle.  The status value cannot change, nor
+            // can any other attribute associated with this handle file change.
         }
     }
     else

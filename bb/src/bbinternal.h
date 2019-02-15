@@ -224,6 +224,13 @@ enum HANDLEFILE_LOCK_FEEDBACK
 };
 typedef enum HANDLEFILE_LOCK_FEEDBACK HANDLEFILE_LOCK_FEEDBACK;
 
+enum HANDLEFILE_SCAN_OPTION
+{
+    NORMAL_SCAN = 0,
+    FULL_SCAN   = 1
+};
+typedef enum HANDLEFILE_SCAN_OPTION HANDLEFILE_SCAN_OPTION;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/
