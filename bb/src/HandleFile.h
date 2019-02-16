@@ -157,7 +157,6 @@ public:
     static int testForLock(const char* pFile);
     static void unlock(const int pFd);
     static int update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue=1);
-    static int update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     static int update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption=NORMAL_SCAN);
     static int update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle);
 

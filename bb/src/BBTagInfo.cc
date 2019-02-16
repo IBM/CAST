@@ -264,6 +264,36 @@ void BBTagInfo::bumpTransferHandle(uint64_t& pHandle) {
     return;
 }
 
+void BBTagInfo::calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
+    int l_CanceledTransferDefinitions = parts.anyCanceledTransferDefinitions();
+    if (canceled() != l_CanceledTransferDefinitions)
+    {
+        setCanceled(pLVKey, pJobId, pJobStepId, pHandle, l_CanceledTransferDefinitions);
+    }
+    return;
+}
+
+void BBTagInfo::calcFailed(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
+    int l_FailedTransferDefinitions = parts.anyFailedTransferDefinitions();
+    if (failed() != l_FailedTransferDefinitions)
+    {
+        setFailed(pLVKey, pJobId, pJobStepId, pHandle, l_FailedTransferDefinitions);
+    }
+    return;
+}
+
+void BBTagInfo::calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
+    int l_StoppedTransferDefinitions = parts.anyStoppedTransferDefinitions();
+    if (stopped() != l_StoppedTransferDefinitions)
+    {
+        setStopped(pLVKey, pJobId, pJobStepId, pHandle, l_StoppedTransferDefinitions);
+    }
+    return;
+}
+
 void BBTagInfo::dump(const char* pSev) {
     stringstream l_Temp;
     expectContribToSS(l_Temp);
@@ -553,15 +583,13 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
         {
             if (pPass == THIRD_PASS)
             {
-                // Next, reset the flags for the handle and HandleFile...
+                // Next, reset/recalculate the flags for the handle and HandleFile...
+                // NOTE: The handle file should already be recalculated as it's status is updated
+                //       as the ContribIdFile was updated...
                 setAllExtentsTransferred(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                setCanceled(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                setFailed(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                setStopped(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                HandleFile::update_xbbServerHandleResetStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-
-                // Update the handle status to recalculate the new status
-                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
+                calcCanceled(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                calcFailed(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                calcStopped(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
             }
         }
     }
@@ -635,7 +663,7 @@ void BBTagInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJo
         SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN)))
         {
             LOG(bb,error) << "BBTagInfo::setAllExtentsTransferred():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
@@ -721,7 +749,7 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
         SET_FLAG(BBTD_Stopped, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, pValue))
         {
             LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;

@@ -134,6 +134,6 @@
 
 #define BB_AddFilesFlagsMask                          0x00000000000FFFFF
 #define BB_ResetContribIdFileForRestartFlagsMask      0x000F7000008FFFFF
-#define BB_ResetHandleFileForRestartFlagsMask         0x0000000000000000
+#define BB_ResetHandleFileAttributesFlagsMask         0xE8EFFFFFFFFFFFFF
 #define BB_RetrieveTransferDefinitionsFlagsMask       0xFFFFF000008FFFFF
 #endif /* BB_BBFLAGS_H_ */

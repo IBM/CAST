@@ -48,6 +48,26 @@ int BBTagParts::allExtentsTransferred(const uint32_t pContribId) {
     }
 }
 
+int BBTagParts::anyCanceledTransferDefinitions() {
+    int rc = 0;
+
+    for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
+        rc = (it->second).canceled();
+    }
+
+    return rc;
+}
+
+int BBTagParts::anyFailedTransferDefinitions() {
+    int rc = 0;
+
+    for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
+        rc = (it->second).failed();
+    }
+
+    return rc;
+}
+
 int BBTagParts::anyStoppedTransferDefinitions() {
     int rc = 0;
 

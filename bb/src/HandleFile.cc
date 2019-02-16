@@ -1362,7 +1362,9 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         if (!rc)
         {
             // Update the handle status
-            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
+            // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
+            //        Performing the full scan will re-calculate the attribute value across all bbServers.
+            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN));
         }
     }
     else
@@ -1390,53 +1392,6 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
     else
     {
         FL_Write(FLMetaData, HF_UpdateFile_ErrEnd, "update handle file, counter=%ld, handle=%ld, rc=%ld",
-                 l_FL_Counter, pHandle, rc, 0);
-    }
-
-    return rc;
-}
-
-int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
-{
-    int rc = 0;
-    stringstream errorText;
-
-    uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, HF_ResetStatus, "reset handle file status, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
-
-    HandleFile* l_HandleFile = 0;
-    char* l_HandleFileName = 0;
-    // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
-    //       be updating simultaneously
-    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
-    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
-    if (!rc)
-    {
-        l_HandleFile->status = BBNONE;
-        l_HandleFile->flags &= BB_ResetHandleFileForRestartFlagsMask;
-        LOG(bb,info) << "xbbServer: Flags reset prior to restart for " << *pLVKey << ", handle " << pHandle;
-        rc = saveHandleFile(l_HandleFile, pLVKey, pJobId, pJobStepId, pHandle);
-    }
-
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
-
-    if (l_HandleFile)
-    {
-        l_HandleFile->close(l_LockFeedback);
-
-        FL_Write6(FLMetaData, HF_ResetStatus_End, "reset handle file status, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
-                  l_FL_Counter, pHandle, l_HandleFile->flags, l_HandleFile->totalTransferSize, l_HandleFile->numReportingContribs, rc);
-        delete l_HandleFile;
-        l_HandleFile = 0;
-    }
-    else
-    {
-        FL_Write(FLMetaData, HF_ResetStatus_ErrEnd, "reset handle file status, counter=%ld, handle=%ld, rc=%ld",
                  l_FL_Counter, pHandle, rc, 0);
     }
 
@@ -1474,6 +1429,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         //  NOTE: For a transfer definition having it's status set to failed, canceled, or stopped, update_xbbServerContribIdFile()
         //        first updates the appropriate ContribIdFile.  After updating the ContribIdFile, this method is then invoked to update
         //        the handle status.  It is invoked with a scan option of FULL_SCAN so that the handle file status is properly set.
+        //  NOTE: Anytime any attribute flag is being turned off for a transfer definition, this method is invoked to update
+        //        the corresponding handle attribute.  It is invoked with a scan option of FULL_SCAN so that the handle attribute
+        //        is properly calculated and set.
+        //  NOTE: As discussed in the previous note, restart logic is the primary reason attribute flags are turned off for the
+        //        appropriate contribid and handle files.  These code paths will all specify a FULL_SCAN so that the proper
+        //        corresponding handle file attributes are properly calculated and set.
         //  NOTE: A stopped handle can become canceled;  A failed handle can become stopped;
         //  NOTE: For restart scenarios, a partially successful status can transition to stopped and then to in-progress.
         if (l_StartingStatus == BBPARTIALSUCCESS || l_StartingStatus == BBSTOPPED)
@@ -1566,6 +1527,34 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 if (rc || l_ExitEarly)
                 {
                     break;
+                }
+            }
+
+            if (l_ScanOption == FULL_SCAN)
+            {
+                // Reset the appropriate attribute flags
+                l_HandleFile->flags &= BB_ResetHandleFileAttributesFlagsMask;
+
+                // Set the attribute flags based upon the scan results above
+                if (l_AllExtentsTransferred)
+                {
+                    l_HandleFile->flags |= BBTD_All_Extents_Transferred;
+                }
+                if (l_CanceledDefinitions)
+                {
+                    l_HandleFile->flags |= BBTD_Canceled;
+                }
+                if (l_FailedDefinitions)
+                {
+                    l_HandleFile->flags |= BBTD_Failed;
+                }
+                if (l_StoppedDefinitions)
+                {
+                    l_HandleFile->flags |= BBTD_Stopped;
+                }
+                if (l_AllFilesClosed)
+                {
+                    l_HandleFile->flags |= BBTD_All_Files_Closed;
                 }
             }
 
