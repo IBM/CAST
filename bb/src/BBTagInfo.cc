@@ -583,9 +583,16 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
         {
             if (pPass == THIRD_PASS)
             {
-                // Next, reset/recalculate the flags for the handle and HandleFile...
+                // Next, reset the flags for the local cached handle information.
                 // NOTE: The handle file should already be recalculated as it's status is updated
-                //       as the ContribIdFile was updated...
+                //       as the ContribIdFile is updated (code above).  These attributes for the
+                //       handle file will again be recalculated as the local attributes for the handle
+                //       are reset, but it does no harm.
+                // NOTE: We cannot unconditionally reset the canceled, failed, and stopped attributes
+                //       for the local handle information because we could have more than one contributor
+                //       being restarted for a given CN.  In this case, the attribute in the local handle
+                //       information will be reset when the last of those restarted transfer definitions
+                //       for the CN is processed by restart.
                 setAllExtentsTransferred(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
                 calcCanceled(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
                 calcFailed(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);

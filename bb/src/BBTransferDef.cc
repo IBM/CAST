@@ -1025,8 +1025,8 @@ BBFILESTATUS BBTransferDef::getFileStatus(const LVKey* pLVKey, ExtentInfo& pExte
     l_HandleFilePath /= bfs::path(to_string(getJobId()));
     l_HandleFilePath /= bfs::path(to_string(getJobStepId()));
     l_HandleFilePath /= bfs::path(to_string(pExtentInfo.getHandle()));
-    int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pExtentInfo.getContrib());
-    switch (l_RC)
+    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pExtentInfo.getContrib());
+    switch (rc)
     {
         case 1:
         {
@@ -1149,24 +1149,28 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     }
     else if (pPass == THIRD_PASS)
     {
-        // First, reset the following transfer definition/ContribId file flags
-        setAllFilesClosed(pLVKey, pHandle, pContribId, 0);
-        setAllExtentsTransferred(pLVKey, pHandle, pContribId, 0);
-        setExtentsEnqueued(pLVKey, pHandle, pContribId, 0);
-        setCanceled(pLVKey, pHandle, pContribId, 0);
-        setFailed(pLVKey, pHandle, pContribId, 0);
-        setStopped(pLVKey, pHandle, pContribId, 0);
-
-        // Next, reset the appropriate flags for each individual file transfer to be restarted.
-        // The size transferred for the file in the local metadata is also reset.
-        int64_t l_Size = 0;
-        rc = ContribIdFile::update_xbbServerFileStatusForRestart(pLVKey, pRebuiltTransferDef, pHandle, pContribId, l_Size);
+        // First, reset the transfer definition/ContribId file flags
+        rc = resetForRestart(pLVKey, pHandle, pContribId);
 
         if (!rc)
         {
-            // Update the handle status to recalculate the total transfer size
-            HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, l_Size);
+            // Next, reset the appropriate flags for each individual file transfer to be restarted.
+            // The size transferred for the file in the local metadata is also reset.
+            int64_t l_Size = 0;
+            rc = ContribIdFile::update_xbbServerFileStatusForRestart(pLVKey, pRebuiltTransferDef, pHandle, pContribId, l_Size);
 
+            if (!rc)
+            {
+                // Update the handle status to recalculate the total transfer size
+                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, l_Size);
+
+            }
+            else
+            {
+                LOG(bb,error) << "BBTransferDef::prepareForRestart(): Attempting to reset cross bbServer metadata for jobid " << job.getJobId() \
+                              <<   ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                              << " for individual files to be restarted failed";
+            }
         }
         else
         {
@@ -1232,7 +1236,7 @@ void BBTransferDef::removeTargetFiles(const LVKey* pLVKey)
 
 int BBTransferDef::replaceExtentVector(vector<Extent>* pNewList)
 {
-    int l_RC = 0;
+    int rc = 0;
 
     extents.clear();
     for(auto& e : *pNewList)
@@ -1240,12 +1244,12 @@ int BBTransferDef::replaceExtentVector(vector<Extent>* pNewList)
         extents.push_back(e);
     }
 
-    return l_RC;
+    return rc;
 }
 
 int BBTransferDef::replaceExtentVector(BBTransferDef* pTransferDef)
 {
-    int l_RC = 0;
+    int rc = 0;
 
     extents.clear();
     for(auto& e : pTransferDef->extents)
@@ -1253,8 +1257,20 @@ int BBTransferDef::replaceExtentVector(BBTransferDef* pTransferDef)
         extents.push_back(e);
     }
 
-    return l_RC;
+    return rc;
 }
+
+#if BBSERVER
+int BBTransferDef::resetForRestart(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    // Reset the status for the ContribId and Handle files in the xbbServer data...
+    rc = ContribIdFile::update_xbbServerContribIdFileResetForRestart(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId);
+
+    return rc;
+}
+#endif
 
 uint64_t BBTransferDef::retrieveJobId() {
     return job.getJobId();
@@ -1536,8 +1552,8 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     l_HandleFilePath /= bfs::path(to_string(pJobId));
                     l_HandleFilePath /= bfs::path(to_string(pJobStepId));
                     l_HandleFilePath /= bfs::path(to_string(pHandle));
-                    int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                    switch (l_RC)
+                    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                    switch (rc)
                     {
                         case 1:
                         {

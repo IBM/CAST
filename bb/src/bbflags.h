@@ -88,6 +88,8 @@
 // NOTE: Low order twelfth nibble of BBTransferDef.flags
 // NOTE: BBTD_All_CN_CP_Transfers is set in the transfer definition by bbbproxy processing,
 //       but bbserver does not use this for decision making...
+// NOTE: BBTD_Extents_Enqueued is maintained in the contribid file, but not
+//       for each file in the contribid file.
 #define BBTD_All_CN_CP_Transfers                      0x0000100000000000
 #define BBTD_No_Stagein_Or_Stageout_Transfers         0x0000200000000000
 #define BBTD_Built_Via_Retrieve_Transfer_Definition   0x0000400000000000
@@ -133,7 +135,8 @@
 #define BBTD_All_Files_Closed                         0x1000000000000000
 
 #define BB_AddFilesFlagsMask                          0x00000000000FFFFF
-#define BB_ResetContribIdFileForRestartFlagsMask      0x000F7000008FFFFF
-#define BB_ResetHandleFileAttributesFlagsMask         0xE8EFFFFFFFFFFFFF
+#define BB_ResetContribIdForRestartFlagsMask          0xE8E0000000000000
+#define BB_ResetContribIdFileForRestartFlagsMask      0xE8E00000008FFFFF
+#define BB_ResetHandleFileAttributesFlagsMask         0xE8E0000000000000
 #define BB_RetrieveTransferDefinitionsFlagsMask       0xFFFFF000008FFFFF
 #endif /* BB_BBFLAGS_H_ */

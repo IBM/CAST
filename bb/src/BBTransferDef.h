@@ -340,6 +340,9 @@ class BBTransferDef
 #endif
     int replaceExtentVector(vector<Extent>* pNewList);
     int replaceExtentVector(BBTransferDef* pTransferDef);
+#if BBSERVER
+    int resetForRestart(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
+#endif
     uint64_t retrieveJobId();
     uint64_t retrieveJobStepId();
 #if BBSERVER

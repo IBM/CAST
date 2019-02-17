@@ -435,9 +435,15 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
             rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
             if (!rc) {
                 // NOTE:  Pass a zero for the size.  Size is only updated when the last extent for a file is transferred.
-                // NOTE:  If the stopped, failed, or canceled flag is set, specify that a full scan be performed by
+                // NOTE:  We invoke update_xbbServerHandleStatus() here instead of update_xbbServerHandleFile().  This is because
+                //        none of the attributes that we turn on for the contribid file are absolute to the handle file.  When turning
+                //        on an attribute, it has to be calculated along with information from the other contributors.  Update status
+                //        performs this logic.  When turning off an attribute (restart logic), some of these are absolute to the
+                //        handle file but the same calculation logic in update status will turn off those attributes in the handle file.
+                //        This calculation of an attribute is only performed by update status when a FULL_SCAN is performed.
+                // NOTE:  If the stopped, failed, or canceled flag is set, specify that a FULL_SCAN be performed by
                 //        update_xbbServerHandleStatus() so that the handle status is set correctly.
-                // NOTE:  If we are turning a flag off, specify that a full scan be performed by update_xbbServerHandleStatus()
+                // NOTE:  If we are turning a flag off, specify that a FULL_SCAN be performed by update_xbbServerHandleStatus()
                 //        so that the corresponding attribute in the handle file is set correctly.
                 if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0,
                      (((!pValue) || l_ContribIdFile->flags & BBTD_Stopped || l_ContribIdFile->flags & BBTD_Failed || l_ContribIdFile->flags & BBTD_Canceled) ? FULL_SCAN : NORMAL_SCAN)))
@@ -476,6 +482,90 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     else
     {
         FL_Write6(FLMetaData, CIF_UpdateFile_ErrEnd, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
+                  l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
+    }
+
+    return rc;
+}
+
+int ContribIdFile::update_xbbServerContribIdFileResetForRestart(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_UpdateResetRestart, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
+    ContribIdFile* l_ContribIdFile = 0;
+    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    l_HandleFilePath /= bfs::path(to_string(pJobId));
+    l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+    l_HandleFilePath /= bfs::path(to_string(pHandle));
+    rc = loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+    switch (rc)
+    {
+        case 1:
+        {
+#ifndef __clang_analyzer__  // zeroing rc is not necessary, but safer to have this here
+            rc = 0;
+#endif
+            uint64_t l_Flags = l_ContribIdFile->flags;
+            uint64_t l_NewFlags = l_Flags & BB_ResetContribIdForRestartFlagsMask;
+
+            if (l_Flags != l_NewFlags)
+            {
+                LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+            }
+
+            l_ContribIdFile->flags = l_NewFlags;
+
+            rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+            if (!rc) {
+                // NOTE:  Pass a zero for the size.  Size is only updated when the last extent for a file is transferred.
+                // NOTE:  We invoke update_xbbServerHandleStatus() here instead of update_xbbServerHandleFile().  This is because
+                //        none of the attributes that we turn on for the contribid file are absolute to the handle file.  When turning
+                //        on an attribute, it has to be calculated along with information from the other contributors.  Update status
+                //        performs this logic.  When turning off attribute(s) (as here, with restart logic), some of these are absolute to the
+                //        handle file but the same calculation logic in update status will turn off those attributes in the handle file.
+                //        This calculation of an attribute is only performed by update status when a FULL_SCAN is performed.
+                // NOTE:  If we are turning a flag off, specify that a FULL_SCAN be performed by update_xbbServerHandleStatus()
+                //        so that the corresponding attribute in the handle file is set correctly.
+                if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, FULL_SCAN))
+                {
+                    LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFileResetForRestart():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
+                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                }
+            } else {
+                LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFileResetForRestart():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
+                              << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+            }
+
+            break;
+        }
+        case 0:
+        {
+            rc = -1;
+            LOG(bb,error) << "ContribId " << pContribId << " could not be found in the contrib file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath.string();
+
+            break;
+        }
+        default:
+        {
+            LOG(bb,error) << "Could not load the contrib file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath.string();
+        }
+    }
+
+
+    if (l_ContribIdFile)
+    {
+        FL_Write6(FLMetaData, CIF_UpdateResetRestart_End, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, flags=0x%lx, rc=%ld",
+                  l_FL_Counter, pJobId, pHandle, pContribId, l_ContribIdFile->flags, rc);
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+    else
+    {
+        FL_Write6(FLMetaData, CIF_UpdateResetRestart_ErrEnd, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
                   l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
     }
 
