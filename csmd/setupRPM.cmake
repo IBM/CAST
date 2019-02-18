@@ -31,3 +31,5 @@ set( CPACK_RPM_csm-core_POST_INSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csmd/rpmscripts/csmd.post.install")
 
 set(CPACK_RPM_csm-core_PACKAGE_REQUIRES "nvme-cli")
+
+set(CPACK_RPM_csm-db_PACKAGE_REQUIRES "pv")
