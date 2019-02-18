@@ -183,7 +183,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
         l_Maintenance = MINIMAL_MAINTENANCE;
     }
 
-    int l_Retry = 10;
+    int l_Retry = DEFAULT_RETRY_VALUE;
     while (l_Retry--)
     {
         rc = 0;
@@ -636,7 +636,7 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
 
   	becomeUser(0, 0);
 
-    int l_Retry = 10;
+    int l_Retry = DEFAULT_RETRY_VALUE;
     while (l_Retry--)
     {
         rc = 0;
@@ -773,7 +773,7 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
         l_SeqNbr -= 1;
     }
 
-    int l_Retry = 10;
+    int l_Retry = DEFAULT_RETRY_VALUE;
     while (l_Retry--)
     {
         rc = 0;
@@ -1099,6 +1099,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                         // Next extent is canceled...  Don't look any further
                         // and simply return this work queue.
                         pWrkQE = qe->second;
+                        pWrkQE->dump("info", "getWrkQE_WithCanceledExtents(): More than 2 work queues, extent being cancelled ");
                         break;
                     }
                 }
@@ -1522,6 +1523,12 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
         wrkqs.erase(it);
         if (l_WrkQE)
         {
+            if (l_WrkQE->getRate())
+            {
+                // Removing a work queue that had a transfer rate.
+                // Re-calculate the indication of throttle mode...
+                calcThrottleMode();
+            }
             delete l_WrkQE;
         }
     }

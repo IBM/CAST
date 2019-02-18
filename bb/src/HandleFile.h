@@ -40,8 +40,11 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const uint32_t ARCHIVE_HANDLE_VERSION = 1;
+const uint32_t ARCHIVE_HANDLE_VERSION_1 = 1;
+const uint32_t ARCHIVE_HANDLE_VERSION_2 = 2;
+
 const char LOCK_FILENAME[] = "lockfile";
+const int MAXIMUM_HANDLEFILE_LOADTIME = 30;     // In seconds
 
 
 /*******************************************************************************
@@ -73,12 +76,27 @@ public:
         pArchive & transferKeys;
         pArchive & lockfd;          // NOTE: On load, we will either overlay this with the fd
                                     //       of the handle file locked or reset this value to -1
+        switch (objectVersion)
+        {
+            case ARCHIVE_HANDLE_VERSION_2:
+            {
+                pArchive & numReportingContribs;
+            }
+            break;
+
+            case ARCHIVE_HANDLE_VERSION_1:
+            default:
+            {
+                // No additional fields
+            }
+            break;
+        }
         return;
     }
 
     HandleFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION),
+        objectVersion(ARCHIVE_HANDLE_VERSION_2),
         tag(0),
         flags(0),
         status((uint64_t)BBNOTSTARTED),
@@ -86,11 +104,12 @@ public:
         numContrib(0),
         expectContrib(""),
         transferKeys(""),
-        lockfd(-1) {}
+        lockfd(-1),
+        numReportingContribs(0) {}
 
     HandleFile (const uint64_t pTag, BBTagInfo& pTagInfo) :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION) {
+        objectVersion(ARCHIVE_HANDLE_VERSION_2) {
         tag = pTag;
         flags = 0;
         status = ((uint64_t)BBNOTSTARTED);
@@ -102,15 +121,27 @@ public:
         expectContrib = l_Temp.str();
         transferKeys = "";
         lockfd = -1;
+        numReportingContribs = 0;
     }
 
+    virtual ~HandleFile()
+    {
+        // NOTE:  We do not close the lock file here as the
+        //        handle file being deleted is a local copy.
+        //        If the handle file in the metadata is deleted,
+        //        the lockfile should already be closed.  If not,
+        //        we leak the descriptor, but since the handle file
+        //        will be deleted, there is no lock conflict.
+//        close();
+    }
 
-    // Static methods
-
+    /*
+     * Static methods
+     */
 //    static int calculate_xbbServerHandleStatus(HandleFile* pHandleFile, const char* pHandleFilePath, uint64_t& pStatus);
-
     static int createLockFile(const char* pFilePath);
     static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer);
+    static int get_xbbServerGetCurrentJobIds(vector<string>& pJobIds);
     static int get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle);
     static int get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32_t>& pContrib, uint64_t& pHandle);
     static int get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, uint64_t& pNumberOfReportingContribs, HandleFile* &pHandleFile, ContribIdFile* &pContribIdFile, const uint64_t pHandle, const uint32_t pContribId);
@@ -126,20 +157,12 @@ public:
     static int testForLock(const char* pFile);
     static void unlock(const int pFd);
     static int update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue=1);
-    static int update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
-    static int update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize);
+    static int update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption=NORMAL_SCAN);
     static int update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle);
 
-    // Non-static methods
-    void close(HANDLEFILE_LOCK_FEEDBACK pLockFeedback);
-    void close(const int pFd);
-    void getContribArray(uint64_t &pNumContribsInArray, uint32_t* &pContribArray);
-    BBSTATUS getLocalStatus(const uint64_t pNumberOfReportingContribs, ContribIdFile* pContribIdFile);
-    void unlock();
-
-
-    // Inlined methods
-
+    /*
+     * Inlined methods
+     */
     inline int allContribsReported()
     {
         RETURN_FLAG(BBTI_All_Contribs_Reported);
@@ -163,8 +186,9 @@ public:
         l_Line << "tagId=" << tag \
                << hex << uppercase << ", flags=0x" << flags << nouppercase << dec \
                << ", status=" << l_Status \
+               << ", # of reporting contribs=" << numReportingContribs \
                << ", totalTransferSize=" << totalTransferSize \
-               << ", numContrib=" << numContrib \
+               << ", # of contribs=" << numContrib \
                << ", expectContrib=" << expectContrib;
         if (transferKeys.size())
         {
@@ -180,22 +204,35 @@ public:
         return numContrib;
     }
 
+    inline uint32_t getNumOfContribsReported()
+    {
+        return numReportingContribs;
+    }
+
+    inline void incrNumOfContribsReported()
+    {
+        ++numReportingContribs;
+
+        return;
+    }
+
     inline int stopped()
     {
         RETURN_FLAG(BBTD_Stopped);
     }
 
-    virtual ~HandleFile()
-    {
-        // NOTE:  We do not close the lock file here as the
-        //        handle file being deleted is a local copy.
-        //        If the handle file in the metadata is deleted,
-        //        the lockfile should already be closed.  If not,
-        //        we leak the descriptor, but since the handle file
-        //        will be deleted, there is no lock conflict.
-//        close();
-    }
+    /*
+     * Non-static methods
+     */
+    void close(HANDLEFILE_LOCK_FEEDBACK pLockFeedback);
+    void close(const int pFd);
+    void getContribArray(uint64_t &pNumContribsInArray, uint32_t* &pContribArray);
+    BBSTATUS getLocalStatus(const uint64_t pNumberOfReportingContribs, ContribIdFile* pContribIdFile);
+    void unlock();
 
+    /*
+     * Data members
+     */
     uint32_t serializeVersion;
     uint32_t objectVersion;
     uint64_t tag;
@@ -207,6 +244,8 @@ public:
     string   transferKeys;
     int      lockfd;        // This really isn't used anymore.  It has been replaced by
                             // the thread_local variable handleFileLockFd.
+    uint32_t numReportingContribs;
+                            // Added for ARCHIVE_HANDLE_VERSION_2
 };
 
 #endif /* BB_HANDLEFILE_H_ */

@@ -154,19 +154,33 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
             // NOTE:  rc=0 means that the contribid was added to the ContribFile.
             //        rc=1 means that the contribid already existed in the ContribFile.
             //             This is normal for the restart of a transfer definition.
-            if (rc == 1)
+            switch (rc)
             {
-                if (pTransferDef->builtViaRetrieveTransferDefinition())
+                case 0:
                 {
-                    rc = 0;
+                    uint32_t l_PrevNumberOfReportingContribs = l_HandleFile->getNumOfContribsReported();
+                    l_HandleFile->incrNumOfContribsReported();
+                    LOG(bb,info) << "xbbServer: For jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ":";
+                    LOG(bb,info) << "           Number of reporting contribs changing from " << l_PrevNumberOfReportingContribs << " to " << l_HandleFile->getNumOfContribsReported() << ".";
+                    HandleFile::saveHandleFile(l_HandleFile, pLVKey, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
                 }
-                else
+                break;
+
+                case 1:
                 {
-                    rc = -1;
-                    errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
-                              << " was already known to the cross-bbServer metadata.";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    if (pTransferDef->builtViaRetrieveTransferDefinition())
+                    {
+                        rc = 0;
+                    }
+                    else
+                    {
+                        rc = -1;
+                        errorText << "BBTagInfo::addTransferDef: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId \
+                                  << " was already known to the cross-bbServer metadata.";
+                        LOG_ERROR_TEXT_RC(errorText, rc);
+                    }
                 }
+                break;
             }
 
             if (!rc)
@@ -250,6 +264,36 @@ void BBTagInfo::bumpTransferHandle(uint64_t& pHandle) {
     return;
 }
 
+void BBTagInfo::calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
+    int l_CanceledTransferDefinitions = parts.anyCanceledTransferDefinitions();
+    if (canceled() != l_CanceledTransferDefinitions)
+    {
+        setCanceled(pLVKey, pJobId, pJobStepId, pHandle, l_CanceledTransferDefinitions);
+    }
+    return;
+}
+
+void BBTagInfo::calcFailed(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
+    int l_FailedTransferDefinitions = parts.anyFailedTransferDefinitions();
+    if (failed() != l_FailedTransferDefinitions)
+    {
+        setFailed(pLVKey, pJobId, pJobStepId, pHandle, l_FailedTransferDefinitions);
+    }
+    return;
+}
+
+void BBTagInfo::calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
+    int l_StoppedTransferDefinitions = parts.anyStoppedTransferDefinitions();
+    if (stopped() != l_StoppedTransferDefinitions)
+    {
+        setStopped(pLVKey, pJobId, pJobStepId, pHandle, l_StoppedTransferDefinitions);
+    }
+    return;
+}
+
 void BBTagInfo::dump(const char* pSev) {
     stringstream l_Temp;
     expectContribToSS(l_Temp);
@@ -290,52 +334,58 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
     HandleFile* l_HandleFile = 0;
     uint64_t l_NumOfContribsInArray = 0;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TI_GetServerHandle, "BBTagInfo get server handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
+
     bfs::path jobstep(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     jobstep /= bfs::path(to_string(pJob.getJobId()));
     jobstep /= bfs::path(to_string(pJob.getJobStepId()));
 
-    if(!bfs::exists(jobstep)) return 0;
-
-    for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+    if(bfs::exists(jobstep))
     {
-        bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
-        int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
-        if (!rc)
+        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
-            if (l_HandleFile->tag == pTag)
+            bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
+            int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
+            if (!rc)
             {
-                // Tags match...  Now, compare the list of contribs...
-                l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
-
-                if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                if (l_HandleFile->tag == pTag)
                 {
-                    l_Handle = stoul(handle.path().filename().string());
+                    // Tags match...  Now, compare the list of contribs...
+                    l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+
+                    if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                    {
+                        l_Handle = stoul(handle.path().filename().string());
+                    }
+                    else
+                    {
+                        LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                    }
+                    delete[] l_ContribArray;
+                    l_ContribArray = 0;
                 }
                 else
                 {
-                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
                 }
-                delete[] l_ContribArray;
-                l_ContribArray = 0;
+
+                if (l_Handle) break;
             }
             else
             {
-                LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
+                LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
             }
 
-            if (l_Handle) break;
-        }
-        else
-        {
-            LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
-        }
-
-        if (l_HandleFile)
-        {
-            delete l_HandleFile;
-            l_HandleFile = 0;
+            if (l_HandleFile)
+            {
+                delete l_HandleFile;
+                l_HandleFile = 0;
+            }
         }
     }
+
+    FL_Write(FLMetaData, TI_GetServerHandle_End, "BBTagInfo get server handle, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJob.getJobId(), l_Handle, 0);
 
     return l_Handle;
 }
@@ -533,15 +583,20 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
         {
             if (pPass == THIRD_PASS)
             {
-                // Next, reset the flags for the handle and HandleFile...
+                // Next, reset the flags for the local cached handle information.
+                // NOTE: The handle file should already be recalculated as it's status is updated
+                //       as the ContribIdFile is updated (code above).  These attributes for the
+                //       handle file will again be recalculated as the local attributes for the handle
+                //       are reset, but it does no harm.
+                // NOTE: We cannot unconditionally reset the canceled, failed, and stopped attributes
+                //       for the local handle information because we could have more than one contributor
+                //       being restarted for a given CN.  In this case, the attribute in the local handle
+                //       information will be reset when the last of those restarted transfer definitions
+                //       for the CN is processed by restart.
                 setAllExtentsTransferred(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                setCanceled(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                setFailed(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                setStopped(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
-                HandleFile::update_xbbServerHandleResetStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-
-                // Update the handle status to recalculate the new status
-                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, 0);
+                calcCanceled(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                calcFailed(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                calcStopped(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
             }
         }
     }
@@ -615,7 +670,7 @@ void BBTagInfo::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJo
         SET_FLAG(BBTD_All_Extents_Transferred, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN)))
         {
             LOG(bb,error) << "BBTagInfo::setAllExtentsTransferred():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
@@ -701,7 +756,7 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
         SET_FLAG(BBTD_Stopped, pValue);
 
         // Now update the status for the Handle file in the xbbServer data...
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0))
+        if (HandleFile::update_xbbServerHandleFile(pLVKey, pJobId, pJobStepId, pHandle, BBTD_Stopped, pValue))
         {
             LOG(bb,error) << "BBTagInfo::setStopped():  Failure when attempting to update the cross bbServer handle file status for jobid " << pJobId \
                           << ", jobstepid " << pJobStepId << ", handle " << pHandle;
@@ -745,6 +800,9 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
     ContribIdFile* l_ContribIdFile = 0;
     ContribIdFile* l_NewContribIdFile = 0;
     ContribIdFile* l_ContribIdFileToProcess = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TI_AddData, "BBTagInfo server add data, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJob.getJobId(), pHandle, pContribId);
 
     try
     {
@@ -947,6 +1005,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
         delete l_ContribFile;
         l_ContribFile = 0;
     }
+
+    FL_Write6(FLMetaData, TI_AddData_End, "BBTagInfo server add data, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pJob.getJobId(), pHandle, pContribId, rc, 0);
 
     return rc;
 }

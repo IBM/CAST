@@ -16,6 +16,7 @@
 
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
+#include "bbserver_flightlog.h"
 #include "ContribIdFile.h"
 #include "HandleFile.h"
 #include "LVUuidFile.h"
@@ -90,62 +91,165 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
     return rc;
 }
 
-int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle) {
-    int rc = -1;
+#define ATTEMPTS 10
+int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds)
+{
+    int rc = 0;
     stringstream errorText;
 
-    pJobId = 0;
-    pJobStepId = 0;
+    int l_catch_count=ATTEMPTS;
+
+    pJobIds.clear();
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetCurrentJobIds, "get current jobids, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(bfs::is_directory(datastore))
     {
+        // Build a vector of jobids that the current uid/gid is authorized to access.
+        // Our invoker will iterate over these jobids in reverse order, as it is almost always
+        // the case that the jobid we want is the last one...
         bool l_AllDone = false;
-        int l_catch_count=10;
-
         while (!l_AllDone)
         {
             l_AllDone = true;
-            for (auto& job : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+            try
             {
-               if (!rc) continue;
-               try
-               {
-                   if ((!rc) || (!accessDir( job.path().string() ) ) ) continue;
-                   for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
-                   {if(!accessDir(jobstep.path().string()) ) continue;
-                       if ((!rc) || (!accessDir(jobstep.path().string()) ) ) continue;
-                       for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
-                       {
-                           if (handle.path().filename().string() == to_string(pHandle))
-                           {
-                               rc = 0;
-                               pJobId = stoul(job.path().filename().string());
-                               pJobStepId = stoul(jobstep.path().filename().string());
-                               break;
-                           }
-                       }
-                   }
-               }
-               catch(exception& e)
-               {
-                   LOG(bb,info) << "Exception caught "<<__func__<<"@"<<__FILE__<<":"<<__LINE__<<" what="<<e.what();
-                   if (l_catch_count--)
-                   {
-                       l_AllDone = false;
-                   }
-                   else //RAS
-                   {
-                       rc=-1;
-                       errorText << "get_xbbServerGetJobForHandle(): exception in looking for handle " << pHandle;
-                       LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.getjobforhandle);
-                       LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-                   }
-                   break;
-               }
+                for(auto& job : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+                {
+                    if (!bfs::is_directory(job)) continue;
+                    if (!accessDir(job.path().string())) continue;
+                    pJobIds.push_back(job.path().string());
+                }
+            }
+            catch(exception& e)
+            {
+
+                if (--l_catch_count)
+                {
+                    // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                    //        If not that, log the error and retry.
+                    if (errno != ENOENT)
+                    {
+                        LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                        << ". Attempting to rebuild the vector of jobids again...";
+                    }
+                    pJobIds.clear();
+                    l_AllDone = false;
+                }
+                else //RAS
+                {
+                    rc = -1;
+                    LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                    errorText << "get_xbbServerGetCurrentJobIds(): exception when building the vector of jobids";
+                    LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.handleinfo);
+                    LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                }
+                break;
             }
         }
     }
+    else
+    {
+        rc = -1;
+        errorText << "get_xbbServerGetCurrentJobIds(): Could not find the BB metadata store at " << datastore.string();
+        LOG_ERROR_TEXT_RC(errorText, rc);
+    }
+
+    FL_Write(FLMetaData, HF_GetCurrentJobIds_End, "get current jobids, counter=%ld, attempts=%ld, errno=%ld, rc=%ld",
+             l_FL_Counter, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), errno, rc);
+
+    return rc;
+}
+
+int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle) {
+    int rc = 0;
+    stringstream errorText;
+
+    pJobId = UNDEFINED_JOBID;
+    pJobStepId = UNDEFINED_JOBSTEPID;
+
+    int l_catch_count=ATTEMPTS;
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetJobForHandle, "get jobid for handle, counter=%ld, handle=%ld", l_FL_Counter, pHandle, 0, 0);
+
+    // First, build a vector of jobids that the current uid/gid is authorized to access.
+    // We will iterate over these jobids in reverse order, as it is almost always
+    // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
+    rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
+
+    if (!rc)
+    {
+        rc = -1;
+        bool l_AllDone = false;
+        while (!l_AllDone)
+        {
+            l_AllDone = true;
+            for(vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
+            {
+                try
+                {
+                    if (!rc) continue;
+                    bfs::path job = bfs::path(*rit);
+                    for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
+                    {
+                        if ((!rc) || (!accessDir(jobstep.path().string()))) continue;
+                        for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                        {
+                            if (handle.path().filename().string() == to_string(pHandle))
+                            {
+                                rc = 0;
+                                pJobId = stoul(job.filename().string());
+                                pJobStepId = stoul(jobstep.path().filename().string());
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch(exception& e)
+                {
+                    if (--l_catch_count)
+                    {
+                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                        //        If not that, log the error and retry.  Before retrying, remove the
+                        //        jobid that failed...
+                        if (errno != ENOENT)
+                        {
+                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                            << ". Retrying the operation...";
+                        }
+    		        	advance(rit, 1);
+    			        l_PathJobIds.erase(rit.base());
+                        l_AllDone = false;
+                     }
+                     else //RAS
+                     {
+                         rc=-1;
+                         LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                         errorText << "get_xbbServerGetJobForHandle(): exception in looking for handle " << pHandle;
+                         LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.getjobforhandle);
+                         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                     }
+                     break;
+                }
+            }
+        }
+    }
+    else
+    {
+        // bberror has already been filled in
+    }
+
+    FL_Write6(FLMetaData, HF_GetJobForHandle_End, "get jobid for handle, counter=%ld, handle=%ld, jobid=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pHandle, pJobId, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }
@@ -158,28 +262,40 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     uint32_t* l_ContribArray = 0;
     HandleFile* l_HandleFile = 0;
     uint64_t l_NumOfContribsInArray = 0;
+    int l_catch_count=ATTEMPTS;
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
 
     pHandle = 0;
 
-    bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-    if(bfs::is_directory(datastore))
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandle, "get handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
+
+    // First, build a vector of jobids that the current uid/gid is authorized to access.
+    // We will iterate over these jobids in reverse order, as it is almost always
+    // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
+    rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
+
+    if (!rc)
     {
         bool l_AllDone = false;
-        int l_catch_count=10;
-
         while (!l_AllDone)
         {
             l_AllDone = true;
-            for(auto& job : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+            for(vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
             {
-                if(!accessDir( job.path().string() ) ) continue;
-                try
+                if(*rit == to_string(pJob.getJobId()))
                 {
-                    if(job.path().filename().string() == to_string(pJob.getJobId()))
+                    try
                     {
+                        bfs::path job = bfs::path(*rit);
                         for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                         {
-                            if(!accessDir(jobstep.path().string()) ) continue;
+                            if(!accessDir(jobstep.path().string())) continue;
                             if(jobstep.path().filename().string() == to_string(pJob.getJobStepId()))
                             {
                                 for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
@@ -216,32 +332,44 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                             }
                         }
                     }
-                }
-                catch(exception& e)
-                {
-                    LOG(bb,info) << "Exception caught "<<__func__<<"@"<<__FILE__<<":"<<__LINE__<<" what="<<e.what();
-                    if (l_catch_count--)
+                    catch(exception& e)
                     {
-                        l_AllDone = false;
+                        if (--l_catch_count)
+                        {
+                            // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                            //        If not that, log the error and retry.  Before retrying, remove the
+                            //        jobid that failed...
+                            if (errno != ENOENT)
+                            {
+                                LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                                << ". Retrying the operation...";
+                            }
+    	    	        	advance(rit, 1);
+    	    		        l_PathJobIds.erase(rit.base());
+                            l_AllDone = false;
+                        }
+                        else //RAS
+                        {
+                            rc=-1;
+                            LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                            errorText << "get_xbbServerGetHandle(): exception in looking for handle for jobid " << pJob.getJobId() << ", jobstepid " \
+                                      << pJob.getJobStepId()  << ", tag " << pTag << ", number of contribs " << pContrib.size();
+                            LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.gethandle);
+                            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                        }
+                        break;
                     }
-                    else //RAS
-                    {
-                        rc=-1;
-                        errorText << "get_xbbServerGetHandle(): exception in looking for handle for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId()  << ", tag " << pTag << ", number of contribs " << pContrib.size();
-                        LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.gethandle);
-                        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-                    }
-                    break;
                 }
             }
         }
     }
     else
     {
-        rc = -1;
-        errorText << "get_xbbServerGetHandle(): Could not find handle for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId()  << ", tag " << pTag << ", number of contribs " << pContrib.size();
-        LOG_ERROR_TEXT_RC(errorText, rc);
+        // bberror has already been filled in
     }
+
+    FL_Write6(FLMetaData, HF_GetHandle_End, "get handle, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }
@@ -257,31 +385,44 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     pHandleFile = 0;
     pContribIdFile = 0;
 
-    uint64_t l_JobId = 0;
-    uint64_t l_JobStepId = 0;
+    uint64_t l_JobId = pJobId;
+    uint64_t l_JobStepId = pJobStepId;
 //    char* l_HandleFileName = 0;
+    int l_catch_count=ATTEMPTS;
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleInfo, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
 
     // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
     //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
     //       pointers for success/information.
 
-    bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-    if(bfs::is_directory(datastore))
+    // First, build a vector of jobids that the current uid/gid is authorized to access.
+    // We will iterate over these jobids in reverse order, as it is almost always
+    // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
+    rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
+
+    if (!rc)
     {
         bool l_AllDone = false;
-        int l_catch_count=10;
         while (!l_AllDone)
         {
             l_AllDone = true;
-            for(auto& job : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+            for(vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
             {
-                if (!accessDir( job.path().string() ) )continue;
                 try
                 {
-                    l_JobId = stoull(job.path().filename().string());
+                    bfs::path job = bfs::path(*rit);
+                    l_JobId = stoull(job.filename().string());
                     for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                     {
-                        if(!accessDir(jobstep.path().string()) ) continue;
+                        if(!accessDir(jobstep.path().string())) continue;
                         l_JobStepId = stoull(jobstep.path().filename().string());
                         for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
@@ -308,13 +449,13 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                                         }
                                         default:
                                         {
-                                            LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handle.path().string();
+                                            LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handle.path().string();
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    LOG(bb,error) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handle.path().string();
+                                    LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handle.path().string();
                                 }
                             }
                         }
@@ -322,8 +463,6 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                 }
                 catch(exception& e)
                 {
-                    LOG(bb,info) << "Exception caught "<<__func__<<"@"<<__FILE__<<":"<<__LINE__<<" what="<<e.what();
-
                     if (pContribIdFile)
                     {
                         delete pContribIdFile;
@@ -341,13 +480,24 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                         delete pHandleFile;
                         pHandleFile = 0;
                     }
-                    if (l_catch_count--)
+                    if (--l_catch_count)
                     {
+                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                        //        If not that, log the error and retry.  Before retrying, remove the
+                        //        jobid that failed...
+                        if (errno != ENOENT)
+                        {
+                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                            << ". Retrying the operation...";
+                        }
+    		        	advance(rit, 1);
+    			        l_PathJobIds.erase(rit.base());
                         l_AllDone = false;
                     }
                     else //RAS
                     {
                         rc=-1;
+                        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
                         errorText << "get_xbbServerHandleInfo(): exception in looking for handle " << pHandle << ", contribid " << pContribId;
                         LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.handleinfo);
                         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
@@ -359,9 +509,7 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     }
     else
     {
-        rc = -1;
-        errorText << "get_xbbServerHandleInfo(): Could not find handle " << pHandle << ", contribid " << pContribId;
-        LOG_ERROR_TEXT_RC(errorText, rc);
+        // bberror has already been filled in
     }
 
     if (rc)
@@ -387,12 +535,19 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
         }
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleInfo_End, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJobId, pHandle, pContribId, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc);
+
     return rc;
 }
+#undef ATTEMPTS
 
 int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus)
 {
     int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleList, "get handle list, counter=%ld, jobid=%ld, status=%ld", l_FL_Counter, pJob.getJobId(), (uint64_t)pMatchStatus, 0);
 
     try
     {
@@ -432,14 +587,21 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleList_End, "get handle list, counter=%ld, jobid=%ld, status=%ld, number returned=%ld, rc=%ld",
+              l_FL_Counter, pJob.getJobId(), (uint64_t)pMatchStatus, (uint64_t)pHandles.size(), rc, 0);
+
     return rc;
 }
 
-int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle) {
+int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+{
     int rc = 0;
     stringstream errorText;
 
     pStatus = BBNONE;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleStatus, "get handle status, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -466,10 +628,12 @@ int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey
         l_HandleFile = 0;
     }
 
+    FL_Write6(FLMetaData, HF_GetHandleStatus_End, "get handle status, counter=%ld, jobid=%ld, handle=%ld, status=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pStatus, rc, 0);
+
     return rc;
 }
 
-
+#define ATTEMPTS 10
 int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uint64_t pJobId, const uint64_t pHandle)
 {
     int rc = 0;
@@ -479,171 +643,204 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
 
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(!bfs::is_directory(datastore)) return rc;
-    bool l_AllDone = false;
-    int l_catch_count=10;
+    int l_catch_count=ATTEMPTS;
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
 
-    while (!l_AllDone)
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleKeys, "get handle transfer keys, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
+
+    // First, build a vector of jobids that the current uid/gid is authorized to access.
+    // We will iterate over these jobids in reverse order, as it is almost always
+    // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
+    rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
+
+    if (!rc)
     {
-        l_AllDone = true;
-
-        for(auto& job : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+        bool l_AllDone = false;
+        while (!l_AllDone)
         {
-            if (!accessDir( job.path().string() ) )continue;
-            try
+            l_AllDone = true;
+            for(vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
             {
-                if(job.path().filename().string() == to_string(pJobId))
+                if(*rit == to_string(pJobId))
                 {
-                    for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
+                    try
                     {
-                        if(!accessDir(jobstep.path().string()) ) continue;
-                        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                        bfs::path job = bfs::path(*rit);
+                        for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                         {
-                            if(!bfs::is_directory(handle)) continue;
-                            if(handle.path().filename().string() == to_string(pHandle))
+                            if(!accessDir(jobstep.path().string()) ) continue;
+                            for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                             {
-                                bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
-                                HandleFile* l_HandleFile = 0;
-                                rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
-                                if (!rc)
+                                if(!bfs::is_directory(handle)) continue;
+                                if(handle.path().filename().string() == to_string(pHandle))
                                 {
-                                    // The string is terminated with a line feed...  Don't copy the last character...
-                                    pTransferKeys = (l_HandleFile->transferKeys).substr(0,((l_HandleFile->transferKeys).length()-1));
-                                }
-                                else
-                                {
-                                    errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", handle " << pHandle;
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
-                                }
+                                    bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
+                                    HandleFile* l_HandleFile = 0;
+                                    rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
+                                    if (!rc)
+                                    {
+                                        // The string is terminated with a line feed...  Don't copy the last character...
+                                        pTransferKeys = (l_HandleFile->transferKeys).substr(0,((l_HandleFile->transferKeys).length()-1));
+                                    }
+                                    else
+                                    {
+                                        errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", handle " << pHandle;
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
+                                    }
 
-                                if (l_HandleFile)
-                                {
-                                    delete l_HandleFile;
-                                    l_HandleFile = 0;
+                                    if (l_HandleFile)
+                                    {
+                                        delete l_HandleFile;
+                                        l_HandleFile = 0;
+                                    }
                                 }
                             }
                         }
                     }
+                    catch(exception& e)
+                    {
+                        if (--l_catch_count)
+                        {
+                            // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                            //        If not that, log the error and retry.  Before retrying, remove the
+                            //        jobid that failed...
+                            if (errno != ENOENT)
+                            {
+                                LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                                << ". Retrying the operation...";
+                            }
+        		        	advance(rit, 1);
+        			        l_PathJobIds.erase(rit.base());
+                            l_AllDone = false;
+                        }
+                        else //RAS
+                        {
+                            rc=-1;
+                            LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                            errorText << "get_xbbServerHandleTransferKeys(): exception looking for transfer keys for jobid " << pJobId << ", handle " << pHandle;
+                            LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.xferkeys);
+                            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                        }
+                        break;
+                    }
                 }
-            }
-            catch(exception& e)
-            {
-                LOG(bb,info) << "Exception caught "<<__func__<<"@"<<__FILE__<<":"<<__LINE__<<" what="<<e.what();
-                if (l_catch_count--)
-                {
-                    l_AllDone = false;
-                }
-                else //RAS
-                {
-                    rc=-1;
-                    errorText << "get_xbbServerHandleTransferKeys(): exception looking for transfer keys for jobid " << pJobId << ", handle " << pHandle;
-                    LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.xferkeys);
-                    LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-                }
-                break;
             }
         }
     }
+    else
+    {
+        // bberror has already been filled in
+    }
+
+    FL_Write6(FLMetaData, HF_GetHandleKeys_End, "get handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJobId, pHandle, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
 
     return rc;
 }
+#undef ATTEMPTS
 
-int HandleFile::loadHandleFile(HandleFile* &ptr, const char* filename)
+int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFileName)
 {
-    HandleFile* tmparchive = NULL;
-    ptr = NULL;
+    int rc;
 
-    int rc = -1;
-    bool doover;
-    bool didretry = false;
-    struct timeval start, stop;
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Load, "loadHandleFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+    pHandleFile = NULL;
+    HandleFile* l_HandleFile = new HandleFile();
+
+    struct timeval l_StartTime, l_StopTime;
+    bool l_AllDone = false;
+    int l_Attempts = 0;
+    int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
 
-    start.tv_sec = 0; // resolve gcc optimizer complaint
-    LOG(bb,debug) << __func__ << "  ArchiveName=" << filename;
+    l_StartTime.tv_sec = 0; // resolve gcc optimizer complaint
 
-    do
+    while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_HANDLEFILE_LOADTIME))
     {
-        doover = false;
+        rc = 0;
+        l_AllDone = true;
+        ++l_Attempts;
         try
         {
-            ifstream l_ArchiveFile{filename};
+            ifstream l_ArchiveFile{pHandleFileName};
             text_iarchive l_Archive{l_ArchiveFile};
-            if (!tmparchive)
-            {
-                tmparchive = new HandleFile();
-            }
-            l_Archive >> *tmparchive;
-            ptr = tmparchive;
-            rc = 0;
-        }
-        catch(ExceptionBailout& e)
-        {
-            rc = -1;
-            if(tmparchive)
-            {
-                delete tmparchive;
-            }
-            ptr = tmparchive = NULL;
+            l_Archive >> *l_HandleFile;
+            pHandleFile = l_HandleFile;
         }
         catch(archive_exception& e)
         {
+            // NOTE: If we take an 'archieve exception' we do not delay before attempting the next
+            //       read of the archive file.  More than likely, we just had a concurrent update
+            //       to the handle file.
             rc = -1;
+            l_AllDone = false;
 
-            gettimeofday(&stop, NULL);
-            if (didretry == false)
+            gettimeofday(&l_StopTime, NULL);
+            if (l_Attempts == 1)
             {
-                start = stop;
-                didretry = true;
+                l_StartTime = l_StopTime;
             }
+            l_ElapsedTime = int(l_StopTime.tv_sec - l_StartTime.tv_sec);
 
-            int l_Time = int(stop.tv_sec - start.tv_sec);
-            if (l_Time < 30)
+            if (l_ElapsedTime && (l_ElapsedTime % 3 == 0) && (l_ElapsedTime != l_LastConsoleOutput))
             {
-                doover = true;
-            }
-
-            if (((l_Time % 5) == 0) && (l_Time != l_LastConsoleOutput))
-            {
-                l_LastConsoleOutput = l_Time;
+                l_LastConsoleOutput = l_ElapsedTime;
                 LOG(bb,warning) << "Archive exception thrown in " << __func__ << " was " << e.what() \
-                                << " when attempting to load archive " << filename << "  Retrying..." << " time=" << l_Time << " second(s)";
+                                << " when attempting to load archive " << pHandleFileName << ". Elapsed time=" << l_ElapsedTime << " second(s). Retrying...";
             }
         }
         catch(exception& e)
         {
             rc = -1;
-            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << filename;
-        }
-
-        if (doover)
-        {
-            usleep(250000);
+            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pHandleFileName;
         }
     }
-    while (rc && doover);
+
+    if (l_LastConsoleOutput > 0)
+    {
+       gettimeofday(&l_StopTime, NULL);
+       if (!rc)
+        {
+            LOG(bb,warning) << "Loading " << pHandleFileName << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " after recovering from archive exception(s)";
+        }
+        else
+        {
+            LOG(bb,error) << "Loading " << pHandleFileName << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " when attempting to recover from archive exception(s)";
+        }
+    }
 
     if (!rc)
     {
-        if (ptr)
+        if (pHandleFile)
         {
             // NOTE: After the initial load, we always set the lockfd
             //       value to -1.  A prior fd value could have been saved.
             //       If this load request has also locked the Handlefile,
             //       then the lockfd value will be filled in by our invoker.
-            ptr->lockfd = -1;
+            //
+            // NOTE: This value isn't really used anymore...  Has been replaed with
+            //       thread_local handleFileLockFd.
+            pHandleFile->lockfd = -1;
         }
-        if (didretry)
+    }
+    else
+    {
+        if (l_HandleFile)
         {
-            gettimeofday(&stop, NULL);
-            LOG(bb,info) << __func__ << " became successful after recovering from exception after " << (stop.tv_sec-start.tv_sec) << " second(s)";
+            delete l_HandleFile;
+            l_HandleFile = NULL;
         }
     }
 
-    if (rc && tmparchive)
-    {
-        delete tmparchive;
-        tmparchive = NULL;
-    }
+    FL_Write(FLMetaData, HF_Load_End, "loadHandleFile, counter=%ld, attempts=%ld, rc=%ld", l_FL_Counter, l_Attempts, rc, 0);
 
     return rc;
 }
@@ -660,6 +857,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, PATH_MAX-64, "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
     snprintf(l_ArchivePathWithName, PATH_MAX, "%s/%lu", l_ArchivePath, pHandle);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Load_wLock, "load HF with lock option, counter=%ld, handle=%ld, lock option=%ld", l_FL_Counter, pHandle, (uint64_t)pLockOption, 0);
 
     int l_LockOption = pLockOption;
     if (pLockFeedback)
@@ -780,6 +980,9 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
         ::close(fd);
     }
 
+    FL_Write6(FLMetaData, HF_Load_wLock_End, "load HF with lock option, counter=%ld, handle=%ld, lock option=%ld, lock feedback=%ld, rc=%ld",
+              l_FL_Counter, pHandle, (uint64_t)pLockOption, (pLockFeedback ? (uint64_t)(*pLockFeedback) : 0), rc, 0);
+
     return rc;
 }
 
@@ -792,9 +995,18 @@ int HandleFile::lock(const char* pFilePath)
     char l_LockFile[PATH_MAX] = {'\0'};
     snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+    uint64_t l_FL_Counter2 = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Open, "open HF, counter=%ld", l_FL_Counter2, 0, 0, 0);
+
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
     fd = open(l_LockFile, O_WRONLY);
     threadLocalTrackSyscallPtr->clearTrack();
+
+    FL_Write(FLMetaData, HF_Open_End, "open HF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
+
     if (fd >= 0)
     {
         // Exclusive lock and this will block if needed
@@ -826,7 +1038,10 @@ int HandleFile::lock(const char* pFilePath)
             if (fd >= 0)
             {
                 LOG(bb,debug) << "lock(): Issue close for handle file fd " << fd;
+                uint64_t l_FL_Counter = metadataCounter.getNext();
+                FL_Write(FLMetaData, HF_CouldNotLockExcl, "open HF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
                 ::close(fd);
+                FL_Write(FLMetaData, HF_CouldNotLockExcl_End, "open HF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
             }
             fd = -1;
         }
@@ -838,6 +1053,8 @@ int HandleFile::lock(const char* pFilePath)
             break;
     }
 
+    FL_Write(FLMetaData, HF_Lock_End, "lock HF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
+
     return fd;
 }
 
@@ -845,6 +1062,9 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
 {
     int rc = 0;
     HandleFile* l_HandleFile = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleForJobStep, "process handle for jobstep, counter=%ld, status=%ld", l_FL_Counter, pMatchStatus, 0, 0);
 
     bfs::path jobstep(pDataStoreName);
     if(!bfs::is_directory(jobstep)) return rc;
@@ -872,6 +1092,8 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         }
     }
 
+    FL_Write(FLMetaData, HF_GetHandleForJobStep_End, "process handle for jobstep, counter=%ld, number of handles returned=%ld, status=%ld, rc=%ld", l_FL_Counter, pHandles.size(), pMatchStatus, rc);
+
     return rc;
 }
 
@@ -880,6 +1102,9 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     int rc = 0;
     char l_ArchivePath[PATH_MAX-64] = {'\0'};
     char l_ArchivePathWithName[PATH_MAX] = {'\0'};
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Save1, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
@@ -920,6 +1145,16 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
+    if (!pHandleFile)
+    {
+        FL_Write(FLMetaData, HF_Save1_End, "saveHandleFile, counter=%ld, new handle file saved for jobid=%ld, handle=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, rc);
+    }
+    else
+    {
+        FL_Write6(FLMetaData, HF_Save1b_End, "saveHandleFile, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, pHandleFile->flags, pHandleFile->totalTransferSize, (uint64_t)pHandleFile->numReportingContribs, rc);
+    }
+
     return rc;
 }
 
@@ -928,6 +1163,9 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     int rc = 0;
     stringstream errorText;
     char l_ArchiveName[PATH_MAX] = {'\0'};
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Save2, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
@@ -953,6 +1191,16 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
         errorText << "Failure when attempting to save the handle file for job " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
                   << ". Pointer to the handle file was passed as NULL.";
         LOG_ERROR_TEXT_RC(errorText, rc);
+    }
+
+    if (pHandleFile)
+    {
+        FL_Write6(FLMetaData, HF_Save2_End, "saveHandleFile, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, pHandleFile->flags, pHandleFile->totalTransferSize, (uint64_t)pHandleFile->numReportingContribs, rc);
+    }
+    else
+    {
+        FL_Write(FLMetaData, HF_Save2_ErrEnd, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
     }
 
     return rc;
@@ -1032,6 +1280,9 @@ int HandleFile::testForLock(const char* pFilePath)
 
 void HandleFile::unlock(const int pFd)
 {
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_Unlock, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
     if (pFd >= 0)
     {
         try
@@ -1061,6 +1312,10 @@ void HandleFile::unlock(const int pFd)
             LOG(bb,info) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
         }
     }
+
+    FL_Write(FLMetaData, HF_Unlock_End, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
+    return;
 }
 
 int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue)
@@ -1069,6 +1324,9 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
     stringstream errorText;
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_UpdateFile, "update handle file, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
@@ -1104,7 +1362,9 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         if (!rc)
         {
             // Update the handle status
-            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
+            // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
+            //        Performing the full scan will re-calculate the attribute value across all bbServers.
+            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN));
         }
     }
     else
@@ -1118,56 +1378,35 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
+        FL_Write6(FLMetaData, HF_UpdateFile_End, "update handle file, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, l_HandleFile->flags, l_HandleFile->totalTransferSize, l_HandleFile->numReportingContribs, rc);
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+    else
+    {
+        FL_Write(FLMetaData, HF_UpdateFile_ErrEnd, "update handle file, counter=%ld, handle=%ld, rc=%ld",
+                 l_FL_Counter, pHandle, rc, 0);
     }
 
     return rc;
 }
 
-int HandleFile::update_xbbServerHandleResetStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
+int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption)
 {
     int rc = 0;
     stringstream errorText;
+    HANDLEFILE_SCAN_OPTION l_ScanOption = pScanOption;
 
-    HandleFile* l_HandleFile = 0;
-    char* l_HandleFileName = 0;
-    // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
-    //       be updating simultaneously
-    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
-    rc = loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
-    if (!rc)
-    {
-        l_HandleFile->status = BBNONE;
-        l_HandleFile->flags &= BB_ResetHandleFileForRestartFlagsMask;
-        LOG(bb,info) << "xbbServer: Flags reset prior to restart for " << *pLVKey << ", handle " << pHandle;
-        rc = saveHandleFile(l_HandleFile, pLVKey, pJobId, pJobStepId, pHandle);
-    }
-
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-    if (l_HandleFile)
-    {
-        l_HandleFile->close(l_LockFeedback);
-
-        delete l_HandleFile;
-        l_HandleFile = 0;
-    }
-
-    return rc;
-}
-
-int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize)
-{
-    int rc = 0;
-    stringstream errorText;
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
+              l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1180,208 +1419,226 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         uint64_t l_StartingFlags = l_HandleFile->flags;
         uint64_t l_StartingStatus = l_HandleFile->status;
         uint64_t l_StartingTotalTransferSize = l_HandleFile->totalTransferSize;
-        //  NOTE: Full success and canceled are the only final states so we don't have to recalculate the handle state.
+        //  NOTE: Full success and canceled are the only final states so we don't have to recalculate the handle status.
         //  NOTE: A canceled handle is a final state because it only becomes canceled after all associated files are
         //        closed and the handle itself is marked as canceled.  No additional transitions can occur.
+        //  NOTE: Partial success and stopped are temporary final states until the status is reset during restart processing.
+        //        We will ALWAYS do a FULL scan if the current status is BBSTOPPED or BBPARTIALSUCCESS.  Multiple contributors
+        //        could be causing the BBSTOPPED or BBPARTIALSUCCESS state, so we always have to do a FULL scan to determine
+        //        when, and if, the state should transition to BBINPROGRESS.
+        //  NOTE: For a transfer definition having it's status set to failed, canceled, or stopped, update_xbbServerContribIdFile()
+        //        first updates the appropriate ContribIdFile.  After updating the ContribIdFile, this method is then invoked to update
+        //        the handle status.  It is invoked with a scan option of FULL_SCAN so that the handle file status is properly set.
+        //  NOTE: Anytime any attribute flag is being turned off for a transfer definition, this method is invoked to update
+        //        the corresponding handle attribute.  It is invoked with a scan option of FULL_SCAN so that the handle attribute
+        //        is properly calculated and set.
+        //  NOTE: As discussed in the previous note, restart logic is the primary reason attribute flags are turned off for the
+        //        appropriate contribid and handle files.  These code paths will all specify a FULL_SCAN so that the proper
+        //        corresponding handle file attributes are properly calculated and set.
         //  NOTE: A stopped handle can become canceled;  A failed handle can become stopped;
         //  NOTE: For restart scenarios, a partially successful status can transition to stopped and then to in-progress.
-        if ( (!(l_StartingStatus == BBFULLSUCCESS)) && (!(l_StartingStatus == BBCANCELED)) )
+        if (l_StartingStatus == BBPARTIALSUCCESS || l_StartingStatus == BBSTOPPED)
         {
-            uint64_t l_AllFilesClosed;
-            uint64_t l_AllExtentsTransferred;
-#ifndef __clang_analyzer__
-            l_AllFilesClosed = l_HandleFile->flags & BBTD_All_Files_Closed;
-            l_AllExtentsTransferred = l_HandleFile->flags & BBTD_All_Extents_Transferred;
-#endif
+            l_ScanOption = FULL_SCAN;
+        }
+        if (l_ScanOption == FULL_SCAN)
+        {
+            FL_Write(FLMetaData, HF_UpdateStatusFullScan, "update handle status, counter=%ld, starting status=%ld, original scan option=%ld, performing FULL_SCAN",
+                     l_FL_Counter, (uint64_t)l_StartingStatus, (uint64_t)pScanOption, 0);
+        }
 
+        if ((!(l_StartingStatus == BBFULLSUCCESS)) &&
+            (!(l_StartingStatus == BBCANCELED)))
+        {
             bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
             handle /= bfs::path(to_string(pJobId));
             handle /= bfs::path(to_string(pJobStepId));
             handle /= bfs::path(to_string(pHandle));
 
-            uint64_t l_NumberOfHandleReportingContribs = 0;
-            uint64_t l_NumberOfLVUuidReportingContribs = 0;
-            ContribIdFile* l_ContribIdFile = 0;
-            // NOTE:  The following call is made to obtain the number of reporting contributors for the handle.  Regardless of what contribid
-            //        value is passed, the number of reporting contributors for the handle is returned.  Therefore, we simply pass 0 for the
-            //        contribid value.
-            rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_NumberOfHandleReportingContribs, l_NumberOfLVUuidReportingContribs, handle, 0);
-            switch (rc)
+            // Now, determine if all extents have been sent for each contributor
+            // and other status indications...
+            uint64_t l_AllFilesClosed = 1;           // Optimistic coding...
+            uint64_t l_AllExtentsTransferred = 1;    // Optimistic coding...
+            uint64_t l_NumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
+            bool l_CanceledDefinitions = false;
+            bool l_FailedDefinitions = false;
+            bool l_StoppedDefinitions = false;
+            bool l_ExitEarly = false;
+            for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
             {
-                case 0:
-                case 1:
+                if(!bfs::is_directory(lvuuid)) continue;
+                bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
+                ContribFile* l_ContribFile = 0;
+                rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
+                if (!rc)
                 {
-                    rc = 0;
-
-                    // Now, determine if all extents have been sent for each contributor
-                    // and other status indications...
-                    l_AllFilesClosed = 1;           // Optimistic coding...
-                    l_AllExtentsTransferred = 1;    // Optimistic coding...
-                    bool l_CanceledDefinitions = false;
-                    bool l_FailedDefinitions = false;
-                    bool l_StoppedDefinitions = false;
-                    for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
+                    for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                     {
-                        if(!bfs::is_directory(lvuuid)) continue;
-                        bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
-                        ContribFile* l_ContribFile = 0;
-                        rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
-                        if (!rc)
+                        if ((ce->second.flags & BBTD_All_Extents_Transferred) == 0)
                         {
-                            for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
+                            // Not all extents have been transferred yet...
+                            l_AllExtentsTransferred = 0;
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not all extents transferred";
+                            if (l_ScanOption == NORMAL_SCAN)
                             {
-                                if ((ce->second.flags & BBTD_All_Files_Closed) == 0)
-                                {
-                                    l_AllFilesClosed = 0;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not closed";
-                                }
-                                if ((ce->second.flags & BBTD_All_Extents_Transferred) == 0)
-                                {
-                                    l_AllExtentsTransferred = 0;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not all extents transferred";
-                                }
-                                if (ce->second.flags & BBTD_Stopped)
-                                {
-                                    l_StoppedDefinitions = true;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
-                                }
-                                if (ce->second.flags & BBTD_Failed)
-                                {
-                                    l_FailedDefinitions = true;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
-                                }
-                                if (ce->second.flags & BBTD_Canceled)
-                                {
-                                    l_CanceledDefinitions = true;
-                                    LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
-                                }
+                                l_ExitEarly = true;
+                                break;
                             }
+                        }
+                        if ((ce->second.flags & BBTD_All_Files_Closed) == 0)
+                        {
+                            // Not all files have been closed yet...
+                            l_AllFilesClosed = 0;
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not closed";
+                        }
+                        if (ce->second.flags & BBTD_Stopped)
+                        {
+                            l_StoppedDefinitions = true;
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " stopped";
+                        }
+                        if (ce->second.flags & BBTD_Failed)
+                        {
+                            l_FailedDefinitions = true;
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
+                        }
+                        if (ce->second.flags & BBTD_Canceled)
+                        {
+                            l_CanceledDefinitions = true;
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
+                        }
+                    }
+                    if (l_ExitEarly)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    errorText << "update_xbbServerHandleStatus(): Could not load the contrib file from file " << contribs_file.c_str();
+                    LOG_ERROR_TEXT_RC(errorText, rc);
+                }
+
+                if (l_ContribFile)
+                {
+                    delete l_ContribFile;
+                    l_ContribFile = NULL;
+                }
+
+                if (rc || l_ExitEarly)
+                {
+                    break;
+                }
+            }
+
+            if (l_ScanOption == FULL_SCAN)
+            {
+                // Reset the appropriate attribute flags
+                l_HandleFile->flags &= BB_ResetHandleFileAttributesFlagsMask;
+
+                // Set the attribute flags based upon the scan results above
+                if (l_AllExtentsTransferred)
+                {
+                    l_HandleFile->flags |= BBTD_All_Extents_Transferred;
+                }
+                if (l_CanceledDefinitions)
+                {
+                    l_HandleFile->flags |= BBTD_Canceled;
+                }
+                if (l_FailedDefinitions)
+                {
+                    l_HandleFile->flags |= BBTD_Failed;
+                }
+                if (l_StoppedDefinitions)
+                {
+                    l_HandleFile->flags |= BBTD_Stopped;
+                }
+                if (l_AllFilesClosed)
+                {
+                    l_HandleFile->flags |= BBTD_All_Files_Closed;
+                }
+            }
+
+            if (!rc)
+            {
+                // NOTE: A handle with any failed or individually canceled transfer definitions will remain
+                //       in the BBINPROGRESS state until all files are closed under that handle.
+                //       Such a handle will then transition to the BBPARTIALSUCCESS state, even if no
+                //       data was successfully transferred under that handle.
+                //
+                //       A handle with any stopped transfer definition(s) will immediately transition to the
+                //       BBSTOPPED state, awaiting for the proper restart operation(s) to eventually transition
+                //       the handle back to the BBINPROGRESS state.  The handle is transitioned to the STOPPED
+                //       state directly by the code setting an individual transfer definition as STOPPED.
+                if (!l_StoppedDefinitions)
+                {
+                    if (l_NumberOfHandleReportingContribs == l_HandleFile->numContrib)
+                    {
+                        // All contributors have reported...
+                        l_HandleFile->flags |= BBTI_All_Contribs_Reported;
+                        if (!l_AllExtentsTransferred)
+                        {
+                            l_HandleFile->status = BBINPROGRESS;
                         }
                         else
                         {
-                            errorText << "update_xbbServerHandleStatus(): Could not load the contrib file from file " << contribs_file.c_str();
-                            LOG_ERROR_TEXT_RC(errorText, rc);
-                        }
-
-                        if (l_ContribFile)
-                        {
-                            delete l_ContribFile;
-                            l_ContribFile = NULL;
-                        }
-
-                        if (rc)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!rc)
-                    {
-                        // NOTE: A handle with any failed or individually canceled transfer definitions will remain
-                        //       in the BBINPROGRESS state until all files are closed under that handle.
-                        //       Such a handle will then transition to the BBPARTIALSUCCESS state, even if no
-                        //       data was successfully transferred under that handle.
-                        //       A handle with any stopped transfer definition(s) will immediately transition to the
-                        //       BBSTOPPED state, awaiting for the proper restart operation(s) to eventually transition
-                        //       the handle back to the BBINPROGRESS state.
-                        l_HandleFile->status = BBNONE;
-                        if ((!(l_HandleFile->flags & BBTD_Stopped)) && (!l_StoppedDefinitions))
-                        {
-                            // NOTE: BBFAILED is not currently set for a handle...
-                            if (!(l_HandleFile->flags & BBTD_Failed))
+                            // All extents have been transferred
+                            // NOTE: This indication is turned on in the cross-bbServer metadata
+                            //       before it is turned on in the local metadata for the 'last'
+                            //       bbServer to do processing for this handle.  It will be turned
+                            //       on in the local metadata when BBTagInfo::setAllExtentsTransferred()
+                            //       is invoked a little later on in this code path during the processing
+                            //       for the last extent.  It is turned on here as this is the only
+                            //       place where we determine when all extents have been processed
+                            //       across ALL bbServers associated with this handle.
+                            l_HandleFile->flags |= BBTD_All_Extents_Transferred;
+                            if (l_AllFilesClosed)
                             {
-                                if (l_NumberOfHandleReportingContribs == l_HandleFile->numContrib)
+                                // All files have been marked as closed (but maybe not successfully,
+                                // but then those files are marked as BBFAILED...)
+                                l_HandleFile->flags |= BBTD_All_Files_Closed;
+                                if (!l_FailedDefinitions)
                                 {
-                                    // All contributors have reported...
-                                    l_HandleFile->flags |= BBTI_All_Contribs_Reported;
-                                    if (!l_AllExtentsTransferred)
+                                    if (!l_CanceledDefinitions)
                                     {
-                                        l_HandleFile->status = BBINPROGRESS;
+                                        l_HandleFile->status = BBFULLSUCCESS;
+                                    }
+                                    else if (l_HandleFile->flags & BBTD_Canceled)
+                                    {
+                                        l_HandleFile->status = BBCANCELED;
                                     }
                                     else
                                     {
-                                        // All extents have been transferred
-                                        // NOTE: This indication is turned on in the cross-bbServer metadata
-                                        //       before it is turned on in the local metadata for the 'last'
-                                        //       bbServer to do processing for this handle.  It will be turned
-                                        //       on in the local metadata when BBTagInfo::setAllExtentsTransferred()
-                                        //       is invoked a little later on in this code path during the processing
-                                        //       for the last extent.  It is turned on here as this is the only
-                                        //       place where we determine when all extents have been processed
-                                        //       across ALL bbServers associated with this handle.
-                                        l_HandleFile->flags |= BBTD_All_Extents_Transferred;
-                                        if (l_AllFilesClosed)
-                                        {
-                                            // All files have been marked as closed (but maybe not successfully,
-                                            // but then those files are marked as BBFAILED...)
-                                            l_HandleFile->flags |= BBTD_All_Files_Closed;
-                                            if (!l_FailedDefinitions)
-                                            {
-                                                if (!l_CanceledDefinitions)
-                                                {
-                                                    l_HandleFile->status = BBFULLSUCCESS;
-                                                }
-                                                else if (l_HandleFile->flags & BBTD_Canceled)
-                                                {
-                                                    l_HandleFile->status = BBCANCELED;
-                                                }
-                                                else
-                                                {
-                                                    l_HandleFile->status = BBPARTIALSUCCESS;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                l_HandleFile->status = BBPARTIALSUCCESS;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            l_HandleFile->status = BBINPROGRESS;
-                                        }
+                                        l_HandleFile->status = BBPARTIALSUCCESS;
                                     }
                                 }
                                 else
                                 {
-                                    // Not all contributors have reported
-                                    if (!l_NumberOfHandleReportingContribs)
-                                    {
-                                        l_HandleFile->status = BBNOTSTARTED;
-                                    }
-                                    else
-                                    {
-                                        l_HandleFile->status = BBINPROGRESS;
-                                    }
+                                    l_HandleFile->status = BBPARTIALSUCCESS;
                                 }
                             }
                             else
                             {
-                                // NOTE:  Not currently set for the HandleFile...
-                                l_HandleFile->status = BBFAILED;
+                                l_HandleFile->status = BBINPROGRESS;
                             }
+                        }
+                    }
+                    else
+                    {
+                        // Not all contributors have reported
+                        if (!l_NumberOfHandleReportingContribs)
+                        {
+                            l_HandleFile->status = BBNOTSTARTED;
                         }
                         else
                         {
-                            // Mark the HandleFile as soon as we see any 'underlying' file marked as stopped
-                            l_HandleFile->flags |= BBTD_Stopped;
-                            l_HandleFile->status = BBSTOPPED;
+                            l_HandleFile->status = BBINPROGRESS;
                         }
                     }
-
-                    break;
                 }
-
-                default:
+                else
                 {
-                    errorText << "update_xbbServerHandleStatus(): Could not load the contribid file from file " << handle.string();
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    l_HandleFile->status = BBSTOPPED;
                 }
-            }
-
-            if (l_ContribIdFile)
-            {
-                delete l_ContribIdFile;
-                l_ContribIdFile = 0;
             }
 
             if (!rc)
@@ -1418,20 +1675,21 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         getStrFromBBStatus((BBSTATUS)l_EndingStatus, l_EndingStatusStr, sizeof(l_EndingStatusStr));
                         LOG(bb,info) << "           Status changing from " << l_StartingStatusStr << " to " << l_EndingStatusStr << ".";
                     }
-                }
 
-                // Save the handle file...
-                if (saveHandleFile(l_HandleFile, pLVKey, pJobId, pJobStepId, pHandle))
-                {
-                    errorText << "update_xbbServerHandleStatus(): Failure when attempting to save the handle file for " << pLVKey << ", jobid " << pJobId << ", jobstepid " \
-                              << pJobStepId << ", handle " << pHandle;
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    // Save the handle file...
+                    if (saveHandleFile(l_HandleFile, pLVKey, pJobId, pJobStepId, pHandle))
+                    {
+                        errorText << "update_xbbServerHandleStatus(): Failure when attempting to save the handle file for " << pLVKey << ", jobid " << pJobId << ", jobstepid " \
+                                  << pJobStepId << ", handle " << pHandle;
+                        LOG_ERROR_TEXT_RC(errorText, rc);
+                    }
                 }
             }
         }
         else
         {
-            // Status already set for handle...
+            // Final status already set for the handle.  The status value cannot change, nor
+            // can any other attribute associated with this handle file change.
         }
     }
     else
@@ -1445,17 +1703,27 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
+        FL_Write6(FLMetaData, HF_UpdateStatus_End, "update handle status, counter=%ld, handle=%ld, flags=0x%lx, transfer size=%ld, reporting contribs=%ld, rc=%ld",
+                  l_FL_Counter, pHandle, l_HandleFile->flags, l_HandleFile->totalTransferSize, l_HandleFile->numReportingContribs, rc);
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+    else
+    {
+        FL_Write(FLMetaData, HF_UpdateStatus_ErrEnd, "update handle status, counter=%ld, handle=%ld, rc=%ld",
+                 l_FL_Counter, pHandle, rc, 0);
     }
 
     return rc;
 }
 
+#define ATTEMPTS 10
 int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle)
 {
     int rc = 0;
@@ -1467,97 +1735,131 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     uint64_t l_JobStepId = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_UpdateTransferKeys, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJob.getJobId(), pHandle, 0);
+
     bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     if(!bfs::is_directory(datastore)) return rc;
-    bool l_AllDone = false;
     int l_catch_count=10;
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
 
-    while (!l_AllDone)
+    // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
+    //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
+    //       pointers for success/information.
+
+    // First, build a vector of jobids that the current uid/gid is authorized to access.
+    // We will iterate over these jobids in reverse order, as it is almost always
+    // the case that the jobid we want is the last one...
+    //
+    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+    //       of jobids.  The job could go away, but any jobid expected by the code
+    //       below should be in the vector.
+    rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
+
+    if (!rc)
     {
-        l_AllDone = true;
-
-        for(auto& job : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+        bool l_AllDone = false;
+        while (!l_AllDone)
         {
-            if (!accessDir( job.path().string() ) )continue;
-            try
+            l_AllDone = true;
+            for(vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
             {
-                l_JobId = stoull(job.path().filename().string());
-                for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
+                try
                 {
-                    if (!accessDir(jobstep.path().string()) ) continue;
-                    l_JobStepId = stoull(jobstep.path().filename().string());
-                    for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                    bfs::path job = bfs::path(*rit);
+                    l_JobId = stoull(job.filename().string());
+                    for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                     {
-                        if (handle.path().filename().string() == to_string(pHandle))
+                        if (!accessDir(jobstep.path().string()) ) continue;
+                        l_JobStepId = stoull(jobstep.path().filename().string());
+                        for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
-                            // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
-                            //       be updating simultaneously
-                            rc = loadHandleFile(l_HandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
-                            if (!rc)
+                            if (handle.path().filename().string() == to_string(pHandle))
                             {
-                                string l_TransferKeys = l_HandleFile->transferKeys;
-                                LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after load: l_TransferKeys=" << l_TransferKeys;
-
-                                boost::property_tree::ptree l_PropertyTree;
-                                if (l_TransferKeys.length())
+                                // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
+                                //       be updating simultaneously
+                                rc = loadHandleFile(l_HandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+                                if (!rc)
                                 {
-                                    std::istringstream l_InputStream(l_TransferKeys);
-                                    boost::property_tree::read_json(l_InputStream, l_PropertyTree);
-                                }
+                                    string l_TransferKeys = l_HandleFile->transferKeys;
+                                    LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after load: l_TransferKeys=" << l_TransferKeys;
 
-                                for(auto& e : pTransferDef->keyvalues)
+                                    boost::property_tree::ptree l_PropertyTree;
+                                    if (l_TransferKeys.length())
+                                    {
+                                        std::istringstream l_InputStream(l_TransferKeys);
+                                        boost::property_tree::read_json(l_InputStream, l_PropertyTree);
+                                    }
+
+                                    for(auto& e : pTransferDef->keyvalues)
+                                    {
+                                        l_PropertyTree.put((char*)e.first.c_str(), (char*)e.second.c_str());
+                                    }
+
+                                    std::ostringstream l_OutputStream;
+                                    boost::property_tree::write_json(l_OutputStream, l_PropertyTree, false);
+                                    l_TransferKeys = l_OutputStream.str();
+                                    LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_TransferKeys=" << l_TransferKeys;
+                                    l_HandleFile->transferKeys = l_TransferKeys;
+                                    LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_HandleFile->transferKeys=" << l_HandleFile->transferKeys;
+
+                                    rc = saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                                }
+                                else
                                 {
-                                    l_PropertyTree.put((char*)e.first.c_str(), (char*)e.second.c_str());
+                                    errorText << "Failure when attempting to load the handle file for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
+                                    LOG_ERROR_TEXT_RC(errorText, rc);
                                 }
-
-                                std::ostringstream l_OutputStream;
-                                boost::property_tree::write_json(l_OutputStream, l_PropertyTree, false);
-                                l_TransferKeys = l_OutputStream.str();
-                                LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_TransferKeys=" << l_TransferKeys;
-                                l_HandleFile->transferKeys = l_TransferKeys;
-                                LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_HandleFile->transferKeys=" << l_HandleFile->transferKeys;
-
-                                rc = saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-                            }
-                            else
-                            {
-                                errorText << "Failure when attempting to load the handle file for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-                                LOG_ERROR_TEXT_RC(errorText, rc);
                             }
                         }
                     }
                 }
-            }
-            catch(exception& e)
-            {
-                LOG(bb,info) << "Exception caught "<<__func__<<"@"<<__FILE__<<":"<<__LINE__<<" what="<<e.what();
-                if (l_HandleFileName)
+                catch(exception& e)
                 {
-                    delete[] l_HandleFileName;
-                    l_HandleFileName = 0;
-                }
-                if (l_HandleFile)
-                {
-                    l_HandleFile->close(l_LockFeedback);
+                    if (l_HandleFileName)
+                    {
+                        delete[] l_HandleFileName;
+                        l_HandleFileName = 0;
+                    }
+                    if (l_HandleFile)
+                    {
+                        l_HandleFile->close(l_LockFeedback);
 
-                    delete l_HandleFile;
-                    l_HandleFile = 0;
-                }
-                if (l_catch_count--)
-                {
-                    l_AllDone = false;
-                }
-                else //RAS
-                {
-                    rc=-1;
-                    errorText << "update_xbbServerHandleTransferKeys(): exception updating transfer keys for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-                    LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.updatexferkeys);
-                    LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-                }
+                        delete l_HandleFile;
+                        l_HandleFile = 0;
+                    }
+                    if (--l_catch_count)
+                    {
+                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                        //        If not that, log the error and retry.  Before retrying, remove the
+                        //        jobid that failed...
+                        if (errno != ENOENT)
+                        {
+                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                            << ". Retrying the operation...";
+                        }
+    		        	advance(rit, 1);
+    			        l_PathJobIds.erase(rit.base());
+                        l_AllDone = false;
+                    }
+                    else //RAS
+                    {
+                        rc=-1;
+                        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                        errorText << "update_xbbServerHandleTransferKeys(): exception updating transfer keys for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
+                        LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.updatexferkeys);
+                        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                    }
 
-                break;
+                    break;
+                }
             }
         }
+    }
+    else
+    {
+        // bberror has already been filled in
     }
 
     if (l_HandleFileName)
@@ -1565,6 +1867,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
     }
+
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
@@ -1573,8 +1876,12 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
         l_HandleFile = 0;
     }
 
+    FL_Write6(FLMetaData, HF_UpdateTransferKeys_End, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJob.getJobId(), pHandle, (uint64_t)(l_catch_count == ATTEMPTS ? 1 : ATTEMPTS-l_catch_count), rc, 0);
+
     return rc;
 }
+#undef ATTEMPTS
 
 /*
  * Non-static methods
@@ -1592,12 +1899,18 @@ void HandleFile::close(const int pFd)
 {
     if (pFd >= 0)
     {
+        uint64_t l_FL_Counter = metadataCounter.getNext();
+        FL_Write(FLMetaData, HF_Close, "close HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
         if (pFd == handleFileLockFd)
         {
             unlock();
         }
         LOG(bb,debug) << "close(): Issue close for handle file fd " << pFd;
+
         ::close(pFd);
+
+        FL_Write(FLMetaData, HF_Close_End, "close HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
     }
 }
 

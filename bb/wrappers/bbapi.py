@@ -236,7 +236,9 @@ class BBUsage_t(Structure):
                 ("localBytesRead", c_uint64),       #### Number of bytes written to the logical volume via compute node
                 ("localBytesWritten", c_uint64),    #### Number of bytes read from the logical volume via compute node
                 ("burstBytesRead", c_uint64),       #### Number of bytes written to the logical volume via burst buffer transfers
-                ("burstBytesWritten", c_uint64),]   #### Number of bytes read from the logical volume via burst buffer transfers
+                ("burstBytesWritten", c_uint64),    #### Number of bytes read from the logical volume via burst buffer transfers
+                ("localReadCount", c_uint64),       #### Number of read operations to the logical volume
+                ("localWriteCount", c_uint64),]     #### Number of write operations to the logical volume
 
 class BBDeviceUsage_t(Structure):
     _fields_ = [("critical_warning", c_uint64),     #### Number of bytes written to the logical volume

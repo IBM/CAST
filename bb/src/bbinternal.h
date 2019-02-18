@@ -14,6 +14,7 @@
 #ifndef BB_BBINERNAL_H_
 #define BB_BBINERNAL_H_
 
+#include <atomic>
 #include <string>
 
 #include <stddef.h>
@@ -45,6 +46,24 @@ typedef struct fiemap fiemap_t;
 typedef struct fiemap_extent fiemap_extent_t;
 
 /*******************************************************************************
+ | Classes and structs
+ *******************************************************************************/
+// Metadata counter for flight logging
+class AtomicCounter
+{
+public:
+   AtomicCounter() : value(0) {};
+
+   uint64_t getNext()
+   {
+      return ++value;
+   };
+
+private:
+   std::atomic<uint64_t> value;
+};
+
+/*******************************************************************************
  | External data
  *******************************************************************************/
 // NOTE:  The following variable is set in main() when bbproxy is started.
@@ -62,6 +81,7 @@ extern double ResizeSSD_TimeInterval;
 extern double Throttle_TimeInterval;
 extern Timer ResizeSSD_Timer;
 extern Timer Throttle_Timer;
+extern AtomicCounter metadataCounter;
 
 void setSsdWriteDirect(unsigned int pValue);
 
@@ -78,7 +98,6 @@ extern string resolveServerConfigKey(const string& pKey);
 extern int sameHostName(const string& pHostName);
 extern void writeVar(const char* pVariable, const char* pValue);
 extern void flightlog_Backtrace(uint64_t key);
-
 
 /*******************************************************************************
  | Constants
@@ -150,12 +169,6 @@ const char LV_DISPLAY_PREFIX[] = "LV Path";
 const char LV_DISPLAY_OPEN_PREFIX[] = "# open";
 const char MOUNTS_DIRECTORY[] = "/proc/mounts";
 
-
-/*******************************************************************************
- | Classes and structs
- *******************************************************************************/
-
-
 /*******************************************************************************
  | Enumerators
  *******************************************************************************/
@@ -210,6 +223,13 @@ enum HANDLEFILE_LOCK_FEEDBACK
     HANDLEFILE_WAS_LOCKED           = 1
 };
 typedef enum HANDLEFILE_LOCK_FEEDBACK HANDLEFILE_LOCK_FEEDBACK;
+
+enum HANDLEFILE_SCAN_OPTION
+{
+    NORMAL_SCAN = 0,
+    FULL_SCAN   = 1
+};
+typedef enum HANDLEFILE_SCAN_OPTION HANDLEFILE_SCAN_OPTION;
 
 /*******************************************************************************
  | Macro definitions

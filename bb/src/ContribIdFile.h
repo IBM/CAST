@@ -183,6 +183,7 @@ public:
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey* pLVKey, const bfs::path& pHandleFilePath, const uint32_t pContribId);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& pNumHandleContribs, uint64_t& pNumLVUuidContribs, const bfs::path& pHandleFilePath, const uint32_t pContribId);
     static int update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue=1);
+    static int update_xbbServerContribIdFileResetForRestart(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, ExtentInfo& pExtentInfo, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, uint64_t pHandle, uint32_t pContribId, Extent* pExtent, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBTransferDef* pRebuiltTransferDef, uint64_t pHandle, uint32_t pContribId, int64_t &pSize);
@@ -380,7 +381,7 @@ public:
     uint64_t            flags;
     uint64_t            totalTransferSize;
     vector<FileData>    files;
-    string              hostname;
+    string              hostname;   // Added for ARCHIVE_CONTRIBID_VERSION_2
 };
 
 #endif /* BB_CONTRIBIDFILE_H_ */
