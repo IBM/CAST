@@ -1021,9 +1021,49 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
     
     char* scriptArgs[] = { (char*)"/bin/systemctl", !startIRQBalance ?  (char*)"stop" : (char*)"start", 
         (char*)"irqbalance", NULL };
+    
 
     errno = 0;
     ForkAndExec(scriptArgs);
+
+    if (  !startIRQBalance )
+    {
+        char* balanceKillArgs[] = { (char*)"pkill", (char*)"irqbalance", NULL};
+        int pkillErr = ForkAndExec(balanceKillArgs);
+
+        switch ( pkillErr )
+        {
+            case 0:
+                break;
+            case 1:
+            {
+                LOG(csmapi, trace) << 
+                    "CGroup::IRQRebalance: Extra irqbalance daemons found verifying they're gone.";
+                sleep(1);
+
+                pkillErr = ForkAndExec(balanceKillArgs);
+                if ( pkillErr == 0 )
+                {
+                    LOG(csmapi, trace) <<
+                        "CGroup::IRQRebalance: Extra irqbalance daemons have been killed.";
+                }
+                else
+                {
+                    LOG(csmapi, warning) <<
+                        "CGroup::IRQRebalance: unable to kill irqbalance daemon, irqbalance stoppage not guaranteed.";
+                }
+                break;
+             }   
+            case 127:
+                LOG(csmapi, warning) << 
+                    "CGroup::IRQRebalance: pkill command not found, irqbalance stoppage not guaranteed.";
+                break;
+            default:
+                LOG(csmapi, warning) <<
+                    "CGroup::IRQRebalance: pkill command got an error, irqbalance stoppage not guaranteed.";
+        }
+
+    }
     
     #define IRQ_PATH "/proc/irq/"
     const char* CPUList = CPUs.c_str();
