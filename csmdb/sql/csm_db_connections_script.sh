@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_connections_script.sh  <----- to kill db sessions
 #   current_version:    1.8
 #   create:             09-08-2017
-#   last modified:      12-05-2018
+#   last modified:      02-15-2018
 #   Comments:           Execute this script as "postgres" user
 #                       (user who runs postmaster)
 #--------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ cd "${BASH_SOURCE%/*}" || exit
 
 line1_out="------------------------------------------------------------------------------------------------------------------------"
 line2_log="----------------------------------------------------------------------------------------------------"
-line3_log="---------------------------------------------------------------------------------------------------------------------------"
+line3_log="-----------------------------------------------------------------------------------------------------------------------------------"
 line4_out="------------------------------------------------------------------------------------------------------------------------"
 
 #------------------------------------------------
@@ -94,6 +94,7 @@ echo "${line1_out}"
 echo "[Start ] Welcome to CSM datatbase connections script."
 echo "${line1_out}"
 echo "[Info  ] $logfile"
+echo "${line1_out}"
 LogMsg "[Start ] Welcome to CSM datatbase connections script."
 LogMsg "${line2_log}"
 
@@ -157,6 +158,8 @@ do
                 if [ -z "$2" ]; then
                         echo "[Error ] Please specify user name"
                         LogMsg "[Error ] Please specify user name"
+                        LogMsg "${line2_log}"
+                        LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
                         echo "${line1_out}"
                         echo "${line3_log}" >> $logfile
                         exit 1
@@ -169,8 +172,9 @@ do
                             echo "[Error ] DB user: $user is not connected or is invalid"
                             echo "${line1_out}"
                             LogMsg "[Error ] DB user: $user is not connected or is invalid"
+                            LogMsg "[Info  ] Postgres DB kill (-k, --kill and or -u, --user) query executed"
                             LogMsg "${line2_log}"
-                            LogMsg "[End   ] Postgres DB kill (-k, --kill and or -u, --user) query executed"
+                            LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
                             echo "${line3_log}" >> $logfile
                         exit 1
                         fi
@@ -192,8 +196,9 @@ do
                             echo "[Error ] DB PID: $pid is not connected or is invalid"
                             echo "${line1_out}"
                             LogMsg "[Error ] DB PID: $pid is not connected or is invalid"
+                            LogMsg "[Info  ] Postgres DB kill (-k, --kill and or -u, --user) query executed"
                             LogMsg "${line2_log}"
-                            LogMsg "[End   ] Postgres DB kill (-k, --kill and or -u, --user) query executed"
+                            LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
                             echo "${line3_log}" >> $logfile
                         exit 1
                         fi
@@ -205,8 +210,9 @@ do
                         echo "Try '$BASENAME --help' for more information." 1>&2
                         LogMsg "[Info  ] Script execution: $BASENAME -h, --help"
                         LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
+                        LogMsg "[Info  ] Help menu query executed"
                         LogMsg "${line2_log}"
-                        LogMsg "[End   ] Help menu query executed"
+                        LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
                         echo "${line3_log}" >> $logfile
                         exit 1
                 fi
@@ -217,12 +223,12 @@ done
 
 function usage () {
 #if [ "$usage" ]; then
-        echo "------------------------------------------------------------------------------------------------------------------------"
-        echo "[Info ] $BASENAME : List/Kill database user sessions"
+        #echo "------------------------------------------------------------------------------------------------------------------------"
+        echo "[Info    ] $BASENAME : List/Kill database user sessions"
         #echo "-----------------------------------------------------------------------------------------------------------------------"
-        echo "[Usage] $BASENAME : [OPTION]... [USER]"
-        echo "------------------------------------------------------------------------------------------------------------------------"
-        echo "[Options]"
+        echo "[Usage   ] $BASENAME : [OPTION]... [USER]"
+        echo "-----------------------------------------------------------------------------------------------------------------"
+        echo "[Options ]"
         echo "----------------|-------------------------------------------------------------------------------------------------------"
         echo "  Argument      | Description"
         echo "----------------|-------------------------------------------------------------------------------------------------------"
@@ -260,6 +266,8 @@ EOF`
             echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
             echo "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
             LogMsg "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "${line2_log}"
+            LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 0
@@ -278,6 +286,7 @@ EOF`
             echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
             LogMsg "${line2_log}"
             LogMsg "[Info  ] PostgreSQL is installed"
+            LogMsg "${line2_log}"
         else
             echo "${line1_out}"
             echo "[Error ] PostgreSQL may not be installed or DB: $dbname may not exist."
@@ -285,6 +294,8 @@ EOF`
             echo "${line1_out}"
             LogMsg "[Error ] PostgreSQL may not be installed or DB $dbname may not exist."
             LogMsg "[Info  ] Please check configuration settings or psql -l"
+            LogMsg "${line2_log}"
+            LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
             echo "${line3_log}" >> $logfile
             exit 1
         fi
@@ -300,8 +311,8 @@ USERLIST=`psql -t -U $db_user $dbname -A -c "select usename from pg_stat_activit
 
 if [ "$OPT" = "list" ]; then
         UCTR=`$PSQLTC "select count(*) from pg_stat_activity" `
-        echo "${line4_out}"
-        printf '%-1s %-20s %-20s %-18s\n'"" "[Info  ] "" Database Session" "  | (all_users)"":" " $UCTR"
+        #echo "${line4_out}"
+        printf '%-1s %-20s %-18s %-18s\n'"" "[Info  ] ""Database Session" "    | (all_users)"":" "    $UCTR"
         LogMsg "[Info  ] Database Session | (all_users): $UCTR"
         if [[ -z "$user" ]]; then
         echo "${line1_out}"
@@ -333,8 +344,9 @@ if [ "$OPT" = "list" ]; then
         done
         LogMsg "${line2_log}"
         LogMsg "[Info  ] Script execution: $BASENAME -l, --list"
+        LogMsg "[Info  ] Postgres DB all current user connections query executed"
         LogMsg "${line2_log}"
-        LogMsg "[End   ] Postgres DB all current user connections query executed"
+        LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
         echo "${line3_log}" >> $logfile
         fi
         SQL="select pid as "PID", datname as "Database","
@@ -342,7 +354,7 @@ if [ "$OPT" = "list" ]; then
         if [ ! -z "$user" ]; then
                 SQL="$SQL where usename = '$user'"
                 UCTR1=`$PSQLTC "select count(*) from pg_stat_activity where usename = '$user'"`
-                printf '%-1s %-20s %-20s %-18s\n'"" "[Info  ] " "Session List" "| ($user)"":" " $UCTR1"
+                printf '%-1s %-20s %-20s %-18s\n'"" "[Info  ]" "Session List" "| ($user)"":" " $UCTR1"
                 LogMsg "[Info  ] Session List     | ($user): $UCTR1"
                 LogMsg "${line2_log}"
                 printf '%-1s %-1s %-1s %-8s %-14s %-18s %-10s %0s\n'"" "$now1" "($current_user)" "[Info  ]" "PID " "| Usename" "| Datname" "|  Count " "| Duration" >> $logfile
@@ -368,12 +380,13 @@ if [ "$OPT" = "list" ]; then
                 duration=${Record[@]:4}
                 
                 connectioninfo+=("[Info ] $pid | $usename | $datname | $count | $duration")
-                printf '%-1s %-1s %-1s %-8s %-14s %-18s %-10s %0s\n'"" "$now1" "($current_user)" "[Info ]" "$pid " "| $usename" "| $datname" "|     $count" "| $duration" >> $logfile
+                printf '%-1s %-1s %-1s %-8s %-14s %-18s %-10s %0s\n'"" "$now1" "($current_user)" "[Info  ]" "$pid " "| $usename" "| $datname" "|     $count" "| $duration" >> $logfile
                 done
                 LogMsg "${line2_log}"
                 LogMsg "[Info  ] Script execution: $BASENAME -l, --list -u, --user"
+                LogMsg "[Info  ] Postgres DB current users list for: $user connections query executed"
                 LogMsg "${line2_log}"
-                LogMsg "[End   ] Postgres DB current users list for: $user connections query executed"
+                LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
                 echo "${line1_out}"
                 echo "${line3_log}" >> $logfile
         fi
@@ -420,22 +433,25 @@ elif [ "$OPT" = "kill" ]; then
                         fi
                 fi
         done
+        LogMsg "[Info  ] Postgres DB kill query executed"
         LogMsg "${line2_log}"
-        LogMsg "[End   ] Postgres DB kill query executed"
+        LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
         echo "${line3_log}" >> $logfile
 else
         usage
         if [[ $1 == "-h" ]]; then
             LogMsg "[Info  ] Script execution: $BASENAME -h, --help"
+            LogMsg "[Info  ] Help menu query executed"
             LogMsg "${line2_log}"
-            LogMsg "[End   ] Help menu query executed"
+            LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
             echo "${line3_log}" >> $logfile
             exit 0
         else
             LogMsg "[Info  ] Script execution: $BASENAME $1 "
             LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
+            LogMsg "[Info  ] Please choose another option"
             LogMsg "${line2_log}"
-            LogMsg "[End   ] Please choose another option"
+            LogMsg "[End   ] Exiting csm_db_connections_script.sh script"
             echo "${line3_log}" >> $logfile
             exit 1
         fi

@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_ras_type_script.sh
 #   current_version:    01.10
 #   create:             11-07-2017
-#   last modified:      02-06-2019
+#   last modified:      02-15-2019
 #--------------------------------------------------------------------------------
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -41,7 +41,7 @@ now1=$(date '+%Y-%m-%d %H:%M:%S')
 BASENAME=`basename "$0"`
 
 line1_out="------------------------------------------------------------------------------------------------------------------------"
-line2_log="------------------------------------------------------------------------------------"
+line2_log="--------------------------------------------------------------------------------------------"
 line3_log="---------------------------------------------------------------------------------------------------------------------------"
 
 #----------------------------------------------
@@ -84,24 +84,24 @@ echo "[Info    ] Log Dir: $logdir/$logname"
 #----------------------------------------------
 
 function usage () {
-echo "-------------------------------------------------------------------------------------------------"
+echo "------------------------------------------------------------------------------------------------------------------------"
 echo "[Info    ] $BASENAME : Load/Remove data from csm_ras_type table"
 echo "[Usage   ] $BASENAME : [OPTION]... [DBNAME]... [CSV_FILE]"
-echo "-------------------------------------------------------------------------------------------------"
-echo "  Argument               |  DB Name  | Description                                               "
-echo "-------------------------|-----------|-----------------------------------------------------------"
-echo " -l, --loaddata          | [db_name] | Imports CSV data to csm_ras_type table (appends)          "
-echo "                         |           | Live Row Count, Inserts, Updates, Deletes, and Table Size "
-echo " -r, --removedata        | [db_name] | Removes all records from the csm_ras_type table           "
-echo " -h, --help              |           | help                                                      "
-echo "-------------------------|-----------|-----------------------------------------------------------"
+echo "------------------------------------------------------------------------------------------------------------------------"
+echo "  Argument               |  DB Name  | Description"
+echo "-------------------------|-----------|----------------------------------------------------------------------------------"
+echo " -l, --loaddata          | [db_name] | Imports CSV data to csm_ras_type table (appends)"
+echo "                         |           | Live Row Count, Inserts, Updates, Deletes, and Table Size"
+echo " -r, --removedata        | [db_name] | Removes all records from the csm_ras_type table"
+echo " -h, --help              |           | help"
+echo "-------------------------|-----------|----------------------------------------------------------------------------------"
 echo "[Examples]"
-echo "-------------------------------------------------------------------------------------------------"
-echo "   $BASENAME -l, --loaddata           [dbname]    | [csv_file_name]                              "
-echo "   $BASENAME -r, --removedata         [dbname]    |                                              "
-echo "   $BASENAME -r, --removedata         [dbname]    | [csv_file_name]                              "
-echo "   $BASENAME -h, --help               [dbname]    |                                              "
-echo "-------------------------------------------------------------------------------------------------"
+echo "------------------------------------------------------------------------------------------------------------------------"
+echo "   $BASENAME -l, --loaddata           [dbname]    | [csv_file_name]"
+echo "   $BASENAME -r, --removedata         [dbname]    |"
+echo "   $BASENAME -r, --removedata         [dbname]    | [csv_file_name]"
+echo "   $BASENAME -h, --help               [dbname]    |"
+echo "------------------------------------------------------------------------------------------------------------------------"
 }
 
 #----------------------------------------------
@@ -134,8 +134,9 @@ do
         -*)                 usage
                             LogMsg "[Info    ] Script execution: $BASENAME [NO ARGUMENT]"
                             LogMsg "[Info    ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
+                            LogMsg "[Info    ] Please choose another option"
                             LogMsg "${line2_log}"
-                            LogMsg "[End     ] Please choose another option"
+                            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
                             echo "${line3_log}" >> $logfile
                             exit 0 ;;
         # pass through anything else
@@ -167,6 +168,8 @@ while getopts "lr:h" arg; do
                 if [ -z "$3" ]; then
                     echo "[Error   ] Please specify csv file to import"
                     LogMsg "[Error   ] Please specify csv file to import"
+                    LogMsg "${line2_log}"
+                    LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
                     echo "${line1_out}"
                     echo "${line3_log}" >> $logfile
                     exit 1
@@ -178,6 +181,8 @@ while getopts "lr:h" arg; do
                         echo "[Error   ] File $csv_file_name can not be located or doesn't exist"
                         echo "[Info    ] Please choose another file or check path"
                         LogMsg "[Error   ] Cannot perform action because the $csv_file_name file does not exist. Exiting."
+                        LogMsg "${line2_log}"
+                        LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
                         echo "${line3_log}" >> $logfile
                         echo "${line1_out}"
                     exit 0
@@ -193,13 +198,13 @@ while getopts "lr:h" arg; do
             dbname=$2
             csv_file_name="$3"
             ;;
-        #h|*)
         h)
              #usage && exit 0
              usage
              LogMsg "[Info    ] Script execution: ./csm_db_stats.sh -h, --help"
              LogMsg "${line2_log}"
-             LogMsg "[End     ] Help menu query executed"
+             LogMsg "[Info    ] Help menu query executed"
+             LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
              echo "${line3_log}" >> $logfile
              exit 0
              ;;
@@ -208,8 +213,9 @@ while getopts "lr:h" arg; do
             usage
             LogMsg "[Info    ] Script execution: $BASENAME [NO ARGUMENT]"
             LogMsg "[Info    ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
+            LogMsg "[Info    ] Please choose another option"
             LogMsg "${line2_log}"
-            LogMsg "[End     ] Please choose another option"
+            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
             echo "${line3_log}" >> $logfile
             exit 0
             ;;
@@ -221,16 +227,15 @@ done
 # Checks to see if no arguments are passed in
 #----------------------------------------------
 
- if [ $# -eq 0 ]; then
-     #usage && exit 0
+if [ "$1" != "-l" ] && [ "$1" != "-r" ]; then
      usage
-     LogMsg "[Info    ] Script execution: $BASENAME [NO ARGUMENT]"
+     LogMsg "[Error   ] Script execution: $BASENAME [NO ARGUMENT]"
      LogMsg "[Info    ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
      LogMsg "${line2_log}"
-     LogMsg "[End     ] Please choose another option"
+     LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
      echo "${line3_log}" >> $logfile
      exit 0
- fi
+fi
 
 #--------------------------------------------------
 # Check if postgresql exists already and root user
@@ -246,6 +251,8 @@ EOF`
             echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
             echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
             LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 0
@@ -264,13 +271,16 @@ string2="$now1 ($current_user) [Info    ] DB Names:"
 EOF`
             echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
             LogMsg "[Info    ] PostgreSQL is installed"
+            LogMsg "${line2_log}" >> $logfile
         else
-            echo "${line1_out}"
+            #echo "${line1_out}"
             echo "[Error   ] PostgreSQL may not be installed or DB: $dbname may not exist."
             echo "[Info    ] Please check configuration settings or psql -l"
             echo "${line1_out}"
             LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
             LogMsg "[Info    ] Please check configuration settings or psql -l"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
             echo "${line3_log}" >> $logfile
             exit 1
         fi
@@ -299,7 +309,8 @@ if [ $db_exists == "no" ]; then
      echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
      LogMsg "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
      LogMsg "${line2_log}"
-     LogMsg "[End     ] Database does not exist"
+     LogMsg "[Info    ] Database does not exist"
+     LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
      echo "${line1_out}"
      echo "${line3_log}" >> $logfile
      exit 0
@@ -337,10 +348,11 @@ if [ $loaddata == "yes" ]; then
         *)
             echo "[Info    ] User response: $loaddata"
             echo "[Info    ] Skipping the csm_ras_type table data import/update process"
-            echo "${line2_log}"
+            echo "${line1_out}"
             LogMsg "[Info    ] Skipping the csm_ras_type table data import/update process"
+            LogMsg "[Info    ] $dbname database Data load/update process has ended."
             LogMsg "${line2_log}"
-            LogMsg "[End     ] $dbname database Data load/update process has ended."
+            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
             echo "${line3_log}" >> $logfile
             return_code=1
             exit 0
@@ -362,11 +374,12 @@ THE_END`
 
 if [[ $? -ne 0 ]]; then
      echo "$rtl_count" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+    echo "[End     ] Database table does not exist"
+    LogMsg "[Info    ] Database table does not exist"
     LogMsg "${line2_log}"
-     echo "[End     ] Database table does not exist"
-     LogMsg "[End     ] Database table does not exist"
-     echo "${line1_out}"
-     echo "${line3_log}" >> $logfile
+    LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
     exit 0
 fi
 
@@ -442,8 +455,9 @@ if [[ $? -ne 0 ]]; then
      LogMsg "[Error   ] $csv_file_name"
      LogMsg "[Error   ] Might not be compatible with the DB. Exiting."
      LogMsg "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
+     LogMsg "[Info    ] Aborting csv process"
      LogMsg "${line2_log}"
-     LogMsg "[End     ] Aborting csv process"
+     LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
      echo "${line1_out}"
      echo "${line3_log}" >> $logfile
     exit 0
@@ -473,10 +487,11 @@ diff=$(($count - $rtl_count))
     LogMsg "[Info    ] csm_ras_type live row count after script execution: $4"
     echo "[Info    ] csm_ras_type_audit live row count: $5"
     LogMsg "[Info    ] csm_ras_type_audit live row count: $5"
+    LogMsg "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
     echo "${line1_out}"
     LogMsg "${line2_log}"
     echo "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
-    LogMsg "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
+    LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit $return_code
@@ -498,8 +513,10 @@ if [ $removedata == "yes" ]; then
                 echo "[Error   ] File $csv_file_name can not be located or doesn't exist"
                 echo "[Info    ] Please choose another file or check path"
                 LogMsg "[Error   ] Cannot perform action because the $csv_file_name file does not exist. Exiting."
+                LogMsg "${line2_log}"
+                LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
                 echo "${line3_log}" >> $logfile
-                echo "${line2_log}"
+                echo "${line1_out}"
             exit 0
             fi
     fi
@@ -543,7 +560,9 @@ THE_END`
 if [[ $? -ne 0 ]]; then
      echo "$delete_count_csm_ras_type" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
      echo "[End     ] Aborting deletion process"
-     LogMsg "[End     ] Aborting deletion process"
+     LogMsg "[Info    ] Aborting deletion process"
+     LogMsg "${line2_log}"
+     LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
      echo "${line1_out}"
      echo "${line3_log}" >> $logfile
     exit 0
@@ -570,10 +589,12 @@ set -- $delete_count_csm_ras_type
         
         if [ ! -z "$csv_file_name" ]; then
             LogMsg "[Info    ] $dbname database remove all data from the csm_ras_type table."
-            echo "${line2_log}"
+            echo "${line1_out}"
         else
-            LogMsg "[End     ] $dbname database remove all data from the csm_ras_type table."
-            echo "${line2_log}"
+            LogMsg "[Info    ] $dbname database remove all data from the csm_ras_type table."
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
+            echo "${line1_out}"
             echo "${line3_log}" >> $logfile
         exit 0
         fi
@@ -593,8 +614,10 @@ THE_END`
 
 if [[ $? -ne 0 ]]; then
      echo "$rtl_count" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
-     echo "[End     ] Database table does not exist"
-     LogMsg "[End     ] Database table does not exist"
+     echo "[End     ] Database table does not exist."
+     LogMsg "[Info    ] Database table does not exist."
+     LogMsg "${line2_log}"
+     LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
      echo "${line1_out}"
      echo "${line3_log}" >> $logfile
     exit 0
@@ -670,7 +693,9 @@ if [[ $? -ne 0 ]]; then
      LogMsg "[Error   ] $csv_file_name"
      LogMsg "[Error   ] Might not be compatible with the DB. Exiting."
      LogMsg "[Info    ] Please check the file to ensure it is compatible with the csm_ras_type table."
-     LogMsg "[End     ] Aborting csv process"
+     LogMsg "[Info    ] Aborting csv process"
+     LogMsg "${line2_log}"
+     LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
      echo "${line1_out}"
      echo "${line3_log}" >> $logfile
     exit 0
@@ -699,8 +724,9 @@ diff=$(($count - $rtl_count))
     echo "[Info    ] csm_ras_type_audit live row count: $4"
     LogMsg "[Info    ] csm_ras_type_audit live row count: $4"
     echo "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
+    LogMsg "[Info    ] Database: $dbname csv upload process complete for csm_ras_type table."
     LogMsg "${line2_log}"
-    LogMsg "[End     ] Database: $dbname csv upload process complete for csm_ras_type table."
+    LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit $return_code
@@ -711,9 +737,10 @@ diff=$(($count - $rtl_count))
             LogMsg "[Info    ] User response: $removedata"
             echo "[Info    ] Data removal from the csm_ras_type table has been aborted"
             LogMsg "[Info    ] Data removal from the csm_ras_type table has been aborted"
+            LogMsg "[Info     ] $dbname database attempted removal process has ended."
             LogMsg "${line2_log}"
-            LogMsg "[End     ] $dbname database attempted removal process has ended."
-            echo "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_ras_type_script.sh script"
+            echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             return_code=1
         ;;

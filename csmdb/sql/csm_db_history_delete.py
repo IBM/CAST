@@ -19,7 +19,7 @@
 # usage             ./csm_db_history_delete.py
 # current_version   2.0
 # date_created:     12-07-2018
-# date_modified:    02-12-2019
+# date_modified:    02-14-2019
 #================================================================================
 
 import psycopg2
@@ -132,7 +132,11 @@ def main(args):
 
     # Parse the args.
     parser = argparse.ArgumentParser(
-        description='A tool for deleting the CSM Database history table records.',
+        description="------------------------------------------------------------------------------\n"
+                    "A tool for deleting the CSM Database history table records.\n"
+                    "------------------------------------------------------------------------------\n"
+                    "LogDir:/var/log/ibm/csm/db/csm_db_history_delete.log\n"
+                    "------------------------------------------------------------------------------\n",
         add_help=True,
         epilog="------------------------------------------------------------------------------")
    

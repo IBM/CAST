@@ -19,7 +19,7 @@
 # usage             ./csm_db_history_archive.py
 # current_version   2.0
 # date_created:     10-12-2018
-# date_modified:    02-13-2019
+# date_modified:    02-14-2019
 #================================================================================
 
 import psycopg2
@@ -99,6 +99,7 @@ elif len(argumentList) == 0:
     print "{0}".format(line1)
     print "Start Script Time:                                    | {0}".format(a)
     print "{0}".format(line1)
+    print "Archiving Log Directory:                              | {0}".format(DEFAULT_LOG)
     logger.info("Welcome to the CSM DB archiving script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
@@ -200,7 +201,11 @@ def main(args):
 
     # Parse the args.
     parser = argparse.ArgumentParser(
-        description='A tool for archiving the CSM Database history tables.',
+        description="------------------------------------------------------------------------------\n"
+                    "A tool for archiving the CSM Database history tables.\n"
+                    "------------------------------------------------------------------------------\n"
+                    "LogDir:/var/log/ibm/csm/db/csm_db_archive_script.log\n"
+                    "------------------------------------------------------------------------------",
         add_help=True,
         epilog="------------------------------------------------------------------------------")
    

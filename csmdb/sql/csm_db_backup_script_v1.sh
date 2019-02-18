@@ -18,7 +18,7 @@
 #   usage:              Backup CSM DB related data, tables, triggers, functions, etc.
 #   current_version:    1.3
 #   created:            03-26-2018
-#   last modified:      02-12-2019
+#   last modified:      02-15-2019
 #--------------------------------------------------------------------------------
 
 #----------------------------------------------------------------
@@ -63,24 +63,27 @@ now1=$(date '+%Y-%m-%d %H:%M:%S')
 #------------------------------------------------------------------------------------------------------------------------------
 
 function usage () {
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------------------------------------------------"
     echo "[Info    ] $BASENAME : csmdb /tmp/csmdb_backup/"
     echo "[Info    ] $BASENAME : csmdb"
-    #echo "----------------------------------------------------------------------------------------------------------------"
     echo "[Usage   ] $BASENAME : [OPTION]... [/DIR/]"
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "[Usage   ] $BASENAME : [OPTION]... [/DIR/]"
+    echo "------------------------------------------------------------------------------------------------------------------------"
+    echo "[Log Dir ] /var/log/ibm/csm/db/csm_db_backup_script.log   (if root user and able to write to directory)"
+    echo "[Log Dir ] /tmp/csm_db_backup_script.log                  (if postgres user and or not able to write to specific directory"
+    echo "------------------------------------------------------------------------------------------------------------------------"
     echo "[Options ]"
-    echo "----------------|------------------------------------------------------------------------------------------------"
+    echo "----------------|-------------------------------------------------------------------------------------------------------"
     echo "  Argument      | Description"
-    echo "----------------|------------------------------------------------------------------------------------------------"
+    echo "----------------|-------------------------------------------------------------------------------------------------------"
     echo "   -h, --help   | help menu"
-    echo "----------------|------------------------------------------------------------------------------------------------"
+    echo "----------------|-------------------------------------------------------------------------------------------------------"
     echo "[Examples]"
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------------------------------------------------"
     echo "   $BASENAME [DBNAME]                 | (default) will backup database to /var/lib/pgpsql/backups/ (directory)"
     echo "   $BASENAME [DBNAME] [/DIRECTORY/]   | will backup database to specified directory"
     echo "                                                       | if the directory doesn't exist then it will be made and written."
-    echo "-----------------------------------------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------------------------------------------------"
 }
 
 #----------------------------------------------------
@@ -198,6 +201,8 @@ EOF`
             echo "$string1 $db_user_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile
             echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
             LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 0
@@ -224,7 +229,8 @@ EOF`
             echo "${line1_out}"
             LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
             LogMsg "[Info    ] Please check configuration settings or psql -l"
-            LogMsg "[Info    ] Log directory: $logdir/$logname"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
             echo "${line3_log}" >> $logfile
             exit 1
         fi
@@ -256,8 +262,9 @@ EOF`
         echo "${line1_out}"
         LogMsg "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
         LogMsg "[Info    ] Backup/log directory:  |   $cur_path"
-        echo "${line2_log}" >> $logfile
-        LogMsg "[End     ] Please provide a valid DB that exists on the system (hint: psql -l)."
+        LogMsg "[Info    ] Please provide a valid DB that exists on the system (hint: psql -l)."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
         echo "${line3_log}" >> $logfile
         exit 1
     fi
@@ -312,8 +319,6 @@ if [ $conn_count == "0" ]; then
     # Check to see if 'pv' is installed
     #-----------------------------------
 
-    #pv_check=$"(pv -V | grep -qw 2>>/dev/null)"
-
     FILE="/usr/bin/pv" 2>&1
         if [ -f $FILE ]; then
             pg_dump -U $db_username -Fc $dbname | pv -w 80 -F '[Info    ] Script Stats:                |  [%b] [%t] %r %a %e' > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
@@ -321,16 +326,7 @@ if [ $conn_count == "0" ]; then
             echo "[Info    ] PV statistics:               |  Might not be installed (continuing process)"
             LogMsg "[Info    ] PV statistics:               | Might not be installed (continuing process)"
             pg_dump -U $db_username -Fc $dbname > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
-            #echo "File $FILE does not exist."
         fi
-
-        #if [ $? -eq 0 ]; then
-        #    echo "[Info    ] PV statistics:               |  Might not be installed (continuing process)"
-        #    LogMsg "[Info    ] PV statistics:               | Might not be installed (continuing process)"
-        #    pg_dump -U $db_username -Fc $dbname > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
-        #else
-        #    pg_dump -U $db_username -Fc $dbname | pv -w 80 -F '[Info    ] Script Stats:                |  [%b] [%t] %r %a %e' > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
-        #fi
 else
     echo "${line1_out}"
     echo "[Error   ] Cannot perform action because the $dbname database currently has connections. Exiting."
@@ -341,7 +337,8 @@ else
     LogMsg "[Info    ] (hint: run ./csm_db_connections_script.sh -h for more options)."
     echo "${line1_out}"
     echo "[Info    ] Log directory: $logdir/$logname"
-    LogMsg "[Info    ] Log directory: $logdir/$logname"
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit 0
@@ -374,12 +371,14 @@ ds=$(echo "$dt3-60*$dm" | bc)
     #-----------------------------------------
     if [ $conn_count == "0"  ]; then
         echo "${line1_out}"
-        echo "${line3_log}" >> $logfile
         echo "[End     ] Backup process complete"
-        LogMsg "[End     ] Backup process complete"
+        LogMsg "[Info    ] Backup process               | [Complete]"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
     else
-        echo "${line2_log}" >> $logfile
-        LogMsg "[End     ] Backup process aborted"
+        LogMsg "[Info    ] Backup process               | [Aborted]"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
     fi
     echo "${line1_out}"
 echo "${line3_log}" >> $logfile

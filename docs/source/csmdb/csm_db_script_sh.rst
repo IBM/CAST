@@ -61,38 +61,41 @@ Example (usage)
 
 .. code-block:: bash
 
-    bash 4.2$ ./csm_db_script.sh -h
-    ===============================================================================================================
-    [Info ] csm_db_script.sh : CSM database creation script with additional features
-    [Usage] csm_db_script.sh : [OPTION]... [DBNAME]... [OPTION]
-    ---------------------------------------------------------------------------------------------------------------
-    [Options]
-    -----------------------|-----------|---------------------------------------------------------------------------
-      Argument             | DB Name   | Description
-    -----------------------|-----------|---------------------------------------------------------------------------
-      -x, --nodata         | [DEFAULT] | creates database with tables and does not pre populate table data
-                           | [db_name] | this can also be used with the -f --force, -n --newdb option when
-                           |           | recreating a DB. This should follow the specified DB name
-      -d, --delete         | [db_name] | totally removes the database from the system
-      -e, --eliminatetables| [db_name] | drops CSM tables from the database
-      -f, --force          | [db_name] | drops the existing tables in the DB, recreates and populates with table data
-      -n, --newdb          | [db_name] | creates a new database with tables and populated data
-      -r, --removetabledata| [db_name] | removes data from all database tables
-      -h, --help           |           | help
-    -----------------------|-----------|-----------------------------------------------------------------------------
-    [Examples]
-    -----------------------------------------------------------------------------------------------------------------
-    [DEFAULT] csm_db_script.sh                         |          |
-    [DEFAULT] csm_db_script.sh -x, --nodata            |          |
-              csm_db_script.sh -d, --delete            | [DBNAME] |
-              csm_db_script.sh -e, --eliminatetables   | [DBNAME] |
-              csm_db_script.sh -f, --force             | [DBNAME] |
-              csm_db_script.sh -f, --force             | [DBNAME] | -x, --nodata
-              csm_db_script.sh -n, --newdb             | [DBNAME] |
-              csm_db_script.sh -n, --newdb             | [DBNAME] | -x, --nodata
-              csm_db_script.sh -r, --removetabledata   | [DBNAME] |
-              csm_db_script.sh -h, --help              |          |
-    ===============================================================================================================
+ -bash-4.2$ ./csm_db_script.sh -h
+ ------------------------------------------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /tmp/csm_db_script.log
+ -----------------------------------------------------------------------------------------------------------------
+ [Info ] csm_db_script.sh : CSM database creation script with additional features
+ [Usage] csm_db_script.sh : [OPTION]... [DBNAME]... [OPTION]
+ -----------------------------------------------------------------------------------------------------------------
+ [Options]
+ -----------------------|-----------|-----------------------------------------------------------------------------
+   Argument             | DB Name   | Description
+ -----------------------|-----------|-----------------------------------------------------------------------------
+   -x, --nodata         | [DEFAULT] | creates database with tables and does not pre populate table data
+                        | [db_name] | this can also be used with the -f --force, -n --newdb option when
+                        |           | recreating a DB. This should follow the specified DB name
+   -d, --delete         | [db_name] | totally removes the database from the system
+   -e, --eliminatetables| [db_name] | drops CSM tables from the database
+   -f, --force          | [db_name] | drops the existing tables in the DB, recreates and populates with table data
+   -n, --newdb          | [db_name] | creates a new database with tables and populated data
+   -r, --removetabledata| [db_name] | removes data from all database tables
+   -h, --help           |           | help
+ -----------------------|-----------|-----------------------------------------------------------------------------
+ [Examples]
+ -----------------------------------------------------------------------------------------------------------------
+   [DEFAULT] csm_db_script.sh                         |          |
+   [DEFAULT] csm_db_script.sh -x, --nodata            |          |
+             csm_db_script.sh -d, --delete            | [DBNAME] |
+             csm_db_script.sh -e, --eliminatetables   | [DBNAME] |
+             csm_db_script.sh -f, --force             | [DBNAME] |
+             csm_db_script.sh -f, --force             | [DBNAME] | -x, --nodata
+             csm_db_script.sh -n, --newdb             | [DBNAME] |
+             csm_db_script.sh -n, --newdb             | [DBNAME] | -x, --nodata
+             csm_db_script.sh -r, --removetabledata   | [DBNAME] |
+             csm_db_script.sh -h, --help              |          |
+ -----------------------------------------------------------------------------------------------------------------
 
 .. note:: Setting up or creating a new DB <manually>
 
@@ -115,6 +118,7 @@ Example (successful DB creation):
  $ /opt/ibm/csm/db/csm_db_script.sh
  ------------------------------------------------------------------------------------------------------
  [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] PostgreSQL is installed
  [Info    ] csmdb database user: csmdb already exists
  [Complete] csmdb database created.
@@ -139,6 +143,8 @@ Example (DB already exists)
 
  $ /opt/ibm/csm/db/csm_db_script.sh
  ------------------------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] PostgreSQL is installed
  [Error   ] Cannot perform action because the csmdb database already exists. Exiting.
  ------------------------------------------------------------------------------------------------------
@@ -161,7 +167,9 @@ Example (Default DB creation without loaded data option)
 
  $ /opt/ibm/csm/db/csm_db_script.sh –x
  ------------------------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM database automation script.
  [Info    ] PostgreSQL is installed
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] csmdb database user: csmdb already exists
  [Complete] csmdb database created.
  [Complete] csmdb database tables created.
@@ -192,6 +200,8 @@ Example (Delete existing DB)
 
  $ /opt/ibm/csm/db/csm_db_script.sh –d csmdb
  ------------------------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] PostgreSQL is installed
  [Info    ] This will drop csmdb database including all tables and data. Do you want to continue [y/n]?y
  [Complete] csmdb database deleted
@@ -211,9 +221,10 @@ Example (Remove data from DB tables)
 
  $ /opt/ibm/csm/db/csm_db_script.sh –r csmdb
  ------------------------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] PostgreSQL is installed
- [Complete] csmdb database data deleted from all tables excluding csm_schema_version and 
-            csm_db_schema_version_history tables
+ [Complete] csmdb database data deleted from all tables excluding csm_schema_version and csm_db_schema_version_history tables
  ------------------------------------------------------------------------------------------------------
 
 3.   Force a total overwrite of the database <drops tables and recreates them>.
@@ -231,6 +242,7 @@ Example (Force DB receation)
  $ /opt/ibm/csm/db/csm_db_script.sh –f csmdb
  ------------------------------------------------------------------------------------------------------
  [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] PostgreSQL is installed
  [Info    ] csmdb database user: csmdb already exists
  [Complete] csmdb database tables and triggers dropped
@@ -258,6 +270,7 @@ Example (Force DB recreation without preloaded table data)
  $ /opt/ibm/csm/db/csm_db_script.sh –f csmdb –x
  ------------------------------------------------------------------------------------------------------
  [Start   ] Welcome to CSM database automation script.
+ [Info    ] Log Dir: /var/log/ibm/csm/db/csm_db_script.log
  [Info    ] PostgreSQL is installed
  [Info    ] csmdb database user: csmdb already exists
  [Complete] csmdb database tables and triggers dropped

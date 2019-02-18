@@ -19,7 +19,7 @@
 #   current_version:    01.0
 #   migration_version:  17.0 # <--------example version after the DB upgrade
 #   create:             01-30-2019
-#   last modified:      02-08-2019
+#   last modified:      02-15-2019
 #--------------------------------------------------------------------------------
 
 #set -x
@@ -34,7 +34,7 @@ cur_path=`pwd`
 migration_dir="$cur_path/csm_db_migration_scripts"
 
 line1_out="------------------------------------------------------------------------------------------------------------------------"
-line2_log="------------------------------------------------------------------------------------"
+line2_log="--------------------------------------------------------------------------------------------"
 line3_log="---------------------------------------------------------------------------------------------------------------------------"
 line4_out="-------------------------------------------------------------------------------------------------------------"
 
@@ -61,9 +61,9 @@ now1=$(date '+%Y-%m-%d %H:%M:%S')
 #----------------------------------------------
 
 version_comp="csm_create_tables.sql"
-version_comp_2=`grep current_version $cur_path/$version_comp | awk '{print $3}'`
+version_comp_2=`grep current_version $cur_path/$version_comp 2>>/dev/null | awk '{print $3}'`
 trigger_version="csm_create_triggers.sql"
-trigger_version_2=`grep current_version $cur_path/$trigger_version | awk '{print $3}'`
+trigger_version_2=`grep current_version $cur_path/$trigger_version 2>>/dev/null | awk '{print $3}'`
 ga_version="15.0"
 upgrade_16_0="16.0"
 upgrade_16_1="16.1"
@@ -71,7 +71,7 @@ required_pre_migration="16.2"
 migration_db_version="17.0"
 
 csm_db_schema_csv="csm_db_schema_version_data.csv"
-csm_db_schema_version_comp=`awk -F ',' ' NR==2 {print substr($0,0,4)}' $cur_path/$csm_db_schema_csv`
+csm_db_schema_version_comp=`awk -F ',' ' NR==2 {print substr($0,0,4)}' $cur_path/$csm_db_schema_csv 2>>/dev/null`
 
 BASENAME=`basename "$0"`
 
@@ -166,24 +166,26 @@ echo "$now ($current_user) $1" >> $logfile
 
 echo "${line1_out}"
 LogMsg "[Start   ] Welcome to CSM database schema version upgrade script."
-LogMsg "${line2_log}" >> $logfile
+LogMsg "${line2_log}"
 echo "[Start   ] Welcome to CSM database schema version upgrade script."
+echo "${line1_out}"
+echo "[Info    ] Log Dir: $logfile"
 
 #----------------------------------------------
 # Usage Command Line Functions
 #----------------------------------------------
 
 function usage () {
-echo "-------------------------------------------------------------------------------------------------"
-echo "[Info ] $BASENAME : Load CSM DB upgrade schema file"
-echo "[Usage] $BASENAME : $BASENAME [DBNAME]"
-echo "-------------------------------------------------------------------------------------------------"
-echo "  Argument       |  DB Name  | Description                                               "
-echo "-----------------|-----------|-------------------------------------------------------------------"
-echo "  script_name    | [db_name] | Imports sql upgrades to csm db table(s) (appends)         "
-echo "                 |           | fields, indexes, functions, triggers, etc                 "
-echo "-----------------|-----------|-------------------------------------------------------------------"
-echo "-------------------------------------------------------------------------------------------------"
+echo "------------------------------------------------------------------------------------------------------------------------"
+echo "[Info    ] $BASENAME : Load CSM DB upgrade schema file"
+echo "[Usage   ] $BASENAME : $BASENAME [DBNAME]"
+echo "------------------------------------------------------------------------------------------------------------------------"
+echo "  Argument       |  DB Name  | Description"
+echo "-----------------|-----------|------------------------------------------------------------------------------------------"
+echo "  script_name    | [db_name] | Imports sql upgrades to csm db table(s) (appends)"
+echo "                 |           | fields, indexes, functions, triggers, etc"
+echo "-----------------|-----------|------------------------------------------------------------------------------------------"
+echo "------------------------------------------------------------------------------------------------------------------------"
 }
 
 #---------------------------------------------
@@ -196,6 +198,11 @@ while getopts $optstring OPTION
 do
     case $OPTION in
         h|*)
+            LogMsg "[Info    ] Script execution: $BASENAME -h, --help"
+            LogMsg "[Info    ] Help menu query executed"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting $0 script"
+            echo "${line3_log}" >> $logfile
             usage; exit 1;;
     esac
 done
@@ -207,6 +214,8 @@ done
 if [ -z "$1" ]; then
     echo "[Error   ] Please specify DB name"
     LogMsg "[Error   ] Please specify DB name"
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting $0 script"
     usage
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
@@ -235,6 +244,8 @@ EOF`
             echo "${line1_out}"
             echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
             LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting $0 script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 0
@@ -258,13 +269,15 @@ string2="$now1 ($current_user) [Info    ] DB Names:"
 EOF`
             echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
             LogMsg "[Info    ] PostgreSQL is installed"
-            LogMsg "${line2_log}" >> $logfile
+            LogMsg "${line2_log}"
         else
             echo "[Error   ] PostgreSQL may not be installed or DB: $dbname may not exist."
             echo "[Info    ] Please check configuration settings or psql -l"
             echo "${line1_out}"
             LogMsg "[Error   ] PostgreSQL may not be installed or DB $dbname may not exist."
             LogMsg "[Info    ] Please check configuration settings or psql -l"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting $0 script"
             echo "${line3_log}" >> $logfile
             exit 1
         fi
@@ -294,7 +307,9 @@ if [ $db_exists == "no" ]; then
      LogMsg "[Info    ] $dbname database does not exist."
      echo "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
      LogMsg "[Error   ] Cannot perform action because the $dbname database does not exist. Exiting."
-     LogMsg "[End     ] Database does not exist"
+     LogMsg "[Info    ] Database does not exist"
+     LogMsg "${line2_log}"
+     LogMsg "[End     ] Exiting $0 script"
      echo "${line1_out}"
      echo "${line3_log}" >> $logfile
      exit 0
@@ -324,6 +339,8 @@ version=`psql -v ON_ERROR_STOP=1 -X -A -U $db_username -d $dbname -t -c "SELECT 
 if [ $? -ne 0 ]; then
     echo "[Error   ] Cannot perform action because DB: $dbname is not compatible."
     LogMsg "[Error   ] Cannot perform action because DB: $dbname is not compatible."
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting $0 script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit 0
@@ -338,15 +355,17 @@ fi
 if [[ $(bc <<< "${version} == ${migration_db_version}") -eq 1 ]]; then
     echo "[Info    ] ${line4_out}"
     echo "[Info    ] $dbname is currently running db schema version: $version"
-    echo "[Info    ] Log Dir: $logdir/$logname"
+    #echo "[Info    ] Log Dir: $logdir/$logname"
     LogMsg "[Info    ] $dbname is currently running db schema version: $version"
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting $0 script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit 0
 else
-    echo "[Info    ] ${line4_out}"
+    #echo "[Info    ] ${line4_out}"
     echo "[Info    ] $dbname current_schema_version is running: $version"
-    echo "[Info    ] Log Dir: $logdir/$logname"
+    #echo "[Info    ] Log Dir: $logdir/$logname"
     LogMsg "[Info    ] $dbname current_schema_version is running: $version"
     echo "[Info    ] ${line4_out}"
 fi
@@ -360,6 +379,8 @@ if [[ $(bc <<< "${version}") < "$ga_version" ]]; then
     LogMsg "[Error   ] The database migration script does not support versions below $ga_version"
     echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2"
     LogMsg "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2"
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting $0 script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit 0
@@ -371,26 +392,6 @@ fi
 # to date.
 #----------------------------------------------------------
 
-if  [[ "${migration_db_version}" != "${version_comp_2}" ]] || [[ "${migration_db_version}" != "${csm_db_schema_version_comp}" ]] || \
-    [[ "${migration_db_version}" != "${trigger_version_2}" ]]; then
-
-        echo "[Error   ] Cannot perform action because not compatible."
-        echo "[Info    ] Required: appropriate files in directory"
-        echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
-        echo "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
-        echo "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
-        echo "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
-        LogMsg "[Error   ] Cannot perform action because not compatible."
-        LogMsg "[Info    ] Required: appropriate files in directory"
-        LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
-        LogMsg "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
-        LogMsg "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
-        LogMsg "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
-        echo "${line1_out}"
-        echo "${line3_log}" >> $logfile
-        exit 0
-fi
-
     #------------------------------
     # Checks to see if file exists
     # and version # (csv)
@@ -398,8 +399,12 @@ fi
 
     if [ ! -f $cur_path/$csm_db_schema_csv ]; then
         echo "[Error   ] Cannot perform action because the $csm_db_schema_csv file does not exist."
+        LogMsg "[Error   ] Cannot perform action because the $csm_db_schema_csv file does not exist."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         echo "${line1_out}"
-        exit 1
+        echo "${line3_log}" >> $logfile
+        exit 0
     fi
 
     #------------------------------
@@ -408,11 +413,50 @@ fi
     #------------------------------
 
     if [ ! -f $cur_path/$version_comp ]; then
-        echo "[Error   ] Cannot perform action because the $version_comp is not compatible."
-        LogMsg "[Error   ] Cannot perform action because the $version_comp is not compatible."
+        echo "[Error   ] Cannot perform action because the $version_comp does not exist."
+        LogMsg "[Error   ] Cannot perform action because the $version_comp does not exist."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         echo "${line1_out}"
         echo "${line3_log}" >> $logfile
-        exit 1
+        exit 0
+    fi
+    
+    #------------------------------
+    # Checks to see if file exists
+    # and version # (create triggers)
+    #------------------------------
+
+    if [ ! -f $cur_path/$trigger_version ]; then
+        echo "[Error   ] Cannot perform action because the $trigger_version does not exist."
+        LogMsg "[Error   ] Cannot perform action because the $trigger_version does not exist."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 0
+    fi
+
+    if  [[ "${migration_db_version}" != "${version_comp_2}" ]] || [[ "${migration_db_version}" != "${csm_db_schema_version_comp}" ]] || \
+        [[ "${migration_db_version}" != "${trigger_version_2}" ]]; then
+
+            echo "[Error   ] Cannot perform action because not compatible."
+            echo "[Info    ] Required: appropriate files in directory"
+            echo "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
+            echo "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
+            echo "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
+            echo "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
+            LogMsg "[Error   ] Cannot perform action because not compatible."
+            LogMsg "[Info    ] Required: appropriate files in directory"
+            LogMsg "[Info    ] csm_create_tables.sql file currently in the directory is: $version_comp_2 (required version) $migration_db_version"
+            LogMsg "[Info    ] csm_create_triggers.sql file currently in the directory is: $trigger_version_2 (required version) $migration_db_version"
+            LogMsg "[Info    ] csm_db_schema_version_data.csv file currently in the directory is: $csm_db_schema_version_comp (required version) $migration_db_version"
+            LogMsg "[Info    ] Please make sure you have the latest RPMs installed and latest DB files."
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting $0 script"
+            echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
+            exit 0
     fi
 
 #----------------------------------------------------------------------------------------------------
@@ -464,11 +508,15 @@ if [ $connections_count -gt 0 ]; then
         echo "[Info    ] See log file for connection details"
         echo "${line1_out}"
         echo "${line3_log}" >> $logfile
+        exit 0
     fi
 #else
 #echo "[Info    ] There are no connections to $dbname"
 #LogMsg "[Info    ] There are no connections to $dbname"
+LogMsg "${line2_log}"
+LogMsg "[End     ] Exiting $0 script"
 fi
+
 
 #-----i------------------------------------------------------------------
 # Checks to see if migration file exists
@@ -478,6 +526,8 @@ fi
 if [ ! -f $dtf ] && [ -f $dbu_16_0 ] && [ -f $dbu_16_2 ] && [ -f $dbu_17_0 ]; then
     echo "[Error   ] Cannot perform action because the migration files may not exist."
     LogMsg "[Error   ] Cannot perform action because the migration files may not exist."
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting $0 script"
     echo "${line1_out}"
     echo "${line3_log}" >> $logfile
     exit 1
@@ -541,6 +591,8 @@ read -s -n 1 confirm
         LogMsg "[Info    ] User response: $confirm"
         echo "[Error   ] Migration session for DB: $dbname User response: ****(NO)****  not updated"
         LogMsg "[Error   ] Migration session for DB: $dbname User response: ****(NO)****  not updated"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         echo "${line1_out}"
         echo "${line3_log}" >> $logfile
         exit 0
@@ -557,6 +609,8 @@ fi
          echo "$(db_drop_trgs_funcs)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
         echo "[Error   ] Cannot perform drop triggers and drop functions command for version: $version"
         LogMsg "[Error   ] Cannot perform drop triggers and drop functions command for version: $version"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         echo "${line1_out}"
         echo "${line3_log}" >> $logfile
     fi
@@ -580,6 +634,8 @@ db_prev_ver_to_16_2 2>&1
          echo "$(db_prev_ver_to_16_2)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
         echo "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
         LogMsg "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         exit 0
     fi
     
@@ -603,13 +659,15 @@ db_prev_ver_to_16_2 2>&1
          echo "$(db_prev_ver_16_2_type)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
         echo "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
         LogMsg "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         exit 0
     else
         echo "[Info    ] ${line4_out}"
         echo "[Info    ] Migration from $version to $required_pre_migration [Complete]"
+        LogMsg "${line2_log}"
         LogMsg "[Info    ] Migration from $version to $required_pre_migration [Complete]"
-        #echo "[Info    ] ${line4_out}"
-        LogMsg "${line2_log}" >> $logfile
+        LogMsg "${line2_log}"
     fi
 fi
 
@@ -646,15 +704,14 @@ THE_END`
          echo "$db_query_2" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
         echo "[Error   ] Cannot perform the upgrade process to $migration_db_version"
         LogMsg "[Error   ] Cannot perform the upgrade process to $migration_db_version"
-        echo "[Info    ] ${line2_log}"
-        LogMsg "${line2_log}" >> $logfile
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
+        echo "${line1_out}"
         exit 0
     else
         echo "[Info    ] ${line4_out}"
         echo "[Info    ] Migration from $required_pre_migration to $migration_db_version [Complete]"
         LogMsg "[Info    ] Migration from $required_pre_migration to $migration_db_version [Complete]"
-        #echo "[Info    ] ${line2_log}"
-        #LogMsg "${line2_log}" >> $logfile
     fi
 
 #---------------------------------------------
@@ -684,10 +741,12 @@ if [ $? -eq 0  ]; then
         echo "${line1_out}"
         #echo "${line3_log}" >> $logfile
         printf "[Timing  ] %d:%02d:%02d:%02.4f\n" $dd $dh $dm $ds
-            LogMsg "${line2_log}" >> $logfile
+            LogMsg "${line2_log}"
             LogMsg "[Complete] $dbname database schema update $migration_db_version."
-            LogMsg "${line2_log}" >> $logfile
+            LogMsg "${line2_log}"
             LogMsg "[Timing  ] $dd:$dh:$dm:0$ds"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting $0 script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 1
@@ -695,6 +754,8 @@ if [ $? -eq 0  ]; then
         echo "[Error   ] Database schema update failed for $dbname"
             echo "[Error   ] $db_query_2"
             LogMsg "[Error   ] Database schema update failed for $dbname"
+            LogMsg "${line2_log}"
+            LogMsg "[End     ] Exiting $0 script"
             echo "$string2 $db_query_2" >>$logfile
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
