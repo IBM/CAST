@@ -225,7 +225,7 @@ Example (user prompt execution with “y/yes” for the migration and “n/no”
 
 To run the RAS script by itself please refer to link: :ref:`csm_ras_type_script_sh <csm_ras_type_script_usage>`
 
-.. note:: If the migration script has already ran already or a new database has been created with the latest schema version of ``16.2`` then this message will be prompted to the user.
+.. note:: If the migration script has already ran already or a new database has been created with the latest schema version of ``17.0`` then this message will be prompted to the user.
  
 Running the script with existing newer version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -242,7 +242,7 @@ Running the script with existing newer version
 
 .. warning:: If there are existing DB connections, then the migration script will prompt a message and the admin will have to kill connections before proceeding.
 
-.. hint:: The csm_db_connections_script.sh script can be used with the –l option to quickly list the current connections. (Please see user guide or ``–h`` for usage function).  This script has the ability to terminate user sessions based on pids, users, or a ``–f`` force option will kill all connections if necessary.  Once the connections are terminated then the ``csm_db_schema_version_upgrade_16_2.sh`` script can be executed. The log message will display current connection of user, database name, connection count, and duration.
+.. hint:: The csm_db_connections_script.sh script can be used with the –l option to quickly list the current connections. (Please see user guide or ``–h`` for usage function).  This script has the ability to terminate user sessions based on pids, users, or a ``–f`` force option will kill all connections if necessary.  Once the connections are terminated then the ``csm_db_schema_version_upgrade_17_0.sh`` script can be executed. The log message will display current connection of user, database name, connection count, and duration.
 
 Example (user prompt execution with “y/yes” option and existing DB connection(s)):
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
