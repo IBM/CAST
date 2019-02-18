@@ -2,7 +2,7 @@
 
     csmi/src/inv/include/inv_types.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -180,5 +180,22 @@ typedef struct csm_full_inventory_t
   {}
 
 } csm_full_inventory_t;
+
+typedef struct csm_ssd_wear_t
+{
+  char node_name[CSM_NODE_NAME_MAX];
+  uint32_t discovered_ssds;
+  csm_ssd_inventory_t ssd[CSM_SSD_MAX_DEVICES];
+
+  csm_ssd_wear_t()
+  {
+    // Initialize the whole struct with 0s first; guarantees any pad bytes are also initialized
+    memset(this, 0, sizeof(*this));
+
+    // Set any non-zero defaults here
+  }
+
+} csm_ssd_wear_t;
+
 
 #endif

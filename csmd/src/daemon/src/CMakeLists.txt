@@ -2,7 +2,7 @@
 #
 #    csmd/src/daemon/src/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -122,6 +122,7 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/csm_infrastructure_test_utility.cc
   csmi_request_handler/csmi_agg_mtc_handler.cc
   csmi_request_handler/InvGetNodeInventory.cc
+  csmi_request_handler/InvSsdWearUpdate.cc
   csmi_request_handler/csm_ctrl_cmd_handler.cc
   csmi_request_handler/csm_daemon_clock.cc
   csmi_request_handler/csm_environmental_handler.cc

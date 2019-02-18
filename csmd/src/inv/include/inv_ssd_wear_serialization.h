@@ -1,6 +1,6 @@
 /*================================================================================
-
-    csmd/src/daemon/include/bucket_item_type_definitions.h
+    
+    csmd/src/inv/include/inv_ssd_wear_serialization.h    
 
   © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
@@ -10,13 +10,19 @@
 
     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
     restricted by GSA ADP Schedule Contract with IBM Corp.
-
+ 
 ================================================================================*/
-// USE UPPER CASE for each bucket item
-bucket_item(DEBUG)
-bucket_item(CPU)
-bucket_item(GPU)
-bucket_item(NETWORK)
-bucket_item(DEFAULT)
-bucket_item(ENVIRONMENTAL)
-bucket_item(SSD)
+#ifndef _INV_SSD_WEAR_SERIALIZATION_H
+#define _INV_SSD_WEAR_SERIALIZATION_H
+
+#include "csmi/src/inv/include/inv_types.h"
+
+#include <string>
+
+using std::string;
+
+uint32_t ssd_wear_pack(const csm_ssd_wear_t& in_ssd_wear, string& out_payload_str);
+
+uint32_t ssd_wear_unpack(const string& in_payload_str, csm_ssd_wear_t& out_ssd_wear);
+
+#endif

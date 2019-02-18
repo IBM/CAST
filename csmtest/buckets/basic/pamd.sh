@@ -23,21 +23,6 @@
 # - COMPUTE_NODES
 # =================================================
 
-clear_allocations()
-{
-    # Clean up the allocations.
-    allocations=$(${CSM_PATH}/csm_allocation_query_active_all | grep allocation_id| tr -s " " | cut -d" " -f4)
-    
-    for allocation in ${allocations}
-    do
-        ${CSM_PATH}/csm_allocation_delete -a ${allocation} 
-    done
-    
-    # Drop all of the nodes into in service
-    ${CSM_PATH}/csm_node_attributes_update -n ${COMPUTE_NODES} -s IN_SERVICE
-}
-
-
 if [ -f "${BASH_SOURCE%/*}/../../csm_test.cfg" ]
 then
     . "${BASH_SOURCE%/*}/../../csm_test.cfg"
@@ -45,6 +30,10 @@ else
     echo "Could not find csm_test.cfg file expected at "${BASH_SOURCE%/*}/../csm_test.cfg", exitting."
     exit 1
 fi
+
+LOG=${LOG_PATH}/buckets/basic/pamd.log
+TEMP_LOG=${LOG_PATH}/buckets/basic/pamd_tmp.log
+FLAG_LOG=${LOG_PATH}/buckets/basic/pamd_flag.log
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
 then
@@ -70,7 +59,7 @@ TEST_OUTPUT="/root/test.out"
 xdsh ${COMPUTE_NODES} "sed -i 's/^#\(.*libcsmpam.so\)/\1/g' /etc/pam.d/sshd;service sshd restart" > ${TEMP_LOG} 2>&1
 
 # Distribute the test script.
-xdsh ${COMPUTE_NODES} "echo '!/bin/bash' > ${TEST_SCRIPT}; echo 'printenv > ${TEST_OUTPUT} 2>&1; ulimit -a >> ${TEST_OUTPUT} 2>&1 >> ${TEST_SCRIPT}; chmod +x ${TEST_SCRIPT};" > ${TEMP_LOG} 2>&1
+xdsh ${COMPUTE_NODES} "echo '!/bin/bash' > ${TEST_SCRIPT}; echo 'printenv' > ${TEST_OUTPUT} 2>&1; ulimit -a >> ${TEST_OUTPUT} 2>&1 >> ${TEST_SCRIPT}; chmod +x ${TEST_SCRIPT};" > ${TEMP_LOG} 2>&1
 
 clear_allocations
 #----------------------------------------------------------------------------------------------
@@ -93,12 +82,12 @@ ${CSM_PATH}/csm_allocation_delete -a ${alloc_id}
 alloc_id=$(${CSM_PATH}/csm_allocation_create -j 1 -n ${COMPUTE_NODES} -u root 2>/dev/null| grep allocation_id | cut -d " " -f 2)
 
 ssh -l ${USER} ${SINGLE_COMPUTE} "echo test" > /dev/null
-check_return_error  $? 0 "Test Case 4: ${USER} not allowed to login to node"
+check_return_error $? 0 "Test Case 4: ${USER} not allowed to login to node"
 
 ssh -l ${SECOND_USER} ${SINGLE_COMPUTE} "echo test" > /dev/null
 check_return_error $? 0 "Test Case 5: ${SECOND_USER} not allowed to login to node"
 
-ssh -l root  ${SINGLE_COMPUTE} "echo test" > /dev/null
+ssh -l root ${SINGLE_COMPUTE} "echo test" > /dev/null
 check_return_exit $? 0 "Test Case 6: ${SECOND_USER} allowed to login to node"
 
 
