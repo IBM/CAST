@@ -1028,7 +1028,7 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
 
     if (  !startIRQBalance )
     {
-        char* balanceKillArgs[] = { (char*)"pkill", (char*)"irqbalance", NULL};
+        char* balanceKillArgs[] = { (char*)"/usr/bin/pkill", (char*)"irqbalance", NULL};
         int pkillErr = ForkAndExec(balanceKillArgs);
 
         switch ( pkillErr )
