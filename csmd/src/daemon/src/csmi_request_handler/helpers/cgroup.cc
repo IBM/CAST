@@ -1038,29 +1038,29 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
             case 1:
             {
                 LOG(csmapi, trace) << 
-                    "CGroup::IRQRebalance: Extra irqbalance daemons found verifying they're gone.";
+                    "CGroup::IRQRebalance: Extra irqbalance daemons found verifying they're gone;";
                 sleep(1);
 
                 pkillErr = ForkAndExec(balanceKillArgs);
                 if ( pkillErr == 0 )
                 {
                     LOG(csmapi, trace) <<
-                        "CGroup::IRQRebalance: Extra irqbalance daemons have been killed.";
+                        "CGroup::IRQRebalance: Extra irqbalance daemons have been killed;";
                 }
                 else
                 {
                     LOG(csmapi, warning) <<
-                        "CGroup::IRQRebalance: unable to kill irqbalance daemon, irqbalance stoppage not guaranteed.";
+                        "CGroup::IRQRebalance: unable to kill irqbalance daemon, irqbalance stoppage not guaranteed;";
                 }
                 break;
              }   
             case 127:
                 LOG(csmapi, warning) << 
-                    "CGroup::IRQRebalance: pkill command not found, irqbalance stoppage not guaranteed.";
+                    "CGroup::IRQRebalance: pkill command not found, irqbalance stoppage not guaranteed;";
                 break;
             default:
                 LOG(csmapi, warning) <<
-                    "CGroup::IRQRebalance: pkill command got an error, irqbalance stoppage not guaranteed.";
+                    "CGroup::IRQRebalance: pkill command got an error, irqbalance stoppage not guaranteed; Error Code was: " << pkillErr;
         }
 
     }
