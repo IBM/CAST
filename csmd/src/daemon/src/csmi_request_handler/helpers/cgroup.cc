@@ -1021,9 +1021,49 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
     
     char* scriptArgs[] = { (char*)"/bin/systemctl", !startIRQBalance ?  (char*)"stop" : (char*)"start", 
         (char*)"irqbalance", NULL };
+    
 
     errno = 0;
     ForkAndExec(scriptArgs);
+
+    if (  !startIRQBalance )
+    {
+        char* balanceKillArgs[] = { (char*)"/usr/bin/pkill", (char*)"irqbalance", NULL};
+        int pkillErr = ForkAndExec(balanceKillArgs);
+
+        switch ( pkillErr )
+        {
+            case 1:
+                break;
+            case 0:
+            {
+                LOG(csmapi, trace) << 
+                    "CGroup::IRQRebalance: Extra irqbalance daemons found verifying they're gone;";
+                sleep(1);
+
+                pkillErr = ForkAndExec(balanceKillArgs);
+                if ( pkillErr == 1 )
+                {
+                    LOG(csmapi, trace) <<
+                        "CGroup::IRQRebalance: Extra irqbalance daemons have been killed;";
+                }
+                else
+                {
+                    LOG(csmapi, warning) <<
+                        "CGroup::IRQRebalance: unable to kill irqbalance daemon, irqbalance stoppage not guaranteed;";
+                }
+                break;
+             }   
+            case 127:
+                LOG(csmapi, warning) << 
+                    "CGroup::IRQRebalance: pkill command not found, irqbalance stoppage not guaranteed;";
+                break;
+            default:
+                LOG(csmapi, warning) <<
+                    "CGroup::IRQRebalance: pkill command got an error, irqbalance stoppage not guaranteed; Error Code was: " << pkillErr;
+        }
+
+    }
     
     #define IRQ_PATH "/proc/irq/"
     const char* CPUList = CPUs.c_str();
@@ -1031,6 +1071,23 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
 
     DIR *sysDir =  opendir(IRQ_PATH);  // Open the directory to search for subdirs.
     dirent *dirDetails;                         // Output struct for directory contents.
+
+    std::string affinityList(IRQ_PATH "default_smp_affinity");
+    int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
+    if( fileDescriptor >= 0 )
+    {
+        errno=0;
+        write( fileDescriptor, CPUList, CPUListLen);
+        int errorCode = errno;
+        close( fileDescriptor );
+    
+        // Build a verbose error for the user.
+        if ( errorCode != 0 )
+        {
+            LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+        }
+    }
+
     
     // If the system directory could not be retrieved throw an exception.
     if ( !sysDir )
@@ -1067,21 +1124,6 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
         }
     }
     
-    std::string affinityList(IRQ_PATH "default_smp_affinity");
-    int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
-    if( fileDescriptor >= 0 )
-    {
-        errno=0;
-        write( fileDescriptor, CPUList, CPUListLen);
-        int errorCode = errno;
-        close( fileDescriptor );
-    
-        // Build a verbose error for the user.
-        if ( errorCode != 0 )
-        {
-            LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
-        }
-    }
 
     LOG(csmapi, trace) << "CGroup::IRQRebalance Exit";
 
