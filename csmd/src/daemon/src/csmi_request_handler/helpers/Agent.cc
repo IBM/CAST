@@ -274,9 +274,12 @@ int ForkAndExec( char * const argv[] )
 
     if ( execPid > 0 )
     {
+        errno=0;
         //LOG( csmapi, warning ) << "Child PID: " << execPid ;
         if (waitpid(execPid, &status, 0) == -1) {
-            ; // TODO additional error handle.
+            LOG(csmapi, error) << "waitpid received error: " << errno << "; errstr: " << 
+                std::strerror(errno);
+            errno=0;
         }
     }
     else if ( execPid == 0  )
