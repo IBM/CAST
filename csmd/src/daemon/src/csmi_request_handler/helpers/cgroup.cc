@@ -103,8 +103,9 @@ const std::string CGroup::MEM_DIR = std::string(CGroup::CONTROLLER_DIR).append(C
 
 bool CGroup::RepairSMTChange() 
 {
-    const char* CPUS  = "cpuset.cpus";
+    LOG(csmapi, trace) <<  _LOG_PREFIX "RepairSMTChange Enter";
 
+    const char* CPUS  = "cpuset.cpus";
     int32_t threads, sockets, threadsPerCore, coresPerSocket;
     // Get the CPUS and do a sanity check.
     if ( CGroup::GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) )
@@ -167,9 +168,11 @@ bool CGroup::RepairSMTChange()
     } 
     else
     {
+        LOG(csmapi, trace) << _LOG_PREFIX "RepairSMTChange Exit;";
         return false;
     }
 
+    LOG(csmapi, trace) << _LOG_PREFIX "RepairSMTChange Exit;";
     return true;
 }
 
@@ -180,6 +183,7 @@ CGroup::CGroup( int64_t allocationId ):
        _smtMode(0),
        _enabled(true)
 {
+    LOG(csmapi, trace) << _LOG_PREFIX "CGroup Enter;";
     // Get the jitter info.
     csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
     _enabled = jitterInfo.GetJitterMitigation();
@@ -198,11 +202,13 @@ CGroup::CGroup( int64_t allocationId ):
 
         throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
     }
+    LOG(csmapi, trace) << _LOG_PREFIX "CGroup Exit;";
+
 }
 
 void CGroup::DeleteCGroups( bool removeSystem )
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Enter;";
     
     // Walk the list of cgroups that could be created and attempt to delete them.
     for ( uint32_t controller = CG_CPUSET; 
@@ -219,12 +225,13 @@ void CGroup::DeleteCGroups( bool removeSystem )
 
     }
 
-    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Exit";
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Exit;";
 }
 
 void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter; cores: " << cores <<  "; smtMode:  " << smtMode;
+
     static_assert(CG_CPUSET == 0, "CG_CPUSET must have a value of 0.");
     
     // The SMT mode.
@@ -466,6 +473,8 @@ void CGroup::DeleteCGroup(
 
 void CGroup::MigratePid( pid_t pid ) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "MigratePid Enter; pid: " << pid;
+
     std::string pidStr = std::to_string(pid);
 
     for ( uint32_t controller = CG_CPUSET; 
@@ -481,10 +490,15 @@ void CGroup::MigratePid( pid_t pid ) const
         WriteToParameter( "tasks", controllerPath, pidStr.c_str(), pidStr.size() );
 
     }
+
+    LOG( csmapi, trace ) << _LOG_PREFIX "MigratePid Exit;";
 }
 
 bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepTime) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "WaitPidMigration Enter; pid: "<< pid << "; sleepAttempts: " << 
+        sleepAttempts << "; sleepTime: "<< sleepTime;
+
     bool success        = false; 
     std::string pidStr  = std::to_string(pid); // The stringified pid.
     uint32_t controller = CG_CPUSET; // Controller being checked.
@@ -539,11 +553,16 @@ bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepT
         LOG(csmapi, error) << "Pid was not migrated successfully: " << pidStr << " ; Failed on cgroup " << 
             csmi_cgroup_controller_t_strs[controller] << " controller;";
     }
+    LOG( csmapi, trace ) << _LOG_PREFIX "WaitPidMigration Exit;";
+
     return success;
 }
 
 void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32_t numProcessors ) 
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "ConfigSharedCGroup Enter; projectedMemory: " << projectedMemory 
+        << "; numGPUs: " <<numGPUs << "; numProcessors: " << numProcessors;
+
     std::string memCGroup(CONTROLLER_DIR);
     memCGroup.append(MEM).append(_CGroupName);
 
@@ -664,20 +683,25 @@ void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32
         // TODO Should this throw an exception?
         WriteToParameter(CPUS, cpuCGroup, " ", 1);
     }
+    LOG( csmapi, trace ) << _LOG_PREFIX "ConfigSharedCGroup Exit;";
 }
 
 int64_t CGroup::GetCPUUsage(const char* stepCGroupName) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetCPUUsage Enter;";
     // Build the usage path.
     const char* USAGE = "/cpuacct.usage";
     std::string usagePath(CGroup::CPUACCT_DIR);
     usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
 
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetCPUUsage Exit;";
     return ReadNumeric( usagePath );
 }
 
 bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* stepCGroupName) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetDetailedCPUUsage Enter; stepCGroupName: "<< stepCGroupName;
+
     // Build the usage path.
     const char* USAGE = "/cpuacct.usage_percpu";
     std::string usagePath(CGroup::CPUACCT_DIR);
@@ -689,7 +713,7 @@ bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* ste
     std::string cpuacctStr = ReadString( usagePath );
     if ( cpuacctStr.empty() )
     {
-        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage: failed to read from " << usagePath;
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage Exit; Failed to read from " << usagePath;
         return false;
     }
 
@@ -729,21 +753,24 @@ bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* ste
     }
     else
     {
-        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage: CPU data was invalid"; 
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage Exit; CPU data was invalid"; 
         return false;
     }
 
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetDetailedCPUUsage Exit;";
     return true;
 }
 
 
 int64_t CGroup::GetMemoryMaximum(const char* stepCGroupName) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetMemoryMaximum Enter; stepCGroupName: " << stepCGroupName; 
     // Build the usage path.
     const char* USAGE = "/memory.max_usage_in_bytes";
     std::string usagePath(CGroup::MEM_DIR);
     usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
 
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetMemoryMaximum Exit;";
     return ReadNumeric( usagePath );
 }
 
@@ -754,7 +781,8 @@ const std::string CGroup::CreateCGroup(
     const char* controller, 
     const std::string& groupName ) const
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Enter; controller: "<< controller 
+        << "; groupName: " << groupName;
 
     // Construct the base cgroup path.
     std::string controllerPath(CONTROLLER_DIR);
@@ -816,7 +844,7 @@ const std::string CGroup::CreateCGroup(
         }
     } while( retry );
 
-    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Exit";
+    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Exit;";
     return groupPath;
 }
 
@@ -825,7 +853,7 @@ void CGroup::DeleteCGroup(
     const std::string& groupName, 
     bool migrateTasksUp ) const
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroup Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroup Enter; controller: " << controller << "; grounName: " <<groupName;
 
     // Build the controller path before the specialized group. 
     std::string controllerPath(CONTROLLER_DIR);
@@ -938,6 +966,9 @@ void CGroup::DeleteChildren(
     const std::string& groupPath, 
     bool migrateTasksUp ) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteChildren Enter; controller: " << controller << "; groupName: " << groupName
+        << "; groupPath: " << groupPath;
+
     DIR *sysDir =  opendir(groupPath.c_str());  // Open the directory to search for subdirs.
     dirent *dirDetails;                         // Output struct for directory contents.
     
@@ -990,12 +1021,16 @@ void CGroup::DeleteChildren(
             }
         }
     }
+
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteChildren Exit;";
 }
 
 int CGroup::CPUPower(
     const uint32_t thread,
     const char online ) 
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "CPUPower Enter; thread: " << thread;
+
     char path[CPU_PATH_MAX];
     int rc = 0;
 
@@ -1010,6 +1045,7 @@ int CGroup::CPUPower(
         close( fileDescriptor );
     }
 
+    LOG( csmapi, trace ) << _LOG_PREFIX "CPUPower Exit;";
     return rc;
 }
 
@@ -1410,6 +1446,8 @@ bool CGroup::CheckFile( const char* path, bool isDir ) const
 bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets, 
     int32_t &threadsPerCore, int32_t &coresPerSocket)
 {
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCPUs Enter;";
+
     // Success of the execution
     bool success = true;
     threads = -1;
@@ -1476,12 +1514,15 @@ bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets,
     {
         success = false;
     }
+
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCPUs Exit;";
+
     return success;
 }
 
 void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string &groupCores)
 {
-    LOG(csmapi, trace) << "CGroup::GetCoreIsolation Enter";
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCoreIsolation Enter;";
     // Assemble the thread grouping 
     #define assembleGroup( string )                                        \
         string.append(std::to_string(groupStart));                         \
@@ -1721,7 +1762,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
     // ================================================================================
     
-    LOG(csmapi, trace) << "CGroup::GetCoreIsolation Enter; System: " << 
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCoreIsolation Enter; System: " << 
         sysCores << "; Allocation: " << groupCores ;
 }
 
