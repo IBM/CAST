@@ -1033,16 +1033,16 @@ int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
 
         switch ( pkillErr )
         {
-            case 0:
-                break;
             case 1:
+                break;
+            case 0:
             {
                 LOG(csmapi, trace) << 
                     "CGroup::IRQRebalance: Extra irqbalance daemons found verifying they're gone;";
                 sleep(1);
 
                 pkillErr = ForkAndExec(balanceKillArgs);
-                if ( pkillErr == 0 )
+                if ( pkillErr == 1 )
                 {
                     LOG(csmapi, trace) <<
                         "CGroup::IRQRebalance: Extra irqbalance daemons have been killed;";
