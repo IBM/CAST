@@ -127,13 +127,14 @@ double WRKQE::processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pE
 
     if (rate)
     {
+        // Must be a throttled work queue...
         Extent* l_Extent = pExtentInfo.getExtent();
         LOG(bb,debug) << "processBucket(): For extent with length " << l_Extent->getLength();
         dump("debug", "processBucket(): Before bucket modification: ");
 
         // NOTE: The code below is very similar to the code in transferExtent() in xfer.cc.  The code there
         //       logs messages if an extent is not going to be transferred for some reason.  Here, we simply
-        //       want to check for those similar conditions.
+        //       want to check for those similar conditions, determining if we should decrement the bucket value.
         if (pLV_Info)
         {
             if ((!(l_Extent->isCP_Transfer())) && l_Extent->getLength())
@@ -148,27 +149,27 @@ double WRKQE::processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pE
                             l_TransferDef = pExtentInfo.transferDef;
                             if (!l_TransferDef->failed())
                             {
-                                if (!l_TagInfo->failed())
+                                if (!l_TagInfo->canceled())
                                 {
-                                    //  Handle not marked as failed...
-                                    if (!l_TagInfo->canceled())
+                                    //  Handle not marked as canceled
+                                    if (!l_TransferDef->canceled())
                                     {
-                                        //  Handle not marked as canceled
-                                        if (!l_TransferDef->canceled())
+                                        // This extent will be transferred...
+                                        // NOTE: We are guaranteed that this work queue is throttled, so
+                                        //       even if this bucket has a value of zero, it must be decremented
+                                        uint64_t l_Length = (uint64_t)(l_Extent->getLength());
+                                        if (bucket >= 0)
                                         {
-                                            //  This extent will be transferred...
-                                            uint64_t l_Length = (uint64_t)(l_Extent->getLength());
-                                            if (bucket > 0)
-                                            {
-                                                l_MadeBucketModification = true;
-                                                bucket -= (int64_t)l_Length;
-                                            }
-                                            else
-                                            {
-                                                l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
-                                                LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
-                                            }
-                                       }
+                                            // No delay
+                                            l_MadeBucketModification = true;
+                                            bucket -= (int64_t)l_Length;
+                                        }
+                                        else
+                                        {
+                                            // With delay
+                                            l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
+                                            LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
+                                        }
                                     }
                                 }
                             }

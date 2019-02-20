@@ -69,6 +69,12 @@ FL_SetSize(FLXfer, 16384)
 FL_SetName(FLDelay, "Server Delay Flightlog")
 FL_SetSize(FLDelay, 16384)
 
+/*
+ * Static data
+ */
+static LVKey LVKey_Null = LVKey();
+
+
 void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1199,7 +1205,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 
     LVKey l_Key = pWorkItem.getLVKey();
 
-    pWorkItem.dump("debug", "transferExtent(): Processing ");
+//    pWorkItem.dump("info", "transferExtent(): Processing ");
 
     // Process request...
     BBTagID l_TagId = pWorkItem.getTagId();
@@ -1415,7 +1421,7 @@ void* transferWorker(void* ptr)
     WRKQE* l_WrkQE = 0;
     Extent* l_Extent = 0;
     WorkID l_WorkItem;
-    LVKey l_Key;
+    LVKey l_Key = LVKey_Null;
     BBTagID l_TagId;
     ExtentInfo l_ExtentInfo;
     BBLV_Info* l_LV_Info;
@@ -1469,7 +1475,7 @@ void* transferWorker(void* ptr)
                                 l_Extent = l_ExtentInfo.extent;
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
-                                wrkqmgr.processThrottle(&l_Key, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
+                                wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
                                 if (l_ThreadDelay > 0)
                                 {
                                     LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
@@ -1574,6 +1580,7 @@ void* transferWorker(void* ptr)
                         if (l_WrkQ != HPWrkQE->getWrkQ())
                         {
                             // Perform the transfer
+//                            l_WrkQE->dump("info", " Extent being transferred -> ");
                             transferExtent(l_WorkItem, l_ExtentInfo);
                         }
                         else
