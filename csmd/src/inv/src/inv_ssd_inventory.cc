@@ -32,16 +32,23 @@ using namespace std;
 // value is the actual string to be copied into the ssd_inventory structure
 // dest_ptr is a pointer to the destination in the structure (like snprintf)
 // DEST_MAX is the size of the dest_ptr buffer (like snprintf)
-void setSsdInventoryValue(const string& field, const string& value, char* dest_ptr, const uint32_t& DEST_MAX);
+void setSsdInventoryValue(const string& field, const string& value, char* dest_ptr, const uint32_t& DEST_MAX, const bool& verbose=true);
 
 // Helper function for extracting field values from the nvme command output lines
 // Returns -1 if an error occurs, otherwise returns the fields value
 // Logs a message that includes the fieldname for both successful and unsuccessful operation 
 int64_t getNvmeFieldInt64Value(string outputline, const string &fieldname);
 
-bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uint32_t& ssd_count)
+bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uint32_t& ssd_count, const bool& verbose)
 {
-  LOG(csmd, info) << "Enter " << __PRETTY_FUNCTION__;
+  if (verbose)
+  { 
+    LOG(csmd, info) << "Enter " << __PRETTY_FUNCTION__; 
+  }
+  else
+  {
+    LOG(csmd, debug) << "Enter " << __PRETTY_FUNCTION__;
+  }
 
   ssd_count = 0;
 
@@ -112,15 +119,15 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
 
       if (*field_itr == "serial")
       {
-        setSsdInventoryValue(*field_itr, value, ssd_inventory[i].serial_number, CSM_SSD_SERIAL_NUMBER_MAX);
+        setSsdInventoryValue(*field_itr, value, ssd_inventory[i].serial_number, CSM_SSD_SERIAL_NUMBER_MAX, verbose);
       }
       else if (*field_itr == "firmware_rev")
       {
-        setSsdInventoryValue(*field_itr, value, ssd_inventory[i].fw_ver, CSM_SSD_FW_VER_MAX);
+        setSsdInventoryValue(*field_itr, value, ssd_inventory[i].fw_ver, CSM_SSD_FW_VER_MAX, verbose);
       }
       else if (*field_itr == "model")
       {
-        setSsdInventoryValue(*field_itr, value, ssd_inventory[i].device_name, CSM_SSD_DEVICE_NAME_MAX);
+        setSsdInventoryValue(*field_itr, value, ssd_inventory[i].device_name, CSM_SSD_DEVICE_NAME_MAX, verbose);
       }
       else if (*field_itr == "nvme0n1/size")
       {
@@ -131,8 +138,16 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
         {
           const int64_t blocksize(512);
           int64_t size = (blocks * blocksize);  // Size in bytes
-          LOG(csmd, info) << "size (in 512 byte blocks) = " << blocks;
-          LOG(csmd, info) << "size (in bytes) = " << size;
+          if (verbose)
+          {
+            LOG(csmd, info) << "size (in 512 byte blocks) = " << blocks;
+            LOG(csmd, info) << "size (in bytes) = " << size;
+          }
+          else
+          {
+            LOG(csmd, debug) << "size (in 512 byte blocks) = " << blocks;
+            LOG(csmd, debug) << "size (in bytes) = " << size;
+          }
           ssd_inventory[i].size = size;
         }
         else
@@ -165,7 +180,7 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
       if ((index != string::npos) && (pci_bus_id.size() > index+1))
       {
         pci_bus_id = pci_bus_id.substr(index+1);
-        setSsdInventoryValue("pci_bus_id", pci_bus_id, ssd_inventory[i].pci_bus_id, CSM_SSD_PCI_BUS_ID_MAX);
+        setSsdInventoryValue("pci_bus_id", pci_bus_id, ssd_inventory[i].pci_bus_id, CSM_SSD_PCI_BUS_ID_MAX, verbose);
       }   
       else
       {
@@ -182,11 +197,21 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
     std::string devicename("/dev/nvme0n1");
     GetSsdWear(devicename, ssd_inventory[i].wear_lifespan_used, ssd_inventory[i].wear_percent_spares_remaining, 
                ssd_inventory[i].wear_total_bytes_written, ssd_inventory[i].wear_total_bytes_read);
-
-    LOG(csmd, info) << "wear_lifespan_used: " << ssd_inventory[i].wear_lifespan_used
-                    << " wear_percent_spares_remaining: " << ssd_inventory[i].wear_percent_spares_remaining;
-    LOG(csmd, info) << "wear_total_bytes_written: " << ssd_inventory[i].wear_total_bytes_written
-                    << " wear_total_bytes_read: " << ssd_inventory[i].wear_total_bytes_read;
+    
+    if (verbose)
+    {
+      LOG(csmd, info) << "wear_lifespan_used: " << ssd_inventory[i].wear_lifespan_used
+                      << " wear_percent_spares_remaining: " << ssd_inventory[i].wear_percent_spares_remaining;
+      LOG(csmd, info) << "wear_total_bytes_written: " << ssd_inventory[i].wear_total_bytes_written
+                      << " wear_total_bytes_read: " << ssd_inventory[i].wear_total_bytes_read;
+    }
+    else
+    {
+      LOG(csmd, debug) << "wear_lifespan_used: " << ssd_inventory[i].wear_lifespan_used
+                       << " wear_percent_spares_remaining: " << ssd_inventory[i].wear_percent_spares_remaining;
+      LOG(csmd, debug) << "wear_total_bytes_written: " << ssd_inventory[i].wear_total_bytes_written
+                       << " wear_total_bytes_read: " << ssd_inventory[i].wear_total_bytes_read;
+    }
 
     ssd_itr++;
     ssd_count++;
@@ -200,11 +225,19 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
   return true;
 }
 
-void setSsdInventoryValue(const string& field, const string& value, char* dest_ptr, const uint32_t& DEST_MAX)
+void setSsdInventoryValue(const string& field, const string& value, char* dest_ptr, const uint32_t& DEST_MAX, const bool& verbose)
 {
   if ( !value.empty() )
   {
-    LOG(csmd, info) << field << " = " << value;
+    if ( verbose )
+    { 
+      LOG(csmd, info) << field << " = " << value; 
+    }
+    else 
+    { 
+      LOG(csmd, debug) << field << " = " << value; 
+    }
+
     strncpy(dest_ptr, value.c_str(), DEST_MAX);
     dest_ptr[DEST_MAX - 1] = '\0'; 
   }
