@@ -29,7 +29,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
 {
   if ( !isEnvironmentalEvent(aEvent) ) return;
   
-  LOG(csmenv, info) << "In CSM_ENVIRONMENTAL...";
+  LOG(csmenv, debug) << "In CSM_ENVIRONMENTAL...";
   csm::daemon::BitMap currItems = GetBitMap(aEvent);
   std::set<csm::daemon::BucketItemType> list;
   
@@ -60,51 +60,63 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
     while ( it != list.end() )
     {
         csm::daemon::BucketItemType nextItem = *it;
-        LOG(csmenv, debug) << "Processing BucketItem: " << nextItem ;
+        LOG(csmenv, trace) << "CSM_ENVIRONMENTAL: Processing BucketItem: " << nextItem ;
         switch (nextItem)
         {
           case csm::daemon::GPU:
           {
-            LOG(csmenv, debug) << "Collecting GPU data.";
-            bool gpu_success(false);            
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL gpu: Collecting GPU data.";
             std::list<boost::property_tree::ptree> gpu_data_pt_list;
-
-            gpu_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->CollectGpuData(gpu_data_pt_list);
+            bool gpu_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->CollectGpuData(gpu_data_pt_list);
             if (gpu_success)
             {
                envData.AddDataItems(gpu_data_pt_list);
+               LOG(csmenv, info) << "CSM_ENVIRONMENTAL gpu: GPU data collection was successful.";
             }
-
             break;
           }
           case csm::daemon::DEBUG:
-            LOG( csmenv, info ) << "ENVDATA Collection debug.";
+          {
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL debug: Collecting debug.";
             envData.GenerateTestData();
             break;
+          }
           case csm::daemon::CPU:
           {
-            LOG(csmenv, debug) << "Collecting CPU data.";
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL cpu: Collecting CPU data.";
             break;
           }
           case csm::daemon::ENVIRONMENTAL:
           {
-            LOG(csmenv, debug) << "Collecting node environmental data.";
-            envData.CollectEnvironmentalData();
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL environmental: Collecting node environmental data.";
+            bool env_success = envData.CollectEnvironmentalData();
+            if (env_success)
+            {
+              LOG(csmenv, info) << "CSM_ENVIRONMENTAL environmental: node environmental data collection was successful.";
+            }
             break;
           }
           case csm::daemon::SSD:
           {
-            LOG(csmenv, debug) << "Collecting SSD Wear data.";
-            BuildSsdWearUpdate(postEventList);
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL ssd: Collecting SSD wear data.";
+            bool ssd_success = BuildSsdWearUpdate(postEventList);
+            if (ssd_success)
+            {
+              LOG(csmenv, info) << "CSM_ENVIRONMENTAL ssd: SSD wear collection was successful.";
+            }
             break;
           }
           case csm::daemon::NETWORK:
           case csm::daemon::DEFAULT:
+          {
             break;
+          }
 
           default:
+          {
             LOG(csmenv, error) << "CSM_ENVIRONMENTAL: Unknown bucket item type!";
             break;
+          }
         }
         _pendingItems.RemoveSet(nextItem);
         it++;
@@ -172,10 +184,10 @@ bool CSM_ENVIRONMENTAL::BuildSsdWearUpdate(std::vector<csm::daemon::CoreEvent*>&
     return false;
   }
 
-  ssd_success = GetSsdInventory(ssd_wear.ssd, ssd_wear.discovered_ssds); 
+  ssd_success = GetSsdInventory(ssd_wear.ssd, ssd_wear.discovered_ssds, false); 
   if ( ssd_success )
   {
-    LOG(csmenv, info) << "SSD_WEAR: Successfully collected ssd wear data.";
+    LOG(csmenv, debug) << "SSD_WEAR: Successfully collected ssd wear data.";
   
     string payload_str("");
     uint32_t bytes_packed(0);

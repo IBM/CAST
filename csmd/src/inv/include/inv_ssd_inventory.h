@@ -23,7 +23,7 @@
 
 // Returns true if successful, false if an error occurred 
 // If successful, ssd_count will contain the number of entries populated in the ssd_inventory array
-bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uint32_t& ssd_count);
+bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uint32_t& ssd_count, const bool& verbose=true);
 
 // Returns true if successful, false if an error occurred 
 // If successful: wear_lifespan_used, wear_percent_spares_remaining, wear_total_bytes_written, and wear_total_bytes_read
