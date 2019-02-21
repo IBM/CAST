@@ -42,6 +42,18 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
+# Enable IRQ Affinity setting on all computes
+xdsh ${COMPUTE_NODES} "sed -i -- 's/\"irq_affinity\"       : false,/\"irq_affinity\"       : true,/g' /etc/ibm/csm/csm_compute.cfg"
+xdsh ${COMPUTE_NODES} "cat /etc/ibm/csm/csm_compute.cfg | grep irq_affinity" > ${TEMP_LOG} 2>&1
+check_all_output "true"
+check_return_exit $? 0 "Enable IRQ Affinity setting on all computes"
+
+# Restart and recover compute nodes
+xdsh ${COMPUTE_NODES} "systemctl restart csmd-compute" > ${TEMP_LOG} 2>&1
+sleep 5
+${CSM_PATH}/csm_soft_failure_recovery > ${TEMP_LOG} 2>&1
+check_return_flag $? "Restart and recover compute nodes"
+
 # Section A - create staging-in, no cgroup
 echo "Section A BEGIN" >> ${LOG}
 # Test Case 1: Calling csm_allocation_create at staging-in, no cgroup
@@ -69,31 +81,35 @@ ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "running"
 check_return_flag $? "Test Case 5: Validating allocation state running"
 
-# Test Case 6: Calling csm_allocation_query
+# Test Case 6: Validating IRQ Balance daemon is active"
+xdsh ${COMPUTE_NODES} "ps -ef | grep 'irqbalanc[e]'" > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 6: Validating IRQ Balance daemon is active"
+
+# Test Case 7: Calling csm_allocation_query
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 6: Calling csm_allocation_query"
+check_return_exit $? 0 "Test Case 7: Calling csm_allocation_query"
 
-# Test Case 7: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}
+# Test Case 8: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}
 ${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 7: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 8: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}"
 
-# Test Case 8: Checking allocation state staging-out
+# Test Case 9: Checking allocation state staging-out
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "staging-out"
-check_return_flag $? "Test Case 8: Checking allocation state staging-out"
+check_return_flag $? "Test Case 9: Checking allocation state staging-out"
 
-# Test Case 9: Calling csm_allocation_delete on Allocation ID = ${allocation_id}
+# Test Case 10: Calling csm_allocation_delete on Allocation ID = ${allocation_id}
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 9: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 10: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
 
-# Test Case 10: Calling csm_allocation_query_active_all
+# Test Case 11: Calling csm_allocation_query_active_all
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Test Case 10: Calling csm_allocation_query_active_all"
+check_return_exit $? 4 "Test Case 11: Calling csm_allocation_query_active_all"
 
-# Test Case 11: Checking allocation state complete
+# Test Case 12: Checking allocation state complete
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "complete"
-check_return_flag $? "Test Case 11: Checking allocation state complete"
+check_return_flag $? "Test Case 12: Checking allocation state complete"
 
 echo "Section A COMPLETED!" >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
@@ -102,7 +118,7 @@ echo "------------------------------------------------------------" >> ${LOG}
 echo "Section B BEGIN" >> ${LOG}
 
 # Test Case 1: Calling csm_allocation_create
-${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 2 2>&1 > ${TEMP_LOG}
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 1 --smt_mode 4 2>&1 > ${TEMP_LOG}
 check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create"
 
 # Grab & Store Allocation ID from csm_allocation_create.log
@@ -123,35 +139,39 @@ check_return_flag $? "Test Case 4: Validating cgroup creation"
 
 # Test Case 5: Validating cgroup assigned cpus correctly
 xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/allocation_${allocation_id}/cpuset.cpus" > ${TEMP_LOG} 2>&1
-check_all_output "0-79,88-167"
+check_all_output "4-87,92-175"
 check_return_flag $? "Test Case 5: Validating cgroup assigned cpus correctly"
 
-# Test Case 6: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}
-${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 6: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}"
+# Test Case 6: Validating IRQ Balance daemon is not active"
+xdsh ${SINGLE_COMPUTE} "ps -ef | grep 'irqbalanc[e]'" > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 1 "Test Case 6: Validating IRQ Balance daemon is not active"
 
-# Test Case 7: Validating allocation state staging-out
+# Test Case 7: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}
+${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 7: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}"
+
+# Test Case 8: Validating allocation state staging-out
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "staging-out"
-check_return_flag $? "Test Case 7: Validating allocation state staging-out"
+check_return_flag $? "Test Case 8: Validating allocation state staging-out"
 
-# Test Case 8: Calling csm_allocation_delete on Allocation ID = ${allocation_id}
+# Test Case 9: Calling csm_allocation_delete on Allocation ID = ${allocation_id}
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 8: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 9: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
 
-# Test Case 9: Checking allocation state complete
+# Test Case 10: Checking allocation state complete
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "complete"
-check_return_flag $? "Test Case 9: Checking allocation state complete"
+check_return_flag $? "Test Case 10: Checking allocation state complete"
 
-# Test Case 10: Calling csm_allocation_query_active_all
+# Test Case 11: Calling csm_allocation_query_active_all
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Test Case 10: Calling csm_allocation_query_active_all"
+check_return_exit $? 4 "Test Case 11: Calling csm_allocation_query_active_all"
 
-# Test Case 11: Checking cgroup deletion
+# Test Case 12: Checking cgroup deletion
 xdsh ${SINGLE_COMPUTE} "ls /sys/fs/cgroup/cpuset/allocation_${allocation_id}" > ${TEMP_LOG} 2>&1
 check_all_output "No such file or directory"
-check_return_flag $? "Test Case 11: Checking cgroup deletion"
+check_return_flag $? "Test Case 12: Checking cgroup deletion"
 
 echo "Section B COMPLETED!" >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
@@ -160,7 +180,7 @@ echo "------------------------------------------------------------" >> ${LOG}
 echo "Section C BEGIN" >> ${LOG}
 
 # Test Case 1: Calling csm_allocation_create at staging-in, with cgroup
-${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} -s "staging-in" --isolated_cores 2 2>&1 > ${TEMP_LOG}
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} -s "staging-in" --isolated_cores 1 --smt_mode 1 2>&1 > ${TEMP_LOG}
 check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create at staging-in, with cgroup"
 
 # Grab & Store Allocation ID from csm_allocation_create.log
@@ -195,7 +215,7 @@ check_return_flag $? "Test Case 7: Validating cgroup creation"
 
 # Test Case 8: Validating cgroup assigned cpus correctly
 xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/allocation_${allocation_id}/cpuset.cpus" > ${TEMP_LOG} 2>&1
-check_all_output "0-79,88-167"
+check_all_output "84,92"
 check_return_flag $? "Test Case 8: Validating cgroup assigned cpus correctly"
 
 # Test Case 9: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}
@@ -348,6 +368,59 @@ ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 4 "Section E - All allocations cleaned up"
 
 echo "Section E COMPLETED!" >> ${LOG}
+
+echo "------------------------------------------------------------" >> ${LOG}
+# Section F - Create an allocation with SMT > 4 to test clamping mechanism
+echo "Section F BEGIN" >> ${LOG}
+
+# Test Case 1: Calling csm_allocation_create
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 1 --smt_mode 8 2>&1 > ${TEMP_LOG}
+check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create with 1 isolated core and smt_mode 8"
+
+# Grab & Store Allocation ID from csm_allocation_create.log
+allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 2: Calling csm_allocation_query_active_all
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: Calling csm_allocation_query_active_all"
+
+# Test Case 3: Validating allocation state running
+${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_all_output "running"
+check_return_flag $? "Test Case 3: Validating allocation state running"
+
+# Test Case 4: Validating cgroup creation
+xdsh ${SINGLE_COMPUTE} "ls /sys/fs/cgroup/cpuset/allocation_${allocation_id}" > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 4: Validating cgroup creation"
+
+# Test Case 5: Validating cgroup assigned cpus correctly
+xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/allocation_${allocation_id}/cpuset.cpus" > ${TEMP_LOG} 2>&1
+check_all_output "4-87,92-175"
+check_return_flag $? "Test Case 5: Validating cgroup assigned cpus correctly"
+
+# Test Case 6: Validating IRQ Balance daemon is not active"
+xdsh ${SINGLE_COMPUTE} "ps -ef | grep 'irqbalanc[e]'" > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 1 "Test Case 6: Validating IRQ Balance daemon is not active"
+
+# Test Case 7: Calling csm_allocation_delete on Allocation ID = ${allocation_id}
+${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 7: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
+
+# Test Case 8: Checking allocation state complete
+${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_all_output "complete"
+check_return_flag $? "Test Case 8: Checking allocation state complete"
+
+# Test Case 9: Calling csm_allocation_query_active_all
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_return_exit $? 4 "Test Case 9: Calling csm_allocation_query_active_all"
+
+# Test Case 10: Checking cgroup deletion
+xdsh ${SINGLE_COMPUTE} "ls /sys/fs/cgroup/cpuset/allocation_${allocation_id}" > ${TEMP_LOG} 2>&1
+check_all_output "No such file or directory"
+check_return_flag $? "Test Case 10: Checking cgroup deletion"
+
+echo "Section F COMPLETED!" >> ${LOG}
 rm -f ${TEMP_LOG}
 
 echo "------------------------------------------------------------" >> ${LOG}
