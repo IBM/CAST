@@ -17,13 +17,14 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         02-06-2019
+--   last modified:         02-21-2019
 --   change log:
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
 --            - fn_csm_allocation_update_state -        added field:    o_smt_mode
 --            - fn_csm_allocation_finish_data_stats -   disables trigger to prevent duplication.
+--            - fn_csm_allocation_finish_data_stats -   added improved logic to wrap detection.
 --            - fn_csm_lv_history_dump - 		        added fields:	num_reads, num_writes
 --            - fn_csm_allocation_dead_records_on_lv -  added in 'null' values for PERFORM fn_csm_lv_history_dump
 --            - fn_csm_ssd_dead_records -               added in 'null' values for PERFORM fn_csm_lv_history_dump
@@ -280,32 +281,32 @@ BEGIN
     -- counter overflowed. In the event of an overflow subtract the difference from BIGINT_MAX
     UPDATE csm_allocation_node
         SET
-            ib_tx      = (CASE WHEN(d.tx > 0 AND ib_tx >= 0) THEN 
+            ib_tx      = (CASE WHEN(d.tx >= 0 AND ib_tx >= 0) THEN 
                             CASE WHEN ( d.tx  >= ib_tx ) THEN d.tx - ib_tx
                             ELSE -2 END
                           ELSE -1 END ),
 
-            ib_rx      = (CASE WHEN(d.rx > 0 AND ib_rx >= 0) THEN 
+            ib_rx      = (CASE WHEN(d.rx >= 0 AND ib_rx >= 0) THEN 
                             CASE WHEN ( d.rx  >= ib_rx ) THEN d.rx - ib_rx 
                             ELSE -2 END
                           ELSE -1 END ),
 
-            gpfs_read  = (CASE WHEN(d.g_read > 0 AND gpfs_read  >= 0) THEN 
+            gpfs_read  = (CASE WHEN(d.g_read >= 0 AND gpfs_read  >= 0) THEN 
                             CASE WHEN ( d.g_read >= gpfs_read ) THEN d.g_read  - gpfs_read
                             ELSE -2 END
                           ELSE -1 END ),
 
-            gpfs_write = (CASE WHEN(d.g_write> 0 AND gpfs_write >= 0) THEN 
+            gpfs_write = (CASE WHEN(d.g_write>= 0 AND gpfs_write >= 0) THEN 
                             CASE WHEN (d.g_write >= gpfs_write) THEN d.g_write - gpfs_write 
                             ELSE -2 END
                           ELSE -1 END ),
 
-            energy     = (CASE WHEN(d.l_energy > 0 AND energy   >= 0) THEN 
+            energy     = (CASE WHEN(d.l_energy >= 0 AND energy   >= 0) THEN 
                             CASE WHEN ( d.l_energy >= energy ) THEN d.l_energy  - energy 
                             ELSE -2 END
                           ELSE -1 END ),
 
-            power_cap_hit = (CASE WHEN(d.pc_hit > 0 AND power_cap_hit >= 0) THEN 
+            power_cap_hit = (CASE WHEN(d.pc_hit >= 0 AND power_cap_hit >= 0) THEN 
                             CASE WHEN ( d.pc_hit >= power_cap_hit ) THEN d.pc_hit  - power_cap_hit
                             ELSE -2 END
                           ELSE -1 END ), 
@@ -314,7 +315,7 @@ BEGIN
             cpu_usage = d.cpu_use,
             memory_usage_max = d.mem_max,
 
-            gpu_energy = (CASE WHEN(d.l_gpu_energy > 0 AND gpu_energy >= 0) THEN 
+            gpu_energy = (CASE WHEN(d.l_gpu_energy >= 0 AND gpu_energy >= 0) THEN 
                             CASE WHEN ( d.l_gpu_energy >= gpu_energy ) THEN d.l_gpu_energy - gpu_energy
                             ELSE -2 END
                           ELSE -1 END )
