@@ -613,6 +613,10 @@ effect on other daemon roles.
                     {
                         "execution_interval":"00:10:00",
                         "item_list": ["gpu", "environmental"]
+                    },
+                    {
+                        "execution_interval":"24:00:00",
+                        "item_list": ["ssd"]
                     }
                 ]
         }
@@ -630,6 +634,8 @@ effect on other daemon roles.
         | ``gpu``           | A set of GPU stats and counters.             |
         +-------------------+----------------------------------------------+
         | ``environmental`` | A set of CPU and machine stats and counters. |
+        +-------------------+----------------------------------------------+
+        | ``ssd``           | A set of SSD wear stats and counters.        |
         +-------------------+----------------------------------------------+
         
 .. _CSMD_jittermitigation_Block:
