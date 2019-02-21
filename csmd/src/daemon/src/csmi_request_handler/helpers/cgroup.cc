@@ -1605,7 +1605,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // Maximum number of logical cores per core.
     const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
     // Difference between the maximum and actual thread count per core.
-    const int32_t threadsPerCoreOffset = _smtMode > 0 ? threadsPerCoreMax - _smtMode : 0;
+    const int32_t threadsPerCoreOffset = _smtMode > 0 && _smtMode < threadsPerCoreMax ? threadsPerCoreMax - _smtMode : 0;
 
     // Compute the threads pre core, derived from smt mode.
     threadsPerCore = threadsPerCoreMax - threadsPerCoreOffset;
