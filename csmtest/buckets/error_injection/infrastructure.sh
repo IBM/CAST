@@ -450,7 +450,7 @@ check_return_exit $? 0 "Test Case 33: Health Check"
 check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Unresponsive Utility Nodes: 1" "COMPUTE: ${SINGLE_COMPUTE} (bounced=1; version=n/a; link=ANY)"
 
 # Test Case 34: Stop aggregator deamon, health check, aggregator disconnected
-echo "Test Case 34: Stop aggregator daemon, health check, aggregator disconnected"
+echo "Test Case 34: Stop aggregator daemon, health check, aggregator disconnected" >> ${LOG}
 xdsh ${AGGREGATOR_A} "systemctl stop csmd-aggregator"
 sleep 1
 xdsh ${AGGREGATOR_A} "systemctl is-active csmd-aggregator" > /dev/null
