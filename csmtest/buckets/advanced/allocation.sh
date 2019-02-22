@@ -373,7 +373,7 @@ echo "------------------------------------------------------------" >> ${LOG}
 # Section F - Create an allocation with SMT > 4 to test clamping mechanism
 echo "Section F BEGIN" >> ${LOG}
 
-# Test Case 1: Calling csm_allocation_create
+# Test Case 1: Calling csm_allocation_create with 1 isolated core and smt_mode 8"
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 1 --smt_mode 8 2>&1 > ${TEMP_LOG}
 check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create with 1 isolated core and smt_mode 8"
 
@@ -421,6 +421,59 @@ check_all_output "No such file or directory"
 check_return_flag $? "Test Case 10: Checking cgroup deletion"
 
 echo "Section F COMPLETED!" >> ${LOG}
+
+echo "------------------------------------------------------------" >> ${LOG}
+# Section G - Create an allocation with no isolated cores and smt_mode 1
+echo "Section G BEGIN" >> ${LOG}
+
+# Test Case 1: Calling csm_allocation_create with no isolated cores and smt_mode 1"
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 1 --smt_mode 8 2>&1 > ${TEMP_LOG}
+check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create with no isolated cores and smt_mode 1"
+
+# Grab & Store Allocation ID from csm_allocation_create.log
+allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 2: Calling csm_allocation_query_active_all
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 2: Calling csm_allocation_query_active_all"
+
+# Test Case 3: Validating allocation state running
+${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_all_output "running"
+check_return_flag $? "Test Case 3: Validating allocation state running"
+
+# Test Case 4: Validating cgroup creation
+xdsh ${SINGLE_COMPUTE} "ls /sys/fs/cgroup/cpuset/allocation_${allocation_id}" > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 4: Validating cgroup creation"
+
+# Test Case 5: Validating cgroup assigned cpus correctly
+xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/allocation_${allocation_id}/cpuset.cpus" > ${TEMP_LOG} 2>&1
+check_all_output "0,4,8"
+check_return_flag $? "Test Case 5: Validating cgroup assigned cpus correctly"
+
+# Test Case 6: Validating IRQ Balance daemon is active"
+xdsh ${SINGLE_COMPUTE} "ps -ef | grep 'irqbalanc[e]'" > ${TEMP_LOG} 2>&1
+check_return_flag $? "Test Case 6: Validating IRQ Balance daemon is active"
+
+# Test Case 7: Calling csm_allocation_delete on Allocation ID = ${allocation_id}
+${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 7: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
+
+# Test Case 8: Checking allocation state complete
+${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
+check_all_output "complete"
+check_return_flag $? "Test Case 8: Checking allocation state complete"
+
+# Test Case 9: Calling csm_allocation_query_active_all
+${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
+check_return_exit $? 4 "Test Case 9: Calling csm_allocation_query_active_all"
+
+# Test Case 10: Checking cgroup deletion
+xdsh ${SINGLE_COMPUTE} "ls /sys/fs/cgroup/cpuset/allocation_${allocation_id}" > ${TEMP_LOG} 2>&1
+check_all_output "No such file or directory"
+check_return_flag $? "Test Case 10: Checking cgroup deletion"
+
+echo "Section G COMPLETED!" >> ${LOG}
 rm -f ${TEMP_LOG}
 
 echo "------------------------------------------------------------" >> ${LOG}
