@@ -427,7 +427,7 @@ echo "------------------------------------------------------------" >> ${LOG}
 echo "Section G BEGIN" >> ${LOG}
 
 # Test Case 1: Calling csm_allocation_create with no isolated cores and smt_mode 1"
-${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 1 --smt_mode 8 2>&1 > ${TEMP_LOG}
+${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} --isolated_cores 0 --smt_mode 1 2>&1 > ${TEMP_LOG}
 check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create with no isolated cores and smt_mode 1"
 
 # Grab & Store Allocation ID from csm_allocation_create.log
