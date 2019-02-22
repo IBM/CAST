@@ -703,6 +703,8 @@ bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* ste
     LOG( csmapi, trace ) << _LOG_PREFIX "GetDetailedCPUUsage Enter; stepCGroupName: "<< stepCGroupName;
 
     // Build the usage path.
+    // cpuacct.usage_percpu always reports for each possible logical CPU
+    // In cases where not every CPU is configured or in use, that CPU will report 0
     const char* USAGE = "/cpuacct.usage_percpu";
     std::string usagePath(CGroup::CPUACCT_DIR);
     usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
@@ -726,7 +728,7 @@ bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* ste
         logicalCpuUsage.push_back(token);
     }
 
-    // Determine the ratio of logical cores to physical cores
+    // Determine the number of physical cores
     int32_t threads, sockets, threadsPerCore, coresPerSocket;
     // Get the CPUS and do a sanity check.
     if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
@@ -740,11 +742,13 @@ bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* ste
         // Calculate the physical core usage from the logical core usage
         int64_t accumulatedUsage(0);
         int32_t logicalCpuCount = logicalCpuUsage.size(); 
+        int32_t maxThreadsPerCore = logicalCpuCount / (sockets*coresPerSocket);
+
         for ( int32_t i = 0; i < logicalCpuCount; i++ )
         {
             accumulatedUsage += logicalCpuUsage[i];
             
-            if ((i % threadsPerCore) == (threadsPerCore-1))
+            if ((i % maxThreadsPerCore) == (maxThreadsPerCore-1))
             {
                 cpuUsage.push_back(accumulatedUsage);
                 accumulatedUsage = 0;
