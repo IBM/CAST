@@ -43,7 +43,7 @@ date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
 # Enable IRQ Affinity setting on all computes
-xdsh ${COMPUTE_NODES} "sed -i -- 's/\"irq_affinity\"       : false,/\"irq_affinity\"       : true,/g' /etc/ibm/csm/csm_compute.cfg"
+xdsh ${COMPUTE_NODES} "sed -i -- 's/\"irq_affinity\"       : false,/\"irq_affinity\"       : true,/g' /etc/ibm/csm/csm_compute.cfg" > ${TEMP_LOG} 2>&1
 xdsh ${COMPUTE_NODES} "cat /etc/ibm/csm/csm_compute.cfg | grep irq_affinity" > ${TEMP_LOG} 2>&1
 check_all_output "true"
 check_return_exit $? 0 "Enable IRQ Affinity setting on all computes"
@@ -56,9 +56,9 @@ check_return_flag $? "Restart and recover compute nodes"
 
 # Section A - create staging-in, no cgroup
 echo "Section A BEGIN" >> ${LOG}
-# Test Case 1: Calling csm_allocation_create at staging-in, no cgroup
+# Test Case 1: Calling csm_allocation_create at staging-in, no core isolation
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${COMPUTE_NODES} -s "staging-in" 2>&1 > ${TEMP_LOG}
-check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create at staging-in, no cgroup"
+check_return_exit $? 0 "Test Case 1: Calling csm_allocation_create at staging-in, no core isolation"
 
 # Grab & Store Allocation ID from temp log
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
