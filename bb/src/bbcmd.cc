@@ -1054,6 +1054,7 @@ int main(int orig_argc, const char** orig_argv)
             ("command", po::value< string >(), "Command")
             ("help", "Display commands and options")
             ("config", po::value<string>()->default_value(DEFAULT_CONFIGFILE), "Path to configuration file")
+            ("compute_config", po::value<string>(), "Path to configuration file used on compute nodes")
             ("jobid", po::value<string>(), "bbcmd Job ID")
             ("jobindex", po::value<string>(), "bbcmd Job index")
             ("jobstepid", po::value<string>(), "bbcmd Job step ID")
@@ -1133,10 +1134,14 @@ int main(int orig_argc, const char** orig_argv)
         // Valid command processing
         command = vm["command"].as<string>();
 
-        if (curConfig.load(vm["config"].as<string>()))
+        std::string configfile = vm["config"].as<string>();
+        if((vm.count("target") == 0) && (vm.count("compute_config") > 0))
+        {
+            configfile = vm["compute_config"].as<string>();
+        }
+        if (curConfig.load(configfile))
         {
             rc = -1;
-            std::string configfile = vm["config"].as<string>();
             errorText << "Error loading configuration from " << configfile;
             cerr << errorText << endl;
             bberror << err("error.configfile", configfile);
@@ -1319,6 +1324,11 @@ int main(int orig_argc, const char** orig_argv)
                     contribid = id;
                     Coral_SetVar("contribid", to_string(id).c_str());
                 }
+                string tmp = string("CONTRIBID=") + to_string(contribid);
+                char* newenv = (char*)malloc(tmp.size()+1);
+                memcpy(newenv, tmp.c_str(), tmp.size()+1);
+                putenv(newenv); // pointer ownership is transferred to putenv
+                
                 bberror.setToNotClear(); //do not clear bberror for bbcmd calls of BB APIs
                 rc = (*bbcmd_map[command].func)(vm);
                 bberror << err("rc", rc);
