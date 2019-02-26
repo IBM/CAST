@@ -104,7 +104,7 @@ enum BBERRORFORMAT
     BBERRORFLAT   = 3    ///< Output string will be in a non-hierarchical name value format
 };
 typedef enum BBERRORFORMAT BBERRORFORMAT;
-    
+
     enum BBServerQuery{
         BBALLCONNECTED=0,
         BBACTIVE =1,
@@ -113,8 +113,10 @@ typedef enum BBERRORFORMAT BBERRORFORMAT;
         BBPRIMARY=4,
         BBWAITFOREPLYCOUNT=5
     };
-    
+
     typedef enum BBServerQuery BBServerQuery;
+
+#define BBUSAGE_COUNT 1
 
 /**
  *  \brief Burst Buffer SSD usage
@@ -129,6 +131,10 @@ typedef struct BBusage
     uint64_t localBytesWritten;  ///< Number of bytes read from the logical volume via compute node
     uint64_t burstBytesRead;     ///< Number of bytes written to the logical volume via burst buffer transfers
     uint64_t burstBytesWritten;  ///< Number of bytes read from the logical volume via burst buffer transfers
+#if BBUSAGE_COUNT
+    uint64_t localReadCount;     ///< Number of read operations to the logical volume
+    uint64_t localWriteCount;    ///< Number of write operations to the logical volume
+#endif
 #ifdef __cplusplus
     BBusage()
 {
@@ -138,6 +144,10 @@ typedef struct BBusage
    localBytesWritten=0;
    burstBytesRead=0;
    burstBytesWritten=0;
+#if BBUSAGE_COUNT
+   localReadCount=0;
+   localWriteCount=0;
+#endif
 }
 #endif
 } BBUsage_t;

@@ -42,7 +42,7 @@ int BBLV_Info::allContribsReported(const uint64_t pHandle, const BBTagID& pTagId
     // Check the cross bbServer metadata and return the flag indicator for BBTI_All_Contribs_Reported.
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
-    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle);
+    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pTagId.getJobId(), pTagId.getJobStepId(), pHandle, DO_NOT_LOCK_HANDLEFILE);
     if (!rc)
     {
         rc = l_HandleFile->allContribsReported();
@@ -79,7 +79,7 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
 
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     size_t l_NumberOfNewExtentsCanceled = 0;
     extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);
@@ -162,7 +162,7 @@ void BBLV_Info::dump(char* pSev, const char* pPrefix)
 
 void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     if (!stageOutEnded())
     {
@@ -827,7 +827,7 @@ void BBLV_Info::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHa
 
 void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, TRANSFER_QUEUE_RELEASED& pLockWasReleased, const int pRemoveOption)
 {
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     if (jobid == pJobId)
     {
@@ -862,37 +862,12 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
 {
     int rc = 0;
 
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     if ((pHostName == UNDEFINED_HOSTNAME || pHostName == hostname) && (pJobId == UNDEFINED_JOBID || pJobId == jobid))
     {
         if (!stageOutStarted())
         {
-            // NOTE: If we are using multiple transfer threads, we have to make sure that there are
-            //       no extents for this transfer definition currently in-flight on this bbServer...
-            //       If so, delay for a bit...
-            // NOTE: In the normal case, the work queue for the CN hostname on this bbServer should
-            //       be suspended, so no new extents should start processing when we release/re-acquire
-            //       the lock below...
-            uint32_t i = 0;
-            while (extentInfo.moreInFlightExtentsForTransferDefinition(pHandle, pContribId))
-            {
-                unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
-                {
-                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
-                    // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 4)
-                    {
-                        FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
-                                 pHandle, pContribId, 0, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
-                                     << ", contribid " << pContribId;
-                    }
-                    usleep((useconds_t)250000);
-                }
-                lockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
-            }
-
             rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
 
             if (rc == 1)

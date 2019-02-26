@@ -71,7 +71,7 @@ public:
         if (content._Msg.GetErr()) 
         {
             LOG(csmapi, error) << ctx << 
-                "NetworkMessageState: An error was detected while recieving a "
+                "NetworkMessageState: An error was detected while receiving a "
                 "Network Message.";
 
             // Unpack the error
@@ -79,6 +79,11 @@ public:
             csmi_err_t* error = csmi_err_unpack( dataStr.c_str(), dataStr.size());
 
             this->ProcessError(ctx, error);
+
+            if ( ctx->GetErrorCode() >= csmi_cmd_err_t_MAX)
+            {
+                ctx->SetErrorCode(CSMERR_GENERIC);
+            }
 
             if ( ctx->GetErrorCode() == CSMERR_TIMEOUT )
             {

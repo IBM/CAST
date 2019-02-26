@@ -83,6 +83,9 @@ protected:
         std::unique_lock<std::mutex>dataLock = 
             ctx->GetUserData<PayloadType*>(&mcastProps);
 
+        // Setup the post event list for registering other events.
+        mcastProps->SetEventList(postEventList);
+
         // Parse the request, if the parse was valid we're in the sucess state.
         success = InfoParser(ctx, tuples, mcastProps);
 

@@ -44,9 +44,11 @@ bool CSMIHandlerState::PushEvent(
             uint32_t bufferLen = 0;
             char* buffer = ctx->GetErrorSerialized(&bufferLen);
 
-            postEventList.push_back( csm::daemon::helper::CreateErrorEvent(
-                buffer, bufferLen,  *(ctx->GetReqEvent())));
+            csm::daemon::NetworkEvent* event = 
+                csm::daemon::helper::CreateErrorEvent(
+                    buffer, bufferLen,  *(ctx->GetReqEvent()));
 
+            if (event) postEventList.push_back(event);
             if ( buffer ) free(buffer);
         }
         else
@@ -83,7 +85,8 @@ bool CSMIHandlerState::PushMCAST(
 {
     if( targets.size() == 0 )
     {
-        ctx->SetErrorCode(CSMERR_MULTI_GEN_ERROR);
+        // Set the error code if the NoTargetFail is set. This allows this MCAST to be used for non failure cases.
+        ctx->SetErrorCode(ctx->GetMCASTNoTargetFail() ? CSMERR_MULTI_GEN_ERROR : CSMI_NO_RESULTS );
         ctx->SetErrorMessage("Multicast had no targets!");
         return false;
     }
@@ -228,7 +231,18 @@ void CSMIHandlerState::DefaultHandleError(
     std::string prependString = ctx->GenerateUniqueID() + ";" ;
     ctx->PrependErrorMessage( prependString, ' ');
 
-    LOG(csmapi, error) <<  ctx->GetErrorMessage();
+    // Success should NEVER be sent back!
+    switch ( ctx->GetErrorCode() )
+    {
+        case CSMI_NO_RESULTS:
+            LOG(csmapi, info) <<  ctx->GetErrorMessage();
+            break;
+        case CSMI_SUCCESS:
+            ctx->SetErrorCode(CSMERR_GENERIC);
+        default:
+            LOG(csmapi, error) <<  ctx->GetErrorMessage();
+            break;
+    }
 
     ctx->SetAuxiliaryId( GetFinalState() );
 
@@ -236,20 +250,23 @@ void CSMIHandlerState::DefaultHandleError(
     {
         uint32_t bufferLen = 0;
         char* buffer = ctx->GetErrorSerialized(&bufferLen);
-        
-        postEventList.push_back( csm::daemon::helper::CreateErrorEvent(
-            buffer, bufferLen,  *(ctx->GetReqEvent())));
+
+        csm::daemon::NetworkEvent* event = csm::daemon::helper::CreateErrorEvent(
+            buffer, bufferLen,  *(ctx->GetReqEvent()));
+        if ( event ) postEventList.push_back( event );
 
         if ( buffer ) free(buffer);
     }
     else
     {
-        postEventList.push_back(
+        csm::daemon::NetworkEvent* event = 
             csm::daemon::helper::CreateErrorEventAgg(
                 ctx->GetErrorCode(),
                 ctx->GetErrorMessage(),
                 aEvent,
-                ctx ) );
+                ctx );
+
+        if (event) postEventList.push_back(event);
     }
 
     // Clear the user data, this will invoke its destructor if present.

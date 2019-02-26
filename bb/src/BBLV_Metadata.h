@@ -39,12 +39,14 @@ class BBLV_Metadata
 {
   public:
     // Static methods
+    static void appendAsyncRequestForStopTransfer(const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pCancelScope);
     static int update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId);
     static int update_xbbServerRemoveData(const uint64_t pJobId);
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
     int addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBLV_Info& pLV_Info, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
+    int attemptToUnconditionallyStopThisTransferDefinition(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     int cleanLVKeyOnly(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     void ensureStageOutEnded(const LVKey* pLVKey);

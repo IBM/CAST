@@ -446,7 +446,9 @@ int general_request_response_test( const int expected,
 
 void* client_unix( void * retcode)
 {
-  csmutil_logging_level_set( strdup( "warning" ));
+  char *warning = strdup( "warning" );
+  csmutil_logging_level_set( warning );
+  free(warning);
 
   sleep(1);
   int id = *(int*)retcode;

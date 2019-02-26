@@ -68,8 +68,8 @@ sub phase1
     foreach $bbscript (@STGOUT1)
     {
         bpost("BB: Calling the user stage-out phase1 script: $bbscript");
-        $rc = cmd("$bbscript", $timeout);
-        bpost("BB: User stage-out phase1 script completed with rc $rc.", $::BPOSTMBOX + 1);
+        $rc = cmd("$bbscript", $timeout, 1);
+        bpost("BB: User stage-out phase1 script completed with rc $rc.", $::BPOSTMBOX + 1, $::LASTOUTPUT);
     }
 }
 
@@ -89,8 +89,8 @@ sub phase3
     foreach $bbscript (@STGOUT2)
     {
         bpost("BB: Calling the user stage-out phase2 script: $bbscript");
-        $rc = cmd("$bbscript", $timeout);
-        bpost("BB: User stage-out phase2 script completed with rc $rc.", $::BPOSTMBOX + 2);
+        $rc = cmd("$bbscript", $timeout, 1);
+        bpost("BB: User stage-out phase2 script completed with rc $rc.", $::BPOSTMBOX + 2, $::LASTOUTPUT);
     }
 }
 
@@ -122,11 +122,11 @@ sub phase4
     bbcmd("$TARGET_ALL rmdir --path=$BBPATH");
 
     # Check for failures before removing metadata
-    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBFAILED");
+    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBPARTIALSUCCESS");
     $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
     if($numfailed > 0)
     {
-        bpost("BB: Transfer(s) marked in BBFAILED state");
+        bpost("BB: Transfer(s) marked in BBPARTIALSUCCESS (failed) state");
         $exitstatus = 1;
     }
     

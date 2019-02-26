@@ -38,7 +38,7 @@ public:
     //_startItem = csm::daemon::CPU;
     
     //InitUserData();
-    Environmental_data = new CSM_Environmental_Data();
+    //Environmental_data = new CSM_Environmental_Data();
   }
   
   virtual void Process( const csm::daemon::CoreEvent &aEvent,
@@ -73,6 +73,7 @@ private:
 
   CSM_Environmental_Data * Environmental_data;
 
+  bool BuildSsdWearUpdate(std::vector<csm::daemon::CoreEvent*>& postEventList);
 };
 
 class CSM_ENVIRONMENTAL_UTILITY : public CSM_ENVIRONMENTAL

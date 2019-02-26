@@ -49,6 +49,7 @@
     -u --unixpath       Unixpath to use.  No default.  If not specified, the value is
                         obtained from the configuration file.
     -v --type           Type for GetServer.  No default.
+    -w --procedure      Procedure to invoke.
     -x --target         Path prefix for target(s)  Default is "/gpfs/gpfs0/$USER/target".
     -y --testcase       Testcase to run.  Default is "bbtests".
                         NOTE:  This must be a python script file, but do not include the .py
@@ -62,6 +63,7 @@
                                                 to the jobid value in initEnv() to prevent jobid
                                                 collision.  Used to generate unique jobid values
                                                 within a testcase.)
+    -4 --cancelscope    Cancel scope.  Default is BBSCOPETAG.
 
      All paths can be given as either absolute or relative to the current working directory.
 
@@ -108,6 +110,7 @@ import pprint
 import sys
 
 import bb
+from bbapi import BBCANCELSCOPE, DEFAULT_BBCANCELSCOPE, INVALID_BBCANCELSCOPE
 
 #
 # Default values
@@ -179,6 +182,7 @@ def usage(code, msg=''):
 def setDefaults(pEnv):
     setDefaultFloor(pEnv)
     setLibPath(pEnv)
+    pEnv["cancelscope"] = DEFAULT_BBCANCELSCOPE
     pEnv["contrib"] = DEFAULT_CONTRIB
     pEnv["contribid"] = DEFAULT_CONTRIBID
     pEnv["handle"] = DEFAULT_HANDLE
@@ -257,7 +261,7 @@ def processArgs(pEnv, pArgs):
     setDefaults(pEnv)
 
     try:
-        l_Opts, l_Args = getopt.getopt(pArgs,"ha:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:1:2:3:",["cn_failover=","io_failover=","contrib=","name=","floor=","flags=","group=","handle=","hostname=","jobid=","jobstepid=","libpath=","mount=","mode=","owner=","testpath=","orgsrc=","contribid=","size=","tag=","unixpath=","type=","procedure=","target=","testcase=","config=","procedure_args=","iteration=","jobid_bump="])
+        l_Opts, l_Args = getopt.getopt(pArgs,"ha:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:1:2:3:4:",["cn_failover=","io_failover=","contrib=","name=","floor=","flags=","group=","handle=","hostname=","jobid=","jobstepid=","libpath=","mount=","mode=","owner=","testpath=","orgsrc=","contribid=","size=","tag=","unixpath=","type=","procedure=","target=","testcase=","config=","procedure_args=","iteration=","jobid_bump=","cancelscope="])
     except getopt.GetoptError as e:
         print >> sys.stderr, e
         usage(1, "Invalid arguments passed")
@@ -352,6 +356,8 @@ def processArgs(pEnv, pArgs):
             pEnv["iteration"] = int(l_Arg)
         elif l_Opt in ("-3", "--jobid_bump"):
             pEnv["jobid_bump"] = int(l_Arg)
+        elif l_Opt in ("-4", "--cancelscope"):
+            pEnv["cancelscope"] = BBCANCELSCOPE[l_Arg]
 
     pEnv["COMMAND"] = os.path.abspath(__file__)
     pEnv["COMMAND_LINE_ARGS"] = " ".join(pArgs)

@@ -98,28 +98,42 @@ sub phase2
     $BADEXITRC = $BADNONRECOVEXITRC;
     &setupUserEnvironment();
 
+    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
+    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
+    
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
 
     foreach $bbscript (@STGIN)
     {
         bpost("BB: Calling user stage-in script: $bbscript");
-        $rc = cmd("$bbscript 2>&1", $timeout);
-        bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX + 1);
+        $rc = cmd("$bbscript 2>&1", $timeout, 1);
+        bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX + 1, $::LASTOUTPUT);
         failureCleanAndExit() if($rc != 0);
     }
 }
 
 sub phase3
 {    
+    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
+    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
+    
     if($#STGIN >= 0)
     {
         &bbwaitTransfersComplete();
         
         # Check for any failed transfers and halt job execution phase if found
-        $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS,BBFAILED");
+        $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED,BBINPROGRESS,BBPARTIALSUCCESS");
         $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
-        failureCleanAndExit() if($numfailed > 0);
+        if($numfailed > 0)
+        {
+            # Handles that haven't successfully started as user script errors.  
+            # Failed or stuck-in-progress are potentially recoverable.
+            $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED");
+            $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
+            $BADEXITRC = $BADNONRECOVEXITRC if($numfailed > 0);
+            &failureCleanAndExit();
+        }
     }
     else
     {

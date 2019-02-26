@@ -18,8 +18,13 @@
 
 #include "bberror.h"
 #include "bbinternal.h"
-#include "bbwrkqmgr.h"
 #include "BBLV_Metadata.h"
+#include "bbserver_flightlog.h"
+#include "bbwrkqmgr.h"
+#include "LVKey.h"
+#include "LVUuidFile.h"
+#include "Uuid.h"
+
 
 namespace bfs = boost::filesystem;
 
@@ -30,6 +35,16 @@ namespace bfs = boost::filesystem;
 //
 // BBLV_Metadata - Static members
 //
+
+void BBLV_Metadata::appendAsyncRequestForStopTransfer(const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pCancelScope)
+{
+    char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+    snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "cancel %lu %lu %lu %u %lu stoprequest %s", pJobId, pJobStepId, pHandle, pContribId, pCancelScope, (pCN_HostName.size() ? pCN_HostName.c_str() : "''"));
+    AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
+    wrkqmgr.appendAsyncRequest(l_Request);
+
+    return;
+}
 
 int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId)
 {
@@ -50,7 +65,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 for(auto& elements: boost::make_iterator_range(bfs::directory_iterator(job), {}))
                 {
                     LOG(bb,info) << "elements: " << elements;
-                    count++;
+                    ++count;
                 }
                 LOG(bb,info) << "xbbServer: JobId " << pJobId << " is already registered and currently has " << count << " associated job step(s)";
             }
@@ -235,6 +250,170 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
 
     return rc;
 }
+
+#define ATTEMPTS 10
+int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = 0;
+    stringstream errorText;
+
+    HandleFile* l_HandleFile = NULL;
+    ContribIdFile* l_ContribIdFile = NULL;
+    char* l_HandleFileName = NULL;
+    int l_Attempts = ATTEMPTS;
+
+    std::string l_HostName;
+    activecontroller->gethostname(l_HostName);
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, LVM_UnconditionallyStop, "BBLV_Metadata attempt to unconditionally stop transfer definition, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
+    // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+    //       bbServer that is marking the handle/contribid file as 'stopped'
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+    if (!rc)
+    {
+        bfs::path l_HandleFilePath = bfs::path(string(l_HandleFileName)).parent_path();
+
+        bool l_AllDone = false;
+        while ((!l_AllDone) && l_Attempts--)
+        {
+            l_AllDone = true;
+            // Iterate through the logical volumes...
+            bool l_ContribIdFound = false;
+            for (auto& l_LVUuid : boost::make_iterator_range(bfs::directory_iterator(l_HandleFilePath), {}))
+            {
+                try
+                {
+                    if (!bfs::is_directory(l_LVUuid)) continue;
+                    bfs::path lvuuidfile = l_LVUuid.path() / l_LVUuid.path().filename();
+                    LVUuidFile l_LVUuidFile;
+                    rc = l_LVUuidFile.load(lvuuidfile.string());
+                    if (!rc)
+                    {
+                        if (l_LVUuidFile.hostname == pCN_HostName)
+                        {
+                            // CN of interest
+                            LVKey l_LVKey = std::pair<string, Uuid>(l_LVUuidFile.connectionName, Uuid(l_LVUuid.path().filename().string().c_str()));
+                            if (l_ContribIdFile)
+                            {
+                                delete l_ContribIdFile;
+                                l_ContribIdFile = NULL;
+                            }
+                            rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, &l_LVKey, l_HandleFilePath, pContribId);
+                            if (rc == 1)
+                            {
+                                rc = 0;
+                                if (l_ContribIdFile)
+                                {
+                                    // Valid contribid file
+                                    l_ContribIdFound = true;
+                                    if (l_ContribIdFile->hostname == l_HostName)
+                                    {
+                                        // This bbServer previously serviced this transfer definition
+                                        if (!l_ContribIdFile->stopped())
+                                        {
+                                            // Contribid is not marked as stopped
+                                            if (!l_ContribIdFile->notRestartable())
+                                            {
+                                                // Contribid is restartable
+                                                rc = doForceStopTransfer(&l_LVKey, l_ContribIdFile, pJobId, pJobStepId, pHandle, pContribId);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // Transfer definition is already stopped
+                                            // NOTE:  This probably means that the 'new' bbServer has already declared this bbServer as dead
+                                            //        and has unconditionaly stopped this transfer definition.
+                                            LOG(bb,info) << "attemptToUnconditionallyStopThisTransferDefinition(): Transfer definition is already stopped. " \
+                                                         << "Input: hostname " << pHostName << ", CN_hostname " << pCN_HostName << ", jobid " << pJobId \
+                                                         << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // This bbServer was not the servicer for this transfer definition
+                                        LOG(bb,debug) << "attemptToUnconditionallyStopThisTransferDefinition(): This bbServer was not the servicer for this transfer definition. " \
+                                                      << "Input: hostname " << pHostName << ", CN_hostname " << pCN_HostName << ", jobid " << pJobId \
+                                                      << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                                    }
+                                }
+                                else
+                                {
+                                    // ContribIdFile could not be loaded
+                                    LOG(bb,info) << "attemptToUnconditionallyStopThisTransferDefinition(): ContribIdFile could not be loaded (NULL pointer returned). " \
+                                                 << "Input: hostname " << pHostName << ", CN_hostname " << pCN_HostName << ", jobid " << pJobId \
+                                                 << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                                }
+                            }
+                            else
+                            {
+                                // ContribIdFile could not be loaded
+                                LOG(bb,info) << "attemptToUnconditionallyStopThisTransferDefinition(): ContribIdFile could not be loaded (rc " << rc << "). " \
+                                             << "Input: hostname " << pHostName << ", CN_hostname " << pCN_HostName << ", jobid " << pJobId \
+                                             << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                            }
+                        }
+                        else
+                        {
+                            // This LV was not for the CN hostname (likely, normal)
+                        }
+                    }
+                    else
+                    {
+                        l_AllDone = false;
+                        rc = 0;
+                        break;
+                    }
+                }
+                catch(ExceptionBailout& e) { }
+                catch(exception& e)
+                {
+                    // More than likely, the cross-bbServer data was altered under us...  Restart the walk of the LVUuid directories...
+                    l_AllDone = false;
+                    rc = 0;
+                    break;
+                }
+
+                if (l_ContribIdFound)
+                {
+                    l_AllDone = true;
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        // Could not load the handle file
+    }
+
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = NULL;
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+
+    if (l_ContribIdFile)
+    {
+        delete l_ContribIdFile;
+        l_ContribIdFile = NULL;
+    }
+
+    FL_Write6(FLMetaData, LVM_UnconditionallyStop_End, "BBLV_Metadata attempt to unconditionally stop transfer definition, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld",
+              l_FL_Counter, pJobId, pHandle, pContribId, (uint64_t)(ATTEMPTS-l_Attempts), rc);
+
+    return rc;
+}
+#undef ATTEMPTS
 
 int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
     int rc = 0;
@@ -817,7 +996,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
                     // It was processed, and operation logged.
                     // The cross bbserver metadata was also appropriately reset
                     // as part of the operation.
-                    l_Result = ", the transfer definition was successfully stopped.";
+                    l_Result = ", the transfer definition was successfully stopped using information from this bbServer's local cache.";
 
                     break;
                 }
@@ -857,7 +1036,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
                     // Found the transfer definition on this bbServer.
                     // However, extents had not yet been scheduled.
                     // Situation was logged, and nothing more to do...
-                    l_Result = ", the transfer definition did not yet have any extents scheduled for transfer. A start transfer request was caught in mid-flight and the original request was issued to the new bbServer to complete the trasnfer request.";
+                    l_Result = ", the transfer definition did not yet have any extents scheduled for transfer. A start transfer request was caught in mid-flight and the original request was issued to the new bbServer to complete the transfer request.";
 
                     break;
                 }
@@ -886,18 +1065,30 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
         }
     }
 
-    LOG(bb,info) << "For host name " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                 << ", handle " << pHandle << ", and contribid " << pContribId << l_Result;
-
     if (sameHostName(pHostName))
     {
         // NOTE: It is possible for a given hostname to be found in more than one bbServer.
         //       Append the stop operation for the stop transfer request to the async request file.
-        char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-        snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "cancel %lu %lu %lu %u %lu stoprequest %s", pJobId, pJobStepId, pHandle, pContribId, (uint64_t)BBSCOPETRANSFER, (pCN_HostName.size() ? pCN_HostName.c_str() : "''"));
-        AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
-        wrkqmgr.appendAsyncRequest(l_Request);
+        appendAsyncRequestForStopTransfer(pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, (uint64_t)BBSCOPETRANSFER);
     }
+    else
+    {
+        if (!rc)
+        {
+            rc = attemptToUnconditionallyStopThisTransferDefinition(pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, pContribId);
+            if (rc == 1)
+            {
+                // Transfer definition was previously serviced by this bbServer.
+                // However, this bbServer was previosly restarted so this transfer
+                // definition was not found in the local metadata.  This transfer
+                // definition was unconditionally stopped.
+                l_Result = ", the transfer definition was successfully stopped using information from the cross bbServer metadata.";
+            }
+        }
+    }
+
+    LOG(bb,info) << "For host name " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                 << ", handle " << pHandle << ", and contribid " << pContribId << l_Result;
 
     return rc;
 }

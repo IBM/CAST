@@ -337,6 +337,9 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, XF_ContribIdStopped, "xfer contribIdStopped, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
     // First, ensure that this handle/transfer definition is marked as stopped in the cross bbServer metadata...
     // NOTE:  This must be a restart scenario...
     ContribIdFile* l_ContribIdFile = 0;
@@ -346,6 +349,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     l_HandleFilePath /= bfs::path(to_string(pHandle));
 
     int l_Attempts = 1;
+    int l_RetryAttempts = 0;
     bool l_AllDone = false;
     while (!l_AllDone)
     {
@@ -355,12 +359,14 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
         while ((rc != 1) && (l_Continue--))
         {
+            ++l_RetryAttempts;
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
             //       bbServer that is marking the handle/contribid file as 'stopped'
             // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
             //       not generate RAS messages indicating that we are blocked waiting on the handle file lock.
             //       When stopping the transfer definition, processing may have to hold the lock for an extended period.
-            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE);
+            HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
             if (!rc)
             {
                 rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
@@ -515,8 +521,6 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                     LOG(bb,info) << "contribIdStopped(): Error occurred when attempting to load the contrib file for contribid " << pContribId \
                                  << " (Negative rc from loadContribIdFile()). All transfers for this contributor may have already finished.  See previous messages.";
                 }
-                // Unlock the handle file...
-                l_HandleFile->close();
             }
             else
             {
@@ -535,6 +539,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
             if (l_HandleFile)
             {
                 // The lock on the handle file was already released by the close above
+                l_HandleFile->close(l_LockFeedback);
                 delete l_HandleFile;
                 l_HandleFile = 0;
             }
@@ -629,6 +634,58 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                               << " Most likely, the transfer completed for the contributor or was canceled. Therefore, the transfer definition cannot be restarted. See any previous messages.";
             }
         }
+    }
+
+    FL_Write6(FLMetaData, XF_ContribIdStopped_End, "xfer contribIdStopped, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pContribId, l_RetryAttempts, rc);
+
+    return rc;
+}
+
+int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = becomeUser(pContribIdFile->getUserId(), pContribIdFile->getGroupId());
+    if (!rc)
+    {
+        // We mark this transfer definition as stopped
+        // Update the status for the ContribId and Handle files in the xbbServer data...
+        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Stopped, 1);
+
+        // We mark this transfer definition as canceled
+        // Now update the status for the ContribId and Handle files in the xbbServer data...
+        if (!rc)
+        {
+            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Canceled, 1);
+            // We mark this transfer definition as all extents processed
+            // Now update the status for the ContribId and Handle files in the xbbServer data...
+            if (!rc)
+            {
+                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Extents_Transferred, 1);
+                // We mark this transfer definition as all files closed
+                // Now update the status for the ContribId and Handle files in the xbbServer data...
+                if (!rc)
+                {
+                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Files_Closed, 1);
+                }
+            }
+        }
+
+        if (!rc)
+        {
+            // Indicate success...  Restart the transfer definition...
+            rc = 1;
+        }
+
+        becomeUser(0,0);
+    }
+    else
+    {
+        rc = -1;
+        stringstream errorText;
+        errorText << "becomeUser failed when attempting to force stop the transfer definition associated with an unknown CN hostname, jobid " \
+                  << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
+                  << " when attempting to become uid=" << pContribIdFile->getUserId() << ", gid=" << pContribIdFile->getGroupId();
+        bberror << err("error.uid", pContribIdFile->getUserId()) << err("error.gid", pContribIdFile->getGroupId());
+        LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
     return rc;
@@ -948,50 +1005,7 @@ int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t
 
     if (l_StopDefinition)
     {
-        rc = becomeUser(l_ContribIdFile->getUserId(), l_ContribIdFile->getGroupId());
-        if (!rc)
-        {
-            // We mark this transfer definition as stopped
-            // Update the status for the ContribId and Handle files in the xbbServer data...
-            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Stopped, 1);
-
-            // We mark this transfer definition as canceled
-            // Now update the status for the ContribId and Handle files in the xbbServer data...
-            if (!rc)
-            {
-                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Canceled, 1);
-                // We mark this transfer definition as all extents processed
-                // Now update the status for the ContribId and Handle files in the xbbServer data...
-                if (!rc)
-                {
-                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Extents_Transferred, 1);
-                    // We mark this transfer definition as all files closed
-                    // Now update the status for the ContribId and Handle files in the xbbServer data...
-                    if (!rc)
-                    {
-                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Files_Closed, 1);
-                    }
-                }
-            }
-
-            if (!rc)
-            {
-                // Indicate success...  Restart the transfer definition...
-                rc = 1;
-            }
-
-            becomeUser(0,0);
-        }
-        else
-        {
-            rc = -1;
-            stringstream errorText;
-            errorText << "becomeUser failed when attempting to force stop the transfer definition associated with an unknown CN hostname, jobid " \
-                      << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                      << " when attempting to become uid=" << l_ContribIdFile->getUserId() << ", gid=" << l_ContribIdFile->getGroupId();
-            bberror << err("error.uid", l_ContribIdFile->getUserId()) << err("error.gid", l_ContribIdFile->getGroupId());
-            LOG_ERROR_TEXT_RC(errorText, rc);
-        }
+        rc = doForceStopTransfer(pLVKey, l_ContribIdFile, pJobId, pJobStepId, pHandle, pContribId);
     }
     else
     {

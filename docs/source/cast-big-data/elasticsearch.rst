@@ -23,7 +23,7 @@ advantage of the distributed nature of the service. Additionally, in the CAST co
 are assumed to be JBOD.
 
 CAST provides a set of sample configuration files in the repository at `csm_big_data/elasticsearch/`
-If the `ibm-csm-bds-*.noarch.rpm` rpm as been installed the sample configurations may be found
+If the |csm-bds| rpm as been installed the sample configurations may be found
 in `/opt/ibm/csm/bigdata/elasticsearch/`.
 
 1. Install the elasticsearch rpm and java 1.8.1+ (command run from directory with elasticsearch rpm):
@@ -32,7 +32,7 @@ in `/opt/ibm/csm/bigdata/elasticsearch/`.
 
     yum install -y elasticsearch-*.rpm java-1.8.*-openjdk
 
-2. Copy the elastic search configuration files to the `/etc/elasticsearch` directory. 
+2. Copy the Elasticsearch configuration files to the `/etc/elasticsearch` directory. 
 
     It is recommended that the system administrator review these configurations at this phase.
 
@@ -40,11 +40,11 @@ in `/opt/ibm/csm/bigdata/elasticsearch/`.
     :elasticsearch.yml: Configuration of the service specific attributes, please see 
         `elasticsearch.yml`_ for details.
 
-3. Make an ext4 filesystem on each hard drive designated to be in the elastic search JBOD. 
+3. Make an ext4 filesystem on each hard drive designated to be in the Elasticsearch JBOD. 
 
-    The mounted names for these file systems should match the names spcified in `path.data`. 
-    Additionally, these mounted file systems should be owned by the `elasticsearch` user and in the 
-    `elasticsearch` group.
+    The mounted names for these file systems should match the names specified in `path.data`. 
+    Additionally, these mounted file systems should be owned by the ``elasticsearch`` user and 
+    in the ``elasticsearch`` group.
 
 4. Start Elasticsearch:
 
@@ -68,7 +68,7 @@ be data being written to your index.
 Tuning Elasticsearch
 --------------------
 
-The process of tuning and configuring Elasticsearch is incredibly dependen on the volume and
+The process of tuning and configuring Elasticsearch is incredibly dependent on the volume and
 type of data ingested the Big Data Store. Due to the nuance of this process it is **STRONGLY** 
 recommended that the system administrator familiarize themselves with `Configuring Elasticsearch`_.
 
@@ -86,35 +86,50 @@ The Elasticsearch configuration sample shipped by CAST marks fields that need to
 system administrator. A brief rundown of the fields to modify is as follows:
 
 
-:cluster.name: The name of the cluster. Nodes may only join clusters with the name in this field.
-                Generally it's a good idea to give this a descriptive name.
+:cluster.name: 
+    The name of the cluster. Nodes may only join clusters with the name in this field.
+    Generally it's a good idea to give this a descriptive name.
 
-:node.name: The name of the node in the elasticsearch cluster. CAST defaults to `${HOSTNAME}`.
+:node.name: 
+    The name of the node in the elasticsearch cluster. 
+    CAST defaults to ``${HOSTNAME}``.
 
-:path.log: The logging directory, needs elasticsearch read write access.
+:path.log: 
+    The logging directory, needs elasticsearch read write access.
 
-:path.data: A comma separated listing of data directories, needs elasticsearch read write access. 
-                CAST recommends a JBOD model where each disk has a file system.
+:path.data: 
+    A comma separated listing of data directories, needs elasticsearch read write access. 
+    CAST recommends a JBOD model where each disk has a file system.
 
-:network.host: The address to bind the Elasticsearch model to. CAST defaults to `_site_`.
+:network.host: 
+    The address to bind the Elasticsearch model to. 
+    CAST defaults to ``_site_``.
 
-:http.port: The port to bind Elasticsearch to. CAST defaults to `9200`.
+:http.port: 
+    The port to bind Elasticsearch to. 
+    CAST defaults to ``9200``.
 
-:discovery.zen.ping.unicast.hosts: A list of nodes likely to be active, comma delimited array.
-                CAST defaults to `cast.elasticsearch.nodes`..
+:discovery.zen.ping.unicast.hosts: 
+    A list of nodes likely to be active, comma delimited array.
+    CAST defaults to ``cast.elasticsearch.nodes``.
 
-:discovery.zen.minimum_master_nodes: Number of nodes with the`node.master` setting set to true that
-                must be connected to before starting. Elastic search recommends `(master_eligible_nodes/2)+1`
+:discovery.zen.minimum_master_nodes: 
+    Number of nodes with the ``node.master`` setting set to true that must be connected to 
+    before starting. 
+    Elastic search recommends ``(master_eligible_nodes/2)+1``.
 
-:gateway.recover_after_nodes: Number of nodes to wait for before begining recovery after cluster-wide restart.
+:gateway.recover_after_nodes: 
+    Number of nodes to wait for before begining recovery after cluster-wide restart.
 
-:xpack.ml.enabled: Enables/disables the Machine Learning utility in xpack, 
-                this should be disabled on ppc64le installations.
+:xpack.ml.enabled: 
+    Enables/disables the Machine Learning utility in xpack, this should be disabled on 
+    ppc64le installations.
 
-:xpack.security.enabled: Enables/disables security in elasticsearch.
+:xpack.security.enabled: 
+    Enables/disables security in elasticsearch.
 
-:xpack.license.self_generated.type: Sets the license of xpack for the cluster, if the user has
-                no license it should be set to `basic`.
+:xpack.license.self_generated.type: 
+    Sets the license of xpack for the cluster, if the user has no license it should be set to ``basic``.
 
 .. TODO: Determine what the rpm install will do with this.
 .. TODO: Determine some logical defaults.
@@ -146,24 +161,22 @@ Indices
 CAST has specified a suite of data mappings for use in separate indices. Each of these indices is
 documented below, with a *JSON* mapping file provided in the repository and *rpm*.
 
-CAST uses *cast-<class>-<description>-<date>* naming schema for indices to leverage templates when creating
+CAST uses ``cast-<class>-<description>-<date>`` naming schema for indices to leverage templates when creating
 the indices in Elasticsearch. The *class* is one of the three primary classifications determined
 by CAST: *log*, *counters*, *environmental*. The *description* is typically a one to two word description
 of the type of data: *syslog*, *node*, *mellanox-event*, etc.
 
+A collection of templates is provided in |csm-bds| which sets up aliases and data type mappings. 
+These temlates do not set sharding or replication factors, as these settings should be tuned to 
+the user's data retention and index sizing needs.
 
-A collection of templates is provided in the CAST big data store RPM which set up aliases and data
-type mappings. These temlates do not set sharding or replication factors, as these settings should 
-be tuned to the user's data retention and index sizing needs.
-
-The specified templates match indices generated in  :ref:`the data aggregators documentation <CASTDataAgg>`.
+The specified templates match indices generated in :ref:`the data aggregators documentation <CASTDataAgg>`.
 As different data sources produce different volumes of data in different environments, 
 this document will make no recommendation on sharding or replication.
 
+.. note:: These templates may be found on the git repo at ``csm_big_data/elasticsearch/mappings/templates``.
 
-.. note:: These templates may be found on the git repo in `csm_big_data/elasticsearch/mappings/templates`.
-
-.. note:: Cast has elected to use lowercase and '-' characters to separate words. This is not mandatory
+.. note:: Cast has elected to use lowercase and `-` characters to separate words. This is not mandatory
     for your index naming and creation.
 
 scripts
@@ -178,20 +191,22 @@ createIndices.sh
 ++++++++++++++++
 
 A script for initializing the templates defined by CAST. When executed it with attempt to 
-target the elasticsearch server running on "${HOSTNAME}:9200". If the user supplies
-either a hostname or ip address this will be targeted in lieu of "${HOSTNAME}". This script
+target the elasticsearch server running on ``${HOSTNAME}:9200``. If the user supplies
+either a hostname or ip address this will be targeted in lieu of ``${HOSTNAME}``. This script
 need only be run once on a node in the elasticsearch cluster.
 
 removeIndices.sh
 ++++++++++++++++
 
 A script for removing all elasticsearch templates created by `createIndices.sh`_. 
-When executed it with attempt to target the elasticsearch server running on "${HOSTNAME}:9200".
-If the user supplies either a hostname or ip address this will be targeted in lieu of "${HOSTNAME}". 
+When executed it with attempt to target the elasticsearch server running on ``${HOSTNAME}:9200``.
+If the user supplies either a hostname or ip address this will be targeted in lieu of ``${HOSTNAME}``. 
 This script need only be run once on a node in the elasticsearch cluster.
 
 reindexIndices.py
 +++++++++++++++++
+
+.. attention:: This script is currently not supported, a future release of CSM BDS will have a script matching this description.
 
 A tool for performing in place reindexing of an elasticsearch index.
 
@@ -518,10 +533,9 @@ cast-counters-gpfs
 
 :alias: cast-counters-gpfs
 
-A collection of counter data from gpfs. The script outlined in :ref:`the data aggregators documentation <CASTDataAgg>`
-leverages zimon to perform the collection. The following is the index generated by the default 
-script bundled in the CAST rpm.
-
+A collection of counter data from gpfs. The script outlined in 
+:ref:`the data aggregators documentation <CASTDataAgg>` leverages zimon to perform the collection. 
+The following is the index generated by the default script bundled in the CAST rpm.
 
 +---------------------------------+----------+-------------------------------------------------+
 | Field                           | Type     | Description                                     |

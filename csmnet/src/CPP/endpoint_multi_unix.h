@@ -41,7 +41,7 @@ typedef std::deque<csm::network::EndpointVirtualUnix*> EndpointVirtualFifo;
 // this is holding the master Unix socket
 // if it's a server socket, it's going to be unconnected (and will stay unconnected)
 class EndpointMultiUnix : public EndpointDualUnix {
-  typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+  typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
   EndpointVirtualMap _Known;
   EndpointVirtualFifo _ToAccept;
   EndpointVirtualFifo _Removed;

@@ -34,9 +34,7 @@
 struct option longopts[] = {
 	{"help",          no_argument,       0, 'h'},
 	{"verbose",       required_argument, 0, 'v'},
-	{"allocation_id", required_argument, 0, 'a'},
-	{"kv_pairs",      required_argument, 0, 'k'},
-	{"jsm_path",      required_argument, 0, 'p'},
+	{"retry",         required_argument, 0, 'r'},
 	{0,0,0,0}
 };
 
@@ -53,14 +51,10 @@ static void help()
 	puts("  1  if ERROR.");
 	puts("");
 	puts("ARGUMENTS:");
-	puts("  MANDATORY:");
-	puts("    Argument                | Example value | Description  "); 
-	puts("    ------------------------|---------------|--------------");
-	puts("                            |               | ");
     puts("  OPTIONAL:");
     puts("    Argument               | Example value       | Description  ");
     puts("    -----------------------|---------------------|--------------");
-    puts("                           |                     | ");
+    puts("    -r, --retry            | 5                   | The number of times to retry soft failure recovery (Default: 5)");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -76,14 +70,17 @@ int main(int argc, char *argv[])
 	int               opt;
 	int               return_value;
 	int               indexptr = 0;
-    
+    char *arg_check = NULL; ///< Used in verifying the long arg values. 
     //API_PARAMETER_INPUT_TYPE input;    
     csm_soft_failure_recovery_input_t input;
     csm_soft_failure_recovery_output_t *output;
 
+    csm_init_struct_versioning(&input);
+    input.retry_count = 5;
+    
 	csm_api_object   *csm_obj = NULL;
 
-	while ((opt = getopt_long(argc, argv, "hv:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:r:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -91,6 +88,12 @@ int main(int argc, char *argv[])
 			case 'v':
                 csm_set_verbosity( optarg, USAGE )
 				break;
+            case 'r':
+                csm_optarg_test( "-r, --retry", optarg, USAGE )
+                csm_str_to_int64(input.retry_count, optarg, 
+                    arg_check, "-r, --retry", help)
+
+                break;
 			default:      
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
                 USAGE();
@@ -109,7 +112,7 @@ int main(int argc, char *argv[])
     
     return_value = csm_soft_failure_recovery(&csm_obj, &input, &output);
 
-	if (return_value == CSMI_SUCCESS ) 
+	if (return_value == CSMI_SUCCESS )
     {
 	    printf("---\n# Soft Failure cleaned up.\n");
 
@@ -128,10 +131,17 @@ int main(int argc, char *argv[])
 	}
 	else 
     {
-		printf("# %s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value, 
-            csm_api_object_errcode_get(csm_obj), csm_api_object_errmsg_get(csm_obj));
-        
-        csm_print_node_errors(csm_obj)
+        if(return_value == CSMI_NO_RESULTS)
+        {
+            printf("# No nodes currently in soft failure.\n");
+        }
+        else
+        {
+		    printf("# %s FAILED: returned: %d, errcode: %d errmsg: %s\n", argv[0], return_value, 
+                csm_api_object_errcode_get(csm_obj), csm_api_object_errmsg_get(csm_obj));
+            
+            csm_print_node_errors(csm_obj)
+        }
 	}
 
 	// it's the csmi library's responsibility to free internal space

@@ -1,0 +1,6 @@
+# %preun 
+if [ "$1" = "0" ]; then
+    echo "Removing Event Correlator from logstash plugins."
+    /usr/share/logstash/bin/logstash-plugin remove logstash-filter-csm-event-correlator 2>/dev/nul
+    echo "Event Correlator has been removed from logstash plugins."
+fi

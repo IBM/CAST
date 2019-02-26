@@ -12,6 +12,8 @@
  *******************************************************************************/
 
 #include "bbinternal.h"
+#include "bbserver_flightlog.h"
+#include "BBLV_Info.h"
 #include "BBTagParts.h"
 #include "logging.h"
 
@@ -44,6 +46,26 @@ int BBTagParts::allExtentsTransferred(const uint32_t pContribId) {
     } else {
         return -1;
     }
+}
+
+int BBTagParts::anyCanceledTransferDefinitions() {
+    int rc = 0;
+
+    for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
+        rc = (it->second).canceled();
+    }
+
+    return rc;
+}
+
+int BBTagParts::anyFailedTransferDefinitions() {
+    int rc = 0;
+
+    for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
+        rc = (it->second).failed();
+    }
+
+    return rc;
 }
 
 int BBTagParts::anyStoppedTransferDefinitions() {
@@ -238,16 +260,41 @@ int BBTagParts::setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t 
     return rc;
 }
 
-int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_Info* pLV_Info, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
-    // NOTE: pLockWasReleased intentially not initialized
+    // NOTE: pLockWasReleased intentionally not initialized
 
     for (auto it = tagParts.begin(); ((!rc) && it != tagParts.end()); ++it)
     {
         if (pContribId == UNDEFINED_CONTRIBID || it->first == pContribId)
         {
+            // NOTE: If we are using multiple transfer threads, we have to make sure that there are
+            //       no extents for this transfer definition currently in-flight on this bbServer...
+            //       If so, delay for a bit...
+            // NOTE: In the normal case, the work queue for the CN hostname on this bbServer should
+            //       be suspended, so no new extents should start processing when we release/re-acquire
+            //       the lock below...
+            uint32_t i = 0;
+            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, pContribId))
+            {
+                unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+                {
+                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                    // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 4)
+                    {
+                        FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
+                                 pHandle, pContribId, 0, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
+                                     << ", contribid " << pContribId;
+                    }
+                    usleep((useconds_t)250000);
+                }
+                lockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+            }
+
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
             rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
         }

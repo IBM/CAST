@@ -257,8 +257,8 @@ bool CSMIRasEventQuery::CreateByteArray(
 		output->results_count = numberOfRecords;
 		output->results = (DB_RECORD_STRUCT**)calloc(output->results_count, sizeof(DB_RECORD_STRUCT*));
 
-		DB_RECORD_STRUCT *rcsm_ras = nullptr;
-		csm_init_struct_ptr(DB_RECORD_STRUCT, rcsm_ras);
+		//DB_RECORD_STRUCT *rcsm_ras = nullptr;
+		//csm_init_struct_ptr(DB_RECORD_STRUCT, rcsm_ras);
 
 		LOG(csmapi, debug) << "output->results_count = " << output->results_count << endl;
 

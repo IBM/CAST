@@ -236,7 +236,9 @@ class BBUsage_t(Structure):
                 ("localBytesRead", c_uint64),       #### Number of bytes written to the logical volume via compute node
                 ("localBytesWritten", c_uint64),    #### Number of bytes read from the logical volume via compute node
                 ("burstBytesRead", c_uint64),       #### Number of bytes written to the logical volume via burst buffer transfers
-                ("burstBytesWritten", c_uint64),]   #### Number of bytes read from the logical volume via burst buffer transfers
+                ("burstBytesWritten", c_uint64),    #### Number of bytes read from the logical volume via burst buffer transfers
+                ("localReadCount", c_uint64),       #### Number of read operations to the logical volume
+                ("localWriteCount", c_uint64),]     #### Number of write operations to the logical volume
 
 class BBDeviceUsage_t(Structure):
     _fields_ = [("critical_warning", c_uint64),     #### Number of bytes written to the logical volume
@@ -319,7 +321,7 @@ def BB_CancelTransfer(pHandle, pCancelScope=DEFAULT_BBCANCELSCOPE):
 
     print "%sBB_CancelTransfer issued to initiate cancel for handle %s, with cancel scope of %s" % (os.linesep, pHandle, BBCANCELSCOPE[l_CancelScope.value])
     rc = bb.api.BB_CancelTransfer(l_Handle, l_CancelScope)
-    while ((rc not in l_NormalRCs) and (rc not in l_ToleratedErrorRCs)):
+    if ((rc not in l_NormalRCs) and (rc not in l_ToleratedErrorRCs)):
         dummy = BBError()
         FIND_INCORRECT_BBSERVER = re.compile(".*A cancel request for an individual transfer definition must be directed to the bbServer servicing that jobid and contribid")
         l_ErrorSummary = dummy.getLastErrorDetailsSummary()
@@ -333,7 +335,8 @@ def BB_CancelTransfer(pHandle, pCancelScope=DEFAULT_BBCANCELSCOPE):
             rc = -2
 
     bb.printLastErrorDetailsSummary()
-    print "Cancel initiated for handle %s, with cancel scope of %s" % (pHandle, l_CancelScope.value)
+    if (rc == 0):
+        print "Cancel initiated for handle %s, with cancel scope of %s" % (pHandle, l_CancelScope.value)
 
     return
 

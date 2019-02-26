@@ -164,11 +164,15 @@ public:
    * Stop collecting GPU statistics for the specificed allocation.  
    *
    * @param i_allocation_id The CSM allocation id to stop collecting statistics for.
-   * @param o_gpu_usage The cumulative GPU usage for all GPUs, measured in gpu*microseconds. Will not be modified if return value is false.
+   * @param o_total_gpu_usage The cumulative GPU usage for all GPUs, measured in gpu*microseconds. Will not be modified if return value is false.
+   * @param o_gpu_id A vector containing the gpu_id for each GPU. Will not be modified if return value is false.
+   * @param o_gpu_max_memory A vector containg the GPU max memory used during the allocation for each GPU. Will not be modified if return value is false.
+   * @param o_gpu_usage. A vector containg the GPU usage in microseconds for each GPU. Will not be modified if return value is false.
    *
    * @return true if successful, false if unsuccessful. 
    */
-  bool StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage);
+  bool StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_total_gpu_usage,
+                           std::vector<int32_t> &o_gpu_id, std::vector<int64_t> &o_gpu_max_memory, std::vector<int64_t> &o_gpu_usage);
 
 private:
   INV_DCGM_ACCESS();
@@ -306,7 +310,8 @@ public:
   bool ReadAllocationFields();
   bool CollectGpuData(std::list<boost::property_tree::ptree> &gpu_data_pt_list);
   bool StartAllocationStats(const int64_t &i_allocation_id);
-  bool StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_gpu_usage);
+  bool StopAllocationStats(const int64_t &i_allocation_id, int64_t &o_total_gpu_usage,
+                           std::vector<int32_t> &o_gpu_id, std::vector<int64_t> &o_gpu_max_memory, std::vector<int64_t> &o_gpu_usage);
 
 private:
   INV_DCGM_ACCESS();

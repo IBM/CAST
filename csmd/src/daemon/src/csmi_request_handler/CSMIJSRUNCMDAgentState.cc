@@ -83,7 +83,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         // Execute the JSRUN Command.
         error_code = csm::daemon::helper::ExecuteJSRUN(jsrun_cmd->jsm_path, jsrun_cmd->allocation_id, 
             jsrun_cmd->user_id, jsrun_cmd->kv_pairs, jsrun_cmd->num_nodes, jsrun_cmd->compute_nodes, 
-            jsrun_cmd->launch_node);
+            jsrun_cmd->launch_node, jsrun_cmd->type);
     }
     catch(const csm::daemon::helper::CSMHandlerException& e)
     {
@@ -163,7 +163,7 @@ bool JSRUNCMDAgentState::HandleNetworkMessage(
         else
         {
             std::string error = "Message: jsm_path not legal/found ";
-            error.append(jsrun_cmd->jsm_path);
+            if (jsrun_cmd->jsm_path) error.append(jsrun_cmd->jsm_path);
             ctx->SetErrorMessage(error);
         }
     }

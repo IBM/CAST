@@ -15,6 +15,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <queue>
+#include <algorithm>
 #include "csm_api_burst_buffer.h"
 #include "csm_api_ras.h"
 #include "csm_api_common.h"
@@ -60,8 +61,8 @@ NodeController_CSM::NodeController_CSM()
 
     if(rc)
     {
-	LOG(bb,error) << "Unable to initialize CSM library.  rc=" << rc;
-	throw runtime_error(string("Unable to initialize CSM library"));
+	    LOG(bb,error) << "Unable to initialize CSM library.  rc=" << rc;
+	    throw runtime_error(string("Unable to initialize CSM library"));
     }
 #if BBPROXY
     // temporary workaround for beta2
@@ -91,65 +92,86 @@ NodeController_CSM::NodeController_CSM()
     if(rc)
     {
         LOG(bb,info) << "Volume group create failed with rc=" << rc << " ...  ignoring as might already be created";
-        bberror << err("err.csmerror", "Volume group create failed")<<err("err.csmrc",rc);
     }
     free(vg.ssd_info);
 
 #endif
 };
 
+static bool hostnamecmp(const std::string& s1, const std::string& s2)
+{
+    int result = strverscmp(s1.c_str(), s2.c_str());
+    if(result < 0)
+        return true;
+    return false;
+}
+
 int NodeController_CSM::gethostlist(string& hostlist)
 {
     int rc = 0;
     LOG(bb,info) << "NodeController_CSM::gethostlist:  hostlist=" << hostlist;
-    const char* allocid = getenv("CSM_ALLOCATION_ID");
-    const char* jobid   = getenv("LSF_STAGE_JOBID");
-    const char* jobindex= getenv("LSF_STAGE_JOBINDEX");
+    const char* allocid_str = getenv("CSM_ALLOCATION_ID");
+    const char* jobid_str   = getenv("LSF_STAGE_JOBID");
+    const char* jobindex_str= getenv("LSF_STAGE_JOBINDEX");
+    int64_t allocid  = 0;
+    int64_t jobid    = 0;
+    int64_t jobindex = 0;
+    if(allocid_str)  allocid  = stol(allocid_str);
+    if(jobid_str)    jobid    = stol(jobid_str);
+    if(jobindex_str) jobindex = stol(jobindex_str);
 
-    csm_allocation_query_input_t input;
-    if(jobid && jobindex)
+    csm_allocation_query_active_all_input_t input;
+    csm_allocation_query_active_all_output_t* output;
+    input.limit  = 100;
+    input.offset = 0;
+    bool found   = false;
+    while(!found)
     {
-        input.allocation_id    = 0;
-        input.primary_job_id   = stol(jobid);
-        input.secondary_job_id = stol(jobindex);
-    }
-    else if(allocid)
-    {
-        input.allocation_id    = stol(allocid);
-        input.primary_job_id   = 0;
-        input.secondary_job_id = 0;
-    }
-    else
-    { 
-        LOG(bb,error) << "NodeController_CSM neither allocationid nor jobid and jobindex was specified";
-        bberror << err("err.csmerror", "NodeController_CSM neither allocationid nor jobid and jobindex was specified");
-        return -1;
-    }
-    csm_allocation_query_output_t* output;
+        output = NULL;
+        FL_Write(FLCSM, CSMAllocQuery2, "CSM: call csm_allocation_query_active_all(limit=%ld, offset=%ld)", input.limit, input.offset, 0, 0);
+        rc = csm_allocation_query_active_all(&csmhandle, &input, &output);
+        FL_Write(FLCSM, CSMAllocQuery2RC, "CSM: call csm_allocation_query_active_all(limit=%ld, offset=%ld)  rc=%ld", input.limit, input.offset, rc, 0);
+        if(rc != 0)
+            break;
+        for(uint32_t x=0; x<output->num_allocations; x++)
+        {
+            if((output->allocations[x]->allocation_id == allocid) ||
+                ((output->allocations[x]->primary_job_id == jobid) &&
+                (output->allocations[x]->secondary_job_id == jobindex)))
+                {
+                    if(output->allocations[x]->num_nodes == 0)
+                    {
+                        LOG(bb,error) << "CSM: allocation query returned zero compute nodes";
+                        bberror << err("err.csmerror","CSM: allocation query returned zero compute nodes");
+                        return -1;
+                    }
 
-    FL_Write(FLCSM, CSMAllocQuery2, "CSM: call csm_allocation_query(allocid=%ld, jobid=%ld, jobindex=%ld)", input.allocation_id, input.primary_job_id, input.secondary_job_id, 0);
-    rc = csm_allocation_query(&csmhandle, &input, &output);
-    FL_Write(FLCSM, CSMAllocQuery2RC, "CSM: call csm_allocation_query(allocid=%ld, jobid=%ld, jobindex=%ld)  rc=%ld", input.allocation_id, input.primary_job_id, input.secondary_job_id, rc);
-    if(rc)
-    {
-        LOG(bb,error) << "NodeController_CSM allocation query failed with rc=" << rc;
-        if (rc==CSMERR_TIMEOUT) bberror<< err("err.CSMERR_TIMEOUT",rc);
-        else bberror << err("err.csmerror","NodeController_CSM allocation query failed")<<err("err.csmrc",rc);
-
-        return -1;
+                    vector<string> hostvector;
+                    for(unsigned int y=0; y<output->allocations[x]->num_nodes; y++)
+                    {
+                        hostvector.push_back(string(output->allocations[x]->compute_nodes[y]));
+                    }
+                    sort(hostvector.begin(), hostvector.end(), hostnamecmp);
+                    hostlist = "";
+                    for(const auto& ahost: hostvector)
+                    {
+                        if(hostlist.size() > 0)
+                        {
+                            hostlist += string(",");
+                        }
+                        hostlist += ahost;
+                    }
+                    found = true;
+                    break;
+                }
+        }
+        if(output->num_allocations != (uint32_t)input.limit)
+            break;
+        csm_free_struct_ptr(csm_allocation_query_active_all_output_t, output);
+        input.offset += input.limit;
     }
-    if(output->allocation->num_nodes == 0)
-    {
-        LOG(bb,error) << "CSM: allocation query returned zero compute nodes";
-        bberror << err("err.csmerror","CSM: allocation query returned zero compute nodes");
-        return -1;
-    }
-
-    hostlist = output->allocation->compute_nodes[0];
-    for(unsigned int x=1; x<output->allocation->num_nodes; x++)
-    {
-        hostlist += string(",") + string(output->allocation->compute_nodes[x]);
-    }
+    if(!found)
+        rc = -1;
     return rc;
 }
 
@@ -209,7 +231,7 @@ NodeController_CSM::~NodeController_CSM()
     if(csmhandle)
     {
         FL_Write(FLCSM, CSMObjDest, "CSM: call csm_api_object_destroy",0,0,0,0);
-	csm_api_object_destroy(csmhandle);
+    	csm_api_object_destroy(csmhandle);
         FL_Write(FLCSM, CSMObjDestRC, "CSM: call csm_api_object_destroy (no rc)",0,0,0,0);
     }
     FL_Write(FLCSM, CSMTerm, "CSM: call csm_term_lib",0,0,0,0);
@@ -217,7 +239,7 @@ NodeController_CSM::~NodeController_CSM()
     FL_Write(FLCSM, CSMTermRC, "CSM: call csm_term_lib.  rc=%ld",rc,0,0,0);
     if(rc)
     {
-	LOG(bb,error) << "Unable to shutdown CSM library.  rc=" << rc;
+	    LOG(bb,error) << "Unable to shutdown CSM library.  rc=" << rc;
     }
 };
 
@@ -291,7 +313,10 @@ int NodeController_CSM::lvremove(const string& lvname, const BBUsage_t& usage)
     bbargs.node_name           = (char*)myhostname.c_str();
     bbargs.num_bytes_read      = usage.totalBytesRead;
     bbargs.num_bytes_written   = usage.totalBytesWritten;
-
+#if BBUSAGE_COUNT
+    bbargs.num_writes          = usage.localWriteCount;
+    bbargs.num_reads           = usage.localReadCount;
+#endif
     FL_Write(FLCSM, CSMLVDelete, "CSM: call csm_bb_lv_delete.  AllocID=%ld",allocinfo.allocation_id, 0,0,0);
     rc = csm_bb_lv_delete(&csmhandle, &bbargs);
     FL_Write(FLCSM, CSMLVDeleteRC, "CSM: call csm_bb_lv_delete.  AllocID=%ld.  rc=%ld",allocinfo.allocation_id,rc,0,0);

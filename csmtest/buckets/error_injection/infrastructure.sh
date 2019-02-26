@@ -324,7 +324,7 @@ echo "Test Case 24: Stop compute daemon, health check, compute unresponsive, RAS
 xdsh ${SINGLE_COMPUTE} "systemctl stop csmd-compute"
 sleep 1
 xdsh ${SINGLE_COMPUTE} "systemctl is-active csmd-compute" > /dev/null
-check_return_exit $? 1 "Test Case 24: Compute is active"
+check_return_exit $? 1 "Test Case 24: Compute is not active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 24: Health Check"
 check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Utility Nodes:1" "COMPUTE: ${SINGLE_COMPUTE} (bounced=1; version=n/a; link=ANY)"
@@ -371,6 +371,93 @@ ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 27: Health Check"
 check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Utility Nodes:1" "COMPUTE: ${SINGLE_COMPUTE} (bounced=0;" "Active: 1" "AGGREGATOR: ${AGGREGATOR_A} (bounced=1;"
 check_return_flag $? "Test Case 27: Validating Health Check output"
+
+# Restart Daemons - SSL section
+echo "------------------------------------------------------------" >> ${LOG}
+echo "Restarting Daemons..." >> ${LOG}
+echo "------------------------------------------------------------" >> ${LOG}
+shutdown_daemons
+
+echo "SSL Section" >> ${LOG}
+${FVT_PATH}/tools/enable_ssl.sh
+
+# Test Case 28: Start master daemon, health check, nothing but master
+echo "Test Case 28: Start master daemon, health check, nothing but master" >> ${LOG}
+systemctl start csmd-master
+sleep 1
+systemctl is-active csmd-master > /dev/null
+check_return_exit $? 0 "Test Case 28: Master is active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 28: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:0" "Utility Nodes:0"
+check_return_flag $? "Test Case 28: Validating Health Check output"
+
+# Test Case 29: Start aggregator daemon, health check, aggregator daemon present
+echo "Test Case 29: Start aggregator daemon, health check, aggregator daemon present" >> ${LOG}
+xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
+sleep 1
+xdsh ${AGGREGATOR_A} "systemctl is-active csmd-aggregator" > /dev/null
+check_return_exit $? 0 "Test Case 29: Aggregator is active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 29: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Utility Nodes:0"
+check_return_flag $? "Test Case 29: Validating Health Check output"
+
+# Test Case 30: Start utility daemon, health check, utility and aggregator daemon present
+echo "Test Case 30: Start utility daemon, health check, utility and aggregator daemon present" >> ${LOG}
+xdsh utility "systemctl start csmd-utility"
+sleep 1
+xdsh utility "systemctl is-active csmd-utility" > /dev/null
+check_return_exit $? 0 "Test Case 30: Utility is active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 30: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Utility Nodes:1"
+check_return_flag $? "Test Case 30: Validating Health Check output"
+
+# Test Case 31: Start compute daemon, health check, compute is present 
+echo "Test Case 31: Start compute deamon, health check, compute is present" >> ${LOG}
+xdsh ${SINGLE_COMPUTE} "systemctl start csmd-compute"
+sleep 1
+xdsh ${SINGLE_COMPUTE} "systemctl is-active csmd-compute" > /dev/null
+check_return_exit $? 0 "Test Case 31: Compute is active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 31: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Utility Nodes:1" "COMPUTE: ${SINGLE_COMPUTE}"
+check_return_flag $? "Test Case 31: Validating Health Check output"
+
+# Test Case 32: Stop compute daemon, health check, compute unresponsive, RAS event for csm.status.down
+echo "Test Case 32: Stop compute daemon, health check, compute unresponsive, RAS event for csm.status.down" >> ${LOG}
+xdsh ${SINGLE_COMPUTE} "systemctl stop csmd-compute"
+sleep 1
+xdsh ${SINGLE_COMPUTE} "systemctl is-active csmd-compute" > /dev/null
+check_return_exit $? 1 "Test Case 32: Compute is not active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 32: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Utility Nodes:1" "COMPUTE: ${SINGLE_COMPUTE} (bounced=1; version=n/a; link=ANY)"
+check_return_flag $? "Test Case 32: Validating Health Check output"
+${CSM_PATH}/csm_ras_event_query -l ${SINGLE_COMPUTE} -m "csm.status.down" > ${TEMP_LOG} 2>&1
+check_all_output "Total_Records: 1"
+check_return_flag $? "Test Case 32: Validating csm_ras_event_query output"
+
+# Test Case 33: Stop utility daemon, health check, utility disconnected
+echo "Test Case 33: Stop utility daemon, health check, utility disconnected" >> ${LOG}
+xdsh utility "systemctl stop csmd-utility"
+sleep 1
+xdsh utility "systemctl is-active csmd-utility" > /dev/null
+check_return_exit $? 1 "Test Case 33: Utility is not active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 33: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Unresponsive Utility Nodes: 1" "COMPUTE: ${SINGLE_COMPUTE} (bounced=1; version=n/a; link=ANY)"
+
+# Test Case 34: Stop aggregator deamon, health check, aggregator disconnected
+echo "Test Case 34: Stop aggregator daemon, health check, aggregator disconnected" >> ${LOG}
+xdsh ${AGGREGATOR_A} "systemctl stop csmd-aggregator"
+sleep 1
+xdsh ${AGGREGATOR_A} "systemctl is-active csmd-aggregator" > /dev/null
+check_return_exit $? 1 "Test Case 34: Aggregator is not active"
+${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Test Case 34: Health Check"
+check_all_output "MASTER: ${MASTER}" "Aggregators:1" "Unresponsive Utility Nodes: 1" "Unresponsive Aggregators: 1"  
 
 # Clean up Temp Log
 rm -f ${TEMP_LOG}

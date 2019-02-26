@@ -46,13 +46,13 @@
 #endif 
 
 // CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, extra ) /**< comment */
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_4_0)
 
 CSMI_STRUCT_MEMBER(int     , errcode,            BASIC,              ,   -1,) ///< The error code of this error message. 
 CSMI_STRUCT_MEMBER(char*   , errmsg ,            STRING,             , NULL,) ///< The error message. 
 CSMI_STRUCT_MEMBER(char*   , source ,            STRING,             , NULL,) ///< The host reporting the error.
 
-CSMI_VERSION_END(0)
+CSMI_VERSION_END(c14b7bf3cd02156c76a82e3bf1e93905)
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

@@ -158,14 +158,16 @@ void CSMIRasEventCreate::returnErrorMsg(csm::network::Address_sptr addr,
 {
     LOG(csmras, trace) << "Enter " << __PRETTY_FUNCTION__;
     
-    char *buf=nullptr;
+    const char *buf="";
     uint32_t bufLen = 0;
     buf = csmi_err_pack(errcode, errmsg.c_str(), &bufLen);
     uint8_t flags = CSM_HEADER_RESP_BIT | CSM_HEADER_ERR_BIT;
 
     csm::network::Message rspMsg;
-    CreateNetworkMessage(inMsg, buf, bufLen, flags, rspMsg);
-    if (buf) free(buf);
+    
+    // Test the buffer, if the buffer is still present after the create delete it.
+    if (buf) CreateNetworkMessage(inMsg, buf, bufLen, flags, rspMsg);
+    //if (buf) free(buf);
 
     csm::network::Address_sptr rspAddress( CreateReplyAddress(addr.get()));
     if (rspAddress) {
@@ -421,7 +423,13 @@ csm::db::DBReqContent CSMIRasEventCreate::getRasCreateDbReq(RasEvent &rasEvent)
         sql_stmt << "$" << ++param << "::compute_node_states";     // SQL param: set_state
         sql_stmt <<  " where node_name=";
         sql_stmt << "$" << ++param << "::text";                    // SQL param: location_name
-        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE << "') ) ";
+        sql_stmt <<  " AND state IN ('" << CSM_NODE_STATE_DISCOVERED << "','" << CSM_NODE_STATE_IN_SERVICE;
+        
+        // Allow hard failure transitions from soft failure.
+        if (set_state == CSM_NODE_STATE_HARD_FAILURE)
+            sql_stmt << "','" << CSM_NODE_STATE_SOFT_FAILURE;
+
+        sql_stmt <<"') ) ";
     }
     else if (set_state == "")
     {
@@ -685,17 +693,22 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                     else if (suppressed)
                     {
                         LOG(csmras, info) << "RAS EVENT SUPPRESSED " << rctx->_rasEvent->getLogString() << " state:" << node_state; 
+                        _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
                     }
                     else
                     {
                         LOG(csmras, info) << "RAS EVENT DISABLED   " << rctx->_rasEvent->getLogString(); 
+                        _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
                     }
                 }
 
                 if (rasRc._rc != CSMI_SUCCESS) {
                     csm::daemon::NetworkEvent *ev = (csm::daemon::NetworkEvent *)reqEvent;
                     csm::network::MessageAndAddress c = ev->GetContent();
+                    
                     LOG(csmras, error) << "RAS EVENT ERROR      " << rctx->_rasEvent->getLogString() << " errstr:" << rasRc._errstr; 
+                    _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
+                    
                     if (! c._Msg.GetInt() )
                         returnErrorMsg(c.GetAddr(), c._Msg, rasRc._rc, rasRc._errstr, postEventList);
 
@@ -711,7 +724,7 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
                 //     only reply if the return is for CSMapi.
                 if (! content._Msg.GetInt() ) 
                 {
-                    char *buf=nullptr;      // return null response...
+                    const char *buf="";      // return null response...
                     uint32_t bufLen=0;
                     uint8_t flags = CSM_HEADER_RESP_BIT;
                     if (errcode != CSMI_SUCCESS) flags |= CSM_HEADER_ERR_BIT;;
@@ -734,15 +747,14 @@ void CSMIRasEventCreate::Process( const csm::daemon::CoreEvent &aEvent,
             {
                 LOG(csmras, debug) << "RAS EVENT DB WR RESP " << rctx->_rasEvent->getLogString(); 
                 LOG(csmras, info) << "RAS EVENT COMPLETE   " << rctx->_rasEvent->getLogString(); 
+                _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
             }
             else 
             {
-                LOG(csmras, warning) << "RAS EVENT unexpected branch taken, rctx->_state=" << rctx->_state; 
-
                 // TODO: detect and log db errors here...
-                // remove the rtx reference...
-                _contextMap.erase(ctx->GetAuxiliaryId());
-
+                
+                LOG(csmras, warning) << "RAS EVENT unexpected branch taken, rctx->_state=" << rctx->_state; 
+                _contextMap.erase(ctx->GetAuxiliaryId());    // Finished processing this event, remove the rctx context
             }
         }
     }

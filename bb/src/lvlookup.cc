@@ -232,8 +232,15 @@ int LVLookup::getLVExtents(const string& vg)
                 devf = fopen(devpath.c_str(), "r");
                 if (devf)
                 {
-                    fscanf(devf, "%ld", &devstart);
+                    int fscanfrc = fscanf(devf, "%ld", &devstart);
                     fclose(devf);
+                    if(fscanfrc != 1)
+                    {
+                        free(buffer);
+                        FL_Write(FLExtents, fstatFailed2, "getLVExtents: fstat command failed with rc=%d", rc, 0, 0, 0);
+                        LOG(bb, error) << "getLVExtents: fstat command failed with rc=" << rc;
+                        return rc;
+                    }
                     devstart *= 512;
 
                     // mydevice currently points to the logical volume, but serial number resolution requires the actual raw device.

@@ -349,12 +349,18 @@ const csmi_struct_mapping_t map_csm_ras_msg_type_update_output_t= {
     cast_csm_ras_msg_type_update_output_t
 };
 
-const csmi_struct_node_t csm_ras_msg_type_query_input_tree[7] = {{"offset",offsetof(csm_ras_msg_type_query_input_t,offset),0,NULL,0x123b4b4c,36},
+const csmi_struct_node_t csm_ras_msg_type_query_input_tree[13] = {{"offset",offsetof(csm_ras_msg_type_query_input_t,offset),0,NULL,0x123b4b4c,36},
 {"limit",offsetof(csm_ras_msg_type_query_input_t,limit),0,NULL,0xfdcc804,36},
 {"control_action",offsetof(csm_ras_msg_type_query_input_t,control_action),0,NULL,0x4bd6e603,4},
 {"msg_id",offsetof(csm_ras_msg_type_query_input_t,msg_id),0,NULL,0xe7c7058,4},
 {NULL,0,0,NULL,0,0},
 {"severity",offsetof(csm_ras_msg_type_query_input_t,severity),csmi_ras_severity_t_MAX,&csmi_ras_severity_t_strs,0x16a499a0,8},
+{"set_states",offsetof(csm_ras_msg_type_query_input_t,set_states),offsetof(csm_ras_msg_type_query_input_t, set_states_count),NULL,0xaee22e84,5},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"set_states_count",offsetof(csm_ras_msg_type_query_input_t,set_states_count),0,NULL,0x5d2c6d8c,24},
 {"message",offsetof(csm_ras_msg_type_query_input_t,message),0,NULL,0xbe463eea,4}}
 ;
 
@@ -363,7 +369,7 @@ void* cast_csm_ras_msg_type_query_input_t(void* ptr,size_t index, char isArray) 
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_query_input_t= {
-    7,
+    13,
     csm_ras_msg_type_query_input_tree,
     cast_csm_ras_msg_type_query_input_t
 };

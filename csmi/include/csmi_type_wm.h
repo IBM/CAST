@@ -220,6 +220,7 @@ typedef struct {
     char* wc_key; /**< Arbitrary string for grouping orthogonal accounts. */
     char** compute_nodes; /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
     csmi_allocation_history_t* history; /**< The history component of the allocation, if the allocation is active this will be **NULL**. */
+    int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
 } csmi_allocation_t;
 /**
  * @brief Defines the accounting values for a compute node.
@@ -709,7 +710,7 @@ typedef struct {
  */
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
-    uint32_t node_count; ///< A count of nodes.
+    uint32_t retry_count; ///< The number of times to retry soft failure recovery.
 } csm_soft_failure_recovery_input_t;
 /**
  * @brief A wrapper for the output of 

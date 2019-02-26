@@ -4,7 +4,7 @@
 #   
 #    csm_db_history_archive.py
 # 
-#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,11 +15,19 @@
 # 
 #================================================================================
 
+#================================================================================
+# usage             ./csm_db_history_archive.py
+# current_version   2.0
+# date_created:     10-12-2018
+# date_modified:    02-14-2019
+#================================================================================
+
 import psycopg2
 import argparse
 import json
 import sys
 import os
+import commands
 import logging.config
 import logging.handlers as handlers
 import time
@@ -34,10 +42,13 @@ DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
 DEFAULT_COUNT=1000
 DEFAULT_DATABASE="csmdb"
 DEFAULT_USER="postgres"
-DEFAULT_THREAD_POOL=2
+DEFAULT_THREAD_POOL=10
 
 # Additional Formatting style
 line1 = "---------------------------------------------------------------------------------------------------------"
+
+# username defined
+username = commands.getoutput("whoami")
 
 if not os.geteuid() == 0:
     print "{0}".format(line1)
@@ -62,12 +73,22 @@ a = datetime.datetime.now()
 fullCmdArguments = sys.argv
 argumentList = fullCmdArguments[1:]
 
-if "-t" in argumentList or "--target" in argumentList or "-n" in argumentList or "--count" in argumentList or "-d" in argumentList or "--database" in argumentList or "-u" in argumentList or "--user" in argumentList or "--threads" in argumentList:
+
+if "-t" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "--target" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "-n" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "--count" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "-d" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "--database" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "-u" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "--user" in argumentList and (len(argumentList)) % 2 == 0 or \
+    "--threads" in argumentList and (len(argumentList)) % 2 == 0:
     print "{0}".format(line1)
     print "Welcome to the CSM DB archiving script"
     print "{0}".format(line1)
-    print "Start Script Time:                 | {0}".format(a)
+    print "Start Script Time:                                    | {0}".format(a)
     print "{0}".format(line1)
+    print "Archiving Log Directory:                              | {0}".format(DEFAULT_LOG)
     logger.info("Welcome to the CSM DB archiving script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
@@ -76,8 +97,9 @@ elif len(argumentList) == 0:
     print "{0}".format(line1)
     print "Welcome to the CSM DB archiving script"
     print "{0}".format(line1)
-    print "Start Script Time:                 | {0}".format(a)
+    print "Start Script Time:                                    | {0}".format(a)
     print "{0}".format(line1)
+    print "Archiving Log Directory:                              | {0}".format(DEFAULT_LOG)
     logger.info("Welcome to the CSM DB archiving script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
@@ -161,23 +183,29 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     
     # Commit the records.
     cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
-    
+   
+    # Gather the results for logging
+    logger.info("Tbl: {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0]))
+
     # Gather the script time for calculation
     b = datetime.datetime.now()
     delta = b - a
     
-    # Gather the results for printing to screen and logging
-    print "[INFO] Processing Table {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0])
-    logger.info("Tbl: {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0]))
-    
     db_conn.commit()
     db_conn.close()
+
+    # Gather the results for printing to screen
+    return "[INFO] Processing Table {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0])
 
 def main(args):
 
     # Parse the args.
     parser = argparse.ArgumentParser(
-        description='A tool for archiving the CSM Database history tables.',
+        description="------------------------------------------------------------------------------\n"
+                    "A tool for archiving the CSM Database history tables.\n"
+                    "------------------------------------------------------------------------------\n"
+                    "LogDir:/var/log/ibm/csm/db/csm_db_archive_script.log\n"
+                    "------------------------------------------------------------------------------",
         add_help=True,
         epilog="------------------------------------------------------------------------------")
    
@@ -199,31 +227,48 @@ def main(args):
     if not os.path.exists(args.target):
         os.makedirs(args.target)
     
+    # Process the script detail info. for screen and logging.
+    logging.info("DB Name:                           | {0}".format(args.db))
+    logging.info("DB User Name:                      | {0}".format(args.user))
+    logging.info("Script User Name:                  | {0}".format(username))
+    logging.info("Thread Count:                      | {0}".format(args.threads))
+    logging.info("Archiving Data Directory:          | {0}".format(args.target))
+    logger.info("{0}".format(line1))
+    print "{0}".format(line1)
+    print "DB Name:                                              | {0}".format(args.db)
+    print "DB User Name:                                         | {0}".format(args.user)
+    print "Script User Name:                                     | {0}".format(username)
+    print "Thread Count:                                         | {0}".format(args.threads)
+    print "Archiving Data Directory:                             | {0}".format(args.target)
+    print "{0}".format(line1)
+    
     pool = ThreadPool(int(args.threads))
 
-    pool.map( lambda table: dump_table( args.db, args.user, table, args.count, args.target), TABLES)
-
+    tmp_list =  pool.map( lambda table: dump_table( args.db, args.user, table, args.count, args.target ), TABLES )
+    
+    for entry in tmp_list:
+        if entry is None:0
+        else:
+            print entry
+    
     for table in RAS_TABLES:
-        dump_table( args.db, args.user, table, args.count, args.target, True)
+        entry = dump_table( args.db, args.user, table, args.count, args.target, True)
+        if entry is None:0
+        else:
+            print entry
 
     # Process the finishing info. for screen and logging.
     ft = datetime.datetime.now()
     delta2 = ft - a
     logger.info("{0}".format(line1))
-    logging.info("DB Name:                           | {0}".format(args.db))
-    logging.info("Archiving Log Directory:           | {0}".format(DEFAULT_LOG))
-    logging.info("Archiving Data Directory:          | {0}".format(args.target))
     logging.info("End Script Time:                   | {0}".format(ft))
     logging.info("Total Process Time:                | {0}".format(delta2))
     logger.info("{0}".format(line1))
     logging.info("Finish CSM DB archive script process")
     logger.info("{0}".format(line1))
     print "{0}".format(line1)
-    print "DB Name:                           | {0}".format(args.db)
-    print "Archiving Log Directory:           | {0}".format(DEFAULT_LOG)
-    print "Archiving Data Directory:          | {0}".format(args.target)
-    print "End Script Time:                   | {0}".format(ft)
-    print "Total Process Time:                | {0}".format(delta2)
+    print "End Script Time:                                      | {0}".format(ft)
+    print "Total Process Time:                                   | {0}".format(delta2)
     print "{0}".format(line1)
     print "Finish CSM DB archive script process"
     print "{0}".format(line1)

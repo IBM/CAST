@@ -24,51 +24,6 @@
  | Forward declarations
  *******************************************************************************/
 
-class bbioop
-{
-  public:
-    int    fd;
-    bool   isWrite;
-    off_t  offset;
-    size_t len;
-    char*  buffer;
-
-    // handle detaching buffer for pwrites....
-    const char* xferbuffer;
-
-    // handle return for preads....
-    ssize_t*   completion_rc;
-    sem_t*     completion;
-};
-
-extern void* bbioRegFileManager(void* vptr);
-
-class bbioRegularData : public filehandleData
-{
-  public:
-    pthread_t managingThread;
-
-    pthread_mutex_t       lock;
-    sem_t                 numPendingOps;
-    map<off_t, bbioop>    pendingops;
-
-    bbioRegularData()
-    {
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-//        pthread_attr_setstacksize(&attr, 2*getpagesize());
-
-        sem_init(&numPendingOps,0,0);
-        pthread_mutex_init(&lock, NULL);
-        pthread_create(&managingThread, &attr, bbioRegFileManager, this);
-    }
-    virtual ~bbioRegularData()
-    {
-        pthread_cancel(managingThread);
-    }
-    int addOp(bbioop& op);
-};
 
 class BBIO_Regular : public BBIO
 {
@@ -78,7 +33,6 @@ class BBIO_Regular : public BBIO
     BBIO_Regular(int32_t pContribId, BBTransferDef* pTransferDef) :
           BBIO(pContribId, pTransferDef)
     {
-        SINGLETHREADIO = config.get(resolveServerConfigKey("singleThreadIO"), false);
     };
 
     /**
@@ -133,11 +87,8 @@ class BBIO_Regular : public BBIO
     // Virtual method to write to the parallel file system.  Return value is number of bytes written.
     virtual ssize_t pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pMaxBytesToWrite, off_t& pOffset);
 
-    virtual unsigned int getBacklog(uint32_t pFileIndex);
-
   private:
     map<uint32_t,filehandle*> fhmap;
-    bool SINGLETHREADIO;
 };
 
 #endif /* BB_BBIO_REGULAR_H_ */

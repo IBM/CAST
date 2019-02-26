@@ -17,14 +17,14 @@
 #define STRUCT_TYPE csmi_bb_cmd_context_t
 
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast()
+CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator>::~CSMIMcast()
 {
     if(_Data) delete _Data;
     _Data = nullptr;
 }
 
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
+void CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength)
 {
     // Generate the leaner Burst Buffer payload.
     csmi_bb_cmd_payload_t *bbPayload = nullptr;
@@ -43,7 +43,7 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
 }
 
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString()
+std::string CSMIMcast<STRUCT_TYPE,CSMIBBCMDComparator>::GenerateIdentifierString()
 {
     std::string idString = "User ID: ";
     if ( _Data )

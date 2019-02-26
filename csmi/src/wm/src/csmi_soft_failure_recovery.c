@@ -47,6 +47,9 @@ int csm_soft_failure_recovery(
     // Create a csm_api_object and sets its csmi cmd and the destroy function
     create_csm_api_object(handle, expected_cmd, csmi_soft_failure_recovery_destroy);
     
+    csm_serialize_struct( API_PARAMETER_INPUT_TYPE, input, &buffer, &buffer_length );
+    test_serialization( handle, buffer );
+
     // Send a Message to the Backend.
     error_code = csmi_sendrecv_cmd(*handle, expected_cmd, 
         buffer, buffer_length, &return_buffer, &return_buffer_len);
@@ -69,6 +72,8 @@ int csm_soft_failure_recovery(
                      strdup(csm_get_string_from_enum(csmi_cmd_err_t, CSMERR_MSG_UNPACK_ERROR)));
                  error_code = CSMERR_MSG_UNPACK_ERROR;
              }
+
+             free(return_buffer);
          }
          else
          {
@@ -82,7 +87,8 @@ int csm_soft_failure_recovery(
             error_code, csm_api_object_errmsg_get(*handle));
     }
 
-    free(buffer);
+    if(buffer)
+        free(buffer);
  
     END_TIMING( csmapi, trace, csm_api_object_traceid_get(*handle), expected_cmd, api )
 

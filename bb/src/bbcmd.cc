@@ -329,7 +329,7 @@ int bbcmd_copy(po::variables_map& vm)
         bberror.errdirect("out.transferHandle", l_Handle);
     }
     
-    BBTransferDef_t* l_Transfer;
+    BBTransferDef_t* l_Transfer = NULL;
     rc = BB_CreateTransferDef(&l_Transfer);
     if (rc)
     {
@@ -392,6 +392,7 @@ int bbcmd_copy(po::variables_map& vm)
             
             string src, dst, flags;
             
+            if (!strs.size() ) continue;
             if((strs.size() < 2) || (strs.size() > 3))
             {
                 rc = -1;
@@ -482,8 +483,10 @@ int bbcmd_gethandle(po::variables_map& vm)
     }
 
     rc = BB_GetTransferHandle((BBTAG)(vm["tag"].as<int>()), l_NumContribs, l_Contrib, &l_TransferHandle);
-    bberror.errdirect("out.transferHandle", l_TransferHandle);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.transferHandle", l_TransferHandle);
+    }
     if (l_Contrib)
     {
         delete[] l_Contrib;
@@ -505,8 +508,8 @@ int bbcmd_getserver(po::variables_map& vm)
         buffer[0]=0;
         std::string l_requestString = (vm["connected"].as<string>());
         rc=BB_GetServer(l_requestString.c_str(), bufsize, buffer);
-        bberror.errdirect("out.serverList", buffer);
         if (rc) return rc;
+        bberror.errdirect("out.serverList", buffer);
     }
     if (vm.count("waitforreplycount") )
     {
@@ -515,8 +518,8 @@ int bbcmd_getserver(po::variables_map& vm)
         buffer[0]=0;
         std::string l_requestString = (vm["waitforreplycount"].as<string>());
         rc=BB_GetServerByName(l_requestString.c_str(),"waitforreplycount", bufsize, buffer);
-        bberror.errdirect("out.waitforreplycount", buffer);
         if (rc) return rc;
+        bberror.errdirect("out.waitforreplycount", buffer);
     }
     return rc;
 }
@@ -706,13 +709,19 @@ int bbcmd_getusage(po::variables_map& vm)
 
     rc = BB_GetUsage(vm["mount"].as<string>().c_str(), &usage);
 
-    bberror.errdirect("out.totalBytesRead", usage.totalBytesRead);
-    bberror.errdirect("out.totalBytesWritten", usage.totalBytesWritten);
-    bberror.errdirect("out.localBytesRead", usage.localBytesRead);
-    bberror.errdirect("out.localBytesWritten", usage.localBytesWritten);
-    bberror.errdirect("out.burstBytesRead", usage.burstBytesRead);
-    bberror.errdirect("out.burstBytesWritten", usage.burstBytesWritten);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.totalBytesRead",    usage.totalBytesRead);
+        bberror.errdirect("out.totalBytesWritten", usage.totalBytesWritten);
+        bberror.errdirect("out.localBytesRead",    usage.localBytesRead);
+        bberror.errdirect("out.localBytesWritten", usage.localBytesWritten);
+#if BBUSAGE_COUNT
+        bberror.errdirect("out.localReadCount",    usage.localReadCount);
+        bberror.errdirect("out.localWriteCount",   usage.localWriteCount);
+#endif
+        bberror.errdirect("out.burstBytesRead",    usage.burstBytesRead);
+        bberror.errdirect("out.burstBytesWritten", usage.burstBytesWritten);
+    }
     return rc;
 }
 
@@ -739,21 +748,23 @@ int bbcmd_getdeviceusage(po::variables_map& vm)
 
     rc = BB_GetDeviceUsage(vm["device"].as<int>(), &usage);
 
-    bberror.errdirect("out.critical_warning", usage.critical_warning);
-    bberror.errdirect("out.temperature", usage.temperature);
-    bberror.errdirect("out.available_spare", usage.available_spare);
-    bberror.errdirect("out.percentage_used", usage.percentage_used);
-    bberror.errdirect("out.data_read", usage.data_read);
-    bberror.errdirect("out.data_written", usage.data_written);
-    bberror.errdirect("out.num_read_commands", usage.num_read_commands);
-    bberror.errdirect("out.num_write_commands", usage.num_write_commands);
-    bberror.errdirect("out.busy_time", usage.busy_time);
-    bberror.errdirect("out.power_cycles", usage.power_cycles);
-    bberror.errdirect("out.power_on_hours", usage.power_on_hours);
-    bberror.errdirect("out.unsafe_shutdowns", usage.unsafe_shutdowns);
-    bberror.errdirect("out.media_errors", usage.media_errors);
-    bberror.errdirect("out.num_err_log_entries", usage.num_err_log_entries);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.critical_warning",    usage.critical_warning);
+        bberror.errdirect("out.temperature",         usage.temperature);
+        bberror.errdirect("out.available_spare",     usage.available_spare);
+        bberror.errdirect("out.percentage_used",     usage.percentage_used);
+        bberror.errdirect("out.data_read",           usage.data_read);
+        bberror.errdirect("out.data_written",        usage.data_written);
+        bberror.errdirect("out.num_read_commands",   usage.num_read_commands);
+        bberror.errdirect("out.num_write_commands",  usage.num_write_commands);
+        bberror.errdirect("out.busy_time",           usage.busy_time);
+        bberror.errdirect("out.power_cycles",        usage.power_cycles);
+        bberror.errdirect("out.power_on_hours",      usage.power_on_hours);
+        bberror.errdirect("out.unsafe_shutdowns",    usage.unsafe_shutdowns);
+        bberror.errdirect("out.media_errors",        usage.media_errors);
+        bberror.errdirect("out.num_err_log_entries", usage.num_err_log_entries);
+    }
     return rc;
 }
 
@@ -765,8 +776,10 @@ int bbcmd_getthrottle(po::variables_map& vm)
     VMEXISTS("rate");
 
     rc = BB_GetThrottleRate(vm["mount"].as<string>().c_str(), &rate);
-    bberror.errdirect("out.rate", rate);
-
+    if(rc == 0)
+    {
+        bberror.errdirect("out.rate", rate);
+    }
     return rc;
 }
 
@@ -942,15 +955,17 @@ int bbcmd_adminfailover(po::variables_map& vm)
     return 0;
 }
 
-int main(int argc, const char** argv)
+int main(int orig_argc, const char** orig_argv)
 {
+    int argc          = orig_argc;
+    const char** argv = orig_argv;
     int rc = -999;
     stringstream errorText;
 
     int argc_cmd;
     int contribid = UNDEFINED_CONTRIBID;
     string command;
-    string executable = argv[0];
+    static string executable = argv[0];  // persist this variable for argv during early exit processing
     vector<string> carrotTokens;
     list<int> contribidlist;
     map<int, string> contribResults;
@@ -981,94 +996,132 @@ int main(int argc, const char** argv)
     po::variables_map vm;
     po::options_description generic(NAME " allowed options");
     po::positional_options_description cmd;
-
     map<string, boost::shared_ptr<po::option_description> > optlist;
-
-#define OPTION(name) optlist[name] = boost::make_shared<po::option_description>(po::option_description
-#define OPTEND )
-    OPTION("contrib")              ("contrib",              po::value<string>(),                          "Contributor list")                          OPTEND;
-    OPTION("coptions")             ("coptions",             po::value<string>(),                          "Create options")                            OPTEND;
-    OPTION("delay")                ("delay",                po::value<int>(),                             "Number of seconds to sleep")                OPTEND;
-    OPTION("device")               ("device",               po::value<int>()->default_value(0),           "NVMe drive index")                          OPTEND;
-    OPTION("filelist")             ("filelist",             po::value<string>(),                          "File containing list of files to transfer") OPTEND;
-    OPTION("group")                ("group",                po::value<string>(),                          "New Group")                                 OPTEND;
-    OPTION("handle")               ("handle",               po::value<string>(),                          "Transfer handle")                           OPTEND;
-    OPTION("hostname")             ("hostname",             po::value<string>(),                          "Host name")                                 OPTEND;
-    OPTION("lglvol")               ("lglvol",               po::value<string>(),                          "Logical volume")                            OPTEND;
-    OPTION("matchstatus")          ("matchstatus",          po::value<string>(),                          "Match status")                              OPTEND;
-    OPTION("mount")                ("mount",                po::value<string>(),                          "Mountpoint")                                OPTEND;
-    OPTION("mode")                 ("mode",                 po::value<string>(),                          "New Mode")                                  OPTEND;
-    OPTION("numhandles")           ("numhandles",           po::value<int>(),                             "Number of handles")                         OPTEND;
-    OPTION("buffersize")           ("buffersize",           po::value<size_t>(),                          "Maximum buffer size")                       OPTEND;
-    OPTION("numavailhandles")      ("numavailhandles",      po::value<int>(),                             "Number of available handles")               OPTEND;
-    OPTION("path")                 ("path",                 po::value<string>(),                          "Pathname")                                  OPTEND;
-    OPTION("rate")                 ("rate",                 po::value<unsigned long>(),                   "Throttle rate")                             OPTEND;
-    OPTION("rl")                   ("rl",                   po::value<unsigned long>()->default_value(0), "Read limit")                                OPTEND;
-    OPTION("roptions")             ("roptions",             po::value<string>(),                          "Resize options")                            OPTEND;
-    OPTION("rtvoptions")           ("rtvoptions",           po::value<string>(),                          "Retrieve transfer definitions option")      OPTEND;
-    OPTION("scope")                ("scope",                po::value<string>(),                          "Scope for the command")                     OPTEND;
-    OPTION("sendto")               ("sendto",               po::value<string>(),                          "Command will be sent to this bb.proxy")     OPTEND;
-    OPTION("size")                 ("size",                 po::value<string>(),                          "Size of the logical volume")                OPTEND;
-    OPTION("tag")                  ("tag",                  po::value<int>(),                             "Transfer tag identifier")                   OPTEND;
-    OPTION("transferdefs")         ("transferdefs",         po::value<string>(),                          "Transfer definitions (as archive)")         OPTEND;
-    OPTION("transferdefs_size")    ("transferdefs_size",    po::value<size_t>(),                          "Transfer definitions (as archive) size")    OPTEND;
-    OPTION("user")                 ("user",                 po::value<string>(),                          "New User")                                  OPTEND;
-    OPTION("value")                ("value",                po::value<string>(),                          "Value")                                     OPTEND;
-    OPTION("variable")             ("variable",             po::value<string>(),                          "Variable")                                  OPTEND;
-    OPTION("wl")                   ("wl",                   po::value<unsigned long>()->default_value(0), "Write limit")                               OPTEND;
-    OPTION("workperdelayinterval") ("workperdelayinterval", po::value<int>(),                             "Work items to process per delay interval")  OPTEND;
-    OPTION("connected")            ("connected",            po::value<string>(),                          "all, active, ready, backup, primary")                        OPTEND;
-    OPTION("resume")               ("resume",               po::value<bool>(),                            "true, false")
-        OPTEND;
-    OPTION("open")                 ("open",                 po::value<string>(),                          "connect bbproxy to bbserver name in JSON format bb.<server name> such as bb.server0")
-        OPTEND;
-    OPTION("close")                ("close",                po::value<string>(),                          "disconnect bbproxy from bbserver name in JSON format bb.<server name> such as bb.server0")
-        OPTEND;
-    OPTION("activate")             ("activate",             po::value<string>(),                          "change bbproxy to actively use bbserver name in JSON format bb.<server name> such as bb.server0")
-        OPTEND;
-    OPTION("offline")              ("offline",              po::value<string>(),                          "change bbproxy to not actively use bbserver name in JSON format bb.<server name> such as bb.server0")
-         OPTEND;
-    OPTION("waitforreplycount")                ("waitforreplycount",                po::value<string>(),                          "get bbproxy wait-for-reply count for bbserver name in JSON format bb.<server name> such as bb.server0")
-       OPTEND;
-#undef OPTEND
-#undef OPTION
-        
-    cmd.add("command", -1);
-    generic.add_options()
-        ("command", po::value< string >(), "Command")
-        ("help", "Display commands and options")
-        ("config", po::value<string>()->default_value(DEFAULT_CONFIGFILE), "Path to configuration file")
-        ("jobid", po::value<string>(), "bbcmd Job ID")
-        ("jobindex", po::value<string>(), "bbcmd Job index")
-        ("jobstepid", po::value<string>(), "bbcmd Job step ID")
-        ("bbid", po::value<string>(), "bbcmd internal ID")
-        ("contribid", po::value<string>()->default_value(NO_CONTRIBID_STR), "bbcmd Contributor ID")
-        ("target", po::value<string>(), "Comma separated contributor list")
-        ("envs", po::value<string>(), "Comma separated environment variable list")
-        ("hostlist", po::value<string>()->default_value(DEFAULT_HOSTLIST), "Comma separated Node list")
-	    ("sendto", po::value<string>()->default_value(DEFAULT_PROXY_NAME), "bbProxy to use")
-        ("csmcommand", po::value<string>(), "Format response for csm_bb_cmd")
-        ("bcast", "Broadcast identical command to all targets")
-        ("admin", "Display admin-level commands and options")
-        ("xml", "Output via XML")
-        ("pretty", "Output pretty-printed")
-    ;
-
-    if((command != "") && (bbcmd_map.find(command) != bbcmd_map.end()))
-    {
-        po::options_description desc_cmd(string(NAME) + " " + command + " specific options");
-        bbcmd_map[command].valid_options.sort();
-        for(auto opt : bbcmd_map[command].valid_options)
-        {
-            desc_cmd.add(optlist[opt]);
-        }
-        generic.add(desc_cmd);
-    }
 
     try
     {
+    #define OPTION(name) optlist[name] = boost::make_shared<po::option_description>(po::option_description
+    #define OPTEND )
+        OPTION("contrib")              ("contrib",              po::value<string>(),                          "Contributor list")                          OPTEND;
+        OPTION("coptions")             ("coptions",             po::value<string>(),                          "Create options")                            OPTEND;
+        OPTION("delay")                ("delay",                po::value<int>(),                             "Number of seconds to sleep")                OPTEND;
+        OPTION("device")               ("device",               po::value<int>()->default_value(0),           "NVMe drive index")                          OPTEND;
+        OPTION("filelist")             ("filelist",             po::value<string>(),                          "File containing list of files to transfer") OPTEND;
+        OPTION("group")                ("group",                po::value<string>(),                          "New Group")                                 OPTEND;
+        OPTION("handle")               ("handle",               po::value<string>(),                          "Transfer handle")                           OPTEND;
+        OPTION("hostname")             ("hostname",             po::value<string>(),                          "Host name")                                 OPTEND;
+        OPTION("lglvol")               ("lglvol",               po::value<string>(),                          "Logical volume")                            OPTEND;
+        OPTION("matchstatus")          ("matchstatus",          po::value<string>(),                          "Match status")                              OPTEND;
+        OPTION("mount")                ("mount",                po::value<string>(),                          "Mountpoint")                                OPTEND;
+        OPTION("mode")                 ("mode",                 po::value<string>(),                          "New Mode")                                  OPTEND;
+        OPTION("numhandles")           ("numhandles",           po::value<int>(),                             "Number of handles")                         OPTEND;
+        OPTION("buffersize")           ("buffersize",           po::value<size_t>(),                          "Maximum buffer size")                       OPTEND;
+        OPTION("numavailhandles")      ("numavailhandles",      po::value<int>(),                             "Number of available handles")               OPTEND;
+        OPTION("path")                 ("path",                 po::value<string>(),                          "Pathname")                                  OPTEND;
+        OPTION("rate")                 ("rate",                 po::value<unsigned long>(),                   "Throttle rate")                             OPTEND;
+        OPTION("rl")                   ("rl",                   po::value<unsigned long>()->default_value(0), "Read limit")                                OPTEND;
+        OPTION("roptions")             ("roptions",             po::value<string>(),                          "Resize options")                            OPTEND;
+        OPTION("rtvoptions")           ("rtvoptions",           po::value<string>(),                          "Retrieve transfer definitions option")      OPTEND;
+        OPTION("scope")                ("scope",                po::value<string>(),                          "Scope for the command")                     OPTEND;
+        OPTION("sendto")               ("sendto",               po::value<string>(),                          "Command will be sent to this bb.proxy")     OPTEND;
+        OPTION("size")                 ("size",                 po::value<string>(),                          "Size of the logical volume")                OPTEND;
+        OPTION("tag")                  ("tag",                  po::value<int>(),                             "Transfer tag identifier")                   OPTEND;
+        OPTION("transferdefs")         ("transferdefs",         po::value<string>(),                          "Transfer definitions (as archive)")         OPTEND;
+        OPTION("transferdefs_size")    ("transferdefs_size",    po::value<size_t>(),                          "Transfer definitions (as archive) size")    OPTEND;
+        OPTION("user")                 ("user",                 po::value<string>(),                          "New User")                                  OPTEND;
+        OPTION("value")                ("value",                po::value<string>(),                          "Value")                                     OPTEND;
+        OPTION("variable")             ("variable",             po::value<string>(),                          "Variable")                                  OPTEND;
+        OPTION("wl")                   ("wl",                   po::value<unsigned long>()->default_value(0), "Write limit")                               OPTEND;
+        OPTION("workperdelayinterval") ("workperdelayinterval", po::value<int>(),                             "Work items to process per delay interval")  OPTEND;
+        OPTION("connected")            ("connected",            po::value<string>(),                          "all, active, ready, backup, primary")                        OPTEND;
+        OPTION("resume")               ("resume",               po::value<bool>(),                            "true, false")
+            OPTEND;
+        OPTION("open")                 ("open",                 po::value<string>(),                          "connect bbproxy to bbserver name in JSON format bb.<server name> such as bb.server0")
+            OPTEND;
+        OPTION("close")                ("close",                po::value<string>(),                          "disconnect bbproxy from bbserver name in JSON format bb.<server name> such as bb.server0")
+            OPTEND;
+        OPTION("activate")             ("activate",             po::value<string>(),                          "change bbproxy to actively use bbserver name in JSON format bb.<server name> such as bb.server0")
+            OPTEND;
+        OPTION("offline")              ("offline",              po::value<string>(),                          "change bbproxy to not actively use bbserver name in JSON format bb.<server name> such as bb.server0")
+            OPTEND;
+        OPTION("waitforreplycount")                ("waitforreplycount",                po::value<string>(),                          "get bbproxy wait-for-reply count for bbserver name in JSON format bb.<server name> such as bb.server0")
+        OPTEND;
+    #undef OPTEND
+    #undef OPTION
+            
+        cmd.add("command", -1);
+        generic.add_options()
+            ("command", po::value< string >(), "Command")
+            ("help", "Display commands and options")
+            ("config", po::value<string>()->default_value(DEFAULT_CONFIGFILE), "Path to configuration file")
+            ("compute_config", po::value<string>(), "Path to configuration file used on compute nodes")
+            ("jobid", po::value<string>(), "bbcmd Job ID")
+            ("jobindex", po::value<string>(), "bbcmd Job index")
+            ("jobstepid", po::value<string>(), "bbcmd Job step ID")
+            ("bbid", po::value<string>(), "bbcmd internal ID")
+            ("contribid", po::value<string>()->default_value(NO_CONTRIBID_STR), "bbcmd Contributor ID")
+            ("target", po::value<string>(), "Comma separated contributor list")
+            ("envs", po::value<string>(), "Comma separated environment variable list")
+            ("hostlist", po::value<string>()->default_value(DEFAULT_HOSTLIST), "Comma separated Node list")
+            ("sendto", po::value<string>()->default_value(DEFAULT_PROXY_NAME), "bbProxy to use")
+            ("csmcommand", po::value<string>(), "Format response for csm_bb_cmd")
+            ("bcast", "Broadcast identical command to all targets")
+            ("admin", "Display admin-level commands and options")
+            ("xml", "Output via XML")
+            ("pretty", "Output pretty-printed")
+        ;
+
+        if((command != "") && (bbcmd_map.find(command) != bbcmd_map.end()))
+        {
+            po::options_description desc_cmd(string(NAME) + " " + command + " specific options");
+            bbcmd_map[command].valid_options.sort();
+            for(auto opt : bbcmd_map[command].valid_options)
+            {
+                desc_cmd.add(optlist[opt]);
+            }
+            generic.add(desc_cmd);
+        }
+
         po::store(po::command_line_parser(argc, argv).options(generic).positional(cmd).run(), vm);
         po::notify(vm);
+
+        if (vm.count("command") == 0)
+        {
+            usageWithoutCommand(argv[0], vm, generic);
+            exit(-1);
+        }
+        else if (bbcmd_map.find(command) != bbcmd_map.end())
+        {
+            // Valid command found
+            if (vm.count("admin"))
+            {
+                cerr << "Option admin must be specified alone without any command" << endl;
+                exit(-1);
+            }
+            if (vm.count("help"))
+            {
+                cout << "bbcmd usage:" << endl;
+                cout << "\t" << argv[0] << " <command> <options>\n" << endl;
+                cout << generic << endl;
+                exit(0);
+            }
+        }
+        else
+        {
+            cout << "Unknown command: " << command <<" Specify --help for help text."<< endl;
+            exit(-1);
+        }
+
+        if(vm.count("envs") > 0)
+        {
+            vector<string> toks = buildTokens(vm["envs"].as<string>(), ",");
+            for(const auto& t : toks)
+            {
+                char* newenv = (char*)malloc(t.size()+1);
+                memcpy(newenv, t.c_str(), t.size()+1);
+                putenv(newenv); // pointer ownership is transferred to putenv
+            }
+        }
     }
     catch (std::exception& e)
     {
@@ -1076,54 +1129,19 @@ int main(int argc, const char** argv)
         exit(-1);
     }
 
-    if (vm.count("command") == 0)
-    {
-        usageWithoutCommand(argv[0], vm, generic);
-        exit(-1);
-    }
-    else if (bbcmd_map.find(command) != bbcmd_map.end())
-    {
-        // Valid command found
-        if (vm.count("admin"))
-        {
-            cerr << "Option admin must be specified alone without any command" << endl;
-            exit(-1);
-        }
-        if (vm.count("help"))
-        {
-            cout << "bbcmd usage:" << endl;
-            cout << "\t" << argv[0] << " <command> <options>\n" << endl;
-            cout << generic << endl;
-            exit(0);
-        }
-    }
-    else
-    {
-        cout << "Unknown command: " << command <<" Specify --help for help text."<< endl;
-        exit(-1);
-    }
-
-    if(vm.count("envs") > 0)
-    {
-        vector<string> toks = buildTokens(vm["envs"].as<string>(), ",");
-        for(const auto& t : toks)
-        {
-            char* newenv = (char*)malloc(t.size()+1);
-            memcpy(newenv, t.c_str(), t.size()+1);
-            putenv(newenv); // pointer ownership is transferred to putenv
-        }
-    }
-    
-    // Valid command processing
-    command = vm["command"].as<string>();
-
-
     try
-    {
-        if (curConfig.load(vm["config"].as<string>()))
+    {            
+        // Valid command processing
+        command = vm["command"].as<string>();
+
+        std::string configfile = vm["config"].as<string>();
+        if((vm.count("target") == 0) && (vm.count("compute_config") > 0))
+        {
+            configfile = vm["compute_config"].as<string>();
+        }
+        if (curConfig.load(configfile))
         {
             rc = -1;
-            std::string configfile = vm["config"].as<string>();
             errorText << "Error loading configuration from " << configfile;
             cerr << errorText << endl;
             bberror << err("error.configfile", configfile);
@@ -1247,7 +1265,8 @@ int main(int argc, const char** argv)
                 rc = activecontroller->gethostlist(hostlist);
                 if(rc)
                 {
-                    LOG_RC_AND_BAIL(rc);
+                    errorText << "Unable to obtain host list";
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             }
             hosts = buildTokens(hostlist, ",");
@@ -1305,6 +1324,11 @@ int main(int argc, const char** argv)
                     contribid = id;
                     Coral_SetVar("contribid", to_string(id).c_str());
                 }
+                string tmp = string("CONTRIBID=") + to_string(contribid);
+                char* newenv = (char*)malloc(tmp.size()+1);
+                memcpy(newenv, tmp.c_str(), tmp.size()+1);
+                putenv(newenv); // pointer ownership is transferred to putenv
+                
                 bberror.setToNotClear(); //do not clear bberror for bbcmd calls of BB APIs
                 rc = (*bbcmd_map[command].func)(vm);
                 bberror << err("rc", rc);
@@ -1332,37 +1356,51 @@ int main(int argc, const char** argv)
 
     if(vm.count("csmcommand") > 0)
     {
-        bool first = true;
-        for(const auto& result : contribResults)
-        {
-            if(first) first = false;
-            else      cout << ",";
-            cout << "\"" << result.first << "\":" << result.second;
+        try
+        {            
+            bool first = true;
+            for(const auto& result : contribResults)
+            {
+                if(first) first = false;
+                else      cout << ",";
+                cout << "\"" << result.first << "\":" << result.second;
+            }
+            cout << endl;
+            teardownNodeController();
         }
-        cout << endl;
-        teardownNodeController();
+        catch(std::exception& e)
+        {
+            cout << "\"cmderror\":1";
+        }
         exit(0);
     }
     else
     {
-        if (!rc)
-        {
-            bberror.prune();
-        }
-
         std::string result;
-        if (vm.count("xml"))
+        try
         {
-            result = bberror.get("xml");
+            if (!rc)
+            {
+                bberror.prune();
+            }
+
+            if (vm.count("xml"))
+            {
+                result = bberror.get("xml");
+            }
+            else if (vm.count("pretty"))
+            {
+                result = bberror.get("pretty");
+            }
+            else
+            {
+                result = bberror.get("json");
+                //result = bberror.get("pretty");
+            }
         }
-        else if (vm.count("pretty"))
+        catch(std::exception& e)
         {
-            result = bberror.get("pretty");
-        }
-        else
-        {
-            result = bberror.get("json");
-            //result = bberror.get("pretty");
+            result = string("Unable to retrieve bberror");
         }
         cout << result << endl;
     }

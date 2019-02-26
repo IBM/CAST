@@ -23,9 +23,12 @@ bool StatefulDBRecvPrivate::HandleDBResp(
     LOG( csmapi, trace ) << "StatefulDBRecvPrivate::HandleDBResp: Enter";
 
     csm::db::DBReqContent *dbPayload = nullptr;
-    csm::network::MessageAndAddress msg = 
-        dynamic_cast<const csm::daemon::NetworkEvent *>( ctx->GetReqEvent() )->GetContent();
-    
+    const csm::daemon::NetworkEvent * netEvent = 
+        dynamic_cast<const csm::daemon::NetworkEvent *>( ctx->GetReqEvent() );
+
+    if ( !netEvent ) return false;
+
+    csm::network::MessageAndAddress msg = netEvent->GetContent();
     bool hasPrivateAccess = _Handler->CompareDataForPrivateCheck(tuples, msg._Msg, ctx);
 
 	if ( !hasPrivateAccess ) 

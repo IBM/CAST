@@ -28,12 +28,13 @@
 #include <iomanip>
 #include <memory>
 #include <algorithm>
+#include <string>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <sys/un.h>      // struct sockaddr_un
 #include <arpa/inet.h>
-
+#include <inttypes.h>
 #include <boost/crc.hpp>
 
 #include "csm_network_exception.h"
@@ -196,7 +197,7 @@ public:
    *
    */
   AddressUnix( const char *aSocketPath = " " )
-  : Address( CSM_NETWORK_TYPE_LOCAL, std::string( aSocketPath ) == " " )
+  : Address( CSM_NETWORK_TYPE_LOCAL, ( aSocketPath == nullptr ) || ( std::string( aSocketPath ) == " " ) )
   {
     if( aSocketPath == nullptr )
       throw csm::network::Exception("Unable to create address from nullptr socket path.");
@@ -735,7 +736,6 @@ AddressAbstractType_to_string( const AddressAbstractType aName )
     case ABSTRACT_ADDRESS_MAX:        return "ABSTRACT_ADDRESS_MAX";
     default:                          return "ERROR: !!!OUT-OF-RANGE!!!";
   }
-  return "";
 }
 
 /** @brief output operator for abstract address type */

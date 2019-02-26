@@ -23,6 +23,11 @@ at the poll interval at the start of the second.
 
 =item B<--pollrate>
 
-Specifies the polling rate that bbhealth uses to query bbProxy's connection status.  The pollrate is in seconds, the default is 5.  
+Specifies the polling rate that bbhealth uses to query bbProxy's connection status.  The pollrate is in seconds, the default is 30.  During 
+multiple consecutive failures, the delay between polls is exponentially increased until --maxsleep is reached.  
+
+=item B<--maxsleep>
+
+Specifies the maximum delay between polling events that bbhealth uses to query bbProxy's connection status.  --maxsleep is in seconds, the default is 3600.  
 
 =back

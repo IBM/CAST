@@ -113,6 +113,7 @@ int csmi_client(int argc, char *argv[])
 	if( returnValue != 0){
 		csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
 		csmutil_logging(error, "  csm_init_lib rc= %d, Initialization failed. Success is required to be able to communicate between library and daemon. Are the daemons running?", returnValue);
+        csm_free_struct_ptr(csm_bb_vg_create_input_t, input);
 		return returnValue;            
 	}
 	

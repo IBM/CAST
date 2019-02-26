@@ -28,6 +28,7 @@
 #include <inttypes.h>
 #include "csmi/include/csmi_type_wm.h"
 #include "csm_handler_exception.h"
+#include <vector>
 
 namespace csm {
 namespace daemon {
@@ -52,13 +53,19 @@ private:
     static const std::string MEM_DIR;
     
     std::string _CGroupName;            ///< The name of the allocation/step cgroup.
+    int16_t     _smtMode;               ///< The smt mode for the current cgroups.
+    bool        _enabled;               ///< Flag to determine if the cgroup module is enabled.
 
 public:
+    /**
+     *  @return True if the cgroup jitter mitigation is enabled.
+     */
+    bool IsEnabled() { return _enabled; }
+
     /**
      *  @brief Scans the cpuset
      */
     static bool RepairSMTChange();
-
 
     /** @brief Constructs the cgroup string for the allocation/step and verifies the cgroup can function.
      *
@@ -68,7 +75,6 @@ public:
      */
     explicit CGroup( int64_t allocationId );
     
-
     /** @brief Deletes any cgroups associated with this object. 
      *
      * @note This should be used to remove the Allocation cgroup.
@@ -82,12 +88,13 @@ public:
     /** @brief Creates the cgroups for an allocation.
      *
      * @param[in] cores The number of cores to isolate in the system cgroup.
+     * @param[in] smtMode The smt mode for the allocation cgroup.
      * @param[in] projectedMemory The amount of memory to allocate for the allocation cgroup.
      *                              This is in kB
      *
      * @throw CSMHandlerException If the core isolation failed.
      */
-    void SetupCGroups( int64_t cores );
+    void SetupCGroups( int64_t cores, int16_t smtMode=0 );
     
     /**@brief Creates a CGroup for the specified component.
      *
@@ -162,6 +169,17 @@ public:
      */
     int64_t GetCPUUsage(const char* stepCGroupName = "") const;
 
+    /** 
+     * @brief Retrieve the CPU usage for the cgroup on a per physical core basis; returns the same number of entries independent of SMT mode. 
+     *
+     * @param[out] cpuUsage A vector with one entry per physical core containing the cpu time in nanoseconds for each core used by the cgroup. 
+     * @param[in] stepCGroupName Optional, step cgroup.
+     *
+     * @note nanoseconds is max 292 years, we should be fine - John.
+     * @return true if successful, false if unsuccessful
+     */
+    bool GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* stepCGroupName = "") const;
+
     /** @brief Retrieve the maximum Memory usage for the cgroup. Accesses memory.max_usage_in_bytes.
      *
      * @param[in] stepCGroupName Optional, step cgroup.
@@ -213,6 +231,27 @@ private:
      */
     void DeleteChildren(const char* controller, const std::string& groupName, 
         const std::string& groupPath, bool migrateTasksUp = false) const;
+
+    /** @brief Turns a CPU on or off depending on the supplied @p online parameter.
+     *
+     * @param[in] thread The thread to turn on or off.
+     * @param[in] online {0,1} Whether or not the cpu should be turned on or off.
+     *
+     * @return The Errno of the operation.
+     */
+    static int CPUPower(const uint32_t thread, const char online);
+
+    /**
+     * @brief Applies the IRQ affinity using the irqbalance daemon in oneshot mode.
+     *
+     * @param[in] bannedCPUs A list of banned CPUs as hex strings, sets env `IRQBALANCE_BANNED_CPUS`.
+     * @param[in] startIRQBalance If set true the IRQBalance daemon will be started, if set false
+     *  it will stop the IRQBalance Daemon.
+     *
+     *
+     * @return 0 on success, errno on failure.
+     */
+    static int IRQRebalance(const std::string bannedCPUs, bool startIRQBalance);
 
     /** @brief Write the supplied value to the specified parameter for the controller.
      *

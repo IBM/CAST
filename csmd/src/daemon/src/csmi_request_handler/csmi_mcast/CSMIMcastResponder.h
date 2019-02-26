@@ -503,6 +503,9 @@ protected:
                     //ctx->AppendErrorMessage(mcastProps->GenerateErrorListing());
                     LOG(csmapi, error) << ctx << STATE_NAME " Unable to build the response query.";
                     dataLock.unlock();
+                    
+                    // Set the Error Code.
+                    ctx->SetErrorCode(mcastProps->GetMainErrorCode());
                     CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);
                 }
             }
@@ -510,6 +513,8 @@ protected:
             {
                 LOG(csmapi, error) << ctx << STATE_NAME " Unable to build the response query.";
                 dataLock.unlock();
+
+                ctx->SetErrorCode(CSMERR_MEM_ERROR);
                 ctx->AppendErrorMessage(ERR_MSG_DIVIDE);
                 CSMIHandlerState::DefaultHandleError(ctx, aEvent, postEventList, byAggregator);
             }

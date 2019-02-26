@@ -40,6 +40,7 @@ namespace bfs = boost::filesystem;
  | Constants
  *******************************************************************************/
 const uint32_t ARCHIVE_CONTRIB_VERSION = 1;
+const int MAXIMUM_CONTRIBFILE_LOADTIME = 30;
 
 
 /*******************************************************************************
@@ -63,13 +64,22 @@ public:
 
     ContribFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_CONTRIB_VERSION) {}
+        objectVersion(ARCHIVE_CONTRIB_VERSION) {
+        contribs = map<uint32_t,ContribIdFile>();
+    }
 
     virtual ~ContribFile() {}
 
+    /*
+     * Static methods
+     */
     static int loadContribFile(ContribFile* &pContribFile, const bfs::path& pContribFileName);
 
-    inline void dump(const char* pPrefix) {
+    /*
+     * Inlined methods
+     */
+    inline void dump(const char* pPrefix)
+    {
         stringstream l_Line;
 
         if (pPrefix) {
@@ -93,7 +103,8 @@ public:
         return;
     }
 
-    inline void dumpContribs(stringstream& l_Line, size_t pPrefixLen) {
+    inline void dumpContribs(stringstream& l_Line, size_t pPrefixLen)
+    {
         stringstream l_SS_SkipChars, l_SS_SkipChars2;
         for (size_t i=0; i<pPrefixLen-1; i++) l_SS_SkipChars << " ";
         string l_SkipChars = l_SS_SkipChars.str();
@@ -118,43 +129,6 @@ public:
         return;
     }
 
-    inline int load(const string& metadatafile)
-    {
-        int rc = -1;
-
-        int i = 0;
-        while (rc && ++i < 10)
-        {
-            rc = 0;
-            if (i > 1)
-            {
-                usleep((useconds_t)250000);
-            }
-            try
-            {
-                LOG(bb,debug) << "Reading:" << metadatafile;
-                ifstream l_ArchiveFile{metadatafile};
-                text_iarchive ha{l_ArchiveFile};
-                ha >> *this;
-            }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                rc = -1;
-                if (i < 10)
-                {
-                    LOG(bb,warning) << "Exception thrown in " << __func__ << " was " << e.what() << " Retrying operation...";
-                }
-                else
-                {
-                    LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-                }
-            }
-        }
-
-        return rc;
-    }
-
     inline size_t numberOfContribs()
     {
         size_t l_Count = 0;
@@ -170,25 +144,14 @@ public:
         return l_Count;
     }
 
-    inline int save(const string& metadatafile)
-    {
-        int rc = 0;
-        try
-        {
-            LOG(bb,debug) << "Writing:" << metadatafile;
-            ofstream l_ArchiveFile{metadatafile};
-            text_oarchive l_Archive{l_ArchiveFile};
-            l_Archive << *this;
-        }
-        catch(ExceptionBailout& e) { }
-        catch(exception& e)
-        {
-            rc = -1;
-            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        }
-        return rc;
-    }
+    /*
+     * Non-inlined methods
+     */
+    int save(const string& pContribFileName);
 
+    /*
+     * Data members
+     */
     uint32_t serializeVersion;
     uint32_t objectVersion;
     map<uint32_t,ContribIdFile> contribs;

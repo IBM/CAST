@@ -80,7 +80,7 @@ check_return_flag $? "Test Case 4: csm_allocation_create prolog error 255 - veri
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_generic /opt/ibm/csm/prologs/privileged_prolog
 check_return_exit $? 0 "Test Case 5: csm_allocation_create prolog error generic - copy prolog"
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 5: csm_allocation_create prolog error generic"
+check_return_exit $? 17 "Test Case 5: csm_allocation_create prolog error generic"
 check_all_output "Privileged script execution failure detected. Error code received: 2"
 check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - verify error message"
 
@@ -88,7 +88,7 @@ check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - 
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_timeout /opt/ibm/csm/prologs/privileged_prolog
 check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - copy prolog"
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 6: csm_allocation_create prolog error timeout"
+check_return_exit $? 5 "Test Case 6: csm_allocation_create prolog error timeout"
 check_all_output "Request timeout detected"
 check_return_flag $? "Test Case 6: csm_allocation_create prolog error timeout - verify error message"
 # set node back to IN_SERVICE after timeout
@@ -232,6 +232,10 @@ check_return_flag_nz $? 9 "Test Case 32: csm_allocation_delete NO ARGS"
 ${CSM_PATH}/csm_allocation_delete -a 123456789 > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 50 "Test Case 33: csm_allocation_delete allocation does not exist"
 
+# Test Case 34: csm_allocation_delete primary job id does not exist
+${CSM_PATH}/csm_allocation_delete -j 123456789 > ${TEMP_LOG} 2>&1
+check_return_flag_nz $? 50 "Test Case 34: csm_allocation_delete primary job id does not exist"
+
 # Test Case 34: csm_allocation_delete invalid -a input
 ${CSM_PATH}/csm_allocation_delete -a xxx > ${TEMP_LOG} 2>&1
 check_return_flag_nz $? 9 "Test Case 34: csm_allocation_delete invalid -a input"
@@ -294,7 +298,7 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog_generic /opt/ibm/csm/prologs/privileged_epilog
 check_return_exit $? 0 "Test Case 46: csm_allocation_delete generic epilog error - copy epilog"
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 46: csm_allocation_delete generic epilog error"
+check_return_exit $? 17 "Test Case 46: csm_allocation_delete generic epilog error"
 check_all_output "Privileged script execution failure detected. Error code received: 2"
 check_return_flag $? "Test Case 46: csm_allocation_delete generic epilog error - verify error message"
 
@@ -306,7 +310,7 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_epilog_timeout /opt/ibm/csm/prologs/privileged_epilog
 check_return_exit $? 0 "Test Case 46: csm_allocation_delete epilog timeout error - copy epilog"
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 33 "Test Case 46: csm_allocation_delete epilog timeout error"
+check_return_exit $? 5 "Test Case 46: csm_allocation_delete epilog timeout error"
 check_all_output "Request timeout detected"
 check_return_flag $? "Test Case 46: csm_allocation_delete epilog timeout error - verify error message"
 

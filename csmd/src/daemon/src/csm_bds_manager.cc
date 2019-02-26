@@ -52,7 +52,7 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
     if( ! aMgr->GetThreadKeepRunning() )
       break;
 
-    csm::daemon::BDSEvent *bds_ev = dynamic_cast<csm::daemon::BDSEvent*>( timers->FetchEvent() );
+    csm::daemon::BDSEvent *bds_ev = timers ? dynamic_cast<csm::daemon::BDSEvent*>( timers->FetchEvent() ) : nullptr;
     idle = ( bds_ev == nullptr );
 
     // if nothing to do, just wait for regular wakeup
@@ -93,9 +93,10 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   _IdleRetryBackOff( "BDSMgr", csm::daemon::RetryBackOff::SleepType::CONDITIONAL,
                      csm::daemon::RetryBackOff::SleepType::INTERRUPTIBLE_SLEEP,
                      0, 10000000, 1 ),
+  _LastConnectInterval(1),
   _Socket( 0 ),
   _CachedMsgQueue(),
-  _CurrentTime( std::chrono::system_clock::now() )
+  _CurrentTime( std::chrono::steady_clock::now() )
 {
   _Sink = new csm::daemon::EventSinkBDS( &_IdleRetryBackOff );
 
@@ -107,8 +108,7 @@ csm::daemon::EventManagerBDS::EventManagerBDS( const csm::daemon::BDS_Info &i_BD
   if( BDSActive() )
     Connect();
   Unfreeze();
-  _LastConnect = std::chrono::system_clock::now();
-  _LastConnectInterval = 1;
+  _LastConnect = std::chrono::steady_clock::now();
 }
 
 bool
@@ -162,6 +162,7 @@ csm::daemon::EventManagerBDS::Connect()
       if( fcntl(_Socket, F_SETFL, current_setting ) != 0 )
       {
         CSMLOG( csmd, warning ) << "Unable to change BDS socket to non-blocking: " << strerror( errno );
+        freeaddrinfo( clist );
         return false;
       }
     }
@@ -209,7 +210,7 @@ csm::daemon::EventManagerBDS::Connect()
     }
     else
     {
-      _LastConnect = std::chrono::system_clock::now();
+      _LastConnect = std::chrono::steady_clock::now();
       close( _Socket );
       _Socket = 0;
     }

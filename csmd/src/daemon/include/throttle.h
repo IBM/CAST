@@ -21,7 +21,7 @@
 namespace csm {
 namespace daemon {
 
-typedef std::chrono::time_point< std::chrono::system_clock > TimeType;
+typedef std::chrono::time_point< std::chrono::steady_clock > TimeType;
 
 template<uint32_t THROTTLE_GRANULARITY>
 class Throttle
@@ -42,9 +42,9 @@ public:
             const uint64_t i_Duration )
   : _RemainingSteps( 0 ),
     _EpochDuration( std::chrono::seconds( i_Duration )),
-    _EndOfEpoch( std::chrono::system_clock::now() + _EpochDuration ),
+    _EndOfEpoch( std::chrono::steady_clock::now() + _EpochDuration ),
     _StepLimit( i_MaxSteps ),
-    _LastThrottleTime( std::chrono::system_clock::now() ),
+    _LastThrottleTime( std::chrono::steady_clock::now() ),
     _StepCount( 0 ),
     _DownThrottleRate( 1 ),
     _ThrottleName( i_Name )
@@ -67,7 +67,7 @@ public:
     if( NeedsThrottle() )
     {
       // todo: replace with daemon clock to avoid syscalls
-      TimeType newThrottleTime = std::chrono::system_clock::now();
+      TimeType newThrottleTime = std::chrono::steady_clock::now();
       std::chrono::seconds interval = std::chrono::duration_cast<std::chrono::seconds>( newThrottleTime - _LastThrottleTime );
 
       if( interval.count() > 0 )
@@ -109,7 +109,7 @@ public:
   inline void Update()
   {
     // todo: replace with daemon clock to avoid syscalls
-    TimeType currentTime = std::chrono::system_clock::now();
+    TimeType currentTime = std::chrono::steady_clock::now();
     if( currentTime < _EndOfEpoch )
     {
       std::chrono::seconds pause = std::chrono::duration_cast<std::chrono::seconds>( _EndOfEpoch - currentTime );

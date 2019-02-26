@@ -2,7 +2,7 @@
 #
 #    csmdb/sql/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,28 +15,18 @@
 
 set(SUBDIR sql)
 
+add_subdirectory(csm_db_migration_scripts)
+
 # Files that should be executable when shipped
 file(GLOB INSTALL_PROGRAMS
   "csm_db_script.sh"
   "csm_db_stats.sh"
   "csm_db_connections_script.sh"
   "csm_db_ras_type_script.sh"
-  "csm_db_schema_version_upgrade_16_2.sh"
-  "csm_db_history_table_delete.sh"
-  "csm_history_table_archive_template.sh"
-  "csm_history_table_delete_template.sh"
-  "csm_history_wrapper_archive_script_template.sh"
-  "csm_history_wrapper_delete_script_template.sh"
-  "csm_ras_event_action_table_archive.sh"
-  "csm_ras_event_action_wrapper_archive_script.sh"
-  "csm_ras_event_action_table_delete.sh"
-  "csm_ras_event_action_wrapper_delete_script.sh"
+  "csm_db_schema_version_upgrade_17_0.sh"
   "csm_db_backup_script_v1.sh"
-  "csm_db_history_archive.sh"
-  "csm_db_history_delete.sh"
-  "csm_db_utils.sh"
-  "csm_db_clear_archive_time.sh"
   "csm_db_history_archive.py"
+  "csm_db_history_delete.py"
 )
 
 # Files that should not be executable when shipped
@@ -52,3 +42,4 @@ file(GLOB INSTALL_FILES
   "csm_ras_type_data.csv"
 )
 install(FILES ${INSTALL_FILES} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME})
+set(CPACK_RPM_${DB_RPM_NAME}_PACKAGE_REQUIRES "python-psycopg2 >= 2.5.1")

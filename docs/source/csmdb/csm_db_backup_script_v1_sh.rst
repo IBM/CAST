@@ -40,24 +40,27 @@ Example (-h, --help)
 .. code-block:: bash
  
  ./csm_db_backup_script_v1.sh –h, --help
- ===============================================================================================================
+ ------------------------------------------------------------------------------------------------------------------------
  [Info ] csm_db_backup_script_v1.sh : csmdb /tmp/csmdb_backup/
  [Info ] csm_db_backup_script_v1.sh : csmdb
  [Usage] csm_db_backup_script_v1.sh : [OPTION]... [/DIR/]
- ---------------------------------------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------------------------------------------------
+ [Log Dir ] /var/log/ibm/csm/db/csm_db_backup_script.log   (if root user and able to write to directory)
+ [Log Dir ] /tmp/csm_db_backup_script.log                  (if postgres user and or not able to write to specific directory
+ ------------------------------------------------------------------------------------------------------------------------
  [Options]
- ----------------|----------------------------------------------------------------------------------------------
+ ----------------|-------------------------------------------------------------------------------------------------------
    Argument      | Description
- ----------------|----------------------------------------------------------------------------------------------
+ ----------------|-------------------------------------------------------------------------------------------------------
     -h, --help   | help menu
- ----------------|----------------------------------------------------------------------------------------------
+ ----------------|-------------------------------------------------------------------------------------------------------
  [Examples]
- ---------------------------------------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------------------------------------------------
  csm_db_backup_script_v1.sh [DBNAME] 		        | (default) will backup database to/var/lib/pgpsql/backups/ (directory)
  csm_db_backup_script_v1.sh [DBNAME] [/DIRECTORY/	| will backup database to specified directory
                                                     	| if the directory doesnt exist then it will be mode and   
                                                         | written.
- ==============================================================================================================
+ ------------------------------------------------------------------------------------------------------------------------
 
 .. attention:: Common errors
 
@@ -71,24 +74,29 @@ Example (no options, usage)
 .. code-block:: bash
 
  bash-4.1$ ./csm_db_backup_script_v1.sh
+ ------------------------------------------------------------------------------------------------------------------------
  [Info   ] Database name is required
- ===============================================================================================================
+ ------------------------------------------------------------------------------------------------------------------------
  [Info ] csm_db_backup_script_v1.sh : csmdb /tmp/csmdb_backup/
  [Info ] csm_db_backup_script_v1.sh : csmdb
  [Usage] csm_db_backup_script_v1.sh : [OPTION]... [/DIR/]
- ---------------------------------------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------------------------------------------------
+ [Log Dir ] /var/log/ibm/csm/db/csm_db_backup_script.log   (if root user and able to write to directory)
+ [Log Dir ] /tmp/csm_db_backup_script.log                  (if postgres user and or not able to write to specific directory
+ ------------------------------------------------------------------------------------------------------------------------
  [Options]
- ----------------|----------------------------------------------------------------------------------------------
+ ----------------|-------------------------------------------------------------------------------------------------------
    Argument      | Description
- ----------------|----------------------------------------------------------------------------------------------
+ ----------------|-------------------------------------------------------------------------------------------------------
     -h, --help   | help menu
- ----------------|----------------------------------------------------------------------------------------------
+ ----------------|-------------------------------------------------------------------------------------------------------
  [Examples]
- ---------------------------------------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------------------------------------------------
  csm_db_backup_script_v1.sh [DBNAME]       	       	| (default) will backup database to/var/lib/pgpsql/backups/ (directory)
  csm_db_backup_script_v1.sh [DBNAME] [/DIRECTORY/	| will backup database to specified directory
                                                    	| if the directory doesnt exist then it will be mode and 
                                                         | written.
+ ------------------------------------------------------------------------------------------------------------------------
 
 .. note:: If the user tries to run the script as local user (non-root and postgresql not installed):
 
@@ -103,14 +111,52 @@ Example (postgreSQL not installed)
 
 .. note:: If the user tries to run the script as local user (non-root and postgresql not installed)and doesnt specify a directory (default directory: ``/var/lib/pgsql/backups``
 
-Example (no directory specified)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Example (invalid directory specified)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. code-block:: bash
 
- bash-4.1$ ./csm_db_backup_script_v1.sh csmdb
+ bash-4.1$ ./csm_db_backup_script_v1.sh csmdb /tmp123
  -----------------------------------------------------------------------------------------
- [Error  ] make directory failed for: /var/lib/pgsql/backups/
- [Info   ] User: csmcarl does not have permission to write to this directory
+ [Error  ] make directory failed for: /tmp123
+ [Info   ] User: postgres does not have permission to write to this directory
  [Info   ] Please specify a valid directory
  [Info   ] Or log in as the appropriate user
  -----------------------------------------------------------------------------------------
+
+Usage Overview
+--------------
+
+.. code-block:: bash
+
+ /opt/ibm/csm/db/csm_db_backup_script_v1.sh csmdb (with no specified directory: default)
+
+
+Example (backup process with default directory)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the user chooses to back up the database with the default directory which is ``/var/lib/pgsql/backups/``
+Alternativly the user can choose another location to write to if they have appropriate permissions.
+
+.. code-block:: bash
+
+ ------------------------------------------------------------------------------------------------------------------------
+ [Start   ] Welcome to CSM datatbase backup process:
+ ------------------------------------------------------------------------------------------------------------------------
+ [Info    ] There are no connections to: |  csmdb
+ [Info    ] Backup directory:            |  /var/lib/pgsql/backups/
+ [Info    ] Log directory:               |  /tmp/csm_db_backup_script.log
+ [Info    ] Backing up DB:               |  csmdb
+ [Info    ] DB_Version:                  |  17.0
+ [Info    ] DB User Name:                |  postgres
+ [Info    ] Script User:                 |  postgres
+ [Info    ] Script Stats:                |  [ 509kiB] [0:00:00] [2.38MiB/s]
+ [Info    ] -------------------------------------------------------------------------------------------------------------
+ [Info    ] Timing:                      |  0:00:00:0.2535
+ ------------------------------------------------------------------------------------------------------------------------
+ [End     ] Backup process complete
+ ------------------------------------------------------------------------------------------------------------------------
+
+
+.. attention:: PV was added to monitor backup statistics: pv allows a user to see the progress of data through a pipeline, by giving information such as total data transferred, time elapsed, and current throughput rate.
+
+

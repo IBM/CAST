@@ -25,6 +25,7 @@
 #include "csmi/include/csmi_type_wm_funct.h"
 #include "csmi/include/csm_api_macros.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h" 
+#define STRUCT_TYPE csmi_allocation_mcast_context_t
 //#include <map>
 
 // Build the error map table.
@@ -37,6 +38,10 @@ struct CSMIAllocErrorComparator
         {
             case CSMERR_ALLOC_BAD_FLAGS :
                 returnVal=5;
+                break;
+            case CSMERR_GENERIC:
+            case CSMERR_MULTI_GEN_ERROR:
+                returnVal=-1;
                 break;
             default:
                 break;
@@ -51,7 +56,6 @@ struct CSMIAllocErrorComparator
 };
 
 
-#define STRUCT_TYPE csmi_allocation_mcast_context_t
 
 
 /** @brief Frees the @ref _Data structure if not null.

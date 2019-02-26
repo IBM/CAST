@@ -32,12 +32,11 @@ class ChecksumException : public std::exception {
 public:
   ChecksumException( const std::string &aMsg = "") : std::exception()
   {
-    _Msg = aMsg;
+    _Msg = "CSM Checksum Error: " + aMsg;
   }
   virtual const char* what() const throw()
   {
-    std::string rs = "CSM Checksum Error: " + _Msg;
-    return rs.c_str();
+    return _Msg.c_str();
   }
 };
 

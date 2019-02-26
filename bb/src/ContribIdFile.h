@@ -32,6 +32,7 @@
 #include "BBTransferDef.h"
 #include "ExtentInfo.h"
 #include "LVKey.h"
+#include "nodecontroller.h"
 
 using namespace boost::archive;
 namespace bfs = boost::filesystem;
@@ -44,7 +45,8 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const uint32_t ARCHIVE_CONTRIBID_VERSION = 1;
+const uint32_t ARCHIVE_CONTRIBID_VERSION_1 = 1;
+const uint32_t ARCHIVE_CONTRIBID_VERSION_2 = 2;
 
 
 /*******************************************************************************
@@ -131,28 +133,48 @@ public:
         pArchive & flags;
         pArchive & totalTransferSize;
         pArchive & files;
+        switch (objectVersion)
+        {
+            case ARCHIVE_CONTRIBID_VERSION_2:
+            {
+                pArchive & hostname;
+            }
+            break;
+
+            case ARCHIVE_CONTRIBID_VERSION_1:
+            default:
+            {
+                // No additional fields
+            }
+            break;
+        }
 
         return;
     }
 
     ContribIdFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_CONTRIBID_VERSION),
+        objectVersion(ARCHIVE_CONTRIBID_VERSION_2),
         uid(0),
         gid(0),
         tag(0),
         flags(0),
-        totalTransferSize(0) {};
+        totalTransferSize(0)
+    {
+        files = vector<FileData>();
+        hostname = UNDEFINED_HOSTNAME;
+    };
 
     ContribIdFile (BBTransferDef* pTransferDef) :
         serializeVersion(0),
-        objectVersion(ARCHIVE_CONTRIBID_VERSION) {
+        objectVersion(ARCHIVE_CONTRIBID_VERSION_2) {
         tag = pTransferDef->getTag();
         flags = 0;
         totalTransferSize = 0;
         uid = pTransferDef->getUserId();
         gid = pTransferDef->getGroupId();
         createFileData(files, pTransferDef);
+        activecontroller->gethostname(hostname);
     };
 
     static int allExtentsTransferredButThisContribId(const uint64_t pHandle, const BBTagID& pTagId, const uint32_t pContribId);
@@ -161,6 +183,7 @@ public:
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey* pLVKey, const bfs::path& pHandleFilePath, const uint32_t pContribId);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& pNumHandleContribs, uint64_t& pNumLVUuidContribs, const bfs::path& pHandleFilePath, const uint32_t pContribId);
     static int update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue=1);
+    static int update_xbbServerContribIdFileResetForRestart(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, ExtentInfo& pExtentInfo, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, uint64_t pHandle, uint32_t pContribId, Extent* pExtent, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBTransferDef* pRebuiltTransferDef, uint64_t pHandle, uint32_t pContribId, int64_t &pSize);
@@ -274,6 +297,7 @@ public:
 //               << ", oVrsn=" << objectVersion
         l_Line << hex << uppercase << " flags=0x" << flags << nouppercase << dec \
                << ", uid=" << uid << ", gid=" << gid \
+               << ", servicing hostname=" << hostname \
                << ", totalTransferSize=" << totalTransferSize;
         if (files.size())
         {
@@ -357,6 +381,7 @@ public:
     uint64_t            flags;
     uint64_t            totalTransferSize;
     vector<FileData>    files;
+    string              hostname;   // Added for ARCHIVE_CONTRIBID_VERSION_2
 };
 
 #endif /* BB_CONTRIBIDFILE_H_ */

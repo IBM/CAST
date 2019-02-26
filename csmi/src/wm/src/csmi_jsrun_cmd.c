@@ -106,7 +106,9 @@ int csm_jsrun_cmd(
     }
 
     free(buffer);
- 
+
+    if ( return_buffer ) free(return_buffer);
+
     END_TIMING( csmapi, trace, csm_api_object_traceid_get(*handle), expected_cmd, api )
 
     return error_code;

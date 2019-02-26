@@ -14,6 +14,7 @@
 #ifndef BB_BBINERNAL_H_
 #define BB_BBINERNAL_H_
 
+#include <atomic>
 #include <string>
 
 #include <stddef.h>
@@ -45,6 +46,24 @@ typedef struct fiemap fiemap_t;
 typedef struct fiemap_extent fiemap_extent_t;
 
 /*******************************************************************************
+ | Classes and structs
+ *******************************************************************************/
+// Metadata counter for flight logging
+class AtomicCounter
+{
+public:
+   AtomicCounter() : value(0) {};
+
+   uint64_t getNext()
+   {
+      return ++value;
+   };
+
+private:
+   std::atomic<uint64_t> value;
+};
+
+/*******************************************************************************
  | External data
  *******************************************************************************/
 // NOTE:  The following variable is set in main() when bbproxy is started.
@@ -62,6 +81,7 @@ extern double ResizeSSD_TimeInterval;
 extern double Throttle_TimeInterval;
 extern Timer ResizeSSD_Timer;
 extern Timer Throttle_Timer;
+extern AtomicCounter metadataCounter;
 
 void setSsdWriteDirect(unsigned int pValue);
 
@@ -78,7 +98,6 @@ extern string resolveServerConfigKey(const string& pKey);
 extern int sameHostName(const string& pHostName);
 extern void writeVar(const char* pVariable, const char* pValue);
 extern void flightlog_Backtrace(uint64_t key);
-
 
 /*******************************************************************************
  | Constants
@@ -97,10 +116,6 @@ const int ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED = 0;
 const int ASYNC_REQUEST_HAS_BEEN_APPENDED = 1;
 const int MORE_EXTENTS_TO_TRANSFER_FOR_FILE = 1;
 const int NO_MORE_EXTENTS_TO_TRANSFER_FOR_FILE = 0;
-const int LOCK_HANDLEFILE_WITH_TEST_FIRST = 2;
-const int LOCK_HANDLEFILE = 1;
-const int DO_NOT_LOCK_HANDLEFILE = 0;
-const int TEST_FOR_HANDLEFILE_LOCK = -1;
 const int LOCK_TRANSFER_QUEUE = 1;
 const int DO_NOT_LOCK_TRANSFER_QUEUE = 0;
 const int FIRST_PASS = 1;
@@ -110,6 +125,7 @@ const int RESUME = 0;
 const int SUSPEND = 1;
 
 const bool DEFAULT_USE_DISCARD_ON_MOUNT_OPTION = false;
+const bool DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM = true;
 
 const uint64_t DEFAULT_JOBID = 1;
 const uint64_t NO_JOBID = 0;
@@ -153,12 +169,6 @@ const char LV_DISPLAY_PREFIX[] = "LV Path";
 const char LV_DISPLAY_OPEN_PREFIX[] = "# open";
 const char MOUNTS_DIRECTORY[] = "/proc/mounts";
 
-
-/*******************************************************************************
- | Classes and structs
- *******************************************************************************/
-
-
 /*******************************************************************************
  | Enumerators
  *******************************************************************************/
@@ -197,6 +207,29 @@ enum TRANSFER_QUEUE_RELEASED
     TRANSFER_QUEUE_LOCK_RELEASED        = 1
 };
 typedef enum TRANSFER_QUEUE_RELEASED TRANSFER_QUEUE_RELEASED;
+
+enum HANDLEFILE_LOCK_OPTION
+{
+    TEST_FOR_HANDLEFILE_LOCK        = -1,   // Not currently used
+    DO_NOT_LOCK_HANDLEFILE          = 0,
+    LOCK_HANDLEFILE                 = 1,
+    LOCK_HANDLEFILE_WITH_TEST_FIRST = 2     // Not curently used
+};
+typedef enum HANDLEFILE_LOCK_OPTION HANDLEFILE_LOCK_OPTION;
+
+enum HANDLEFILE_LOCK_FEEDBACK
+{
+    HANDLEFILE_WAS_NOT_LOCKED       = 0,
+    HANDLEFILE_WAS_LOCKED           = 1
+};
+typedef enum HANDLEFILE_LOCK_FEEDBACK HANDLEFILE_LOCK_FEEDBACK;
+
+enum HANDLEFILE_SCAN_OPTION
+{
+    NORMAL_SCAN = 0,
+    FULL_SCAN   = 1
+};
+typedef enum HANDLEFILE_SCAN_OPTION HANDLEFILE_SCAN_OPTION;
 
 /*******************************************************************************
  | Macro definitions

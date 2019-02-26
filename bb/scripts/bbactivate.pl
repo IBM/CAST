@@ -329,7 +329,7 @@ sub makeConfigFile
 sub makeLNConfigFile
 {
     setprefix("makeLNConfigFile: ");
-    if(($CFG{"USE_CSM"}) && (!$CFG{"bbProxy"}))
+    if(($CFG{"useCSM"}) && (!$CFG{"bbProxy"}))
     {
         $json->{"bb"}{"cmd"}{"controller"} = "csm";
     }
@@ -410,7 +410,7 @@ sub makeProxyConfigFile
         {
             for($x = 0 ; $x < $#backup + 1 ; $x++)
             {
-                $BACKUP{ $ESS[$x] } = $#backup - $x;
+                $BACKUP{ $backup[$x] } = $#ESS - $x;
             }
         }
     }
@@ -422,11 +422,10 @@ sub makeProxyConfigFile
         exit(3);
     }
 
-    $numess          = $#ESS + 1;
-    $compute_per_ess = ceil($numnodes / $numess);
-    $index           = int(floor($NODES{$nodename} / $compute_per_ess));
+    my $numess          = $#ESS + 1;
+    my $compute_per_ess = ceil($numnodes / $numess);
+    my $primaryServer   = int(floor($NODES{$nodename} / $compute_per_ess));
     $namespace       = ($NODES{$nodename} % 8192) + 10;
-    $primaryServer   = $index;
     output("Number compute nodes: $numnodes");
     output("Number ESS nodes: $numess");
     output("Compute per ESS: $compute_per_ess");
@@ -434,7 +433,7 @@ sub makeProxyConfigFile
 
     for($x = 0 ; $x < $numess ; $x++)
     {
-        $tmp = $json->{"bb"}{"server0"};
+        my $tmp = $json->{"bb"}{"server0"};
         foreach $key (keys %{$tmp})
         {
             $json->{"bb"}{ $ESSNAME[$x] }{$key} = $tmp->{$key};
@@ -445,14 +444,22 @@ sub makeProxyConfigFile
     $json->{"bb"}{"proxy"}{"servercfg"} = "bb." . $ESSNAME[$primaryServer];
     output("ESS:    $ESS[$primaryServer] (bb.proxy.servercfg=bb.$ESSNAME[$primaryServer])");
 
-    if(exists $BACKUP{ $ESS[$index] })
+    if(exists $BACKUP{ $ESS[$primaryServer] })
     {
-        $backupServer = $BACKUP{ $ESS[$index] };
+        my $backupServer = $BACKUP{ $ESS[$primaryServer] };
         $json->{"bb"}{"proxy"}{"backupcfg"} = "bb." . $ESSNAME[$backupServer];
         output("Backup: $ESS[$backupServer] (bb.proxy.backupcfg=bb.$ESSNAME[$backupServer])");
     }
 
     delete $json->{"bb"}{"server0"} if(!$CFG{"bbServer"});
+}
+
+sub genRandomName
+{
+    my $string;
+    my @chars = ("a".."z", 0..9);
+    $string .= $chars[rand @chars] for 1..16;
+    return $string;
 }
 
 sub configureNVMeTarget
@@ -513,6 +520,11 @@ sub configureNVMeTarget
     $state = "enabled" if($CFG{"useOffload"});
     output("NVMe over Fabrics target offload is $state");
 
+    $json->{"hosts"}[0]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"servercfg"} . "#" . &genRandomName();
+    $json->{"hosts"}[1]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"backupcfg"} . "#" . &genRandomName();
+    $json->{"subsystems"}[0]{"allowed_hosts"}[0] = $json->{"hosts"}[0]{"nqn"};
+    $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
+
     $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
@@ -533,6 +545,7 @@ sub configureNVMeTarget
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
         cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/1/subsystems/$nqn");
     }
+    cmd("chmod o-rwx /sys/kernel/config/nvmet");  # ensure other users cannot read NVMet settings
 }
 
 
@@ -619,6 +632,7 @@ sub isNVMeTargetOffloadCapable
 
 sub filterLVM
 {
+    setprefix("Filter LVM: ");
     my $nvmelistout = safe_cmd("nvme list");      # "nvme list -o json" doesn't work well
 
     # Scan for "real" nvme devices, ignore NVMe over Fabrics connections that may have duplicate volume groups

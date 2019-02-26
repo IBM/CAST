@@ -87,6 +87,7 @@ int server_echo( const bool aMsg = false )
         std::cout << "Send/Recv error" << e.what() << std::endl;
       }
     }
+    free(buffer);
   }
   else {
     perror("Server: Binding");

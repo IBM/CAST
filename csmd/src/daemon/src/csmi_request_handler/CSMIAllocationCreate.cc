@@ -153,7 +153,12 @@ bool CSMIAllocationCreate_Master::CreatePayload(
 
         // Compute what state the create should start in.
         csmi_state_t creating_state = allocation->state == CSM_RUNNING ? CSM_TO_RUNNING : allocation->state;
-       
+
+        if ( allocation->_metadata < CSM_VERSION_1_5_0 )
+        {
+            allocation->smt_mode = 0;
+        }
+
         // --------------------------------------------------------------------------
         // Build the insert allocation statement.
         // --------------------------------------------------------------------------
@@ -165,7 +170,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "job_type,             user_name,            user_id,         user_group_id,"
                 "user_script,          account,              comment,         job_name,"
                 "job_submit_time,      queue,                requeue,         time_limit,"
-                "wc_key,               isolated_cores"
+                "wc_key,               isolated_cores,       smt_mode"
             ") VALUES ("
                 "default,        'now',        $1::bigint,   $2::integer,"
                 "$3::text,       $4::text,     $5::text,     $6::text,"
@@ -174,10 +179,10 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "$15::text,      $16::text,    $17::integer, $18::integer, "
                 "$19::text,      $20::text,    $21::text,    $22::text,"
                 "$23::timestamp, $24::text,    $25::text,    $26::bigint,"
-                "$27::text,      $28::integer"
+                "$27::text,      $28::integer, $29::smallint"
             ") returning allocation_id, begin_time";
 
-        const int paramCount = 28;
+        const int paramCount = 29;
         csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
         dbReq->AddNumericParam<int64_t>(allocation->primary_job_id);                // $1 - bigint
         dbReq->AddNumericParam<int32_t>(allocation->secondary_job_id);              // $2 - integer
@@ -214,6 +219,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
         
         dbReq->AddTextParam(allocation->wc_key); // $27 - text
         dbReq->AddNumericParam<int32_t>(allocation->isolated_cores); // $28 - text
+        dbReq->AddNumericParam<short>(allocation->smt_mode); // $29 - smallint
         // --------------------------------------------------------------------------
         
 
@@ -257,6 +263,8 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
         {
             // TODO Perform an arg check?
             allocation->allocation_id = strtoll( tuples[0]->data[0], nullptr, 10 );
+
+            if ( allocation->begin_time ) free(allocation->begin_time);
             allocation->begin_time    = strdup( tuples[0]->data[1] );
 
             std::string json="";
@@ -310,6 +318,7 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
     mcastAlloc->type             = allocation->type;
     mcastAlloc->state            = allocation->state;
     mcastAlloc->user_name        = allocation->user_name;
+    mcastAlloc->smt_mode         = allocation->smt_mode;
 
     // Node details.
     mcastAlloc->shared            = allocation->shared; 
@@ -366,7 +375,7 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
     dataLock.unlock();
 
     LOG(csmapi,trace) << STATE_NAME ":ReserveNodes: Exit";
-    return dbPayload != nullptr; // The status of the payload is all that matters.
+    return dbReq != nullptr; // The status of the payload is all that matters.
 }
 
 csm::db::DBReqContent* CSMIAllocationCreate_Master::UndoAllocationDB(

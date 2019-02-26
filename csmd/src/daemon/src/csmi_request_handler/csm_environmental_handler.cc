@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/csm_environmental_handler.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -12,9 +12,12 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
+#include "csm_daemon_config.h"
 #include "csm_environmental_handler.h"
 #include "logging.h"
 #include "csmd/src/inv/include/inv_dcgm_access.h"
+#include "csmd/src/inv/include/inv_ssd_inventory.h"
+#include "csmd/src/inv/include/inv_ssd_wear_serialization.h"
 
 #include <iostream>
 #include <iomanip>
@@ -26,7 +29,7 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
 {
   if ( !isEnvironmentalEvent(aEvent) ) return;
   
-  LOG(csmenv, info) << "In CSM_ENVIRONMENTAL...";
+  LOG(csmenv, debug) << "In CSM_ENVIRONMENTAL...";
   csm::daemon::BitMap currItems = GetBitMap(aEvent);
   std::set<csm::daemon::BucketItemType> list;
   
@@ -57,45 +60,63 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
     while ( it != list.end() )
     {
         csm::daemon::BucketItemType nextItem = *it;
-        LOG(csmenv, debug) << "Processing BucketItem: " << nextItem ;
+        LOG(csmenv, trace) << "CSM_ENVIRONMENTAL: Processing BucketItem: " << nextItem ;
         switch (nextItem)
         {
           case csm::daemon::GPU:
           {
-            LOG(csmenv, debug) << "Collecting GPU data.";
-            bool gpu_success(false);            
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL gpu: Collecting GPU data.";
             std::list<boost::property_tree::ptree> gpu_data_pt_list;
-
-            gpu_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->CollectGpuData(gpu_data_pt_list);
+            bool gpu_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->CollectGpuData(gpu_data_pt_list);
             if (gpu_success)
             {
                envData.AddDataItems(gpu_data_pt_list);
+               LOG(csmenv, info) << "CSM_ENVIRONMENTAL gpu: GPU data collection was successful.";
             }
-
             break;
           }
           case csm::daemon::DEBUG:
-            LOG( csmenv, info ) << "ENVDATA Collection debug.";
+          {
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL debug: Collecting debug.";
             envData.GenerateTestData();
             break;
+          }
           case csm::daemon::CPU:
           {
-            LOG(csmenv, debug) << "Collecting CPU data.";
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL cpu: Collecting CPU data.";
             break;
           }
           case csm::daemon::ENVIRONMENTAL:
           {
-            LOG(csmenv, debug) << "Collecting node environmental data.";
-            envData.CollectEnvironmentalData();
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL environmental: Collecting node environmental data.";
+            bool env_success = envData.CollectEnvironmentalData();
+            if (env_success)
+            {
+              LOG(csmenv, info) << "CSM_ENVIRONMENTAL environmental: node environmental data collection was successful.";
+            }
+            break;
+          }
+          case csm::daemon::SSD:
+          {
+            LOG(csmenv, debug) << "CSM_ENVIRONMENTAL ssd: Collecting SSD wear data.";
+            bool ssd_success = BuildSsdWearUpdate(postEventList);
+            if (ssd_success)
+            {
+              LOG(csmenv, info) << "CSM_ENVIRONMENTAL ssd: SSD wear collection was successful.";
+            }
             break;
           }
           case csm::daemon::NETWORK:
           case csm::daemon::DEFAULT:
+          {
             break;
+          }
 
           default:
+          {
             LOG(csmenv, error) << "CSM_ENVIRONMENTAL: Unknown bucket item type!";
             break;
+          }
         }
         _pendingItems.RemoveSet(nextItem);
         it++;
@@ -133,4 +154,66 @@ void CSM_ENVIRONMENTAL::Process( const csm::daemon::CoreEvent &aEvent,
     }
   }
   
+}
+
+bool CSM_ENVIRONMENTAL::BuildSsdWearUpdate(std::vector<csm::daemon::CoreEvent*>& postEventList)
+{
+  bool ssd_success(false);
+  csm_ssd_wear_t ssd_wear;
+
+  std::string node_name("");
+  try
+  {
+    node_name = csm::daemon::Configuration::Instance()->GetHostname();
+  }
+  catch (csm::daemon::Exception &e)
+  {
+    LOG(csmenv, error) << "SSD_WEAR: Caught exception when trying GetHostname()";
+  }
+
+  if (!node_name.empty())
+  {
+    LOG(csmenv, debug) << "SSD_WEAR: ssd_wear.node_name = " << node_name;
+    strncpy(ssd_wear.node_name, node_name.c_str(), CSM_NODE_NAME_MAX);
+    ssd_wear.node_name[CSM_NODE_NAME_MAX - 1] = '\0';
+  }
+  else
+  {
+    ssd_wear.node_name[0] = '\0';
+    LOG(csmenv, error) << "SSD_WEAR: Error: could not determine ssd_wear.node_name!";
+    return false;
+  }
+
+  ssd_success = GetSsdInventory(ssd_wear.ssd, ssd_wear.discovered_ssds, false); 
+  if ( ssd_success )
+  {
+    LOG(csmenv, debug) << "SSD_WEAR: Successfully collected ssd wear data.";
+  
+    string payload_str("");
+    uint32_t bytes_packed(0);
+    bytes_packed = ssd_wear_pack(ssd_wear, payload_str);
+
+    if ( bytes_packed == 0 || payload_str.size() == 0 )
+    {
+      LOG(csmenv, error) << "SSD_WEAR: Failed to pack ssd wear update.";
+      return false;
+    }
+
+    LOG(csmenv, debug) << "SSD_WEAR: CSM_CMD_ssd_wear_update payload_str.size() = " << payload_str.size();
+
+    csm::network::Message ssd_msg;
+    ssd_msg.Init(CSM_CMD_ssd_wear_update, 0, CSM_PRIORITY_DEFAULT,
+      0, 3253, 1351, geteuid(), getegid(),
+      payload_str );
+
+    csm::network::MessageAndAddress ssd_msg_and_addr( ssd_msg, _AbstractMaster);
+
+    postEventList.push_back( CreateNetworkEvent( ssd_msg_and_addr ) );
+  }
+  else
+  {
+    LOG(csmenv, warning) << "SSD_WEAR: Failed to collect ssd wear data.";
+  }
+
+  return ssd_success;
 }

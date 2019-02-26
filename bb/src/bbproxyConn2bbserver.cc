@@ -129,7 +129,7 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
     {
         //log error message--RAS??
         LOG(bb,always)<<"catch(ExceptionBailout& e)"<<" @="<<__FILE__<<":"<< __FUNCTION__<<":"<<__LINE__;
-        if (sock) delete sock;
+        delete sock;
         sock=NULL;
         stringstream errorText;
         errorText << "nonSSL failure in attempting to connect to "<<pName;

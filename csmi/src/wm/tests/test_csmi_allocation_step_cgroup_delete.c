@@ -62,7 +62,7 @@ int csmi_client(int argc, char *argv[])
 
     csm_init_struct_ptr( csm_allocation_step_cgroup_delete_input_t, cgroup_args );
     cgroup_args->allocation_id = allocation_id;
-    cgroup_args->cgroup_name   = strdup(step);
+    cgroup_args->cgroup_name   = strdup( step ? step : "" );
     cgroup_args->num_types     = 1;
     cgroup_args->controller_types = malloc(sizeof(csmi_cgroup_controller_t) * cgroup_args->num_types); 
     
@@ -78,6 +78,8 @@ int csmi_client(int argc, char *argv[])
     // It's the csmi library's responsibility to free internal space
     csm_api_object_destroy(csm_obj);
     csm_free_struct_ptr(csm_allocation_step_cgroup_delete_input_t, cgroup_args );
+    
+    if(step) free(step);
 
     assert( csm_term_lib() == 0);
 

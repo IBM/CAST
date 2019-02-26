@@ -46,4 +46,4 @@ const csmi_struct_mapping_t map_csmi_err_t= {
 };
 
 const int csm_min_printable_type = 5;
-const int csm_type_formatter_len = 18;
+const int csm_type_formatter_len = 19;

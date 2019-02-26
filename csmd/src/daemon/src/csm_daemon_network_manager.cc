@@ -364,8 +364,14 @@ bool csm::daemon::EventManagerNetwork::ProcessNetCtlEvents()
               ( info_itr->_Address->GetAddrType() == csm::network::AddressType::CSM_NETWORK_TYPE_PTP ))
           {
             CSMLOG( csmd, trace ) << "ComputeInfo: " << info_itr->_VersionData._Hostname << ":" << info_itr->_VersionData._Sequence;
-            dynamic_cast<csm::daemon::DaemonStateAgg*>(_DaemonState)->SetNodeInfo( info_itr->_Address, info_itr->_VersionData._Hostname );
-            conn_updates = true;
+            csm::daemon::DaemonStateAgg* state = dynamic_cast<csm::daemon::DaemonStateAgg*>(_DaemonState);
+            if (state)
+            {
+                state->SetNodeInfo( info_itr->_Address, info_itr->_VersionData._Hostname );
+                conn_updates = true;
+            }
+            else
+                conn_updates = false;
           }
           // first check if it's a critical connection and let the connection mgr handle it
           _ConnMgr->ProcessSystemEvent( csm::daemon::SystemContent::CONNECTED,
@@ -484,9 +490,14 @@ bool csm::daemon::EventManagerNetwork::EndpointRecvActivity()
       if(( data_sptr->_Msg.GetCommandType() == CSM_CMD_NODESET_UPDATE ) && ( _Config->GetRole() == CSM_DAEMON_ROLE_MASTER))
       {
         csm::daemon::DaemonStateMaster *masterState = dynamic_cast<csm::daemon::DaemonStateMaster*>(_DaemonState);
-        masterState->UpdateAggregator( data_sptr->GetAddr(), data_sptr->_Msg );
-        CheckAndGenerateComputeActions( masterState );
-        return true;
+        if ( masterState )
+        {
+            masterState->UpdateAggregator( data_sptr->GetAddr(), data_sptr->_Msg );
+            CheckAndGenerateComputeActions( masterState );
+            return true;
+        }
+        else 
+            return false;
       }
       _MessageControl.InboundMessageIDMapping( data_sptr );
       msgContext = _MessageControl.FindMsgAndCtx( data_sptr );

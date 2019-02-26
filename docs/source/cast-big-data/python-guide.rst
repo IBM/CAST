@@ -311,7 +311,7 @@ When applied to a real configuration a mapping file will look something like thi
 UFM Collector
 -------------
 
-A tool interacting with the UFM collector is provided in `ibm-csm-bds-*.noarch.rpm`.
+A tool interacting with the UFM collector is provided in |csm-bds|.
 This script performs 3 key operations:
 
 1. Connects to the UFM monitoring snapshot RESTful interface.
@@ -323,6 +323,78 @@ This script performs 3 key operations:
 
 3. Opens a socket to a target logstash instance and writes the payload.
 
+Beats
+-----
+
+The following scripts are bundled in the ``/opt/ibm/csm/bigdata/beats/`` directory. They 
+are generally used to regenerate logs for filebeat ingestion.
+
+csmTransactionRebuild.py
+^^^^^^^^^^^^^^^^^^^^^^^^
+:Script Location: ``/opt/ibm/csm/bigdata/beats/csmTransactionRebuild.py``
+:RPM: ``ibm-csm-bds-*.noarch.rpm``
+
+This script is used to regenerate the CSM transaction log from the postgresql databse. It is
+recommended when using this script for the first time to back up your original transactional logs.
+
+The core objective of this script is to repair issues with the transactional index that were
+exposed in the transitory steps of the CSM Big Data development. As such, this script should only 
+be run in clusters which were running pre ``1.5.0`` level code.
+
+.. code-block:: bash
+
+    usage: csmTransactionRebuild.py [-h] [-d db] [-u user] [-o output]
+
+    A tool for regenerating the csm transactional logs from the database.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -d db, --database db  Database to archive tables from. Default: csmdb
+      -u user, --user user  The database user. Default: postgres
+      -o output, --output output
+                            The output file, overwrites existing file. Default:
+                            csm-transaction.log
+
+Transition scripts
+------------------
+
+.. note:: The following scripts are **NOT** shipped in the RPMs.
+
+Sometimes between major versions fields may be renamed in the Big Data Store (this is generally
+only performed in the event of a major bug). When CSM performs such a change a `transition-script`
+will be provided on the GitHub repository in the ``csm_big_data/transition-scripts`` directory.
+
+.. _metric-transaction :
+
+metric-transaction_140-150.py
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Performs the transition from the `1.4.0` metric and transaction logs to `1.5.0`.
+
+.. code-block:: bash
+
+    # ./metric-transaction_140-150.py -h
+    usage: metric-transaction_140-150.py [-h] -f file-glob [--overwrite]
+    
+    A tool for converting 1.4.0 CSM BDS logs to 1.5.0 CSM BDS logs.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -f file-glob, --files file-glob
+                            A file glob containing the bds logs to run the fix
+                            operations on.
+      --overwrite           If set the script will overwrite the old files.
+                            Default writes new file *.fixed.
+
+The following commands will migrate the old logs to the new format:
+
+.. code-block:: bash
+
+    ./metric-transaction_140-150.py -f '/var/log/ibm/csm/csm_transaction.log*' --overwrite
+    ./metric-transaction_140-150.py -f '/var/log/ibm/csm/csm_allocation_metrics.log*' --overwrite
+
+.. note:: If performing this transition, the old data may need to be purged from BDS (in the case 
+    of the metrics log especially).
 .. _Elastic Tests: https://github.com/IBM/CAST/tree/master/csm_big_data/Python/elastic_tests
 .. _Elasticsearch API: https://pypi.org/project/elasticsearch/
 .. _Installing Packages: https://packaging.python.org/tutorials/installing-packages/#source-distributions-vs-wheels

@@ -294,7 +294,7 @@ csm::network::EndpointMultiUnix::Sync( const SyncAction aSync )
       throw csm::network::Exception("Unrecognized sync action requested.");
   }
 
-  EndpointHeartbeat::TimeType ref = std::chrono::system_clock::now();
+  EndpointHeartbeat::TimeType ref = std::chrono::steady_clock::now();
   if( _Heartbeat.dueSend( ref ) )
   {
     csm::network::NetworkCtrlInfo *tail = ret;

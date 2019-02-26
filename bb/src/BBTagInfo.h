@@ -66,6 +66,9 @@ class BBTagInfo
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalContributors);
     int addTransferDef(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
     void bumpTransferHandle(uint64_t& pHandle);
+    void calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
+    void calcFailed(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
+    void calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     void dump(const char* pSev);
     void expectContribToSS(stringstream& pSS) const;
     uint64_t get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag);

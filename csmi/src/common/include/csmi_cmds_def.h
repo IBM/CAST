@@ -2,7 +2,7 @@
 
     csmi/src/common/include/csmi_cmds_def.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -90,12 +90,14 @@ cmd(cluster_query_state)
 cmd(node_find_job)
 cmd(soft_failure_recovery)
 
+// Added in CSM v1.5.0
+cmd(ssd_wear_update)
+
 // new APIS should go here by adding the new API immediately above this line
 // and removing the first reserved_NN that appears after MAX_REGULAR
 cmd(MAX_REGULAR)
 
 // reserved cmd IDS
-cmd(reserved_65)
 cmd(reserved_66)
 cmd(reserved_67)
 cmd(reserved_68)

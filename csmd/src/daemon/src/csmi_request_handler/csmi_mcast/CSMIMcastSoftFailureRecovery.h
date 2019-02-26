@@ -25,29 +25,61 @@
 #include "csmi/include/csmi_type_wm_funct.h"
 #include "csmi/include/csm_api_macros.h"
 #include "csmi/src/wm/include/csmi_wm_type_internal.h" 
+#define STRUCT_TYPE csmi_soft_failure_recovery_context_t
 //#include <map>
 
-#define STRUCT_TYPE csmi_soft_failure_recovery_context_t
+// Build the error map table.
+struct CSMISoftFailureComparator
+{
+    int map(int val) const
+    {
+        int returnVal=0;
+        switch (val)
+        {
+            case CSMERR_GENERIC:
+            case CSMERR_MULTI_GEN_ERROR:
+                returnVal=-1;
+                break;
+            default:
+                break;
+        }
+        return returnVal;
+    }
+
+    bool operator() (const int& a, const int& b) const
+    {
+        return map(a) < map(b);
+    }
+};
+
 
 struct csmi_soft_failure_recovery_context_t {
     uint32_t num_nodes;
+    uint32_t retry_count;
     char**   compute_nodes;
-    char*    hard_failure_nodes;
 
-    csmi_soft_failure_recovery_context_t() : num_nodes(0),
-        compute_nodes(nullptr), hard_failure_nodes(nullptr) {}
+    csmi_soft_failure_recovery_context_t() : num_nodes(0), retry_count(0),
+        compute_nodes(nullptr){}
 
     ~csmi_soft_failure_recovery_context_t()
     {
-        if (compute_nodes != nullptr &&  num_nodes > 0 )
+
+        if ( compute_nodes != nullptr )
         {
-            for (uint32_t i = 0; i < num_nodes; ++i) free(compute_nodes[i]);
+            if ( num_nodes > 0 ) 
+            {
+                for (uint32_t i = 0; i < num_nodes; ++i)
+                {
+                    if (compute_nodes[i])
+                    {
+                        free(compute_nodes[i]);
+                        compute_nodes[i] = nullptr;
+                    }
+                }
+            }
+            free(compute_nodes);
         }
         compute_nodes = nullptr;
-
-        if (hard_failure_nodes)
-            free(hard_failure_nodes);
-        hard_failure_nodes = nullptr;
     }
 };
 
@@ -55,7 +87,7 @@ struct csmi_soft_failure_recovery_context_t {
  * @tparam DataStruct The allocation create/delete/update multicast context.
  */
 template<>
-CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
+CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::~CSMIMcast();
 
 /** @brief Builds a specialized payload to handle allocation create/delete multicast payloads.
  *
@@ -65,7 +97,7 @@ CSMIMcast<STRUCT_TYPE>::~CSMIMcast();
  * @param[out] bufferLength The length of the @p bufferLength payload.
  */
 template<>
-void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
+void CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::BuildMcastPayload(char** buffer, uint32_t* bufferLength);
 
 /**
  * @brief Generates a unique identifier string for the mcast object.
@@ -74,11 +106,11 @@ void CSMIMcast<STRUCT_TYPE>::BuildMcastPayload(char** buffer, uint32_t* bufferLe
  * @return A string containing the unique identifier for the multicast.
  */
 template<>
-std::string CSMIMcast<STRUCT_TYPE>::GenerateIdentifierString();
+std::string CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator>::GenerateIdentifierString();
 
 /** @brief A typedef for @ref csmi_allocation_mcast_context_t specializations of @ref CSMIMcast.
  */
-typedef CSMIMcast<STRUCT_TYPE> CSMIMcastSoftFailureRecovery;
+typedef CSMIMcast<STRUCT_TYPE,CSMISoftFailureComparator> CSMIMcastSoftFailureRecovery;
 
 namespace csm{
 namespace mcast{

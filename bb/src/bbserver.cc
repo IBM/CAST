@@ -52,6 +52,9 @@ using namespace std;
 
 namespace po = boost::program_options;
 
+// Define flightlog for bbServer metadata
+FL_SetName(FLMetaData, "bbServer MetaData Flightlog")
+FL_SetSize(FLMetaData, 65536)
 
 // Metadata that is kept on each bbserver...
 BBLV_Metadata metadata;
@@ -69,6 +72,9 @@ double Throttle_TimeInterval;
 LVKey HPWrkQE_LVKeyStg;
 const LVKey* HPWrkQE_LVKey = &HPWrkQE_LVKeyStg;
 WRKQE* HPWrkQE;
+
+// Metadata counter for flight logging
+AtomicCounter metadataCounter;
 
 
 //*****************************************************************************
@@ -147,6 +153,7 @@ void switchIds(txp::Msg* pMsg)
 //  Requests from bbproxy
 //*****************************************************************************
 
+#define DELAY_SECONDS 120
 void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -192,7 +199,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     //  NOTE:  We wait up to 2 minutes for the necessary LVKey to appear if we can't find
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the registering of any LVKeys with the new server.
-                    int l_Continue = 120;
+                    int l_Continue = DELAY_SECONDS;
                     while ((!rc) && (l_Continue--))
                     {
                         rc = metadata.getLVKey(pConnectionName, l_LVKey, l_FromJobId, l_ContribId);
@@ -208,6 +215,16 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 #endif
                                     unlockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
+                                        int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                                        if ((l_SecondsWaiting % 15) == 1)
+                                        {
+                                            // Display this message every 15 seconds...
+                                            FL_Write6(FLDelay, CancelWaitForLVKey, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
+                                                      l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                            LOG(bb,info) << ">>>>> DELAY <<<<< msgin_canceltransfer: Attempting to cancel a transfer definition for jobid " << l_FromJobId \
+                                                         << ", jobstepid " << l_FromJobStepId << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                         << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the LVKey.";
+                                        }
                                         usleep((useconds_t)1000000);    // Delay 1 second
                                     }
                                     lockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
@@ -244,7 +261,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the restarting of any transfer definitions to
                     //         the new server.
-                    l_Continue = 120;
+                    l_Continue = DELAY_SECONDS;
                     BBLV_Info* l_LV_Info = 0;
                     while ((!l_LV_Info) && l_Continue--)
                     {
@@ -253,6 +270,16 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         {
                             unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
                             {
+                                int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                                if ((l_SecondsWaiting % 15) == 1)
+                                {
+                                    // Display this message every 15 seconds...
+                                    FL_Write6(FLDelay, CancelWaitForBBLV_Info, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the BBLV_Info.",
+                                              l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                    LOG(bb,info) << ">>>>> DELAY <<<<< msgin_canceltransfer: Attempting to cancel a transfer definition for jobid " << l_FromJobId \
+                                                 << ", jobstepid " << l_FromJobStepId << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                 << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the BBLV_Info.";
+                                }
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBLV_Info to be registered");
@@ -276,7 +303,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     //         it right away.  This closes the window during activate server between the activation
                     //         of the connection to the new server and the restarting of any transfer definitions to
                     //         the new server.
-                    l_Continue = 120;
+                    l_Continue = DELAY_SECONDS;
                     BBTagInfo* l_TagInfo = 0;
                     BBTagID l_TagId;
                     while ((!l_TagInfo) && l_Continue--)
@@ -285,6 +312,16 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         {
                             unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
                             {
+                                int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                                if ((l_SecondsWaiting % 15) == 1)
+                                {
+                                    // Display this message every 15 seconds...
+                                    FL_Write6(FLDelay, CancelWaitForBBTagInfo, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the BBTagInfo.",
+                                              l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                    LOG(bb,info) << ">>>>> DELAY <<<<< msgin_canceltransfer: Attempting to cancel a transfer definition for jobid " << l_FromJobId \
+                                                 << ", jobstepid " << l_FromJobStepId << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                 << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the BBTagInfo.";
+                                }
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo to be registered");
@@ -320,14 +357,18 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         }
                         else
                         {
+                            rc = -2;
                             LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
-                                         << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo).  Cancel request ignored.";
+                                         << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo). Cancel request ignored.";
+                            LOG_RC_AND_BAIL(rc);
                         }
                     }
                     else
                     {
+                        rc = -2;
                         LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
-                                     << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo).  Cancel request ignored.";
+                                     << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo). Cancel request ignored.";
+                        LOG_RC_AND_BAIL(rc);
                     }
                 }
 
@@ -336,19 +377,49 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                 case BBSCOPETAG:
                 {
                     // Retrieve the real jobid, jobstepid for the handle
-                    uint64_t l_JobId = 0;
-                    uint64_t l_JobStepId = 0;
+                    uint64_t l_JobId = UNDEFINED_JOBID;
+                    uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
                     rc = HandleFile::get_xbbServerGetJobForHandle(l_JobId, l_JobStepId, l_Handle);
                     if (!rc)
                     {
-                        //  Cancel the transfer for the entire handle
-                        string l_HostName;
-                        activecontroller->gethostname(l_HostName);
-                        rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                        BBSTATUS l_Status;
+                        rc = HandleFile::get_xbbServerHandleStatus(l_Status, (LVKey*)0, l_JobId, l_JobStepId, l_Handle);
+                        if (!rc)
+                        {
+                            switch (l_Status)
+                            {
+                                case BBFULLSUCCESS:
+                                {
+                                    // If the handle status is BBFULLSUCCESS, do not allow the cancel
+                                    rc = -2;
+                                    LOG(bb,info) << "A cancel request was made for handle " << l_Handle \
+                                                 << ". However, the handle currently has a status of BBFULLSUCCESS. Cancel request ignored.";
+                                    LOG_RC_AND_BAIL(rc);
+                                }
+                                break;
+
+                                default:
+                                {
+                                    //  Cancel the transfer for the entire handle
+                                    string l_HostName;
+                                    activecontroller->gethostname(l_HostName);
+                                    rc = cancelTransferForHandle(l_HostName, l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                                }
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            errorText << "Could not determine the handle status for job " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << l_Handle \
+                                      << ". Request to cancel a transfer with a cancel scope of BBSCOPETAG failed.";
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
                     }
                     else
                     {
-                        LOG_RC_AND_BAIL(rc);
+                        errorText << "Could not determine the jobid for handle " << l_Handle \
+                                  << ". Request to cancel a transfer with a cancel scope of BBSCOPETAG failed.";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
 
@@ -382,7 +453,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
-
+#undef DELAY_SECONDS
 
 void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
@@ -577,7 +648,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     return;
 }
 
-
+#define DELAY_SECONDS 120
 void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -637,7 +708,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
         //         This closes the window during activate server between the activation
         //         of the connection to the new server and the registering of any LVKeys
         //         with the new server.
-        int l_Continue = 120;
+        int l_Continue = DELAY_SECONDS;
         while ((rc) && (l_Continue--))
         {
             rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_Contrib, l_Handle);
@@ -672,6 +743,16 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                     // Continue to wait...
 
                     // Hang out for a bit (120 x 1 second each, 2 minutes total) and see if the necessary LVKey appears...
+                    int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
+                    if ((l_SecondsWaiting % 15) == 1)
+                    {
+                        // Display this message every 15 seconds...
+                        FL_Write(FLDelay, GetHandleWaitForLVKey, "Attempting to get the transfer handle for jobid %ld, jobstepid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
+                                 l_Job.getJobId(), l_Job.getJobStepId(), (uint64_t)l_Continue, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_gettransferhandle: Attempting to get the transfer handle for jobid " << l_Job.getJobId() \
+                                     << ", jobstepid " << l_Job.getJobStepId() << ". Delay of 1 second before retry. " << l_Continue \
+                                     << " seconds remain waiting for the LVKey.";
+                    }
                     usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 else
@@ -747,7 +828,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 #endif
     return;
 }
-
+#undef DELAY_SECONDS
 
 void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
@@ -760,8 +841,8 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     uint64_t l_Handle = 0;
     uint32_t l_ContribId;
 
-    uint64_t l_JobId = 0;
-    uint64_t l_JobStepId = 0;
+    uint64_t l_JobId = UNDEFINED_JOBID;
+    uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
     uint64_t l_Tag = 0;
     uint64_t l_NumContrib = 0;
     uint64_t l_NumOfContribsInArray = 0;
@@ -1471,7 +1552,7 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     return;
 }
 
-
+#define DELAY_SECONDS 120
 void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1511,7 +1592,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     BBTransferDef* l_TransferPtr = &l_Transfer;
     BBTransferDef* l_OrgTransferPtr = l_TransferPtr;
     bool l_LockHeld = false;
-    bool l_HandleFileLocked = false;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;;
 
     try
     {
@@ -1618,15 +1699,25 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         //       This is the case where we are in the process of activating this
                         //       bbServer, but we have not finished registering all of the LVKeys.
                         //       If necessary, spin for up to 2 minutes waiting for the work queue.
-                        int l_Attempts = 120;
+                        int l_Continue = DELAY_SECONDS;
                         rc = -1;
-                        while (rc && l_Attempts--)
+                        while (rc && l_Continue--)
                         {
                             rc = wrkqmgr.getWrkQE(&l_LVKey2, l_WrkQE);
                             if (rc || (!l_WrkQE))
                             {
                                 unlockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
                                 {
+                                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                                    if ((l_SecondsWaiting % 15) == 1)
+                                    {
+                                        // Display this message every 15 seconds...
+                                        FL_Write6(FLDelay, StartTransferWaitForWrkQ, "Attempting to restart a transfer for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the WrkQ.",
+                                                  l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
+                                                     << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                     << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the WrkQ.";
+                                    }
                                     usleep((useconds_t)1000000);    // Delay 1 second
                                 }
                                 lockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
@@ -1823,10 +1914,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         {
                                             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
                                             //       bbServer that is marking the handle/contribid file as 'stopped'
-                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE);
+                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE, &l_LockFeedback);
                                             if (!rc)
                                             {
-                                                l_HandleFileLocked = true;
                                                 rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
                                                 if (rc == 1)
                                                 {
@@ -1907,18 +1997,25 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 if (rc && l_Continue)
                                                 {
                                                     // Release the lock on the handle file
-                                                    l_HandleFileLocked = false;
-                                                    l_HandleFile->close();
+                                                    l_HandleFile->close(l_LockFeedback);
 
-                                                    if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
+                                                    int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
+                                                    if ((l_SecondsWaiting % 15) == 1)
                                                     {
                                                         // Display this message every 15 seconds...
                                                         FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
-                                                                  (uint64_t)l_Job.getJobId(), (uint64_t)l_Job.getJobStepId(), (uint64_t)l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                                                  l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
                                                         LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
                                                                      << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
                                                                      << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
                                                                      << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                                                    }
+                                                    // If we will wait for at least another minute, re-append the stop transfer request
+                                                    // every 60 seconds in case the 'old' bbServer just came online...
+                                                    if ((l_Continue > 60) && (l_SecondsWaiting % 60) == 0)
+                                                    {
+                                                        BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
+                                                                                                         (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
                                                     }
                                                     unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
                                                     {
@@ -1943,11 +2040,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                     delete l_ContribIdFile;
                                                     l_ContribIdFile = 0;
                                                 }
-                                                if (l_HandleFileLocked)
-                                                {
-                                                    l_HandleFileLocked = false;
-                                                    l_HandleFile->close();
-                                                }
                                                 if (l_HandleFileName)
                                                 {
                                                     delete[] l_HandleFileName;
@@ -1955,6 +2047,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 }
                                                 if (l_HandleFile)
                                                 {
+                                                    l_HandleFile->close(l_LockFeedback);
                                                     delete l_HandleFile;
                                                     l_HandleFile = 0;
                                                 }
@@ -2052,9 +2145,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     //       This is the case where we are in the process of activating this
                                     //       bbServer, but we have not finished registering all of the LVKeys.
                                     //       If necessary, spin for up to 2 minutes.
-                                    int l_Attempts = 120;
+                                    int l_Continue = DELAY_SECONDS;
                                     rc = -2;
-                                    while (rc && l_Attempts--)
+                                    while (rc && l_Continue--)
                                     {
                                         rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_ContribArray, l_Handle, DO_NOT_LOCK_TRANSFER_QUEUE);
                                         switch (rc)
@@ -2071,7 +2164,17 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 // registration of the necessary LVKey...
                                                 unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
                                                 {
-                                                    usleep((useconds_t)1000000);     // Delay 1 second
+                                                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                                                    if ((l_SecondsWaiting % 15) == 1)
+                                                    {
+                                                        // Display this message every 15 seconds...
+                                                        FL_Write6(FLDelay, StartTransferWaitForLVKey, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
+                                                                  l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
+                                                                     << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                     << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the LVKey.";
+                                                    }
+                                                    usleep((useconds_t)1000000);    // Delay 1 second
                                                 }
                                                 lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
                                             }
@@ -2280,12 +2383,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         l_ContribIdFile = 0;
     }
 
-    if (l_HandleFileLocked)
-    {
-        l_HandleFileLocked = false;
-        l_HandleFile->close();
-    }
-
     if (l_HandleFileName)
     {
         delete[] l_HandleFileName;
@@ -2295,6 +2392,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     if (l_HandleFile)
     {
+        l_HandleFile->close(l_LockFeedback);
         delete l_HandleFile;
         l_HandleFile = 0;
     }
@@ -2320,7 +2418,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 #endif
     return;
 }
-
+#undef DELAY_SECONDS
 
 void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg)
 {
@@ -2488,7 +2586,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
 //  Initial handshake with bbproxy
 //*****************************************************************************
 
-int nvmfConnectPath(const string& serial);
+int nvmfConnectPath(const string& serial, const string& connectionKey);
 void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -2513,6 +2611,8 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
         uint64_t numserials          = ((txp::AttrPtr_array_of_char_arrays*)msg->retrieveAttrs()->at(txp::knownSerials))->getNumberOfElementsArrayOfCharArrays();
         txp::CharArray* knownSerials = (txp::CharArray*)msg->retrieveAttrs()->at(txp::knownSerials)->getDataPtr();
 
+        string connectionKey =  string((char*)(msg->retrieveAttrs()->at(txp::connectionKey)->getDataPtr()));
+
         for(uint64_t x=0; x<numserials; x++)
         {
             try
@@ -2522,7 +2622,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
             }
             catch(exception& e)
             {
-                int nCrc=nvmfConnectPath( (*knownSerials)[x].second);
+                int nCrc=nvmfConnectPath( (*knownSerials)[x].second, connectionKey);
                 if (nCrc)
                 {
                     LOG(bb,info) << "Serial (" << (*knownSerials)[x].second << ") not available on bbServer.  Telling bbProxy to remove from its list.";
@@ -2586,7 +2686,7 @@ int registerHandlers()
 
     return 0;
 }
-
+int setupBBproxyListener(string whoami);
 int bb_main(std::string who)
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -2736,6 +2836,13 @@ int bb_main(std::string who)
         // NOTE: Transfer threads are started here so that async requests
         //       can be immediately honored from other bbServers.
         startTransferThreads();
+        rc = setupBBproxyListener(who);
+        if(rc)
+       {
+        stringstream errorText;
+        errorText<<"Listening socket error.  rc=" << rc;
+        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.net.bbproxyListenerSocketFailed);
+       }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)

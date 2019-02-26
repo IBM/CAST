@@ -65,6 +65,8 @@ class BBUsageExtended
     {
         _localTareRead=0;
         _localTareWritten=0;
+        _localTareReadCount=0;
+        _localTareWriteCount=0;
         _burstBytesRead=0;
         _burstBytesWritten=0;
     }
@@ -76,25 +78,31 @@ class BBUsageExtended
     {
         _localTareRead=0;
         _localTareWritten=0;
+        _localTareReadCount=0;
+        _localTareWriteCount=0;
         _burstBytesRead=0;
         _burstBytesWritten=0;
         
         uint32_t major = major(pDev);
         uint32_t minor = minor(pDev);
         _statpath = string("/sys/dev/block/") + to_string(major) + ":" + to_string(minor) + "/stat";
-        getLocalReadWrite(_localTareRead, _localTareWritten);
+        getLocalReadWrite(_localTareRead, _localTareWritten, _localTareReadCount, _localTareWriteCount);
         FL_Write6(FLBBUsage,SetUsageTare, "localTareRead=%ld localTareWritten=%ld major=%lu minor=%lu sectorsize=%lu", _localTareRead,_localTareWritten,major,minor,sectorsize,0);
     }
     
-    int getlocalUsage(uint64_t& pLocalRead, uint64_t& pLocalWrite)
+    int getlocalUsage(uint64_t& pLocalRead, uint64_t& pLocalWrite, uint64_t& pLocalReadCount, uint64_t& pLocalWriteCount)
     {
         pLocalRead=0;
         pLocalWrite=0;
+        pLocalReadCount=0;
+        pLocalWriteCount=0;
         
-        int rc=getLocalReadWrite( pLocalRead, pLocalWrite);
+        int rc=getLocalReadWrite( pLocalRead, pLocalWrite, pLocalReadCount, pLocalWriteCount);
         if(rc) return rc;
         pLocalRead  -= _localTareRead;
         pLocalWrite -= _localTareWritten;   
+        pLocalReadCount  -= _localTareReadCount;
+        pLocalWriteCount -= _localTareWriteCount;   
         // FL_Write(FLBBUsage,GetUsageLocal, "LocalRead=%ld LocalWrite=%ld sectorsize=%lu", pLocalRead,pLocalWrite,sectorsize);
         return 0;
     }
@@ -112,7 +120,7 @@ class BBUsageExtended
     }
     
 private:
-    int getLocalReadWrite(uint64_t& pLocalRead, uint64_t& pLocalWrite) 
+    int getLocalReadWrite(uint64_t& pLocalRead, uint64_t& pLocalWrite, uint64_t& pLocalReadCount, uint64_t& pLocalWriteCount) 
     {
         int rc = 0;
         char*  line = NULL;
@@ -121,8 +129,10 @@ private:
         if(fd == NULL)
             return -1;
         
-        getline(&line, &linelength, fd);
+        ssize_t llen = getline(&line, &linelength, fd);
         fclose(fd);
+        if(llen < 1)
+            return -1;
         string line_str = line;
         free(line);
         
@@ -132,13 +142,17 @@ private:
         for(tokenizer< boost::char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
             values.push_back(stoull(*beg));
         
-        pLocalRead   = values[6-4] * sectorsize;
-        pLocalWrite = values[10-4] * sectorsize;
+        pLocalRead       = values[6-4] * sectorsize;
+        pLocalWrite      = values[10-4] * sectorsize;
+        pLocalReadCount  = values[4-4];
+        pLocalWriteCount = values[8-4];
         return rc;
     }
     
     uint64_t _localTareWritten;
     uint64_t _localTareRead;
+    uint64_t _localTareWriteCount;
+    uint64_t _localTareReadCount;
     uint64_t _burstBytesRead;     ///< Number of bytes written to the logical volume via burst buffer transfers
     uint64_t _burstBytesWritten;  ///< Number of bytes read from the logical volume via burst buffer transfers
     
@@ -205,7 +219,12 @@ int proxy_GetUsage(const char* mountpoint, BBUsage_t& usage)
     
     if (bbxfer_usage.find(dinfo) != bbxfer_usage.end() )
     {
-        rc = bbxfer_usage[dinfo].getlocalUsage(usage.localBytesRead, usage.localBytesWritten);
+#if BBUSAGE_COUNT
+        rc = bbxfer_usage[dinfo].getlocalUsage(usage.localBytesRead, usage.localBytesWritten, usage.localReadCount, usage.localWriteCount);
+#else
+        uint64_t dummy1,dummy2;
+        rc = bbxfer_usage[dinfo].getlocalUsage(usage.localBytesRead, usage.localBytesWritten, dummy1, dummy2);
+#endif
         if(rc == 0)
             rc = bbxfer_usage[dinfo].getburstUsage(usage.burstBytesRead, usage.burstBytesWritten);
         

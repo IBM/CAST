@@ -1,0 +1,2 @@
+#msg_id,severity,message,description,control_action,threshold_count,threshold_period,enabled,set_state,visible_to_users
+bmc.Administrative.FQPSPSE0002M,FATAL,A session audit has occurred.,,NONE,1,0,true,,false

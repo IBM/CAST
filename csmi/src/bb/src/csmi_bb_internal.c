@@ -123,13 +123,17 @@ const csmi_struct_mapping_t map_csm_bb_lv_create_input_t= {
     cast_csm_bb_lv_create_input_t
 };
 
-const csmi_struct_node_t csm_bb_lv_delete_input_tree[7] = {{"num_bytes_read",offsetof(csm_bb_lv_delete_input_t,num_bytes_read),0,NULL,0x38181676,40},
+const csmi_struct_node_t csm_bb_lv_delete_input_tree[11] = {{"num_bytes_read",offsetof(csm_bb_lv_delete_input_t,num_bytes_read),0,NULL,0x38181676,40},
 {"num_bytes_written",offsetof(csm_bb_lv_delete_input_t,num_bytes_written),0,NULL,0xd3acfa7,40},
 {"node_name",offsetof(csm_bb_lv_delete_input_t,node_name),0,NULL,0x746e3e2b,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"logical_volume_name",offsetof(csm_bb_lv_delete_input_t,logical_volume_name),0,NULL,0x7221a037,4},
-{"allocation_id",offsetof(csm_bb_lv_delete_input_t,allocation_id),0,NULL,0x99d3da77,40}}
+{"allocation_id",offsetof(csm_bb_lv_delete_input_t,allocation_id),0,NULL,0x99d3da77,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"num_writes",offsetof(csm_bb_lv_delete_input_t,num_writes),0,NULL,0x75dc6b52,40},
+{"num_reads",offsetof(csm_bb_lv_delete_input_t,num_reads),0,NULL,0xa6194b83,40}}
 ;
 
 void* cast_csm_bb_lv_delete_input_t(void* ptr,size_t index, char isArray) { 
@@ -137,7 +141,7 @@ void* cast_csm_bb_lv_delete_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_bb_lv_delete_input_t= {
-    7,
+    11,
     csm_bb_lv_delete_input_tree,
     cast_csm_bb_lv_delete_input_t
 };

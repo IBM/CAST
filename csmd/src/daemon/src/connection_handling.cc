@@ -27,7 +27,8 @@
 
 csm::daemon::ConnectionHandling::ConnectionHandling( const ConnectionDefinition *i_Prim,
                                                      const ConnectionDefinitionList &i_Dependent,
-                                                     const csm::daemon::RunMode *i_RunMode )
+                                                     const csm::daemon::RunMode *i_RunMode ):
+   _RunModeRef(nullptr), _DaemonState(nullptr),_PrimKey(), _ScndKey() 
 {
   if( i_Dependent.empty() )
     throw csm::daemon::Exception("Connection handling creation with empty connection list.");
@@ -36,7 +37,8 @@ csm::daemon::ConnectionHandling::ConnectionHandling( const ConnectionDefinition 
 }
 
 csm::daemon::ConnectionHandling::ConnectionHandling( const ConnectionDefinitionList &aDependent,
-                                                     const csm::daemon::RunMode *i_RunMode )
+                                                     const csm::daemon::RunMode *i_RunMode ):
+    _RunModeRef(nullptr), _DaemonState(nullptr),_PrimKey(), _ScndKey()
 {
   if( aDependent.empty() )
     throw csm::daemon::Exception("Connection handling creation with empty connection list.");
@@ -489,7 +491,10 @@ csm::daemon::ConnectionHandling_aggregator::ConnectionHandling_aggregator( const
     throw csm::daemon::Exception( "Invalid initialization data for master address." );
 
   if( _DaemonState != nullptr )
-    dynamic_cast<csm::daemon::DaemonStateAgg*>( _DaemonState )->InitActiveAddresses();
+  {
+      csm::daemon::DaemonStateAgg* state = dynamic_cast<csm::daemon::DaemonStateAgg*>( _DaemonState ); 
+      if ( state ) state->InitActiveAddresses();
+  }
 }
 
 int

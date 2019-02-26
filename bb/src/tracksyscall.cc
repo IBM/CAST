@@ -11,7 +11,13 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 #include "tracksyscall.h"
+
+#if BBSERVER
 #include "bbserver_flightlog.h"
+#elif BBPROXY
+#include "bbproxy_flightlog.h"
+#endif
+
 #include "bberror.h"
 #include <map>
 
@@ -211,6 +217,11 @@ uint64_t getTimeBaseScale()
         case openexlayout: bberror << err("syscall.file.literal","openexlayout"); break;
         case setupexlayout: bberror << err("syscall.file.literal","setupexlayout"); break;
         case finalizeexlayout: bberror << err("syscall.file.literal","finalizeexlayout"); break;
+        case fopensyscall: bberror << err("syscall.file.literal","fopensyscall"); break;
+        case freadsyscall: bberror << err("syscall.file.literal","freadsyscall"); break;
+        case fseeksyscall: bberror << err("syscall.file.literal","fseeksyscall"); break;
+        case ftellsyscall: bberror << err("syscall.file.literal","ftellsyscall"); break;
+        case fwritesyscall: bberror << err("syscall.file.literal","fwritesyscall"); break;
 
         case SSDopenwritedirect:bberror << err("syscall.file.literal","SSDopenwritedirect"); break;
         case SSDopenwriteNOTdirect:bberror << err("syscall.file.literal","SSDopenwriteNOTdirect"); break;

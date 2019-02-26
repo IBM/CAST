@@ -2,7 +2,7 @@
 --
 --   csm_create_triggers.sql
 --
--- © Copyright IBM Corporation 2015-2018. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2019. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,22 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       16.2
+--   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         11-8-2018
+--   last modified:         02-21-2019
 --   change log:
+--     17.0   - Moving this version to sync with DB schema version
+--            - fn_csm_allocation_history_dump -        added field:    smt_mode
+--            - fn_csm_allocation_update -              added field:    smt_mode
+--            - fn_csm_allocation_update_state -        added field:    o_smt_mode
+--            - fn_csm_allocation_finish_data_stats -   disables trigger to prevent duplication.
+--            - fn_csm_allocation_finish_data_stats -   added improved logic to wrap detection.
+--            - fn_csm_lv_history_dump - 		        added fields:	num_reads, num_writes
+--            - fn_csm_allocation_dead_records_on_lv -  added in 'null' values for PERFORM fn_csm_lv_history_dump
+--            - fn_csm_ssd_dead_records -               added in 'null' values for PERFORM fn_csm_lv_history_dump
+--            - func_alt_type_val -                     added function for altering db types
+--            - func_csm_delete_func -                  added function for dropping all db functions
+--            - func_csm_drop_all_triggers -            added function for dropping all db triggers
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -26,8 +38,11 @@
 --                                                        INVALID_STATE       CONSTANT integer := 1;
 --                                                        INVALID_ALLOCATION  CONSTANT integer := 2;
 --                                                        USING HINT = INVALID_STATE;
---                                                        USING HINT = INVALID_ALLOCATION;                                 
---            fn_csm_allocation_history_dump -             Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
+--                                                        Added OUT o_runtime bigint;
+--            fn_csm_allocation_update_state -            Added OUT o_runtime bigint;
+--            fn_csm_allocation_history_dump -            Removed Older exception message.
+--                                                        USING HINT = INVALID_ALLOCATION; 
 --            fn_csm_allocation_node_sharing_status -     error_code integer;
 --                                                        INVALID_NODES  CONSTANT integer := 1;
 --                                                        ABSENT_NODES  CONSTANT integer := 2;
@@ -260,48 +275,50 @@ DECLARE
     BIGINT_MAX CONSTANT bigint := 9223372036854775807; -- Maximum value for bigint
     current_state text; -- current state of the allocation.
 BEGIN
+    --ALTER TABLE csm_allocation_node DISABLE TRIGGER tr_csm_allocation_node_change;
+
     -- UPDATE the node table, if the incoming value is greater than the original, assume the
     -- counter overflowed. In the event of an overflow subtract the difference from BIGINT_MAX
     UPDATE csm_allocation_node
         SET
-            ib_tx      = (CASE WHEN(d.tx > 0 AND ib_tx >= 0) THEN 
+            ib_tx      = (CASE WHEN(d.tx >= 0 AND ib_tx >= 0) THEN 
                             CASE WHEN ( d.tx  >= ib_tx ) THEN d.tx - ib_tx
-                            ELSE BIGINT_MAX - (ib_tx - d.tx) END
-                          ELSE -1 * ABS(ib_tx) END ),
+                            ELSE -2 END
+                          ELSE -1 END ),
 
-            ib_rx      = (CASE WHEN(d.rx > 0 AND ib_rx >= 0) THEN 
+            ib_rx      = (CASE WHEN(d.rx >= 0 AND ib_rx >= 0) THEN 
                             CASE WHEN ( d.rx  >= ib_rx ) THEN d.rx - ib_rx 
-                            ELSE BIGINT_MAX - (ib_rx - d.rx) END 
-                          ELSE -1 * ABS(ib_rx) END ),
+                            ELSE -2 END
+                          ELSE -1 END ),
 
-            gpfs_read  = (CASE WHEN(d.g_read > 0 AND gpfs_read  >= 0) THEN 
+            gpfs_read  = (CASE WHEN(d.g_read >= 0 AND gpfs_read  >= 0) THEN 
                             CASE WHEN ( d.g_read >= gpfs_read ) THEN d.g_read  - gpfs_read
-                            ELSE BIGINT_MAX - (gpfs_read - d.g_read) END
-                          ELSE -1 * ABS(gpfs_read ) END ),
+                            ELSE -2 END
+                          ELSE -1 END ),
 
-            gpfs_write = (CASE WHEN(d.g_write> 0 AND gpfs_write >= 0) THEN 
-                            CASE WHEN (d.g_write >= gpfs_write) THEN  d.g_write - gpfs_write 
-                            ELSE BIGINT_MAX - (gpfs_write - d.g_write) END
-                          ELSE -1 * ABS(gpfs_write) END ),
+            gpfs_write = (CASE WHEN(d.g_write>= 0 AND gpfs_write >= 0) THEN 
+                            CASE WHEN (d.g_write >= gpfs_write) THEN d.g_write - gpfs_write 
+                            ELSE -2 END
+                          ELSE -1 END ),
 
-            energy     = (CASE WHEN(d.l_energy > 0 AND energy   >= 0) THEN 
-                            CASE WHEN ( d.l_energy >= energy ) THEN  d.l_energy  - energy 
-                            ELSE BIGINT_MAX - (energy - d.l_energy) END
-                          ELSE -1 * ABS(energy    ) END ),
+            energy     = (CASE WHEN(d.l_energy >= 0 AND energy   >= 0) THEN 
+                            CASE WHEN ( d.l_energy >= energy ) THEN d.l_energy  - energy 
+                            ELSE -2 END
+                          ELSE -1 END ),
 
-            power_cap_hit = (CASE WHEN(d.pc_hit > 0 AND power_cap_hit >= 0) THEN 
-                            CASE WHEN ( d.pc_hit >= power_cap_hit ) THEN  d.pc_hit  - power_cap_hit
-                            ELSE BIGINT_MAX - (power_cap_hit- d.pc_hit) END
-                          ELSE -1 * ABS(power_cap_hit) END ), 
+            power_cap_hit = (CASE WHEN(d.pc_hit >= 0 AND power_cap_hit >= 0) THEN 
+                            CASE WHEN ( d.pc_hit >= power_cap_hit ) THEN d.pc_hit  - power_cap_hit
+                            ELSE -2 END
+                          ELSE -1 END ), 
 
             gpu_usage = d.gpu_use,
             cpu_usage = d.cpu_use,
             memory_usage_max = d.mem_max,
 
-            gpu_energy = (CASE WHEN(d.l_gpu_energy > 0 AND gpu_energy >= 0) THEN 
-                            CASE WHEN ( d.l_gpu_energy >= gpu_energy ) THEN  d.l_gpu_energy - gpu_energy
-                            ELSE BIGINT_MAX - (gpu_energy- d.l_gpu_energy) END
-                          ELSE -1 * ABS(gpu_energy ) END )
+            gpu_energy = (CASE WHEN(d.l_gpu_energy >= 0 AND gpu_energy >= 0) THEN 
+                            CASE WHEN ( d.l_gpu_energy >= gpu_energy ) THEN d.l_gpu_energy - gpu_energy
+                            ELSE -2 END
+                          ELSE -1 END )
         FROM
             ( SELECT
                 unnest(node_names) as node,
@@ -317,6 +334,8 @@ BEGIN
                 unnest(gpu_energy_list) as l_gpu_energy
             ) d
         WHERE allocation_id = allocationid AND node_name = d.node;
+
+    --ALTER TABLE csm_allocation_node ENABLE TRIGGER tr_csm_allocation_node_change;
 
     -- If this state was called directly by the API.
     IF (i_state != '' ) THEN
@@ -369,7 +388,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_delete_start(
     OUT o_type             text,
     OUT o_isolated_cores   int,
     OUT o_user_name        text,
-    OUT o_nodelist         text
+    OUT o_nodelist         text,
+    OUT o_runtime          bigint
 )
 RETURNS record AS $$
 DECLARE
@@ -395,12 +415,13 @@ BEGIN
        a.allocation_id, a.primary_job_id, a.secondary_job_id, 
        a.user_flags, a.system_flags, a.num_nodes, 
        a.state, a.type, a.isolated_cores, a.user_name, 
-       array_to_string(array_agg(an.node_name),',') as a_nodelist 
+       array_to_string(array_agg(an.node_name),',') as a_nodelist,
+       (extract(EPOCH from  now() - begin_time))::bigint
     INTO 
         o_allocation_id, o_primary_job_id, o_secondary_job_id,
         o_user_flags, o_system_flags, o_num_nodes, 
         o_state, o_type, o_isolated_cores, o_user_name,
-        o_nodelist 
+        o_nodelist, o_runtime
     FROM csm_allocation a 
     LEFT JOIN 
         csm_allocation_node an 
@@ -450,7 +471,7 @@ COMMENT ON FUNCTION fn_csm_allocation_delete_start(
     OUT o_allocation_id    bigint, OUT o_primary_job_id   bigint, OUT o_secondary_job_id int,
     OUT o_user_flags       text,   OUT o_system_flags     text,   OUT o_num_nodes        int,
     OUT o_state            text,   OUT o_type             text,   OUT o_isolated_cores   int,
-    OUT o_user_name        text,   OUT o_nodelist         text ) is 
+    OUT o_user_name        text,   OUT o_nodelist         text,   OUT o_runtime          bigint ) is 
         'Retrieves allocation details for delete a d sets the state to deleteing.';
 
 ---------------------------------------------------------------------------------------------------
@@ -482,6 +503,8 @@ RETURNS timestamp AS $$
 DECLARE 
    a "csm_allocation"%ROWTYPE;
    s "csm_step"%ROWTYPE;
+   INVALID_STATE       CONSTANT integer := 1;
+   INVALID_ALLOCATION  CONSTANT integer := 2;
 
 BEGIN
     o_end_time = endtime;
@@ -535,6 +558,7 @@ BEGIN
         -- Save the data aggregator stats.
 
         IF (finalize)  THEN
+            -- Disable the trigger temporarily.
             PERFORM fn_csm_allocation_finish_data_stats( allocationid, '', node_names, ib_rx_list, 
                 ib_tx_list, gpfs_read_list,gpfs_write_list, energy_list,
                 pc_hit_list, gpu_usage_list, cpu_usage_list, mem_max_list, gpu_energy_list);
@@ -579,12 +603,15 @@ BEGIN
             a.queue,
             a.requeue,
             a.time_limit,
-            a.wc_key
+            a.wc_key,
+            NULL,
+            a.smt_mode
         );
         DELETE FROM csm_allocation WHERE allocation_id=allocationid;
 
     ELSE
-        RAISE EXCEPTION using message = 'allocation_id does not exist.';
+        RAISE EXCEPTION 'allocation_id does not exist.'
+            USING HINT = INVALID_ALLOCATION;
     END IF;
     --EXCEPTION
     --    WHEN others THEN
@@ -662,7 +689,8 @@ BEGIN
             queue,
             requeue,
             time_limit,
-            wc_key)
+            wc_key,
+            smt_mode)
         VALUES
             (now(),
             NEW.allocation_id,
@@ -695,7 +723,8 @@ BEGIN
             NEW.queue,
             NEW.requeue,
             NEW.time_limit,
-            NEW.wc_key);
+            NEW.wc_key, 
+            NEW.smt_mode);
         RETURN NEW;
     END IF;
 RETURN NULL;
@@ -781,7 +810,9 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_num_gpus          integer,
     OUT o_num_processors    integer,
     OUT o_projected_memory  integer,
-    OUT o_state             text
+    OUT o_state             text,
+    OUT o_runtime           bigint,
+    OUT o_smt_mode          smallint
 )
 RETURNS record AS $$
 DECLARE
@@ -796,13 +827,14 @@ BEGIN
         state, isolated_cores,
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
-        num_gpus, num_processors, projected_memory
+        num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint,
+        smt_mode
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
-        o_shared, o_num_gpus, o_num_processors,
-        o_projected_memory
+        o_num_gpus, o_num_processors,
+        o_projected_memory, o_runtime, o_smt_mode
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 
@@ -900,8 +932,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
-
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode smallint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 -----------------------------------------------------------
 -- fn_csm_allocation_dead_records_on_lv 
@@ -968,7 +999,7 @@ BEGIN
                         node_name = matching_node_names[i]
                     );
 
-                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null, null, null);
                 END LOOP;
             END IF;
         END LOOP;
@@ -1831,46 +1862,46 @@ CREATE FUNCTION fn_csm_allocation_node_change()
             OLD.cpu_usage,
             OLD.memory_usage_max);
          RETURN OLD;
-    ELSEIF (TG_OP = 'UPDATE') THEN
-         INSERT INTO csm_allocation_node_history(
-            history_time,
-            allocation_id,
-            node_name,
-            state,
-            shared,
-            energy,
-            gpfs_read,
-            gpfs_write,
-            ib_tx,
-            ib_rx,
-            power_cap,
-            power_shifting_ratio,
-            power_cap_hit,
-            gpu_usage,
-            gpu_energy,
-            cpu_usage,
-            memory_usage_max)
-         VALUES(
-            now(),
-            NEW.allocation_id,
-            NEW.node_name,
-            NEW.state,
-            NEW.shared,
-            NEW.energy,
-            NEW.gpfs_read,
-            NEW.gpfs_write,
-            NEW.ib_tx,
-            NEW.ib_rx,
-            NEW.power_cap,
-            NEW.power_shifting_ratio,
-            NEW.power_cap_hit,
-            NEW.gpu_usage,
-            NEW.gpu_energy,
-            NEW.cpu_usage,
-            NEW.memory_usage_max);
-         RETURN NEW;
+    --ELSEIF (TG_OP = 'UPDATE') THEN
+    --    INSERT INTO csm_allocation_node_history(
+    --       history_time,
+    --       allocation_id,
+    --       node_name,
+    --       state,
+    --       shared,
+    --       energy,
+    --       gpfs_read,
+    --       gpfs_write,
+    --       ib_tx,
+    --       ib_rx,
+    --       power_cap,
+    --       power_shifting_ratio,
+    --       power_cap_hit,
+    --       gpu_usage,
+    --       gpu_energy,
+    --       cpu_usage,
+    --       memory_usage_max)
+    --    VALUES(
+    --       now(),
+    --       NEW.allocation_id,
+    --       NEW.node_name,
+    --       NEW.state,
+    --       NEW.shared,
+    --       NEW.energy,
+    --       NEW.gpfs_read,
+    --       NEW.gpfs_write,
+    --       NEW.ib_tx,
+    --       NEW.ib_rx,
+    --       NEW.power_cap,
+    --       NEW.power_shifting_ratio,
+    --       NEW.power_cap_hit,
+    --       NEW.gpu_usage,
+    --       NEW.gpu_energy,
+    --       NEW.cpu_usage,
+    --       NEW.memory_usage_max);
+    --    END IF;
     END IF;
---RETURN NULL;
+    RETURN NULL;
 END;
 $$
 LANGUAGE 'plpgsql';
@@ -1880,7 +1911,7 @@ LANGUAGE 'plpgsql';
 ---------------------------------------------------------------------------------------------------
 
 CREATE TRIGGER tr_csm_allocation_node_change
-    BEFORE UPDATE -- OR DELETE(UPDATE was commented out due to replecation of records 02-28-2018)
+    BEFORE DELETE  --UPDATE -- OR DELETE(UPDATE was commented out due to replecation of records 02-28-2018)
     ON csm_allocation_node
     FOR EACH ROW
     EXECUTE PROCEDURE fn_csm_allocation_node_change()
@@ -2908,7 +2939,7 @@ BEGIN
                         node_name = matching_node_names[j]
                     );
 
-                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null);
+                    PERFORM fn_csm_lv_history_dump(t_lv_name, t_node_name, t_allocation_id, 'now()', 'now()', null, null, null, null);
                 END LOOP;
             END IF;
             -- once cleaned up all lvs on a vg, then we can remove the vg itself
@@ -4665,7 +4696,9 @@ CREATE OR REPLACE FUNCTION fn_csm_lv_history_dump(
     i_updated_time        timestamp,
     i_end_time            timestamp,
     i_num_bytes_read      bigint,
-    i_num_bytes_written   bigint)
+    i_num_bytes_written   bigint,
+    i_num_reads           bigint,
+    i_num_writes          bigint)
 RETURNS void AS
 $$
 DECLARE
@@ -4703,7 +4736,10 @@ BEGIN
             l.file_system_type,    -- file_system_mount
             i_num_bytes_read,      -- num_bytes_read
             i_num_bytes_written,   -- num_bytes_written
-            'D'                    -- operation, NOTE: Manually set to 'D' for delete
+            'D',                   -- operation, NOTE: Manually set to 'D' for delete
+            NULL,                  -- archive_history_time
+            i_num_reads,           -- num_reads
+            i_num_writes           -- num_writes
         );
         -- copy into the transaction history
         INSERT INTO csm_lv_update_history VALUES(
@@ -4747,7 +4783,7 @@ $$ LANGUAGE plpgsql;
 -- csm_lv_history_dump_function_comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_lv_history_dump(text, text, bigint, timestamp, timestamp, bigint, bigint)
+COMMENT ON FUNCTION fn_csm_lv_history_dump(text, text, bigint, timestamp, timestamp, bigint, bigint, bigint, bigint)
     is 'csm_lv function to amend summarized column(s) on DELETE. (csm_lv_history_dump)';
 
 -----------------------------------------------------------------------------------------------
@@ -5084,5 +5120,91 @@ CREATE TRIGGER tr_csm_db_schema_version_history_dump
 
 COMMENT ON FUNCTION fn_csm_db_schema_version_history_dump() is 'csm_db_schema_version function to amend summarized column(s) on UPDATE and DELETE.';
 COMMENT ON TRIGGER tr_csm_db_schema_version_history_dump ON csm_db_schema_version is 'csm_db_schema_version trigger to amend summarized column(s) on UPDATE and DELETE.';
+
+------------------------------------------------------------------------------------------------------------
+-- Function to drop all the existing triggers in the db
+------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION func_csm_drop_all_triggers()
+RETURNS text AS $$
+
+DECLARE
+    fn_csm_trigger_name_rec RECORD;
+    fn_csm_trigger_table_rec RECORD;
+
+BEGIN
+    FOR fn_csm_trigger_name_rec IN select distinct(trigger_name) from information_schema.triggers where trigger_schema = 'public' LOOP
+        FOR fn_csm_trigger_table_rec IN SELECT distinct(event_object_table) from information_schema.triggers where trigger_name = fn_csm_trigger_name_rec.trigger_name LOOP
+            EXECUTE 'DROP TRIGGER ' || fn_csm_trigger_name_rec.trigger_name || ' ON ' || fn_csm_trigger_table_rec.event_object_table || ';';
+        END LOOP;
+    END LOOP;
+
+    RETURN 'done';
+END;
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- func_csm_delete_func comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION func_csm_drop_all_triggers() is 'function to drop all existing db triggers.';
+
+------------------------------------------------------------------------------------------------------------
+-- Function to drop all the existing functions in the db
+------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION func_csm_delete_func(_name text, OUT func_dropped int)
+AS $$
+
+DECLARE
+   _sql text;
+
+   BEGIN
+   SELECT count(*)::int,
+    'DROP FUNCTION ' || string_agg(oid::regprocedure::text, '; DROP FUNCTION ')
+   FROM   pg_proc
+   WHERE  proname LIKE '%fn_csm%'
+   AND    pg_function_is_visible(oid)
+   INTO   func_dropped, _sql;  -- only returned if trailing DROPs succeed
+
+   IF func_dropped > 0 THEN    -- only if function(s) found
+     EXECUTE _sql;
+   END IF;
+END
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- func_csm_delete_func comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION func_csm_delete_func(_name text, OUT func_dropped int) is 'function to drop all existing db functions.';
+
+----------------------------------------------------------------------------------------------------------------------------------
+-- Function to append to an existing db TYPE
+----------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE function func_alt_type_val(_type regtype, _val  text)
+RETURNS void
+AS $$
+BEGIN
+    IF NOT EXISTS
+        (SELECT enumlabel FROM pg_enum
+            WHERE enumtypid = _type
+            AND enumlabel = _val) THEN
+            INSERT INTO pg_enum (enumtypid, enumlabel, enumsortorder) SELECT _type::regtype::oid, _val, ( SELECT MAX(enumsortorder) + 1 FROM pg_enum WHERE enumtypid = _type::regtype );
+    END IF;
+    EXCEPTION
+    WHEN others THEN
+        RAISE EXCEPTION
+        USING ERRCODE = sqlstate,
+            MESSAGE = 'error_handling_test: ' || sqlstate || '/' || sqlerrm;
+END
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- func_alt_type_val comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION func_alt_type_val(_type regtype, _val  text) is 'function to alter existing db types.';
 
 COMMIT;

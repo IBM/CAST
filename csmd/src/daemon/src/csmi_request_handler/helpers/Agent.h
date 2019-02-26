@@ -18,6 +18,7 @@
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include "cgroup.h"
 //#include "logging.h"   ///< CSM logging.
 
@@ -27,6 +28,7 @@
 
 #define CSM_SMT_CMD     "/usr/sbin/ppc64_cpu"
 #define CSM_SMT_SMT_ARG "--smt="
+#define CSM_UPTIME_FILE "/proc/uptime"
 
 #define CSM_TYPE_ALLOCATION_ID    "CSM_ALLOCATION_ID"
 #define CSM_TYPE_JSM_ARGS         "CSM_JSM_ARGS"
@@ -89,10 +91,10 @@ inline int SetSMTLevelCSM( int smtLevel )
 {
     // Get the current SMT level.
     int32_t threads, sockets, oldSMT = 0, coresPerSocket;
-    CGroup::GetCPUs(threads, sockets, oldSMT, coresPerSocket );
+    bool success = CGroup::GetCPUs(threads, sockets, oldSMT, coresPerSocket );
     
     // EARLY RETURN If the smt level is unchanged. 
-    if ( smtLevel == oldSMT && smtLevel < 0) return 0;
+    if ( !success || (smtLevel == oldSMT && smtLevel < 0)) return 0;
 
     // Convert the SMT level to a string.
     std::string smtStr(CSM_SMT_SMT_ARG);
@@ -130,6 +132,7 @@ inline int SetSMTLevelCSM( int smtLevel )
 
 inline int ExecuteBB( char* command_args, char ** output, uid_t user_id, int timeout)
 {
+    timeout += 10;
     char* scriptArgs[] = { (char*)CSM_BB_CMD, command_args, NULL };
     int errCode = ForkAndExecCapture( scriptArgs, output, user_id, timeout );
     return errCode;
@@ -137,13 +140,14 @@ inline int ExecuteBB( char* command_args, char ** output, uid_t user_id, int tim
 
 inline int ExecuteSFRecovery( char ** output, int timeout)
 {
+    timeout += 10;
     char* scriptArgs[] = { (char*)CSM_SFR_CMD, NULL };
     int errCode = ForkAndExecCapture( scriptArgs, output, 0, timeout );
     return errCode;
 }
 
 inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, char* kv_pairs, 
-    uint32_t num_nodes, char** compute_nodes, char* launch_node)
+    uint32_t num_nodes, char** compute_nodes, char* launch_node, csmi_allocation_type_t  type)
 {
     // Build the nodes string.
     std::string hosts = "";
@@ -155,9 +159,11 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
     hosts.back() = 0;
     
     std::string node_count = std::to_string(num_nodes);
+    std::string alloc_type = std::to_string(type);
 
     char* scriptArgs[] = { 
         jsm_path != NULL ? jsm_path : (char*)CSM_JSRUN_CMD, 
+        (char*)"--type", (char*)alloc_type.c_str(),
         (char*)"--launch_node", launch_node ? launch_node : (char*)"BAD_NODE",
         (char*)"--num_hosts", (char*)node_count.c_str(),
         (char*)"--hosts", (char*)hosts.c_str(),
@@ -181,6 +187,28 @@ inline int ExecuteJSRUN( char* jsm_path, int64_t allocation_id, uid_t user_id, c
 
     return errCode;
 }
+
+
+/**
+ * @brief Retrieves the uptime of the system.
+ *
+ * @return The uptime of the system, 0 if the retrieval failed.
+ */
+inline long GetUptime()
+{
+    struct sysinfo info;
+    int ret_code = sysinfo(&info);
+    
+    if ( ret_code )
+    {
+        return 0;
+    }
+
+    return info.uptime;
+
+}
+
+
 
 } // End namespace helpers
 } // End namespace daemon

@@ -36,6 +36,9 @@ void test_csmi_err(void)
   unpackVal = csmi_err_unpack(buf, bufLen);
   assert(unpackVal->errcode == errcode);
   assert(strcmp(unpackVal->errmsg, MSG) == 0);
+  csmi_err_free(unpackVal);
+  if (buf) free(buf);
+
 }
 
 int main(int argc, char *argv[]) {

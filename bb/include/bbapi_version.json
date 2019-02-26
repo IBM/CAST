@@ -1,6 +1,7 @@
 {
 	"version" :
 	{
-		"major" : 1
+		"major"   : 1,
+		"bbusage" : 2
 	}
 }

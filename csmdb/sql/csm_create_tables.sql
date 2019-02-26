@@ -2,7 +2,7 @@
 --
 --   csm_create_tables.sql
 --
--- © Copyright IBM Corporation 2015-2018. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2019. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,12 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   16.2
+--   current_version:   17.0
 --   create:            12-14-2015
---   last modified:     11-08-2018
+--   last modified:     02-15-2019
 --   change log:    
+--   17.0   Added smt_mode to csm_allocation and csm_allocation_history
+--	    Added new fields to csm_lv_history - num_reads, num_writes (01-25-2019)
 --   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
 --          COMMENT ON COLUMN csm_node.state
 --          COMMENT ON COLUMN csm_node_history.state
@@ -303,6 +305,8 @@ CREATE TABLE csm_allocation (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
+    smt_mode                        smallint    default 0,
+
     
     -- resource_comments            tbd     not null,
     -- health_check_allocation      tbd     not null,
@@ -356,6 +360,7 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.requeue is 'identifies (requeue) if the allocation is requeued it will attempt to have the previous allocation id';
     COMMENT ON COLUMN csm_allocation.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation.wc_key is 'arbitrary string for grouping orthogonal accounts together';
+    COMMENT ON COLUMN csm_allocation.smt_mode is 'the smt mode of the allocation';
     COMMENT ON INDEX csm_allocation_pkey IS 'pkey index on allocation_id';
 --  COMMENT ON INDEX uk_csm_allocation_b IS 'uniqueness on primary_job_id, secondary_job_id';
     COMMENT ON SEQUENCE csm_allocation_allocation_id_seq IS 'used to generate primary keys on allocation ids';
@@ -437,7 +442,8 @@ CREATE TABLE csm_allocation_history (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
-    archive_history_time            timestamp
+    archive_history_time            timestamp,
+    smt_mode                        smallint
 
 );
 
@@ -496,6 +502,7 @@ CREATE INDEX ix_csm_allocation_history_d
     COMMENT ON COLUMN csm_allocation_history.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation_history.wc_key is 'arbitrary string for grouping orthogonal accounts together';
     COMMENT ON COLUMN csm_allocation_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
+    COMMENT ON COLUMN csm_allocation_history.smt_mode is 'the smt mode of the allocation';
     COMMENT ON INDEX ix_csm_allocation_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_history_b IS 'index on allocation_id';
     COMMENT ON INDEX ix_csm_allocation_history_c IS 'index on ctid';
@@ -2145,8 +2152,10 @@ CREATE TABLE csm_lv_history (
     file_system_type        text,
     num_bytes_read          bigint,     --not null,
     num_bytes_written       bigint,     --not null,
-    operation               char(1),     --not null,
-    archive_history_time    timestamp
+    operation               char(1),    --not null,
+    archive_history_time    timestamp,
+    num_reads               bigint,
+    num_writes              bigint
 );
 
 -------------------------------------------------
@@ -2186,6 +2195,8 @@ CREATE INDEX ix_csm_lv_history_d
     COMMENT ON COLUMN csm_lv_history.num_bytes_written is 'number of bytes written during the life of this partition';
     COMMENT ON COLUMN csm_lv_history.operation is 'operation of transaction (I - INSERT), (U - UPDATE), (D - DELETE)';
     COMMENT ON COLUMN csm_lv_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
+    COMMENT ON COLUMN csm_lv_history.num_reads is 'number of read during the life of this partition';
+    COMMENT ON COLUMN csm_lv_history.num_writes is 'number of writes during the life of this partition';
     COMMENT ON INDEX ix_csm_lv_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_lv_history_b IS 'index on logical_volume_name';
     COMMENT ON INDEX ix_csm_lv_history_c IS 'index on ctid';

@@ -65,7 +65,7 @@ int csmi_client(int argc, char *argv[])
     
     cgroup_args->components = calloc( 0, cgroup_args->num_components * sizeof(csm_allocation_step_cgroup_create_input_t*));
 
-    cgroup_args->components[0] = malloc(sizeof(csm_allocation_step_cgroup_create_input_t));
+    cgroup_args->components[0] = malloc(sizeof(csm_allocation_step_cgroup_create_input_t*));
     cgroup_args->components[0]->type = CG_MEMORY;
 
     cgroup_args->components[0]->num_params = 1;
@@ -77,6 +77,7 @@ int csmi_client(int argc, char *argv[])
 
 
     assert (csm_init_lib() == 0);
+    free(step);
 
     printf("\ncsmi_allocation_step_cgroup_create:\n");
 

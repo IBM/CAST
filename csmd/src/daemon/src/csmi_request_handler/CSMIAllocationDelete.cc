@@ -297,7 +297,7 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
     
     // EARLY RETURN
     // If the number of fields is invalid exit.
-    if ( fields->nfields != 11 )
+    if ( fields->nfields != 12 )
     {
         std::string error = mcastProps->GenerateIdentifierString() +
             "; Message: Allocation query returned an incorrect number of fields;";
@@ -323,6 +323,8 @@ bool CSMIAllocationDelete_Master::ParseInfoQuery(
     a->type                 = (csmi_allocation_type_t)csm_get_enum_from_string(csmi_allocation_type_t, fields->data[7]);
     a->isolated_cores       = strtol(fields->data[8], nullptr, 10);
     a->user_name            = strdup(fields->data[9]);
+
+    a->runtime              = strtoll(fields->data[11], nullptr, 10);
 
     a->compute_nodes        = nullptr;
 
@@ -385,7 +387,7 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
     }
     
 
-    if (allocation && allocation->primary_job_id > 0)
+    if (allocation && allocation->primary_job_id > 0 && !ctx->GetDBErrorCode() )
     {
         const int paramCount = 13;
         std::string stmt = "SELECT fn_csm_allocation_history_dump( "
@@ -411,6 +413,39 @@ csm::db::DBReqContent* CSMIAllocationDelete_Master::DeleteRowStatement(
         dbReq->AddNumericArrayParam<int64_t>(allocation->cpu_usage,     allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->memory_max,    allocation->num_nodes);
         dbReq->AddNumericArrayParam<int64_t>(allocation->gpu_energy,    allocation->num_nodes);
+
+        if ( allocation->gpu_metrics )
+        {
+            for ( uint32_t nodeIdx = 0; nodeIdx < allocation->num_nodes; nodeIdx++ )
+            {
+                for ( uint32_t gpuIdx = 0; allocation->gpu_metrics[nodeIdx] && gpuIdx < allocation->gpu_metrics[nodeIdx]->num_gpus; gpuIdx++ )
+                {
+                    // First field is type, this is used to select index,
+                    // Second is 
+                    ALLOCATION("allocation-gpu", allocation->compute_nodes[nodeIdx],
+                        "{\"allocation_id\":" << allocation->allocation_id
+                        << ",\"gpu_id\":" << allocation->gpu_metrics[nodeIdx]->gpu_id[gpuIdx]
+                        << ",\"gpu_usage\":" << allocation->gpu_metrics[nodeIdx]->gpu_usage[gpuIdx]
+                        << ",\"max_gpu_memory\":" << allocation->gpu_metrics[nodeIdx]->max_gpu_memory[gpuIdx]
+                        << "}");
+                }
+                
+                if ( allocation->gpu_metrics[nodeIdx] && (allocation->gpu_metrics[nodeIdx]->num_cpus > 0) )
+                {
+                    std::string cpuData = "{";
+                    cpuData.append("\"allocation_id\":").append(std::to_string(allocation->allocation_id)).append(",");
+                    for ( uint32_t cpuIdx = 0; cpuIdx < allocation->gpu_metrics[nodeIdx]->num_cpus; cpuIdx++ )
+                    {
+                        cpuData.append("\"cpu_").append(std::to_string(cpuIdx)).append("\":");
+                        cpuData.append(std::to_string(allocation->gpu_metrics[nodeIdx]->cpu_usage[cpuIdx]));
+                        cpuData.append(",");
+                    }
+                    cpuData.back()='}';
+
+                    ALLOCATION("allocation-cpu", allocation->compute_nodes[nodeIdx], cpuData);
+                }
+            }
+        }
 
         LOG(csmapi,info) << ctx <<  mcastProps->GenerateIdentifierString()
             << "; Message: Recording Allocation statistics and removing allocation from database;";

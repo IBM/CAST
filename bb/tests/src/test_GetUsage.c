@@ -67,7 +67,14 @@ int main(int argc, char** argv)
     if (rc){
       printf("BB_CreateLogicalVolume failed\n");
       rc=BB_GetLastErrorDetails(l_ErrorFormat, &l_Size, l_Size, l_CharArrayPtr);
-      printf("%s\n",l_CharArrayPtr);
+      if(rc == 0)
+      {
+        printf("Error details:  %s\n",l_CharArrayPtr);
+      }
+      else
+      {
+        printf("Unable to retrieve error details.  rc=%d\n", rc);
+      }
       exit(-1);
     }
     /* the test */

@@ -2,7 +2,7 @@
 --
 --   csm_drop_functions.sql
 --
--- © Copyright IBM Corporation 2015-2018. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2019. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,13 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
---   current_version:   16.2
+--   current_version:   17.0
 --   create:            06-13-2016
---   last modified:     10-24-2018
+--   last modified:     01-28-2019
 --   change log:
+--     17.0  -  Moving this version to sync with DB schema version.
+--           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
+--           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
 --     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
@@ -86,7 +89,7 @@ DROP FUNCTION IF EXISTS fn_csm_step_begin(i_step_id bigint,i_allocation_id bigin
 DROP FUNCTION IF EXISTS fn_csm_step_end(IN i_stepid bigint,IN i_allocationid bigint,IN i_exitstatus int,IN i_errormessage text,IN i_cpustats text,IN i_totalutime double precision,IN i_totalstime double precision,IN i_ompthreadlimit text,IN i_gpustats text,IN i_memorystats text,IN i_maxmemory bigint,IN i_iostats text,OUT o_user_flags text,OUT o_num_nodes int,OUT o_nodes text, OUT o_end_time timestamp);
 DROP FUNCTION IF EXISTS fn_csm_allocation_update();
 DROP FUNCTION IF EXISTS fn_csm_allocation_state_history_state_change();
-DROP FUNCTION IF EXISTS fn_csm_allocation_update_state(IN i_allocationid bigint,IN i_state text,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_nodes text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_shared boolean,OUT o_num_gpus integer,OUT o_num_processors integer,OUT o_projected_memory integer,OUT o_state text);
+DROP FUNCTION IF EXISTS fn_csm_allocation_update_state(IN i_allocationid bigint,IN i_state text,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_nodes text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_shared boolean,OUT o_num_gpus integer,OUT o_num_processors integer,OUT o_projected_memory integer,OUT o_state text, OUT o_runtime bigint, OUT o_smt_mode smallint);
 DROP FUNCTION IF EXISTS fn_csm_allocation_dead_records_on_lv(i_allocation_id bigint);
 DROP FUNCTION IF EXISTS fn_csm_lv_upsert(l_logical_volume_name text,l_node_name text,l_allocation_id bigint,l_vg_name text,l_state char(1),l_current_size bigint,l_max_size bigint,l_begin_time timestamp,l_updated_time timestamp,l_file_system_mount text,l_file_system_type text);
 DROP FUNCTION IF EXISTS fn_csm_node_update();
@@ -109,7 +112,7 @@ DROP FUNCTION IF EXISTS fn_csm_gpu_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_hca_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_history_dump();
-DROP FUNCTION IF EXISTS fn_csm_lv_history_dump(text,text,bigint,timestamp,timestamp,bigint,bigint);
+DROP FUNCTION IF EXISTS fn_csm_lv_history_dump(text,text,bigint,timestamp,timestamp,bigint,bigint,bigint,bigint);
 DROP FUNCTION IF EXISTS fn_csm_lv_update_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_lv_modified_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_processor_socket_history_dump();
@@ -128,7 +131,7 @@ DROP FUNCTION IF EXISTS fn_csm_db_schema_version_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],text[],text[],text[],text[],boolean[],text[],text[],text[],int[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],int[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]);
-DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text) CASCADE;
+DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text, OUT o_runtime bigint) CASCADE;
 
 --DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(IN i_allocation_id bigint,IN i_primary_job_id bigint, IN i_secondary_job_id integer,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text);
 

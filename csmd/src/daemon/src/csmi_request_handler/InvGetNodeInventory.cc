@@ -58,6 +58,7 @@ InvGetNodeInventory::Process( const csm::daemon::CoreEvent &aEvent,
     {
       // add the inventory msg regardless of the db result because this is for connection book keeping and not for the API queries
       csm::daemon::NetworkEvent *ev = dynamic_cast<csm::daemon::NetworkEvent*>( ctx->GetReqEvent() );
+
       csm::network::MessageAndAddress reqContent = ev->GetContent();
 
       csm::network::Address_sptr addr = reqContent.GetAddr();
@@ -66,25 +67,27 @@ InvGetNodeInventory::Process( const csm::daemon::CoreEvent &aEvent,
       {
         // if the response was good, then we add the utility or aggregator node's data
         csm::daemon::DaemonStateMaster *daemonState = dynamic_cast<csm::daemon::DaemonStateMaster*>( GetDaemonState() );
-
-        // Try to unpack the csm_node_inventory_t structure and add a node name to the node-Info
-        csm_full_inventory_t inventory;
-        uint32_t bytes_unpacked;
-
-        bytes_unpacked = get_node_inventory_unpack(reqContent._Msg.GetData(), inventory);
-        if( bytes_unpacked )
+        if ( daemonState ) 
         {
-          // Filter out compute inventory received on aggregator connections 
-          // by confirming that the addr type matches the inventory type
-          const string inv_type(inventory.node.type);
-          if( (( inv_type == CSM_NODE_TYPE_AGGREGATOR ) && 
-               ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_AGGREGATOR )) ||
-              (( inv_type == CSM_NODE_TYPE_UTILITY ) && 
-               ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_UTILITY )) )
+          // Try to unpack the csm_node_inventory_t structure and add a node name to the node-Info
+          csm_full_inventory_t inventory;
+          uint32_t bytes_unpacked;
+
+          bytes_unpacked = get_node_inventory_unpack(reqContent._Msg.GetData(), inventory);
+          if( bytes_unpacked )
           {
-            daemonState->SetNodeInfo( addr, inventory.node.node_name, &reqContent._Msg );
-            NodeConnectRasEvent( inventory.node.node_name, postEventList );
-          }
+            // Filter out compute inventory received on aggregator connections 
+            // by confirming that the addr type matches the inventory type
+            const string inv_type(inventory.node.type);
+            if( (( inv_type == CSM_NODE_TYPE_AGGREGATOR ) && 
+                 ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_AGGREGATOR )) ||
+                (( inv_type == CSM_NODE_TYPE_UTILITY ) && 
+                 ( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_UTILITY )) )
+            {
+              daemonState->SetNodeInfo( addr, inventory.node.node_name, &reqContent._Msg );
+              NodeConnectRasEvent( inventory.node.node_name, postEventList );
+            }
+        }
         }
       }
     }
@@ -486,11 +489,10 @@ bool InvGetNodeInventory::CreateSqlStmt(const std::string& arguments, const uint
         CSMLOGp(csmd, info, SSD_INV) << "   pci_bus_id:                    " << inventory.ssd[i].pci_bus_id;
         CSMLOGp(csmd, info, SSD_INV) << "   fw_ver:                        " << inventory.ssd[i].fw_ver;
         CSMLOGp(csmd, info, SSD_INV) << "   size:                          " << inventory.ssd[i].size;
-        // TODO: Add these to inventory collection 
-        //CSMLOGp(csmd, info, SSD_INV) << "   wear_lifespan_used:            " << inventory.ssd[i].wear_lifespan_used;
-        //CSMLOGp(csmd, info, SSD_INV) << "   wear_total_bytes_written:      " << inventory.ssd[i].wear_total_bytes_written;
-        //CSMLOGp(csmd, info, SSD_INV) << "   wear_total_bytes_read:         " << inventory.ssd[i].wear_total_bytes_read;
-        //CSMLOGp(csmd, info, SSD_INV) << "   wear_percent_spares_remaining: " << inventory.ssd[i].wear_percent_spares_remaining;
+        CSMLOGp(csmd, info, SSD_INV) << "   wear_lifespan_used:            " << inventory.ssd[i].wear_lifespan_used;
+        CSMLOGp(csmd, info, SSD_INV) << "   wear_total_bytes_written:      " << inventory.ssd[i].wear_total_bytes_written;
+        CSMLOGp(csmd, info, SSD_INV) << "   wear_total_bytes_read:         " << inventory.ssd[i].wear_total_bytes_read;
+        CSMLOGp(csmd, info, SSD_INV) << "   wear_percent_spares_remaining: " << inventory.ssd[i].wear_percent_spares_remaining;
         
         // Build the list of ssd serial numbers in the current inventory
         if ( !ssd_serials_out.str().empty() )
@@ -506,9 +508,10 @@ bool InvGetNodeInventory::CreateSqlStmt(const std::string& arguments, const uint
         stmt_out << "fw_ver='" << inventory.ssd[i].fw_ver << "', ";
         stmt_out << "update_time='" << inventory.node.collection_time << "', ";
         stmt_out << "size=" << inventory.ssd[i].size << ", ";
-        // Defaulting wear_lifespan_used to 0 for PRPQ
-        // TODO: Replace this with real data
-        stmt_out << "wear_lifespan_used=0 ";
+        stmt_out << "wear_lifespan_used=" << inventory.ssd[i].wear_lifespan_used << ", ";
+        stmt_out << "wear_total_bytes_written=" << inventory.ssd[i].wear_total_bytes_written << ", ";
+        stmt_out << "wear_total_bytes_read=" << inventory.ssd[i].wear_total_bytes_read << ", ";
+        stmt_out << "wear_percent_spares_remaining=" << inventory.ssd[i].wear_percent_spares_remaining << " ";
         stmt_out << " WHERE node_name IN (SELECT t.node_name FROM csm_node_temp t WHERE ";
         stmt_out << "t.collection_time!='" << inventory.node.collection_time << "') "; 
         stmt_out << "AND serial_number='" << inventory.ssd[i].serial_number << "';" << endl;
@@ -521,16 +524,17 @@ bool InvGetNodeInventory::CreateSqlStmt(const std::string& arguments, const uint
         values_out.str("");
         values_out.clear();
         
-        keys_out << "(node_name, ";           values_out << "'" << inventory.node.node_name << "', ";
-        keys_out << "serial_number, ";        values_out << "'" << inventory.ssd[i].serial_number << "', ";
-        keys_out << "update_time, ";          values_out << "'" << inventory.node.collection_time << "', ";
-        keys_out << "device_name, ";          values_out << "'" << inventory.ssd[i].device_name << "', ";
-        keys_out << "pci_bus_id, ";           values_out << "'" << inventory.ssd[i].pci_bus_id  << "', ";
-        keys_out << "fw_ver, ";               values_out << "'" << inventory.ssd[i].fw_ver  << "', ";
-        keys_out << "size, ";                 values_out << inventory.ssd[i].size << ", ";
-        // Defaulting wear_lifespan_used to 0 for PRPQ
-        // TODO: Replace this with real data
-        keys_out << "wear_lifespan_used) ";   values_out << 0;
+        keys_out << "(node_name, ";                     values_out << "'" << inventory.node.node_name << "', ";
+        keys_out << "serial_number, ";                  values_out << "'" << inventory.ssd[i].serial_number << "', ";
+        keys_out << "update_time, ";                    values_out << "'" << inventory.node.collection_time << "', ";
+        keys_out << "device_name, ";                    values_out << "'" << inventory.ssd[i].device_name << "', ";
+        keys_out << "pci_bus_id, ";                     values_out << "'" << inventory.ssd[i].pci_bus_id  << "', ";
+        keys_out << "fw_ver, ";                         values_out << "'" << inventory.ssd[i].fw_ver  << "', ";
+        keys_out << "size, ";                           values_out << inventory.ssd[i].size << ", ";
+        keys_out << "wear_lifespan_used, ";             values_out << inventory.ssd[i].wear_lifespan_used << ", ";
+        keys_out << "wear_total_bytes_written, ";       values_out << inventory.ssd[i].wear_total_bytes_written << ", ";
+        keys_out << "wear_total_bytes_read, ";          values_out << inventory.ssd[i].wear_total_bytes_read << ", ";
+        keys_out << "wear_percent_spares_remaining)";   values_out << inventory.ssd[i].wear_percent_spares_remaining;
         
         // Now build the statement
         stmt_out << "INSERT INTO " << SSD_TABLE_NAME << " " << keys_out.str();

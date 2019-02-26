@@ -55,7 +55,7 @@ void DBManagerMain( csm::daemon::EventManagerDB *aMgr )
 
         if (dbevent == nullptr )
         {
-          if(dbConnPool->GetHeartbeatTimer() < std::chrono::system_clock::now())
+          if(dbConnPool->GetHeartbeatTimer() < std::chrono::steady_clock::now())
           {
             // check db status and/or try to reconnect
             dbConnPool->Heartbeat();
@@ -251,16 +251,18 @@ csm::daemon::EventManagerDB::EventManagerDB( csm::daemon::DBDefinitionInfo info,
  _IdleRetry( "DBMgr", csm::daemon::RetryBackOff::SleepType::CONDITIONAL, csm::daemon::RetryBackOff::SleepType::CONDITIONAL, 1, 1000000, 1000 )
 {
   _Source = new csm::daemon::EventSourceDB( i_MainIdleLoopRetry );
-  _Sink = new csm::daemon::EventSinkDB( &_IdleRetry, _DBConnectionPool->GetNumConfigConnections() );
   _KeepThreadRunning = true;
 
   if(!_DBConnectionPool || _DBConnectionPool->GetNumOfDBConnections() <= 0)
   {
     CSMLOG(csmd,error) << "Fail to connect to DB";
+    _Sink = new csm::daemon::EventSinkDB( &_IdleRetry);
   }
 
   if (_DBConnectionPool)
   {
+    _Sink = new csm::daemon::EventSinkDB( &_IdleRetry, _DBConnectionPool->GetNumConfigConnections() );
+
     std::string dbVersion = _DBConnectionPool->GetDBSchemaVersion();
     std::string codeVersion = std::string( DB_SCHEMA_VERSION );
 

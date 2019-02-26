@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/CSMIAllocationAgentUpdateState.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2018. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -25,39 +25,13 @@
 #include <syslog.h>
 #include <iostream>    ///< IO stream for file operations.
 #include <fstream>     ///< ofstream and ifstream used.
-
-#define GARRISON 
-// Garrison sample amounts.
-#ifdef GARRISON
-
-#define CPUSET_COR   1
-#define CPUSET_TPC   8
-#define CPUSET_CPS   10
-#define CPUSET_SOC   2
-
-#else
-// Cores to isolate
-#define CPUSET_COR   1
-// Threads per core
-#define CPUSET_TPC   1
-// Cores per socket
-#define CPUSET_CPS   4
-// Sockets
-#define CPUSET_SOC   1
-#define CPUSET_MEM  "0"
-#define MEMLIMIT_HARD "6000M"
-#define MEMLIMIT_SOFT "5000M"
-
-#endif
-
+#include <algorithm>
 
 #define PROLOG_RAS(message)  this->PushRASEvent(ctx, postEventList, message,\
     respPayload->hostname, ctx->GetErrorMessage(), "rc=" + std::to_string(ctx->GetErrorCode()));
 
 const char* CSM_ACTIVELIST = "/etc/pam.d/csm/activelist";
 const char* CSM_ACTIVELIST_SWAP = "/etc/pam.d/csm/activelist.swp";
-
-#undef GARRISON
 
 #define STATE_NAME "AllocationAgentUpdateState:"
 
@@ -104,6 +78,11 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
     // Generate the response.
     csmi_allocation_mcast_payload_response_t *response;
     csm_init_struct_ptr(csmi_allocation_mcast_payload_response_t, response);
+    
+    // Allocate memory for the detailed per gpu data
+    csm_init_struct_ptr(csmi_allocation_gpu_metrics_t, response->gpu_metrics);
+    response->gpu_metrics->num_gpus = 0;
+    response->gpu_metrics->num_cpus = 0;
 
     // setup the response.
     response->hostname = 
@@ -207,18 +186,21 @@ bool AllocationAgentUpdateState::InitNode(
         csm::daemon::helper::CGroup cgroup = 
                 csm::daemon::helper::CGroup(payload->allocation_id);
 
-        // If the payload was not for a shared allocation
-        if (payload->shared != CSM_TRUE)
+        if ( cgroup.IsEnabled() )
         {
-            // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
-            cgroup.ClearCGroups( payload->isolated_cores == 0 );
-            cgroup.SetupCGroups( payload->isolated_cores );
-        }
-        else 
-        {
-            cgroup.SetupCGroups( 0 );
-            // TODO num processors and num gpus.
-            cgroup.ConfigSharedCGroup( payload->projected_memory, payload->num_gpus, payload->num_processors );
+            // If the payload was not for a shared allocation
+            if (payload->shared != CSM_TRUE)
+            {
+                // Clear any remaining cgroups, if isolate cores is set to zero remove the system cgroup.
+                cgroup.ClearCGroups( payload->isolated_cores == 0 );
+                cgroup.SetupCGroups( payload->isolated_cores, payload->smt_mode );
+            }
+            else 
+            {
+                cgroup.SetupCGroups( 0 );
+                // TODO num processors and num gpus.
+                cgroup.ConfigSharedCGroup( payload->projected_memory, payload->num_gpus, payload->num_processors );
+            }
         }
 
         LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
@@ -415,10 +397,25 @@ bool AllocationAgentUpdateState::RevertNode(
         csm::daemon::helper::CGroup cgroup = 
                 csm::daemon::helper::CGroup(payload->allocation_id);
 
-        respPayload->cpu_usage = cgroup.GetCPUUsage();       // Agregate the cpu usage before leaving.
-        respPayload->memory_max = cgroup.GetMemoryMaximum(); // Get the high water mark of the memory usage.
+        if ( cgroup.IsEnabled() )
+        {
+            respPayload->cpu_usage = cgroup.GetCPUUsage();       // Agregate the cpu usage before leaving.
+            respPayload->memory_max = cgroup.GetMemoryMaximum(); // Get the high water mark of the memory usage.
 
-        cgroup.DeleteCGroups( true ); // Delete the system cgroup as well.
+            // Get detailed cpu_usage for each physical core
+            std::vector<int64_t> cpu_usage;
+            cgroup.GetDetailedCPUUsage(cpu_usage);           
+ 
+            respPayload->gpu_metrics->num_cpus = cpu_usage.size();
+
+            // Allocate memory for the per cpu arrays
+            respPayload->gpu_metrics->cpu_usage = (int64_t*)calloc(respPayload->gpu_metrics->num_cpus, sizeof(int64_t));
+
+            // Copy cpu metrics into response payload
+            std::copy(cpu_usage.begin(), cpu_usage.end(), respPayload->gpu_metrics->cpu_usage);  
+
+            cgroup.DeleteCGroups( true ); // Delete the system cgroup as well.
+        }
 
         LOG( csmapi, info ) <<  ctx << "Allocation ID: " << payload->allocation_id <<
             "; Message: Closed cgroups;";
@@ -454,14 +451,43 @@ bool AllocationAgentUpdateState::RevertNode(
     #endif
     
     // 4. In a delete get a snapshot after everything.
-    // TODO Should a failure trigger an error?
-    DataAggregators(respPayload);
-
-    bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
-        payload->allocation_id, respPayload->gpu_usage);
-    if ( gpu_usage_success == false )
+    // If the runtime is present and less than the total uptime of the node gather the data.
+    if ( payload->runtime > 0 && payload->runtime < csm::daemon::helper::GetUptime())
     {
-        respPayload->gpu_usage = -1;  
+        DataAggregators(respPayload);
+        std::vector<int32_t> gpu_id;
+        std::vector<int64_t> max_gpu_memory;
+        std::vector<int64_t> gpu_usage;
+
+
+        bool gpu_usage_success = csm::daemon::INV_DCGM_ACCESS::GetInstance()->StopAllocationStats(
+            payload->allocation_id, respPayload->gpu_usage, gpu_id, max_gpu_memory, gpu_usage);
+        if ( gpu_usage_success == false )
+        {
+            respPayload->gpu_usage = -1;
+        }
+        else
+        {
+            if ((gpu_id.size() == max_gpu_memory.size()) && (gpu_id.size() == gpu_usage.size()))
+            {
+                respPayload->gpu_metrics->num_gpus = gpu_id.size();
+
+                // Allocate memory for the per gpu arrays
+                respPayload->gpu_metrics->gpu_id         = (int32_t*)calloc(respPayload->gpu_metrics->num_gpus, sizeof(int32_t));
+                respPayload->gpu_metrics->gpu_usage      = (int64_t*)calloc(respPayload->gpu_metrics->num_gpus, sizeof(int64_t));
+                respPayload->gpu_metrics->max_gpu_memory = (int64_t*)calloc(respPayload->gpu_metrics->num_gpus, sizeof(int64_t));
+
+                // Copy metrics into response payload
+                std::copy(gpu_id.begin(), gpu_id.end(), respPayload->gpu_metrics->gpu_id);  
+                std::copy(gpu_usage.begin(), gpu_usage.end(), respPayload->gpu_metrics->gpu_usage);  
+                std::copy(max_gpu_memory.begin(), max_gpu_memory.end(), respPayload->gpu_metrics->max_gpu_memory);  
+            }
+            else
+            {
+                LOG( csmapi, warning ) <<  "Allocation ID: " << payload->allocation_id <<
+                    "; Message: detected size discrepancy in gpu metric vector sizes;";
+            }
+        }
     }
 
     LOG( csmapi, trace ) << STATE_NAME ":RevertNode: Exit";
@@ -535,41 +561,25 @@ int AllocationAgentUpdateState::RegisterAllocation( int64_t allocationId, const 
     int errorCode = 0;
     std::string allocationString(username);
     allocationString.append(";").append(std::to_string(allocationId)).append("\n");
-    
-    int openFlag = O_WRONLY | O_CLOEXEC;
-    
-    if ( shared )
-        openFlag |= O_APPEND;
-    else
-        openFlag |= O_TRUNC;
 
-    // Open the file descriptor.
-    errno=0;
-    int fileDescriptor = open(CSM_ACTIVELIST, openFlag );
-    errorCode = errno;
-
-    // Attempt to write the descriptor.
-    if( fileDescriptor >= 0 )
+    std::ofstream activelistStream(CSM_ACTIVELIST);
+    try
     {
-        errno=0;
-        write( fileDescriptor, allocationString.c_str(), allocationString.size() );
-        errorCode = errno;
-
-        errno=0;
-        close( fileDescriptor );
-    }
+        activelistStream << allocationString;
     
-    // If the error code is not zero report a warning.
-    if ( errorCode != 0 )
-    {
-        LOG( csmapi, warning ) <<  "Allocation ID: "
+        // Close the stream so it can be swapped.
+        activelistStream.close();
+
+    } catch (const std::ifstream::failure& e){
+        LOG( csmapi, error ) <<  "Allocation ID: "
             << std::to_string(allocationId) << 
-            "; Message: Unable to register allocation with daemon; errno string: "
-            << strerror(errorCode);
+            "; Message: Unable to register allocation with daemon; Extended Message: "
+            << e.what();
+        errorCode = 1;
     }
 
     LOG( csmapi, trace ) << STATE_NAME ":RegisterAllocation; Exit";
-
+    
     return errorCode;
 }
 
@@ -609,7 +619,9 @@ int AllocationAgentUpdateState::RemoveAllocation( int64_t allocationId )
             
             // Swap the temporary list with the official one.
             std::remove(CSM_ACTIVELIST);
-            std::rename(CSM_ACTIVELIST_SWAP, CSM_ACTIVELIST);
+            if ( std::rename(CSM_ACTIVELIST_SWAP, CSM_ACTIVELIST) )
+                LOG( csmapi, warning ) <<  "Allocation ID: " << std::to_string(allocationId)
+                << "; Message: Activelist couldn't be swapped;";
         }
         else
         {

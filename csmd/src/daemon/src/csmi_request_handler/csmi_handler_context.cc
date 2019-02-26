@@ -30,6 +30,7 @@ EventContextHandlerState::EventContextHandlerState(
         _PrivateCheck(false),
         _ExpectedNumResponses(0),
         _ReceivedNumResponses(0),
+        _MCASTNoTargetFail(true),
         _ErrorCode(CSMI_SUCCESS),
         _DBErrorCode(0),
         _NodeErrors({}),
@@ -57,6 +58,7 @@ EventContextHandlerState::EventContextHandlerState(const csm::daemon::EventConte
         _HasPrivateAccess(true),
         _ExpectedNumResponses(0),
         _ReceivedNumResponses(0),
+        _MCASTNoTargetFail(true),
         _ErrorCode(CSMI_SUCCESS),
         _ErrorMessage(""),
         _UserData(nullptr),
@@ -242,8 +244,20 @@ char* EventContextHandlerState::GetErrorSerialized(uint32_t* bufLen)
     if (error.errmsg) free(error.errmsg);
 
     return buffer;
-
 }
+
+void EventContextHandlerState::SetMCASTNoTargetSuccess()
+{
+    std::lock_guard<std::mutex> lock(_MCASTNoTargetFailMutex);
+    _MCASTNoTargetFail = false;
+}
+
+bool EventContextHandlerState::GetMCASTNoTargetFail()
+{
+    std::lock_guard<std::mutex> lock(_MCASTNoTargetFailMutex);
+    return _MCASTNoTargetFail;
+}
+
 
 
 void EventContextHandlerState::SetUserData( void* userData ) 

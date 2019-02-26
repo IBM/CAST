@@ -34,16 +34,16 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
+    int exitrc = 0;
     po::variables_map vm;
     po::options_description desc("Allowed options");
-    
-    desc.add_options()
-	("help", "Display this help message")
-        ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"))
-	;
-    
+
     try
     {
+        desc.add_options()
+        ("help", "Display this help message")
+        ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"));
+    
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }
@@ -90,15 +90,16 @@ int main(int argc, char *argv[])
     }
     catch(ExceptionBailout& e)
     {
+        LOG(bb,always) << "ExceptionBailout";
     }
     catch (exception& e)
     {
         LOG(bb,error) << "Exception: " << e.what();
-        exit(-1);
+        exitrc = -1;
     }
 
 #if USE_MPI
     MPI_Finalize();
 #endif
-    return 0;
+    return exitrc;
 }

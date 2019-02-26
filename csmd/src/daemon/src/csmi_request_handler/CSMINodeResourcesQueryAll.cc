@@ -239,6 +239,7 @@ void CSMINodeResourcesQueryAll::CreateOutputStruct(
 			if(vg_scheduler[counter][0] == 't'){
 				//this is the scheduler VG
 				scheduler_vg_slot = counter;
+                if( scheduler_vg_name ) free(scheduler_vg_name);
 				scheduler_vg_name = strdup(vg_name[counter]);
 				//found match; exit early condition meet
 				counter = vg_count;

@@ -19,15 +19,19 @@
 #include <sys/types.h> ///< File Status types.
 #include <sys/stat.h>  ///< File Status Functions.
 #include <sys/mount.h> ///< Mount function
-#include <unistd.h>    ///< Write/sync function
+#include <unistd.h>    ///< Write/sync function; environ
 #include <fcntl.h>     ///< Open function
 #include <errno.h>     ///< Errno
 #include <signal.h>    ///< Kill System call.
 #include <dirent.h>    ///< DIR and Directory sys calls.
+#include "csm_daemon_config.h"
 #include "logging.h"   ///< CSM logging.
 #include "cgroup.h" 
 #include "csm_handler_exception.h"
+#include "Agent.h"
+
 #include "csmi/include/csm_api_macros.h" // csm_get_enum_from_stringget_enum_from_string
+
 
 // TODO Might want to migrate to consts.
 ///< Syntactic sugar for directory flags.
@@ -61,6 +65,11 @@
 
 #define KB_TO_B(kB) kB * 1024
 
+
+///< CPUBLINK/SMT tools.
+#define CPU_PATH_MAX 128
+#define CPU_ONLINE_STR "/sys/devices/system/cpu/cpu%d/online"
+
 /// Enables a check for development enviroment.
 //#define VM_DEVELOPMENT 1
 
@@ -68,6 +77,8 @@ namespace csm {
 namespace daemon {
 namespace helper {
 
+static const char CPU_ONLINE  = '1';
+static const char CPU_OFFLINE = '0';
 static const char ENABLE_CONTROLLER         = '1'; ///< Syntactic Sugar
 static const char DISABLE_CONTROLLER        = '0'; ///< Syntactic Sugar
 
@@ -92,8 +103,9 @@ const std::string CGroup::MEM_DIR = std::string(CGroup::CONTROLLER_DIR).append(C
 
 bool CGroup::RepairSMTChange() 
 {
-    const char* CPUS  = "cpuset.cpus";
+    LOG(csmapi, trace) <<  _LOG_PREFIX "RepairSMTChange Enter";
 
+    const char* CPUS  = "cpuset.cpus";
     int32_t threads, sockets, threadsPerCore, coresPerSocket;
     // Get the CPUS and do a sanity check.
     if ( CGroup::GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) )
@@ -156,20 +168,26 @@ bool CGroup::RepairSMTChange()
     } 
     else
     {
+        LOG(csmapi, trace) << _LOG_PREFIX "RepairSMTChange Exit;";
         return false;
     }
 
+    LOG(csmapi, trace) << _LOG_PREFIX "RepairSMTChange Exit;";
     return true;
 }
 
 
 
-
-
-
 CGroup::CGroup( int64_t allocationId ):
-       _CGroupName(ALLOC_CGROUP)
+       _CGroupName(ALLOC_CGROUP),
+       _smtMode(0),
+       _enabled(true)
 {
+    LOG(csmapi, trace) << _LOG_PREFIX "CGroup Enter;";
+    // Get the jitter info.
+    csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
+    _enabled = jitterInfo.GetJitterMitigation();
+
     // Build the core cgroup name.
     if ( allocationId >= 0 )
         _CGroupName.append(std::to_string(allocationId)).append(_DIR_DELIM);
@@ -184,11 +202,13 @@ CGroup::CGroup( int64_t allocationId ):
 
         throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
     }
+    LOG(csmapi, trace) << _LOG_PREFIX "CGroup Exit;";
+
 }
 
 void CGroup::DeleteCGroups( bool removeSystem )
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Enter;";
     
     // Walk the list of cgroups that could be created and attempt to delete them.
     for ( uint32_t controller = CG_CPUSET; 
@@ -205,13 +225,17 @@ void CGroup::DeleteCGroups( bool removeSystem )
 
     }
 
-    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Exit";
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroups Exit;";
 }
 
-void CGroup::SetupCGroups(int64_t cores)
+void CGroup::SetupCGroups(int64_t cores, int16_t smtMode)
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Enter; cores: " << cores <<  "; smtMode:  " << smtMode;
+
     static_assert(CG_CPUSET == 0, "CG_CPUSET must have a value of 0.");
+    
+    // The SMT mode.
+    _smtMode = smtMode;
 
     // First create the control groups.
     const std::string groupCpuset = CreateCGroup( CGroup::CPUSET, _CGroupName );
@@ -256,30 +280,24 @@ void CGroup::SetupCGroups(int64_t cores)
     CopyParameter( MEMS, CGroup::CPUSET_DIR, groupCpuset );
 
     //WriteToParameter( MEM_LIMIT, CGroup::MEM_DIR, allocProjected.c_str(), allocProjected.size() );
-    // Generate the system cpuset if the cores are greater than zero.
-    if ( cores > 0)
-    {
-        const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
+    const std::string sysCpuset = CreateCGroup( CGroup::CPUSET, CGroup::SYSTEM_CGROUP );
 
-        WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
-        WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
+    WriteToParameter(        CPUS, sysCpuset,  sysCores.c_str(),  sysCores.size() );
+    WriteToParameter( MEM_MIGRATE, sysCpuset, &ENABLE_CONTROLLER, sizeof(ENABLE_CONTROLLER));
  
-        CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
-        MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
+    CopyParameter( MEMS, CGroup::CPUSET_DIR, sysCpuset );
+    MigrateTasks( CGroup::CPUSET_DIR, sysCpuset );
 
-        // Migrate the tasks.
-        for( uint32_t controller = CG_CPUSET + 1;
-            controller < csm_enum_max(csmi_cgroup_controller_t);
-            ++controller )
-        {
-            std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
-            MigrateTasks( 
-                std::string(CGroup::CONTROLLER_DIR)
-                    .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
-                cg );
-        }
-
-        // TODO Compute System CGroup limit.
+    // Migrate the tasks.
+    for( uint32_t controller = CG_CPUSET + 1;
+        controller < csm_enum_max(csmi_cgroup_controller_t);
+        ++controller )
+    {
+        std::string cg = CreateCGroup(csmi_cgroup_controller_t_strs[controller], CGroup::SYSTEM_CGROUP);
+        MigrateTasks( 
+            std::string(CGroup::CONTROLLER_DIR)
+                .append(csmi_cgroup_controller_t_strs[controller]).append("/"), 
+            cg );
     }
 
     LOG( csmapi, trace ) << _LOG_PREFIX "SetupCGroups Exit";
@@ -455,6 +473,8 @@ void CGroup::DeleteCGroup(
 
 void CGroup::MigratePid( pid_t pid ) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "MigratePid Enter; pid: " << pid;
+
     std::string pidStr = std::to_string(pid);
 
     for ( uint32_t controller = CG_CPUSET; 
@@ -470,10 +490,15 @@ void CGroup::MigratePid( pid_t pid ) const
         WriteToParameter( "tasks", controllerPath, pidStr.c_str(), pidStr.size() );
 
     }
+
+    LOG( csmapi, trace ) << _LOG_PREFIX "MigratePid Exit;";
 }
 
 bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepTime) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "WaitPidMigration Enter; pid: "<< pid << "; sleepAttempts: " << 
+        sleepAttempts << "; sleepTime: "<< sleepTime;
+
     bool success        = false; 
     std::string pidStr  = std::to_string(pid); // The stringified pid.
     uint32_t controller = CG_CPUSET; // Controller being checked.
@@ -528,11 +553,16 @@ bool CGroup::WaitPidMigration(pid_t pid, uint32_t sleepAttempts, uint32_t sleepT
         LOG(csmapi, error) << "Pid was not migrated successfully: " << pidStr << " ; Failed on cgroup " << 
             csmi_cgroup_controller_t_strs[controller] << " controller;";
     }
+    LOG( csmapi, trace ) << _LOG_PREFIX "WaitPidMigration Exit;";
+
     return success;
 }
 
 void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32_t numProcessors ) 
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "ConfigSharedCGroup Enter; projectedMemory: " << projectedMemory 
+        << "; numGPUs: " <<numGPUs << "; numProcessors: " << numProcessors;
+
     std::string memCGroup(CONTROLLER_DIR);
     memCGroup.append(MEM).append(_CGroupName);
 
@@ -575,7 +605,6 @@ void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32
         bool availableCores[cores];
         for(int32_t i = 0; i < cores; ++i) availableCores[i] = true;
         
-    
         DIR *sysDir =  opendir(cpusetRoot.c_str());  // Open the directory to search for subdirs.
         dirent *dirDetails;                         // Output struct for directory contents.
         
@@ -654,25 +683,98 @@ void CGroup::ConfigSharedCGroup( int32_t projectedMemory, int32_t numGPUs, int32
         // TODO Should this throw an exception?
         WriteToParameter(CPUS, cpuCGroup, " ", 1);
     }
+    LOG( csmapi, trace ) << _LOG_PREFIX "ConfigSharedCGroup Exit;";
 }
 
 int64_t CGroup::GetCPUUsage(const char* stepCGroupName) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetCPUUsage Enter;";
     // Build the usage path.
     const char* USAGE = "/cpuacct.usage";
     std::string usagePath(CGroup::CPUACCT_DIR);
     usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
 
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetCPUUsage Exit;";
     return ReadNumeric( usagePath );
 }
 
+bool CGroup::GetDetailedCPUUsage(std::vector<int64_t> &cpuUsage, const char* stepCGroupName) const
+{
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetDetailedCPUUsage Enter; stepCGroupName: "<< stepCGroupName;
+
+    // Build the usage path.
+    // cpuacct.usage_percpu always reports for each possible logical CPU
+    // In cases where not every CPU is configured or in use, that CPU will report 0
+    const char* USAGE = "/cpuacct.usage_percpu";
+    std::string usagePath(CGroup::CPUACCT_DIR);
+    usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
+    
+    // Make sure the output vector is empty
+    cpuUsage.clear();
+
+    std::string cpuacctStr = ReadString( usagePath );
+    if ( cpuacctStr.empty() )
+    {
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage Exit; Failed to read from " << usagePath;
+        return false;
+    }
+
+    // Read the logical cpu usage
+    std::vector<int64_t> logicalCpuUsage;
+    std::istringstream iss(cpuacctStr);
+    int64_t token;
+    while ( iss >> token )
+    {
+        logicalCpuUsage.push_back(token);
+    }
+
+    // Determine the number of physical cores
+    int32_t threads, sockets, threadsPerCore, coresPerSocket;
+    // Get the CPUS and do a sanity check.
+    if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
+            threads > 0        && 
+            sockets > 0        && 
+            threadsPerCore > 0 && 
+            coresPerSocket > 0 &&
+            (threads % sockets) == 0 &&
+            (logicalCpuUsage.size() % threadsPerCore) == 0)
+    {
+        // Calculate the physical core usage from the logical core usage
+        int64_t accumulatedUsage(0);
+        int32_t logicalCpuCount = logicalCpuUsage.size(); 
+        int32_t maxThreadsPerCore = logicalCpuCount / (sockets*coresPerSocket);
+
+        for ( int32_t i = 0; i < logicalCpuCount; i++ )
+        {
+            accumulatedUsage += logicalCpuUsage[i];
+            
+            if ((i % maxThreadsPerCore) == (maxThreadsPerCore-1))
+            {
+                cpuUsage.push_back(accumulatedUsage);
+                accumulatedUsage = 0;
+            }
+        }
+    }
+    else
+    {
+        LOG( csmapi, warning ) << _LOG_PREFIX "GetDetailedCPUUsage Exit; CPU data was invalid"; 
+        return false;
+    }
+
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetDetailedCPUUsage Exit;";
+    return true;
+}
+
+
 int64_t CGroup::GetMemoryMaximum(const char* stepCGroupName) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetMemoryMaximum Enter; stepCGroupName: " << stepCGroupName; 
     // Build the usage path.
     const char* USAGE = "/memory.max_usage_in_bytes";
     std::string usagePath(CGroup::MEM_DIR);
     usagePath.append(_CGroupName).append(stepCGroupName).append(USAGE);
 
+    LOG( csmapi, trace ) << _LOG_PREFIX "GetMemoryMaximum Exit;";
     return ReadNumeric( usagePath );
 }
 
@@ -683,7 +785,8 @@ const std::string CGroup::CreateCGroup(
     const char* controller, 
     const std::string& groupName ) const
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Enter; controller: "<< controller 
+        << "; groupName: " << groupName;
 
     // Construct the base cgroup path.
     std::string controllerPath(CONTROLLER_DIR);
@@ -745,7 +848,7 @@ const std::string CGroup::CreateCGroup(
         }
     } while( retry );
 
-    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Exit";
+    LOG( csmapi, trace ) << _LOG_PREFIX "CreateCGroup Exit;";
     return groupPath;
 }
 
@@ -754,7 +857,7 @@ void CGroup::DeleteCGroup(
     const std::string& groupName, 
     bool migrateTasksUp ) const
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroup Enter";
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteCGroup Enter; controller: " << controller << "; grounName: " <<groupName;
 
     // Build the controller path before the specialized group. 
     std::string controllerPath(CONTROLLER_DIR);
@@ -867,6 +970,9 @@ void CGroup::DeleteChildren(
     const std::string& groupPath, 
     bool migrateTasksUp ) const
 {
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteChildren Enter; controller: " << controller << "; groupName: " << groupName
+        << "; groupPath: " << groupPath;
+
     DIR *sysDir =  opendir(groupPath.c_str());  // Open the directory to search for subdirs.
     dirent *dirDetails;                         // Output struct for directory contents.
     
@@ -919,6 +1025,149 @@ void CGroup::DeleteChildren(
             }
         }
     }
+
+    LOG( csmapi, trace ) << _LOG_PREFIX "DeleteChildren Exit;";
+}
+
+int CGroup::CPUPower(
+    const uint32_t thread,
+    const char online ) 
+{
+    LOG( csmapi, trace ) << _LOG_PREFIX "CPUPower Enter; thread: " << thread;
+
+    char path[CPU_PATH_MAX];
+    int rc = 0;
+
+    sprintf(path, CPU_ONLINE_STR, thread);
+
+    int fileDescriptor = open( path,  O_WRONLY );
+    if( fileDescriptor >= 0 )
+    {
+        errno=0;
+        write(fileDescriptor, &online, sizeof(online));
+        rc=errno;
+        close( fileDescriptor );
+    }
+
+    LOG( csmapi, trace ) << _LOG_PREFIX "CPUPower Exit;";
+    return rc;
+}
+
+
+int CGroup::IRQRebalance( const std::string CPUs, bool startIRQBalance )
+{
+    LOG(csmapi, trace) << "CGroup::IRQRebalance Enter";
+    // stop irqbalance
+    
+    char* scriptArgs[] = { (char*)"/bin/systemctl", !startIRQBalance ?  (char*)"stop" : (char*)"start", 
+        (char*)"irqbalance", NULL };
+    
+
+    errno = 0;
+    ForkAndExec(scriptArgs);
+
+    if (  !startIRQBalance )
+    {
+        char* balanceKillArgs[] = { (char*)"/usr/bin/pkill", (char*)"irqbalance", NULL};
+        int pkillErr = ForkAndExec(balanceKillArgs);
+
+        switch ( pkillErr )
+        {
+            case 1:
+                break;
+            case 0:
+            {
+                LOG(csmapi, trace) << 
+                    "CGroup::IRQRebalance: Extra irqbalance daemons found verifying they're gone;";
+                sleep(1);
+
+                pkillErr = ForkAndExec(balanceKillArgs);
+                if ( pkillErr == 1 )
+                {
+                    LOG(csmapi, trace) <<
+                        "CGroup::IRQRebalance: Extra irqbalance daemons have been killed;";
+                }
+                else
+                {
+                    LOG(csmapi, warning) <<
+                        "CGroup::IRQRebalance: unable to kill irqbalance daemon, irqbalance stoppage not guaranteed;";
+                }
+                break;
+             }   
+            case 127:
+                LOG(csmapi, warning) << 
+                    "CGroup::IRQRebalance: pkill command not found, irqbalance stoppage not guaranteed;";
+                break;
+            default:
+                LOG(csmapi, warning) <<
+                    "CGroup::IRQRebalance: pkill command got an error, irqbalance stoppage not guaranteed; Error Code was: " << pkillErr;
+        }
+
+    }
+    
+    #define IRQ_PATH "/proc/irq/"
+    const char* CPUList = CPUs.c_str();
+    size_t CPUListLen   = CPUs.size();
+
+    DIR *sysDir =  opendir(IRQ_PATH);  // Open the directory to search for subdirs.
+    dirent *dirDetails;                         // Output struct for directory contents.
+
+    std::string affinityList(IRQ_PATH "default_smp_affinity");
+    int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
+    if( fileDescriptor >= 0 )
+    {
+        errno=0;
+        write( fileDescriptor, CPUList, CPUListLen);
+        int errorCode = errno;
+        close( fileDescriptor );
+    
+        // Build a verbose error for the user.
+        if ( errorCode != 0 )
+        {
+            LOG(csmapi, warning) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+        }
+    }
+
+    
+    // If the system directory could not be retrieved throw an exception.
+    if ( !sysDir )
+    {
+        std::string error = "IRQ directory was missing.";
+        error.append(strerror(errno));
+
+        LOG( csmapi, error ) << _LOG_PREFIX << error;
+        throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
+    }
+
+    // Construct a shared pointer to let RAII handle the close in the event of a thrown error.
+    std::shared_ptr<DIR> sysDirShared(sysDir, closedir);
+        
+    // Build the path for processing.
+    while ( ( dirDetails = readdir( sysDir ) ) ) // While this assignment is successful.
+    {
+        std::string affinityList(IRQ_PATH);
+        affinityList.append(dirDetails->d_name).append("/smp_affinity");
+        int fileDescriptor = open( affinityList.c_str(),  O_WRONLY | O_CLOEXEC );
+
+        if( fileDescriptor >= 0 )
+        {
+            errno=0;
+            write( fileDescriptor, CPUList, CPUListLen);
+            int errorCode = errno;
+            close( fileDescriptor );
+        
+            // Build a verbose error for the user.
+            if ( errorCode != 0 )
+            {
+                LOG(csmapi, trace) << "Could not write: \"" << CPUs << "\" to " << affinityList;
+            }
+        }
+    }
+    
+
+    LOG(csmapi, trace) << "CGroup::IRQRebalance Exit";
+
+    return 0;
 }
 
 void CGroup::WriteToParameter( 
@@ -1063,6 +1312,7 @@ uint64_t CGroup::MigrateTasks(
 
         // Open the file descriptor.
         fileDescriptor = open( targetTasks.c_str(),  O_WRONLY | O_CLOEXEC );
+        LOG(csmapi, trace) << "Opening File " << targetTasks;
         if( fileDescriptor < 0 )
         { 
             std::string error = "MigrateTasks; Could not open target file descriptor: " + 
@@ -1175,7 +1425,7 @@ uint64_t CGroup::KillTasks( const std::string& controlGroup, bool printPids ) co
         
         // XXX This makes it work, but we need to stress test it.
         int fileDescriptor = open( taskFile.c_str(),  O_WRONLY | O_CLOEXEC );
-        if( fileDescriptor > 0 )
+        if( fileDescriptor >= 0 )
         {
             syncfs( fileDescriptor );
             close( fileDescriptor );
@@ -1242,6 +1492,8 @@ bool CGroup::CheckFile( const char* path, bool isDir ) const
 bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets, 
     int32_t &threadsPerCore, int32_t &coresPerSocket)
 {
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCPUs Enter;";
+
     // Success of the execution
     bool success = true;
     threads = -1;
@@ -1308,108 +1560,260 @@ bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets,
     {
         success = false;
     }
+
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCPUs Exit;";
+
     return success;
 }
 
 void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string &groupCores)
 {
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCoreIsolation Enter;";
+    // Assemble the thread grouping 
+    #define assembleGroup( string )                                        \
+        string.append(std::to_string(groupStart));                         \
+        if ( groupStart != thread - 1 )                                    \
+        {                                                                  \
+            string.append(_RANGE_DELIM).append(std::to_string(thread - 1)); \
+        }\
+        string.append(_GROUP_DELIM);
+
+    // Get the jitter info.
+    csm::daemon::CSM_Jitter_Info jitterInfo = csm::daemon::Configuration::Instance()->GetJitterInfo();
+
     int32_t threads, sockets, threadsPerCore, coresPerSocket;
+    bool threadBlinkFailure = false;
+    
+    // ================================================================================
+
     // Get the CPUS and do a sanity check.
-    if ( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
+    if ( !( GetCPUs( threads, sockets, threadsPerCore, coresPerSocket ) && 
             threads > 0        && 
             sockets > 0        && 
             threadsPerCore > 0 && 
             coresPerSocket > 0 &&
-            (threads % sockets) == 0)
-    {
-        // Assemble the thread grouping 
-        #define assembleGroup( string )                                        \
-            string.append(std::to_string(groupStart)).append(DELIM);           \
-            if ( groupStart != thread - 1 )                                    \
-            {                                                                  \
-                string.append(std::to_string(thread - 1)).append(_GROUP_DELIM);\
-            }
-
-#ifdef VM_DEVELOPMENT
-        sockets        = 1;
-        threadsPerCore = 1;
-        coresPerSocket = 4;
-        const int32_t threadsPerCoreMax    = 1;
-        const int32_t threadsPerCoreOffset = 0;
-        const char* DELIM = _RANGE_DELIM;
-#else
-        // Determine the delimiter based on the number of PerSocket/hreads per core.
-        const char* DELIM = threadsPerCore > 2 ? _RANGE_DELIM : _GROUP_DELIM;
-        // Maximum number of logical cores per core.
-        const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
-        // Difference between the maximum and actual thread count per core.
-        const int32_t threadsPerCoreOffset = (threads / (sockets * coresPerSocket)) - threadsPerCore;
-#endif
-        // If SMT is not fully enabled (e.g. SMT=4 on the GTW), set the range to be disjointed. 
-        const bool rangeDisjointed = threadsPerCoreMax != threadsPerCore;
-        // Start of the system cgroup on the socket.
-        const int32_t SYSTEM_CORE_START = coresPerSocket - cores;
-
-        // For each socket build the system and allocation groups.
-        for( int32_t socket =0, thread = 0, groupStart = thread; 
-                socket < sockets; ++socket )
-        {
-            int32_t core = 0;
-            int32_t continuousRangeStart = groupStart;
-
-            // Then isolate the allocation cgroup.
-            for(; core < SYSTEM_CORE_START; ++core ) 
-            {
-                thread += threadsPerCore;
-                if ( rangeDisjointed )
-                {
-                    assembleGroup(groupCores);
-                }
-                thread +=threadsPerCoreOffset;
-                groupStart = thread;
-            }
-            // If the range was not disjointed assemble the range one time.
-            if ( !rangeDisjointed )
-            {
-                groupStart = continuousRangeStart;
-                assembleGroup(groupCores);
-            }
-
-            // Start the continuous range.
-            continuousRangeStart = groupStart = thread;
-            // First the socket should get the system cgroup.
-            for(; core < coresPerSocket; ++core ) 
-            {
-                thread += threadsPerCore;
-                if ( rangeDisjointed )
-                {
-                    assembleGroup(sysCores);
-                }
-                thread += threadsPerCoreOffset;
-                groupStart = thread;
-            } 
-            // If the range was not disjointed assemble the range one time.
-            if ( !rangeDisjointed )
-            {
-                groupStart = continuousRangeStart;
-                assembleGroup(sysCores);
-            }
-            groupStart = thread;
-        }
-    }
-    else
+            (threads % sockets) == 0 ) )
     {
         // Build the error for reporting the failure.
         std::string error("CreateCGroup; CPU data was invalid, couldn't create cgroup." );
         throw CSMHandlerException( error, CSMERR_CGROUP_FAIL );
     }
 
-    // Clear the last character.
-    groupCores.back() = ' ';
-    sysCores.back()   = ' ';
+//#define VM_DEVELOPMENT 1
+#ifdef VM_DEVELOPMENT
+    threads        = 160;
+    sockets        = 2;
+    threadsPerCore = 8;
+    coresPerSocket = 10;
+#endif
+    // Maximum number of logical cores per core.
+    const int32_t threadsPerCoreMax    = (threads / (sockets * coresPerSocket));
+    // Difference between the maximum and actual thread count per core.
+    const int32_t threadsPerCoreOffset = _smtMode > 0 && _smtMode < threadsPerCoreMax ? threadsPerCoreMax - _smtMode : 0;
+
+    // Compute the threads pre core, derived from smt mode.
+    threadsPerCore = threadsPerCoreMax - threadsPerCoreOffset;
+
+    // Cache the socket ordering locally.
+    // Character indicating that the core isolation direction.
+    const char L_TO_R_ISO          = '0';
+    std::string socketOrder        = jitterInfo.GetSocketOrder();
+    int32_t      configSocketCount = socketOrder.size();
+
+    for(; configSocketCount <  sockets; ++configSocketCount)
+    {
+        socketOrder.append("0");
+    }
+
+    // Setup the core isolation.
+    const int32_t ISO_MAX        = cores < jitterInfo.GetMaxCoreIso() ?
+        cores : jitterInfo.GetMaxCoreIso(); 
+    int32_t isolation            = ISO_MAX;  // Cores available for isolation.
+
+    // Setup the system SMT.
+    int32_t    systemSMT       =  jitterInfo.GetSystemSMT();
+    if ( systemSMT == 0 || systemSMT > threadsPerCore ) systemSMT = threadsPerCoreMax;
+ 
+    // Setup affinity blocks for IRQ affinity
+    int32_t numAffinityBlocks   = (int32_t)ceil( threads / 32.f );
+    int32_t activeAffinityBlock = 0;
+    uint32_t IRQMask = ((uint32_t)pow(2, systemSMT)) - 1;
+    std::vector<uint32_t> affinityBlocks ( numAffinityBlocks, 0 );
+
+    // ================================================================================
+
+    int32_t thread     = 0; // The active thread being processed.
+    int32_t groupStart = 0; // Start of group.
+    int32_t core       = 0; // The active core being processed.
+    bool    startIRQBalance = false;
+
+    // If core Isolation is zero expand to the whole system.
+    if ( isolation > 0 )
+    {
+        for (int32_t socket=0; socket < sockets; ++socket)
+        {
+            isolation = ISO_MAX;
+            
+            bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
+            
+            for ( core=0; core < coresPerSocket; ++core )
+            {
+                // thread = (left to right increase) :  (right to left decrease)
+                thread = LTOR ? 
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                    ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
+                
+                // Process the allocation core.
+                if ( isolation == 0 )
+                {
+                    groupStart = thread;
+
+                    // Offline all of the CPUs in the allocation section.
+                    for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
+                    {
+                        // If the core blink fails, turn core zero back on and set the coreBlinkFailure flag.
+                        if ( CPUPower(thread++, CPU_OFFLINE) )
+                        {
+                            CPUPower(0, CPU_ONLINE);
+                            threadBlinkFailure = true;
+                            CPUPower(thread-1,CPU_OFFLINE);
+                        }
+                    }
+
+                    thread -=threadsPerCoreOffset;
+                    assembleGroup(groupCores);
+                }
+                else
+                {
+                    groupStart = thread;
+                    
+                    // Iterate over the cores, bring all online cores online.
+                    int32_t cpu = 0; 
+                    for(; cpu < systemSMT      ; ++cpu ) CPUPower(thread++, CPU_ONLINE);
+
+                    int32_t extra_thread = thread;
+                    for(; cpu < threadsPerCoreMax; ++cpu ) CPUPower(extra_thread++, CPU_OFFLINE);
+                    
+                    assembleGroup(sysCores);
+                    isolation--;
+                    
+                    // XXX Today this assumes < 32 threads per core!
+                    activeAffinityBlock = (int32_t)((extra_thread - threadsPerCoreMax) / 32);
+                    int32_t coreShift=((extra_thread - threadsPerCoreMax) % 32);
+                    int32_t coreValue = IRQMask << coreShift;
+                    affinityBlocks[activeAffinityBlock] |=  coreValue;
+                }
+            }
+        }
+        
+        // Clear the last character.
+        groupCores.back() = ' ';
+        sysCores.back()   = ' ';
+    }
+    else
+    {
+        // Set this to blink the primary thread later.
+        threadBlinkFailure = true;
+        startIRQBalance    = true;
+        
+        // Set the cores up.
+        sysCores = groupCores = "";
+        for (int32_t socket=0; socket < sockets; ++socket)
+        {
+            for ( core=0; core < coresPerSocket; ++core )
+            {
+                thread =
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) ;
+
+
+                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+                {
+                     sysCores.append(std::to_string(thread++)).append(",");
+                } 
+            }
+        }
+        sysCores.back() = ' ';
+        groupCores = sysCores; 
+
+        
+        // Enable IRQ on all cores.
+        for ( int i = affinityBlocks.size()-1; i >= 0; --i)
+        {
+            affinityBlocks[i] = UINT32_MAX; 
+        }
+
+        // Shut down all of the cores.
+        for (thread=1; thread < threads; ++thread)
+        {
+            CPUPower(thread, CPU_OFFLINE);
+        }
+    }
+    // ================================================================================
+    
+    // Bring the allocation nodes back up with the correct smt mode.
+    for (int32_t socket=0; socket < sockets; ++socket)
+    {
+        isolation = ISO_MAX;
+        
+        bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
+        
+        for ( core=0; core < coresPerSocket; ++core )
+        {
+            // thread = (left to right increase) :  (right to left decrease)
+            thread = LTOR ? 
+                ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
+            //thread = LTOR ? ( ( socket * coresPerSocket ) + (core * threadsPerCore ) ) : 
+            //    ( ( coresPerSocket * (socket + 1) ) - ( ( core + 1 ) * threadsPerCore ) );
+
+            // Process the allocation core.
+            if ( isolation == 0 )
+            {
+                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
+                {
+                    CPUPower(thread++, CPU_ONLINE);
+                } 
+            }
+            else
+                --isolation;
+        }
+    }
+
+    // ================================================================================
+
+    // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
+    // in failure cases.
+    if ( threadBlinkFailure )
+    {
+        CPUPower( 0, CPU_OFFLINE );
+        CPUPower( 0, CPU_ONLINE );
+    }
+    
+    // ================================================================================
+    
+    // Create the IRQ Mask.
+    if ( jitterInfo.GetIRQAffinity() )
+    {
+        std::string affinityString;         // The list of banned CPUs for the affinity setting.
+        std::stringstream affinityStream;
+        for ( int i = affinityBlocks.size()-1; i >= 0; --i)
+        {
+            affinityStream << std::hex << (affinityBlocks[i] ) << ",";
+        }
+        affinityString = affinityStream.str();
+        affinityString.back() = ' ';
+        IRQRebalance(affinityString, startIRQBalance);
+        LOG(csmapi, trace) << "Affinity List:" << affinityString;
+    }
+
+    // ================================================================================
+    
+    LOG(csmapi, trace) << _LOG_PREFIX "GetCoreIsolation Enter; System: " << 
+        sysCores << "; Allocation: " << groupCores ;
 }
 
 } // End namespace helpers
 } // End namespace daemon
 } // End namespace csm
+
 

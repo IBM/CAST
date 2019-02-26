@@ -26,6 +26,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/filesystem.hpp>
+#include "tstate.h"
 #include "logging.h"
 #include "util.h"
 
@@ -52,27 +53,26 @@ void displayMiscompare(size_t low, size_t high, uint64_t count, size_t blockSize
 int main(int argc, char *argv[])
 {
     po::variables_map vm;
-    po::options_description desc("Allowed options");
-    boost::property_tree::ptree config;
-    config.put("comparefiles.log.consoleLog", true);
-    config.put("comparefiles.log.consoleStream", "stdout");
-    config.put("comparefiles.log.default_sev", "info");
-    
-    initializeLogging("comparefiles.log", config);
-    
-    desc.add_options()
-	("help", "Display this help message")
-        ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"))
-	;
-    
     try
     {
+        po::options_description desc("Allowed options");
+        boost::property_tree::ptree config;
+        config.put("comparefiles.log.consoleLog", true);
+        config.put("comparefiles.log.consoleStream", "stdout");
+        config.put("comparefiles.log.default_sev", "info");
+        
+        initializeLogging("comparefiles.log", config);
+        
+        desc.add_options()
+        ("help", "Display this help message")
+            ("filelist", po::value<string>()->default_value("/tmp/filelist_not_specified"));
+    
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }
     catch (exception& e)
     {
-        LOG(bb,error) << "Exception: " << e.what();
+        LOG(bb,error) << "Early exit exception: " << e.what();
         exit(-1);
     }
 
@@ -81,9 +81,9 @@ int main(int argc, char *argv[])
 #endif
     
     bool mismatch = false;
-    for(auto& ln : runCommand(vm["filelist"].as<string>(), true))
+    try
     {
-        try
+        for(auto& ln : runCommand(vm["filelist"].as<string>(), true))
         {
             vector<string> toks;
             
@@ -192,11 +192,16 @@ int main(int argc, char *argv[])
                 LOG(bb,always) << "File sizes are different";
             }
         }
-        catch(exception& e)
-        {
-            LOG(bb,always) << "Exception: " << e.what();
-            mismatch = true;
-        }
+    }
+    catch(ExceptionBailout& e)
+    {
+        LOG(bb,always) << "ExceptionBailout";
+        mismatch = true;
+    }
+    catch(exception& e)
+    {
+        LOG(bb,always) << "Exception: " << e.what();
+        mismatch = true;
     }
     
 #if USE_MPI

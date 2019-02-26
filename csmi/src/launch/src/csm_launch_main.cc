@@ -504,6 +504,8 @@ int32_t CreateAllocation(const list<string> &i_nodelist, const uint64_t &i_jobid
     cout << "  errcode=" << csm_api_object_errcode_get(csm_obj)
          << " errmsg=\"" << csm_api_object_errmsg_get(csm_obj) << "\"" << endl;
     
+    csm_api_object_destroy(csm_obj);
+    
     return retval;
   }
     

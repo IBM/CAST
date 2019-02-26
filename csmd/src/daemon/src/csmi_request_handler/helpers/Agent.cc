@@ -132,7 +132,7 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int t
         }
     }
     
-    // Dulplicate the file descriptors for processing.
+    // Duplicate the file descriptors for processing.
     if ( execPid == 0  )
     {
         close(uni_pipe[FROM_CHILD]);
@@ -149,20 +149,28 @@ int ForkAndExecCapture( char * const argv[], char **output, uid_t user_id, int t
         close(uni_pipe[TO_PARENT]);
         
 
-        size_t buffer_read= 0,buffer_total= 1;
+        ssize_t buffer_read= 0,buffer_total= 1;
         char buffer[BUFFER_SIZE];
         std::string fd_out("");        
 
         // TODO might be some buffer weirdness here.
-        while( (buffer_read = read( uni_pipe[FROM_CHILD], buffer, BUFFER_SIZE) ) )
+        while( (buffer_read = read( uni_pipe[FROM_CHILD], buffer, BUFFER_SIZE) ) > 0 )
         {
             buffer_total += buffer_read;
             fd_out.append(buffer, buffer_read);
         }
         close(uni_pipe[FROM_CHILD]);
 
-        *output = (char*)malloc(buffer_total);
-        strcpy(*output, fd_out.c_str());
+        // If less than zero store a failure string.
+        if ( buffer_total > 0 )
+        {
+            *output = (char*)malloc(buffer_total);
+            strcpy(*output, fd_out.c_str());
+        }
+        else
+        {
+            *output = strdup( "Capture Failed;" );
+        }
 
         // Wait for either the timeout or the exec.
         int rc = waitpid(execPid, &status, 0);
@@ -266,9 +274,13 @@ int ForkAndExec( char * const argv[] )
 
     if ( execPid > 0 )
     {
+        errno=0;
+        waitpid(execPid, &status, 0);
         //LOG( csmapi, warning ) << "Child PID: " << execPid ;
-        if (waitpid(execPid, &status, 0) == -1) {
-            ; // TODO additional error handle.
+        if (errno !=0)
+        {
+            LOG(csmapi, error) << "waitpid received error: " << errno << "; errstr: " << 
+                std::strerror(errno);
         }
     }
     else if ( execPid == 0  )

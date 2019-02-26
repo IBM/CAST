@@ -71,8 +71,7 @@ int csm_allocation_create(
     // Verify that the allocation has nodes, the state is valid and the number of shared nodes is valid.
     if(  !input                                                        || 
          (!(input->state == CSM_RUNNING || input->state == CSM_STAGING_IN)) ||
-         (input->isolated_cores < 0 || 
-            input->isolated_cores > CSM_API_CORE_MAX)                  || 
+         input->isolated_cores < 0                                     || 
          input->num_nodes == 0                                         || 
          (input->shared && input->num_nodes != 1)                      ||
          input->primary_job_id <= 0                                    || 
@@ -90,10 +89,10 @@ int csm_allocation_create(
         {
             csmutil_logging(error, "Invalid parameter: Allocations must have at least one node!");
         }
-        else if ( input->isolated_cores < 0 || input->isolated_cores > CSM_API_CORE_MAX )
+        else if ( input->isolated_cores < 0 )
         {
-            csmutil_logging(error, "Invalid parameter: isolated_cores (%d) is not in the "
-                "correct range [0 - %d]!", input->isolated_cores, CSM_API_CORE_MAX);
+            csmutil_logging(error, "Invalid parameter: isolated_cores (%d) must be greater than or equal to zero!"
+                , input->isolated_cores, CSM_API_CORE_MAX);
         }
         else if ( input->primary_job_id <= 0 )
         {

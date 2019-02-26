@@ -20,6 +20,11 @@
 #include "BBTransferDef.h"
 
 /*******************************************************************************
+ | Forward Declarations
+ *******************************************************************************/
+class BBLV_Info;
+
+/*******************************************************************************
  | Classes
  *******************************************************************************/
 
@@ -31,6 +36,8 @@ class BBTagParts
 {
   public:
     int allExtentsTransferred(const uint32_t pContribId);
+    int anyCanceledTransferDefinitions();
+    int anyFailedTransferDefinitions();
     int anyStoppedTransferDefinitions();
     int addTransferDef(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* &pTransferDef);
     int canceled(const uint32_t pContribId);
@@ -48,7 +55,7 @@ class BBTagParts
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
     int setCanceled(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     int setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
-    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_Info* pLV_Info, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
 
     inline size_t getNumberOfParts() const
     {

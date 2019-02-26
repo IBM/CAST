@@ -36,7 +36,7 @@ public:
             uint64_t timeout_length = csm::daemon::helper::BAD_TIMEOUT_LEN,
             uint64_t alternate = csm::daemon::helper::BAD_STATE):
         CSMIHandlerState(success, failure, final_state, timeout, 
-            timeout_length, alternate, STATE_NAME){}
+            timeout_length, alternate, STATE_NAME), _Handler(nullptr){}
     
 protected:
     virtual void Process(

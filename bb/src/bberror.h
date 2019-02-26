@@ -18,6 +18,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <exception>
 
 #include "connections.h"
 #include "tstate.h"
@@ -110,23 +111,31 @@
 }
 
 #define LOG_ERROR_RC_WITH_EXCEPTION(FILE,FUNC,LINE,EXCEPTION,RC) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << err("rc", RC) << EXCEPTION; \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << err("rc", RC) << EXCEPTION; \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(FILE,FUNC,LINE,EXCEPTION,RC,RASID) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << err("rc", RC) << EXCEPTION << RAS(RASID); \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << err("rc", RC) << EXCEPTION << RAS(RASID); \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_WITH_EXCEPTION(FILE,FUNC,LINE,EXCEPTION) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << EXCEPTION; \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << EXCEPTION; \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_WITH_EXCEPTION_AND_RAS(FILE,FUNC,LINE,EXCEPTION,RASID) { \
-    LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
-    bberror << EXCEPTION << RAS(RASID); \
+    try { \
+        LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
+        bberror << EXCEPTION << RAS(RASID); \
+    } catch(std::exception& e) {} \
 }
 
 #define LOG_ERROR_TEXT(TEXT) { \
@@ -342,6 +351,7 @@ class BBHandler : public TSHandler
 
         int addIncr(const char* file, const char* func, const char* crumb, signed long value, int updateExistingTS)
         {
+            int rc = 0;
             char l_File[64] = {'\0'};
             char l_KeyCount[256] = {'\0'};
             char l_KeyTS[256] = {'\0'};
@@ -360,6 +370,7 @@ class BBHandler : public TSHandler
 
                 id.lock();
 
+                try
                 {
                     // See if the key for "count" exists...
                     prepareKey(l_PreparedKey, l_KeyCount, sizeof(l_PreparedKey));
@@ -386,7 +397,10 @@ class BBHandler : public TSHandler
 //                    std::string result = get("json");
 //                    LOG(bb, info) << "bberror add+: " << result;
                 }
-
+                catch(std::exception& e)
+                {
+                    rc = -1;
+                }
                 id.unlock();
             }
             else
@@ -394,7 +408,7 @@ class BBHandler : public TSHandler
 //                LOG(bb,info) << "addIncr(): Connection name is None: file=" << file << ", func=" << func << ", crumb=" << crumb << ", value=" << value << ", updateExistingTS=" << updateExistingTS;
             }
 
-            return 0;
+            return rc;
         };
 
         int connectionNameIsEmpty()

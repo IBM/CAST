@@ -2,7 +2,7 @@
 #
 #    csmd/setupRPM.cmake
 #
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -30,3 +30,6 @@ set( CPACK_RPM_csm-core_POST_UNINSTALL_SCRIPT_FILE
 set( CPACK_RPM_csm-core_POST_INSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csmd/rpmscripts/csmd.post.install")
 
+set(CPACK_RPM_csm-core_PACKAGE_REQUIRES "nvme-cli")
+
+set(CPACK_RPM_csm-db_PACKAGE_REQUIRES "pv")

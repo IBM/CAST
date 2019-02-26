@@ -19,32 +19,30 @@
 #include "bb/include/bbapi.h"
 #include "bb/include/bbapiAdmin.h"
 
-
-
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-/* do declares */
-    int rc=0;
-    int i=0;
-    uint32_t l_contribId = 0;
-    char* l_MountPoint="/tmp/test";
-    mkdir(l_MountPoint,S_IRWXO);
+  /* do declares */
+  int rc = 0;
+  int i = 0;
+  uint32_t l_contribId = 0;
 
-for (i=0;i<100;i++)
-{    
-    rc=BB_InitLibrary(l_contribId, BBAPI_CLIENTVERSIONSTR);
-    if (rc){
-      printf("InitLibrary failed rc=%d\n",rc);
+  for (i = 0; i < 100; i++)
+  {
+    rc = BB_InitLibrary(l_contribId, BBAPI_CLIENTVERSIONSTR);
+    if (rc)
+    {
+      printf("InitLibrary failed rc=%d\n", rc);
       exit(-1);
     }
-    printf("InitLibrary called i=%d\t",i);
+    printf("InitLibrary called i=%d\t", i);
 
-    rc=BB_TerminateLibrary();
-    if (rc){
+    rc = BB_TerminateLibrary();
+    if (rc)
+    {
       printf("BB_TerminateLibrary failed\n");
     }
-    else printf("TerminateLibrary called i=%d\n",i);
-}    
-    return rc;
+    else
+      printf("TerminateLibrary called i=%d\n", i);
+  }
+  return rc;
 }

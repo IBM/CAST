@@ -59,7 +59,11 @@ Example (usage)
  usage: csm_db_history_archive.py [-h] [-t dir] [-n count] [-d db] [-u user]
                                   [--threads threads]
  
+ ------------------------------------------------------------------------------
  A tool for archiving the CSM Database history tables.
+ ------------------------------------------------------------------------------
+ LogDir:/var/log/ibm/csm/db/csm_db_archive_script.log
+ ------------------------------------------------------------------------------
  
  optional arguments:
    -h, --help            show this help message and exit
@@ -69,7 +73,7 @@ Example (usage)
                          Number of records to archive in the run. Default: 1000
    -d db, --database db  Database to archive tables from. Default: csmdb
    -u user, --user user  The database user. Default: postgres
-   --threads threads     The number of threads for the thread pool. Default: 2
+   --threads threads     The number of threads for the thread pool. Default: 10
  
  ------------------------------------------------------------------------------
 
@@ -102,18 +106,26 @@ The script may largely be broken into
 
 
 .. attention:: If this script below is run manually it will display the results to the screen.  
-    This script only handles per table archiving.
+    This script handles all history table archiving in the database.
 
 Script out results
 ------------------
 
 .. code-block:: bash
 
- [root@c650mnp02 db]# /opt/ibm/csm/db/csm_db_history_archive.py -d csmdb -t /tmp/test_archive_dir/ -n 100
+ [root@c650mnp02 db]# /opt/ibm/csm/db/csm_db_history_archive.py -d csmdb -n 100
  ---------------------------------------------------------------------------------------------------------
  Welcome to the CSM DB archiving script
  ---------------------------------------------------------------------------------------------------------
- Start Script Time:                 | 2018-11-23 11:25:02.027564
+ Start Script Time:                                    | 2019-02-13 18:29:58.203024
+ ---------------------------------------------------------------------------------------------------------
+ Archiving Log Directory:                              | /var/log/ibm/csm/db/csm_db_archive_script.log
+ ---------------------------------------------------------------------------------------------------------
+ DB Name:                                              | csmdb
+ DB User Name:                                         | postgres
+ Script User Name:                                     | root
+ Thread Count:                                         | 10
+ Archiving Data Directory:                             | /var/log/ibm/csm/archive
  ---------------------------------------------------------------------------------------------------------
  [INFO] Processing Table csm_config_history            | User Ct: 100        | Act DB Ct: 0
  [INFO] Processing Table csm_allocation_history        | User Ct: 100        | Act DB Ct: 0
@@ -141,11 +153,8 @@ Script out results
  [INFO] Processing Table csm_vg_ssd_history            | User Ct: 100        | Act DB Ct: 0
  [INFO] Processing Table csm_ras_event_action          | User Ct: 100        | Act DB Ct: 0
  ---------------------------------------------------------------------------------------------------------
- DB Name:                           | csmdb
- Archiving Log Directory:           | /var/log/ibm/csm/db/csm_db_archive_script.log
- Archiving Data Directory:          | /tmp/test_archive_dir/
- End Script Time:                   | 2018-11-23 11:25:02.130501
- Total Process Time:                | 0:00:00.102937
+ End Script Time:                                      | 2019-02-13 18:29:58.258318
+ Total Process Time:                                   | 0:00:00.055294
  ---------------------------------------------------------------------------------------------------------
  Finish CSM DB archive script process
  ---------------------------------------------------------------------------------------------------------
@@ -161,11 +170,19 @@ If a user specifies a non related DB in the system or if there are issues connec
 
 .. code-block:: bash
 
- [root@c650mnp02 db]# /opt/ibm/csm/db/csm_db_history_archive.py -d csmd -t /tmp/test_archive_dir/ -n 100
+ [root@c650mnp02 db]# /opt/ibm/csm/db/csm_db_history_archive.py -d csmd -t -n 100
  ---------------------------------------------------------------------------------------------------------
  Welcome to the CSM DB archiving script
  ---------------------------------------------------------------------------------------------------------
- Start Script Time:                 | 2018-11-23 11:44:17.535131
+ Start Script Time:                                    | 2019-02-13 18:35:18.071116
+ ---------------------------------------------------------------------------------------------------------
+ Archiving Log Directory:                              | /var/log/ibm/csm/db/csm_db_archive_script.log
+ ---------------------------------------------------------------------------------------------------------
+ DB Name:                                              | csmdb
+ DB User Name:                                         | postgres
+ Script User Name:                                     | root
+ Thread Count:                                         | 10
+ Archiving Data Directory:                             | /var/log/ibm/csm/archive
  ---------------------------------------------------------------------------------------------------------
  [CRITICAL] Unable to connect to local database.
  [CRITICAL] Unable to connect to local database.
@@ -193,11 +210,8 @@ If a user specifies a non related DB in the system or if there are issues connec
  [CRITICAL] Unable to connect to local database.
  [CRITICAL] Unable to connect to local database.
  ---------------------------------------------------------------------------------------------------------
- DB Name:                           | csmd
- Archiving Log Directory:           | /var/log/ibm/csm/db/csm_db_archive_script.log
- Archiving Data Directory:          | /tmp/test_archive_dir/
- End Script Time:                   | 2018-11-23 11:44:17.574674
- Total Process Time:                | 0:00:00.039543
+ End Script Time:                                      | 2019-02-13 18:29:58.258318
+ Total Process Time:                                   | 0:00:00.055294
  ---------------------------------------------------------------------------------------------------------
  Finish CSM DB archive script process
  ---------------------------------------------------------------------------------------------------------

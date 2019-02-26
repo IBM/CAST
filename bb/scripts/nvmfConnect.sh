@@ -24,10 +24,8 @@ cmd="modprobe nvme-rdma"
 echo "Executing: $cmd"
 $cmd
 
-cmd="/usr/sbin/nvme connect -t $network -n $nameSpace -a $ipAddr -s $port"
-echo "Executing: $cmd"
-$cmd
-
-#sleep 10
+cmd="/usr/sbin/nvme connect -t $network -n $nameSpace -a $ipAddr -s $port --hostnqn"
+echo "Executing: $cmd <redacted>"
+$cmd $NVMEKEY
 
 exit

@@ -26,7 +26,6 @@ include_directories(csmpam PRIVATE ./ ${BASEDIR}/ )
 
 if( ${RPMBUILD} )
     install(TARGETS csmpam COMPONENT csm-core DESTINATION /usr/lib64/security/)
-    install(FILES ../README.md  COMPONENT csm-core DESTINATION /etc/pam.d/csm/)
 else( !{RPMBUILD} )
     install(TARGETS csmpam COMPONENT csm-core DESTINATION csm/lib)
 endif( ${RPMBUILD} )

@@ -40,7 +40,11 @@ Table of Contents
 .. toctree::
     :maxdepth: 2
     
-    csm/index.rst
+    csm-apis/index.rst
     csmd/index.rst
     csmdb/index.rst
+    csm-integration/index.rst
+    csm-inventory/index.rst
     cast-big-data/index.rst
+    tools.rst
+    releases/index.rst

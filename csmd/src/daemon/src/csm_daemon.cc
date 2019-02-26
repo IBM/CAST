@@ -90,28 +90,41 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           _RunMode.Transition( csm::daemon::REASON_ERROR, EBADF );
           break;
         }
-        
+
         _RunMode.Transition();
         break;
       }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
       case csm::daemon::RUN_MODE::CONFIGURED:
       {
+        // Break if the configuraation is null.
+        if ( CSMDaemonConfig == nullptr )
+        {
+            errno = EINVAL;
+            CSMLOG( csmd, error ) << "Daemon Role Setup: config missing; errno=" << errno;
+            perror("Daemon Role Setup:");
+            return errno;
+        }
+
         // create the daemon cores, etc...
         // have to set up the pack/unpack functions in CSMI_MAPPING before creating DaemonCore
         csmi_cmd_hdl_init();
         // intitialize the static variables in HandlerOptions before creating DaemonCore
         csm::daemon::HandlerOptions::Init();
-        
+
         // create daemon core based on role
         switch( CSMDaemonConfig->GetRole() )
         {
           case CSM_DAEMON_ROLE_MASTER:
               DaemonCore = new csm::daemon::CoreMaster();
               connHdl = new csm::daemon::ConnectionHandling_master( CSMDaemonConfig->GetCriticalConnectionList(), &_RunMode );
-              dbMgr = new csm::daemon::EventManagerDB( CSMDaemonConfig->GetDBDefinitionInfo(), connHdl, DaemonCore->GetRetryBackOff() );
-              if( !dbMgr )
-                throw csm::daemon::Exception("BUG: failed to create database manager.");
+              try {
+                dbMgr = new csm::daemon::EventManagerDB( CSMDaemonConfig->GetDBDefinitionInfo(), connHdl, DaemonCore->GetRetryBackOff() );
+              }
+              catch( csm::daemon::Exception &e ) {
+                CSMLOG( csmd, debug ) << e.what();
+                _RunMode.Transition( csm::daemon::REASON_ERROR, EPROTONOSUPPORT );
+              }
               evMgrPool.push_back( dbMgr );
 
               break;
@@ -136,7 +149,7 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
             errno = EINVAL;
             CSMLOG( csmd, error ) << "Daemon Role Setup: errno=" << errno;
             perror("Daemon Role Setup:");
-            return errno;
+            throw csm::daemon::Exception("Unrecognized Daemon Role", errno );
         }
 
         // make sure there's a valid DaemonState in the config, then set the runmode ptr
@@ -163,22 +176,22 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           // set up the segfault handler
           struct sigaction act;
           sigset_t set;
-          
+
           memset(&act, 0, sizeof(act));
           sigemptyset(&set);
           act.sa_mask = set;
           act.sa_sigaction = csm::daemon::ThreadPool::segfault_sigaction_handler;
           act.sa_flags = SA_SIGINFO;
-          
+
           sigaction(SIGSEGV, &act, nullptr);
-          
+
           // though dbMgr/netMgr threads are not csmi handler, we record their ids in the handler map for debugging purpose
           if ( dbMgr ) dbMgr->RegisterThreads( thread_pool );
           if ( netMgr && netMgr->GetThread() ) thread_pool->MarkHandler( netMgr->GetThread()->get_id(), std::string("NetworkManager") );
           // record the main thread id too
           thread_pool->SetMainLoopThreadId( boost::this_thread::get_id() );
         }
-        
+
         threadMgr = new csm::daemon::ThreadManager( thread_pool, &evMgrPool );
 
         // set up the window timer tick handler
@@ -222,7 +235,7 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           }
           ConnectRetry.Reset();
           CSMLOG( csmd, debug ) << "CSM Daemon connected " << csm::daemon::RUN_MODE::to_string( GetRunMode() );
-          
+
           // now it's ready to register the call back
           DaemonCore->manage_thread_RegisterThreadManager( threadMgr );
         }
@@ -286,10 +299,9 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
 
           // need this checking when in READY_RUNNING_JOB. The earlier loop may exit with ce = nullptr
           if (ce == nullptr) continue;
-          
 
           CSMI_BASE *handler = DaemonCore->GetEventHandler( *ce );
-          
+
           CSMLOG(csmd, debug) << "==== [" << csm::daemon::DaemonState::event_count
               << "] event_type=" << csm::daemon::EventTypeToString( ce->GetEventType() )
               << " handler=" << handler->getCmdName()
@@ -331,7 +343,6 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
               _RunMode.Transition(reason);
             }
           }
-          
         }
         catch ( csm::network::Exception &e )
         {
@@ -368,16 +379,26 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           _WindowTimer = nullptr;
         }
 
-        if( threadMgr ) delete threadMgr;
-        if( DaemonCore ) delete DaemonCore;
+        if( threadMgr )
+        {
+          delete threadMgr;
+          threadMgr = nullptr;
+        }
+        if( DaemonCore )
+        {
+          delete DaemonCore;
+          DaemonCore = nullptr;
+        }
 
         // done by ~DaemonCore  if( netMgr ) delete netMgr;
         // done by ~DaemonCore  if( dbMgr ) delete dbMgr;
         // done by ~DaemonCore  if( timerMgr ) delete timerMgr;
-        if( connHdl ) delete connHdl;
+        if( connHdl )
+        {
+          delete connHdl;
+          connHdl = nullptr;
+        }
 
-
-        
         // if there is any crashed thread, try to remove it from thread_group before exiting.
         if ( thread_pool && thread_pool->HasThreadCrashed() )
           thread_pool->Recover(false);

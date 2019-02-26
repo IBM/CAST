@@ -36,11 +36,12 @@ def CancelTransfers(pEnv):
         bb.initEnv(pEnv)
 
         l_TargetHandle = pEnv["handle"]
+        l_CancelScope = pEnv["cancelscope"]
         l_Handles = bb.getHandles()
         for l_Handle in l_Handles:
             try:
                 if (l_TargetHandle == bb.NO_HANDLE or l_TargetHandle == l_Handle):
-                    BB_CancelTransfer(l_Handle)
+                    BB_CancelTransfer(l_Handle, l_CancelScope)
             except BBError as error:
                 error.handleError()
     except BBError as error:
@@ -72,6 +73,20 @@ def GetTransferInfo(pEnv):
         l_Handle = pEnv["handle"]
         l_Info = BB_GetTransferInfo(l_Handle)
         bb.printStruct(l_Info)
+    except BBError as error:
+        error.handleError()
+        rc = error.rc
+
+    return rc
+
+def GetUsage(pEnv):
+    rc = 0
+
+    try:
+        bb.initEnv(pEnv)
+
+        l_Mount = pEnv["MOUNT"]
+        BB_GetUsage(l_Mount)
     except BBError as error:
         error.handleError()
         rc = error.rc
@@ -235,113 +250,110 @@ def RestartTransfers(pEnv):
             l_Flags = BB_RTV_TRANSFERDEFS_FLAGS.get(pEnv["FLAGS"], DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS)
 
         l_ActiveServer = BB_GetServer("active")
-        if (l_ActiveServer != ""):
-            if (pEnv["IO_FAILOVER"]):
-                # New ESS, set up that environment
-                l_PrimaryServer = BB_GetServer("primary")
-                l_BackupServer = BB_GetServer("backup")
+        if (pEnv["IO_FAILOVER"]):
+            # New ESS, set up that environment
+            l_PrimaryServer = BB_GetServer("primary")
+            l_BackupServer = BB_GetServer("backup")
 
-                if (l_ActiveServer == l_PrimaryServer):
-                    l_NewServer = l_BackupServer
-                else:
-                    l_NewServer = l_PrimaryServer
+            if (l_ActiveServer == "" or l_ActiveServer == l_PrimaryServer):
+                l_NewServer = l_BackupServer
+            else:
+                l_NewServer = l_PrimaryServer
 
-                if (l_NewServer.upper() in ("NONE",)):
-                    raise BBError(rc=-1, text="There is no definied backup for this bbServer")
+            if (l_NewServer.upper() in ("NONE",)):
+                raise BBError(rc=-1, text="There is no definied backup for this bbServer")
 
-                '''
-                # Don't do this as it causes a window...  'activate' makes the swap atomically between the two servers...
-                try:
-                    BB_SetServer("offline", l_ActiveServer)
-                except BBError as error:
-                    if not error.handleError():
-                        raise
-                '''
+            '''
+            # Don't do this as it causes a window...  'activate' makes the swap atomically between the two servers...
+            try:
+                BB_SetServer("offline", l_ActiveServer)
+            except BBError as error:
+                if not error.handleError():
+                    raise
+            '''
 
-                try:
-                    BB_OpenServer(l_NewServer)
-                except BBError as error:
-                    if not error.handleError():
-                        raise
+            try:
+                BB_OpenServer(l_NewServer)
+            except BBError as error:
+                if not error.handleError():
+                    raise
 
-                bb.flushWaiters(l_ActiveServer)
-                BB_SetServer("activate", l_NewServer)
-
-            # NOTE: Try to let start transfers to complete their second volley
-            #       before suspending the connection(s)
             bb.flushWaiters(l_ActiveServer)
-            BB_Suspend(l_HostName)
-            l_ResumeCN_Host = True
+            BB_SetServer("activate", l_NewServer)
 
-            # NOTE: We do not want to close the connection to the previouly active server until we have
-            #       stopped any transfers that may still be running on that server
-            (l_NumberOfTranferDefs, l_TransferDefs, l_BytesForTransferDefs) = BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags)
-            if (l_NumberOfTranferDefs > 0):
-                if (not (l_Flags == BB_RTV_TRANSFERDEFS_FLAGS["ONLY_DEFINITIONS_WITH_STOPPED_FILES"])):
-                    l_NumStoppedTransferDefs = BB_StopTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
-                    print "%d transfer definition(s) were found already stopped or were stopped by the previous operation" % (l_NumStoppedTransferDefs)
-                else:
-                    l_NumStoppedTransferDefs = l_NumberOfTranferDefs
-                    print "Additional transfer definition(s) are not being stopped because the option passed on the retrieve transfer operation indicated %s" % (BB_RTV_TRANSFERDEFS_FLAGS[l_Flags])
+        # NOTE: Try to let start transfers to complete their second volley
+        #       before suspending the connection(s)
+        bb.flushWaiters(l_ActiveServer)
+        BB_Suspend(l_HostName)
+        l_ResumeCN_Host = True
+
+        # NOTE: We do not want to close the connection to the previouly active server until we have
+        #       stopped any transfers that may still be running on that server
+        (l_NumberOfTranferDefs, l_TransferDefs, l_BytesForTransferDefs) = BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags)
+        if (l_NumberOfTranferDefs > 0):
+            if (not (l_Flags == BB_RTV_TRANSFERDEFS_FLAGS["ONLY_DEFINITIONS_WITH_STOPPED_FILES"])):
+                l_NumStoppedTransferDefs = BB_StopTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
+                print "%d transfer definition(s) were found already stopped or were stopped by the previous operation" % (l_NumStoppedTransferDefs)
             else:
-                print "No transfer definition(s) were found given the provided input criteria.  An operation to stop transfers will not be attempted."
-
-            if (l_ResumeCN_Host):
-                l_ResumeCN_Host = False
-                try:
-                    # NOTE:  This resume will ensure that the new
-                    #        bbServer is 'resumed' from any prior
-                    #        suspend activity.  If the new bbServer
-                    #        is not suspended, it is a tolerated exception.
-                    #        This resume will also, via the async request file,
-                    #        resume the old bbServer for this CN hostname.
-                    #        However, any transfers on the old bbServer
-                    #        have been stopped, and thus, have been removed
-                    #        from any transfer queues.
-                    BB_Resume(l_HostName)
-                except BBError as error:
-                    if not error.handleError():
-                        raise
-
-            # NOTE: Even if no transfer definitions were stopped, we still need to issue the restart.
-            #       The stop transfer(s) could have actually been performed on other bbServers via
-            #       the async request file...
-            if (l_NumberOfTranferDefs > 0):
-                # Restart the transfers
-                l_NumRestartedTransferDefs = BB_RestartTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
-            else:
-                print "%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep)
-
-            if (pEnv["IO_FAILOVER"]):
-                # Now, close the connection to the previously active bbServer
-                try:
-                    # First, make sure we have no waiters...
- #                   bb.flushWaiters(l_ActiveServer)
-
-                    # Close the connection to the 'old' server
-                    BB_CloseServer(l_ActiveServer)
-                except BBError as error:
-                    if not error.handleError():
-                        raise
-
-            elif (0==1 and pEnv["CN_FAILOVER"]):
-                # New CN, set up that environment
-                # Not ready for prime time...
-
-                l_Mountpoint = pEnv["MOUNT"]
-                l_Owner = pEnv.get("OWNER", None)
-                l_Group = pEnv.get("GROUP", None)
-                l_Mode = int(pEnv.get("MODE", 0755))
-                l_LVSize = pEnv.get("SIZE", "1G")
-                sudo_CreateDirectory(pEnv, l_Mountpoint)
-                sudo_ChangeOwner(pEnv, l_Mountpoint, l_Owner, l_Group)
-                sudo_ChangeMode(pEnv, l_Mountpoint, l_Mode)
-                sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
-
-            l_ActiveServer = BB_GetServer("active")
+                l_NumStoppedTransferDefs = l_NumberOfTranferDefs
+                print "Additional transfer definition(s) are not being stopped because the option passed on the retrieve transfer operation indicated %s" % (BB_RTV_TRANSFERDEFS_FLAGS[l_Flags])
         else:
-            rc = -1
-            print "Initial request for the active server came back as an empty string"
+            print "No transfer definition(s) were found given the provided input criteria.  An operation to stop transfers will not be attempted."
+
+        if (l_ResumeCN_Host):
+            l_ResumeCN_Host = False
+            try:
+                # NOTE:  This resume will ensure that the new
+                #        bbServer is 'resumed' from any prior
+                #        suspend activity.  If the new bbServer
+                #        is not suspended, it is a tolerated exception.
+                #        This resume will also, via the async request file,
+                #        resume the old bbServer for this CN hostname.
+                #        However, any transfers on the old bbServer
+                #        have been stopped, and thus, have been removed
+                #        from any transfer queues.
+                BB_Resume(l_HostName)
+            except BBError as error:
+                if not error.handleError():
+                    raise
+
+        # NOTE: Even if no transfer definitions were stopped, we still need to issue the restart.
+        #       The stop transfer(s) could have actually been performed on other bbServers via
+        #       the async request file...
+        if (l_NumberOfTranferDefs > 0):
+            # Restart the transfers
+            l_NumRestartedTransferDefs = BB_RestartTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
+        else:
+            print "%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep)
+
+        if (pEnv["IO_FAILOVER"]):
+            # Now, close the connection to the previously active bbServer
+            try:
+                # First, make sure we have no waiters...
+ #               bb.flushWaiters(l_ActiveServer)
+
+                # Close the connection to the 'old' server
+                if (l_ActiveServer != ""):
+                    BB_CloseServer(l_ActiveServer)
+            except BBError as error:
+                if not error.handleError():
+                    raise
+
+        elif (0==1 and pEnv["CN_FAILOVER"]):
+            # New CN, set up that environment
+            # Not ready for prime time...
+
+            l_Mountpoint = pEnv["MOUNT"]
+            l_Owner = pEnv.get("OWNER", None)
+            l_Group = pEnv.get("GROUP", None)
+            l_Mode = int(pEnv.get("MODE", 0755))
+            l_LVSize = pEnv.get("SIZE", "1G")
+            sudo_CreateDirectory(pEnv, l_Mountpoint)
+            sudo_ChangeOwner(pEnv, l_Mountpoint, l_Owner, l_Group)
+            sudo_ChangeMode(pEnv, l_Mountpoint, l_Mode)
+            sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
+
+        l_ActiveServer = BB_GetServer("active")
 
     except BBError as error:
         error.handleError()
@@ -549,7 +561,10 @@ def RemoveLogicalVolume(pEnv):
 
     try:
         bb.initEnv(pEnv)
-        l_Mountpoint = pEnv["MOUNT"]
+        if (pEnv["procedure_args"] == ""):
+            l_Mountpoint = pEnv["MOUNT"]
+        else:
+            l_Mountpoint = pEnv["procedure_args"]
 
         BB_RemoveLogicalVolume(l_Mountpoint)
     except BBError as error:

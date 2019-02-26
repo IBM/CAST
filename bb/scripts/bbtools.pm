@@ -35,6 +35,7 @@ $VERSION = '0.01';
 
 use JSON;
 use Sys::Hostname;
+use File::Temp qw/ tempfile /;
 
 sub isSetuid
 {
@@ -230,12 +231,27 @@ sub untaint
 
 sub bpost
 {
-    my($desc, $mailbox) = @_;
+    my($desc, $mailbox, $filedata) = @_;
     $bpostbin = $ENV{'LSF_BINDIR'};
     if(($bpostbin ne "") && ($::SRMTYPE eq "LSF"))    # LSF available
     {
+        my $fh;
+        my $tmpfilename;
+        my $fileoption = "";
         $mailbox = $::BPOSTMBOX if(!defined $mailbox);
-        cmd("$bpostbin/bpost -d '$desc' -i $mailbox $::JOBID");
+        if($filedata ne "")
+        {
+            ($fh, $tmpfilename) = tempfile();
+            $fileoption = "-a $tmpfilename";
+            print $fh $filedata;
+        }
+        cmd("$bpostbin/bpost $fileoption -d '$desc' -i $mailbox $::JOBID");
+        
+        if($filedata ne "")
+        {
+            close($fh);
+            unlink($tmpfilename);
+        }
     }
     else
     {
@@ -306,10 +322,24 @@ sub bbgetrc
     return $json->{"rc"};
 }
 
+sub killpids
+{
+    open(TMP, "ps -o pid,ppid | grep $$ |");
+    while($line = <TMP>)
+    {
+        ($pid,$ppid) = $line =~ /(\d+)\s+(\d+)/;
+        if($ppid == $$)
+        {
+            system("kill -9 $pid");
+        }
+    }
+    close(TMP);
+}
 
 sub cmd
 {
-    my($cmd, $timeout) = @_;
+    my($cmd, $timeout, $postresults) = @_;
+    undef $::LASTOUTPUT;
     $cmd = untaint($cmd);
     if(!$QUIET) 
     { 
@@ -318,15 +348,34 @@ sub cmd
     $oldpath = $ENV{'PATH'};
     $ENV{'PATH'} = '/bin:/usr/bin';
 
-    alarm($timeout) if($timeout);
     eval
     {
-        system($cmd);
+        local $SIG{"ALRM"} = sub { die "alarm timeout\n" };
+        alarm($timeout) if($timeout);
+        if($postresults)
+        {
+            my @lines = ();
+            open(CMD, "$cmd |") || die "Unable to open $cmd";
+            local $SIG{"ALRM"} = sub { killpids(); close(CMD); die "alarm timeout\n" };
+            while(my $line = <CMD>)
+            {
+                chomp($line);
+                push(@lines, $line);
+            }
+            close(CMD);
+            $::LASTOUTPUT = join("\n", @lines);
+        }
+        else
+        {
+            system($cmd);
+        }
+        alarm(0);
     };
-    alarm(0) if($timeout);
+    alarm(0);
 
     $rc = $?;
     $rc = 110 if($@ =~ /alarm timeout/);  # ETIMEDOUT=110
+    $rc = 2   if($@ =~ /Unable to open/); # ENOENT=2
 
     print "command rc: $rc\n";
     $ENV{'PATH'} = $oldpath;
