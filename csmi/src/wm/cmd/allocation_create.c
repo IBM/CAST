@@ -96,7 +96,7 @@ static void help() {
 	puts("    -l, --launch_node_name | \"some_host\"     | (STRING) The hostname of the launch node for the allocation.");
 	puts("    -U, --user_id          | 0               | (INTEGER) The owner of this allocation's Linux user id.");
 	puts("                           |                 | ");
-	puts("    --isolated_cores       | 0               | (INTEGER) Specifies the number of cores ot isolate in the system cgroup ( if 0 the system cgroup will not be created ).");
+	puts("    --isolated_cores       | 0               | (INTEGER) Specifies the number of cores to isolate in the system cgroup (if 0 the system cgroup will not be created).");
 	puts("                           |                 | Valid values: [0 - 4]");
 	puts("    --smt_mode             | 0               | (SHORT) Specifies SMT mode. ");
 	puts("");
