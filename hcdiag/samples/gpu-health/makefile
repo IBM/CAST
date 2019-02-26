@@ -13,7 +13,10 @@
 #
 #================================================================================
 
+#PPC_ARCH=compute_60,code=sm_60
+PPC_ARCH=compute_70,code=sm_70
+
 gpu-health : gpu-health.cu
-	 nvcc -gencode arch=compute_70,code=sm_70 -O3   --compiler-options "-O3 -fopenmp" gpu-health.cu -o gpu-health -lcublas
+	 nvcc -gencode arch=$(PPC_ARCH) -O3   --compiler-options "-O3 -fopenmp" gpu-health.cu -o gpu-health -lcublas
 clean :
 	rm -f gpu-health
