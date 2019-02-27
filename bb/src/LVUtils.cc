@@ -2096,7 +2096,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                     {
                         // We have a filehandle to the source file...  If stagein, copy the stats
                         // passed back from bbserver into the filehandle for the source file.
-                        if ((e.flags & BBI_TargetSSD) || l_SimulateFileStageIn)
+                        if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFSPFS) || l_SimulateFileStageIn)
                         {
                             srcfile_ptr->updateStats(pStats[e.sourceindex]);
                         }
@@ -2210,9 +2210,10 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
 
                             // bbServer needs this extent so that it can send the appropriate completion messages back
                             // to bbProxy and update status for the transfer definition, LVKey, and handle.
-                            // Note that this dummy extent will be marked to actually transfer no data.
-                            // Also note that the length of the local copy is still filled into the extent
-                            // object for status purposes and updating the SSD usage information.
+                            // NOTE: This dummy extent will be marked to actually transfer no data.
+                            // NOTE: The length of the local copy is still filled into the extent
+                            //       object for status purposes.
+                            // NOTE: SSD usage information is NOT update for a local cp.
                             e.setCP_Tansfer();
                             e.len = 0;
 
@@ -2446,6 +2447,12 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                     {
                         // Remote->remote copy processing...
                         transfer->setAll_CN_CP_TransfersInDefinition(0);
+
+                        // bbServer needs this extent so that it can send the appropriate completion messages back
+                        // to bbProxy and update status for the transfer definition, LVKey, and handle.
+                        // NOTE: This dummy extent will be marked to actually transfer no data.
+                        // NOTE: The length of the remote copy is still filled into the extent
+                        //       object for status purposes.
                         e.flags |= BBI_TargetPFSPFS;
 
                         if (pPerformOperation)
