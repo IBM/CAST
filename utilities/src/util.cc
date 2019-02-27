@@ -111,7 +111,7 @@ int getIPAddrByInterface(const std::string& pInterface, std::string& pIPAddress)
     int l_RC = 0;
     int fd;
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) 
+    if (fd < 0)
     {
         l_RC=-errno;
         pIPAddress="0.0.0.0";
@@ -121,12 +121,12 @@ int getIPAddrByInterface(const std::string& pInterface, std::string& pIPAddress)
         struct ifreq ifr;
         ifr.ifr_addr.sa_family = AF_INET;
         strncpy(ifr.ifr_name, pInterface.c_str(), IFNAMSIZ-1);
-        if (!ioctl(fd, SIOCGIFADDR, &ifr)) 
+        if (!ioctl(fd, SIOCGIFADDR, &ifr))
         {
     //        printf("getIPAddrByInterface: pInterface=%s, pIPAddress=%s\n", pInterface.c_str(), inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
             pIPAddress.assign(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-        } 
-        else 
+        }
+        else
         {
             l_RC = -errno;
         }
@@ -162,7 +162,7 @@ int getUUID(const char* pLogicalVolumeDeviceName, Uuid& pUuid)
     {
         if(bfs::equivalent(uuid, vglv))
         {
-            LOG(bb,always) << "getUUID(): pLogicalVolumeDeviceName=" << pLogicalVolumeDeviceName << ", vglv=" << vglv.string() << ", uuid=" << uuid.path().filename().string();
+            LOG(bb,debug) << "getUUID(): pLogicalVolumeDeviceName=" << pLogicalVolumeDeviceName << ", vglv=" << vglv.string() << ", uuid=" << uuid.path().filename().string();
             pUuid.copyFrom(uuid.path().filename().string().c_str());
             return 0;
         }

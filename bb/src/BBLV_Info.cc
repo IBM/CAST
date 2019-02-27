@@ -563,16 +563,19 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     char l_OperationStr[64] = {'\0'};
     BBFILESTATUS l_FileStatus = BBFILE_NONE;
     char l_FileStatusStr[64] = {'\0'};
+    char l_SizePhrase[64] = {'\0'};
     size_t l_SizeTransferred = 0;
     if (!((pExtentInfo.getExtent())->flags & BBI_TargetSSDSSD))
     {
         if (!((pExtentInfo.getExtent())->flags & BBI_TargetPFSPFS))
         {
+            strCpy(l_SizePhrase, ", size transferred is ", sizeof(l_SizePhrase));
             strCpy(l_OperationStr, "Transfer ", sizeof(l_OperationStr));
             l_SizeTransferred = pTransferDef->getSizeTransferred(pExtentInfo.getSourceIndex());
         }
         else
         {
+            strCpy(l_SizePhrase, ", remote size copied is ", sizeof(l_SizePhrase));
             strCpy(l_OperationStr, "Remote PFS cp command ", sizeof(l_OperationStr));
             l_SizeTransferred = pExtentInfo.getExtent()->getLength();
         }
@@ -582,6 +585,7 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     }
     else
     {
+        strCpy(l_SizePhrase, ", local size copied is ", sizeof(l_SizePhrase));
         strCpy(l_OperationStr, "Previous cp command on the local compute node ", sizeof(l_OperationStr));
 
         l_FileStatus = BBFILE_SUCCESS;
@@ -647,7 +651,7 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
                  << pTransferDef->files[pExtentInfo.getSourceIndex()] << ", " << *pLVKey << ",";
     LOG(bb,info) << "           handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " \
                  << pExtentInfo.getSourceIndex() << ", file status " << l_FileStatusStr << ",";
-    LOG(bb,info) << "           transfer type " << l_TransferType << ", size transferred is " << l_SizeTransferred << ".";
+    LOG(bb,info) << "           transfer type " << l_TransferType << l_SizePhrase << l_SizeTransferred << ".";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.

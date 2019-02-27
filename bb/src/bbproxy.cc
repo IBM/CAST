@@ -3469,6 +3469,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     char l_TransferType[64] = {'\0'};
     getStrFromTransferType(((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData(), l_TransferType, sizeof(l_TransferType));
     uint64_t l_SizeTransferred = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::sizetransferred))->getData();
+    char l_SizePhrase[64] = {'\0'};
 
     // NOTE: No processing to perform for a local cp transfer...
     if (!((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSDSSD))
@@ -3536,6 +3537,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
             if ((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSD ||
                 (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS)
             {
+                strCpy(l_SizePhrase, ", size transferred is ", sizeof(l_SizePhrase));
                 try
                 {
                     // Remove target file (if open)
@@ -3572,6 +3574,16 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                     fh = NULL;
                 }
             }
+            else
+            {
+                // Remote copy
+                strCpy(l_SizePhrase, ", remote size copied is ", sizeof(l_SizePhrase));
+            }
+        }
+        else
+        {
+            // Local copy
+            strCpy(l_SizePhrase, ", local size copied is ", sizeof(l_SizePhrase));
         }
     }
 
@@ -3621,7 +3633,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for source file " << l_SourceFile << ", LV device " << l_DevName \
                  << ", jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", sourceindex " << l_SourceIndex \
                  << ", file status " << l_FileStatusStr << ", transfer type " << l_TransferType \
-                 << ", size transferred " << l_SizeTransferred;
+                 << l_SizePhrase << l_SizeTransferred;
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
 
@@ -4011,6 +4023,8 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                     //        using that 'registered' logical volume, just as if the 'real' create
                     //        logical volume were performed on the CN when the new bbServer was
                     //        already servicing the CN.
+                    LOG(bb,info) << "msgin_setserver(): " << l_DevNames.size() << " existing logical volume(s) found." \
+                                 << " An attempt to register each to the new server " << serverName << " will be attempted.";
                     for (size_t i=0; i<l_DevNames.size(); ++i)
                     {
                         Uuid l_lvuuid;
@@ -4048,15 +4062,35 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
                                 // Wait for the response
                                 rc = waitReply(reply, msgserver);
-                                if (!rc)
-                                {
-                                    LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
-                                                 << " was registered to the new server for jobid " << l_LV_Data.jobid;
-                                }
-                                else
+                                if (rc)
                                 {
                                     errorText << "waitReply failure when processing device " << l_DevNames[i];
                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText,rc);
+                                }
+
+                                rc = bberror.merge(msgserver);
+                                switch (rc)
+                                {
+                                    case 0:
+                                    {
+                                        LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << " was registered to the new server for jobid " << l_LV_Data.jobid;
+                                    }
+                                    break;
+
+                                    case -2:
+                                    {
+                                        LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << ", registration was not necessary for jobid " << l_LV_Data.jobid << ". See bbServer console log for more information.";
+                                    }
+                                    break;
+
+                                    default:
+                                    {
+                                        LOG(bb,error) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << ", registration failed for jobid " << l_LV_Data.jobid << ". See bbServer console log for more information." \
+                                                     << " Continuing to process additional devices...";
+                                    }
                                 }
 
                                 if (msgserver)
@@ -4076,12 +4110,12 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                         }
                         else
                         {
-                            rc = 0;
                             errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
                                       << ". The logical volume associated with this device will not be registered to the new bbServer." \
                                       << ". Processing continues for additional burst buffers logical volumes.";
                             LOG_ERROR_TEXT(errorText);
                         }
+                        rc = 0;
                     }
                 }
                 else
