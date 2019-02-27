@@ -1536,7 +1536,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 l_UnconditionalRestart = true;
                 LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
                              << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
-                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not reponding." \
+                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not responding." \
                              << " The transfer definition will be stopped and then restarted.";
             }
             // Fall through is intended...

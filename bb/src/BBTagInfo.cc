@@ -953,8 +953,11 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, BB
         {
             // No files in the request
             uint64_t l_OriginalFileFlags = l_ContribIdFileToProcess->flags;
+            pTransferDef->setExtentsEnqueued();
             SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_Extents_Enqueued, 1);
+            pTransferDef->setAllExtentsTransferred();
             SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_All_Extents_Transferred, 1);
+            pTransferDef->setAllFilesClosed();
             SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_All_Files_Closed, 1);
             if (l_OriginalFileFlags != l_ContribIdFileToProcess->flags)
             {
