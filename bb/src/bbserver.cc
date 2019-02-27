@@ -2268,7 +2268,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         errorText << "Failure occurred between the first and second calls to the servicing bbServer " \
                                   << "when attempting to start or restart the transfer definition associated with " \
                                   << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                  << ".  The necessary local metedata for the transfer definition could not be found.";
+                                  << ".  The necessary local metadata for the transfer definition could not be found.";
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
