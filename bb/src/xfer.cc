@@ -652,25 +652,32 @@ int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, cons
     int rc = becomeUser(pContribIdFile->getUserId(), pContribIdFile->getGroupId());
     if (!rc)
     {
-        // We mark this transfer definition as stopped
+        // We mark this transfer definition as extents enqueued
         // Update the status for the ContribId and Handle files in the xbbServer data...
-        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Stopped, 1);
+        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Extents_Enqueued, 1);
 
-        // We mark this transfer definition as canceled
-        // Now update the status for the ContribId and Handle files in the xbbServer data...
         if (!rc)
         {
-            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Canceled, 1);
-            // We mark this transfer definition as all extents processed
+            // We mark this transfer definition as stopped
+            // Update the status for the ContribId and Handle files in the xbbServer data...
+            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Stopped, 1);
+
+            // We mark this transfer definition as canceled
             // Now update the status for the ContribId and Handle files in the xbbServer data...
             if (!rc)
             {
-                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Extents_Transferred, 1);
-                // We mark this transfer definition as all files closed
+                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Canceled, 1);
+                // We mark this transfer definition as all extents processed
                 // Now update the status for the ContribId and Handle files in the xbbServer data...
                 if (!rc)
                 {
-                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Files_Closed, 1);
+                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Extents_Transferred, 1);
+                    // We mark this transfer definition as all files closed
+                    // Now update the status for the ContribId and Handle files in the xbbServer data...
+                    if (!rc)
+                    {
+                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Files_Closed, 1);
+                    }
                 }
             }
         }
@@ -856,6 +863,9 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         else
         {
             // Dummy extent for file with no extents
+            pTransferDef->setExtentsEnqueued();
+            pTransferDef->setAllExtentsTransferred();
+            pTransferDef->setAllFilesClosed();
             ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
         }
     }
@@ -893,6 +903,9 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         // Dummy extent for file with no extents
+        pTransferDef->setExtentsEnqueued();
+        pTransferDef->setAllExtentsTransferred();
+        pTransferDef->setAllFilesClosed();
         ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
 
@@ -911,6 +924,9 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         }
 
         // Dummy extent for file with no extents
+        pTransferDef->setExtentsEnqueued();
+        pTransferDef->setAllExtentsTransferred();
+        pTransferDef->setAllFilesClosed();
         ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
