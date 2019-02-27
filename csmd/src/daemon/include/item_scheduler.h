@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/item_scheduler.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -17,7 +17,7 @@
 #define CSMD_SRC_DAEMON_INCLUDE_ITEM_SCHEDULER_H_
 
 #include <strings.h>
-
+#include <chrono>
 #include <algorithm>
 
 #include "logging.h"
@@ -92,12 +92,20 @@ public:
   {
     BucketEntry *entry = new BucketEntry();
 
+    // calculate initial offset and ticks based on a fixed point of time in the past (e.g. begin of epoch)
+    uint64_t SyncTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>( std::chrono::system_clock::now().time_since_epoch() ).count();
+    uint64_t SyncTimeOver = SyncTimeSeconds % i_IntervalMySec;
+    uint64_t SyncTimeOffset = i_IntervalMySec - SyncTimeOver;
+
+    uint64_t InitialTicks = ( SyncTimeOffset + i_Offset ) / _Size;
+    uint64_t InitialSlot = ( SyncTimeOffset + i_Offset ) % _Size;
+
     entry->_Identifier = i_Identifier;
     entry->_Interval = i_IntervalMySec;
-    entry->_RemainingTicks = (entry->_Interval-1) / _Size;
+    entry->_RemainingTicks = InitialTicks;
     entry->_Next = nullptr;
 
-    Queue( entry, i_Offset );
+    Queue( entry, InitialSlot );
 
     LOG( csmd, debug ) << "Add Itemscheduler item:" << entry->_Identifier << " itv=" << entry->_Interval << " ticks=" << entry->_RemainingTicks;
     ++_ItemCount;
