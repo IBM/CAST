@@ -33,3 +33,7 @@ set( CPACK_RPM_csm-core_POST_INSTALL_SCRIPT_FILE
 set(CPACK_RPM_csm-core_PACKAGE_REQUIRES "nvme-cli")
 
 set(CPACK_RPM_csm-db_PACKAGE_REQUIRES "pv")
+
+# ibm-csm-tools rpm settings
+set(CPACK_RPM_csm-tools_PACKAGE_ARCHITECTURE "noarch")
+set(CPACK_RPM_csm-tools_PACKAGE_REQUIRES "numpy")
