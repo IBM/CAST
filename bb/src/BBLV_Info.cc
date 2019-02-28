@@ -329,8 +329,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             {
                 unlockTransferQueue(pLVKey, "removeFromInFlight - Waiting for inflight queue to clear");
                 {
-                    // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 4)
+                    // NOTE: Currently set to send info to console after 3 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 12)
                     {
                         FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
                                  pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);

@@ -2949,8 +2949,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << *pLVKey;
                     // Source file for extent being inspected has NOT been closed.
                     // Delay a bit for it to clear the in-flight queue and be closed...
-                    // NOTE: Currently set to log after 1 second of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 4)
+                    // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 12)
                     {
                         FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
                                  (uint64_t)l_CurrentNumberOfInFlightExtents, (uint64_t)l_LV_Info->getJobId(), 0, 0);
