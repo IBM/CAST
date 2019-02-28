@@ -2094,7 +2094,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                     rc = findFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
                     if (rc == 0)
                     {
-                        // We have a filehandle to the source file...  If stagein, copy the stats
+                        // We have a filehandle to the source file...  If stagein or remote cp, copy the stats
                         // passed back from bbserver into the filehandle for the source file.
                         if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFSPFS) || l_SimulateFileStageIn)
                         {
@@ -2213,7 +2213,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             // NOTE: This dummy extent will be marked to actually transfer no data.
                             // NOTE: The length of the local copy is still filled into the extent
                             //       object for status purposes.
-                            // NOTE: SSD usage information is NOT update for a local cp.
+                            // NOTE: SSD usage information is NOT updated for a local cp.
                             e.setCP_Tansfer();
                             e.len = 0;
 

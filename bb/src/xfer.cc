@@ -652,7 +652,7 @@ int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, cons
     int rc = becomeUser(pContribIdFile->getUserId(), pContribIdFile->getGroupId());
     if (!rc)
     {
-        // We mark this transfer definition as extents enqueued
+        // We mark this transfer definition as extents enqueued.
         // Update the status for the ContribId and Handle files in the xbbServer data...
         rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Extents_Enqueued, 1);
 
