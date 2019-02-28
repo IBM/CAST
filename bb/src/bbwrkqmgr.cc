@@ -1550,10 +1550,23 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
+        // Remove the work queue from the map
         WRKQE* l_WrkQE = it->second;
         wrkqs.erase(it);
+
+        // If the work queue being removed is currently
+        // identified as the last work queue in the map
+        // with work items (not likely...), then reset
+        // lastQueueWithEntries so it is recalculated
+        // next time we try to findWork().
+        if (*pLVKey == lastQueueWithEntries)
+        {
+            lastQueueWithEntries = LVKey_Null;
+        }
+
         if (l_WrkQE)
         {
+            // Delete the work queue entry
             if (l_WrkQE->getRate())
             {
                 // Removing a work queue that had a transfer rate.
