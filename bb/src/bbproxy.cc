@@ -3580,11 +3580,11 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                 strCpy(l_SizePhrase, ", remote size copied is ", sizeof(l_SizePhrase));
             }
         }
-        else
-        {
-            // Local copy
-            strCpy(l_SizePhrase, ", local size copied is ", sizeof(l_SizePhrase));
-        }
+    }
+    else
+    {
+        // Local copy
+        strCpy(l_SizePhrase, ", local size copied is ", sizeof(l_SizePhrase));
     }
 
     // Build the response message
