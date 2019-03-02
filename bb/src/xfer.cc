@@ -428,7 +428,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                             if (!rc)
                                             {
                                                 // Update the handle status
-                                                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
+                                                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, pContribId, 0, 0, FULL_SCAN);
                                                 if (!rc)
                                                 {
                                                     // Indicate to restart this transfer definition as it is now marked as stopped
@@ -654,29 +654,29 @@ int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, cons
     {
         // We mark this transfer definition as extents enqueued.
         // Update the status for the ContribId and Handle files in the xbbServer data...
-        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Extents_Enqueued, 1);
+        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Extents_Enqueued, 1);
 
         if (!rc)
         {
             // We mark this transfer definition as stopped
             // Update the status for the ContribId and Handle files in the xbbServer data...
-            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Stopped, 1);
+            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Stopped, 1);
 
             // We mark this transfer definition as canceled
             // Now update the status for the ContribId and Handle files in the xbbServer data...
             if (!rc)
             {
-                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Canceled, 1);
+                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Canceled, 1);
                 // We mark this transfer definition as all extents processed
                 // Now update the status for the ContribId and Handle files in the xbbServer data...
                 if (!rc)
                 {
-                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Extents_Transferred, 1);
+                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Extents_Transferred, 1);
                     // We mark this transfer definition as all files closed
                     // Now update the status for the ContribId and Handle files in the xbbServer data...
                     if (!rc)
                     {
-                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Files_Closed, 1);
+                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Files_Closed, 1);
                     }
                 }
             }
@@ -860,14 +860,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                 }
             }
         }
-        else
-        {
-            // Dummy extent for file with no extents
-            pTransferDef->setExtentsEnqueued();
-            pTransferDef->setAllExtentsTransferred();
-            pTransferDef->setAllFilesClosed();
-            ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
-        }
     }
 
     else if(pExtent->flags & BBI_TargetPFSPFS)
@@ -901,12 +893,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                 // Not possible...
                 break;
         }
-
-        // Dummy extent for file with no extents
-        pTransferDef->setExtentsEnqueued();
-        pTransferDef->setAllExtentsTransferred();
-        pTransferDef->setAllFilesClosed();
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
 
     else if(pExtent->flags & BBI_TargetSSDSSD)
@@ -922,12 +908,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
             LOG(bb,info) << "Local compute node SSD copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
-
-        // Dummy extent for file with no extents
-        pTransferDef->setExtentsEnqueued();
-        pTransferDef->setAllExtentsTransferred();
-        pTransferDef->setAllFilesClosed();
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {

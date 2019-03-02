@@ -309,8 +309,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
-    //        the compute node or remotely on the I/O node.
-    if ( (!(pExtentInfo.getExtent()->isCP_Transfer())) )
+    //        the compute node or remotely on the I/O node.  A single extent is enqueued
+    //        for a local/remote cp for a file.
+    if (!(pExtentInfo.getExtent()->isCP_Transfer()))
     {
         // An actual transfer of data was performed...
         // NOTE:  However, the length could be zero for a file with no extents
@@ -407,15 +408,15 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                     LOG(bb,error) << "removeFromInFlight: Could not retrieve the BBIO object for extent " << pExtentInfo.getExtent();
                 }
             }
-
             // Update the status for the file in xbbServer data
             ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
-
             l_UpdateTransferStatus = true;
         }
     }
     else
     {
+        // Update the status for the file in xbbServer data
+        ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
         l_UpdateTransferStatus = true;
     }
 
@@ -424,12 +425,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
         // Update any/all transfer status
         updateAllTransferStatus(pConnectionName, pLVKey, pExtentInfo, THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE);
 
-        // Update handle status
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getTransferDef()->getJobStepId(), pExtentInfo.getHandle(), 0))
-        {
-            LOG(bb,error) << "BBLV_Info::removeFromInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
-                          << ", jobstepid " << pExtentInfo.getTransferDef()->getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib();
-        }
+        // NOTE: The handle status does not need to be updated here, as it is updated as part of updating the ContribIdFile
+        //       when updateAllTransferStatus() is invoked above.
     }
 
     // NOTE:  Removing the extent from the in-flight queue has to be done AFTER

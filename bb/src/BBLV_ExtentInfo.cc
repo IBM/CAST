@@ -203,15 +203,10 @@ void BBLV_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKey* 
 //    dump("info", "After insert");
 //    dumpInFlight("info");
 
-    // If this is the first transferred extent for a sourcefile, update the status for the handle file in xbbServer data
-    if (pExtentInfo.extent->flags & BBI_First_Extent)
-    {
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getTransferDef()->getJobStepId(), pExtentInfo.getHandle(), 0))
-        {
-            LOG(bb,error) << "BBLV_ExtentInfo::addToInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
-                          << ", jobstepid " << pExtentInfo.getTransferDef()->getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib();
-        }
-    }
+    // NOTE: We used to update the metadata handle status here if this was the first extent for a transfer definition
+    //       and for the first contributor, the handle status would transition from BBNOTSTARTED to BBINPROGRESS.
+    //       However, it was later changed to where the handle status immediately transitions to BBINPROGRESS as
+    //       part of start transfer.
 
     return;
 }

@@ -391,9 +391,10 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     return rc;
 }
 
-int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue)
+int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION pAllowBumpOfReportingContribs, const uint64_t pFlags, const int pValue)
 {
     int rc = 0;
+    int32_t l_NumOfContribsBump = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_UpdateFile, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
@@ -432,26 +433,40 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
 
             l_ContribIdFile->flags = l_NewFlags;
 
+            // If the bump of reporting contribs is allowed, *and* 'extents enqueued' is not currently on in the current ContribId flags, *and*
+            // we are now turning on 'extents enqueued', bump the number of reporting contributors
+            if ((pAllowBumpOfReportingContribs) && (!(l_Flags & BBTD_Extents_Enqueued)) && (pValue && (pFlags & BBTD_Extents_Enqueued)))
+            {
+                l_NumOfContribsBump = 1;
+            }
+
             rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-            if (!rc) {
-                // NOTE:  Pass a zero for the size.  Size is only updated when the last extent for a file is transferred.
-                // NOTE:  We invoke update_xbbServerHandleStatus() here instead of update_xbbServerHandleFile().  This is because
-                //        none of the attributes that we turn on for the contribid file are absolute to the handle file.  When turning
-                //        on an attribute, it has to be calculated along with information from the other contributors.  Update status
-                //        performs this logic.  When turning off an attribute (restart logic), some of these are absolute to the
-                //        handle file but the same calculation logic in update status will turn off those attributes in the handle file.
-                //        This calculation of an attribute is only performed by update status when a FULL_SCAN is performed.
-                // NOTE:  If the stopped, failed, or canceled flag is set, specify that a FULL_SCAN be performed by
-                //        update_xbbServerHandleStatus() so that the handle status is set correctly.
-                // NOTE:  If we are turning a flag off, specify that a FULL_SCAN be performed by update_xbbServerHandleStatus()
-                //        so that the corresponding attribute in the handle file is set correctly.
-                if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0,
-                     (((!pValue) || l_ContribIdFile->flags & BBTD_Stopped || l_ContribIdFile->flags & BBTD_Failed || l_ContribIdFile->flags & BBTD_Canceled) ? FULL_SCAN : NORMAL_SCAN)))
+            if (!rc)
+            {
+                // Only update the handle file status if the status could change
+                if ((!pValue) || pFlags & BB_UpdateHandleStatusMask1)
                 {
-                    LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFile():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
-                                  << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                    // NOTE:  Pass a zero for the size.  Size is only updated when the last extent for a file is transferred.
+                    // NOTE:  We invoke update_xbbServerHandleStatus() here instead of update_xbbServerHandleFile().  This is because
+                    //        none of the attributes that we turn on for the contribid file are absolute to the handle file.  When turning
+                    //        on an attribute, it has to be calculated along with information from the other contributors.  Update status
+                    //        performs this logic.  When turning off an attribute (restart logic), some of these are absolute to the
+                    //        handle file but the same calculation logic in update status will turn off those attributes in the handle file.
+                    //        This calculation of an attribute is only performed by update status when a FULL_SCAN is performed.
+                    // NOTE:  If the stopped, failed, or canceled flag is set, specify that a FULL_SCAN be performed by
+                    //        update_xbbServerHandleStatus() so that the handle status is set correctly.
+                    // NOTE:  If we are turning a flag off, specify that a FULL_SCAN be performed by update_xbbServerHandleStatus()
+                    //        so that the corresponding attribute in the handle file is set correctly.
+                    if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, pContribId, l_NumOfContribsBump, 0,
+                         (((!pValue) || l_ContribIdFile->flags & BBTD_Stopped || l_ContribIdFile->flags & BBTD_Failed || l_ContribIdFile->flags & BBTD_Canceled) ? FULL_SCAN : NORMAL_SCAN)))
+                    {
+                        LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFile():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
+                                      << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
+                    }
                 }
-            } else {
+            }
+            else
+            {
                 LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFile():  Failure when attempting to save the cross bbServer contribs file for jobid " << pJobId \
                               << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
             }
@@ -530,7 +545,7 @@ int ContribIdFile::update_xbbServerContribIdFileResetForRestart(const LVKey* pLV
                 //        This calculation of an attribute is only performed by update status when a FULL_SCAN is performed.
                 // NOTE:  If we are turning a flag off, specify that a FULL_SCAN be performed by update_xbbServerHandleStatus()
                 //        so that the corresponding attribute in the handle file is set correctly.
-                if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, FULL_SCAN))
+                if (HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, pContribId, 0, 0, FULL_SCAN))
                 {
                     LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFileResetForRestart():  Failure when attempting to update the cross bbServer handle status for jobid " << pJobId \
                                   << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
@@ -580,6 +595,7 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, uint64_t pHandle, uint32_t pContribId, Extent* pExtent, const uint64_t pFlags, const int pValue)
 {
     int rc = 0;
+    int32_t l_NumOfContribsBump = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_UpdateStatus, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId);
@@ -670,7 +686,8 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                 }
 
                 // For restart logic, if BBTD_All_Extents_Transferred is being turned off, turn off BBTD_All_Files_Closed also.
-                if ((!pValue) && (pFlags & BBTD_All_Extents_Transferred)) {
+                if ((!pValue) && (pFlags & BBTD_All_Extents_Transferred))
+                {
                     SET_FLAG_VAR(l_Flags, l_Flags, BBTD_All_Files_Closed, pValue);
                     SET_FLAG_VAR(l_NewContribIdFlags, l_NewContribIdFlags, BBTD_All_Files_Closed, pValue);
                 }
@@ -703,14 +720,26 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                 // Now, adjust any ContribId flag values...
                 //
                 // Only set the BBTD_All_Files_Closed flag for the ContribIdFile if the BBTD_All_Extents_Transferred is set for the overall ContribId file
-                if ((l_NewContribIdFlags & BBTD_All_Extents_Transferred) || (pValue && (pFlags & BBTD_All_Extents_Transferred))) {
-                    if (l_ContribIdFile->allFilesClosed()) {
-                        SET_FLAG_VAR(l_NewContribIdFlags, l_NewContribIdFlags, BBTD_All_Files_Closed, 1);
+                if (!(l_NewContribIdFlags & BBTD_All_Files_Closed))
+                {
+                    if ((l_NewContribIdFlags & BBTD_All_Extents_Transferred) || (pValue && (pFlags & BBTD_All_Extents_Transferred)))
+                    {
+                        if (l_ContribIdFile->allFilesClosed())
+                        {
+                            SET_FLAG_VAR(l_NewContribIdFlags, l_NewContribIdFlags, BBTD_All_Files_Closed, 1);
+                        }
                     }
                 }
 
                 // Set the new ContribId flag values...
                 l_ContribIdFile->flags = l_NewContribIdFlags;
+
+                // If not for restart, *and* 'extents enqueued' is not currently on in the current ContribId flags, *and*
+                // we are now turning on 'extents enqueued', bump the number of reporting contributors
+                if ((!(pTransferDef->builtViaRetrieveTransferDefinition())) && (!(l_ContribIdFlags & BBTD_Extents_Enqueued)) && (pValue && (pFlags & BBTD_Extents_Enqueued)))
+                {
+                    l_NumOfContribsBump = 1;
+                }
 
                 if ((l_ContribIdFlags != l_NewContribIdFlags) || (l_IncomingFlags != l_NewFlags) || (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize))
                 {
@@ -730,17 +759,28 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 
                     // Save the contribid file
                     rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                    if (!rc) {
-                        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pTransferDef->getJobId(), pTransferDef->getJobStepId(), pHandle, (int64_t)(l_ContribIdFile->totalTransferSize-l_IncomingTransferSize))) {
-                            LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to update the cross bbServer handle status for jobid " << pTransferDef->getJobId() \
-                                          << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
+                    if (!rc)
+                    {
+                        int64_t l_SizeDelta = (int64_t)(l_ContribIdFile->totalTransferSize-l_IncomingTransferSize);
+                        // Only update the handle file status if the transfer size/status could change
+                        if ((!pValue) || l_SizeDelta || pFlags & BB_UpdateHandleStatusMask1)
+                        {
+                            if (HandleFile::update_xbbServerHandleStatus(pLVKey, pTransferDef->getJobId(), pTransferDef->getJobStepId(), pHandle, pContribId, l_NumOfContribsBump, l_SizeDelta, NORMAL_SCAN))
+                            {
+                                LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to update the cross bbServer handle status for jobid " << pTransferDef->getJobId() \
+                                              << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
+                            }
                         }
-                    } else {
+                    }
+                    else
+                    {
                         LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Failure when attempting to save the cross bbServer contribs file for jobid " << pTransferDef->getJobId() \
                                       << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
                     }
                 }
-            } else {
+            }
+            else
+            {
                 LOG(bb,error) << "ContribIdFile::update_xbbServerFileStatus():  Invalid sourceindex " << pExtent->sourceindex << " for jobid " << pTransferDef->getJobId() \
                               << ", jobstepid " << pTransferDef->getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId;
             }

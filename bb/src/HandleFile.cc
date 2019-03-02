@@ -1318,7 +1318,7 @@ void HandleFile::unlock(const int pFd)
     return;
 }
 
-int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue)
+int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue)
 {
     int rc = 0;
     stringstream errorText;
@@ -1361,10 +1361,16 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
         if (!rc)
         {
-            // Update the handle status
-            // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
-            //        Performing the full scan will re-calculate the attribute value across all bbServers.
-            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN));
+            // Only update the handle file status if the status could change
+            if ((!pValue) || pFlags & BB_UpdateHandleStatusMask2)
+            {
+                // Update the handle status
+                // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
+                //        Performing the full scan will re-calculate the attribute value across all bbServers.
+                // NOTE:  We can unconditionally indicate that the number of contribs bump value is zero.
+                //        We never update the 'extents_enqueued' flag via this update_xbbServerHandleFile() interface.
+                rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, pContribId, 0, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN));
+            }
         }
     }
     else
@@ -1372,13 +1378,6 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", jobstepid " << pJobStepId  << ", handle " << pHandle;
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
-
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
 
     if (l_HandleFile)
     {
@@ -1395,10 +1394,16 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
                  l_FL_Counter, pHandle, rc, 0);
     }
 
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+
     return rc;
 }
 
-int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption)
+int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int32_t pNumOfContribsBump, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption)
 {
     int rc = 0;
     stringstream errorText;
@@ -1459,7 +1464,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             // and other status indications...
             uint64_t l_AllFilesClosed = 1;           // Optimistic coding...
             uint64_t l_AllExtentsTransferred = 1;    // Optimistic coding...
-            uint64_t l_NumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
+            uint64_t l_OrigNumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
             bool l_CanceledDefinitions = false;
             bool l_FailedDefinitions = false;
             bool l_StoppedDefinitions = false;
@@ -1530,7 +1535,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 }
             }
 
-            if (l_ScanOption == FULL_SCAN)
+            if (!l_ExitEarly)
             {
                 // Reset the appropriate attribute flags
                 l_HandleFile->flags &= BB_ResetHandleFileAttributesFlagsMask;
@@ -1540,22 +1545,20 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 {
                     l_HandleFile->flags |= BBTD_All_Extents_Transferred;
                 }
-                if (l_CanceledDefinitions)
+                if (l_AllFilesClosed)
                 {
-                    l_HandleFile->flags |= BBTD_Canceled;
-                }
-                if (l_FailedDefinitions)
-                {
-                    l_HandleFile->flags |= BBTD_Failed;
+                    l_HandleFile->flags |= BBTD_All_Files_Closed;
                 }
                 if (l_StoppedDefinitions)
                 {
                     l_HandleFile->flags |= BBTD_Stopped;
                 }
-                if (l_AllFilesClosed)
-                {
-                    l_HandleFile->flags |= BBTD_All_Files_Closed;
-                }
+            }
+
+            if (pNumOfContribsBump)
+            {
+                l_HandleFile->numReportingContribs += pNumOfContribsBump;
+                l_HandleFile->reportingContribs.push_back(pContribId);
             }
 
             if (!rc)
@@ -1571,7 +1574,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 //       state directly by the code setting an individual transfer definition as STOPPED.
                 if (!l_StoppedDefinitions)
                 {
-                    if (l_NumberOfHandleReportingContribs == l_HandleFile->numContrib)
+                    if (l_HandleFile->numReportingContribs == l_HandleFile->numContrib)
                     {
                         // All contributors have reported...
                         l_HandleFile->flags |= BBTI_All_Contribs_Reported;
@@ -1590,12 +1593,10 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             //       for the last extent.  It is turned on here as this is the only
                             //       place where we determine when all extents have been processed
                             //       across ALL bbServers associated with this handle.
-                            l_HandleFile->flags |= BBTD_All_Extents_Transferred;
                             if (l_AllFilesClosed)
                             {
                                 // All files have been marked as closed (but maybe not successfully,
                                 // but then those files are marked as BBFAILED...)
-                                l_HandleFile->flags |= BBTD_All_Files_Closed;
                                 if (!l_FailedDefinitions)
                                 {
                                     if (!l_CanceledDefinitions)
@@ -1625,7 +1626,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                     else
                     {
                         // Not all contributors have reported
-                        if (!l_NumberOfHandleReportingContribs)
+                        if (!l_HandleFile->numReportingContribs)
                         {
                             l_HandleFile->status = BBNOTSTARTED;
                         }
@@ -1647,9 +1648,21 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->totalTransferSize = (uint64_t)l_Size;
 
                 uint64_t l_EndingStatus = l_HandleFile->status;
-                if ( !(l_StartingTotalTransferSize == l_HandleFile->totalTransferSize && l_StartingFlags == l_HandleFile->flags && l_StartingStatus == l_EndingStatus) )
+                if ( !(pNumOfContribsBump == 0 && l_StartingTotalTransferSize == l_HandleFile->totalTransferSize && l_StartingFlags == l_HandleFile->flags && l_StartingStatus == l_EndingStatus) )
                 {
                     LOG(bb,info) << "xbbServer: For jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ":";
+                    if (pNumOfContribsBump)
+                    {
+                        if (l_OrigNumberOfHandleReportingContribs < l_HandleFile->numReportingContribs)
+                        {
+                            LOG(bb,info) << "           Number of reporting contributors increasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
+                        }
+                        else
+                        {
+                            LOG(bb,info) << "           Number of reporting contributors decreasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
+                        }
+                    }
+
                     if (l_StartingTotalTransferSize != l_HandleFile->totalTransferSize)
                     {
                         if (l_StartingTotalTransferSize < l_HandleFile->totalTransferSize)
@@ -1698,13 +1711,6 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
-
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
@@ -1718,6 +1724,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     {
         FL_Write(FLMetaData, HF_UpdateStatus_ErrEnd, "update handle status, counter=%ld, handle=%ld, rc=%ld",
                  l_FL_Counter, pHandle, rc, 0);
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
     }
 
     return rc;
@@ -1862,18 +1874,18 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
         // bberror has already been filled in
     }
 
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
     }
 
     FL_Write6(FLMetaData, HF_UpdateTransferKeys_End, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",
