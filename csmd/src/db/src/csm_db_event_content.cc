@@ -20,13 +20,6 @@
 #include <libpq-fe.h>                         //: Postgresql header.
 #include <boost/locale.hpp>
 
-#define UTF8_BAD_CHAR ' '
-#define CLEAR_UTF8_BAD_SIZE(str, size) for( int i = 0; i < size; ++i) { \
-    if (str[i] == 192 || str[i] == 193 || (str[i] >= 245 && str[i] <= 255)) str[i] = UTF8_BAD_CHAR; }
-
-#define CLEAR_UTF8_BAD(str) for( int i = 0; str[i]; ++i) { \
-    if (str[i] == 192 || str[i] == 193 || (str[i] >= 245 && str[i] <= 255)) str[i] = UTF8_BAD_CHAR; }
-
 namespace csm {
 namespace db {
 
@@ -100,9 +93,8 @@ void DBReqContent::AddTextParam( const char* text )
     if ( text && _NumParams != 0  && _ParamIndex < _NumParams )
     {
         // If the text param was null calloc a size 1 string.
-        char* tempText = (char*)strdup(text);
-        CLEAR_UTF8_BAD(tempText)
-        _ParamValues[_ParamIndex]  = tempText;
+        std::string utf8Text = boost::locale::conv::utf_to_utf<char>(text);
+        _ParamValues[_ParamIndex]  = (char*)strdup( utf8Text.c_str() );
 
         _ParamFormats[_ParamIndex] = 0; // Text field.
         _ParamSizes[_ParamIndex]   = strlen(_ParamValues[_ParamIndex]) + 1;
@@ -116,14 +108,24 @@ void DBReqContent::AddTextParam( const char* text, int size )
     {
         if (text)
         {
-            _ParamValues[_ParamIndex]  = (char*) malloc(size);
-            memcpy( _ParamValues[_ParamIndex], text, size );
-            CLEAR_UTF8_BAD_SIZE(_ParamValues[_ParamIndex], size)
+            // Get the fixed string as a null terminated string.
+            int tempSize = text[size-1] == 0 ? size : size + 1;
+            char* tempText  = (char*) calloc(tempSize, sizeof(char));
+            memcpy( tempText, text, tempSize );
 
+            // Convert to utf8.
+            std::string utf8Text = boost::locale::conv::utf_to_utf<char>(text);
+            free(tempText);
+            
+            // Allocate the target point grab enough from the encoded string to fill.
+            _ParamValues[_ParamIndex] =  (char*) calloc(size, sizeof(char));
+            tempSize = size > 0 && (uint64_t) size > utf8Text.length() ? utf8Text.length() : size;
+            memcpy(_ParamValues[_ParamIndex], utf8Text.c_str(), tempSize); 
         }
         else
         {
-            _ParamValues[_ParamIndex] = (char*) calloc(1, sizeof(char));
+            // Empty string.
+            _ParamValues[_ParamIndex] = (char*) calloc(size, sizeof(char));
         }
 
         _ParamFormats[_ParamIndex] = 0; // Text field.
@@ -152,9 +154,9 @@ void DBReqContent::AddTextArrayParam( const char* const * elements, uint32_t siz
         else
             arrayString.append("}");
 
-        char* tempText = (char*)strdup(arrayString.c_str());
-        CLEAR_UTF8_BAD(tempText)
-        _ParamValues[_ParamIndex]  = tempText;
+        // Clean up the string for utf-8
+        std::string utf8Text = boost::locale::conv::utf_to_utf<char>(arrayString);
+        _ParamValues[_ParamIndex]  = (char*)strdup( utf8Text.c_str() );
 
         //_ParamValues[_ParamIndex]  = (char*)strdup(arrayString.c_str() );
         _ParamFormats[_ParamIndex] = 0; // Text field.
