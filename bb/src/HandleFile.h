@@ -104,7 +104,7 @@ public:
 
     HandleFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION_2),
+        objectVersion(ARCHIVE_HANDLE_VERSION_3),
         tag(0),
         flags(0),
         status((uint64_t)BBNOTSTARTED),
@@ -119,7 +119,7 @@ public:
 
     HandleFile (const uint64_t pTag, BBTagInfo& pTagInfo) :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION_2) {
+        objectVersion(ARCHIVE_HANDLE_VERSION_3) {
         tag = pTag;
         flags = 0;
         status = ((uint64_t)BBNOTSTARTED);
