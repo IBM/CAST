@@ -53,6 +53,7 @@ namespace bs  = boost::system;
 #include "logging.h"
 #include "LVExtent.h"
 #include "LVLookup.h"
+#include "LVUtils.h"
 #include "Msg.h"
 #include "usage.h"
 #include "nodecontroller.h"
@@ -410,11 +411,13 @@ int doRemoveLogicalVolume(const char* pVolumeGroupName, const char* pDevName) {
 
     // NOTE: If the logical volume is not removed (i.e., rc is not set to zero below), we delay
     //       for 3 seconds and retry.  For this error, we will attempt the remove operation
-    //       for 1 minute before we return.
+    //       for 18 seconds before we return.  However, in the normal runtime path attempting to remove
+    //       a given logical volume, this routine can be invoked up to 10 times.  That amounts to a
+    //       total of 180 seconde, or 3 minutes spent attempting to remove the logical volume.
     //  NOTE: Cannot search for "Failed to find logical volume" as the output is preceded by null characters
     //        and runCommand will not return those output strings.  In that case, rc is set to -2 as
     //        not being able to remove a logical volume, for any reason, may be tolerable by our invoker.
-    int l_Continue = 20;
+    int l_Continue = 6;
     while (l_Continue--)
     {
         for (auto& l_Line : runCommand(l_Cmd))
@@ -622,19 +625,41 @@ int lsofRunCmd( const char* pDirectory)
     return rc;
 }
 
-int doUnmount(const char* pDevName, const char* pMountPoint) {
+int doUnmount(const char* pDevName, const char* pMountPoint, const UMOUNT_ERROR_OPTION pErrorOption) {
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = umount(pMountPoint);
-    if (rc) {
-        stringstream errorText;
-        errorText<<"umount of mountpoint="<<pMountPoint<<" had errno="<<errno<<"("<<strerror(errno)<<")";
-        bberror << err("error.pathname", pMountPoint);
-        if (errno==EBUSY){
-            lsofRunCmd(pMountPoint);
+    if (rc)
+    {
+        if (pErrorOption == NO_ERROR_REPORTING)
+        {
+            // NOTE: Perform no error reporting.  This operation will be
+            //       reattempted by our invoker.
+            // NOTE: Only for EINVAL do we want to return a rc of zero.
+            //       Otherwise, return the rc from umount().
+            if (errno == EINVAL)
+            {
+                // NOTE:  This is possible when we are attempting to remove a logical volume.
+                //        We loop for 'N' times and we may try to umount a path that has already
+                //        been successfully unmounted.  Just swallow the error...
+                rc = 0;
+            }
         }
-        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        else
+        {
+            // NORMAL error path
+            stringstream errorText;
+            errorText << "umount of mountpoint=" << pMountPoint << " had errno=" \
+                      << errno << "(" << strerror(errno) << ")";
+            bberror << err("error.pathname", pMountPoint);
+            if (errno == EBUSY)
+            {
+                lsofRunCmd(pMountPoint);
+            }
+            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        }
     }
+
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
@@ -803,32 +828,39 @@ int isMounted(const char* pMountPoint, char* pDevName, const size_t pDevNameLeng
                     if (strncmp(l_MountPoint, l_Entry->mnt_dir, strlen(l_MountPoint)) == 0 &&
                         strlen(l_MountPoint) == strlen(l_Entry->mnt_dir)) {
                         rc = 1;
-                        if (strstr(l_Entry->mnt_fsname, "mapper")) {
-                            // Get volume group name and length
-                            size_t l_VolumeGroupNameLen = config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).length();
-                            char* l_VolumeGroupName = new char[l_VolumeGroupNameLen+1];
-                            strncpy(l_VolumeGroupName, config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).c_str(), l_VolumeGroupNameLen);
-                            l_VolumeGroupName[l_VolumeGroupNameLen] = 0;
+                        // Get volume group name and length
+                        size_t l_VolumeGroupNameLen = config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).length();
+                        char* l_VolumeGroupName = new char[l_VolumeGroupNameLen+1];
+                        strncpy(l_VolumeGroupName, config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).c_str(), l_VolumeGroupNameLen);
+                        l_VolumeGroupName[l_VolumeGroupNameLen] = 0;
 
-                            // Find the volume group name in the file system name
-                            char* l_Index = strstr(l_Entry->mnt_fsname, l_VolumeGroupName);
-                            if (l_Index) {
+                        // Find the volume group name in the file system name
+                        char* l_Index = strstr(l_Entry->mnt_fsname, l_VolumeGroupName);
+                        if (l_Index)
+                        {
+                            char* l_PriorToDevName = l_Index + l_VolumeGroupNameLen;
+                            //NOTE: We have to be prepared to handle a mnt_fsname format of either
+                            //      /dev/mapper/'vg'-'devname' *or* /dev/'vg'/'devname'
+                            if (*l_PriorToDevName == '/' || *l_PriorToDevName == '-')
+                            {
                                 // NOTE:  Only return the VG_# value, where VG is the volume group name and # is the logical volume number
-                                size_t l_DevNameLength = strlen(l_Entry->mnt_fsname)-(l_Index-l_Entry->mnt_fsname)-l_VolumeGroupNameLen-1;
-                                if (pDevName && l_DevNameLength < pDevNameLength) {
-                                    strncpy(pDevName, l_Index+l_VolumeGroupNameLen+1, l_DevNameLength);
+                                size_t l_DevNameLength = strlen(l_Entry->mnt_fsname) - (l_PriorToDevName-l_Entry->mnt_fsname);
+                                if (pDevName && l_DevNameLength < pDevNameLength)
+                                {
+                                    strncpy(pDevName, l_PriorToDevName+1, l_DevNameLength);
                                     pDevName[l_DevNameLength] = 0;
+                                    LOG(bb,debug) << "pDevName=" << pDevName << ", length (including null char)=" << l_DevNameLength;
                                 }
                             }
-
-                            // Return the file system type
-                            if (pFileSysType && strlen(l_Entry->mnt_type) < pFileSysTypeLength) {
-                                strncpy(pFileSysType, l_Entry->mnt_type, strlen(l_Entry->mnt_type));
-                                pFileSysType[strlen(l_Entry->mnt_type)] = 0;
-                            }
-
-                            delete[] l_VolumeGroupName;
                         }
+
+                        // Return the file system type
+                        if (pFileSysType && strlen(l_Entry->mnt_type) < pFileSysTypeLength) {
+                            strncpy(pFileSysType, l_Entry->mnt_type, strlen(l_Entry->mnt_type));
+                            pFileSysType[strlen(l_Entry->mnt_type)] = 0;
+                        }
+
+                        delete[] l_VolumeGroupName;
                     }
                 }
                 endmntent(l_File);
@@ -1018,7 +1050,7 @@ int createLogicalVolume(const uid_t pOwner, const gid_t pGroup, const char* pMou
                                             }
                                             if (rc) {
                                                 // Undo the previous mount operation...
-                                                rc2 = doUnmount(l_DevName, l_MountPoint);
+                                                rc2 = doUnmount(l_DevName, l_MountPoint, NORMAL_ERROR_REPORTING);
                                                 if (rc2) {
                                                     LOG(bb,error) << "Could not change ownership of the mountpoint " << l_MountPoint << " back to it's original owner after a failure, rc=" << rc2;
                                                 }
@@ -1582,7 +1614,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                     l_ResizeFileSystemWithLogicalVolume = (((BBRESIZEFLAGS)pFlags == BB_DO_NOT_PRESERVE_FS) || (strncmp(l_FileSysType, "xfs", l_FileSysTypeLength) == 0) || pLogicalVolume) ? false : true;
                     if ((l_PerformUnmount) || (l_NewSize < l_CurrentSize)) {
                         if (!pLogicalVolume) {
-                            rc = doUnmount(l_DevName, l_MountPoint);
+                            rc = doUnmount(l_DevName, l_MountPoint, NORMAL_ERROR_REPORTING);
                             if (!rc) {
                                 // NOTE:  If the file system is being shrunk and is not to be preserved, then we
                                 //        do NOT remount the device to the mount point.  Otherwise, we attempt to remount.
@@ -1703,7 +1735,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
     return rc;
 }
 
-
+#define ATTEMPTS 10
 int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_ERRSTATE pOnErrorFillInErrState) {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -1727,30 +1759,72 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
         rc = isMounted(l_MountPoint, l_DevName, l_DevNameLength, l_FileSysType, l_FileSysTypeLength);
         if (rc == 1) {
             if (strncmp(l_DevName, l_VolumeGroupName, l_VolumeGroupNameLen) == 0) {
-                rc = doUnmount(l_DevName, l_MountPoint);
-                if (!rc) {
-                    rc = doChangeLogicalVolume(l_VolumeGroupName, l_DevName, "--activate n");
-                    if (!rc) {
-                        rc = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
-                        if (rc) {
-                            errorText << "Logical volume name of " << l_DevName << " could not be removed from volume group " << l_VolumeGroupName;
+                int l_Count = ATTEMPTS;
+                while (rc && l_Count--)
+                {
+                    LOG(bb,info) << ">>>>> removeLogicalVolume(): Attempt number " << ATTEMPTS-l_Count << ", rc=" << rc << " <<<<<";
+                    rc = doUnmount(l_DevName, l_MountPoint, (l_Count ? NO_ERROR_REPORTING : NORMAL_ERROR_REPORTING));
+                    if (!rc)
+                    {
+                        rc = doChangeLogicalVolume(l_VolumeGroupName, l_DevName, "--activate n");
+                        if (!rc)
+                        {
+                            rc = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
+                            if (rc)
+                            {
+                                if (l_Count)
+                                {
+                                    // NOTE:  Retries were already attempted with delay by doRemoveLogicalVolume(),
+                                    //        so do not delay here...
+                                    LOG(bb,warning) << "Logical volume name of " << l_DevName << " could not be removed from volume group " \
+                                                    << l_VolumeGroupName << ". Another attempt will be made...";
+                                }
+                                else
+                                {
+                                    errorText << "Logical volume name of " << l_DevName << " could not be removed from volume group " \
+                                              << l_VolumeGroupName << ". No additional attempts will be made to perform the remove logical volume.";
+                                    LOG(bb,error) << errorText.str();
+                                    {
+                                        if (pOnErrorFillInErrState)
+                                        {
+                                            bberror << err("error.text", errorText.str()) << errloc(rc);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // NOTE:  Never have seen this hit...
+                            if (!l_Count)
+                            {
+                                errorText << "Could not deactivate logical volume " << l_DevName;
+                                LOG(bb,error) << errorText.str();
+                                if(pOnErrorFillInErrState)
+                                {
+                                    bberror << err("error.text", errorText.str()) << errloc(rc);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (l_Count)
+                        {
+                            LOG(bb,warning) << "Could not unmount " << l_MountPoint << " from " << l_DevName \
+                                            << " Another attempt will be made in 20 seconds...";
+                            usleep(20000000);
+                        }
+                        else
+                        {
+                            errorText << "Could not unmount " << l_MountPoint << " from " << l_DevName \
+                                      << " No additional attempts will be made to perform the umount.";
                             LOG(bb,error) << errorText.str();
-                            if (pOnErrorFillInErrState) {
+                            if (pOnErrorFillInErrState)
+                            {
                                 bberror << err("error.text", errorText.str()) << errloc(rc);
                             }
                         }
-                    } else {
-                        errorText << "Could not deactivate logical volume " << l_DevName;
-                        LOG(bb,error) << errorText.str();
-                        if(pOnErrorFillInErrState) {
-                            bberror << err("error.text", errorText.str()) << errloc(rc);
-                        }
-                    }
-                } else {
-                    errorText << "Could not unmount " << l_MountPoint << " from " << l_DevName;
-                    LOG(bb,error) << errorText.str();
-                    if (pOnErrorFillInErrState) {
-                        bberror << err("error.text", errorText.str()) << errloc(rc);
                     }
                 }
             } else {
@@ -1802,6 +1876,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+#undef ATTEMPTS
 
 
 int processContrib(const uint64_t pNumContrib, uint32_t pContrib[])
