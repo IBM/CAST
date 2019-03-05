@@ -772,7 +772,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
         // NOTE: Vector contribHasReported in the HandleFile is maintained so a quick lookup
         //       of already reporting contribs can be performed without having to open/read/close
         //       all the 'contribs' files.
-        if (pHandleFile->contribHasReported(pContribId))
+        // NOTE: We always interrogate the 'contribs' for a restart scenario.  This is because for a normal
+        //       start transfer, the handle file is first created, followed by the contribid file, and then
+        //       later the vector of reporting contribs is updated when the extents are enqueued.
+        //       In the restart case, we want to find the contribid file if it exists.  So, we close the
+        //       window by always searching the 'contribs' in the restart case.
+        if (pTransferDef->builtViaRetrieveTransferDefinition() || pHandleFile->contribHasReported(pContribId))
         {
             if (bfs::exists(handle))
             {
