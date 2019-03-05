@@ -1,3 +1,9 @@
+---
+name: Question
+about: Pose a question to be answered.
+
+---
+
 # Question:
 _What are you asking?_
 
