@@ -5,8 +5,7 @@ _What are you asking?_
 _place final answer here_
 
 # Approach:
-_how did you address the problem_
-_notes in the comments_
+_here replace this with a short summary of how you addressed the problem. in the comments place step by step notes of progress as you go_
 
 # What is next:
 _Define the next steps and follow up here_
