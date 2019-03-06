@@ -98,8 +98,6 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
 
     try
     {
-        std::string l_clientVersion = clientVersion;
-        rc=versionCheck(l_clientVersion);
 
         if (unixpath && strlen(unixpath))
         {
@@ -124,6 +122,9 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
             bberror << err("error.flightlogPath", config.get(who + ".flightlog", NO_CONFIG_VALUE));
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
+
+        std::string l_clientVersion = clientVersion;
+        rc=versionCheck(l_clientVersion);
 
         char myjobid[256];
 
