@@ -95,21 +95,23 @@ sub phase1()
 
 sub phase2
 {
-    $BADEXITRC = $BADNONRECOVEXITRC;
     &setupUserEnvironment();
-
-    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
-    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
-    
+    $rc = 0;
+    $errfile = $ENV{"BB_ERR_FILE"};
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
 
     foreach $bbscript (@STGIN)
     {
         bpost("BB: Calling user stage-in script: $bbscript");
-        $rc = cmd("$bbscript 2>&1", $timeout, 1);
-        bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX + 1, $::LASTOUTPUT);
-        failureCleanAndExit() if($rc != 0);
+        $scriptrc = cmd("$bbscript 2>&1", $timeout, 1);
+        bpost("BB: User stage-in script exited with $scriptrc ", $::BPOSTMBOX + 1, $::LASTOUTPUT);
+        if($scriptrc != 0)
+        {
+          open(FH,'>',$ENV{"BB_ERR_FILE"});
+          close(FH);
+          exit(0);
+        }
     }
 }
 
@@ -132,6 +134,12 @@ sub phase3
             $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED");
             $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
             $BADEXITRC = $BADNONRECOVEXITRC if($numfailed > 0);
+            &failureCleanAndExit();
+        }
+        if( -e $ENV{"BB_ERR_FILE"})
+        {  
+            unlink $ENV{"BB_ERR_FILE"};
+            $BADEXITRC = $BADNONRECOVEXITRC;
             &failureCleanAndExit();
         }
     }
