@@ -16,9 +16,9 @@
 
 #--------------------------------------------------------------------------------
 #   usage:              Backup CSM DB related data, tables, triggers, functions, etc.
-#   current_version:    1.3
+#   current_version:    1.4
 #   created:            03-26-2018
-#   last modified:      02-15-2019
+#   last modified:      03-04-2019
 #--------------------------------------------------------------------------------
 
 #----------------------------------------------------------------
@@ -188,25 +188,41 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
     LogMsg "[Start   ] Welcome to CSM datatbase backup process:"
     LogMsg "${line2_log}"
 
+#----------------------------------------------------------------
+# Check the status of the PostgreSQl server
+#----------------------------------------------------------------
+
+systemctl status postgresql > /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "[Info    ] Log Directory: $logfile"
+    echo "[Error   ] The PostgreSQL server: Is currently inactive and needs to be started"
+    echo "[Info    ] If there is an issue please run: systemctl status postgresql for more info."
+    LogMsg "[Error   ] The PostgreSQL server: Is currently inactive and needs to be started"
+    LogMsg "[Info    ] If there is an issue please run: systemctl status postgresql for more info."
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting csm_db_backup_script_v1.sh script"
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
+    exit 0
+fi
+
 #-------------------------------------------------
 # Check if postgresql exists already and root user
 #-------------------------------------------------
-string1="$now1 ($current_user) [Info    ] DB Users:"
-    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
-        if [ $? -ne 0 ]; then
-            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-            \set ON_ERROR_STOP true
-            select string_agg(usename,' | ') from pg_user;
-EOF`
-            echo "$string1 $db_user_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile
-            echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
-            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
-            LogMsg "${line2_log}"
-            LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
-            echo "${line1_out}"
-            echo "${line3_log}" >> $logfile
-            exit 0
-        fi
+root_query=`psql -qtA $db_username -c "SELECT usename FROM pg_catalog.pg_user where usename = 'root';" 2>&1`
+    if [ $? -ne 0 ]; then
+        echo "[Info    ] Log directory: $logdir/$logname"
+        echo "[Error   ] $root_query"
+        echo "$root_query" |& awk '/^psql:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+        echo "[Info    ] Postgresql may not be configured correctly. Please check configuration settings."
+        LogMsg "[Info    ] Postgresql may not be configured correctly. Please check configuration settings."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.sh script"
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 0
+    fi
 
 #-------------------------------------------------
 # Check if postgresql exists already and DB name
