@@ -413,7 +413,7 @@ int doRemoveLogicalVolume(const char* pVolumeGroupName, const char* pDevName) {
     //       for 3 seconds and retry.  For this error, we will attempt the remove operation
     //       for 18 seconds before we return.  However, in the normal runtime path attempting to remove
     //       a given logical volume, this routine can be invoked up to 10 times.  That amounts to a
-    //       total of 180 seconde, or 3 minutes spent attempting to remove the logical volume.
+    //       total of 180 seconds, or 3 minutes spent attempting to remove the logical volume.
     //  NOTE: Cannot search for "Failed to find logical volume" as the output is preceded by null characters
     //        and runCommand will not return those output strings.  In that case, rc is set to -2 as
     //        not being able to remove a logical volume, for any reason, may be tolerable by our invoker.
@@ -613,6 +613,7 @@ int doResizeLogicalVolume(const char* pVolumeGroupName, const char* pDevName, co
 
 int lsofRunCmd( const char* pDirectory)
 {
+
     ENTRY(__FILE__,__FUNCTION__);
     int rc = 0;
 
@@ -822,11 +823,16 @@ int isMounted(const char* pMountPoint, char* pDevName, const size_t pDevNameLeng
 
         if (l_MountPoint) {
             l_File = setmntent(MOUNTS_DIRECTORY, "r");
-            if (l_File) {
-                while ((l_Entry = getmntent(l_File)) != NULL && !rc) {
+            if (l_File)
+            {
+                l_Entry = getmntent(l_File);
+                while (l_Entry != NULL && (!rc))
+                {
                     LOOP_COUNT(__FILE__,__FUNCTION__,"mounts_processed");
+                    LOG(bb,debug) << "isMounted(): pMountPoint=" << pMountPoint << ", l_Entry->mnt_dir=" << l_Entry->mnt_dir;
                     if (strncmp(l_MountPoint, l_Entry->mnt_dir, strlen(l_MountPoint)) == 0 &&
-                        strlen(l_MountPoint) == strlen(l_Entry->mnt_dir)) {
+                        strlen(l_MountPoint) == strlen(l_Entry->mnt_dir))
+                    {
                         rc = 1;
                         // Get volume group name and length
                         size_t l_VolumeGroupNameLen = config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).length();
@@ -844,12 +850,12 @@ int isMounted(const char* pMountPoint, char* pDevName, const size_t pDevNameLeng
                             if (*l_PriorToDevName == '/' || *l_PriorToDevName == '-')
                             {
                                 // NOTE:  Only return the VG_# value, where VG is the volume group name and # is the logical volume number
-                                size_t l_DevNameLength = strlen(l_Entry->mnt_fsname) - (l_PriorToDevName-l_Entry->mnt_fsname);
+                                size_t l_DevNameLength = strlen(l_Entry->mnt_fsname) - ((l_PriorToDevName+1)-l_Entry->mnt_fsname);
                                 if (pDevName && l_DevNameLength < pDevNameLength)
                                 {
                                     strncpy(pDevName, l_PriorToDevName+1, l_DevNameLength);
                                     pDevName[l_DevNameLength] = 0;
-                                    LOG(bb,debug) << "pDevName=" << pDevName << ", length (including null char)=" << l_DevNameLength;
+                                    LOG(bb,debug) << "isMounted(): pMountPoint=" << pMountPoint << ", pDevName=" << pDevName << ", length=" << l_DevNameLength << ", rc=" << rc;
                                 }
                             }
                         }
@@ -861,6 +867,10 @@ int isMounted(const char* pMountPoint, char* pDevName, const size_t pDevNameLeng
                         }
 
                         delete[] l_VolumeGroupName;
+                    }
+                    else
+                    {
+                        l_Entry = getmntent(l_File);
                     }
                 }
                 endmntent(l_File);
