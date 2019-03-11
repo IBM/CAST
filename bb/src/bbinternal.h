@@ -231,6 +231,13 @@ enum HANDLEFILE_SCAN_OPTION
 };
 typedef enum HANDLEFILE_SCAN_OPTION HANDLEFILE_SCAN_OPTION;
 
+enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION
+{
+    DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS = 0,
+    ALLOW_BUMP_FOR_REPORTING_CONTRIBS        = 1
+};
+typedef enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/

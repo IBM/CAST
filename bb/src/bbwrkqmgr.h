@@ -589,7 +589,7 @@ class WRKQMGR
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
     void pinLock(const LVKey* pLVKey, const char* pMethod);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
-    void processThrottle(LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
+    void processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem);
     int rmvWrkQ(const LVKey* pLVKey);
     void setDumpTimerPoppedCount(const double pTimerInterval);

@@ -1127,7 +1127,7 @@ void BBTransferDef::markAsStopped(const LVKey* pLVKey, const uint64_t pHandle, c
     setCanceled(pLVKey, pHandle, pContribId);
 
     // Now update the status for the Handle file in the xbbServer data to be STOPPED...
-    if (HandleFile::update_xbbServerHandleFile(pLVKey, getJobId(), getJobStepId(), pHandle, BBTD_Stopped, 1))
+    if (HandleFile::update_xbbServerHandleFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, 1))
     {
         LOG(bb,error) << "BBTransferDef::markAsStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << getJobId() \
                       << ", jobstepid " << getJobStepId() << ", handle " << pHandle;
@@ -1161,7 +1161,7 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
             if (!rc)
             {
                 // Update the handle status to recalculate the total transfer size
-                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, l_Size);
+                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId, 0, l_Size, NORMAL_SCAN);
 
             }
             else
@@ -1309,7 +1309,7 @@ void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Extents_Transferred, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Extents_Transferred, pValue);
 
     return;
 }
@@ -1320,7 +1320,7 @@ void BBTransferDef::setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandl
 
     // Update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Files_Closed, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Files_Closed, pValue);
 
     return;
 }
@@ -1349,7 +1349,7 @@ void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, con
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Canceled, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Canceled, pValue);
 
     return;
 }
@@ -1365,7 +1365,8 @@ void BBTransferDef::setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHand
 
     // Now update the status for the ContribIdfiles in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Extents_Enqueued, pValue);
+    ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION l_AllowBumpOfReportingContribs = (this->builtViaRetrieveTransferDefinition() ? DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS : ALLOW_BUMP_FOR_REPORTING_CONTRIBS);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, l_AllowBumpOfReportingContribs, BBTD_Extents_Enqueued, pValue);
 
     return;
 }
@@ -1389,7 +1390,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Failed, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Failed, pValue);
 
     return;
 }
@@ -1428,7 +1429,7 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Stopped, pValue);
 
     return;
 }
@@ -1536,7 +1537,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 l_UnconditionalRestart = true;
                 LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
                              << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
-                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not reponding." \
+                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not responding." \
                              << " The transfer definition will be stopped and then restarted.";
             }
             // Fall through is intended...

@@ -45,8 +45,9 @@ FL_SetSize(FLAsyncRqst, 16384)
 /*
  * Static data
  */
-static int asyncRequestFile_ReadSeqNbr  = 0;
+static int asyncRequestFile_ReadSeqNbr = 0;
 static FILE* asyncRequestFile_Read  = (FILE*)0;
+static LVKey LVKey_Null = LVKey();
 
 
 /*
@@ -271,7 +272,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 void WRKQMGR::calcThrottleMode()
 {
     int l_NewThrottleMode = 0;
-    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
     {
         if (qe->second->getRate())
         {
@@ -505,7 +506,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
@@ -529,7 +530,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
-                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
@@ -734,8 +735,7 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 {
                     // No work queue found with canceled extents.
                     // Find 'real' work on one of the LVKey work queues...
-                    LVKey l_LVKey = std::pair<string, Uuid>("", Uuid());
-                    rc = getWrkQE(&l_LVKey, pWrkQE);
+                    rc = getWrkQE((LVKey*)0, pWrkQE);
                 }
                 else
                 {
@@ -863,13 +863,8 @@ int WRKQMGR::getThrottleRate(LVKey* pLVKey, uint64_t& pRate)
 int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 {
     int rc = 0;
-    LVKey l_LVKey;
-    WRKQE* l_WrkQE = 0;
-    int64_t l_BucketValue = -1;
-    bool l_Continue = true;
 
     pWrkQE = 0;
-
     // NOTE: In the 'normal' case, we many be looking for a non-existent work queue in either
     //       the null or non-null LVKey paths.
     //
@@ -889,160 +884,200 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
-    if ((pLVKey->second).is_null())
+    if (pLVKey == NULL || (pLVKey->second).is_null())
     {
 //        verify();
+        int64_t l_BucketValue = -1;
+        bool l_RecalculateLastQueueWithEntries = (lastQueueWithEntries == LVKey_Null ? true : false);
         // NOTE: The HP work queue is always present, so there must be at least two work queues...
         if (wrkqs.size() > 1)
         {
             // We have one or more workqueues...
+            LVKey l_LVKey;
+            WRKQE* l_WrkQE = 0;
+
             bool l_SelectNext = false;
-            if (lastQueueProcessed == lastQueueWithEntries)
+            bool l_FoundFirstPositiveWorkQueueInMap = false;
+            bool l_EarlyExit = false;
+            for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); ((qe != wrkqs.end()) && (!l_EarlyExit)); ++qe)
             {
-                // Last queue processed is the last in the map with entries.
-                // Therefore, return the next possible workqueue as it is the
-                // next in the round robin order.
-                l_SelectNext = true;
-            }
-
-            if (wrkqs.begin()->second != HPWrkQE)
-            {
-                // Not the HP workqueue...
-                if (wrkqs.begin()->second->wrkq->size())
+                // The value for lastQueueWithEntries is only useful for the NEXT
+                // invocation of this method if the work queue returned on THIS invocation
+                // was the 'last queue with entries' in the map.  In that case, we immediately
+                // return the next 'non-negative bucket' work queue on that next invocation,
+                // as that completes the round-robin distribution of returned queues
+                // back to the top of the map.
+                //
+                // Therefore, only if
+                //   A) We 'encounter' the queue currently in lastQueueWithEntries
+                //      during this search -or-
+                //   B) We go through the entire map without seeing the queue
+                //      currently in lastQueueWithEntries -or-
+                //   C) The value for lastQueueWithEntries is not currently set and
+                //      we return a work queue on this invocation
+                //      *AND*
+                //   D) If returning a work queue entry, it has a non-negative bucket value.
+                // If the above it true, we will recalculate/reset the lastQueueWithEntries
+                // value.
+                //
+                // NOTE: If we are returning a work queue with a negative bucket value, we
+                //       do not recalculate the lastQueueWithEntries value because we will
+                //       go into a delay returning that work queue and then all worker threads
+                //       come back to this method as part of finding their next work item.
+                //       When this method is then invoked, at least one of the work queues will
+                //       have a positive bucket value and then 'normal' logic will determine
+                //       if the lastQueueWithEntries value needs to be recalculated.
+                //
+                // Stated another way, if we didn't encounter the current lastQueueWithEntries
+                // value during this search, it can't effect the work queue to be returned
+                // on the next invocation of this method.  Thus, it doesn't need to be
+                // recalculated at the end of the current invocation of this method.
+                if (qe->first == lastQueueWithEntries)
                 {
-                    // This workqueue has at least one entry...
-                    //
-                    // If we can't find a 'next' WRKQE to return,
-                    // we will return this one unless we find a better one...
-                    l_LVKey = wrkqs.begin()->first;
-                    l_WrkQE = wrkqs.begin()->second;
-                    l_BucketValue = wrkqs.begin()->second->getBucket();
-
-                    if (l_SelectNext && l_BucketValue >= 0)
-                    {
-                        // Return this queue now as it is the next in round robin order
-//                        LOG(bb,info) << "WRKQMGR::getWrkQE(): First non-negative bucket workqueue returned";
-                        l_Continue = false;
-                    }
+                    l_RecalculateLastQueueWithEntries = true;
                 }
-            }
 
-            if (l_Continue)
-            {
-                for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+                bool l_Switch = false;
+                if (qe->second != HPWrkQE)
                 {
-                    bool l_Switch = false;
-                    if ((qe->second != HPWrkQE) && (l_WrkQE != qe->second))
+                    // Not the HP workqueue...
+                    if (qe->second->getWrkQ_Size())
                     {
-                        // Not the HP workqueue or the one we may have saved above...
-                        if (qe->second->getWrkQ_Size())
+                        // This workqueue has at least one entry...
+                        int64_t l_CurrentQueueBucketValue = qe->second->getBucket();
+                        if (l_WrkQE)
                         {
-                            // This workqueue has at least one entry...
-                            if (l_WrkQE)
+                            // We already have a workqueue to return.  Only switch to this
+                            // workqueue if the current saved bucket value is not positive
+                            // and this workqueue has a better 'bucket' value.
+                            // NOTE: The 'switch' logic below is generally only for throttled
+                            //       work queues.  Non-throttled work queues are simply
+                            //       round-robined.
+                            // NOTE: If all of the workqueues end up having a negative bucket
+                            //       value, we return the workqueue with the least negative
+                            //       bucket value.  We want to 'delay' the smallest amount
+                            //       of time.
+                            // NOTE: If we end up delaying due to throttling, all threads
+                            //       will be delaying on the same workqueue.  However, when the
+                            //       delay time has expired, all of the threads will again return
+                            //       to this routine to get the 'next' workqueue.
+                            //       Returning to get the 'next' workqueue after a throttle delay
+                            //       prevents a huge I/O spike for an individual workqueue.
+                            if (l_BucketValue <= 0 && l_BucketValue < l_CurrentQueueBucketValue)
                             {
-                                // We already have a workqueue to return.  Only switch to this
-                                // workqueue if the current saved bucket value is not positive
-                                // and this workqueue has a better 'bucket' value.
-                                // NOTE: The 'switch' logic below is only for throtttling work queues.
-                                //       Non-throttling work queues will simply be round-robined.
-                                // NOTE: If all of the workqueues end up having a negative bucket
-                                //       value, we return the workqueue with the least negative
-                                //       bucket value.  This doesn't effect processing today,
-                                //       but this should be kept in mind if the workqueue selection
-                                //       algorithm is ever changed in the future.
-                                // NOTE: If we end up delaying due to throttling, all threads
-                                //       will be delaying on the same workqueue.  However, when the
-                                //       delay time has expired, all of the threads will again return
-                                //       to this routine to get the 'next' workqueue.
-                                //       Returning to get the 'next' workqueue after a throttle delay
-                                //       prevents a huge I/O spike for an individual workqueue.
-                                if (l_BucketValue <= 0 && l_BucketValue < qe->second->getBucket())
-                                {
-                                    l_Switch = true;
-                                }
-                            }
-                            else
-                            {
-                                // We don't have a workqueue to return.
-                                // If we can't find a 'next' WRKQE to return,
-                                // we will return this one unless we find a better one...
                                 l_Switch = true;
                             }
+                        }
+                        else
+                        {
+                            // We don't have a workqueue to return.
+                            // If we can't find a 'next' WRKQE to return,
+                            // we will return this one unless we find a better one...
+                            l_Switch = true;
+                        }
 
-                            if (l_Switch)
-                            {
-                                // This is a better workqueue to return if we
-                                // can't find a 'next' WRKQE...
-                                l_LVKey = qe->first;
-                                l_WrkQE = qe->second;
-                                l_BucketValue = qe->second->getBucket();
-                            }
+                        if (l_Switch)
+                        {
+                            // This is a better workqueue to return if we
+                            // can't find a 'next' WRKQE...
+                            l_LVKey = qe->first;
+                            l_WrkQE = qe->second;
+                            l_BucketValue = l_CurrentQueueBucketValue;
 
-                            // Return this queue now as it is the next in round robin order
-                            if (l_SelectNext && qe->second->getBucket() >= 0)
+                            if (!l_FoundFirstPositiveWorkQueueInMap)
                             {
-                                // Switch to this workqueue and return it...
-                                l_LVKey = qe->first;
-                                l_WrkQE = qe->second;
-//                                LOG(bb,info) << "WRKQMGR::getWrkQE(): l_Continue = true, first non-negative bucket workqueue returned";
-                                break;
+                                if (l_BucketValue >= 0)
+                                {
+                                    if (lastQueueProcessed == lastQueueWithEntries)
+                                    {
+                                        // Return this queue now as it is the next in round robin order
+                                        l_EarlyExit = true;
+//                                        LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, top of map";
+                                    }
+                                }
+                                l_FoundFirstPositiveWorkQueueInMap = true;
                             }
+                        }
+
+                        // Return this queue now as it is the next in round robin order
+                        if (l_SelectNext && l_CurrentQueueBucketValue >= 0)
+                        {
+                            // Switch to this workqueue and return it...
+                            l_LVKey = qe->first;
+                            l_WrkQE = qe->second;
+                            l_BucketValue = l_CurrentQueueBucketValue;
+                            l_EarlyExit = true;
+//                            LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, next after last returned";
                         }
                     }
 
                     if ((!l_SelectNext) && qe->first == lastQueueProcessed)
                     {
                         // Just found the entry we last returned.  Return the next workqueue that has a positive bucket value...
-//                        LOG(bb,debug) << "WRKQMGR::getWrkQE(): l_SelectNext = true";
+//                        LOG(bb,info) << "WRKQMGR::getWrkQE(): l_SelectNext = true";
                         l_SelectNext = true;
                     }
                 }
+            }
 
-                if (l_WrkQE)
+            if (l_WrkQE)
+            {
+                // NOTE: We don't update the last queue processed here because our invoker may choose to not take action on our returned
+                //       data.  The last queue processed is updated just before an item of work is removed from a queue.
+                pWrkQE = l_WrkQE;
+                if ((!l_RecalculateLastQueueWithEntries) && (!l_EarlyExit))
                 {
-                    // NOTE: We don't update the last queue processed here becasue our invoker may choose to not take action on our returned
-                    //       data.  The last queue processed is updated just before an item of work is removed from a queue.
-                    pWrkQE = l_WrkQE;
+                    l_RecalculateLastQueueWithEntries = true;
                 }
-                else
-                {
-                    // WRKQMGR::getWrkQE(): No extents left on any workqueue
-                    rc = -1;
-//                    LOG(bb,debug) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
-                }
+            }
+            else
+            {
+                // WRKQMGR::getWrkQE(): No extents left on any workqueue
+                rc = -1;
+//                LOG(bb,info) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
             }
         }
         else
         {
             // WRKQMGR::getWrkQE(): No workqueue entries exist
             rc = -1;
-//            LOG(bb,debug) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+//            LOG(bb,info) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
         }
 
         if (!rc)
         {
             if (pWrkQE)
             {
-                for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); qe++)
+                if (l_RecalculateLastQueueWithEntries && (l_BucketValue >= 0))
                 {
-                    if (qe->second->getWrkQ_Size() && qe->second->getBucket() >= 0)
+                    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
                     {
-                        // Update the last work with entries
-                        setLastQueueWithEntries(qe->first);
-                        break;
+                        if (qe->second->getWrkQ_Size())
+                        {
+                            // Update the last work with entries
+                            setLastQueueWithEntries(qe->first);
+                            break;
+                        }
                     }
+//                    LOG(bb,info) << "WRKQMGR::getWrkQE(): Recalculated lastQueueWithEntries to " << lastQueueWithEntries;
                 }
+#if 0
+                if (l_BucketValue >= 0)
+                {
+                    dump("info", " Work Queue Mgr (Work queue entry returned with non-negative bucket)", DUMP_ALWAYS);
+                }
+#endif
             }
             else
             {
                 // Update the last work with entries as NONE
-                setLastQueueWithEntries(LVKey());
+                setLastQueueWithEntries(LVKey_Null);
             }
         }
         else
         {
             // Update the last work with entries as NONE
-            setLastQueueWithEntries(LVKey());
+            setLastQueueWithEntries(LVKey_Null);
         }
     }
     else
@@ -1082,7 +1117,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
     //       do the necessary processing if there are only two work queues.
     if (wrkqs.size() > 2)
     {
-        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
         {
             // For each of the work queues...
             if (qe->second != HPWrkQE)
@@ -1118,7 +1153,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 
 void WRKQMGR::loadBuckets()
 {
-    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
     {
         if (qe->second != HPWrkQE)
         {
@@ -1435,9 +1470,8 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
     return;
 }
 
-void WRKQMGR::processThrottle(LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay)
+void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay)
 {
-    WRKQE* l_WrkQE = 0;
     pThreadDelay = 0;
     pTotalDelay = 0;
 
@@ -1449,13 +1483,10 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagID& pTagI
 
     if (inThrottleMode())
     {
-        if (!getWrkQE(pLVKey, l_WrkQE))
+        if(pWrkQE)
         {
-            if(l_WrkQE)
-            {
-                pThreadDelay = l_WrkQE->processBucket(pLV_Info, pTagId, pExtentInfo);
-                pTotalDelay = (pThreadDelay ? ((double)(throttleTimerPoppedCount-throttleTimerCount-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
-            }
+            pThreadDelay = pWrkQE->processBucket(pLV_Info, pTagId, pExtentInfo);
+            pTotalDelay = (pThreadDelay ? ((double)(throttleTimerPoppedCount-throttleTimerCount-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
         }
     }
 
@@ -1519,10 +1550,23 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
+        // Remove the work queue from the map
         WRKQE* l_WrkQE = it->second;
         wrkqs.erase(it);
+
+        // If the work queue being removed is currently
+        // identified as the last work queue in the map
+        // with work items (not likely...), then reset
+        // lastQueueWithEntries so it is recalculated
+        // next time we try to findWork().
+        if (*pLVKey == lastQueueWithEntries)
+        {
+            lastQueueWithEntries = LVKey_Null;
+        }
+
         if (l_WrkQE)
         {
+            // Delete the work queue entry
             if (l_WrkQE->getRate())
             {
                 // Removing a work queue that had a transfer rate.
