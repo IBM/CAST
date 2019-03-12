@@ -155,7 +155,7 @@ timeout     = 10
 description = check if the filesystem is mounted corretly
 executable  = /opt/ibm/csm/hcdiag/tests/chk-nfs-mount/chk-nfs-mount.sh
 timeout     = 10
-args        = /home /shared
+args        = /home nfs4 /shared nfs4
 
 ## chk-noping
 [tests.chk-noping]

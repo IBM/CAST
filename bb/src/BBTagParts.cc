@@ -48,6 +48,26 @@ int BBTagParts::allExtentsTransferred(const uint32_t pContribId) {
     }
 }
 
+int BBTagParts::anyCanceledTransferDefinitions() {
+    int rc = 0;
+
+    for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
+        rc = (it->second).canceled();
+    }
+
+    return rc;
+}
+
+int BBTagParts::anyFailedTransferDefinitions() {
+    int rc = 0;
+
+    for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
+        rc = (it->second).failed();
+    }
+
+    return rc;
+}
+
 int BBTagParts::anyStoppedTransferDefinitions() {
     int rc = 0;
 
@@ -262,13 +282,14 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
                 unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
                 {
                     pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
-                    // NOTE: Currently set to send info to console after 1 second of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 4)
+                    // NOTE: Currently set to send info to console after 3 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 12)
                     {
                         FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
                                  pHandle, pContribId, 0, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
                                      << ", contribid " << pContribId;
+                        pLV_Info->getExtentInfo()->dumpInFlight("info");
                     }
                     usleep((useconds_t)250000);
                 }

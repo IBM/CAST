@@ -2,7 +2,7 @@
 #   
 #    csmd/src/inv/src/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -33,4 +33,5 @@ set(CSM_INVENTORY_SRC
   ${CSMD_INV_SRC_DIR}/inv_aggregator_handler.cc
   ${CSMD_INV_SRC_DIR}/inv_master_handler.cc
   ${CSMD_INV_SRC_DIR}/inv_dcgm_access.cc
+  ${CSMD_INV_SRC_DIR}/inv_ssd_wear_serialization.cc
 )

@@ -435,9 +435,9 @@ int filehandle::getstats(struct stat& statbuf)
             if(isdevzero)
             {
                 statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
-                LOG(bb,info) << "Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
+                LOG(bb,info) << "getstats(): Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,debug) << "fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+            LOG(bb,info) << "getstats(): fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
             statbuf = statinfo;
         }
         else
@@ -550,7 +550,10 @@ protected:
     }
 
 public:
-    extentLookup_fiemap(const filehandle* fileh) : extentLookup(fileh) { };
+    extentLookup_fiemap(const filehandle* fileh) :
+        extentLookup(fileh),
+        numextents(0),
+        extents(NULL) { };
     virtual ~extentLookup_fiemap() { free(extents); };
 
     virtual int size(unsigned& numentries)
@@ -798,7 +801,11 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
             char buffer[1024];
             size_t remainder = len;
             memset(buffer,0,sizeof(buffer));
-            lseek(fd, start, SEEK_SET);
+            rc = lseek(fd, start, SEEK_SET);
+            if (rc)
+            {
+                throw runtime_error(string("lseek failed.  errno=") + to_string(errno));
+            }
             while(remainder > 0)
             {
                 rc = write(fd, buffer, MIN(sizeof(buffer), remainder));

@@ -69,6 +69,12 @@ FL_SetSize(FLXfer, 16384)
 FL_SetName(FLDelay, "Server Delay Flightlog")
 FL_SetSize(FLDelay, 16384)
 
+/*
+ * Static data
+ */
+static LVKey LVKey_Null = LVKey();
+
+
 void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -337,6 +343,9 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, XF_ContribIdStopped, "xfer contribIdStopped, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
     // First, ensure that this handle/transfer definition is marked as stopped in the cross bbServer metadata...
     // NOTE:  This must be a restart scenario...
     ContribIdFile* l_ContribIdFile = 0;
@@ -346,6 +355,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     l_HandleFilePath /= bfs::path(to_string(pHandle));
 
     int l_Attempts = 1;
+    int l_RetryAttempts = 0;
     bool l_AllDone = false;
     while (!l_AllDone)
     {
@@ -355,6 +365,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
         while ((rc != 1) && (l_Continue--))
         {
+            ++l_RetryAttempts;
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
             //       bbServer that is marking the handle/contribid file as 'stopped'
             // NOTE: The lock on the handle file is obtained by first polling for the lock being held so that we do
@@ -417,7 +428,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                             if (!rc)
                                             {
                                                 // Update the handle status
-                                                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0);
+                                                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, pContribId, 0, 0, FULL_SCAN);
                                                 if (!rc)
                                                 {
                                                     // Indicate to restart this transfer definition as it is now marked as stopped
@@ -631,6 +642,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
         }
     }
 
+    FL_Write6(FLMetaData, XF_ContribIdStopped_End, "xfer contribIdStopped, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, attempts=%ld, rc=%ld", l_FL_Counter, pJobId, pHandle, pContribId, l_RetryAttempts, rc);
+
     return rc;
 }
 
@@ -639,25 +652,32 @@ int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, cons
     int rc = becomeUser(pContribIdFile->getUserId(), pContribIdFile->getGroupId());
     if (!rc)
     {
-        // We mark this transfer definition as stopped
+        // We mark this transfer definition as extents enqueued.
         // Update the status for the ContribId and Handle files in the xbbServer data...
-        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Stopped, 1);
+        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Extents_Enqueued, 1);
 
-        // We mark this transfer definition as canceled
-        // Now update the status for the ContribId and Handle files in the xbbServer data...
         if (!rc)
         {
-            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_Canceled, 1);
-            // We mark this transfer definition as all extents processed
+            // We mark this transfer definition as stopped
+            // Update the status for the ContribId and Handle files in the xbbServer data...
+            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Stopped, 1);
+
+            // We mark this transfer definition as canceled
             // Now update the status for the ContribId and Handle files in the xbbServer data...
             if (!rc)
             {
-                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Extents_Transferred, 1);
-                // We mark this transfer definition as all files closed
+                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Canceled, 1);
+                // We mark this transfer definition as all extents processed
                 // Now update the status for the ContribId and Handle files in the xbbServer data...
                 if (!rc)
                 {
-                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, BBTD_All_Files_Closed, 1);
+                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Extents_Transferred, 1);
+                    // We mark this transfer definition as all files closed
+                    // Now update the status for the ContribId and Handle files in the xbbServer data...
+                    if (!rc)
+                    {
+                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Files_Closed, 1);
+                    }
                 }
             }
         }
@@ -840,11 +860,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                 }
             }
         }
-        else
-        {
-            // Dummy extent for file with no extents
-            ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
-        }
     }
 
     else if(pExtent->flags & BBI_TargetPFSPFS)
@@ -878,9 +893,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                 // Not possible...
                 break;
         }
-
-        // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
 
     else if(pExtent->flags & BBI_TargetSSDSSD)
@@ -896,9 +908,6 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
             LOG(bb,info) << "Local compute node SSD copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
-
-        // Dummy extent for file with no extents
-        ContribIdFile::update_xbbServerFileStatus(&pKey, pTransferDef, pHandle, pContribId, pExtent, (BBTD_Extents_Enqueued | BBTD_All_Extents_Transferred | BBTD_All_Files_Closed));
     }
     else
     {
@@ -1192,7 +1201,7 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 
     LVKey l_Key = pWorkItem.getLVKey();
 
-    pWorkItem.dump("debug", "transferExtent(): Processing ");
+//    pWorkItem.dump("info", "transferExtent(): Processing ");
 
     // Process request...
     BBTagID l_TagId = pWorkItem.getTagId();
@@ -1408,7 +1417,7 @@ void* transferWorker(void* ptr)
     WRKQE* l_WrkQE = 0;
     Extent* l_Extent = 0;
     WorkID l_WorkItem;
-    LVKey l_Key;
+    LVKey l_Key = LVKey_Null;
     BBTagID l_TagId;
     ExtentInfo l_ExtentInfo;
     BBLV_Info* l_LV_Info;
@@ -1462,7 +1471,7 @@ void* transferWorker(void* ptr)
                                 l_Extent = l_ExtentInfo.extent;
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
-                                wrkqmgr.processThrottle(&l_Key, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
+                                wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
                                 if (l_ThreadDelay > 0)
                                 {
                                     LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
@@ -1567,6 +1576,7 @@ void* transferWorker(void* ptr)
                         if (l_WrkQ != HPWrkQE->getWrkQ())
                         {
                             // Perform the transfer
+//                            l_WrkQE->dump("info", " Extent being transferred -> ");
                             transferExtent(l_WorkItem, l_ExtentInfo);
                         }
                         else
@@ -2919,8 +2929,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << *pLVKey;
                     // Source file for extent being inspected has NOT been closed.
                     // Delay a bit for it to clear the in-flight queue and be closed...
-                    // NOTE: Currently set to log after 1 second of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 4)
+                    // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 12)
                     {
                         FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
                                  (uint64_t)l_CurrentNumberOfInFlightExtents, (uint64_t)l_LV_Info->getJobId(), 0, 0);

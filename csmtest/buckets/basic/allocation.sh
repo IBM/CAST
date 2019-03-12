@@ -55,6 +55,17 @@ check_return_exit $? 0 "Test Case 2: Calling csm_allocation_create"
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
 rm -f ${TEMP_LOG}
+
+# Test Case 2.1: Validating cgroup assigned allocation cpus correctly
+xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/allocation_${allocation_id}/cpuset.cpus" > ${TEMP_LOG} 2>&1
+check_all_output "0-175"
+check_return_flag $? "Test Case 2.1: Validating cgroup assigned allocation cpus correctly"
+
+# Test Case 2.2: Validating cgroup assigned system cpus correctly
+xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/csm_system/cpuset.cpus" > ${TEMP_LOG} 2>&1
+check_all_output "0-175"
+check_return_flag $? "Test Case 2.2: Validating cgroup assigned system cpus correctly"
+
 # Test Case 3: csm_allocation_query_active_all (success)
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 3: csm_allocation_query_active_all success"

@@ -203,15 +203,10 @@ void BBLV_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKey* 
 //    dump("info", "After insert");
 //    dumpInFlight("info");
 
-    // If this is the first transferred extent for a sourcefile, update the status for the handle file in xbbServer data
-    if (pExtentInfo.extent->flags & BBI_First_Extent)
-    {
-        if (HandleFile::update_xbbServerHandleStatus(pLVKey, pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getTransferDef()->getJobStepId(), pExtentInfo.getHandle(), 0))
-        {
-            LOG(bb,error) << "BBLV_ExtentInfo::addToInFlight():  Failure when attempting to update the cross bbServer handle status for jobid " << pExtentInfo.getTransferDef()->getJobId() \
-                          << ", jobstepid " << pExtentInfo.getTransferDef()->getJobStepId() << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib();
-        }
-    }
+    // NOTE: We used to update the metadata handle status here if this was the first extent for a transfer definition
+    //       and for the first contributor, the handle status would transition from BBNOTSTARTED to BBINPROGRESS.
+    //       However, it was later changed to where the handle status immediately transitions to BBINPROGRESS as
+    //       part of start transfer.
 
     return;
 }
@@ -365,18 +360,23 @@ Extent* BBLV_ExtentInfo::getMinimumTrimExtent() {
     return l_Extent;
 }
 
-int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight) {
+int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight)
+{
     int rc = 0;
     uint32_t l_NumberInFlight = 0;
 
     LOG(bb,debug) << "moreExtentsToTransfer: pHandle: " << pHandle << ", pContrib: " << pContrib << ", pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight;
 
     // Check for in-flight extents with the same handle/contrib
-    if (inflight.size()) {
-        for (auto it=inflight.begin(); it!=inflight.end(); ++it) {
-            if ((pHandle < 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || (uint32_t)pContrib == (it->second).contrib)) {
+    if (inflight.size())
+    {
+        for (auto it=inflight.begin(); it!=inflight.end(); ++it)
+        {
+            if ((pHandle < 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || (uint32_t)pContrib == (it->second).contrib))
+            {
                 LOG(bb,debug) << "moreExtentsToTransfer: Matched handle: " << (it->second).handle << ", contribid: " << (it->second).contrib << ", extent: " << *((it->second).extent);
-                if (++l_NumberInFlight > pNumberOfExpectedInFlight) {
+                if (++l_NumberInFlight > pNumberOfExpectedInFlight)
+                {
                     rc = 1;
                     break;
                 }
@@ -385,9 +385,12 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
     }
 
     // Check for not yet scheduled extents with the same handle/contrib
-    if ((!rc) && (allExtents.size())) {
-        for (auto& e : allExtents) {
-            if ((pHandle < 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || (uint32_t)pContrib == e.contrib)) {
+    if ((!rc) && (allExtents.size()))
+    {
+        for (auto& e : allExtents)
+        {
+            if ((pHandle < 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || (uint32_t)pContrib == e.contrib))
+            {
                 rc = 1;
                 break;
             }
@@ -397,18 +400,23 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
     return rc;
 }
 
-int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const int32_t pContrib, const uint32_t pSourceIndex, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue) {
+int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const int32_t pContrib, const uint32_t pSourceIndex, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue)
+{
     int rc = 0;
     uint32_t l_NumberInFlight = 0;
 
     LOG(bb,debug) << "moreExtentsToTransferForFile: pHandle: " << pHandle << ", pContrib: " << pContrib << ", pSourceIndex: " << pSourceIndex << ", pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight;
 
     // Check for in-flight extents with the same handle/contrib/sourceindex
-    if (inflight.size()) {
-        for (auto it=inflight.begin(); it!=inflight.end(); ++it) {
-            if ((pHandle < 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || (uint32_t)pContrib == (it->second).contrib) && (pSourceIndex == (it->second).getSourceIndex())) {
+    if (inflight.size())
+    {
+        for (auto it=inflight.begin(); it!=inflight.end(); ++it)
+        {
+            if ((pHandle < 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || (uint32_t)pContrib == (it->second).contrib) && (pSourceIndex == (it->second).getSourceIndex()))
+            {
                 LOG(bb,debug) << "moreExtentsToTransferForFile: Matched handle: " << (it->second).handle << ", contribid: " << (it->second).contrib << ", source index: " << (it->second).getSourceIndex() << ", extent: " << *((it->second).extent);
-                if (++l_NumberInFlight > pNumberOfExpectedInFlight) {
+                if (++l_NumberInFlight > pNumberOfExpectedInFlight)
+                {
                     rc = 1;
                     break;
                 }
@@ -417,17 +425,22 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     }
 
     // Check for not yet scheduled extents with the same handle/contrib/sourceindex
-    if ((!rc) && (allExtents.size())) {
-        for (auto& e : allExtents) {
-            if ((pHandle < 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || (uint32_t)pContrib == e.contrib) && (pSourceIndex == e.getSourceIndex())) {
+    if ((!rc) && (allExtents.size()))
+    {
+        for (auto& e : allExtents)
+        {
+            if ((pHandle < 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || (uint32_t)pContrib == e.contrib) && (pSourceIndex == e.getSourceIndex()))
+            {
                 rc = 1;
                 break;
             }
         }
     }
 
-    if (pDumpQueuesOnValue != DO_NOT_DUMP_QUEUES_ON_VALUE) {
-        if (rc == pDumpQueuesOnValue) {
+    if (pDumpQueuesOnValue != DO_NOT_DUMP_QUEUES_ON_VALUE)
+    {
+        if (rc == pDumpQueuesOnValue)
+        {
             LOG(bb,info) << "moreExtentsToTransferForFile: rc: " << rc << " pHandle: " << pHandle << " pContrib: " << pContrib << " pSourceIndex: " << pSourceIndex << " pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight << " pNumberInFlight: " << l_NumberInFlight;
             dumpInFlight("info");
             dumpExtents("info", "moreExtentsToTransferForFile()");
@@ -437,15 +450,19 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     return rc;
 }
 
-int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib) {
+int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib)
+{
     int rc = 0;
 
     LOG(bb,debug) << "moreInFlightExtentsForTransferDefinition: pHandle: " << pHandle << ", pContrib: " << pContrib;
 
     // Check for in-flight extents with the same handle/contrib
-    if (inflight.size()) {
-        for (auto it=inflight.begin(); it!=inflight.end(); ++it) {
-            if ((pHandle == (it->second).handle) && (pContrib == (it->second).contrib)) {
+    if (inflight.size())
+    {
+        for (auto it=inflight.begin(); it!=inflight.end(); ++it)
+        {
+            if ((pHandle == (it->second).handle) && (pContrib < 0 || (pContrib == (it->second).contrib)))
+            {
                 rc = 1;
                 break;
             }

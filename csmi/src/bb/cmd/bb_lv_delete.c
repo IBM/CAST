@@ -43,7 +43,7 @@ void help() {
 	puts("_____CSM_BB_LV_DELETE_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_bb_lv_delete ARGUMENTS [OPTIONS]");
-	puts("  csm_bb_lv_delete -a allocation_id -l logical_volume_name -n node_name -r num_bytes_read  -w num_bytes_written [-R num_reads] [-W num_writes] [-h] [-v verbose_level]");
+	puts("  csm_bb_lv_delete -a allocation_id -l logical_volume_name -n node_name [-r num_bytes_read]  [-w num_bytes_written] [-R num_reads] [-W num_writes] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Intended to be used by a system administrator to manually remove an entry from the 'csm_bb_lv' table in the CSM database. This cmd line interface should be used in the event of an error occur causing an lv entry to not get deleted properly. This cmd line interface should not be used as the main way of removing entries from 'csm_bb_lv'.");
 	puts("");
@@ -53,28 +53,28 @@ void help() {
 	puts("");
 	puts("ARGUMENTS:");
 	puts("  MANDATORY:");
-	puts("    csm_bb_lv_delete expects 5 mandatory arguments");
+	puts("    csm_bb_lv_delete expects 3 mandatory arguments");
 	puts("    Argument                  | Example value              | Description  ");                                                 
 	puts("    --------------------------|----------------------------|--------------");
 	/*The following lines may have 2 extra spaces to account for the escaped quotes. This way it lines up in the command line window.*/
 	puts("    -a, --allocation_id       | 1                          | (INT64) Uniquely identify this allocation.");
 	puts("    -l, --logical_volume_name | \"my logical volume name\"   | (STRING) Unique identifier for this ssd partition.");
 	puts("    -n, --node_name           | \"node_01\"                  | (STRING) Name of the node where this LV is located.");
-	puts("    -r, --num_bytes_read      | 1                          | (INT64) Number of bytes read during the life of this partition.");
-	puts("    -w, --num_bytes_written   | 1                          | (INT64) Number of bytes written during the life of this partition.");
-	puts("  MANDATORY:");
-	puts("    csm_bb_lv_delete has 2 optional arguments");
-	puts("    Argument         | Example value | Description  ");                                                 
-	puts("    -----------------|---------------|--------------");
-	puts("    -R, --num_reads  | 0             | (INT64) Number of bytes read during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
-	puts("    -W, --num_writes | 0             | (INT64) Number of bytes written during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
+	puts("  OPTIONAL:");
+	puts("    csm_bb_lv_delete has 4 optional arguments");
+	puts("    Argument                | Example value | Description  ");                                                 
+	puts("    ------------------------|---------------|--------------");
+	puts("    -r, --num_bytes_read    | 256           | (INT64) Number of bytes read during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
+	puts("    -w, --num_bytes_written | 256           | (INT64) Number of bytes written during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
+	puts("    -R, --num_reads         | 1             | (INT64) Number of reads during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
+	puts("    -W, --num_writes        | 1             | (INT64) Number of writes during the life of this partition. defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h]                  | Help.");
 	puts("[-v verbose_level]    | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_bb_lv_delete -a 1 -l \"my logical volume name\" -n \"node_01\" -r 1 -w 1 -R 0 -W 0");
+	puts("  csm_bb_lv_delete -a 1 -l \"my logical volume name\" -n \"node_01\" -r 256 -w 256 -R 1 -W 1");
 	puts("____________________");
 }
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 	int return_value = 0;
 	int requiredParameterCounter = 0;
 	int optionalParameterCounter = 0;
-	const int NUMBER_OF_REQUIRED_ARGUMENTS = 5;
+	const int NUMBER_OF_REQUIRED_ARGUMENTS = 3;
 	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
 	int opt;
@@ -157,12 +157,12 @@ int main(int argc, char *argv[])
 			case 'r':
                 csm_optarg_test( "-r, --num_bytes_read", optarg, USAGE )
                 csm_str_to_int64( input->num_bytes_read, optarg, arg_check, "-r, --num_bytes_read", USAGE )
-				requiredParameterCounter++;
+				optionalParameterCounter++;
 				break;
 			case 'w':
                 csm_optarg_test( "-w, --num_bytes_written", optarg, USAGE )
                 csm_str_to_int64( input->num_bytes_written, optarg, arg_check, "-w, --num_bytes_written", USAGE )
-				requiredParameterCounter++;
+				optionalParameterCounter++;
 				break;
 			case 'R':
                 csm_optarg_test( "-R, --num_reads", optarg, USAGE )

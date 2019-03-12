@@ -295,7 +295,7 @@ void BBTagInfoMap::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const
 {
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it)
     {
-        it->second.setCanceled(pLVKey, pJobId, pJobStepId, pHandle);
+        it->second.setCanceledForHandle(pLVKey, pJobId, pJobStepId, pHandle, UNDEFINED_CONTRIBID);
     }
 
     return;

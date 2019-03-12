@@ -36,6 +36,8 @@ class BBTagParts
 {
   public:
     int allExtentsTransferred(const uint32_t pContribId);
+    int anyCanceledTransferDefinitions();
+    int anyFailedTransferDefinitions();
     int anyStoppedTransferDefinitions();
     int addTransferDef(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* &pTransferDef);
     int canceled(const uint32_t pContribId);

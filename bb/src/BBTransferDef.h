@@ -340,6 +340,9 @@ class BBTransferDef
 #endif
     int replaceExtentVector(vector<Extent>* pNewList);
     int replaceExtentVector(BBTransferDef* pTransferDef);
+#if BBSERVER
+    int resetForRestart(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
+#endif
     uint64_t retrieveJobId();
     uint64_t retrieveJobStepId();
 #if BBSERVER
@@ -473,6 +476,14 @@ class BBTransferDef
         SET_FLAG_AND_RETURN(BBTD_All_CN_CP_Transfers,pValue);
     }
 
+    inline void setAllExtentsTransferred(const int pValue=1) {
+        SET_FLAG_AND_RETURN(BBTD_All_Extents_Transferred,pValue);
+    }
+
+    inline void setAllFilesClosed(const int pValue=1) {
+        SET_FLAG_AND_RETURN(BBTD_All_Files_Closed,pValue);
+    }
+
     inline void setBSCFS_InRequest(const int pValue=1) {
         SET_FLAG_AND_RETURN(BBTD_BSCFS_In_Request,pValue);
     }
@@ -484,6 +495,10 @@ class BBTransferDef
     inline void setContribId(const uint32_t pContribId) {
         contribid = pContribId;
         return;
+    }
+
+    inline void setExtentsEnqueued(const int pValue=1) {
+        SET_FLAG_AND_RETURN(BBTD_Extents_Enqueued,pValue);
     }
 
     inline void setHostName(const string& pHostName) {

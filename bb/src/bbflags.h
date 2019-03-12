@@ -86,8 +86,10 @@
 #define BBLV_Suspended                               0x0000080000000000
 
 // NOTE: Low order twelfth nibble of BBTransferDef.flags
-// NOTE: BBTD_All_CN_CP_Transfers is set in the transfer definition by bbbproxy processing,
+// NOTE: BBTD_All_CN_CP_Transfers is set in the transfer definition by bbproxy processing,
 //       but bbserver does not use this for decision making...
+// NOTE: BBTD_Extents_Enqueued is maintained in the contribid file, but not
+//       for each file in the contribid file.
 #define BBTD_All_CN_CP_Transfers                      0x0000100000000000
 #define BBTD_No_Stagein_Or_Stageout_Transfers         0x0000200000000000
 #define BBTD_Built_Via_Retrieve_Transfer_Definition   0x0000400000000000
@@ -118,6 +120,7 @@
 //       bbServer metadata can accurately reflect the status of the local copy for this file.
 // NOTE: The canceled bit in this nibble is also set in the Extent.flags for extents that have
 //       had their handle or contribid canceled.
+// NOTE: The BBTD_Failed bit is never turned on for the HandleFile.
 // NOTE: For stop transfers, the BBTD_Failed bit is unconditionally turned off, the BBTD_Canceled bit
 //       will already be off, and the BBTD_Stopped is turned on.
 #define BBTD_Canceled                                 0x0100000000000000
@@ -133,7 +136,10 @@
 #define BBTD_All_Files_Closed                         0x1000000000000000
 
 #define BB_AddFilesFlagsMask                          0x00000000000FFFFF
-#define BB_ResetContribIdFileForRestartFlagsMask      0x000F7000008FFFFF
-#define BB_ResetHandleFileForRestartFlagsMask         0x0000000000000000
+#define BB_ResetContribIdForRestartFlagsMask          0xE8E0000000000000
+#define BB_ResetContribIdFileForRestartFlagsMask      0xE8E00000008FFFFF
+#define BB_ResetHandleFileAttributesFlagsMask         0xEBE0000F00000000
 #define BB_RetrieveTransferDefinitionsFlagsMask       0xFFFFF000008FFFFF
+#define BB_UpdateHandleStatusMask1                    0x1700800000000000
+#define BB_UpdateHandleStatusMask2                    0x1500000000000000
 #endif /* BB_BBFLAGS_H_ */

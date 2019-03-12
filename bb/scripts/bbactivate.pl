@@ -454,6 +454,14 @@ sub makeProxyConfigFile
     delete $json->{"bb"}{"server0"} if(!$CFG{"bbServer"});
 }
 
+sub genRandomName
+{
+    my $string;
+    my @chars = ("a".."z", 0..9);
+    $string .= $chars[rand @chars] for 1..16;
+    return $string;
+}
+
 sub configureNVMeTarget
 {
     setprefix("configuring NVMf: ");
@@ -512,6 +520,11 @@ sub configureNVMeTarget
     $state = "enabled" if($CFG{"useOffload"});
     output("NVMe over Fabrics target offload is $state");
 
+    $json->{"hosts"}[0]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"servercfg"} . "#" . &genRandomName();
+    $json->{"hosts"}[1]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"backupcfg"} . "#" . &genRandomName();
+    $json->{"subsystems"}[0]{"allowed_hosts"}[0] = $json->{"hosts"}[0]{"nqn"};
+    $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
+
     $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
@@ -532,6 +545,7 @@ sub configureNVMeTarget
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
         cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/1/subsystems/$nqn");
     }
+    cmd("chmod o-rwx /sys/kernel/config/nvmet");  # ensure other users cannot read NVMet settings
 }
 
 

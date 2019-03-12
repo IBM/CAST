@@ -73,6 +73,7 @@ private:
 
   CSM_Environmental_Data * Environmental_data;
 
+  bool BuildSsdWearUpdate(std::vector<csm::daemon::CoreEvent*>& postEventList);
 };
 
 class CSM_ENVIRONMENTAL_UTILITY : public CSM_ENVIRONMENTAL

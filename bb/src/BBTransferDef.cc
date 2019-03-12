@@ -33,6 +33,10 @@ using namespace boost::archive;
 #include "LVUtils.h"
 #include "LVUuidFile.h"
 
+#ifdef BBSERVER
+#include "bbserver_flightlog.h"
+#endif
+
 
 //
 // BBTransferDefs class
@@ -63,7 +67,11 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
 
     HandleFile* l_HandleFile = 0;
     ContribFile* l_ContribFile = 0;
+    int l_Attempts = 0;
     bool l_HostNameFound = false;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TD_RetrieveTransfers, "BBTransferDef retrieve transfers, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     // Iterate through the jobs...
     bfs::path jobpath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
@@ -74,6 +82,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
         l_HostNameFound = false;
         for (auto& l_JobId : boost::make_iterator_range(bfs::directory_iterator(jobpath), {}))
         {
+            ++l_Attempts;
             try
             {
                 if (!bfs::is_directory(l_JobId)) continue;
@@ -268,6 +277,9 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
         rc = 2;
     }
 
+    FL_Write(FLMetaData, TD_RetrieveTransfers_End, "BBTransferDef retrieve transfers, counter=%ld, attempts=%ld, number returned=%ld, rc=%ld",
+             l_FL_Counter, l_Attempts, (uint64_t)pTransferDefs.getNumberOfDefinitions(), rc);
+
     return rc;
 }
 #endif
@@ -417,6 +429,9 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                         LOG(bb,info) << "Transfer definition associated with jobid " << transferdefs[i]->getJobId() << ", jobstepid " << transferdefs[i]->getJobStepId() \
                                      << ", handle " << transferdefs[i]->getTransferHandle() << ", contribid " << transferdefs[i]->getContribId() \
                                      << " failed.  The job may have exited the system.";
+
+                        // Clear bberror for the tolerated exception
+                        bberror.forceClear();
 
                         break;
                     }
@@ -1009,8 +1024,8 @@ BBFILESTATUS BBTransferDef::getFileStatus(const LVKey* pLVKey, ExtentInfo& pExte
     l_HandleFilePath /= bfs::path(to_string(getJobId()));
     l_HandleFilePath /= bfs::path(to_string(getJobStepId()));
     l_HandleFilePath /= bfs::path(to_string(pExtentInfo.getHandle()));
-    int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pExtentInfo.getContrib());
-    switch (l_RC)
+    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pExtentInfo.getContrib());
+    switch (rc)
     {
         case 1:
         {
@@ -1111,6 +1126,13 @@ void BBTransferDef::markAsStopped(const LVKey* pLVKey, const uint64_t pHandle, c
     // Mark this transfer definition as canceled
     setCanceled(pLVKey, pHandle, pContribId);
 
+    // Now update the status for the Handle file in the xbbServer data to be STOPPED...
+    if (HandleFile::update_xbbServerHandleFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, 1))
+    {
+        LOG(bb,error) << "BBTransferDef::markAsStopped():  Failure when attempting to update the cross bbServer handle file for jobid " << getJobId() \
+                      << ", jobstepid " << getJobStepId() << ", handle " << pHandle;
+    }
+
     return;
 }
 
@@ -1126,24 +1148,28 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     }
     else if (pPass == THIRD_PASS)
     {
-        // First, reset the following transfer definition/ContribId file flags
-        setAllFilesClosed(pLVKey, pHandle, pContribId, 0);
-        setAllExtentsTransferred(pLVKey, pHandle, pContribId, 0);
-        setExtentsEnqueued(pLVKey, pHandle, pContribId, 0);
-        setCanceled(pLVKey, pHandle, pContribId, 0);
-        setFailed(pLVKey, pHandle, pContribId, 0);
-        setStopped(pLVKey, pHandle, pContribId, 0);
-
-        // Next, reset the appropriate flags for each individual file transfer to be restarted.
-        // The size transferred for the file in the local metadata is also reset.
-        int64_t l_Size = 0;
-        rc = ContribIdFile::update_xbbServerFileStatusForRestart(pLVKey, pRebuiltTransferDef, pHandle, pContribId, l_Size);
+        // First, reset the transfer definition/ContribId file flags
+        rc = resetForRestart(pLVKey, pHandle, pContribId);
 
         if (!rc)
         {
-            // Update the handle status to recalculate the total transfer size
-            HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, l_Size);
+            // Next, reset the appropriate flags for each individual file transfer to be restarted.
+            // The size transferred for the file in the local metadata is also reset.
+            int64_t l_Size = 0;
+            rc = ContribIdFile::update_xbbServerFileStatusForRestart(pLVKey, pRebuiltTransferDef, pHandle, pContribId, l_Size);
 
+            if (!rc)
+            {
+                // Update the handle status to recalculate the total transfer size
+                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId, 0, l_Size, NORMAL_SCAN);
+
+            }
+            else
+            {
+                LOG(bb,error) << "BBTransferDef::prepareForRestart(): Attempting to reset cross bbServer metadata for jobid " << job.getJobId() \
+                              <<   ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                              << " for individual files to be restarted failed";
+            }
         }
         else
         {
@@ -1209,7 +1235,7 @@ void BBTransferDef::removeTargetFiles(const LVKey* pLVKey)
 
 int BBTransferDef::replaceExtentVector(vector<Extent>* pNewList)
 {
-    int l_RC = 0;
+    int rc = 0;
 
     extents.clear();
     for(auto& e : *pNewList)
@@ -1217,12 +1243,12 @@ int BBTransferDef::replaceExtentVector(vector<Extent>* pNewList)
         extents.push_back(e);
     }
 
-    return l_RC;
+    return rc;
 }
 
 int BBTransferDef::replaceExtentVector(BBTransferDef* pTransferDef)
 {
-    int l_RC = 0;
+    int rc = 0;
 
     extents.clear();
     for(auto& e : pTransferDef->extents)
@@ -1230,8 +1256,20 @@ int BBTransferDef::replaceExtentVector(BBTransferDef* pTransferDef)
         extents.push_back(e);
     }
 
-    return l_RC;
+    return rc;
 }
+
+#if BBSERVER
+int BBTransferDef::resetForRestart(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    // Reset the status for the ContribId and Handle files in the xbbServer data...
+    rc = ContribIdFile::update_xbbServerContribIdFileResetForRestart(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId);
+
+    return rc;
+}
+#endif
 
 uint64_t BBTransferDef::retrieveJobId() {
     return job.getJobId();
@@ -1271,7 +1309,7 @@ void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Extents_Transferred, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Extents_Transferred, pValue);
 
     return;
 }
@@ -1282,7 +1320,7 @@ void BBTransferDef::setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandl
 
     // Update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_All_Files_Closed, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Files_Closed, pValue);
 
     return;
 }
@@ -1311,7 +1349,7 @@ void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, con
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Canceled, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Canceled, pValue);
 
     return;
 }
@@ -1327,7 +1365,8 @@ void BBTransferDef::setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHand
 
     // Now update the status for the ContribIdfiles in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Extents_Enqueued, pValue);
+    ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION l_AllowBumpOfReportingContribs = (this->builtViaRetrieveTransferDefinition() ? DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS : ALLOW_BUMP_FOR_REPORTING_CONTRIBS);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, l_AllowBumpOfReportingContribs, BBTD_Extents_Enqueued, pValue);
 
     return;
 }
@@ -1351,7 +1390,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Failed, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Failed, pValue);
 
     return;
 }
@@ -1390,11 +1429,12 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, BBTD_Stopped, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Stopped, pValue);
 
     return;
 }
 
+#define DELAY_SECONDS 120
 int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
@@ -1423,8 +1463,8 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
         //
         //       We spin for up to 2 minutes...
         string l_ConnectionName = string();
-        int l_Attempts = 120;
-        while (!rc && l_Attempts--)
+        int l_Continue = DELAY_SECONDS;
+        while (!rc && l_Continue--)
         {
             // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer checking for
             //       the extents to be enqueued and another thread/bbServer enqueuing those extents.
@@ -1441,6 +1481,17 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                     {
                         pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                        int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                        if ((l_SecondsWaiting % 15) == 1)
+                        {
+                            // Display this message every 15 seconds...
+                            FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
+                                      pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
+                            LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
+                                         << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                         << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
+                                         << " seconds remain waiting for the extents to be enqueued.";
+                        }
                         usleep((useconds_t)1000000);    // Delay 1 second
                     }
                     lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
@@ -1451,7 +1502,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
                     {
                         rc = -1;
-                        l_Attempts = 0;
+                        l_Continue = 0;
                     }
                 }
             }
@@ -1459,7 +1510,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             {
                 // Handle file could not be locked
                 rc = -1;
-                l_Attempts = 0;
+                l_Continue = 0;
                 LOG(bb,error) << "Could not lock the handle file for " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
                               << " when attempting to determine if all extents had been enqueued during stop transfer processing";
             }
@@ -1486,7 +1537,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 l_UnconditionalRestart = true;
                 LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
                              << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
-                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not reponding." \
+                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not responding." \
                              << " The transfer definition will be stopped and then restarted.";
             }
             // Fall through is intended...
@@ -1501,8 +1552,8 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     l_HandleFilePath /= bfs::path(to_string(pJobId));
                     l_HandleFilePath /= bfs::path(to_string(pJobStepId));
                     l_HandleFilePath /= bfs::path(to_string(pHandle));
-                    int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                    switch (l_RC)
+                    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                    switch (rc)
                     {
                         case 1:
                         {
@@ -1593,6 +1644,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
     return rc;
 }
+#undef DELAY_SECONDS
 #endif
 
 void BBTransferDef::unlock()

@@ -69,6 +69,26 @@ check_return_exit () {
 }
 
 # ----------------------------------------------------------------
+# check_return_exit 
+# Input 1: return code from command line API 
+# Input 2: Invalid Error Code (
+# Input 3: Test Case name
+# Functionality:Verifies that input 1 doesn't match input 2. If the
+#    two match fail the test.
+# ----------------------------------------------------------------
+check_return_error () {
+        if [ $1 -eq $2 ]
+        then
+            printf "%-100s %8s\n" "$3:" "FAILED" >> ${LOG}
+            printf "\n$3\n" >> ${TEMP_LOG}
+		    printf "Invalid RC: $1\n" >> ${TEMP_LOG}
+		    exit 1
+        else
+            printf "%-100s %8s\n" "$3:" "PASS" >> ${LOG}
+        fi
+}
+
+# ----------------------------------------------------------------
 # check_return_flag
 # Input 1: return come from command line API
 # Input 2: Test Case name
@@ -114,4 +134,23 @@ check_return_flag_nz () {
                 #echo -e "$3:\tPASS" >> ${LOG}
                 printf "%-100s %8s\n" "$3:" "PASS" >> ${LOG}
         fi
+}
+
+# ----------------------------------------------------------------
+# clear_allocations
+# Functionality: queries for and deletes any active allocations 
+#                returns all nodes to IN_SERVICE state
+# ----------------------------------------------------------------
+clear_allocations()
+{
+    # Clean up the allocations.
+    allocations=$(${CSM_PATH}/csm_allocation_query_active_all | grep allocation_id| tr -s " " | cut -d" " -f4)
+
+    for allocation in ${allocations}
+    do
+        ${CSM_PATH}/csm_allocation_delete -a ${allocation}
+    done
+
+    # Drop all of the nodes into in service
+    ${CSM_PATH}/csm_node_attributes_update -n ${COMPUTE_NODES} -s IN_SERVICE
 }

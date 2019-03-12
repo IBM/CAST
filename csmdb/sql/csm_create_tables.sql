@@ -17,7 +17,7 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   17.0
 --   create:            12-14-2015
---   last modified:     01-25-2019
+--   last modified:     02-15-2019
 --   change log:    
 --   17.0   Added smt_mode to csm_allocation and csm_allocation_history
 --	    Added new fields to csm_lv_history - num_reads, num_writes (01-25-2019)
@@ -443,7 +443,7 @@ CREATE TABLE csm_allocation_history (
     time_limit                      bigint      not null,
     wc_key                          text,
     archive_history_time            timestamp,
-    smt_mode                        smallint    default 0
+    smt_mode                        smallint
 
 );
 

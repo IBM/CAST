@@ -341,7 +341,7 @@ The core objective of this script is to repair issues with the transactional ind
 exposed in the transitory steps of the CSM Big Data development. As such, this script should only 
 be run in clusters which were running pre ``1.5.0`` level code.
 
-.. code-black:: bash
+.. code-block:: bash
 
     usage: csmTransactionRebuild.py [-h] [-d db] [-u user] [-o output]
 

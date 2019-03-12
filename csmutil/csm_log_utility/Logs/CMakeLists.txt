@@ -2,7 +2,7 @@
 #
 #    csmutil/csm_log_utility/Logs/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -30,6 +30,6 @@ file(GLOB INSTALL_U_Logs
 )
 
 install(FILES ${INSTALL_A_Logs} COMPONENT csm-tools DESTINATION csm/tools/Logs/Aggregator)
-install(FILES ${INSTALL_C_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Compute)
-install(FILES ${INSTALL_M_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Master)
-install(FILES ${INSTALL_U_Logs} COMPONENT csm-core DESTINATION csm/tools/Logs/Utility)
+install(FILES ${INSTALL_C_Logs} COMPONENT csm-tools DESTINATION csm/tools/Logs/Compute)
+install(FILES ${INSTALL_M_Logs} COMPONENT csm-tools DESTINATION csm/tools/Logs/Master)
+install(FILES ${INSTALL_U_Logs} COMPONENT csm-tools DESTINATION csm/tools/Logs/Utility)

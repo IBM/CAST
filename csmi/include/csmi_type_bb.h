@@ -110,8 +110,8 @@ typedef struct {
 typedef struct {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< Unique identifier of an allocation. */
-    int64_t num_bytes_read; /**< Number of bytes read during the life of this partition.*/
-    int64_t num_bytes_written; /**< Number of bytes written during the life of this partition.*/
+    int64_t num_bytes_read; /**< Number of bytes read during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
+    int64_t num_bytes_written; /**< Number of bytes written during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
     char* logical_volume_name; /**< Unique identifier for this ssd partition.*/
     char* node_name; /**< Name of the node where this logical volume is located.*/
     int64_t num_reads; /**< Number of reads during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/

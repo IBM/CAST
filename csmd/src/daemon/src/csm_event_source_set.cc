@@ -89,6 +89,7 @@ csm::daemon::EventSource* csm::daemon::EventSourceSet::GetNextSource()
   // got to the end of the current source set, wipe and switch the active set
   if( mCurrentSource == mActiveSources[ mActiveSetIndex ].end() )
   {
+    LOG( csmd, trace ) << "GetNextSource[" << mActiveSetIndex << "] : LAST-SOURCE. switching index...";
     mActiveSources[ mActiveSetIndex ].clear();
     mActiveSetIndex = ( mActiveSetIndex + 1 ) % 2;
     mCurrentSource = mActiveSources[ mActiveSetIndex ].begin();
@@ -101,26 +102,22 @@ csm::daemon::EventSource* csm::daemon::EventSourceSet::GetNextSource()
         ( mScheduledSources < mActiveSources[ mActiveSetIndex ].size() - mOneShotSources ))
       throw csm::daemon::Exception("BUG: Failed to schedule all event sources.");
     mScheduledSources = 0;
+    return nullptr;  // only prepare the next schedule epoch to prevent duplicate scheduling of source0
   }
 
-  if( mCurrentSource == mActiveSources[ mActiveSetIndex ].end() )
-    return nullptr;
+  LOG( csmd, trace ) << "Scheduling Event Source[" << mActiveSetIndex << "] : " << (*mCurrentSource)->GetIdentifier();
+  csm::daemon::EventSource *nextSource = *mCurrentSource;
+  ++mCurrentSource;
+  if( ! nextSource->OncePerWindow() )
+  {
+    ++mScheduledSources;
+    mActiveSources[ (mActiveSetIndex + 1) % 2 ].insert( nextSource );
+  }
   else
   {
-    LOG( csmd, trace ) << "Scheduling Event Source: " << (*mCurrentSource)->GetIdentifier();
-    csm::daemon::EventSource *nextSource = *mCurrentSource;
-    ++mCurrentSource;
-    if( ! nextSource->OncePerWindow() )
-    {
-      ++mScheduledSources;
-      mActiveSources[ (mActiveSetIndex + 1) % 2 ].insert( nextSource );
-    }
-    else
-    {
-      LOG( csmd, trace ) << "Event Source " << nextSource->GetIdentifier() << " is a one-shot source.";
-    }
-    return nextSource;
+    LOG( csmd, trace ) << "Event Source " << nextSource->GetIdentifier() << " is a one-shot source.";
   }
+  return nextSource;
 }
 
 
