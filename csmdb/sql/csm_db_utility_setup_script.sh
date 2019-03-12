@@ -136,7 +136,7 @@ rpm -qa | grep postgresql | grep server > /dev/null
 	LogMsg "${line2_log}"
 	LogMsg "[End     ] Exiting $0 script"
         echo "${line3_log}" >> $logfile
-	exit 0
+	exit 1
     else
         echo "[Info    ] PostgreSQL RPMs:                   | Are already installed"
         LogMsg "[Info    ] PostgreSQL RPMs:                     | Are already installed"
@@ -160,7 +160,7 @@ else
     LogMsg "${line2_log}"
     LogMsg "[End     ] Exiting $0 script"
     echo "${line3_log}" >> $logfile
-    exit 0
+    exit 1
 fi
 
 #----------------------------------------------------------------
@@ -190,7 +190,7 @@ else
             LogMsg "[End     ] Exiting $0 script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
-	    exit 0 
+	    exit 1
 	fi
 fi
 
