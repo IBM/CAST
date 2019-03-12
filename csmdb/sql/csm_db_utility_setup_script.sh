@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_utility_setup_script.sh
 #   current_version:    01.0
 #   create:             02-20-2019
-#   last modified:      03-07-2019
+#   last modified:      03-12-2019
 #--------------------------------------------------------------------------------
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -189,6 +189,7 @@ else
             LogMsg "${line2_log}"
             LogMsg "[End     ] Exiting $0 script"
             echo "${line1_out}"
+            echo "${line3_log}" >> $logfile
 	    exit 0 
 	fi
 fi
@@ -208,10 +209,15 @@ if [ $? -ne 0 ]; then
     	echo "[Complete] The PostgreSQL server:             | Is currently running"
     	LogMsg "[Complete] The PostgreSQL server:         	   | Is currently running"
     else
-	echo "[Error   ] The PostgreSQL server:             | Is not currently running"	
-	echo "[Info    ] If there is an issue please run:   | systemctl status postgresql for more info."
-	LogMsg "[Error   ] The PostgreSQL server:             | Is not currently running"	
-	LogMsg "[Info    ] If there is an issue please run:   | systemctl status postgresql for more info."
+        echo "[Error   ] The PostgreSQL server:             | Is not currently running after server start."
+        echo "[Info    ] If there is an issue please run:   | systemctl status postgresql for more info."
+        LogMsg "[Error   ] The PostgreSQL server:               | Is not currently running after server start."
+        LogMsg "[Info    ] If there is an issue please run:     | systemctl status postgresql for more info."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 1
     fi
 fi
 
