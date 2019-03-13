@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <identity.h>
 #include <string.h>
 #include <grp.h>
@@ -61,11 +62,13 @@ extern "C" FILE* fopen64(const char* path, const char* mode)
         orig_fopen = (fopentype)dlsym(RTLD_NEXT, "fopen64");
     }
     f = (orig_fopen)(path, mode);
-    
+    int savedErrno = 0;
+    if (f==NULL) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (f==NULL) errno=savedErrno;
     return f;
 }
 
@@ -91,11 +94,13 @@ extern "C" int rename(const char* oldname, const char* newname)
         orig_rename = (renametype)dlsym(RTLD_NEXT, "rename");
     }
     rc = (orig_rename)(oldname, newname);
-    
+    int savedErrno = 0;
+    if (rc) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (rc) errno=savedErrno;
     return rc;
 }
 
@@ -121,11 +126,13 @@ extern "C" int unlink(const char* path)
         orig_unlink = (unlinktype)dlsym(RTLD_NEXT, "unlink");
     }
     rc = (orig_unlink)(path);
-    
+    int savedErrno = 0;
+    if (rc) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (rc) errno=savedErrno;
     return rc;
 }
 /***
@@ -151,9 +158,12 @@ extern "C" int stat(const char* path, struct stat *buf)
     int filehandle = -1;
     int fstatatflags = AT_NO_AUTOMOUNT;
     rc = fstatat(filehandle, path, buf, fstatatflags);
+    int savedErrno = 0;
+    if (rc) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (rc) errno=savedErrno;
     return rc;
 }
