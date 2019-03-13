@@ -81,7 +81,7 @@ const csmi_struct_mapping_t map_csmi_hca_record_t= {
     cast_csmi_hca_record_t
 };
 
-const csmi_struct_node_t csmi_ib_cable_record_tree[23] = {{"discovery_time",offsetof(csmi_ib_cable_record_t,discovery_time),0,NULL,0x603630cb,4},
+const csmi_struct_node_t csmi_ib_cable_record_tree[25] = {{"discovery_time",offsetof(csmi_ib_cable_record_t,discovery_time),0,NULL,0x603630cb,4},
 {"guid_s1",offsetof(csmi_ib_cable_record_t,guid_s1),0,NULL,0x14fe2691,4},
 {"identifier",offsetof(csmi_ib_cable_record_t,identifier),0,NULL,0xbe5ad288,4},
 {"length",offsetof(csmi_ib_cable_record_t,length),0,NULL,0xb2deac7,4},
@@ -99,6 +99,8 @@ const csmi_struct_node_t csmi_ib_cable_record_tree[23] = {{"discovery_time",offs
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"severity",offsetof(csmi_ib_cable_record_t,severity),0,NULL,0x16a499a0,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -111,7 +113,7 @@ void* cast_csmi_ib_cable_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ib_cable_record_t= {
-    23,
+    25,
     csmi_ib_cable_record_tree,
     cast_csmi_ib_cable_record_t
 };
@@ -153,7 +155,7 @@ const csmi_struct_mapping_t map_csmi_ib_cable_history_record_t= {
     cast_csmi_ib_cable_history_record_t
 };
 
-const csmi_struct_node_t csmi_node_attributes_record_tree[57] = {{"type",offsetof(csmi_node_attributes_record_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8},
+const csmi_struct_node_t csmi_node_attributes_record_tree[61] = {{"type",offsetof(csmi_node_attributes_record_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8},
 {"available_cores",offsetof(csmi_node_attributes_record_t,available_cores),0,NULL,0x3fbd1be1,36},
 {"comment",offsetof(csmi_node_attributes_record_t,comment),0,NULL,0xd363aa58,4},
 {"ready",offsetof(csmi_node_attributes_record_t,ready),0,NULL,0x1046f5da,16},
@@ -209,6 +211,10 @@ const csmi_struct_node_t csmi_node_attributes_record_tree[57] = {{"type",offseto
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"collection_time",offsetof(csmi_node_attributes_record_t,collection_time),0,NULL,0xd67e7d1f,4}}
 ;
 
@@ -217,12 +223,12 @@ void* cast_csmi_node_attributes_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_attributes_record_t= {
-    57,
+    61,
     csmi_node_attributes_record_tree,
     cast_csmi_node_attributes_record_t
 };
 
-const csmi_struct_node_t csmi_node_attributes_history_record_tree[57] = {{"type",offsetof(csmi_node_attributes_history_record_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8},
+const csmi_struct_node_t csmi_node_attributes_history_record_tree[61] = {{"type",offsetof(csmi_node_attributes_history_record_t,type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7c9ebd07,8},
 {"available_cores",offsetof(csmi_node_attributes_history_record_t,available_cores),0,NULL,0x3fbd1be1,36},
 {"comment",offsetof(csmi_node_attributes_history_record_t,comment),0,NULL,0xd363aa58,4},
 {"ready",offsetof(csmi_node_attributes_history_record_t,ready),0,NULL,0x1046f5da,16},
@@ -278,6 +284,10 @@ const csmi_struct_node_t csmi_node_attributes_history_record_tree[57] = {{"type"
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"collection_time",offsetof(csmi_node_attributes_history_record_t,collection_time),0,NULL,0xd67e7d1f,4}}
 ;
 
@@ -286,7 +296,7 @@ void* cast_csmi_node_attributes_history_record_t(void* ptr,size_t index, char is
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_attributes_history_record_t= {
-    57,
+    61,
     csmi_node_attributes_history_record_tree,
     cast_csmi_node_attributes_history_record_t
 };
@@ -310,13 +320,17 @@ const csmi_struct_mapping_t map_csmi_node_query_state_history_record_t= {
     cast_csmi_node_query_state_history_record_t
 };
 
-const csmi_struct_node_t csmi_processor_record_tree[9] = {{"status",offsetof(csmi_processor_record_t,status),0,NULL,0x1c8a8d49,68},
+const csmi_struct_node_t csmi_processor_record_tree[13] = {{"status",offsetof(csmi_processor_record_t,status),0,NULL,0x1c8a8d49,68},
 {"socket",offsetof(csmi_processor_record_t,socket),0,NULL,0x1c31032e,36},
 {"node_name",offsetof(csmi_processor_record_t,node_name),0,NULL,0x746e3e2b,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"available_cores",offsetof(csmi_processor_record_t,available_cores),0,NULL,0x3fbd1be1,36},
 {"serial_number",offsetof(csmi_processor_record_t,serial_number),0,NULL,0xd931f68d,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"discovered_cores",offsetof(csmi_processor_record_t,discovered_cores),0,NULL,0x20dc9308,36},
 {"physical_location",offsetof(csmi_processor_record_t,physical_location),0,NULL,0x63efcf7a,4}}
 ;
@@ -326,12 +340,12 @@ void* cast_csmi_processor_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_processor_record_t= {
-    9,
+    13,
     csmi_processor_record_tree,
     cast_csmi_processor_record_t
 };
 
-const csmi_struct_node_t csmi_ssd_record_tree[25] = {{"wear_total_bytes_read",offsetof(csmi_ssd_record_t,wear_total_bytes_read),0,NULL,0x9e5253b8,40},
+const csmi_struct_node_t csmi_ssd_record_tree[31] = {{"wear_total_bytes_read",offsetof(csmi_ssd_record_t,wear_total_bytes_read),0,NULL,0x9e5253b8,40},
 {"wear_lifespan_used",offsetof(csmi_ssd_record_t,wear_lifespan_used),0,NULL,0x7bc95915,56},
 {"total_size",offsetof(csmi_ssd_record_t,total_size),0,NULL,0xc7f736e3,40},
 {"discovery_time",offsetof(csmi_ssd_record_t,discovery_time),0,NULL,0x603630cb,4},
@@ -355,6 +369,12 @@ const csmi_struct_node_t csmi_ssd_record_tree[25] = {{"wear_total_bytes_read",of
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"fw_ver",offsetof(csmi_ssd_record_t,fw_ver),0,NULL,0xfe6cb44e,4}}
 ;
 
@@ -363,12 +383,12 @@ void* cast_csmi_ssd_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ssd_record_t= {
-    25,
+    31,
     csmi_ssd_record_tree,
     cast_csmi_ssd_record_t
 };
 
-const csmi_struct_node_t csmi_switch_record_tree[44] = {{"discovery_time",offsetof(csmi_switch_record_t,discovery_time),0,NULL,0x603630cb,4},
+const csmi_struct_node_t csmi_switch_record_tree[50] = {{"discovery_time",offsetof(csmi_switch_record_t,discovery_time),0,NULL,0x603630cb,4},
 {"fw_version",offsetof(csmi_switch_record_t,fw_version),0,NULL,0x136b0847,4},
 {"has_ufm_agent",offsetof(csmi_switch_record_t,has_ufm_agent),0,NULL,0xaab4c3f6,16},
 {"gu_id",offsetof(csmi_switch_record_t,gu_id),0,NULL,0xf88a66d,4},
@@ -410,6 +430,12 @@ const csmi_struct_node_t csmi_switch_record_tree[44] = {{"discovery_time",offset
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"total_alarms",offsetof(csmi_switch_record_t,total_alarms),0,NULL,0x78cc7a28,36},
 {"type",offsetof(csmi_switch_record_t,type),0,NULL,0x7c9ebd07,4}}
 ;
@@ -419,12 +445,12 @@ void* cast_csmi_switch_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_record_t= {
-    44,
+    50,
     csmi_switch_record_tree,
     cast_csmi_switch_record_t
 };
 
-const csmi_struct_node_t csmi_switch_inventory_record_tree[27] = {{"name",offsetof(csmi_switch_inventory_record_t,name),0,NULL,0x7c9b0c46,4},
+const csmi_struct_node_t csmi_switch_inventory_record_tree[29] = {{"name",offsetof(csmi_switch_inventory_record_t,name),0,NULL,0x7c9b0c46,4},
 {"max_ib_ports",offsetof(csmi_switch_inventory_record_t,max_ib_ports),0,NULL,0x1c135c0c,36},
 {"host_system_guid",offsetof(csmi_switch_inventory_record_t,host_system_guid),0,NULL,0xd5e2674f,4},
 {"severity",offsetof(csmi_switch_inventory_record_t,severity),0,NULL,0x16a499a0,4},
@@ -445,6 +471,8 @@ const csmi_struct_node_t csmi_switch_inventory_record_tree[27] = {{"name",offset
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"path",offsetof(csmi_switch_inventory_record_t,path),0,NULL,0x7c9c25f2,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -458,12 +486,12 @@ void* cast_csmi_switch_inventory_record_t(void* ptr,size_t index, char isArray) 
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_inventory_record_t= {
-    27,
+    29,
     csmi_switch_inventory_record_tree,
     cast_csmi_switch_inventory_record_t
 };
 
-const csmi_struct_node_t csmi_switch_ports_record_tree[42] = {{"description",offsetof(csmi_switch_ports_record_t,description),0,NULL,0x91b0c789,4},
+const csmi_struct_node_t csmi_switch_ports_record_tree[46] = {{"description",offsetof(csmi_switch_ports_record_t,description),0,NULL,0x91b0c789,4},
 {"enabled_speed",offsetof(csmi_switch_ports_record_t,enabled_speed),0,NULL,0x2c6b10c0,4},
 {"comment",offsetof(csmi_switch_ports_record_t,comment),0,NULL,0xd363aa58,4},
 {"mirror",offsetof(csmi_switch_ports_record_t,mirror),0,NULL,0xdcdd520,4},
@@ -497,6 +525,10 @@ const csmi_struct_node_t csmi_switch_ports_record_tree[42] = {{"description",off
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"severity",offsetof(csmi_switch_ports_record_t,severity),0,NULL,0x16a499a0,4},
 {"max_supported_speed",offsetof(csmi_switch_ports_record_t,max_supported_speed),0,NULL,0x3c485ae0,4},
 {"mirror_traffic",offsetof(csmi_switch_ports_record_t,mirror_traffic),0,NULL,0x43338b1e,4},
@@ -512,7 +544,7 @@ void* cast_csmi_switch_ports_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_ports_record_t= {
-    42,
+    46,
     csmi_switch_ports_record_tree,
     cast_csmi_switch_ports_record_t
 };
@@ -535,7 +567,7 @@ const csmi_struct_mapping_t map_csmi_switch_details_t= {
     cast_csmi_switch_details_t
 };
 
-const csmi_struct_node_t csmi_switch_history_record_tree[49] = {{"history_time",offsetof(csmi_switch_history_record_t,history_time),0,NULL,0x60dc8265,4},
+const csmi_struct_node_t csmi_switch_history_record_tree[55] = {{"history_time",offsetof(csmi_switch_history_record_t,history_time),0,NULL,0x60dc8265,4},
 {"fw_version",offsetof(csmi_switch_history_record_t,fw_version),0,NULL,0x136b0847,4},
 {"has_ufm_agent",offsetof(csmi_switch_history_record_t,has_ufm_agent),0,NULL,0xaab4c3f6,16},
 {"gu_id",offsetof(csmi_switch_history_record_t,gu_id),0,NULL,0xf88a66d,4},
@@ -571,8 +603,14 @@ const csmi_struct_node_t csmi_switch_history_record_tree[49] = {{"history_time",
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"vendor",offsetof(csmi_switch_history_record_t,vendor),0,NULL,0x228173b3,4},
 {"operation",offsetof(csmi_switch_history_record_t,operation),0,NULL,0x40a16e96,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -591,7 +629,7 @@ void* cast_csmi_switch_history_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_switch_history_record_t= {
-    49,
+    55,
     csmi_switch_history_record_tree,
     cast_csmi_switch_history_record_t
 };
@@ -688,13 +726,15 @@ const csmi_struct_mapping_t map_csmi_cluster_query_state_record_t= {
     cast_csmi_cluster_query_state_record_t
 };
 
-const csmi_struct_node_t csmi_node_find_job_record_tree[11] = {{"allocation_id",offsetof(csmi_node_find_job_record_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csmi_node_find_job_record_tree[13] = {{"allocation_id",offsetof(csmi_node_find_job_record_t,allocation_id),0,NULL,0x99d3da77,40},
 {"node_name",offsetof(csmi_node_find_job_record_t,node_name),0,NULL,0x746e3e2b,4},
 {"user_name",offsetof(csmi_node_find_job_record_t,user_name),0,NULL,0xc029f5a4,4},
 {"begin_time",offsetof(csmi_node_find_job_record_t,begin_time),0,NULL,0x5f818b18,4},
 {NULL,0,0,NULL,0,0},
 {"num_nodes",offsetof(csmi_node_find_job_record_t,num_nodes),0,NULL,0xa5d6722d,36},
 {"primary_job_id",offsetof(csmi_node_find_job_record_t,primary_job_id),0,NULL,0xcfd430cf,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -706,7 +746,7 @@ void* cast_csmi_node_find_job_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_find_job_record_t= {
-    11,
+    13,
     csmi_node_find_job_record_tree,
     cast_csmi_node_find_job_record_t
 };
@@ -1040,7 +1080,7 @@ const csmi_struct_mapping_t map_csm_node_delete_output_t= {
     cast_csm_node_delete_output_t
 };
 
-const csmi_struct_node_t csm_node_find_job_input_tree[21] = {{"begin_time_search_begin",offsetof(csm_node_find_job_input_t,begin_time_search_begin),0,NULL,0x34e5bb11,4},
+const csmi_struct_node_t csm_node_find_job_input_tree[27] = {{"begin_time_search_begin",offsetof(csm_node_find_job_input_t,begin_time_search_begin),0,NULL,0x34e5bb11,4},
 {"offset",offsetof(csm_node_find_job_input_t,offset),0,NULL,0x123b4b4c,36},
 {"begin_time_search_end",offsetof(csm_node_find_job_input_t,begin_time_search_end),0,NULL,0xc583ac83,4},
 {"limit",offsetof(csm_node_find_job_input_t,limit),0,NULL,0xfdcc804,36},
@@ -1057,6 +1097,12 @@ const csmi_struct_node_t csm_node_find_job_input_tree[21] = {{"begin_time_search
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"search_range_begin",offsetof(csm_node_find_job_input_t,search_range_begin),0,NULL,0x35fc576b,4},
 {"node_names_count",offsetof(csm_node_find_job_input_t,node_names_count),0,NULL,0x868cf686,24},
 {"midpoint",offsetof(csm_node_find_job_input_t,midpoint),0,NULL,0x97cb1ba9,4},
@@ -1068,7 +1114,7 @@ void* cast_csm_node_find_job_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_node_find_job_input_t= {
-    21,
+    27,
     csm_node_find_job_input_tree,
     cast_csm_node_find_job_input_t
 };

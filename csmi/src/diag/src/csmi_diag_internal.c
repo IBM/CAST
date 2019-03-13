@@ -75,13 +75,17 @@ const csmi_struct_mapping_t map_csm_diag_run_end_input_t= {
     cast_csm_diag_run_end_input_t
 };
 
-const csmi_struct_node_t csm_diag_result_create_input_tree[9] = {{"status",offsetof(csm_diag_result_create_input_t,status),16,NULL,0x1c8a8d49,70},
+const csmi_struct_node_t csm_diag_result_create_input_tree[13] = {{"status",offsetof(csm_diag_result_create_input_t,status),16,NULL,0x1c8a8d49,70},
 {"run_id",offsetof(csm_diag_result_create_input_t,run_id),0,NULL,0x1a4e4326,40},
 {"test_name",offsetof(csm_diag_result_create_input_t,test_name),0,NULL,0x9a6d8425,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"node_name",offsetof(csm_diag_result_create_input_t,node_name),0,NULL,0x746e3e2b,4},
 {"serial_number",offsetof(csm_diag_result_create_input_t,serial_number),0,NULL,0xd931f68d,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"begin_time",offsetof(csm_diag_result_create_input_t,begin_time),0,NULL,0x5f818b18,4},
 {"log_file",offsetof(csm_diag_result_create_input_t,log_file),0,NULL,0x7f2d9ce6,4}}
 ;
@@ -91,7 +95,7 @@ void* cast_csm_diag_result_create_input_t(void* ptr,size_t index, char isArray) 
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_result_create_input_t= {
-    9,
+    13,
     csm_diag_result_create_input_tree,
     cast_csm_diag_result_create_input_t
 };
@@ -113,7 +117,7 @@ const csmi_struct_mapping_t map_csm_diag_run_begin_input_t= {
     cast_csm_diag_run_begin_input_t
 };
 
-const csmi_struct_node_t csm_diag_run_query_input_tree[22] = {{"allocation_ids_count",offsetof(csm_diag_run_query_input_t,allocation_ids_count),0,NULL,0x49964552,24},
+const csmi_struct_node_t csm_diag_run_query_input_tree[30] = {{"allocation_ids_count",offsetof(csm_diag_run_query_input_t,allocation_ids_count),0,NULL,0x49964552,24},
 {"offset",offsetof(csm_diag_run_query_input_t,offset),0,NULL,0x123b4b4c,36},
 {"inserted_ras",offsetof(csm_diag_run_query_input_t,inserted_ras),0,NULL,0x89b6b1e8,16},
 {"limit",offsetof(csm_diag_run_query_input_t,limit),0,NULL,0xfdcc804,36},
@@ -134,6 +138,14 @@ const csmi_struct_node_t csm_diag_run_query_input_tree[22] = {{"allocation_ids_c
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"allocation_ids",offsetof(csm_diag_run_query_input_t,allocation_ids),offsetof(csm_diag_run_query_input_t, allocation_ids_count),NULL,0xd44f29ca,1}}
 ;
 
@@ -142,7 +154,7 @@ void* cast_csm_diag_run_query_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_diag_run_query_input_t= {
-    22,
+    30,
     csm_diag_run_query_input_tree,
     cast_csm_diag_run_query_input_t
 };

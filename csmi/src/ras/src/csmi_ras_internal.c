@@ -84,13 +84,15 @@ const csmi_struct_mapping_t map_csmi_ras_event_action_record_t= {
     cast_csmi_ras_event_action_record_t
 };
 
-const csmi_struct_node_t csmi_ras_event_action_tree[13] = {{"rec_id",offsetof(csmi_ras_event_action_t,rec_id),0,NULL,0x1926b2eb,40},
+const csmi_struct_node_t csmi_ras_event_action_tree[15] = {{"rec_id",offsetof(csmi_ras_event_action_t,rec_id),0,NULL,0x1926b2eb,40},
 {"count",offsetof(csmi_ras_event_action_t,count),0,NULL,0xf3d586e,36},
 {"time_stamp",offsetof(csmi_ras_event_action_t,time_stamp),0,NULL,0xae3ff458,4},
 {"msg_id",offsetof(csmi_ras_event_action_t,msg_id),0,NULL,0xe7c7058,4},
 {NULL,0,0,NULL,0,0},
 {"location_name",offsetof(csmi_ras_event_action_t,location_name),0,NULL,0x54e4507e,4},
 {"msg_id_seq",offsetof(csmi_ras_event_action_t,msg_id_seq),0,NULL,0xdda2eb00,36},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -104,12 +106,12 @@ void* cast_csmi_ras_event_action_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_event_action_t= {
-    13,
+    15,
     csmi_ras_event_action_tree,
     cast_csmi_ras_event_action_t
 };
 
-const csmi_struct_node_t csmi_ras_event_tree[22] = {{"processor",offsetof(csmi_ras_event_t,processor),0,NULL,0x6cb287a5,36},
+const csmi_struct_node_t csmi_ras_event_tree[30] = {{"processor",offsetof(csmi_ras_event_t,processor),0,NULL,0x6cb287a5,36},
 {"count",offsetof(csmi_ras_event_t,count),0,NULL,0xf3d586e,36},
 {"suppress_ids",offsetof(csmi_ras_event_t,suppress_ids),0,NULL,0xad086749,4},
 {"msg_id",offsetof(csmi_ras_event_t,msg_id),0,NULL,0xe7c7058,4},
@@ -124,8 +126,16 @@ const csmi_struct_node_t csmi_ras_event_tree[22] = {{"processor",offsetof(csmi_r
 {NULL,0,0,NULL,0,0},
 {"time_stamp",offsetof(csmi_ras_event_t,time_stamp),0,NULL,0xae3ff458,4},
 {"raw_data",offsetof(csmi_ras_event_t,raw_data),0,NULL,0xf85a97e8,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"kvcsv",offsetof(csmi_ras_event_t,kvcsv),0,NULL,0xfd1a732,4},
 {"rec_id",offsetof(csmi_ras_event_t,rec_id),0,NULL,0x1926b2eb,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -138,7 +148,7 @@ void* cast_csmi_ras_event_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_ras_event_t= {
-    22,
+    30,
     csmi_ras_event_tree,
     cast_csmi_ras_event_t
 };
@@ -158,7 +168,7 @@ const csmi_struct_mapping_t map_csmi_ras_event_vector_t= {
     cast_csmi_ras_event_vector_t
 };
 
-const csmi_struct_node_t csm_ras_event_query_input_tree[22] = {{"order_by",offsetof(csm_ras_event_query_input_t,order_by),0,NULL,0x245553bb,68},
+const csmi_struct_node_t csm_ras_event_query_input_tree[26] = {{"order_by",offsetof(csm_ras_event_query_input_t,order_by),0,NULL,0x245553bb,68},
 {"offset",offsetof(csm_ras_event_query_input_t,offset),0,NULL,0x123b4b4c,36},
 {"location_name",offsetof(csm_ras_event_query_input_t,location_name),0,NULL,0x54e4507e,4},
 {"limit",offsetof(csm_ras_event_query_input_t,limit),0,NULL,0xfdcc804,36},
@@ -179,6 +189,10 @@ const csmi_struct_node_t csm_ras_event_query_input_tree[22] = {{"order_by",offse
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"master_time_stamp_search_end",offsetof(csm_ras_event_query_input_t,master_time_stamp_search_end),0,NULL,0x45dc3cce,4}}
 ;
 
@@ -187,7 +201,7 @@ void* cast_csm_ras_event_query_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_event_query_input_t= {
-    22,
+    26,
     csm_ras_event_query_input_tree,
     cast_csm_ras_event_query_input_t
 };
@@ -349,13 +363,15 @@ const csmi_struct_mapping_t map_csm_ras_msg_type_update_output_t= {
     cast_csm_ras_msg_type_update_output_t
 };
 
-const csmi_struct_node_t csm_ras_msg_type_query_input_tree[13] = {{"offset",offsetof(csm_ras_msg_type_query_input_t,offset),0,NULL,0x123b4b4c,36},
+const csmi_struct_node_t csm_ras_msg_type_query_input_tree[15] = {{"offset",offsetof(csm_ras_msg_type_query_input_t,offset),0,NULL,0x123b4b4c,36},
 {"limit",offsetof(csm_ras_msg_type_query_input_t,limit),0,NULL,0xfdcc804,36},
 {"control_action",offsetof(csm_ras_msg_type_query_input_t,control_action),0,NULL,0x4bd6e603,4},
 {"msg_id",offsetof(csm_ras_msg_type_query_input_t,msg_id),0,NULL,0xe7c7058,4},
 {NULL,0,0,NULL,0,0},
 {"severity",offsetof(csm_ras_msg_type_query_input_t,severity),csmi_ras_severity_t_MAX,&csmi_ras_severity_t_strs,0x16a499a0,8},
 {"set_states",offsetof(csm_ras_msg_type_query_input_t,set_states),offsetof(csm_ras_msg_type_query_input_t, set_states_count),NULL,0xaee22e84,5},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -369,7 +385,7 @@ void* cast_csm_ras_msg_type_query_input_t(void* ptr,size_t index, char isArray) 
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ras_msg_type_query_input_t= {
-    13,
+    15,
     csm_ras_msg_type_query_input_tree,
     cast_csm_ras_msg_type_query_input_t
 };

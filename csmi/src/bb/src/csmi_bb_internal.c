@@ -100,13 +100,15 @@ const csmi_struct_mapping_t map_csm_bb_cmd_output_t= {
     cast_csm_bb_cmd_output_t
 };
 
-const csmi_struct_node_t csm_bb_lv_create_input_tree[11] = {{"current_size",offsetof(csm_bb_lv_create_input_t,current_size),0,NULL,0x454b21c2,40},
+const csmi_struct_node_t csm_bb_lv_create_input_tree[13] = {{"current_size",offsetof(csm_bb_lv_create_input_t,current_size),0,NULL,0x454b21c2,40},
 {"state",offsetof(csm_bb_lv_create_input_t,state),0,NULL,0x10614a06,68},
 {"allocation_id",offsetof(csm_bb_lv_create_input_t,allocation_id),0,NULL,0x99d3da77,40},
 {NULL,0,0,NULL,0,0},
 {"file_system_mount",offsetof(csm_bb_lv_create_input_t,file_system_mount),0,NULL,0x33eec6bb,4},
 {"node_name",offsetof(csm_bb_lv_create_input_t,node_name),0,NULL,0x746e3e2b,4},
 {"file_system_type",offsetof(csm_bb_lv_create_input_t,file_system_type),0,NULL,0xa47f99ea,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"logical_volume_name",offsetof(csm_bb_lv_create_input_t,logical_volume_name),0,NULL,0x7221a037,4},
@@ -118,18 +120,22 @@ void* cast_csm_bb_lv_create_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_bb_lv_create_input_t= {
-    11,
+    13,
     csm_bb_lv_create_input_tree,
     cast_csm_bb_lv_create_input_t
 };
 
-const csmi_struct_node_t csm_bb_lv_delete_input_tree[11] = {{"num_bytes_read",offsetof(csm_bb_lv_delete_input_t,num_bytes_read),0,NULL,0x38181676,40},
+const csmi_struct_node_t csm_bb_lv_delete_input_tree[15] = {{"num_bytes_read",offsetof(csm_bb_lv_delete_input_t,num_bytes_read),0,NULL,0x38181676,40},
 {"num_bytes_written",offsetof(csm_bb_lv_delete_input_t,num_bytes_written),0,NULL,0xd3acfa7,40},
 {"node_name",offsetof(csm_bb_lv_delete_input_t,node_name),0,NULL,0x746e3e2b,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"logical_volume_name",offsetof(csm_bb_lv_delete_input_t,logical_volume_name),0,NULL,0x7221a037,4},
 {"allocation_id",offsetof(csm_bb_lv_delete_input_t,allocation_id),0,NULL,0x99d3da77,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"num_writes",offsetof(csm_bb_lv_delete_input_t,num_writes),0,NULL,0x75dc6b52,40},
@@ -141,7 +147,7 @@ void* cast_csm_bb_lv_delete_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_bb_lv_delete_input_t= {
-    11,
+    15,
     csm_bb_lv_delete_input_tree,
     cast_csm_bb_lv_delete_input_t
 };
@@ -205,13 +211,17 @@ const csmi_struct_mapping_t map_csm_bb_lv_update_input_t= {
     cast_csm_bb_lv_update_input_t
 };
 
-const csmi_struct_node_t csm_bb_vg_create_input_tree[9] = {{"ssd_info_count",offsetof(csm_bb_vg_create_input_t,ssd_info_count),0,NULL,0xbca8962,24},
+const csmi_struct_node_t csm_bb_vg_create_input_tree[13] = {{"ssd_info_count",offsetof(csm_bb_vg_create_input_t,ssd_info_count),0,NULL,0xbca8962,24},
 {"available_size",offsetof(csm_bb_vg_create_input_t,available_size),0,NULL,0x9b91340,40},
 {"total_size",offsetof(csm_bb_vg_create_input_t,total_size),0,NULL,0xc7f736e3,40},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"node_name",offsetof(csm_bb_vg_create_input_t,node_name),0,NULL,0x746e3e2b,4},
 {"scheduler",offsetof(csm_bb_vg_create_input_t,scheduler),0,NULL,0xdc0deaa4,16},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"ssd_info",offsetof(csm_bb_vg_create_input_t,ssd_info),offsetof(csm_bb_vg_create_input_t, ssd_info_count),&map_csmi_bb_vg_ssd_info_t,0x21e5a1da,1},
 {"vg_name",offsetof(csm_bb_vg_create_input_t,vg_name),0,NULL,0x76500bc2,4}}
 ;
@@ -221,7 +231,7 @@ void* cast_csm_bb_vg_create_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_bb_vg_create_input_t= {
-    9,
+    13,
     csm_bb_vg_create_input_tree,
     cast_csm_bb_vg_create_input_t
 };
