@@ -15,6 +15,8 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <identity.h>
 #include <string.h>
 #include <grp.h>
@@ -120,6 +122,35 @@ extern "C" int unlink(const char* path)
     }
     rc = (orig_unlink)(path);
     
+    if(switchuid)
+    {
+        becomeUser(uid, gid);
+    }
+    return rc;
+}
+/***
+ * The override of the stat library call is done differently since it is not called out as a weak symbol.  
+ * The stat library call is overridden here and then calls into fstatat to get the struct stat.
+ ***/
+extern "C" int stat(const char* path, struct stat *buf)
+{
+    int   rc;
+    uid_t uid = 0;
+    gid_t gid = 0;
+    bool  switchuid = false;
+    if(strncmp(path, hitname, strlen(hitname)) == 0)
+    {
+        uid = setfsuid(~0);
+        gid = setfsgid(~0);
+        if((uid != 0) || (gid != 0))
+        {
+            becomeUser(0,0);
+            switchuid = true;
+        }
+    }
+    int filehandle = -1;
+    int fstatatflags = AT_NO_AUTOMOUNT;
+    rc = fstatat(filehandle, path, buf, fstatatflags);
     if(switchuid)
     {
         becomeUser(uid, gid);
