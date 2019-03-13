@@ -18,7 +18,7 @@
 #   usage:              ./csm_db_utility_setup_script.sh
 #   current_version:    01.0
 #   create:             02-20-2019
-#   last modified:      03-12-2019
+#   last modified:      03-13-2019
 #--------------------------------------------------------------------------------
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -129,14 +129,14 @@ rpm -qa | grep postgresql | grep server > /dev/null
         echo "[Error   ] PostgreSQL RPMs:                   | Are not installed"
         echo "[Info    ] Please check:                      | Your configuration settings or install PostreSQL RPMs"
         echo "[Info    ] Once the PostgreSQL RPMs:          | Are installed please re-run this script for setup"
-	echo "${line1_out}"
+        echo "${line1_out}"
         LogMsg "[Error   ] PostgreSQL RPMs:                     | Are not installed"
         LogMsg "[Info    ] Please check:                        | Your configuration settings or install PostreSQL RPMs"
         LogMsg "[Info    ] Once the PostgreSQL RPMs:            | Are installed please re-run this script for setup"
-	LogMsg "${line2_log}"
-	LogMsg "[End     ] Exiting $0 script"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
         echo "${line3_log}" >> $logfile
-	exit 1
+        exit 1
     else
         echo "[Info    ] PostgreSQL RPMs:                   | Are already installed"
         LogMsg "[Info    ] PostgreSQL RPMs:                     | Are already installed"
@@ -173,25 +173,25 @@ if [ -f $pg_hba_conf_file ]; then
 else
     echo "[Info    ] Running:                           | The initdb setup"
     su - postgres -c /usr/bin/initdb < /dev/null > /dev/null 2>&1
-	
-	#----------------------------------------------------------------
-	# Check the see if the pg_hba.conf file exists after
-	#----------------------------------------------------------------
-	
-	if [ -f $pg_hba_conf_file ]; then
-	    echo "[Complete] PostgreSQL pg_hba.conf file:	      | $pg_hba_conf_file exists in directory"
-	    LogMsg "[Complete] PostgreSQL pg_hba.conf file:         | $pg_hba_conf_file exists in directory"
-	else
-	    echo "[Error   ] File:                          | $pg_hba_conf_file does not exist in directory"
-    	    echo "[Info    ] Please ensure:                 | the pg_hba.conf exists for proper setup."
-	    LogMsg "[Error   ] File:                          | $pg_hba_conf_file does not exist in directory"
-    	    LogMsg "[Info    ] Please ensure:                 | the pg_hba.conf exists for proper setup."
-            LogMsg "${line2_log}"
-            LogMsg "[End     ] Exiting $0 script"
-            echo "${line1_out}"
-            echo "${line3_log}" >> $logfile
-	    exit 1
-	fi
+
+    #----------------------------------------------------------------
+    # Check the see if the pg_hba.conf file exists after
+    #----------------------------------------------------------------
+
+    if [ -f $pg_hba_conf_file ]; then
+        echo "[Complete] PostgreSQL pg_hba.conf file:	      | $pg_hba_conf_file exists in directory"
+        LogMsg "[Complete] PostgreSQL pg_hba.conf file:         | $pg_hba_conf_file exists in directory"
+    else
+        echo "[Error   ] File:                              | $pg_hba_conf_file does not exist in directory"
+        echo "[Info    ] Please ensure:                     | the pg_hba.conf exists for proper setup."
+        LogMsg "[Error   ] File:                                | $pg_hba_conf_file does not exist in directory"
+        LogMsg "[Info    ] Please ensure:                       | the pg_hba.conf exists for proper setup."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 1
+    fi
 fi
 
 #----------------------------------------------------------------
@@ -206,8 +206,8 @@ if [ $? -ne 0 ]; then
     systemctl start postgresql > /dev/null
     
     if [ $? -eq 0 ]; then
-    	echo "[Complete] The PostgreSQL server:             | Is currently running"
-    	LogMsg "[Complete] The PostgreSQL server:         	   | Is currently running"
+        echo "[Complete] The PostgreSQL server:             | Is currently running"
+        LogMsg "[Complete] The PostgreSQL server:         	   | Is currently running"
     else
         echo "[Error   ] The PostgreSQL server:             | Is not currently running after server start."
         echo "[Info    ] If there is an issue please run:   | systemctl status postgresql for more info."
