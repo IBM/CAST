@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     uint32_t l_contribId = 0;
     char* l_MountPoint = "/tmp/GetUsage";
     BBUsage_t l_Usage;
-    BBCREATEFLAGS l_CreateFlags = (BBCREATEFLAGS)0;
+    BBCREATEFLAGS l_CreateFlags = BBXFS;
     char bbsize[]="200M";
     
     size_t l_Size = (size_t)2048;
