@@ -33,6 +33,7 @@ install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS
 file(GLOB INSTALL_FILES
     "cast_helper.py"
     "sampleWeightedErrorMap.json"
+    "requirements.txt"
 )
 
 install(FILES ${INSTALL_FILES} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})

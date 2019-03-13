@@ -10,11 +10,13 @@ Elasticsearch API
 -----------------
 CAST leverages the `Elasticsearch API`_ python library to interact with Elasticsearch. 
 If the API is being run on a node with internet access the following process may be used to install this
-library:
+library. 
+
+A requirements file is provided in the RPM:
 
 .. code-block:: bash
 
-   pip install elasticsearch
+   pip install -r /opt/ibm/csm/bigdata/python/requirements.txt
 
 If the node doesn't have access to the internet please refer to the official python documentation for the installation
 of wheels: `Installing Packages`_.
