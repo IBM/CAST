@@ -209,17 +209,29 @@ sub RBArrayOrder{
     my $depth = 0;
     print("\n");
 
+    my $terminal_node = {};
+    $terminal_node->{DEPTH} = -1;
+
     if ( defined $tree )
     {
         $tree->{DEPTH} = 0;
     }
 
+    my $count  = 1;
     # A queue is used to gereate an array mapping of the tree for the C const.
     while (@tree_queue)
     {
+        $count +=1;
         my $node = shift @tree_queue;
         if (defined $node )
         {
+            if ($node->{DEPTH} == -1 )
+            {
+                $null_string.= "$default_string,\n"; 
+                $null_count++;
+                next;
+            }
+
             # If a real value was found after a string of nulls add it to the string.
             if ($null_count > 0)
             {
@@ -259,6 +271,8 @@ sub RBArrayOrder{
         }
         else
         {
+            push @tree_queue,$terminal_node;
+            push @tree_queue,$terminal_node;
             $null_string.= "$default_string,\n"; 
             $null_count++;
         }
@@ -279,7 +293,7 @@ sub RBArrayOrder{
 
     substr($string,-2)="";
     $string .="}\n";
-    
+   
     return ($num_fields,$string);
 }
 1; #true value for compilation
