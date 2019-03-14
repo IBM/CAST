@@ -96,6 +96,13 @@ CSMI_VERSION_START(CSM_VERSION_1_5_0)
 CSMI_STRUCT_MEMBER(int16_t,  smt_mode,        BASIC,  ,    0, ) /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
 
 CSMI_VERSION_END(c703c5d9e28c017d906b605a44bda1d0)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+
+CSMI_STRUCT_MEMBER( uint32_t, num_allocations, BASIC, , 0, ) /**< Number of allocations found. */
+CSMI_STRUCT_MEMBER( csmi_allocation_t**, allocations, ARRAY_STRUCT, num_allocations, NULL, csmi_allocation_t) /**< Additional allocations found, used in queries. */
+
+CSMI_VERSION_END()
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

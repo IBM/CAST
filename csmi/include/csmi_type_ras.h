@@ -60,7 +60,8 @@ extern const char* RasSeverity_strs [];
 /**
  * @brief Represents a record in the **csm_ras_type** table of the CSM database.
  */
-typedef struct {
+typedef struct csmi_ras_type_record_t csmi_ras_type_record_t;
+struct csmi_ras_type_record_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t threshold_count; /**< Number of times this event has to occur during the 'threshold_period' before taking action on the RAS event. */
     int32_t threshold_period; /**< Period in seconds over which to count the 'threshold_count'. */
@@ -74,22 +75,24 @@ typedef struct {
     char* message; /**< RAS message to display to the user (pre-variable substitution). */
     csmi_ras_severity_t severity; /**< Severity of the RAS event. INFO/WARNING/FATAL. */
     csmi_node_state_t set_state; /**< replacement for 'set_ready' and 'set_not_ready' after CSM_VERSION_0_4_1. resources associated with the event will be set to this node state when the event hits threshold. */
-} csmi_ras_type_record_t;
+};
 /**
  * @brief An input wrapper for @ref  csm_ras_event_create.
  */
-typedef struct {
+typedef struct csm_ras_event_create_input_t csm_ras_event_create_input_t;
+struct csm_ras_event_create_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char* msg_id; /**< A RAS message id which exists in **csm_ras_type**. */
     char* time_stamp; /**< The timestamp the RAS event was generated (YYYY-MM-DD HH:MM:SS.mmmmmm).*/ 
     char* location_name; /**< Origin of the node.*/
     char* raw_data; /**< Raw event information (Nullable).*/
     char* kvcsv; /**< Key value pairs ("k1=v1,k2=v2,..")*/
-} csm_ras_event_create_input_t;
+};
 /**
  * @brief Represents a row in the csm_ras_event_action table.
  */
-typedef struct {
+typedef struct csmi_ras_event_action_record_t csmi_ras_event_action_record_t;
+struct csmi_ras_event_action_record_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t rec_id; /**< The record id of the RAS evnet. */
     int32_t count; /**< The number of times the event occured. */
@@ -100,11 +103,12 @@ typedef struct {
     char* msg_id; /**< The type of the RAS event, for example "csm.status.up" */
     char* raw_data; /**< Event raw data. */
     char* time_stamp; /**< The time that the event was generated. */
-} csmi_ras_event_action_record_t;
+};
 /**
  * @brief Represents a row in the **csm_ras_event_action** table.
  */
-typedef struct {
+typedef struct csmi_ras_event_action_t csmi_ras_event_action_t;
+struct csmi_ras_event_action_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t rec_id; /**< The record id of the RAS event. */
     int32_t msg_id_seq; /**< The sequence number indexing the csm_ras_type_audit table.*/
@@ -115,14 +119,15 @@ typedef struct {
     char* message; /**< RAS message text. */
     char* raw_data; /**< Event raw data. */
     char* archive_history_time; /**< Time when the RAS event was archived to the big data store. */
-} csmi_ras_event_action_t;
+};
 /**
  * @brief Represents a CSM RAS event.
  *  @todo Post-PRPQ: What differentiates from @ref csmi_ras_event_action_t.
  *  reply: I think this struct represents a record from the 'csm_ras_event_action_view'.
  * which is a special thing that Nate Besaw put together in the database.
  */
-typedef struct {
+typedef struct csmi_ras_event_t csmi_ras_event_t;
+struct csmi_ras_event_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t min_time_in_pool; /**< The minimum time the event is available in the RAS event pool. */
     int32_t processor; /**< @todo Post-PRPQ: What is the processor? */
@@ -138,20 +143,22 @@ typedef struct {
     char* kvcsv; /**< kvcsv. event specific keys and values in a comma separated list*/
     char* master_time_stamp; /**< The time when the event is process by the CSM master daemon. Used for correlating node state changes with CSM master processing of RAS events.*/
     int64_t rec_id; /**< unique identifier for this specific ras event. */
-} csmi_ras_event_t;
+};
 /**
  * @brief Collects an array of RAS events.
  */
-typedef struct {
+typedef struct csmi_ras_event_vector_t csmi_ras_event_vector_t;
+struct csmi_ras_event_vector_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t num_ras_events; /**< The number of RAS events, size of @ref events. */
     csmi_ras_event_t** events; /**< The list of RAS events, size defined by @ref num_ras_events.*/
-} csmi_ras_event_vector_t;
+};
 /**
  * @brief An input wrapper for @ref csm_ras_event_query.
  * At least one of the fields must be specified to use the @ref csm_ras_event_query API.
  */
-typedef struct {
+typedef struct csm_ras_event_query_input_t csm_ras_event_query_input_t;
+struct csm_ras_event_query_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1. */
@@ -166,36 +173,40 @@ typedef struct {
     char* master_time_stamp_search_begin; /**< A time used to filter results of the SQL query and only include records with a 'master_time_stamp' at or after (ie: '>=' ) this time. optional. */
     char* master_time_stamp_search_end; /**< A time used to filter results of the SQL query and only include records with a 'master_time_stamp' at or before (ie: '<=' ) this time. optional. */
     int64_t rec_id; /**< Query by rec_id. This is a unique identifier for this specific ras event. API will ignore values less than 1. optional. */
-} csm_ras_event_query_input_t;
+};
 /**
  *
  */
-typedef struct {
+typedef struct csm_ras_event_query_output_t csm_ras_event_query_output_t;
+struct csm_ras_event_query_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t results_count; /**< Number of elements in the 'results' array. */
     csmi_ras_event_t** results; /**< An array of all the records returned from the SQL query. */
-} csm_ras_event_query_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_ras_event_query_allocation.
  */
-typedef struct {
+typedef struct csm_ras_event_query_allocation_input_t csm_ras_event_query_allocation_input_t;
+struct csm_ras_event_query_allocation_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< The allocation id to search for associated RAS events. */
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
-} csm_ras_event_query_allocation_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_ras_event_query_allocation.
  */
-typedef struct {
+typedef struct csm_ras_event_query_allocation_output_t csm_ras_event_query_allocation_output_t;
+struct csm_ras_event_query_allocation_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t num_events; /**< Number of events retrieved by the query, size of @ref events. */
     csmi_ras_event_action_t** events; /**< A list of RAS events retrieved, size defined by @ref num_events. */
-} csm_ras_event_query_allocation_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_ras_msg_type_create.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_create_input_t csm_ras_msg_type_create_input_t;
+struct csm_ras_msg_type_create_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t threshold_count; /**< Number of times this event has to occur during the 'threshold_period' before taking action on the RAS event. */
     int32_t threshold_period; /**< Period in seconds over which to count the 'threshold_count'. */
@@ -209,39 +220,43 @@ typedef struct {
     char* message; /**< RAS message to display to the user (pre-variable substitution). */
     csmi_ras_severity_t severity; /**< Severity of the RAS event. INFO/WARNING/FATAL. default to INFO */
     csmi_node_state_t set_state; /**< replacement for 'set_ready' and 'set_not_ready' after CSM_VERSION_0_4_1. resources associated with the event will be set to this node state when the event hits threshold. */
-} csm_ras_msg_type_create_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_ras_msg_type_create.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_create_output_t csm_ras_msg_type_create_output_t;
+struct csm_ras_msg_type_create_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     csm_bool insert_successful; /**< The RAS creation was successful.*/
     char* msg_id; /**< Name of the message id that was inserted into the database. NULL if failed. */
-} csm_ras_msg_type_create_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_ras_msg_type_delete.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_delete_input_t csm_ras_msg_type_delete_input_t;
+struct csm_ras_msg_type_delete_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t msg_ids_count; /**< Number of messages to delete, size of @ref msg_ids. */
     char** msg_ids; /**< A list of message ids to be deleted, must have more than one id. Size defined by @ref msg_ids_count. */
-} csm_ras_msg_type_delete_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_ras_msg_type_delete.
  * @todo Post-PRPQ: Refactor this struct to use the standardized response.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_delete_output_t csm_ras_msg_type_delete_output_t;
+struct csm_ras_msg_type_delete_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t expected_number_of_deleted_msg_ids; /**< Number of msg ids that were attempted to be deleted. */
     uint32_t not_deleted_msg_ids_count; /**< Number of messages that failed to be deleted, size of @ref not_deleted_msg_ids. */
     uint32_t deleted_msg_ids_count; /**< Number of messages that were successfully deleted, size of @ref deleted_msg_ids.*/
     char** not_deleted_msg_ids; /**< List of msg ids failed to be deleted, size defined by @ref not_deleted_msg_ids_count. */
     char** deleted_msg_ids; /**< List of msg ids have been deleted, size defined by @ref deleted_msg_ids_count.*/
-} csm_ras_msg_type_delete_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_ras_msg_type_update.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_update_input_t csm_ras_msg_type_update_input_t;
+struct csm_ras_msg_type_update_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t threshold_count; /**< Number of times this event has to occur during the 'threshold_period' before taking action on the RAS event. API will ignore NULL values.*/
     int32_t threshold_period; /**< Period in seconds over which to count the 'threshold_count'. API will ignore NULL values.*/
@@ -255,19 +270,21 @@ typedef struct {
     char* message; /**< RAS message to display to the user (pre-variable substitution). API will ignore NULL values.*/
     csmi_ras_severity_t severity; /**< Severity of the RAS event. INFO/WARNING/FATAL. */
     csmi_node_state_t set_state; /**< replacement for 'set_ready' and 'set_not_ready' after CSM_VERSION_0_4_1. resources associated with the event will be set to this node state when the event hits threshold. */
-} csm_ras_msg_type_update_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_ras_msg_type_update.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_update_output_t csm_ras_msg_type_update_output_t;
+struct csm_ras_msg_type_update_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     csm_bool update_successful; /**< The RAS update was successful. */
     char* msg_id; /**< Name of the message id that was updated in the database. NULL if failed. */
-} csm_ras_msg_type_update_output_t;
+};
 /**
  * @brief An input wrapper for @ref  csm_ras_msg_type_query.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_query_input_t csm_ras_msg_type_query_input_t;
+struct csm_ras_msg_type_query_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
@@ -277,29 +294,32 @@ typedef struct {
     char* message; /**< The message of the RAS event to query for, optional. */
     uint32_t set_states_count; /**< Number of set_states being queried, size of @ref set_states. */
     char** set_states; /**< List of set_states to perform query on. Will filter results to only include specified set_states. Size defined by @ref set_states_count. */
-} csm_ras_msg_type_query_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_ras_msg_type_query.
  */
-typedef struct {
+typedef struct csm_ras_msg_type_query_output_t csm_ras_msg_type_query_output_t;
+struct csm_ras_msg_type_query_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t results_count; /**< The number of records retrieved by the query, size of @ref results. */
     csmi_ras_type_record_t** results; /**< A list of records retrieved by the query, size defined by @ref results_count.*/
-} csm_ras_msg_type_query_output_t;
+};
 /**
  * @brief An input wrapper for @ref csmi_ras_subscribe.
  */
-typedef struct {
+typedef struct csm_ras_subscribe_input_t csm_ras_subscribe_input_t;
+struct csm_ras_subscribe_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char* topic;  /**< The topic slated for subscription.*/
-} csm_ras_subscribe_input_t;
+};
 /**
  * @brief An input wrapper for @ref csmi_ras_unsubscribe.
  */
-typedef struct {
+typedef struct csm_ras_unsubscribe_input_t csm_ras_unsubscribe_input_t;
+struct csm_ras_unsubscribe_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char* topic; /**< Topic slated to be unsubscribed from. */
-} csm_ras_unsubscribe_input_t;
+};
 /** @} */
 
 #ifdef __cplusplus

@@ -156,52 +156,56 @@ bool CSMIAllocationQuery::CreateResponsePayload(
     bool success = true;
     uint32_t numRecords = tuples.size();
 
-    if ( numRecords == 1 )
+    if ( numRecords < 1 )
     {
-        ALLOC_STRUCT* allocation = NULL;
-        
-        // Create the struct for most of the allocation.
-        if ( CreateOutputStruct( tuples[0], &(allocation)) )
-        {
-            ctx->SetDataDestructor(
-                [](void* data){
-                    free_csmi_allocation_t(
-                        (csmi_allocation_t*) data);
-                    free(data);
-                    data=nullptr;
-                }
-            );
-            ctx->SetUserData(allocation);
-
-            std::string stmt = "SELECT DISTINCT ON(node_name) node_name FROM ";
-            stmt.append(allocation->history ?  "csm_allocation_node_history " : "csm_allocation_node " );
-            stmt.append("WHERE allocation_id=$1::bigint");
-
-            const int paramCount = 1;
-            csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
-            dbReq->AddNumericParam<int64_t>(allocation->allocation_id);
-            *dbPayload = dbReq;
-        }
-        else
-        {
-            LOG( csmapi, trace  ) << STATE_NAME ":CreateByteArray: Invalid number of fields retrieved.";
-            
-            ctx->SetErrorCode( CSMERR_DB_ERROR );
-            ctx->SetErrorMessage( "Query results could not be processed.");
-            success = false;
-        }
+        ctx->SetErrorCode( CSMI_NO_RESULTS );
+        return false;
     }
-    else if ( numRecords > 1 )
+    ALLOC_STRUCT* allocation = NULL;
+    
+    // Create the struct for most of the allocation.
+    if ( CreateOutputStruct( tuples[0], &(allocation)) )
     {
-        LOG( csmapi, error  ) << STATE_NAME ":CreateByteArray: Too many records recovered.";
-        
-        ctx->SetErrorCode( CSMERR_DB_ERROR );
-        ctx->SetErrorMessage( "Too many allocations matching the query were found, something has gone wrong." );
-        success = false;
+        // We really only care about some of the details on the other nodes.
+        if ( numRecords > 1 )
+        {
+            allocation->num_allocations = numRecords-1;
+            allocation->allocations = (ALLOC_STRUCT**) calloc( numRecords-1,sizeof(ALLOC_STRUCT*));
+            
+            for ( uint32_t i = 1; i < numRecords; ++i )
+            {
+                CreateOutputStruct( tuples[i], &(allocation->allocations[i-1]));
+            }
+        }
+
+        ctx->SetDataDestructor(
+            [](void* data){
+                free_csmi_allocation_t(
+                    (csmi_allocation_t*) data);
+                free(data);
+                data=nullptr;
+            }
+        );
+
+        ctx->SetUserData(allocation);
+
+        std::string stmt = "SELECT DISTINCT ON(node_name) node_name FROM ";
+        stmt.append(allocation->history ?  "csm_allocation_node_history " : "csm_allocation_node " );
+        stmt.append("WHERE allocation_id=$1::bigint");
+
+        const int paramCount = 1;
+        csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
+        dbReq->AddNumericParam<int64_t>(allocation->allocation_id);
+        *dbPayload = dbReq;
+
+
     }
     else
     {
-        ctx->SetErrorCode( CSMI_NO_RESULTS );
+        LOG( csmapi, trace  ) << STATE_NAME ":CreateByteArray: Invalid number of fields retrieved.";
+        
+        ctx->SetErrorCode( CSMERR_DB_ERROR );
+        ctx->SetErrorMessage( "Query results could not be processed.");
         success = false;
     }
 

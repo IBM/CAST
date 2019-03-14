@@ -140,6 +140,41 @@ int main(int argc, char *argv[])
             // Grab the allocation struct for convenience.
             csmi_allocation_t *allocation = output->allocation;
 
+            if ( allocation->num_allocations > 0 )
+            {
+				puts("---");
+				printf("num_allocations: %i\n", allocation->num_allocations+1);
+				puts("allocations:");
+				printf("  - allocation_id:    %" PRId64 "\n", allocation->allocation_id);
+	    	    printf("    primary_job_id:   %" PRId64 "\n", allocation->primary_job_id);
+	    	    printf("    secondary_job_id: %" PRId32 "\n", allocation->secondary_job_id);
+	    	    printf("    begin_time:      %s\n",          allocation->begin_time);
+	    	    printf("    state:           %s\n", csm_get_string_from_enum(csmi_state_t, allocation->state));
+	            if (allocation->history) {
+	            	printf("    history:\n");
+	            	printf("     end_time:     %s\n",          allocation->history->end_time);
+	            	printf("     exit_status:  %" PRId32 "\n", allocation->history->exit_status);
+                }
+
+                // Print other candidates
+				int i = 0;
+				for(i = 0; i < allocation->num_allocations; i++){
+					printf("  - allocation_id:    %" PRId64 "\n", allocation->allocations[i]->allocation_id);
+	    	        printf("    primary_job_id:   %" PRId64 "\n", allocation->allocations[i]->primary_job_id);
+	    	        printf("    secondary_job_id: %" PRId32 "\n", allocation->allocations[i]->secondary_job_id);
+	    	        printf("    begin_time:      %s\n",          allocation->allocations[i]->begin_time);
+	    	        printf("    state:           %s\n", csm_get_string_from_enum(csmi_state_t, allocation->allocations[i]->state));
+	            	if (allocation->allocations[i]->history) {
+	                	printf("    history:\n");
+	                	printf("     end_time:     %s\n",          allocation->allocations[i]->history->end_time);
+	                	printf("     exit_status:  %" PRId32 "\n", allocation->allocations[i]->history->exit_status);
+                    }
+                }
+				puts("...");
+                break;
+            }
+
+
 	    	puts("---");
 	    	printf("allocation_id:                  %" PRId64 "\n", allocation->allocation_id);
 	    	printf("primary_job_id:                 %" PRId64 "\n", allocation->primary_job_id);

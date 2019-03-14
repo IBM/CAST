@@ -34,18 +34,20 @@ extern "C" {
 /**
  * @brief Represents an entry in the *csm_vg* table in the CSM Database.
  */
-typedef struct {
+typedef struct csmi_vg_record_t csmi_vg_record_t;
+struct csmi_vg_record_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t total_size; /**< Volume group size, in bytes.*/
     int64_t available_size; /**< Bytes available in volume group, subset of @ref total_size. */
     csm_bool scheduler; /**< Tells CSM whether or not this is the volume group for the scheduler. Defaults to false. ( @ref csm_bool). */
     char* vg_name; /**< Name of the volume group. */
     char* node_name; /**< Identifies which node has this volume group. */
-} csmi_vg_record_t;
+};
 /**
  * @brief Represents an entry in the *csm_lv* table in the CSM Database.
  */
-typedef struct {
+typedef struct csmi_lv_record_t csmi_lv_record_t;
+struct csmi_lv_record_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< Unique identifier for an allocation associated with the logical volume. */
     int64_t current_size; /**< Current size (in bytes). */
@@ -58,15 +60,16 @@ typedef struct {
     char* file_system_type; /**< Identifies the file system and its partition. */
     char* begin_time; /**< Timestamp when the lv was created. */
     char* updated_time; /**< When the lv was last updated. */
-} csmi_lv_record_t;
+};
 /**
  * @brief Help construct the VG SSD relations in the csm database.
  */
-typedef struct {
+typedef struct csmi_bb_vg_ssd_info_t csmi_bb_vg_ssd_info_t;
+struct csmi_bb_vg_ssd_info_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t ssd_allocation; /**< The amount of space (in bytes) that this ssd contributes to the volume group. Can not be less than zero. The total sum of these fields should equal 'total_size' in the @ref csm_bb_vg_create_input_t struct. API will check this and throw error if mismatched. */
     char* ssd_serial_number; /**< Unique identifier for this ssd partition. Can not be NULL. API will throw error if left NULL.*/
-} csmi_bb_vg_ssd_info_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_cmd.
  *
@@ -74,23 +77,26 @@ typedef struct {
  *
  * Executes: < @ref command_arguments > < @ref command >; 
  */
-typedef struct {
+typedef struct csm_bb_cmd_input_t csm_bb_cmd_input_t;
+struct csm_bb_cmd_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t node_names_count; /**< Number of  nodes to issue the burst buffer command on, size of @ref node_names. */
     char* command_arguments; /**< The arguments for the command executable( [a-zA-Z -_]* ) */
     char** node_names; /**< Compute nodes to receive this command, size defined in @ref node_names_count.*/
-} csm_bb_cmd_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_bb_cmd.
  */
-typedef struct {
+typedef struct csm_bb_cmd_output_t csm_bb_cmd_output_t;
+struct csm_bb_cmd_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char* command_output; /**< The output from the command executable. */
-} csm_bb_cmd_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_lv_create.
  */
-typedef struct {
+typedef struct csm_bb_lv_create_input_t csm_bb_lv_create_input_t;
+struct csm_bb_lv_create_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< Unique identifier of an allocation. */
     int64_t current_size; /**< Current logical volume size (bytes). */
@@ -100,14 +106,15 @@ typedef struct {
     char* logical_volume_name; /**< Unique identifier for this ssd partition. */
     char* node_name; /**< Node to create the logical volume on. */
     char* vg_name; /**< Volume group name. */
-} csm_bb_lv_create_input_t;
+};
 /**
  * @brief Specifies a logical volume to delete for @ref csm_bb_lv_delete.
  * @brief An input wrapper for @ref csm_bb_lv_delete.
  * 
  * Specifies a logical volume to delete and any metrics associated with.
  */
-typedef struct {
+typedef struct csm_bb_lv_delete_input_t csm_bb_lv_delete_input_t;
+struct csm_bb_lv_delete_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< Unique identifier of an allocation. */
     int64_t num_bytes_read; /**< Number of bytes read during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
@@ -116,13 +123,14 @@ typedef struct {
     char* node_name; /**< Name of the node where this logical volume is located.*/
     int64_t num_reads; /**< Number of reads during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
     int64_t num_writes; /**< Number of writes during the life of this partition. - OPTIONAL - defaults to '-1' if not provided. values less than 0 will be inserted into csm database as NULL.*/
-} csm_bb_lv_delete_input_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_lv_query.
  *
  * To perform a query one or more of the encapsulated arrays must be non null. 
  */
-typedef struct {
+typedef struct csm_bb_lv_query_input_t csm_bb_lv_query_input_t;
+struct csm_bb_lv_query_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
@@ -132,32 +140,35 @@ typedef struct {
     int64_t* allocation_ids; /**< Filter results to only include records that have a matching allocation_ids. Size defined by @ref allocation_ids_count. */
     char** logical_volume_names; /**< Filter results to only include records that have a matching logical_volume_name. Size defined by @ref logical_volume_names_count. */
     char** node_names; /**< Filter results to only include records that have a matching node_name. Size defined by @ref node_names_count.*/
-} csm_bb_lv_query_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_bb_lv_query.
  */
-typedef struct {
+typedef struct csm_bb_lv_query_output_t csm_bb_lv_query_output_t;
+struct csm_bb_lv_query_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t results_count; /**< Number of logical volumes retrieved, size of @ref results. */
     csmi_lv_record_t** results; /**< An array of all the records returned from the SQL query. */
-} csm_bb_lv_query_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_lv_update.
  *
  * Specifies a logical volume and parameters to update it.
  */
-typedef struct {
+typedef struct csm_bb_lv_update_input_t csm_bb_lv_update_input_t;
+struct csm_bb_lv_update_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< Unique identifier for this allocation. Can not be less than zero. */
     int64_t current_size; /**< Current size (in bytes) Can not be less than zero. */
     char state; /**< State of the logical volume - [C]reated, [M]ounted, [S]hrinking, or [R]emoved. If left NULL, then API will fail.*/
     char* logical_volume_name; /**< Unique identifier for this ssd partition. If left NULL, then API will fail. */
     char* node_name; /**< Name of the node where this LV is located.*/
-} csm_bb_lv_update_input_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_vg_create.
  */
-typedef struct {
+typedef struct csm_bb_vg_create_input_t csm_bb_vg_create_input_t;
+struct csm_bb_vg_create_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t available_size; /**< Available size remaining in this volume group. Can not be greater than 'total_size'. Values less than zero are not valid. */
     int64_t total_size; /**< Total size of this volume group. Values less than zero are not valid. */
@@ -166,27 +177,30 @@ typedef struct {
     char* node_name; /**< This volume group is attached to this node. Can not be NULL. 'node_name' must exist in 'csm_node' table. */
     char* vg_name; /**< Unique identifier for this volume group. Can not be NULL. */
     csmi_bb_vg_ssd_info_t** ssd_info; /**< List of ssd information belonging to this volume group. Can not be NULL. Must contain at least one entry. Size defined in @ref ssd_info_count. */
-} csm_bb_vg_create_input_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_vg_delete.
  */
-typedef struct {
+typedef struct csm_bb_vg_delete_input_t csm_bb_vg_delete_input_t;
+struct csm_bb_vg_delete_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char* node_name; /**< Name of node where the VG is located. Can not be NULL.*/
     char* vg_name; /**< Name of volume group to delete. Can not be NULL.*/
-} csm_bb_vg_delete_input_t;
+};
 /**
  * @brief A wrapper for the output of  @ref csm_bb_vg_delete.
  */
-typedef struct {
+typedef struct csm_bb_vg_delete_output_t csm_bb_vg_delete_output_t;
+struct csm_bb_vg_delete_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t failure_count; /**< Number of volume groups that failed to be deleted. Size of @ref failure_vg_names. */
     char** failure_vg_names; /**< Volume groups that failed to be deleted, size defined in @ref failure_count. */
-} csm_bb_vg_delete_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_bb_vg_query.
  */
-typedef struct {
+typedef struct csm_bb_vg_query_input_t csm_bb_vg_query_input_t;
+struct csm_bb_vg_query_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int32_t limit; /**< SQL 'LIMIT' numeric value. API will ignore values less than 1.*/
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
@@ -194,15 +208,16 @@ typedef struct {
     uint32_t node_names_count; /**< Number of node names to filter on, size of @ref node_names.*/
     char** vg_names; /**< Filter results to only include records that have a matching vg_name. Size defined in @ref vg_names_count. */
     char** node_names; /**< Filter results to only include records that have a matching node_name. Size defined in @ref node_names_count.*/
-} csm_bb_vg_query_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_bb_vg_query.
  */
-typedef struct {
+typedef struct csm_bb_vg_query_output_t csm_bb_vg_query_output_t;
+struct csm_bb_vg_query_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t results_count; /**< The number of records retrieved, size of @ref results. */
     csmi_vg_record_t** results; /**< An array of the records returned from the SQL query. Size defined in @ref results_count. */
-} csm_bb_vg_query_output_t;
+};
 /** @} */
 
 #ifdef __cplusplus

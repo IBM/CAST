@@ -23,7 +23,8 @@ extern "C" {
 /**
  * @brief Contains detailed gpu metric data on a per gpu basis, collected for each allocation. 
  */
-typedef struct {
+typedef struct csmi_allocation_gpu_metrics_t csmi_allocation_gpu_metrics_t;
+struct csmi_allocation_gpu_metrics_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t num_gpus;         /**< The number of GPUs */
     int32_t* gpu_id; /**< GPU id for this GPU */
@@ -31,7 +32,7 @@ typedef struct {
     int64_t* max_gpu_memory; /**< Maximum amount of GPU memory that was used in bytes during the allocation */
     int64_t num_cpus;         /**< The number of CPUs (physical cores) */
     int64_t* cpu_usage; /**< CPU usage in nanoseconds during the allocation, per physical core */
-} csmi_allocation_gpu_metrics_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -66,7 +67,8 @@ void init_csmi_allocation_gpu_metrics_t( csmi_allocation_gpu_metrics_t *target )
 /**
  * @brief Defines a context object for an allocation.
  */
-typedef struct {
+typedef struct csmi_allocation_mcast_context_t csmi_allocation_mcast_context_t;
+struct csmi_allocation_mcast_context_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< The unique identifier for the allocation. */
     int64_t primary_job_id; /**< Primary job id (for LSF this will be the LSF job ID). */
@@ -101,7 +103,7 @@ typedef struct {
     int64_t runtime; /**< The run time of the allocation so far. */
     csmi_allocation_gpu_metrics_t** gpu_metrics; /**< Detailed gpu metrics for each node */
     int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
-} csmi_allocation_mcast_context_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -137,7 +139,8 @@ void init_csmi_allocation_mcast_context_t( csmi_allocation_mcast_context_t *targ
  * @brief A payload for an allocation create/delete multicast.
  * 
  */
-typedef struct {
+typedef struct csmi_allocation_mcast_payload_request_t csmi_allocation_mcast_payload_request_t;
+struct csmi_allocation_mcast_payload_request_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< Uniquely identify this allocation. */
     int64_t primary_job_id; /**< Primary job id (for LSF this will be the LSF job ID. */
@@ -153,7 +156,7 @@ typedef struct {
     char* system_flags; /**< System flags for the epilog/prolog. */
     int64_t runtime; /**< The run time of the allocation so far. */
     int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
-} csmi_allocation_mcast_payload_request_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -190,7 +193,8 @@ void init_csmi_allocation_mcast_payload_request_t( csmi_allocation_mcast_payload
  * 
  * @todo Need to add more metrics data.
  */
-typedef struct {
+typedef struct csmi_allocation_mcast_payload_response_t csmi_allocation_mcast_payload_response_t;
+struct csmi_allocation_mcast_payload_response_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t energy; /**< The energy usage of the node. */ 
     int64_t pc_hit; /**< The power cap hit total. */
@@ -209,7 +213,7 @@ typedef struct {
     csmi_cmd_err_t error_code; /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
     char* error_message; /**< The error message in failure cases which don'tbreak data aggregation.*/
     csmi_allocation_gpu_metrics_t* gpu_metrics; /**< Detailed gpu metrics for each gpu. */
-} csmi_allocation_mcast_payload_response_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -244,7 +248,8 @@ void init_csmi_allocation_mcast_payload_response_t( csmi_allocation_mcast_payloa
 /**
  * @brief A context struct for storing multicast contexts.
  */
-typedef struct {
+typedef struct csmi_allocation_step_mcast_context_t csmi_allocation_step_mcast_context_t;
+struct csmi_allocation_step_mcast_context_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t step_id; /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
     int64_t allocation_id; /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
@@ -253,7 +258,7 @@ typedef struct {
     char* user_flags; /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
     char** compute_nodes; /**< The list of nodes associated with this step. Used to populate the *csm_step_node* table of the CSM DB. Size stored in @ref num_nodes.*/
     char* json_str; /**< A JSON string for use in transaction logging. */
-} csmi_allocation_step_mcast_context_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -288,14 +293,15 @@ void init_csmi_allocation_step_mcast_context_t( csmi_allocation_step_mcast_conte
 /**
  * @brief Payload struct for step multicast operations.
  */
-typedef struct {
+typedef struct csmi_allocation_step_mcast_payload_t csmi_allocation_step_mcast_payload_t;
+struct csmi_allocation_step_mcast_payload_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t step_id; /**< The identifier of the step, combined with @ref allocation_id to form a unique identifier. */
     int64_t allocation_id; /**< Allocation that the step is a member of, when combined with @ref step_id represents a unique step.*/
     char begin; /**< A flag indicating whether this is a begin or end payload. */
     char* user_flags; /**< User prolog/epilog flags. If NULL the prolog and epilog are not to be run.*/
     char* hostname; /**< Hostname detailing the origination point of the payload. */
-} csmi_allocation_step_mcast_payload_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -330,7 +336,8 @@ void init_csmi_allocation_step_mcast_payload_t( csmi_allocation_step_mcast_paylo
 /**
  * @brief Defines payload for jsrun Command multicasts.
  */
-typedef struct {
+typedef struct csmi_jsrun_cmd_payload_t csmi_jsrun_cmd_payload_t;
+struct csmi_jsrun_cmd_payload_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t allocation_id; /**< The allocation id for the spawn. */
     uint32_t user_id; /**< The user id for the spawn. */
@@ -341,7 +348,7 @@ typedef struct {
     char** compute_nodes; /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
     char* launch_node; /**< The launch node for the Job. */
     csmi_allocation_type_t type; /**< Type of allocation, refer to @ref csmi_allocation_type_t for details. */
-} csmi_jsrun_cmd_payload_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -376,12 +383,13 @@ void init_csmi_jsrun_cmd_payload_t( csmi_jsrun_cmd_payload_t *target );
 /**
  * @brief Defines payload 
  */
-typedef struct {
+typedef struct csmi_soft_failure_recovery_payload_t csmi_soft_failure_recovery_payload_t;
+struct csmi_soft_failure_recovery_payload_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     char* hostname; /**< The hostname of the node. */
     csmi_cmd_err_t error_code; /**< Error Code for when something in the operation fails, but shouldn't break the data aggregation. */
     char* error_message; /**< The error message in failure cases which don'tbreak data aggregation.*/
-} csmi_soft_failure_recovery_payload_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.

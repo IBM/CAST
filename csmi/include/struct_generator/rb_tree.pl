@@ -217,11 +217,9 @@ sub RBArrayOrder{
         $tree->{DEPTH} = 0;
     }
 
-    my $count  = 1;
     # A queue is used to gereate an array mapping of the tree for the C const.
     while (@tree_queue)
     {
-        $count +=1;
         my $node = shift @tree_queue;
         if (defined $node )
         {
