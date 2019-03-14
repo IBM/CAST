@@ -1444,6 +1444,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
 
     bool l_StopDefinition = false;
 
@@ -1468,7 +1469,6 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
         {
             // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer checking for
             //       the extents to be enqueued and another thread/bbServer enqueuing those extents.
-            HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
             rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
             if (!rc)
             {
@@ -1514,21 +1514,9 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 LOG(bb,error) << "Could not lock the handle file for " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
                               << " when attempting to determine if all extents had been enqueued during stop transfer processing";
             }
-
-            if (l_HandleFileName)
-            {
-                delete[] l_HandleFileName;
-                l_HandleFileName = 0;
-            }
-
-            if (l_HandleFile)
-            {
-                l_HandleFile->close(l_LockFeedback);
-                delete l_HandleFile;
-                l_HandleFile = 0;
-            }
         }
 
+        // NOTE: We still have the handle file lock here...  Must retain it until we get done marking the contribid file...
         bool l_UnconditionalRestart = false;
         switch (rc)
         {
@@ -1639,6 +1627,19 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                           << ".  Stop transfer request ignored.";
                 LOG_ERROR_TEXT_RC(errorText, rc);
             }
+        }
+
+        if (l_HandleFileName)
+        {
+            delete[] l_HandleFileName;
+            l_HandleFileName = 0;
+        }
+
+        if (l_HandleFile)
+        {
+            l_HandleFile->close(l_LockFeedback);
+            delete l_HandleFile;
+            l_HandleFile = 0;
         }
     }
 

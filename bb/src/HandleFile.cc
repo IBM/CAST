@@ -1362,7 +1362,7 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         if (!rc)
         {
             // Only update the handle file status if the status could change
-            if ((!pValue) || pFlags & BB_UpdateHandleStatusMask2)
+            if ((!pValue) || pFlags & BB_UpdateHandleStatusMask2 || l_NewFlags & BB_UpdateHandleStatusMask3)
             {
                 // Update the handle status
                 // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
