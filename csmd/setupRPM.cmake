@@ -29,8 +29,7 @@ set( CPACK_RPM_csm-core_POST_INSTALL_SCRIPT_FILE
 
 # ibm-csm-db rpm settings
 set(CPACK_RPM_csm-db_PACKAGE_ARCHITECTURE "noarch")
-set(CPACK_RPM_csm-db_PACKAGE_REQUIRES "pv")
-set(CPACK_RPM_csm-db_PACKAGE_REQUIRES "python-psycopg2")
+set(CPACK_RPM_csm-db_PACKAGE_REQUIRES "pv,python-psycopg2")
 
 # ibm-csm-hcdiag rpm settings
 set(CPACK_RPM_csm-hcdiag_PACKAGE_ARCHITECTURE "noarch")
