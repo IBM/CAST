@@ -142,4 +142,5 @@
 #define BB_RetrieveTransferDefinitionsFlagsMask       0xFFFFF000008FFFFF
 #define BB_UpdateHandleStatusMask1                    0x1700800000000000
 #define BB_UpdateHandleStatusMask2                    0x1500000000000000
+#define BB_UpdateHandleStatusMask3                    0x1000000000000000
 #endif /* BB_BBFLAGS_H_ */
