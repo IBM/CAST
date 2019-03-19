@@ -1161,7 +1161,7 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
             if (!rc)
             {
                 // Update the handle status to recalculate the total transfer size
-                HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId, 0, l_Size, NORMAL_SCAN);
+                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId, 0, l_Size, NORMAL_SCAN);
 
             }
             else
