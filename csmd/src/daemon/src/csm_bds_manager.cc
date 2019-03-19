@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_bds_manager.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -58,7 +58,12 @@ void BDSManagerMain( csm::daemon::EventManagerBDS *aMgr )
     // if nothing to do, just wait for regular wakeup
     if( idle )
     {
-      retry->AgainOrWait( false );
+      try { retry->AgainOrWait( false ); }
+      catch ( csm::daemon::Exception &e )
+      {
+        LOG( csmd, error ) << e.what();
+        break;
+      }
     }
     else
     {
@@ -338,10 +343,15 @@ csm::daemon::EventManagerBDS::~EventManagerBDS()
   Freeze();   // make sure, there's no activity going on
 
   Unfreeze();   // allow the thread to run again...
-  _IdleRetryBackOff.WakeUp();   // or/and wake it up
+  try {_IdleRetryBackOff.WakeUp(); }  // or/and wake it up
+  catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); }
   CSMLOG( csmd, debug ) << "Exiting BDSMgr...";
-  _Thread->join();
+  try { _Thread->join(); }
+  catch ( ... ) { LOG( csmd, debug ) << "Exception while thread is joining.";
   CSMLOG( csmd, info ) << "Terminating BDSMgr complete";
+  if(( CheckConnectivity() ) && ( _Socket > 0 ))
+    close( _Socket );
   delete _Thread;
+
   _CachedMsgQueue.clear();
 }

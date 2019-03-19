@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/thread_pool.h
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -58,14 +58,15 @@ public:
     _thread_grp_size = threads;
     CrashedThreadCount = 0;
   }
-    
+
   ~ThreadPool() {
     _service_worker.reset();
-    _thread_grp.join_all();
+    try { _thread_grp.join_all(); }
+    catch ( Exception &e ) { LOG( csmd, error ) << "ThreadPool failure when joining all threads." << e.what() };
     LOG(csmd, debug) << "~ThreadPool(): done with join_all...";
     _service.stop();
   }
-  
+
   /* 
    * we should pass the non-nullptr handler if the handler is not multi-threaded safe
    * e.g. for one request to multiple replies scenarios, it leads to the same shared EventContext
@@ -91,11 +92,11 @@ public:
         HandlerToStrand[handler] = strand;
       }
       else strand = it->second;
-    
+
       _service.post( strand->wrap(f) );
     }
   }
-  
+
   // if doRecreate is true, we will re-create the new threads.
   void Recover(bool doRecreate = true);
    

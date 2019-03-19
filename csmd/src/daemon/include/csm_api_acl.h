@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_api_acl.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -71,7 +71,7 @@ private:
   std::string _auth_file;
   std::unordered_set< uid_t > _privileged_uids;
   std::unordered_set< gid_t > _privileged_gids;
-  
+
   std::map<csmi_cmd_t, API_SEC_LEVEL> _api_to_grp_map;
 
   const static int _ngroups=20;
@@ -81,17 +81,17 @@ private:
   {
     _privileged_uids.insert(aUid);
   }
-  
+
   inline void AddPrivilegedGid(gid_t aGid)
   {
     _privileged_gids.insert(aGid);
   }
-  
+
   inline bool findUid(uid_t aUid) const
   {
     return ( _privileged_uids.find(aUid) != _privileged_uids.end() );
   }
-  
+
   inline bool findGid(gid_t aGid) const
   {
     return ( _privileged_gids.find(aGid) != _privileged_gids.end() );
@@ -104,7 +104,7 @@ private:
       if ( findGid( groups[i] ) ) return true;
     return false;
   }
-    
+
   void ParseACLFile(std::string i_file)
   {
     try
@@ -116,7 +116,7 @@ private:
       {
         std::string key = list.first.data();
         boost::algorithm::to_lower(key);
-        
+
         if ( key == "privileged_user_id" )
         {
           // can be a single value or a list of uids
@@ -152,7 +152,7 @@ private:
               gid_ary.push_back( gid_list.second.data()  );
             }
           }
-          
+
           for (size_t i=0; i<gid_ary.size(); i++)
           {
             std::string gid = gid_ary[i];
@@ -189,7 +189,7 @@ private:
             } // if api is not empty
           } // end BOOST_FOREACH in public | private
         } // end if key=public | private
-        
+
       } // end BOOST_FOREACH
     } // end try
     catch (pt::json_parser_error& f)
@@ -205,13 +205,13 @@ private:
       CSMLOG( csmd, error ) << "Unparsed APIs considered PRIVILEGED!";
     }
   }
-  
+
 public:
   CSMIAuthList(std::string i_file)
   :_groups(nullptr)
   {
     _auth_file = i_file;
-   
+
     _groups = (gid_t *) malloc(sizeof(gid_t)*_ngroups);
 
     // root always is privileged
@@ -219,7 +219,7 @@ public:
     if ( struct group *gentry = getgrnam("root") ) AddPrivilegedGid(gentry->gr_gid);
 
     if ( !i_file.empty() ) ParseACLFile(i_file);
-      
+
   }
 
   ~CSMIAuthList()
@@ -231,7 +231,7 @@ public:
     if ( it == _api_to_grp_map.end()) return PRIVILEGED;
     else return it->second;
   }
-  
+
   // check if the i_uid/i_gid falls into the privileged user id/group
   inline bool HasPrivilegedAccess(uid_t i_uid, gid_t i_gid) const
   {
@@ -251,16 +251,17 @@ public:
       {
         // in this case, we need to allocate a larger buffer to store the list
         gid_t* groups = (gid_t *) malloc(sizeof(gid_t)*ngroups);
+        if( groups == nullptr )
+          throw csm::daemon::Exception("Out of memory while allocating group list.", ENOMEM );
         getgrouplist(pw->pw_name, pw->pw_gid, groups, &ngroups);
         retval = CheckGroups(groups, ngroups);
         free(groups);
-        
       } else retval = CheckGroups(_groups, ngroups);
     }
     return retval;
 
   }
-  
+
   /** brief Decide whether this API called by this user requires a check of user data or permission is granted
    *
    *  @param   cmd            command type, required to check the configured security level of the request
@@ -297,7 +298,6 @@ public:
   {
     return GetSecurityLevel( csmi_cmd_get(i_api_name.c_str()) );
   }
-  
 };
 
 typedef std::shared_ptr<CSMIAuthList> CSMIAuthList_sptr;
