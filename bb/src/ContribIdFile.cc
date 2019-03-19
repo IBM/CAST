@@ -417,11 +417,25 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
             uint64_t l_NewFlags = 0;
             SET_FLAG_VAR(l_NewFlags, l_Flags, pFlags, (uint32_t)pValue);
 
-            if (!pValue) {
-                if (pFlags & BBTD_All_Extents_Transferred) {
+            if (!pValue)
+            {
+                if (pFlags & BBTD_All_Extents_Transferred)
+                {
                     // If we are turning off BBTD_All_Extents_Transferred, also turn off BBTD_All_Files_Closed.
                     // This occurs during restart for a transfer definition.
                     SET_FLAG_VAR(l_NewFlags, l_NewFlags, BBTD_All_Files_Closed, (uint32_t)pValue);
+                }
+            }
+            else
+            {
+                if (pFlags & BBTD_All_Files_Closed)
+                {
+                    // If we are turning on BBTD_All_Files_Closed, make sure that BBTD_All_Extents_Transferred
+                    // is also turned on.  We only update the handle file status when BBTD_All_Files_Closed is
+                    // turned on, so if BBTD_All_Extents_Transferred is not on, the handle status may never be
+                    // properly updated to it's final status.  We don't update the handle file status when
+                    // BBTD_All_Extents_Transferred is turned on to reduce contention on the handle file/handle file lock.
+                    SET_FLAG_VAR(l_NewFlags, l_NewFlags, BBTD_All_Extents_Transferred, (uint32_t)pValue);
                 }
             }
 
