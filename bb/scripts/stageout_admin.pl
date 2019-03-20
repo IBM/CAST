@@ -75,7 +75,11 @@ sub phase1
 
 sub phase2
 {
-    &bbwaitTransfersComplete();
+    $result = &bbwaitTransfersComplete();
+    if($result->{"rc"})
+        {   $rc=$result->{"rc"};
+            bpost("BB: Stage-out phase2 waitTransfersComplete() completed with rc $rc.", $::BPOSTMBOX + 1, $::LASTOUTPUT);
+        }
 }
 
 sub phase3
