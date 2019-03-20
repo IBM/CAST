@@ -341,7 +341,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
 
-                    if (l_LV_Info->getExtentInfo()->moreExtentsToTransfer(l_Handle, l_ContribId, 0))
+                    if (l_LV_Info->getExtentInfo()->moreExtentsToTransfer((int64_t)l_Handle, (int32_t)l_ContribId, 0))
                     {
                         if (!l_TagInfo->allExtentsTransferred())
                         {

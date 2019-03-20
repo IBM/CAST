@@ -461,7 +461,7 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
-            if ((pHandle == (it->second).handle) && (pContrib < 0 || (pContrib == (it->second).contrib)))
+            if ((pHandle == (it->second).handle) && (pContrib == UNDEFINED_CONTRIBID || (pContrib == (it->second).contrib)))
             {
                 rc = 1;
                 break;

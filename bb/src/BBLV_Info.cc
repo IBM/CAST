@@ -326,7 +326,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             //       no extents for this file currently in-flight...  If so, delay for a bit...
             uint32_t i = 0;
             int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
-            while (extentInfo.moreExtentsToTransferForFile(pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, l_DumpOption))
+            while (extentInfo.moreExtentsToTransferForFile((int64_t)pExtentInfo.getHandle(), (int32_t)pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, l_DumpOption))
             {
                 unlockTransferQueue(pLVKey, "removeFromInFlight - Waiting for inflight queue to clear");
                 {
