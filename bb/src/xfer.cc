@@ -2735,7 +2735,7 @@ int removeJobInfo(const string& pHostName, const uint64_t pJobId)
     LOG(bb,info) << "RemoveJobInfo received for jobid=" << pJobId;
 
     // Perform any cleanup of the local bbServer metadata
-    metadata.ensureStageOutEnded(pJobId);
+    metadata.cleanUpAll(pJobId);
 
     if (sameHostName(pHostName))
     {

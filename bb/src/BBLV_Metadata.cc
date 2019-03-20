@@ -428,6 +428,30 @@ int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
     return rc;
 }
 
+void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
+
+    // Ensure stage-out ended for all LVKeys under the job
+    TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+
+    bool l_Restart = true;
+    while (l_Restart)
+    {
+        l_Restart = false;
+        for (auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
+        {
+            if ((it->second).getJobId() == pJobId)
+            {
+                (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
+                it = tagInfoMap2.erase(it);
+                l_Restart = true;
+                break;
+            }
+        }
+    }
+
+    return;
+}
+
 void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
     if (tagInfoMap2.size()) {
         char l_Temp[LENGTH_UUID_STR] = {'\0'};
@@ -469,35 +493,6 @@ void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
         {
             (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
             break;
-        }
-    }
-
-    return;
-}
-
-void BBLV_Metadata::ensureStageOutEnded(const uint64_t pJobId) {
-
-    // Ensure stage-out ended for all LVKeys under the job
-    TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
-
-    bool l_Restart = true;
-    while (l_Restart)
-    {
-        l_Restart = false;
-        for (auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
-            if ((it->second).getJobId() == pJobId)
-            {
-                // NOTE: ensureStageOutEnded() can release and re-acquire the transfer queue lock.
-                //       Therefore, the local metadata 'could' have changed upon return.
-                //       Thus, if the lock was released by ensureStageOutEnded() during it's processing,
-                //       we break out of the loop and start over again through the LVKeys.
-                (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
-                if (l_LockWasReleased == TRANSFER_QUEUE_LOCK_RELEASED)
-                {
-                    l_Restart = true;
-                    break;
-                }
-            }
         }
     }
 
