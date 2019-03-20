@@ -651,11 +651,22 @@ Allocations. This block will only be required on Compute Node configurations.
 
     "jitter_mitigation" :
     {
+        "enabled"            : true,
+        "blink_enabled"      : true,
         "system_smt"         : 0,
         "irq_affinity"       : true,
         "core_isolation_max" : 4,
         "socket_order"       : "00"
     }
+
+:enabled:
+    Toggle for whether or not the cgroup mitigation should be executed.
+    Default is true (executes cgroup code).
+
+:blink_enabled:
+    Toggle for the blink feature when setting SMT mode, which shut downs cores to blink.
+    Default is true (executes the cgroup blink).
+     
 
 :system_smt:
     The SMT mode of the system cgroup, if unset this will use the maximum SMT mode.
