@@ -471,8 +471,12 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
             rc = -1;
             errorText << "bfs::remove_all failed";
             bberror << err("error.value", l_ErrorCode.value()) << err("error.message", l_ErrorCode.message());
-            if (EBUSY==l_ErrorCode.value()) {
-                lsofRunCmd(pathname);
+            if (EBUSY==l_ErrorCode.value())
+            {
+                if (config.get(process_whoami+".bringup.lsofOnRemoveDirectoryEBUSY", 1))
+                {
+                    lsofRunCmd(pathname);
+                }
             }
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
