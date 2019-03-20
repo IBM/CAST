@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_daemon.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -156,6 +156,11 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
         if( CSMDaemonConfig->GetDaemonState() == nullptr )
           throw csm::daemon::Exception("FATAL: DaemonState is null!");
 
+        if( DaemonCore == nullptr )
+          throw csm::daemon::Exception("FATAL: DaemonCore could not be established/initialized." );
+        if( connHdl == nullptr )
+          throw csm::daemon::Exception("FATAL: Connection-Handling could not be established." );
+
         CSMDaemonConfig->GetDaemonState()->SetRunModePtr( &_RunMode );
 
         netMgr = new csm::daemon::EventManagerNetwork(connHdl, CSMDaemonConfig->GetDaemonState(), DaemonCore->GetRetryBackOff() );
@@ -183,7 +188,10 @@ int csm::daemon::Daemon::Run( int argc, char **argv )
           act.sa_sigaction = csm::daemon::ThreadPool::segfault_sigaction_handler;
           act.sa_flags = SA_SIGINFO;
 
-          sigaction(SIGSEGV, &act, nullptr);
+          if( sigaction(SIGSEGV, &act, nullptr) != 0 )
+          {
+            LOG( csmd, error ) << "Failed to set up segfault signal handler. Continuing without being able to catch segfaults in thread pool.";
+          }
 
           // though dbMgr/netMgr threads are not csmi handler, we record their ids in the handler map for debugging purpose
           if ( dbMgr ) dbMgr->RegisterThreads( thread_pool );
