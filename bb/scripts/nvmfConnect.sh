@@ -26,6 +26,12 @@ $cmd
 
 cmd="/usr/sbin/nvme connect -t $network -n $nameSpace -a $ipAddr -s $port --hostnqn"
 echo "Executing: $cmd <redacted>"
-$cmd $NVMEKEY
+
+if [[ $NVMEKEY ]]; then
+  $cmd $NVMEKEY
+else
+  echo "hostnqn parameter is blank or not set"
+  exit 1
+fi
 
 exit
