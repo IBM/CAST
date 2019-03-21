@@ -2,7 +2,7 @@
    
     csmd/src/daemon/src/csmi_request_handler/csm_infrastructure_test.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -246,17 +246,17 @@ typedef std::shared_ptr<EventContextTestMaster> EventContextTestMaster_sptr;
 typedef std::shared_ptr<EventContextTestAgg> EventContextTestAgg_sptr;
 
 class CSM_INFRASTRUCTURE_TEST : public CSMI_BASE {
-  
+
 public:
-  CSM_INFRASTRUCTURE_TEST(csm::daemon::HandlerOptions &options) : 
-    CSMI_BASE(CSM_infrastructure_test, options)
+  CSM_INFRASTRUCTURE_TEST(csm::daemon::HandlerOptions &options) :
+    CSMI_BASE(CSM_infrastructure_test, options),
+    _FirstTest( INITIAL_TEST )
   {
     //RegisterSystemConnectedEvent(this);
     //RegisterSystemDisconnectedEvent(this);
     SetupTimeout();
-    
   }
-    
+
   void SetupTimeout()
   {
     //in milliseconds
@@ -264,7 +264,7 @@ public:
     _master_timeout = csm_get_master_timeout( CSM_infrastructure_test );
     _utility_timeout = csm_get_timeout( CSM_infrastructure_test );
   }
-  
+
   HealthCheckData CreateHCDAndSetLDaemon(csm::network::Message &in_out_msg)
   {
     HealthCheckData data;
@@ -276,16 +276,16 @@ public:
                                   std::string(CSM_VERSION, 0, strnlen( CSM_VERSION, 10 )),
                                   0, true );
     data._local.SetDaemonID( csm::daemon::Configuration::Instance()->GetDaemonState()->GetDaemonID() );
-    
+
     in_out_msg.SetData( CSMI_BASE::ConvertToBytes<HealthCheckData>(data) );
     in_out_msg.CheckSumUpdate();
-    
+
     return data;
   }
 
   virtual void Process( const csm::daemon::CoreEvent &aEvent,
                 std::vector<csm::daemon::CoreEvent*>& postEventList ) = 0;
-  
+
 protected:
   // a list of tasks we need to test at every daemon
   enum TEST_SETUP
@@ -306,11 +306,11 @@ protected:
     DONE_STATE
   };
   void TestSystemEvent( const csm::daemon::CoreEvent &aEvent);
-  
+
   uint64_t GetFirstTest() { return _FirstTest; };
-  
+
   uint64_t _FirstTest;
-  
+
   uint64_t _utility_timeout;
   uint64_t _agg_timeout;
   uint64_t _master_timeout;
