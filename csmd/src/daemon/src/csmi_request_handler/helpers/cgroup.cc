@@ -1033,7 +1033,7 @@ int CGroup::CPUPower(
     const uint32_t thread,
     const char online ) 
 {
-    LOG( csmapi, trace ) << _LOG_PREFIX "CPUPower Enter; thread: " << thread;
+    LOG( csmapi, trace ) << _LOG_PREFIX "CPUPower Enter; thread: " << thread << (online == '1'? "; POWER ON": "; POWER OFF");
 
     char path[CPU_PATH_MAX];
     int rc = 0;
@@ -1644,7 +1644,9 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
     int32_t thread     = 0; // The active thread being processed.
     int32_t groupStart = 0; // Start of group.
+
     int32_t core       = 0; // The active core being processed.
+    int32_t blinkOffset= jitterInfo.GetCoreBlink() ? 0 : threadsPerCore ; // The offset for blinking
     bool    startIRQBalance = false;
 
     // If core Isolation is zero expand to the whole system.
@@ -1667,12 +1669,12 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                 if ( isolation == 0 )
                 {
                     groupStart = thread;
-
+                    thread = thread + ( threadsPerCoreMax - 1 );
                     // Offline all of the CPUs in the allocation section.
-                    for( int32_t cpu = 0; cpu < threadsPerCoreMax; ++cpu )
+                    for( int32_t cpu = threadsPerCoreMax; cpu > blinkOffset; --cpu )
                     {
                         // If the core blink fails, turn core zero back on and set the coreBlinkFailure flag.
-                        if ( CPUPower(thread++, CPU_OFFLINE) )
+                        if ( CPUPower(thread--, CPU_OFFLINE) )
                         {
                             CPUPower(0, CPU_ONLINE);
                             threadBlinkFailure = true;
@@ -1680,7 +1682,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                         }
                     }
 
-                    thread -=threadsPerCoreOffset;
+                    thread = groupStart + threadsPerCore;
                     assembleGroup(groupCores);
                 }
                 else
@@ -1723,29 +1725,23 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             for ( core=0; core < coresPerSocket; ++core )
             {
                 thread =
-                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) ;
+                     ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax )  ;
+                int32_t extra_thread = thread + + ( threadsPerCoreMax - 1 );
 
+                int32_t cpu = 0; 
+                for(; cpu < threadsPerCore; ++cpu ) sysCores.append(std::to_string(thread++)).append(",");
 
-                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
-                {
-                     sysCores.append(std::to_string(thread++)).append(",");
-                } 
+                for( cpu = threadsPerCoreMax; cpu >= blinkOffset && extra_thread > 0; --cpu ) 
+                    CPUPower(extra_thread--, CPU_OFFLINE);
             }
         }
         sysCores.back() = ' ';
         groupCores = sysCores; 
-
         
         // Enable IRQ on all cores.
         for ( int i = affinityBlocks.size()-1; i >= 0; --i)
         {
             affinityBlocks[i] = UINT32_MAX; 
-        }
-
-        // Shut down all of the cores.
-        for (thread=1; thread < threads; ++thread)
-        {
-            CPUPower(thread, CPU_OFFLINE);
         }
     }
     // ================================================================================
