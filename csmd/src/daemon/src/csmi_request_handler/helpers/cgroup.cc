@@ -1778,8 +1778,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // ================================================================================
 
     // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
-    // in failure cases.
-    if ( threadBlinkFailure )
+    // in failure cases. Also only blink if blinking is enabled.
+    if ( threadBlinkFailure && jitterInfo.GetCoreBlink() )
     {
         CPUPower( 0, CPU_OFFLINE );
         CPUPower( 0, CPU_ONLINE );
