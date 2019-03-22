@@ -1726,12 +1726,12 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             {
                 thread =
                      ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax )  ;
-                int32_t extra_thread = thread + + ( threadsPerCoreMax - 1 );
+                int32_t extra_thread = thread + ( threadsPerCoreMax - 1 );
 
                 int32_t cpu = 0; 
                 for(; cpu < threadsPerCore; ++cpu ) sysCores.append(std::to_string(thread++)).append(",");
 
-                for( cpu = threadsPerCoreMax; cpu >= blinkOffset && extra_thread > 0; --cpu ) 
+                for( cpu = threadsPerCoreMax; cpu > blinkOffset && extra_thread > 0; --cpu ) 
                     CPUPower(extra_thread--, CPU_OFFLINE);
             }
         }
@@ -1778,8 +1778,8 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // ================================================================================
 
     // Blink the first thread, as it's always guaranteed to exist, to prevent process bunching 
-    // in failure cases.
-    if ( threadBlinkFailure )
+    // in failure cases. Also only blink if blinking is enabled.
+    if ( threadBlinkFailure && jitterInfo.GetCoreBlink() )
     {
         CPUPower( 0, CPU_OFFLINE );
         CPUPower( 0, CPU_ONLINE );
