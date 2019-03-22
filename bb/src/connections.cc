@@ -393,7 +393,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 		    // NOTE: Keep name of bbapi app consistent (no sequence number).  Ensure unique name of connection
 		    //       for duration of socket connection between bbproxy and bbserver (use .sequencenumber).
 #ifdef BBSERVER
-		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance) + string(".") + to_string(++newconnection_name_sequence_number) 
+		    std::string l_newconnection_name = string(receivedFromWhoami) + string(".") + to_string(++newconnection_name_sequence_number) 
             + " (" + conn->getRemoteAddrString() + ")";
 #else
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance);
