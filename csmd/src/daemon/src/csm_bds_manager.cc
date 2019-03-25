@@ -347,7 +347,7 @@ csm::daemon::EventManagerBDS::~EventManagerBDS()
   catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); }
   CSMLOG( csmd, debug ) << "Exiting BDSMgr...";
   try { _Thread->join(); }
-  catch ( ... ) { LOG( csmd, debug ) << "Exception while thread is joining.";
+  catch ( ... ) { LOG( csmd, debug ) << "Exception while thread is joining."; }
   CSMLOG( csmd, info ) << "Terminating BDSMgr complete";
   if(( CheckConnectivity() ) && ( _Socket > 0 ))
     close( _Socket );

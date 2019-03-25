@@ -35,7 +35,7 @@
 #define logprefix_local
 #endif
 #include "csm_pretty_log.h"
-
+#include "csm_daemon_exception.h"
 #include "csmi/src/common/include/csmi_cmds.h"
 #include "csmi/src/common/include/csmi_serialization.h"
 

@@ -15,6 +15,7 @@
 #ifndef CSMD_SRC_DAEMON_INCLUDE_THREAD_POOL_H_
 #define CSMD_SRC_DAEMON_INCLUDE_THREAD_POOL_H_
 #include "logging.h"
+#include "csm_daemon_exception.h"
 
 #include <atomic>
 #include <mutex>
@@ -62,7 +63,7 @@ public:
   ~ThreadPool() {
     _service_worker.reset();
     try { _thread_grp.join_all(); }
-    catch ( Exception &e ) { LOG( csmd, error ) << "ThreadPool failure when joining all threads." << e.what() };
+    catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << "ThreadPool failure when joining all threads." << e.what(); }
     LOG(csmd, debug) << "~ThreadPool(): done with join_all...";
     _service.stop();
   }
