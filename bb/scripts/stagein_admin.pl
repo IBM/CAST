@@ -116,7 +116,8 @@ sub phase2
 }
 
 sub phase3
-{    
+{
+    push(@cleanup, "$TARGET_NODE0 removejobinfo");
     push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
     push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
     
