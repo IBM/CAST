@@ -459,7 +459,7 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
 {
     txp::Connex* l_connex= NULL;
     bool answer=false;
-    lockConnectionMaps("getConnex");
+    lockConnectionMaps("isLocalRemoteNotSameAddress");
     {
         auto it = name2connections.find(pConnectionName);
         if (it!= name2connections.end())
@@ -468,7 +468,25 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
             answer=l_connex->remoteAndLocalAddressNotSame();
         }
     }
-    unlockConnectionMaps("getConnex");
+    unlockConnectionMaps("isLocalRemoteNotSameAddress");
+
+    return answer;
+}
+
+string getRemoteAddrString(const std::string& pConnectionName)
+{
+    txp::Connex* l_connex= NULL;
+    string answer;
+    lockConnectionMaps("getRemoteAddrString");
+    {
+        auto it = name2connections.find(pConnectionName);
+        if (it!= name2connections.end())
+        {
+            l_connex = it->second;
+            answer=l_connex->getRemoteAddrString();
+        }
+    }
+    unlockConnectionMaps("getRemoteAddrString");
 
     return answer;
 }
