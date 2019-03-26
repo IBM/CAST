@@ -2,7 +2,7 @@
    
     csmd/src/daemon/src/csmi_request_handler/csm_infrastructure_test_agent.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -23,7 +23,7 @@ void CSM_INFRASTRUCTURE_TEST_AGENT::Process( const csm::daemon::CoreEvent &aEven
     TestSystemEvent(aEvent);
     return;
   }
-  
+
   if ( !isNetworkEvent(aEvent) )
   {
     LOG(csmd, warning) << "CSM_INFRASTRUCTURE_TEST_AGENT: Expecting a NetworkEvent...";
@@ -36,13 +36,13 @@ void CSM_INFRASTRUCTURE_TEST_AGENT::Process( const csm::daemon::CoreEvent &aEven
     LOG(csmd, warning) << "CSM_INFRASTRUCTURE_TEST_AGENT: Only accepting messages from Aggregators.";
     return;
   }
-  
+
   csm::daemon::EventContext_sptr ctx = aEvent.GetEventContext();
   if (ctx == nullptr)
     ctx = std::make_shared<csm::daemon::EventContext>(this, INITIAL_STATE, CopyEvent(aEvent));
 
   LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_AGENT: TEST_SETUP = " << ctx->GetAuxiliaryId();
-  
+
   if (ctx->GetAuxiliaryId() == INITIAL_STATE)
   {
     csm::daemon::Configuration *config = csm::daemon::Configuration::Instance();
@@ -81,17 +81,16 @@ void CSM_INFRASTRUCTURE_TEST_AGENT::Process( const csm::daemon::CoreEvent &aEven
     data.SetConnectionType( conn_type );
     data.SetDaemonID( GetDaemonState()->GetDaemonID() );
     csm::network::Message msg = GetNetworkMessage(aEvent);
-    
+
     msg.SetData( CSMI_BASE::ConvertToBytes<ComputeInfo>(data) );
     msg.SetResp();
     msg.CheckSumUpdate();
 
     csm::network::MessageAndAddress content_response( msg, addr );
-    
+
     LOG(csmd, info) << "CSM_INFRASTRUCTURE_TEST_AGENT: Created node info and sent to aggregator: " << addr->Dump();
 
     ctx->SetAuxiliaryId(DONE_STATE);
     postEventList.push_back( CreateNetworkEvent(content_response, ctx) );
   }
-  
 }
