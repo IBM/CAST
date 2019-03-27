@@ -711,42 +711,52 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
 
     if (pLVKey)
     {
+        // Request to return a specific work queue
         rc = getWrkQE(pLVKey, pWrkQE);
     }
     else
     {
-        // First, check the high priority work queue
-        if (HPWrkQE->getWrkQ()->size())
+        // Next, determine if we need to look for work queues with canceled extents.
+        // NOTE: This takes a higher priority than taking any work off the high priority
+        //       work queue because in restart cases we want to clear these extents as
+        //       quickly as possible.  If we first took work off the high priorty work
+        //       queue, it is possible to consume all the transfer threads waiting for
+        //       canceled extents to be removed (due to stop transfer) without any
+        //       transfer threads available to actually perform the remove of the canceled
+        //       extents, yielding deadlock.
+        if (getCheckForCanceledExtents())
         {
-            // High priority work exists...  Pass the high priority queue back...
-            pWrkQE = HPWrkQE;
+            // Search for any LVKey work queue with a canceled extent at the front...
+            rc = getWrkQE_WithCanceledExtents(pWrkQE);
         }
-        else
-        {
-            if (getCheckForCanceledExtents())
-            {
-                // Search for any LVKey work queue with a canceled extent at the front...
-                rc = getWrkQE_WithCanceledExtents(pWrkQE);
-            }
 
-            if (!rc)
+        if (!rc)
+        {
+            if (!pWrkQE)
             {
-                if (!pWrkQE)
+                // No work queue exists with canceled extents.
+                // Next, check the high priority work queue...
+                if (HPWrkQE->getWrkQ()->size())
                 {
-                    // No work queue found with canceled extents.
-                    // Find 'real' work on one of the LVKey work queues...
-                    rc = getWrkQE((LVKey*)0, pWrkQE);
+                    // High priority work exists...  Pass the high priority queue back...
+                    pWrkQE = HPWrkQE;
                 }
                 else
                 {
-                    // At least one work queue exists with a canceled extent at the front.
-                    // Return the work queue identified by pWrkQE.
+                    // No high priorty work exists.
+                    // Find 'real' work on one of the LVKey work queues...
+                    rc = getWrkQE((LVKey*)0, pWrkQE);
                 }
             }
             else
             {
-                // Should not be able to get here...
+                // Currently, rc will always be returned as zero by getWrkQE_WithCanceledExtents().
+                // If we get here, at least one work queue has canceled extents...
             }
+        }
+        else
+        {
+            // Can't get here today...
         }
     }
 
