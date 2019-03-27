@@ -46,7 +46,7 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
     if( idle )
     {
       try { retry->AgainOrWait( false ); }
-      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what; break; }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); break; }
     }
     else
     {
@@ -59,7 +59,7 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
       LOG( csmd, trace ) << "Setting timer to trigger in " << content.RemainingMicros() << "µs.";
       bool interrupted = false;
       try { retry->uSleep( content.RemainingMicros() ); }
-      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what; }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); }
       // after returning from sleep, we better check if we still need to keep running
       if( ! aMgr->GetThreadKeepRunning() )
         break;

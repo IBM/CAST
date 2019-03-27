@@ -159,7 +159,7 @@ void NetworkManagerMain( csm::daemon::EventManagerNetwork *aMgr )
       // if we were idle during jitter window open, then just wait for interrupt (jitter window closing)
       // and let the beginning of the next loop go to wait for green light condition (next jitter window open)
       try { retry->AgainOrWait( aMgr->GetRunMode() == csm::daemon::RUN_MODE::READY_RUNNING_JOB ); }
-      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what; break; }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); break; }
 
       if( ! aMgr->GetThreadKeepRunning() )
         break;

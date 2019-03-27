@@ -61,7 +61,7 @@ void DBManagerMain( csm::daemon::EventManagerDB *aMgr )
             dbConnPool->Heartbeat();
           }
           try { idleRetry->AgainOrWait(); }
-          catch ( csm::daemon::Exception &e ) { CSMLOG( csmd, error ) << e.what; }
+          catch ( csm::daemon::Exception &e ) { CSMLOG( csmd, error ) << e.what(); }
           continue;
         }
         else
