@@ -1120,12 +1120,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
     BBLV_Info* l_LV_Info = 0;
 
     pWrkQE = 0;
-    // NOTE: The HP work queue is always present, so there must be at least two work queues.
-    //       We only need to return a work queue if there are at least two LVKey work queues.
-    //       This is because we only need to differentiate between a queue with no canceled
-    //       extents and one with canceled extents.  The normal findWork() processing can
-    //       do the necessary processing if there are only two work queues.
-    if (wrkqs.size() > 2)
+    if (wrkqs.size() > 1)
     {
         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
         {
@@ -1139,12 +1134,12 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                     // Get the LVKey and taginfo2 for this work item...
                     l_Key = (qe->second->getWrkQ()->front()).getLVKey();
                     l_LV_Info = metadata.getLV_Info(&l_Key);
-                    if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
+                    if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getExtent()->isCanceled())))
                     {
                         // Next extent is canceled...  Don't look any further
                         // and simply return this work queue.
                         pWrkQE = qe->second;
-                        pWrkQE->dump("info", "getWrkQE_WithCanceledExtents(): More than 2 work queues, extent being cancelled ");
+                        pWrkQE->dump("info", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
                         break;
                     }
                 }

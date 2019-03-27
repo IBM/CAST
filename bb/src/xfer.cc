@@ -1438,6 +1438,7 @@ void* transferWorker(void* ptr)
         l_WrkQ = 0;
         l_WrkQE = 0;
         l_LV_Info = 0;
+        l_Extent = 0;
         l_Repost = true;
 
         try
@@ -1449,6 +1450,9 @@ void* transferWorker(void* ptr)
             //       the high priority work queue is returned.
             // NOTE: The findWork() invocation will return suspended work
             //       queues.
+            // NOTE: Canceled extents are always moved to the front of the
+            //       queue so we only have to check the first extent to see
+            //       if we are processing canceled extents for a given work queue.
             bool l_WorkRemains = true;
             if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
             {
@@ -1471,9 +1475,13 @@ void* transferWorker(void* ptr)
                                 l_Extent = l_ExtentInfo.extent;
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
+                                // NOTE: Even if this is for a canceled extent, we still want to process the throttle timer.
+                                //       The throttle timer processing performs work that is broader than just determining
+                                //       if we need to delay.
                                 wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
-                                if (l_ThreadDelay > 0)
+                                if (l_ThreadDelay > 0 && (!l_Extent->isCanceled()))
                                 {
+                                    // Delay specified and not for a canceled extent...
                                     LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
                                     if (!wrkqmgr.delayMessageSent())
                                     {
@@ -1542,15 +1550,13 @@ void* transferWorker(void* ptr)
                         // NOTE:  This will never be the case for the high-priority
                         //        work queue (async requests)
                         //
-                        // Peek at the work item.  If for a canceled transfer definition
-                        // (most likely because it was 'stopped'), process the entry as
-                        // we would any other entry.  Because it is for a canceled
-                        // transfer definition, the extent will simply be removed from the
-                        // work queue and any metadata is updated as necessary.
-                        if (l_LV_Info && (!(l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
+                        // If for a canceled extent (stopped transfer definitions also have 'canceled' extents),
+                        // process the entry as we would any other entry.  Because it is for a canceled,
+                        // or stopped, transfer definition, the extent will simply be removed from the work queue
+                        // and any metadata is updated as necessary.
+                        if (!l_Extent->isCanceled())
                         {
-                            // Not for a canceled transfer definition.  Do not process
-                            // the next work item.
+                            // Not for a canceled extent.  Do not process the next work item.
                             l_ProcessNextWorkItem = false;
                         }
                     }
