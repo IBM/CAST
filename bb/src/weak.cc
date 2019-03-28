@@ -15,6 +15,9 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <identity.h>
 #include <string.h>
 #include <grp.h>
@@ -59,11 +62,13 @@ extern "C" FILE* fopen64(const char* path, const char* mode)
         orig_fopen = (fopentype)dlsym(RTLD_NEXT, "fopen64");
     }
     f = (orig_fopen)(path, mode);
-    
+    int savedErrno = 0;
+    if (f==NULL) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (f==NULL) errno=savedErrno;
     return f;
 }
 
@@ -89,11 +94,13 @@ extern "C" int rename(const char* oldname, const char* newname)
         orig_rename = (renametype)dlsym(RTLD_NEXT, "rename");
     }
     rc = (orig_rename)(oldname, newname);
-    
+    int savedErrno = 0;
+    if (rc) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (rc) errno=savedErrno;
     return rc;
 }
 
@@ -119,10 +126,44 @@ extern "C" int unlink(const char* path)
         orig_unlink = (unlinktype)dlsym(RTLD_NEXT, "unlink");
     }
     rc = (orig_unlink)(path);
-    
+    int savedErrno = 0;
+    if (rc) savedErrno=errno;
     if(switchuid)
     {
         becomeUser(uid, gid);
     }
+    if (rc) errno=savedErrno;
+    return rc;
+}
+/***
+ * The override of the stat library call is done differently since it is not called out as a weak symbol.  
+ * The stat library call is overridden here and then calls into fstatat to get the struct stat.
+ ***/
+extern "C" int stat(const char* path, struct stat *buf)
+{
+    int   rc;
+    uid_t uid = 0;
+    gid_t gid = 0;
+    bool  switchuid = false;
+    if(strncmp(path, hitname, strlen(hitname)) == 0)
+    {
+        uid = setfsuid(~0);
+        gid = setfsgid(~0);
+        if((uid != 0) || (gid != 0))
+        {
+            becomeUser(0,0);
+            switchuid = true;
+        }
+    }
+    int filehandle = -1;
+    int fstatatflags = AT_NO_AUTOMOUNT;
+    rc = fstatat(filehandle, path, buf, fstatatflags);
+    int savedErrno = 0;
+    if (rc) savedErrno=errno;
+    if(switchuid)
+    {
+        becomeUser(uid, gid);
+    }
+    if (rc) errno=savedErrno;
     return rc;
 }

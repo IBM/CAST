@@ -29,7 +29,7 @@ const csmi_struct_mapping_t map_csmi_allocation_history_t= {
     cast_csmi_allocation_history_t
 };
 
-const csmi_struct_node_t csmi_allocation_tree[53] = {{"allocation_id",offsetof(csmi_allocation_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csmi_allocation_tree[63] = {{"allocation_id",offsetof(csmi_allocation_t,allocation_id),0,NULL,0x99d3da77,40},
 {"user_id",offsetof(csmi_allocation_t,user_id),0,NULL,0x45c27210,36},
 {"ssd_min",offsetof(csmi_allocation_t,ssd_min),0,NULL,0xabb1b072,40},
 {"shared",offsetof(csmi_allocation_t,shared),0,NULL,0x1bb15c9c,16},
@@ -75,6 +75,16 @@ const csmi_struct_node_t csmi_allocation_tree[53] = {{"allocation_id",offsetof(c
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"user_group_id",offsetof(csmi_allocation_t,user_group_id),0,NULL,0xb690441c,36},
 {"user_name",offsetof(csmi_allocation_t,user_name),0,NULL,0xc029f5a4,4},
 {NULL,0,0,NULL,0,0},
@@ -89,12 +99,12 @@ void* cast_csmi_allocation_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_allocation_t= {
-    53,
+    63,
     csmi_allocation_tree,
     cast_csmi_allocation_t
 };
 
-const csmi_struct_node_t csmi_allocation_accounting_tree[16] = {{"gpu_usage",offsetof(csmi_allocation_accounting_t,gpu_usage),0,NULL,0x4178e945,40},
+const csmi_struct_node_t csmi_allocation_accounting_tree[20] = {{"gpu_usage",offsetof(csmi_allocation_accounting_t,gpu_usage),0,NULL,0x4178e945,40},
 {"ib_tx",offsetof(csmi_allocation_accounting_t,ib_tx),0,NULL,0xfa26dbb,40},
 {"gpfs_write",offsetof(csmi_allocation_accounting_t,gpfs_write),0,NULL,0x6947993f,40},
 {"ib_rx",offsetof(csmi_allocation_accounting_t,ib_rx),0,NULL,0xfa26d79,40},
@@ -109,6 +119,10 @@ const csmi_struct_node_t csmi_allocation_accounting_tree[16] = {{"gpu_usage",off
 {"ssd_write",offsetof(csmi_allocation_accounting_t,ssd_write),0,NULL,0x5f997379,40},
 {"cpu_usage",offsetof(csmi_allocation_accounting_t,cpu_usage),0,NULL,0x6f872541,40},
 {"gpfs_read",offsetof(csmi_allocation_accounting_t,gpfs_read),0,NULL,0xebe7ef50,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"power_cap",offsetof(csmi_allocation_accounting_t,power_cap),0,NULL,0x15494165,36}}
 ;
 
@@ -117,7 +131,7 @@ void* cast_csmi_allocation_accounting_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_allocation_accounting_t= {
-    16,
+    20,
     csmi_allocation_accounting_tree,
     cast_csmi_allocation_accounting_t
 };
@@ -152,13 +166,15 @@ const csmi_struct_mapping_t map_csmi_allocation_state_history_t= {
     cast_csmi_allocation_state_history_t
 };
 
-const csmi_struct_node_t csmi_allocation_details_tree[13] = {{"power_cap_hit",offsetof(csmi_allocation_details_t,power_cap_hit),0,NULL,0x315b4c49,28},
+const csmi_struct_node_t csmi_allocation_details_tree[15] = {{"power_cap_hit",offsetof(csmi_allocation_details_t,power_cap_hit),0,NULL,0x315b4c49,28},
 {"ssd_read",offsetof(csmi_allocation_details_t,ssd_read),0,NULL,0x21ea6a4a,28},
 {"num_nodes",offsetof(csmi_allocation_details_t,num_nodes),0,NULL,0xa5d6722d,24},
 {"steps",offsetof(csmi_allocation_details_t,steps),offsetof(csmi_allocation_details_t, num_steps),&map_csmi_allocation_step_list_t,0x10615a94,1},
 {NULL,0,0,NULL,0,0},
 {"ssd_write",offsetof(csmi_allocation_details_t,ssd_write),0,NULL,0x5f997379,28},
 {"num_steps",offsetof(csmi_allocation_details_t,num_steps),0,NULL,0xa633b043,24},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"num_transitions",offsetof(csmi_allocation_details_t,num_transitions),0,NULL,0x3fe3fad2,24},
@@ -172,12 +188,12 @@ void* cast_csmi_allocation_details_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_allocation_details_t= {
-    13,
+    15,
     csmi_allocation_details_tree,
     cast_csmi_allocation_details_t
 };
 
-const csmi_struct_node_t csmi_allocation_step_history_tree[21] = {{"omp_thread_limit",offsetof(csmi_allocation_step_history_t,omp_thread_limit),0,NULL,0x8884ccc6,4},
+const csmi_struct_node_t csmi_allocation_step_history_tree[29] = {{"omp_thread_limit",offsetof(csmi_allocation_step_history_t,omp_thread_limit),0,NULL,0x8884ccc6,4},
 {"max_memory",offsetof(csmi_allocation_step_history_t,max_memory),0,NULL,0x66b074e3,40},
 {"total_u_time",offsetof(csmi_allocation_step_history_t,total_u_time),0,NULL,0xa692ad0b,56},
 {"gpu_stats",offsetof(csmi_allocation_step_history_t,gpu_stats),0,NULL,0x4155465f,4},
@@ -197,6 +213,14 @@ const csmi_struct_node_t csmi_allocation_step_history_tree[21] = {{"omp_thread_l
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"end_time",offsetof(csmi_allocation_step_history_t,end_time),0,NULL,0xb56ec18a,4}}
 ;
 
@@ -205,7 +229,7 @@ void* cast_csmi_allocation_step_history_t(void* ptr,size_t index, char isArray) 
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_allocation_step_history_t= {
-    21,
+    29,
     csmi_allocation_step_history_tree,
     cast_csmi_allocation_step_history_t
 };
@@ -263,7 +287,7 @@ const csmi_struct_mapping_t map_csmi_ssd_resources_record_t= {
     cast_csmi_ssd_resources_record_t
 };
 
-const csmi_struct_node_t csmi_node_resources_record_tree[23] = {{"node_available_gpus",offsetof(csmi_node_resources_record_t,node_available_gpus),0,NULL,0x2fe53009,36},
+const csmi_struct_node_t csmi_node_resources_record_tree[27] = {{"node_available_gpus",offsetof(csmi_node_resources_record_t,node_available_gpus),0,NULL,0x2fe53009,36},
 {"ssds_count",offsetof(csmi_node_resources_record_t,ssds_count),0,NULL,0x1d4cb32a,24},
 {"vg_available_size",offsetof(csmi_node_resources_record_t,vg_available_size),0,NULL,0xa5e09dbc,40},
 {"node_state",offsetof(csmi_node_resources_record_t,node_state),csmi_node_state_t_MAX,&csmi_node_state_t_strs,0x29ab88b,8},
@@ -283,6 +307,10 @@ const csmi_struct_node_t csmi_node_resources_record_tree[23] = {{"node_available
 {"vg_update_time",offsetof(csmi_node_resources_record_t,vg_update_time),0,NULL,0x70e3692,4},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"node_discovered_gpus",offsetof(csmi_node_resources_record_t,node_discovered_gpus),0,NULL,0x5a2162f0,36},
 {"node_type",offsetof(csmi_node_resources_record_t,node_type),csmi_node_type_t_MAX,&csmi_node_type_t_strs,0x7471eeec,8},
 {"node_discovered_cores",offsetof(csmi_node_resources_record_t,node_discovered_cores),0,NULL,0x9e04c46d,36}}
@@ -293,7 +321,7 @@ void* cast_csmi_node_resources_record_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_node_resources_record_t= {
-    23,
+    27,
     csmi_node_resources_record_tree,
     cast_csmi_node_resources_record_t
 };
@@ -579,13 +607,15 @@ const csmi_struct_mapping_t map_csm_allocation_resources_query_output_t= {
     cast_csm_allocation_resources_query_output_t
 };
 
-const csmi_struct_node_t csm_allocation_update_history_input_tree[12] = {{"allocation_id",offsetof(csm_allocation_update_history_input_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csm_allocation_update_history_input_tree[14] = {{"allocation_id",offsetof(csm_allocation_update_history_input_t,allocation_id),0,NULL,0x99d3da77,40},
 {"user_id",offsetof(csm_allocation_update_history_input_t,user_id),0,NULL,0x45c27210,36},
 {"user_name",offsetof(csm_allocation_update_history_input_t,user_name),0,NULL,0xc029f5a4,4},
 {"account",offsetof(csm_allocation_update_history_input_t,account),0,NULL,0x1cbdb112,4},
 {NULL,0,0,NULL,0,0},
 {"user_group_id",offsetof(csm_allocation_update_history_input_t,user_group_id),0,NULL,0xb690441c,36},
 {"comment",offsetof(csm_allocation_update_history_input_t,comment),0,NULL,0xd363aa58,4},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"job_name",offsetof(csm_allocation_update_history_input_t,job_name),0,NULL,0x9b046920,4},
@@ -598,7 +628,7 @@ void* cast_csm_allocation_update_history_input_t(void* ptr,size_t index, char is
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_allocation_update_history_input_t= {
-    12,
+    14,
     csm_allocation_update_history_input_tree,
     cast_csm_allocation_update_history_input_t
 };
@@ -715,7 +745,7 @@ const csmi_struct_mapping_t map_csmi_allocation_gpu_metrics_t= {
     cast_csmi_allocation_gpu_metrics_t
 };
 
-const csmi_struct_node_t csmi_allocation_mcast_context_tree[47] = {{"allocation_id",offsetof(csmi_allocation_mcast_context_t,allocation_id),0,NULL,0x99d3da77,40},
+const csmi_struct_node_t csmi_allocation_mcast_context_tree[51] = {{"allocation_id",offsetof(csmi_allocation_mcast_context_t,allocation_id),0,NULL,0x99d3da77,40},
 {"num_gpus",offsetof(csmi_allocation_mcast_context_t,num_gpus),0,NULL,0x338e5253,36},
 {"num_processors",offsetof(csmi_allocation_mcast_context_t,num_processors),0,NULL,0xeac9b7c7,36},
 {"ib_tx",offsetof(csmi_allocation_mcast_context_t,ib_tx),offsetof(csmi_allocation_mcast_context_t, num_nodes),NULL,0xfa26dbb,1},
@@ -748,6 +778,10 @@ const csmi_struct_node_t csmi_allocation_mcast_context_tree[47] = {{"allocation_
 {"gpu_metrics",offsetof(csmi_allocation_mcast_context_t,gpu_metrics),offsetof(csmi_allocation_mcast_context_t, num_nodes),&map_csmi_allocation_gpu_metrics_t,0xfc3c27a7,1},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {"shared",offsetof(csmi_allocation_mcast_context_t,shared),0,NULL,0x1bb15c9c,16},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
@@ -769,7 +803,7 @@ void* cast_csmi_allocation_mcast_context_t(void* ptr,size_t index, char isArray)
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_allocation_mcast_context_t= {
-    47,
+    51,
     csmi_allocation_mcast_context_tree,
     cast_csmi_allocation_mcast_context_t
 };
@@ -805,7 +839,7 @@ const csmi_struct_mapping_t map_csmi_allocation_mcast_payload_request_t= {
     cast_csmi_allocation_mcast_payload_request_t
 };
 
-const csmi_struct_node_t csmi_allocation_mcast_payload_response_tree[25] = {{"gpu_usage",offsetof(csmi_allocation_mcast_payload_response_t,gpu_usage),0,NULL,0x4178e945,40},
+const csmi_struct_node_t csmi_allocation_mcast_payload_response_tree[31] = {{"gpu_usage",offsetof(csmi_allocation_mcast_payload_response_t,gpu_usage),0,NULL,0x4178e945,40},
 {"ib_tx",offsetof(csmi_allocation_mcast_payload_response_t,ib_tx),0,NULL,0xfa26dbb,40},
 {"gpfs_read",offsetof(csmi_allocation_mcast_payload_response_t,gpfs_read),0,NULL,0xebe7ef50,40},
 {"ib_rx",offsetof(csmi_allocation_mcast_payload_response_t,ib_rx),0,NULL,0xfa26d79,40},
@@ -820,6 +854,12 @@ const csmi_struct_node_t csmi_allocation_mcast_payload_response_tree[25] = {{"gp
 {"cpu_usage",offsetof(csmi_allocation_mcast_payload_response_t,cpu_usage),0,NULL,0x6f872541,40},
 {"memory_max",offsetof(csmi_allocation_mcast_payload_response_t,memory_max),0,NULL,0xee7ddc83,40},
 {"energy",offsetof(csmi_allocation_mcast_payload_response_t,energy),0,NULL,0xfb77e8af,40},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {"gpu_energy",offsetof(csmi_allocation_mcast_payload_response_t,gpu_energy),0,NULL,0x4aeb6e5a,40},
@@ -837,7 +877,7 @@ void* cast_csmi_allocation_mcast_payload_response_t(void* ptr,size_t index, char
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csmi_allocation_mcast_payload_response_t= {
-    25,
+    31,
     csmi_allocation_mcast_payload_response_tree,
     cast_csmi_allocation_mcast_payload_response_t
 };

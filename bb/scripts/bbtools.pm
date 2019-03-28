@@ -275,7 +275,9 @@ sub bbwaitTransfersComplete
         $numpending = $result->{"0"}{"out"}{"numavailhandles"};
         my $curtime = time();
         last if($curtime - $starttime > $timeout);
+        last if($result->{"rc"});
     }
+    return $result;
 }
 
 sub bbcmd

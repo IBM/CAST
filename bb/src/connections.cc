@@ -393,7 +393,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 		    // NOTE: Keep name of bbapi app consistent (no sequence number).  Ensure unique name of connection
 		    //       for duration of socket connection between bbproxy and bbserver (use .sequencenumber).
 #ifdef BBSERVER
-		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance) + string(".") + to_string(++newconnection_name_sequence_number) 
+		    std::string l_newconnection_name = string(receivedFromWhoami) + string(".") + to_string(++newconnection_name_sequence_number) 
             + " (" + conn->getRemoteAddrString() + ")";
 #else
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance);
@@ -459,7 +459,7 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
 {
     txp::Connex* l_connex= NULL;
     bool answer=false;
-    lockConnectionMaps("getConnex");
+    lockConnectionMaps("isLocalRemoteNotSameAddress");
     {
         auto it = name2connections.find(pConnectionName);
         if (it!= name2connections.end())
@@ -468,7 +468,25 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
             answer=l_connex->remoteAndLocalAddressNotSame();
         }
     }
-    unlockConnectionMaps("getConnex");
+    unlockConnectionMaps("isLocalRemoteNotSameAddress");
+
+    return answer;
+}
+
+string getRemoteAddrString(const std::string& pConnectionName)
+{
+    txp::Connex* l_connex= NULL;
+    string answer;
+    lockConnectionMaps("getRemoteAddrString");
+    {
+        auto it = name2connections.find(pConnectionName);
+        if (it!= name2connections.end())
+        {
+            l_connex = it->second;
+            answer=l_connex->getRemoteAddrString();
+        }
+    }
+    unlockConnectionMaps("getRemoteAddrString");
 
     return answer;
 }

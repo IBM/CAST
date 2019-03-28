@@ -228,6 +228,17 @@ void look4NVMFtargetDevices(){
                 {
                     vector<string> values = buildTokens(hostpath.path().filename().string(), "#");
                     KeyByHostname[values[0]] = hostpath.path().filename().string();
+                    const string bbserverConst = "bb.server";
+                    string temp = values[0].substr (bbserverConst.length());
+                    size_t colonSpot = temp.find (":");
+                    temp = temp.substr(0, colonSpot );
+                    vector<string> valuesDot = buildTokens(temp, "_");
+                    temp = valuesDot[0]
+                          + "." + valuesDot[1]
+                          + "." + valuesDot[2]
+                          + "." + valuesDot[3]
+                          ;
+                    KeyByHostname[temp] = hostpath.path().filename().string();
                 }
 
                 cmd = string("grep -l ") + device + string(" /sys/kernel/config/nvmet/ports/*/subsystems/*/namespaces/*/device_path");
@@ -616,6 +627,7 @@ string getNVMeDeviceInfo(string device, string key)
     }
 }
 
+extern string getRemoteAddrString(const std::string& pConnectionName);
 string getKeyByHostname(string hostname)
 {
     pthread_once(&findSerialInit, findSerials);
@@ -624,6 +636,10 @@ string getKeyByHostname(string hostname)
     try
     {
         auto tmp = KeyByHostname[hostname];
+        if (tmp.empty()) {
+            string l_string = getRemoteAddrString(hostname);
+            tmp=KeyByHostname[  l_string ];
+        }
         pthread_mutex_unlock(&findSerialMutex);
         return tmp;
     }
