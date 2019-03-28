@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         02-21-2019
+--   last modified:         03-28-2019
 --   change log:
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
@@ -31,6 +31,7 @@
 --            - func_alt_type_val -                     added function for altering db types
 --            - func_csm_delete_func -                  added function for dropping all db functions
 --            - func_csm_drop_all_triggers -            added function for dropping all db triggers
+--            - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
