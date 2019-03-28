@@ -2,7 +2,7 @@
 
     csmnet/src/CPP/endpoint_unix.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -355,15 +355,24 @@ int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAd
       // repeat until we got a ACK or HEARTBEAT msg with address
       if( AcceptMsgAddr.GetAddr() == nullptr )
         continue;
+
       if(( std::dynamic_pointer_cast<csm::network::AddressUnix>(AcceptMsgAddr.GetAddr()) == nullptr ) ||
           (std::dynamic_pointer_cast<csm::network::AddressUnix>(GetRemoteAddr()) == nullptr ))
+      {
+        AcceptMsgAddr.SetAddr( nullptr );
         throw csm::network::ExceptionEndpointDown("Wrong address types while waiting for ACCEPT message from peer", EBADF );
+      }
       if( *std::dynamic_pointer_cast<csm::network::AddressUnix>(AcceptMsgAddr.GetAddr()) !=
              *std::dynamic_pointer_cast<csm::network::AddressUnix>(GetRemoteAddr()) )
+      {
+        AcceptMsgAddr.SetAddr( nullptr );
         throw csm::network::ExceptionEndpointDown("Expected ACCEPT Message from peer.", EPROTO );
+      }
       else
+      {
+        AcceptMsgAddr.SetAddr( nullptr );
         break;
-      AcceptMsgAddr.SetAddr( nullptr );
+      }
     }
     if( AcceptMsgAddr.GetAddr() == nullptr )
       throw csm::network::ExceptionEndpointDown("Accept message with empty address", ENOENT );
