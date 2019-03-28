@@ -138,7 +138,7 @@ void CSMISwitchAttributesQueryDetails::CreateOutputStruct(
         LOG(csmapi, trace) << STATE_NAME ":CreateOutputStruct: Enter";
 
 		// Error check
-        if(fields->nfields != 42 )
+        if(fields->nfields != 43 )
         {
             *output = nullptr;
             return;
