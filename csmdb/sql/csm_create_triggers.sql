@@ -3539,6 +3539,7 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_children_inventory_collection(
         IN i_description      text[],
         IN i_device_name      text[],
         IN i_device_type      text[],
+        IN i_hw_version       text[],
         IN i_max_ib_ports     int[],
         IN i_module_index     int[],
         IN i_number_of_chips  int[],
@@ -3566,6 +3567,7 @@ BEGIN
                 description      = i_description[i], 
                 device_name      = i_device_name[i], 
                 device_type      = i_device_type[i], 
+                hw_version       = i_hw_version[i],
                 max_ib_ports     = i_max_ib_ports[i], 
                 module_index     = i_module_index[i], 
                 number_of_chips  = i_number_of_chips[i], 
@@ -3578,8 +3580,8 @@ BEGIN
             o_update_count := o_update_count + 1;
         ELSE 
             INSERT INTO csm_switch_inventory 
-            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
-            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
+            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , hw_version     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
+            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_hw_version[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;

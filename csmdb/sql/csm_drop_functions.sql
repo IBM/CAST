@@ -129,7 +129,7 @@ DROP FUNCTION IF EXISTS fn_csm_diag_result_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_db_schema_version_history_dump();
 -- CSM INVENTORY COLLECTION RELATED FUNCTIONS
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],text[],text[],text[],text[],boolean[],text[],text[],text[],int[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],int[],text[],text[]);
-DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
+DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text, OUT o_runtime bigint) CASCADE;
 
