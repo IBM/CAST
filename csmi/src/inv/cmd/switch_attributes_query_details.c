@@ -220,6 +220,7 @@ int main(int argc, char *argv[])
 					printf("      description:      %s\n", output->result[0]->inventory[i]->description);
 					printf("      device_name:      %s\n", output->result[0]->inventory[i]->device_name);
 					printf("      device_type:      %s\n", output->result[0]->inventory[i]->device_type);
+					printf("      hw_version:       %s\n", output->result[0]->inventory[i]->hw_version);
 					printf("      max_ib_ports:     %"PRId32"\n", output->result[0]->inventory[i]->max_ib_ports);
 					printf("      module_index:     %"PRId32"\n", output->result[0]->inventory[i]->module_index);
 					printf("      number_of_chips:  %"PRId32"\n", output->result[0]->inventory[i]->number_of_chips);
