@@ -58,6 +58,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	char** descriptions = NULL;
 	char** device_names = NULL;
 	char** device_types = NULL;
+	char** hw_versions = NULL;
 	int32_t* max_ib_ports = NULL;
 	int32_t* module_indexes = NULL;
 	int32_t* number_of_chips = NULL;
@@ -79,6 +80,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	descriptions      = (char**)calloc(total_switch_inventories, sizeof(char*));
 	device_names      = (char**)calloc(total_switch_inventories, sizeof(char*));
 	device_types      = (char**)calloc(total_switch_inventories, sizeof(char*));
+	hw_versions       = (char**)calloc(total_switch_inventories, sizeof(char*));
 	max_ib_ports      = (int32_t*)calloc(total_switch_inventories, sizeof(int32_t));
 	module_indexes    = (int32_t*)calloc(total_switch_inventories, sizeof(int32_t));
 	number_of_chips   = (int32_t*)calloc(total_switch_inventories, sizeof(int32_t));
@@ -98,6 +100,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 			descriptions      [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->description     );
 			device_names      [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->device_name     );
 			device_types      [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->device_type     );
+			hw_versions       [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->hw_version      );
 			max_ib_ports      [total_switch_inventories_tracker] = input->inventory[i]->inventory[j]->max_ib_ports   ;
 			module_indexes    [total_switch_inventories_tracker] = input->inventory[i]->inventory[j]->module_index   ;
 			number_of_chips   [total_switch_inventories_tracker] = input->inventory[i]->inventory[j]->number_of_chips;
@@ -109,7 +112,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 		}
 	}
 	
-	int SQLparameterCount = 14;
+	int SQLparameterCount = 15;
 
 	std::string stmt = 
 		"SELECT * FROM fn_csm_switch_children_inventory_collection("
@@ -120,13 +123,14 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 			"$5::text[], "
 			"$6::text[], "
 			"$7::text[], "
-			"$8::int[], "
+			"$8::text[], "
 			"$9::int[], "
 			"$10::int[], "
-			"$11::text[], "
+			"$11::int[], "
 			"$12::text[], "
 			"$13::text[], "
-			"$14::text[] "
+			"$14::text[], "
+			"$15::text[] "
 			");";
     
 	/* Build the parameterized list. */
@@ -138,6 +142,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	dbReq->AddTextArrayParam(descriptions     , total_switch_inventories);
 	dbReq->AddTextArrayParam(device_names     , total_switch_inventories);
 	dbReq->AddTextArrayParam(device_types     , total_switch_inventories);
+	dbReq->AddTextArrayParam(hw_versions      , total_switch_inventories);
 	dbReq->AddNumericArrayParam(max_ib_ports     , total_switch_inventories);
 	dbReq->AddNumericArrayParam(module_indexes   , total_switch_inventories);
 	dbReq->AddNumericArrayParam(number_of_chips  , total_switch_inventories);
@@ -154,6 +159,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 		free(descriptions     [i]);
 		free(device_names     [i]);
 		free(device_types     [i]);
+		free(hw_versions      [i]);
 		free(paths            [i]);
 		free(serial_numbers   [i]);
 		free(severities       [i]);
@@ -166,6 +172,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	free(descriptions     );
 	free(device_names     );
 	free(device_types     );
+	free(hw_versions      );
 	free(max_ib_ports     );
 	free(module_indexes   );
 	free(number_of_chips  );
