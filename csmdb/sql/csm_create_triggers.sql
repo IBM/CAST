@@ -3950,6 +3950,7 @@ switch_inventory_comment            text[],
 switch_inventory_description        text[],
 switch_inventory_device_name        text[],
 switch_inventory_device_type        text[],
+switch_inventory_hw_version         text[],
 switch_inventory_max_ib_ports       int[],
 switch_inventory_module_index       int[],
 switch_inventory_number_of_chips    int[],
@@ -3986,9 +3987,9 @@ BEGIN
     ;
     --SWITCH_INVENTORY--
     SELECT 
-        COUNT(DISTINCT si.name) , array_agg(si.name)     , array_agg(si.host_system_guid)     , array_agg(si.discovery_time)     , array_agg(si.collection_time)     , array_agg(si.comment)     , array_agg(si.description)     , array_agg(si.device_name)     , array_agg(si.device_type)     , array_agg(si.max_ib_ports)     , array_agg(si.module_index)     , array_agg(si.number_of_chips)     , array_agg(si.path)     , array_agg(si.serial_number)     , array_agg(si.severity)     , array_agg(si.status)      
+        COUNT(DISTINCT si.name) , array_agg(si.name)     , array_agg(si.host_system_guid)     , array_agg(si.discovery_time)     , array_agg(si.collection_time)     , array_agg(si.comment)     , array_agg(si.description)     , array_agg(si.device_name)     , array_agg(si.device_type)     , array_agg(si.hw_version)     , array_agg(si.max_ib_ports)     , array_agg(si.module_index)     , array_agg(si.number_of_chips)     , array_agg(si.path)     , array_agg(si.serial_number)     , array_agg(si.severity)     , array_agg(si.status)      
     INTO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
-        r.switch_inventory_count, r.switch_inventory_name, r.switch_inventory_host_system_guid, r.switch_inventory_discovery_time, r.switch_inventory_collection_time, r.switch_inventory_comment, r.switch_inventory_description, r.switch_inventory_device_name, r.switch_inventory_device_type, r.switch_inventory_max_ib_ports, r.switch_inventory_module_index, r.switch_inventory_number_of_chips, r.switch_inventory_path, r.switch_inventory_serial_number, r.switch_inventory_severity, r.switch_inventory_status 
+        r.switch_inventory_count, r.switch_inventory_name, r.switch_inventory_host_system_guid, r.switch_inventory_discovery_time, r.switch_inventory_collection_time, r.switch_inventory_comment, r.switch_inventory_description, r.switch_inventory_device_name, r.switch_inventory_device_type, r.switch_inventory_hw_version, r.switch_inventory_max_ib_ports, r.switch_inventory_module_index, r.switch_inventory_number_of_chips, r.switch_inventory_path, r.switch_inventory_serial_number, r.switch_inventory_severity, r.switch_inventory_status 
     FROM 
         csm_switch_inventory AS si
     WHERE ( si.host_system_guid = i_switch_name )
