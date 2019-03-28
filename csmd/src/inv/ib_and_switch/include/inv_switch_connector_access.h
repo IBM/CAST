@@ -91,6 +91,7 @@ private:
   std::vector<std::string> vector_of_the_serial_numbers;
   std::vector<std::string> vector_of_the_os_versions;
   std::vector<std::string> vector_of_the_modules;
+  std::vector<std::string> vector_of_the_comparing_strings_modules;
   
 
 };
@@ -161,6 +162,7 @@ private:
   std::vector<std::string> vector_of_the_serial_numbers;
   std::vector<std::string> vector_of_the_os_versions;
   std::vector<std::string> vector_of_the_modules;
+  std::vector<std::string> vector_of_the_comparing_strings_modules;
 
 };
 
