@@ -140,6 +140,7 @@ GetOptions(
     "configtempl=s"   => \$CFG{"configtempl"},
     "nvmetempl=s"     => \$CFG{"nvmetempl"},
     "outputconfig=s"  => \$CFG{"outputconfig"},
+    "interfacename=s" => \$CFG{"interfacename"},
     "offload!"        => \$CFG{"useOffload"},
     "csm!"            => \$CFG{"useCSM"},
     "cn!"             => \$CFG{"bbProxy"},
@@ -217,6 +218,7 @@ sub setDefaults
     &def("nodelist",         1, "/etc/ibm/nodelist");
     &def("esslist",          1, "/etc/ibm/esslist");
     &def("outputconfig",     1, "/etc/ibm/bb.cfg");
+    &def("interfacename",    1, "ib0");
     &def("dryrun",           1, 0);
     &def("drypath",          1, "&STDOUT");
     &def("useOffload",       1, 0);
@@ -507,7 +509,9 @@ sub configureNVMeTarget
 
     output("ipaddr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
 
-    my $ipaddr = safe_cmd("ip addr show dev ib0 | grep \"inet \"");
+    my $interfacename = $CFG{"interfacename"};
+    my $ipaddr = safe_cmd("ip addr show dev $interfacename | grep \"inet \"");
+    
     ($myip) = $ipaddr =~ /inet\s+(\S+?)\//;
 
     output("myip: $myip");
