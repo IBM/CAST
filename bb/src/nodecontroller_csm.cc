@@ -569,7 +569,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
     if(cuml_rank != "-1")
     {
         output.put("error.firstFailRank", stoi(cuml_rank));
-        output.put("error.firstFailNode", nodelist[cuml_rank]);
+        output.put("error.firstFailNode", nodelist[stoi(cuml_rank)]);
     }
     if(exception_text.size() > 0)
     {
