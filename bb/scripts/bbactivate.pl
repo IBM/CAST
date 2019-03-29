@@ -174,6 +174,7 @@ if(! isRoot())
     exit(99);
 }
 
+$ENV{"LVM_SUPPRESS_FD_WARNINGS"} = 1;
 getNodeName();
 
 if($CFG{"shutdown"})
@@ -500,7 +501,7 @@ sub configureNVMeTarget
     my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
     {
-        output("NVMe erer Fabrics target has already been configured");
+        output("NVMe over Fabrics target has already been configured");
         return;
     }
 
