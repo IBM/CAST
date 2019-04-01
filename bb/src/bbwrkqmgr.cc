@@ -487,11 +487,17 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         l_OffsetStr << ")";
                     }
 
-                    if (!strcmp(pSev,"debug")) {
+                    int l_CheckForCanceledExtents = checkForCanceledExtents;
+                    if (!strcmp(pSev,"debug"))
+                    {
                         LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
 //                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
                         LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                      << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                                      << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                        if (l_CheckForCanceledExtents)
+                        {
+                            LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
 //                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
@@ -511,11 +517,17 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             qe->second->dump(pSev, "          ");
                         }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                    } else if (!strcmp(pSev,"info")) {
+                    }
+                    else if (!strcmp(pSev,"info"))
+                    {
                         LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
 //                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
                         LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                     << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                                     << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                        if (l_CheckForCanceledExtents)
+                        {
+                            LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
 //                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                        LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
@@ -736,14 +748,19 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
             {
                 // No work queue exists with canceled extents.
                 // Next, check the high priority work queue...
-                if (HPWrkQE->getWrkQ()->size())
+                // NOTE: If we have high priority work items available and we have reached the maximum number of concurrent
+                //       cancel requests, we don't check the contents of the next high priority work item.
+                //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
+                //       working on a cancel request before dequeuing that high priority work item.
+                //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
+                if (HPWrkQE->getWrkQ()->size() && getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests())
                 {
                     // High priority work exists...  Pass the high priority queue back...
                     pWrkQE = HPWrkQE;
                 }
                 else
                 {
-                    // No high priorty work exists.
+                    // No high priorty work exists that we want to schedule.
                     // Find 'real' work on one of the LVKey work queues...
                     rc = getWrkQE((LVKey*)0, pWrkQE);
                 }

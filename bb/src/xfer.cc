@@ -1704,7 +1704,7 @@ void startThreads(void)
     int rc;
     stringstream errorText;
     unsigned int x;
-    unsigned int numthreads = config.get(resolveServerConfigKey("numTransferThreads"), 1);
+    unsigned int numthreads = config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS);
 
     pthread_t tid;
     pthread_attr_t attr;

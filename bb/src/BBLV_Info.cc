@@ -14,6 +14,7 @@
 #include "bberror.h"
 #include "bbinternal.h"
 #include "bbio.h"
+#include "BBLV_ExtentInfo.h"
 #include "BBLV_Info.h"
 #include "bbserver_flightlog.h"
 #include "BBTransferDef.h"
@@ -89,11 +90,14 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
         // Indicate that the next findWork() needs to look for canceled extents
         wrkqmgr.setCheckForCanceledExtents(1);
 
+        // Increment the number of concurrent cancel reqeusts
+        wrkqmgr.incrementNumberOfConcurrentCancelRequests();
+
         // Wait for the canceled extents to be processed
         uint64_t l_Attempts = 1;
         while (1)
         {
-            if (wrkqmgr.getCheckForCanceledExtents())
+            if (!(extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), 0)))
             {
                 if ((l_Attempts % 15) == 0)
                 {
@@ -117,6 +121,9 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
                 break;
             }
         }
+
+        // Decrement the number of concurrent cancel reqeusts
+        wrkqmgr.decrementNumberOfConcurrentCancelRequests();
     }
 
     // If we are to perform remove operations for target PFS files, do so now...

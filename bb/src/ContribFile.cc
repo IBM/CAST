@@ -44,6 +44,7 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
         ++l_Attempts;
         try
         {
+            LOG(bb,debug) << "Reading:" << pContribFileName;
             ifstream l_ArchiveFile{pContribFileName.c_str()};
             text_iarchive l_Archive{l_ArchiveFile};
             l_Archive >> *l_ContribFile;

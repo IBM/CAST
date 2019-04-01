@@ -2725,6 +2725,14 @@ int bb_main(std::string who)
         LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
         wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
         wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
+
+        // NOTE: We will only dequeue from the high priority work queue if the current number of cancel requests
+        //       (i.e., thread waiting for the canceled extents to be removed from a work queue) is consuming no more than 50%
+        //       of the total number of transfer threads available.  We need to leave some transfer threads available to perform the
+        //       efficient removal of canceled extents from the work queue(s).
+        uint32_t l_NumberOfTransferThreads = (uint32_t)(config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS));
+
+        wrkqmgr.setNumberOfAllowedConcurrentCancelRequests(l_NumberOfTransferThreads >= 4 ? l_NumberOfTransferThreads/2 : 1);
         wrkqmgr.setAllowDumpOfWorkQueueMgr(config.get("bb.bbserverAllowDumpOfWorkQueueMgr", DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR));
         wrkqmgr.setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItem", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM));
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
