@@ -51,6 +51,9 @@ public:
 
 private:
   INV_SWITCH_CONNECTOR_ACCESS();
+  int extractValueFromLine(std::string line, char** value, char* key);
+  int extractNumValueFromLine(std::string line, char** value);
+  
 
 private:
 
@@ -92,6 +95,7 @@ private:
   std::vector<std::string> vector_of_the_os_versions;
   std::vector<std::string> vector_of_the_modules;
   std::vector<std::string> vector_of_the_comparing_strings_modules;
+  std::vector<std::string> vector_of_the_num_values;
   
 
 };
@@ -122,6 +126,8 @@ public:
 
 private:
   INV_SWITCH_CONNECTOR_ACCESS();
+  int extractValueFromLine(std::string line, char** value, char* key);
+  int extractNumValueFromLine(std::string line, char** value);
 
 private:
 
@@ -163,6 +169,7 @@ private:
   std::vector<std::string> vector_of_the_os_versions;
   std::vector<std::string> vector_of_the_modules;
   std::vector<std::string> vector_of_the_comparing_strings_modules;
+  std::vector<std::string> vector_of_the_num_values;
 
 };
 
