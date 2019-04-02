@@ -101,6 +101,7 @@ const std::string CGroup::CPUSET_DIR = std::string(CGroup::CONTROLLER_DIR).appen
 const std::string CGroup::CPUACCT_DIR = std::string(CGroup::CONTROLLER_DIR).append(CGroup::CPUACCT).append("/");
 const std::string CGroup::MEM_DIR = std::string(CGroup::CONTROLLER_DIR).append(CGroup::MEM).append("/");
 
+
 bool CGroup::RepairSMTChange() 
 {
     LOG(csmapi, trace) <<  _LOG_PREFIX "RepairSMTChange Enter";
@@ -1566,6 +1567,83 @@ bool CGroup::GetCPUs( int32_t &threads, int32_t &sockets,
     return success;
 }
 
+int32_t CGroup::GetBlinkSettings(int32_t coreCount, int32_t maxSMT, int32_t coreIsolation) const
+{
+    bool cores[coreCount];
+    for ( int i = 0; i < coreCount;  ++i ) {
+        cores[i] = false;
+    }
+
+    // Build the resource string and retrieve the systemCgroup Config.
+    const std::string CPUSET(CGroup::CPUSET_DIR + CGroup::SYSTEM_CGROUP +  "cpuset.cpus");
+    std::string systemConfig = ReadString(CPUSET);
+
+    // If the system cgroup String 
+    if ( systemConfig.size() == 0 )
+    {
+        return (cores == 0) ? 0  : -1;
+    }
+
+    //  If we reach here use a string stream to parse.
+    std::istringstream conf(systemConfig);
+    std::string token;
+
+    // Place holder values for the following loop
+    size_t  delim      = 0;
+    int32_t startRange = 0;
+    int32_t endRange   = 0;
+    while(getline(conf, token, ','))
+    {
+        delim = token.find('-');
+
+        if ( delim != std::string::npos ) 
+        { 
+            startRange = std::strtol(token.substr(0, delim ).c_str(), nullptr, 10) / maxSMT;
+            endRange   = std::strtol(token.substr(delim + 1).c_str(), nullptr, 10) / maxSMT;
+
+            for ( ; startRange < endRange && startRange < coreCount; ++startRange )
+            {
+                cores[startRange] = true;
+            }
+        }
+        else
+        {
+            startRange = std::strtol(token.c_str(), nullptr, 10) / maxSMT;
+            if (startRange < coreCount)
+                cores[startRange] = true;
+        }
+    }
+
+    int32_t maxIsolation = -1;
+    int32_t currentIsolation = 0;
+
+    for(int i = 0; i < coreCount; ++i)
+    {
+        if ( cores[i] )
+        {
+            currentIsolation++; 
+        }
+        else
+        {
+            // Most of the time this is only run once.
+            if ( maxIsolation == -1 )
+            {
+                maxIsolation = currentIsolation;
+            }
+            else if (maxIsolation < currentIsolation) // This should literally never trigger.
+            {
+                maxIsolation =  currentIsolation;
+            }
+
+            currentIsolation = 0;
+        }
+    }
+
+    return (maxIsolation > coreIsolation) ? maxIsolation : 0;
+}
+
+
+
 void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string &groupCores)
 {
     LOG(csmapi, trace) << _LOG_PREFIX "GetCoreIsolation Enter;";
@@ -1646,16 +1724,33 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     int32_t groupStart = 0; // Start of group.
 
     int32_t core       = 0; // The active core being processed.
-    int32_t blinkOffset= jitterInfo.GetCoreBlink() ? 0 : threadsPerCore ; // The offset for blinking
+    int32_t blinkOffset  = threadsPerCore; // The offset for blinking
+    int32_t baseIsolation= 0; // The baseline isolation factor, 0 indicates no action needed.
     bool    startIRQBalance = false;
+
+    // Before running isolation let's get blink values.
+    if ( jitterInfo.GetCoreBlink() )
+    {
+        int32_t blinkType = GetBlinkSettings(sockets * coresPerSocket, threadsPerCoreMax, ISO_MAX);
+
+        if ( blinkType <  0 )
+        {
+            blinkOffset = threadsPerCore;
+        }
+        else if ( blinkType > 0 )
+        {
+            // TODO Work on blinking  system cgroups.
+            baseIsolation = blinkType; 
+        }
+    }
 
     // If core Isolation is zero expand to the whole system.
     if ( isolation > 0 )
     {
         for (int32_t socket=0; socket < sockets; ++socket)
         {
-            isolation = ISO_MAX;
-            
+            isolation    = ISO_MAX;
+            int32_t isolationOld = baseIsolation; // Cores that were previously allocated for isolation.
             bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
             
             for ( core=0; core < coresPerSocket; ++core )
@@ -1670,8 +1765,17 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                 {
                     groupStart = thread;
                     thread = thread + ( threadsPerCoreMax - 1 );
+
+                    // Perform blink based on the core information.
+                    int32_t tempBlinkOffset = blinkOffset;
+                    if ( isolationOld > 0) 
+                    {
+                        tempBlinkOffset = 0;
+                        isolationOld--;
+                    }
+
                     // Offline all of the CPUs in the allocation section.
-                    for( int32_t cpu = threadsPerCoreMax; cpu > blinkOffset; --cpu )
+                    for( int32_t cpu = threadsPerCoreMax; cpu > tempBlinkOffset; --cpu )
                     {
                         // If the core blink fails, turn core zero back on and set the coreBlinkFailure flag.
                         if ( CPUPower(thread--, CPU_OFFLINE) )
@@ -1698,6 +1802,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     
                     assembleGroup(sysCores);
                     isolation--;
+                    isolationOld--;
                     
                     // XXX Today this assumes < 32 threads per core!
                     activeAffinityBlock = (int32_t)((extra_thread - threadsPerCoreMax) / 32);
@@ -1715,23 +1820,34 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     else
     {
         // Set this to blink the primary thread later.
-        threadBlinkFailure = true;
         startIRQBalance    = true;
         
         // Set the cores up.
         sysCores = groupCores = "";
         for (int32_t socket=0; socket < sockets; ++socket)
         {
+            int32_t isolationOld = baseIsolation; 
+            bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
+
             for ( core=0; core < coresPerSocket; ++core )
             {
-                thread =
-                     ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax )  ;
+                // thread = (left to right increase) :  (right to left decrease)
+                thread = LTOR ? 
+                    ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
+                    ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
                 int32_t extra_thread = thread + ( threadsPerCoreMax - 1 );
 
                 int32_t cpu = 0; 
                 for(; cpu < threadsPerCore; ++cpu ) sysCores.append(std::to_string(thread++)).append(",");
 
-                for( cpu = threadsPerCoreMax; cpu > blinkOffset && extra_thread > 0; --cpu ) 
+                // Handle isolation changes (system cores need to be blinked).
+                int32_t tempBlinkOffset = blinkOffset;
+                if ( isolationOld > 0) 
+                {
+                    tempBlinkOffset = 0;
+                    isolationOld--;
+                }
+                for( cpu = threadsPerCoreMax; cpu > tempBlinkOffset && extra_thread > 0; --cpu ) 
                     CPUPower(extra_thread--, CPU_OFFLINE);
             }
         }
@@ -1749,8 +1865,6 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
     // Bring the allocation nodes back up with the correct smt mode.
     for (int32_t socket=0; socket < sockets; ++socket)
     {
-        isolation = ISO_MAX;
-        
         bool LTOR  = socketOrder[socket] == L_TO_R_ISO ?  true : false;
         
         for ( core=0; core < coresPerSocket; ++core )
@@ -1759,19 +1873,11 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
             thread = LTOR ? 
                 ( ( socket * coresPerSocket * threadsPerCoreMax ) + (core * threadsPerCoreMax ) ) : 
                 ( ( coresPerSocket * (socket + 1) * threadsPerCoreMax ) - ( ( core + 1 ) * threadsPerCoreMax ) );
-            //thread = LTOR ? ( ( socket * coresPerSocket ) + (core * threadsPerCore ) ) : 
-            //    ( ( coresPerSocket * (socket + 1) ) - ( ( core + 1 ) * threadsPerCore ) );
 
-            // Process the allocation core.
-            if ( isolation == 0 )
+            for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
             {
-                for( int32_t cpu = 0; cpu < threadsPerCore; ++cpu )
-                {
-                    CPUPower(thread++, CPU_ONLINE);
-                } 
-            }
-            else
-                --isolation;
+                CPUPower(thread++, CPU_ONLINE);
+            } 
         }
     }
 
