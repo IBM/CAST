@@ -77,6 +77,10 @@ INV_SWITCH_CONNECTOR_ACCESS::INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_comparing_strings_modules.push_back("\"device_name\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"type\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"severity\""); 
+
+	vector_of_the_num_values.push_back("\"number_of_chips\"");  
+	vector_of_the_num_values.push_back("\"max_ib_ports\""); 
+	vector_of_the_num_values.push_back("\"module_index\"");
 }
 
 INV_SWITCH_CONNECTOR_ACCESS::~INV_SWITCH_CONNECTOR_ACCESS()
@@ -109,11 +113,96 @@ INV_SWITCH_CONNECTOR_ACCESS::~INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_os_versions.clear();
 	vector_of_the_modules.clear();
 	vector_of_the_comparing_strings_modules.clear();
+	vector_of_the_num_values.clear();
 }
 
 int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
 {
 	return compiled_with_support;
+}
+
+int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key)
+{
+
+	std::cout << "In function..." << std::endl;
+	printf("value: %p\n", value); // pointer to a char* , which is the first char of a string -- address of the char*
+	printf("&value: %p\n", &value); // address of the temp var
+	printf("*value: %p\n", *value); // value at the pointer
+
+	// vectors with the fields
+	std::size_t position_delimiter = 0;
+	bool num_key_found = false;
+
+	printf("key provided: %s\n", key);
+
+	//What key?
+	for(unsigned int i = 0; i < vector_of_the_num_values.size(); i++)
+	{
+		int found = 0;
+		found = strcmp(key, vector_of_the_num_values[i].c_str());
+		if (found == 0)
+		{
+			printf("found a num key.\n");
+			printf("Key found: %s\n", vector_of_the_num_values[i].c_str());
+			num_key_found = true;
+		}
+		
+	}
+
+	int offset = 0;
+
+	//Is the key a num value?
+	if(num_key_found)
+	{
+		offset = 2;
+	}else{
+		//String based key.
+		offset = 3;
+	}
+
+	// extraction field
+	position_delimiter=line.find(":");
+	//Modify the prefix. Trim the opening garbage from the key_value
+	line.erase(0,position_delimiter + offset);
+	//Modify the suffix. Trim the ending garbage.
+	line.erase(line.length() - offset,line.length()-1);
+
+	*value = (char*)calloc(line.length(), sizeof(char*));
+	
+	std::size_t length = line.copy(*value, line.length());
+
+	
+
+
+	std::cout << "length: " << length << std::endl;
+
+
+	
+
+	printf("value: %p\n", value); // pointer to a char* , which is the first char of a string -- address of the char*
+	printf("&value: %p\n", &value); // address of the temp var
+	printf("*value: %p\n", *value); // value at the pointer
+
+	//vector_of_the_modules.push_back(line); // status 
+	std::cout << "leaving the function..." << std::endl;
+
+	return 0;
+}
+
+int INV_SWITCH_CONNECTOR_ACCESS::extractNumValueFromLine(std::string line, char** value)
+{
+	// vectors with the fields
+	//std::size_t position_delimiter = 0;
+
+	
+
+	*value = (char*)calloc(line.length(), sizeof(char*));
+
+	std::size_t length = line.copy(*value, line.length());
+
+	std::cout << "length: " << length << std::endl;
+
+	return 0;
 }
 
 int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors)
@@ -468,173 +557,441 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 											//still searching for modules
 											//grab next line
 											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // status 
 
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // hw_version 
+											//Create a temp value for the 'value' in our "key/value" pair.
+											char* value = NULL;
+											char* key = NULL;
+											bool key_found = false;
 
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											//line.erase(line.length()-1,line.length());
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // name
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 
-											//grab next line
-											std::getline(input_file, line);
+											if(key_found)
+											{
+												
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // status 
+												free(key);
+												free(value);
+											}
+
+
+											//printf("value: %s\n", value);
+											//printf("&value: %p\n", &value);
+
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											//don't push host
-											//vector_of_the_modules.push_back(line); // hosting_system_guid 
 
 											//grab next line
 											std::getline(input_file, line);
 
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+2);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-2,line.length());
-											vector_of_the_modules.push_back(line); // number_of_chips 
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // description 
+											if(key_found)
+											{
+												
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // hw_version 
+												free(key);
+												free(value);
+											}
 
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+2);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-2,line.length());
-											vector_of_the_modules.push_back(line); // max_ib_ports 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // name 
+												free(key);
+												free(value);
+											}
 
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											//don't push
-											//vector_of_the_modules.push_back(line); // fw_version 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												//don't push host
+												//vector_of_the_modules.push_back(value); // hosting_system_guid 
+												free(key);
+												free(value);
+											}
+
+											//grab next line
+											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
+
+
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // number_of_chips 
+												free(key);
+												free(value);
+											}
+											
+											//grab next line
+											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
+											
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // description 
+												free(key);
+												free(value);
+											}
+
+											//grab next line
+											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
+											
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // max_ib_ports 
+												free(key);
+												free(value);
+											}
+
+											//grab next line
+											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
+											
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												//don't push
+												//vector_of_the_modules.push_back(value); // fw_version 
+												free(key);
+												free(value);
+											}
 									
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+2);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-2,line.length());
-											vector_of_the_modules.push_back(line); // module_index 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // module_index 
+												free(key);
+												free(value);
+											}
 											
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 									
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											//don't push temp
-											//vector_of_the_modules.push_back(line); // temperature 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												//don't push
+												//vector_of_the_modules.push_back(value); // temperature 
+												free(key);
+												free(value);
+											}
 											
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // device_type 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // device_type 
+												free(key);
+												free(value);
+											}
 											
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // serial_number 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // serial_number 
+												free(key);
+												free(value);
+											}
 									
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // path 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // path 
+												free(key);
+												free(value);
+											}
 											
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // device_name 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												vector_of_the_modules.push_back(value); // device_name 
+												free(key);
+												free(value);
+											}
 
 											//grab next line
 											std::getline(input_file, line);
+
+											//What key?
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													printf("found key.\n");
+													printf("Key found: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+													key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(key, vector_of_the_comparing_strings_modules[i].length());
+													printf("key set to: %s\n", key);
+													key_found = true;
+												}
+												
+											}
 											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											//don't push
-											//vector_of_the_modules.push_back(line); // type 
+											if(key_found)
+											{
+												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+												// don't push
+												// vector_of_the_modules.push_back(value); // type 
+												free(key);
+												free(value);
+											}
 
 											//grab next line
 											std::getline(input_file, line);
@@ -1019,5 +1376,25 @@ int INV_SWITCH_CONNECTOR_ACCESS::TotalNumberOfRecords()
 {
 	return vector_of_the_switch_names.size();
 }
+
+int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key)
+{
+
+	// need to go through and look at this code and clean it up and document...it really is a mess. :( 
+
+
+	return 0;
+}
+
+int INV_SWITCH_CONNECTOR_ACCESS::extractNumValueFromLine(std::string line, char** value)
+{
+
+	// need to go through and look at this code and clean it up and document...it really is a mess. :( 
+
+
+	return 0;
+}
+
+
 
 #endif  // SWITCH_CONNECTOR support is disabled
