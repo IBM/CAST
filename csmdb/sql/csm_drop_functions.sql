@@ -17,11 +17,12 @@
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
 --   current_version:   17.0
 --   create:            06-13-2016
---   last modified:     01-28-2019
+--   last modified:     03-28-2019
 --   change log:
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
 --           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
+--           - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
@@ -129,7 +130,7 @@ DROP FUNCTION IF EXISTS fn_csm_diag_result_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_db_schema_version_history_dump();
 -- CSM INVENTORY COLLECTION RELATED FUNCTIONS
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],text[],text[],text[],text[],boolean[],text[],text[],text[],int[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],int[],text[],text[]);
-DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
+DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text, OUT o_runtime bigint) CASCADE;
 

@@ -832,18 +832,25 @@ int main(int argc, char *argv[])
 				
 				// individual module fields  
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->status           = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->hw_version       = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->name             = strdup(temp_string.c_str());
+				
+				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->host_system_guid = strdup(SWITCHinput->inventory[i]->switch_data->switch_name);
+				
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = -1.0;
+
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->description      = strdup(temp_string.c_str()); 
 				
 				//check for special "system" which is a UFM hack to give us main serial number
-				if(strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "system") == 0)
+				if(strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "SYSTEM") == 0)
 				{
 					isSystem = true;
 				}
-				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->host_system_guid = strdup(SWITCHinput->inventory[i]->switch_data->switch_name);
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->severity         = strdup(temp_string.c_str());
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = -1.0;
+
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->max_ib_ports     = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->max_ib_ports  = -1.0; 
+				//fw version , can go here
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->module_index     = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->module_index  = -1.0;
+				//temperature we aren't gathering.
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->device_type      = strdup(temp_string.c_str());
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->serial_number    = strdup(temp_string.c_str());  
 				//if this is the system module then copy the serial number back to the main switch record. 
@@ -859,7 +866,8 @@ int main(int argc, char *argv[])
 				}
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->path             = strdup(temp_string.c_str()); 
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->device_name      = strdup(temp_string.c_str());
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->name             = strdup(temp_string.c_str());
+				//type field
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->severity         = strdup(temp_string.c_str());
 				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->discovery_time   = strdup(strdup("N/A"));                                      
 				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->collection_time  = strdup(strdup("N/A"));                                      
 				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A"));                                      

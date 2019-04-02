@@ -59,6 +59,24 @@ INV_SWITCH_CONNECTOR_ACCESS::INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_comparing_strings.push_back("\"serial_number\"");         // 22
 	vector_of_the_comparing_strings.push_back("\"os_version\"");            // 23
 	vector_of_the_comparing_strings.push_back("\"modules\"");               // 24
+
+	// setting vector of the comparing strings modules
+	vector_of_the_comparing_strings_modules.push_back("\"status\"");              
+	vector_of_the_comparing_strings_modules.push_back("\"hw_version\"");          
+	vector_of_the_comparing_strings_modules.push_back("\"name\"");                
+	vector_of_the_comparing_strings_modules.push_back("\"hosting_system_guid\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"number_of_chips\"");     
+	vector_of_the_comparing_strings_modules.push_back("\"description\"");         
+	vector_of_the_comparing_strings_modules.push_back("\"max_ib_ports\"");        
+	vector_of_the_comparing_strings_modules.push_back("\"fw_version\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"module_index\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"temperature\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"device_type\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"serial_number\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"path\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"device_name\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"type\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"severity\""); 
 }
 
 INV_SWITCH_CONNECTOR_ACCESS::~INV_SWITCH_CONNECTOR_ACCESS()
@@ -90,6 +108,7 @@ INV_SWITCH_CONNECTOR_ACCESS::~INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_serial_numbers.clear();
 	vector_of_the_os_versions.clear();
 	vector_of_the_modules.clear();
+	vector_of_the_comparing_strings_modules.clear();
 }
 
 int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
@@ -447,17 +466,6 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 										if(line.find("]") == std::string::npos)
 										{
 											//still searching for modules
-											//grab next name
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // status 
-											
 											//grab next line
 											std::getline(input_file, line);
 											
@@ -467,8 +475,31 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 											line.erase(0,position_delimiter+3);
 											//Modify the suffix. Trim the ending garbage.
 											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // description 
-									
+											vector_of_the_modules.push_back(line); // status 
+
+											//grab next line
+											std::getline(input_file, line);
+											
+											// extraction field
+											position_delimiter=line.find(":");
+											//Modify the prefix. Trim the opening garbage from the key_value
+											line.erase(0,position_delimiter+3);
+											//Modify the suffix. Trim the ending garbage.
+											line.erase(line.length()-3,line.length()-1);
+											vector_of_the_modules.push_back(line); // hw_version 
+
+											//grab next line
+											std::getline(input_file, line);
+											
+											// extraction field
+											position_delimiter=line.find(":");
+											//Modify the prefix. Trim the opening garbage from the key_value
+											line.erase(0,position_delimiter+3);
+											//Modify the suffix. Trim the ending garbage.
+											//line.erase(line.length()-1,line.length());
+											line.erase(line.length()-3,line.length()-1);
+											vector_of_the_modules.push_back(line); // name
+
 											//grab next line
 											std::getline(input_file, line);
 											
@@ -480,21 +511,10 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 											line.erase(line.length()-3,line.length()-1);
 											//don't push host
 											//vector_of_the_modules.push_back(line); // hosting_system_guid 
-											
+
 											//grab next line
 											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // severity 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
+
 											// extraction field
 											position_delimiter=line.find(":");
 											//Modify the prefix. Trim the opening garbage from the key_value
@@ -509,11 +529,34 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 											// extraction field
 											position_delimiter=line.find(":");
 											//Modify the prefix. Trim the opening garbage from the key_value
+											line.erase(0,position_delimiter+3);
+											//Modify the suffix. Trim the ending garbage.
+											line.erase(line.length()-3,line.length()-1);
+											vector_of_the_modules.push_back(line); // description 
+
+											//grab next line
+											std::getline(input_file, line);
+											
+											// extraction field
+											position_delimiter=line.find(":");
+											//Modify the prefix. Trim the opening garbage from the key_value
 											line.erase(0,position_delimiter+2);
 											//Modify the suffix. Trim the ending garbage.
 											line.erase(line.length()-2,line.length());
 											vector_of_the_modules.push_back(line); // max_ib_ports 
+
+											//grab next line
+											std::getline(input_file, line);
 											
+											// extraction field
+											position_delimiter=line.find(":");
+											//Modify the prefix. Trim the opening garbage from the key_value
+											line.erase(0,position_delimiter+3);
+											//Modify the suffix. Trim the ending garbage.
+											line.erase(line.length()-3,line.length()-1);
+											//don't push
+											//vector_of_the_modules.push_back(line); // fw_version 
+									
 											//grab next line
 											std::getline(input_file, line);
 											
@@ -580,7 +623,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 											//Modify the suffix. Trim the ending garbage.
 											line.erase(line.length()-3,line.length()-1);
 											vector_of_the_modules.push_back(line); // device_name 
-											
+
 											//grab next line
 											std::getline(input_file, line);
 											
@@ -589,8 +632,23 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 											//Modify the prefix. Trim the opening garbage from the key_value
 											line.erase(0,position_delimiter+3);
 											//Modify the suffix. Trim the ending garbage.
+											line.erase(line.length()-3,line.length()-1);
+											//don't push
+											//vector_of_the_modules.push_back(line); // type 
+
+											//grab next line
+											std::getline(input_file, line);
+											
+											// extraction field
+											position_delimiter=line.find(":");
+											//Modify the prefix. Trim the opening garbage from the key_value
+											line.erase(0,position_delimiter+3);
+											//Modify the suffix. Trim the ending garbage.
+											//diffeerent numebr becasue no comma at the end.
 											line.erase(line.length()-1,line.length());
-											vector_of_the_modules.push_back(line); // name
+											vector_of_the_modules.push_back(line); // severity 
+											
+											
 											
 											//grab next line
 											std::getline(input_file, line); // },
