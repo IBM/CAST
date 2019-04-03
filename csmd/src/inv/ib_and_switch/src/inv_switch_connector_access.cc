@@ -577,17 +577,19 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 													printf("key set to: %s\n", key);
 													key_found = true;
 												}
+
+												if(key_found)
+												{
+													
+													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
+													vector_of_the_modules.push_back(value); 
+													free(key);
+													free(value);
+												}
 												
 											}
 
-											if(key_found)
-											{
-												
-												INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &value, key);
-												vector_of_the_modules.push_back(value); // status 
-												free(key);
-												free(value);
-											}
+											
 
 
 											//printf("value: %s\n", value);
