@@ -1864,9 +1864,9 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     tempBlinkOffset = 0;
                     isolationOld--;
                 }
-                for( cpu = threadsPerCoreMax; cpu > tempBlinkOffset && extra_thread > 0; --cpu ) 
+                for( cpu = threadsPerCoreMax; cpu > tempBlinkOffset && extra_thread >= 0; --cpu ) 
                 {
-                    LOG(csmapi, trace) << "BLINKING THREAD (0->n): " << extra_thread;
+                    LOG(csmapi, trace) << "BLINKING THREAD (0): " << extra_thread;
                     CPUPower(extra_thread--, CPU_OFFLINE);
                 }
             }
