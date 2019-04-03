@@ -48,9 +48,9 @@ class BBLV_Metadata
     int addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey* pLVKey, const uint64_t pJobId, BBLV_Info& pLV_Info, const TOLERATE_ALREADY_EXISTS_OPTION pTolerateAlreadyExists);
     int attemptToUnconditionallyStopThisTransferDefinition(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     int cleanLVKeyOnly(const LVKey* pLVKey);
+    void cleanUpAll(const uint64_t pJobId);
     void dump(char* pSev, const char* pPrefix=0);
     void ensureStageOutEnded(const LVKey* pLVKey);
-    void ensureStageOutEnded(const uint64_t pJobId);
     int getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId);
     BBLV_Info* getAnyTagInfo2ForUuid(const LVKey* pLVKey) const;
     int getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID& pTagId, const BBJob pJob, vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId);

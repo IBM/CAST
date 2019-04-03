@@ -300,6 +300,15 @@ def RestartTransfers(pEnv):
         else:
             print "No transfer definition(s) were found given the provided input criteria.  An operation to stop transfers will not be attempted."
 
+        # NOTE: Even if no transfer definitions were stopped, we still need to issue the restart.
+        #       The stop transfer(s) could have actually been performed on other bbServers via
+        #       the async request file...
+        if (l_NumberOfTranferDefs > 0):
+            # Restart the transfers
+            l_NumRestartedTransferDefs = BB_RestartTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
+        else:
+            print "%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep)
+
         if (l_ResumeCN_Host):
             l_ResumeCN_Host = False
             try:
@@ -316,15 +325,6 @@ def RestartTransfers(pEnv):
             except BBError as error:
                 if not error.handleError():
                     raise
-
-        # NOTE: Even if no transfer definitions were stopped, we still need to issue the restart.
-        #       The stop transfer(s) could have actually been performed on other bbServers via
-        #       the async request file...
-        if (l_NumberOfTranferDefs > 0):
-            # Restart the transfers
-            l_NumRestartedTransferDefs = BB_RestartTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
-        else:
-            print "%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep)
 
         if (pEnv["IO_FAILOVER"]):
             # Now, close the connection to the previously active bbServer

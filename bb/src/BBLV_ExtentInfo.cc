@@ -372,7 +372,7 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
-            if ((pHandle < 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || (uint32_t)pContrib == (it->second).contrib))
+            if ((pHandle <= 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == (it->second).contrib))
             {
                 LOG(bb,debug) << "moreExtentsToTransfer: Matched handle: " << (it->second).handle << ", contribid: " << (it->second).contrib << ", extent: " << *((it->second).extent);
                 if (++l_NumberInFlight > pNumberOfExpectedInFlight)
@@ -389,7 +389,7 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
     {
         for (auto& e : allExtents)
         {
-            if ((pHandle < 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || (uint32_t)pContrib == e.contrib))
+            if ((pHandle <= 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == e.contrib))
             {
                 rc = 1;
                 break;
@@ -412,7 +412,7 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
-            if ((pHandle < 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || (uint32_t)pContrib == (it->second).contrib) && (pSourceIndex == (it->second).getSourceIndex()))
+            if ((pHandle <= 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == (it->second).contrib) && (pSourceIndex == (it->second).getSourceIndex()))
             {
                 LOG(bb,debug) << "moreExtentsToTransferForFile: Matched handle: " << (it->second).handle << ", contribid: " << (it->second).contrib << ", source index: " << (it->second).getSourceIndex() << ", extent: " << *((it->second).extent);
                 if (++l_NumberInFlight > pNumberOfExpectedInFlight)
@@ -429,7 +429,7 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     {
         for (auto& e : allExtents)
         {
-            if ((pHandle < 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || (uint32_t)pContrib == e.contrib) && (pSourceIndex == e.getSourceIndex()))
+            if ((pHandle <= 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == e.contrib) && (pSourceIndex == e.getSourceIndex()))
             {
                 rc = 1;
                 break;
@@ -461,7 +461,7 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
-            if ((pHandle == (it->second).handle) && (pContrib < 0 || (pContrib == (it->second).contrib)))
+            if ((pHandle == 0 || pHandle == (it->second).handle) && (pContrib == UNDEFINED_CONTRIBID || (pContrib == (it->second).contrib)))
             {
                 rc = 1;
                 break;
