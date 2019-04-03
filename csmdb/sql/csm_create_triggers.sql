@@ -3597,7 +3597,7 @@ $$ LANGUAGE 'plpgsql';
 -- fn_csm_switch_children_inventory_collection comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
+COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
 
 
 -----------------------------------------------------------------------------------------------
