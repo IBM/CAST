@@ -1687,14 +1687,16 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                 rc = metadata.getInfo(pConnectionName, l_LVKey2, l_LV_Info, l_TagInfo, l_TagId, l_Job, l_Contrib, l_Handle, l_ContribId);
                 if (rc > 0)
                 {
-                    // Check to see if the hostname is suspended.
+                    // Check to see if the hostname is suspended and whether this is a start or restart for the transfer definition
                     // NOTE:  bbServer cannot catch the case of a suspended hostname and this is the first transfer definition to be started.
                     //        Such a check would have to be in the else leg of getInfo().  We rely on bbProxy to prevent that from happening...
-                    // NOTE:  The check for the suspend state is done on both volleys.  If a suspend operation is successful between
-                    //        the two volleys, the start transfer will fail.
-                    if (!l_LV_Info->isSuspended())
+                    // NOTE:  The check for the suspend state is done on both volleys.  If the suspend state changes between the two volleys,
+                    //        the start or restart transfer will fail.
+                    if (((!l_LV_Info->isSuspended()) && (!l_TransferPtr->builtViaRetrieveTransferDefinition())) ||
+                        (l_LV_Info->isSuspended() && l_TransferPtr->builtViaRetrieveTransferDefinition()))
                     {
-                        // Not suspended...
+                        // ** VALID REQUEST with current suspend state **
+                        // Not suspended and start transfer -or- suspended and restart transfer...
                         // NOTE: We may have to spin for a while waiting for the work queue.
                         //       This is the case where we are in the process of activating this
                         //       bbServer, but we have not finished registering all of the LVKeys.
@@ -1796,7 +1798,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     {
                                         l_AllDone = true;
                                     }
-                                } else {
+                                }
+                                else
+                                {
                                     // This condition overrides any failure detected on bbProxy...
                                     l_MarkFailedFromProxy = 0;
 
@@ -1804,7 +1808,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     errorText << "Contribid not found in the expected contrib values for the handle";
                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 // This condition overrides any failure detected on bbProxy...
                                 l_MarkFailedFromProxy = 0;
 
@@ -1813,7 +1819,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 bberror << err("error.proxy_lvuuid", lv_uuid_str) << err("error.server_lvuuid", lv_uuid2_str);
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
-                        } else {
+                        }
+                        else
+                        {
                             // This condition overrides any failure detected on bbProxy...
                             l_MarkFailedFromProxy = 0;
 
@@ -1822,24 +1830,27 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             bberror << err("error.lvuuid", lv_uuid_str);
                             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
-                    } else {
-                        // Suspended...
+                    }
+                    else
+                    {
+                        // ** INVALID REQUEST with current suspend state **
                         // This condition overrides any failure detected on bbProxy...
                         l_MarkFailedFromProxy = 0;
 
                         if (!l_TransferPtr->builtViaRetrieveTransferDefinition())
                         {
+                            // Start transfer request
                             rc = -2;
                             if (!l_PerformOperation)
                             {
                                 // Start transfer request, first message volley...  Suggest to submit again...
                                 errorText << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
-                                          << " Suspended condition detected during the first message volley to bbServer.  Attempt to retry the start transfer request when the connection is not suspended.";
+                                          << " Suspended condition detected during the first message volley to bbServer. Attempt to retry the start transfer request when the connection is not suspended.";
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                             else
                             {
-                                // Start transfer request, second message volley...  Indicate to not aubmit again, as restart logic will resubmit...
+                                // Start transfer request, second message volley...  Indicate to not submit again, as restart logic will resubmit...
                                 errorText << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
                                           << " Suspended condition detected during the second message volley to bbServer.  A following restart transfer request will resubmit this transfer definition.";
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -1847,10 +1858,12 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         }
                         else
                         {
-                            // Restart transfer request...  Indicate to not restart this transfer definition...
-                            rc = 1;
-                            LOG(bb,info) << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to restart at this time.";
-                            BAIL;
+                            // Restart transfer
+                            rc = -1;
+                            errorText << "Hostname " << l_LV_Info->getHostName() << " is not suspended. The transfer definition associated with jobid " \
+                                      << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                      << " cannot be restarted unless the hostname is first suspended.";
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                     }
                 }
@@ -2285,6 +2298,16 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                     // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
                     //        pass the LVKey we received from getInfo() above and not the null one passed in the message...
                     rc = HandleFile::update_xbbServerHandleTransferKeys(l_TransferPtr, &l_LVKey2, l_Job, l_Handle);
+                }
+                if (!rc)
+                {
+                    // If for a restart, update the handle status (it might transistion from STOPPED)
+                    if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                    {
+                        // NOTE: We don't handle the return code here...  Any anomalies will be logged by update_xbbServerHandleStatus().
+                        //       We don't want to fail this transfer if for some reason we can't update the handle status here...
+                        HandleFile::update_xbbServerHandleStatus(&l_LVKey2, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, l_ContribId, 0, 0, FULL_SCAN);
+                    }
                 }
             }
         }

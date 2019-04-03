@@ -2424,11 +2424,11 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
 
         LOG(bb,info) << "msgin_restarttransfers: hostname=" << l_HostNamePrt1 << ", jobid=" << jobid << ", jobstepid=" << jobstepid << ", handle=" << handle << ", contribid=" << contribid;
 
-        if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
+        if (getSuspendState(DEFAULT_SERVER_ALIAS) != SUSPENDED)
         {
-            // A retry could be attempted in this suspended scenario.  Return -2.
-            rc = -2;
-            errorText << "Connection to the active server is suspended. Attempt to retry the restart transfers request when the connection is not suspended.";
+            // Restart transfers must be performed against a suspended connection
+            rc = -1;
+            errorText << "Connection to the active server is not suspended. Attempt to retry the restart transfers request when the connection is suspended.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
@@ -3083,12 +3083,15 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         LOG(bb,info) << "msgin_starttransfer: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", handle=" << l_Handle << ", contribid=" << l_ContribId;
 
-        if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
+        if (!l_Transfer.builtViaRetrieveTransferDefinition())
         {
-            // A retry could be attempted in this suspended scenario.  Return -2.
-            rc = -2;
-            errorText << "Connection to the active server is suspended. Attempt to retry the start transfer request when the connection is not suspended.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
+            {
+                // A retry could be attempted in this suspended scenario.  Return -2.
+                rc = -2;
+                errorText << "Connection to the active server is suspended. Attempt to retry the start transfer request when the connection is not suspended.";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
         }
 
         if (startTransfer(&l_Transfer, l_JobId, l_JobStepId, l_Handle, l_ContribId))
@@ -4231,7 +4234,7 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     return;
     }
 
-#define DELAY_SECONDS 120
+// #define DELAY_SECONDS 120
 void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -4276,6 +4279,11 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         }
         else
         {
+#if 0
+        //  NOTE: We no longer delay prior to closing a non-active connection.  The restart logic now
+        //        requires that the restart of transfer definitions if performed before the resume for
+        //        the hostname.  All I/O activity for any files being serviced by the 'old server'
+        //        will be complete by the time the close is issued.
             //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all file closes are
             //         first processed from the 'old' server.  In the case of cancel/stop, we want to process
             //         all closes for those transfer definitions before the connection is closed.  Otherwise,
@@ -4305,7 +4313,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                     usleep((useconds_t)1000000);    // Delay 1 second
                 }
             }
-
+#endif
             rc = closeConnectionFD(serverName);
             if (rc)
             {
@@ -4334,6 +4342,8 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     EXIT(__FILE__,__FUNCTION__);
     return;
 }
+// #undef DELAY_SECONDS
+
 //*****************************************************************************
 //  Main routines
 //*****************************************************************************
