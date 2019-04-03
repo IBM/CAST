@@ -1601,7 +1601,7 @@ int32_t CGroup::GetBlinkSettings(int32_t coreCount, int32_t maxSMT, int32_t core
             startRange = std::strtol(token.substr(0, delim ).c_str(), nullptr, 10) / maxSMT;
             endRange   = std::strtol(token.substr(delim + 1).c_str(), nullptr, 10) / maxSMT;
 
-            for ( ; startRange < endRange && startRange < coreCount; ++startRange )
+            for ( ; startRange <= endRange && startRange < coreCount; ++startRange )
             {
                 cores[startRange] = true;
             }
@@ -1639,7 +1639,23 @@ int32_t CGroup::GetBlinkSettings(int32_t coreCount, int32_t maxSMT, int32_t core
         }
     }
 
-    return (maxIsolation > coreIsolation) ? maxIsolation : 0;
+    // Finish Isolation.
+    if ( maxIsolation == -1 )
+    {
+        maxIsolation = currentIsolation;
+    }
+    
+    if ( maxIsolation == coreCount && coreIsolation > 0 )
+    {
+        return -1; // 0 -> 1
+    }
+    else if ( maxIsolation != coreCount && maxIsolation > coreIsolation )
+    {
+        return maxIsolation; // n -> m
+    }
+
+    // No Blink
+    return 0;
 }
 
 
@@ -1735,7 +1751,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 
         if ( blinkType <  0 )
         {
-            blinkOffset = threadsPerCore;
+            blinkOffset = 0;
         }
         else if ( blinkType > 0 )
         {
@@ -1777,6 +1793,7 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     // Offline all of the CPUs in the allocation section.
                     for( int32_t cpu = threadsPerCoreMax; cpu > tempBlinkOffset; --cpu )
                     {
+                        LOG(csmapi, trace) << "BLINKING THREAD (iso delta) " << thread;
                         // If the core blink fails, turn core zero back on and set the coreBlinkFailure flag.
                         if ( CPUPower(thread--, CPU_OFFLINE) )
                         {
@@ -1848,7 +1865,10 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
                     isolationOld--;
                 }
                 for( cpu = threadsPerCoreMax; cpu > tempBlinkOffset && extra_thread > 0; --cpu ) 
+                {
+                    LOG(csmapi, trace) << "BLINKING THREAD (0->n): " << extra_thread;
                     CPUPower(extra_thread--, CPU_OFFLINE);
+                }
             }
         }
         sysCores.back() = ' ';
@@ -1917,5 +1937,6 @@ void CGroup::GetCoreIsolation( int64_t cores, std::string &sysCores, std::string
 } // End namespace helpers
 } // End namespace daemon
 } // End namespace csm
+
 
 
