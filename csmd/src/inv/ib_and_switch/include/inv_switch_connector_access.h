@@ -52,7 +52,6 @@ public:
 private:
   INV_SWITCH_CONNECTOR_ACCESS();
   int extractValueFromLine(std::string line, char** value, char* key);
-  int extractNumValueFromLine(std::string line, char** value);
   
 
 private:
@@ -127,7 +126,6 @@ public:
 private:
   INV_SWITCH_CONNECTOR_ACCESS();
   int extractValueFromLine(std::string line, char** value, char* key);
-  int extractNumValueFromLine(std::string line, char** value);
 
 private:
 
