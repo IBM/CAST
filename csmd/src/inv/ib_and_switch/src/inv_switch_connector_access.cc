@@ -245,7 +245,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		}
 
         // ToDo: replace this buffer push to a config file update like error paths below. 
-        std::string ufm_switch_output_filename = "ufm_switch_output_file.txt";
+        std::string ufm_switch_output_filename = "ufm_switch_output_file.json";
 		
 		// opening output file
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_switch_output_filename;
