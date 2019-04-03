@@ -138,10 +138,10 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		}
 	
 		// Write whatever content we already have to output.
-		std::stringstream ss;
+		//std::stringstream ss;
 		if (response.size() > 0){
 			// necessary at cause of repetition
-			ss << &response;
+			//ss << &response;
 		}
 		
 		// opening output file
@@ -153,29 +153,28 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
-		
+
 		// checking if output file is open
-		if ( ! output_file.is_open() ){
+		if ( ! output_file.is_open() )
+		{
 			// printing error and return
-			std::cerr << "Output file " << output_file_name << " not open, return"  << std::endl;
+			std::cout << "Output file " << output_file_name << " not open, return"  << std::endl;
 			return 1;
-		}else{
-			// updating output file
-			// response_copy_1 is not nedded because response_copy_2 is equal to response_copy_2
-			output_file << response_copy_2;
-			boost::system::error_code error;
-			while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
-			{
-				output_file << &response;
-			}
-			
-			// closing the output file
-			output_file.close();
-			
-			// checking for errors
-			if (error != boost::asio::error::eof){
-				throw boost::system::system_error(error);
-			}
+		} 
+
+		boost::system::error_code error;
+		while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
+		{
+			output_file << &response;
+		}
+
+		// closing the output file
+		output_file.close();
+
+		// checking for errors
+		if (error != boost::asio::error::eof)
+		{
+			throw boost::system::system_error(error);
 		}
 	
 		// vectors with the fields
