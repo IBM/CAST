@@ -333,6 +333,19 @@ private:
      */
     bool CheckFile( const char* path, bool isDir = false ) const;
 
+    /** @brief Get the blink settings from the existing cgroups.
+     *
+     * @param[in] cpuCount The CPU count for the node (for all sockets).
+     * @param[in] maxSMT The maximum SMT for the node (effectively the threads per core).
+     * @param[in] coreIsolation The core isolation factor set by the user (per socket).
+     *
+     * @return A numeric value indicating one of three behaviors:
+     *  - -1 : The allocation cgroup cores need to be blinked to clear old processes.
+     *  -  0 : No blinking should occur.
+     *  - >0 : The System Cgroup needs blinking, returns the previous isolation factor.
+     */
+    int32_t GetBlinkSettings(int32_t cpuCount, int32_t maxSMT, int32_t coreIsolation) const;
+
     /**
      * @brief Builds the core isolation strings for the allocation and system cgroups.
      *
