@@ -1035,6 +1035,23 @@ int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t
     return rc;
 }
 
+int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    // NOTE: We know that the local cache of metadata for a jobid is still
+    //       valid if we can find the LVKey for the jobid in the metadata...
+    rc = metadata.verifyJobIdExists(pConnectionName, pLVKey, pJobId);
+    if (!rc)
+    {
+        LOG(bb,info) << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
+                     << ", " << *pLVKey << ", contribid " << pContribId \
+                     << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
+    }
+
+    return rc;
+}
+
 void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
 {
     if (pTransferDef)
@@ -1064,6 +1081,10 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     int rc = 1;     // Default is to not restart the transfer definition...
     stringstream errorText;
+
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
     LOG(bb,debug) << "xfer::prepareForRestart(): Pass " << pPass;
 
@@ -1105,33 +1126,68 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
     }
     else
     {
-        rc = pLV_Info->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
+        int rc2 = 0;
+        if (pPass == THIRD_PASS)
+        {
+            // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+            //       bbServer that is attempting to restart this transfer definition
+            rc2 = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+        }
+        if (!rc2)
+        {
+            rc = pLV_Info->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
+        }
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
     }
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
 
-int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
-{
-    int rc = 0;
-
-    // NOTE: We know that the local cache of metadata for a jobid is still
-    //       valid if we can find the LVKey for the jobid in the metadata...
-    rc = metadata.verifyJobIdExists(pConnectionName, pLVKey, pJobId);
-    if (!rc)
-    {
-        LOG(bb,info) << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
-                     << ", " << *pLVKey << ", contribid " << pContribId \
-                     << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
-    }
-
-    return rc;
-}
-
 int prepareForRestartOriginalServerDead(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pHandle, BBJob pJob, const int32_t pContribId)
 {
-    return forceStopTransfer(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 1;     // Default is to not restart the transfer definition...
+    stringstream errorText;
+
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+
+    // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+    //       bbServer that is attempting to restart this transfer definition
+    int rc2 = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+    if (!rc2)
+    {
+        rc = forceStopTransfer(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
 }
 
 int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, const uint32_t pCount, const Extent* pExtent)

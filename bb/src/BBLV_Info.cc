@@ -311,8 +311,27 @@ int BBLV_Info::recalculateFlags(const string& pConnectionName, const LVKey* pLVK
 
 void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo)
 {
+    stringstream errorText;
+
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     bool l_UpdateTransferStatus = false;
+
+    BBTransferDef* l_TransferDef = pExtentInfo.getTransferDef();
+    if (pExtentInfo.getTransferDef()->stopped())
+    {
+        // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+        //       bbServer that is attempting to restart this transfer definition.
+        // NOTE: If the load for some reason fails, we continue with the update not obtaining the lock.
+        //       On failure, appropriate console messages are sent by loadHandleFile().  By continuing on,
+        //       we could cause corruption of the contrib/contribid file, but we have no good option here.
+        //       Not being able to obtain the lock should be extremely rare, and some other major issue is
+        //       more than likely also in play.
+        HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_TransferDef->getJobId(), l_TransferDef->getJobStepId(), pExtentInfo.getHandle(), LOCK_HANDLEFILE, &l_LockFeedback);
+    }
 
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
@@ -444,6 +463,19 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     //        during that time.
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
+    }
+
 
     return;
 }
@@ -702,9 +734,6 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
         ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_Failed);
     }
 
-    ContribIdFile::update_xbbServerFileStatus(pLVKey, pTransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Files_Closed);
-
-
     delete l_Complete;
 
     return;
@@ -927,6 +956,7 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     // Check/update the status for the transfer definition
     int l_NewStatus = 0;
     int l_ExtentsRemainForSourceIndex = 1;
+    bool l_SetFileClosedIndicator = false;
 
     updateTransferStatus(pLVKey, pExtentInfo, l_TransferDef, l_NewStatus, l_ExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
     if (!l_ExtentsRemainForSourceIndex)
@@ -951,6 +981,7 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
         {
             LOG(bb,error) << "updateAllTransferStatus: Could not retrieve the BBIO object for extent " << *l_Extent;
         }
+        l_SetFileClosedIndicator = true;
     }
 
     // NOTE: The transfer queue lock is released and re-acquired as part of the send message
@@ -974,7 +1005,7 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     //        performed by sendTransferCompleteForFileMsg() above, but because the updateTransferStatus() has to
     //        be issued again because the transfer queue lock was dropped and re-acquired as part of sending the transfer
     //        complete for the file, this update must also be issued again.
-    if (!l_ExtentsRemainForSourceIndex)
+    if (l_SetFileClosedIndicator)
     {
         ContribIdFile::update_xbbServerFileStatus(pLVKey, l_TransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Files_Closed);
     }
@@ -993,14 +1024,16 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
         BBTagID l_TagId = BBTagID(l_TransferDef->getJob(), l_TransferDef->getTag());
         updateTransferStatus(pLVKey, pExtentInfo, l_TagId, pExtentInfo.getContrib(), l_NewStatus, pNumberOfExpectedInFlight);
 
-        if (l_NewStatus && (!l_TransferDef->stopped()))
+        if (l_NewStatus)
         {
-
-            // Status changed for transfer handle...
-            // Send the transfer is complete for this handle message to bbProxy
-            string l_HostName;
-            activecontroller->gethostname(l_HostName);
-            metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle());
+            if (!l_TransferDef->stopped())
+            {
+                // Status changed for transfer handle...
+                // Send the transfer is complete for this handle message to bbProxy
+                string l_HostName;
+                activecontroller->gethostname(l_HostName);
+                metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle());
+            }
 
             // Check/update the status for the LVKey
             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
