@@ -148,7 +148,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
         //TEMP 
         // ToDo: replace this buffer push to a config file update like error paths below. 
-        std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.txt";
+        std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.json";
 
 
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
