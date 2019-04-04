@@ -73,12 +73,12 @@ class WRKQE
     /**
      * \brief Constructor
      */
-    WRKQE(const LVKey* pLVKey, const uint64_t pJobId) :
+    WRKQE(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspended) :
         lvKey(*pLVKey),
         jobid(pJobId),
         rate(0),
         bucket(0),
-        suspended(0),
+        suspended(pSuspended),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0) {
@@ -178,6 +178,10 @@ class WRKQE
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
+        if (!rate)
+        {
+            bucket = 0;
+        }
 
         return;
     };

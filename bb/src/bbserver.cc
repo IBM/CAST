@@ -2804,7 +2804,7 @@ int bb_main(std::string who)
         }
         Uuid l_HPWrkQE_Uuid = Uuid(l_HPWrkQEUuid_Value);
         HPWrkQE_LVKeyStg = std::make_pair("None", l_HPWrkQE_Uuid);
-        rc = wrkqmgr.addWrkQ(&HPWrkQE_LVKeyStg, (uint64_t)0);
+        rc = wrkqmgr.addWrkQ(&HPWrkQE_LVKeyStg, (uint64_t)0, 0);
         if (!rc)
         {
             wrkqmgr.getWrkQE(HPWrkQE_LVKey, HPWrkQE);

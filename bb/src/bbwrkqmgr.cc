@@ -132,18 +132,18 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     return;
 }
 
-int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId)
+int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspendIndicator)
 {
     int rc = 0;
 
     stringstream l_Prefix;
-    l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId;
+    l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
     {
-        WRKQE* l_WrkQE = new WRKQE(pLVKey, pJobId);
+        WRKQE* l_WrkQE = new WRKQE(pLVKey, pJobId, pSuspendIndicator);
         l_WrkQE->setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueOnRemoveWorkItem", DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM));
         wrkqs.insert(std::pair<LVKey,WRKQE*>(*pLVKey, l_WrkQE));
     }
@@ -283,6 +283,7 @@ void WRKQMGR::calcThrottleMode()
 
     if (throttleMode != l_NewThrottleMode)
     {
+        LOG(bb,info) << "calcThrottleMode(): Throttle mode changing from " << (throttleMode ? "true" : "false") << " to " << (l_NewThrottleMode ? "true" : "false");
         if (l_NewThrottleMode)
         {
             Throttle_Timer.forcePop();
