@@ -823,7 +823,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                     }
                 }
 
-                if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 1))
+                if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 0))
                 {
                     dumpExtents("info", "Before sort/copy processing");
                 }
@@ -908,7 +908,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 
         LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue when exiting sort.";
 
-        if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 1))
+        if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 0))
         {
             dumpExtents("info", "After sort/copy processing");
         }
