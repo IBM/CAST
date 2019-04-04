@@ -99,6 +99,9 @@ csm::network::EndpointCompute_plain::SendTo( const csm::network::Message &aMsg,
                                    const csm::network::Address_sptr aRemoteAddr )
 {
   const csm::network::AddressPTP *addr = dynamic_cast<const csm::network::AddressPTP*>( aRemoteAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionProtocol("Remote address has wrong type", ENOTCONN );
+
   if( *addr != *(csm::network::AddressPTP*)_RemoteAddr.get() )
     LOG( csmnet, warning ) << "EndpointPTP_plain::SendTo(): Request to send to different address than connected. Given address IGNORED!";
 

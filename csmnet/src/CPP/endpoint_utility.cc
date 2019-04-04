@@ -2,7 +2,7 @@
 
     csmnet/src/CPP/endpoint_utility.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -85,6 +85,8 @@ csm::network::EndpointUtility_plain::SendTo( const csm::network::Message &aMsg,
                                              const Address_sptr aRemoteAddr )
 {
   const csm::network::AddressUtility *addr = dynamic_cast<const csm::network::AddressUtility*>( aRemoteAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionEndpointDown("Wrong or Null remote address.", ENOTCONN );
   if( *addr != *(csm::network::AddressUtility*)_RemoteAddr.get() )
     LOG( csmnet, warning ) << "EndpointUtility_plain::SendTo(): Request to send to different address than connected. Given address IGNORED!";
 
@@ -147,6 +149,8 @@ ssize_t csm::network::EndpointUtility_sec::SendTo( const csm::network::Message &
                                                    const csm::network::Address_sptr aRemoteAddr )
 {
   const csm::network::AddressUtility *addr = dynamic_cast<const csm::network::AddressUtility*>( aRemoteAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionEndpointDown("Wrong or Null remote address.", ENOTCONN );
   if( *addr != *(csm::network::AddressUtility*)_RemoteAddr.get() )
     LOG( csmnet, warning ) << "EndpointUtility_sec::SendTo(): Request to send to different address than connected. Given address IGNORED!";
 

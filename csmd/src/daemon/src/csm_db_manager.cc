@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_db_manager.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -60,7 +60,8 @@ void DBManagerMain( csm::daemon::EventManagerDB *aMgr )
             // check db status and/or try to reconnect
             dbConnPool->Heartbeat();
           }
-          idleRetry->AgainOrWait();
+          try { idleRetry->AgainOrWait(); }
+          catch ( csm::daemon::Exception &e ) { CSMLOG( csmd, error ) << e.what(); }
           continue;
         }
         else
@@ -231,7 +232,8 @@ csm::daemon::EventManagerDB::~EventManagerDB()
     CSMLOG( csmd, info ) << "Exiting. Terminating: " << _DBConnectionPool->GetNumConfigConnections() << " db threads";
     for( unsigned tid = 0; tid < _DBConnectionPool->GetNumConfigConnections(); ++tid )
     {
-      _IdleRetry.JoinThread( _Thread[ tid ], tid );
+      try { _IdleRetry.JoinThread( _Thread[ tid ], tid ); }
+      catch ( ... ) { CSMLOG( csmd, error ) << "Error while DB worker thread joining."; }
       delete _Thread[ tid];
     }
     delete [] _Thread;

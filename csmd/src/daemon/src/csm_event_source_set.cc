@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_event_source_set.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -80,7 +80,8 @@ EventSourceSet::~EventSourceSet()
 {
   // destructor of mBucketScheduler auto-removes the added items
   mSources.clear();
-  delete mBucketScheduler;
+  try { delete mBucketScheduler; }
+  catch ( ... ) { LOG( csmd, error ) << "Failed deleting Bucket Scheduler while terminating event sources."; }
 }
 
 csm::daemon::EventSource* csm::daemon::EventSourceSet::GetNextSource()
