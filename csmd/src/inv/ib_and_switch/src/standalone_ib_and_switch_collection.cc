@@ -842,7 +842,7 @@ int main(int argc, char *argv[])
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->description      = strdup(temp_string.c_str()); 
 				
 				//check for special "system" which is a UFM hack to give us main serial number
-				if(strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "SYSTEM") == 0)
+				if(strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "system") == 0 || strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "SYSTEM") == 0)
 				{
 					isSystem = true;
 				}
@@ -870,7 +870,10 @@ int main(int argc, char *argv[])
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->severity         = strdup(temp_string.c_str());
 				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->discovery_time   = strdup(strdup("N/A"));                                      
 				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->collection_time  = strdup(strdup("N/A"));                                      
-				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A"));                                      
+				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A")); 
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("name", j); 
+				//modules_tracker++; 
+				SWITCHinput->inventory[i]->inventory[j]->name = strdup(temp_string.c_str());                                     
 			}
 			//resume base switch information
 			                                                                                 
