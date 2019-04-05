@@ -46,14 +46,15 @@ public:
   int GetCompiledWithSupport(); // get compiled_with_support_flag
   int ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors); // execute data collection
   std::string ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector); // return the value of the field
+  std::string ReturnFieldValue_module(std::string key, unsigned long int module_number); // return the value of the field
   int TotalNumberOfRecords();
   ~INV_SWITCH_CONNECTOR_ACCESS();
 
 private:
   INV_SWITCH_CONNECTOR_ACCESS();
-  int extractValueFromLine(std::string line, char** value, char* key);
+  int extractValueFromLine(std::string line, char** value, char* key, bool finalLine = false);
+  int module_key_value_vector_builder(char* module_key, char* module_value);
   
-
 private:
 
   // pointer to the class object
@@ -95,6 +96,20 @@ private:
   std::vector<std::string> vector_of_the_modules;
   std::vector<std::string> vector_of_the_comparing_strings_modules;
   std::vector<std::string> vector_of_the_num_values;
+
+  //vectors of modules
+  std::vector<std::string> module_status;
+  std::vector<std::string> module_hw_version;
+  std::vector<std::string> module_name;
+  std::vector<std::string> module_number_of_chips;
+  std::vector<std::string> module_description;
+  std::vector<std::string> module_max_ib_ports;
+  std::vector<std::string> module_module_index;
+  std::vector<std::string> module_device_type;
+  std::vector<std::string> module_serial_number;
+  std::vector<std::string> module_path;
+  std::vector<std::string> module_device_name;
+  std::vector<std::string> module_severity;
   
 
 };
@@ -120,12 +135,14 @@ public:
   int GetCompiledWithSupport(); // get compiled_with_support
   int ExecuteDataCollection(); // execute data collection
   std::string ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector); // return the value of the field
+  std::string ReturnFieldValue_module(std::string key, unsigned long int module_number); // return the value of the field
   int TotalNumberOfRecords();
   ~INV_SWITCH_CONNECTOR_ACCESS();
 
 private:
   INV_SWITCH_CONNECTOR_ACCESS();
-  int extractValueFromLine(std::string line, char** value, char* key);
+  int extractValueFromLine(std::string line, char** value, char* key, bool finalLine = false);
+  int module_key_value_vector_builder(char* module_key, char* module_value);
 
 private:
 
@@ -168,6 +185,20 @@ private:
   std::vector<std::string> vector_of_the_modules;
   std::vector<std::string> vector_of_the_comparing_strings_modules;
   std::vector<std::string> vector_of_the_num_values;
+
+  //vectors of modules
+  std::vector<std::string> module_status;
+  std::vector<std::string> module_hw_version;
+  std::vector<std::string> module_name;
+  std::vector<std::string> module_number_of_chips;
+  std::vector<std::string> module_description;
+  std::vector<std::string> module_max_ib_ports;
+  std::vector<std::string> module_module_index;
+  std::vector<std::string> module_device_type;
+  std::vector<std::string> module_serial_number;
+  std::vector<std::string> module_path;
+  std::vector<std::string> module_device_name;
+  std::vector<std::string> module_severity;
 
 };
 

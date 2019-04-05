@@ -121,7 +121,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
 	return compiled_with_support;
 }
 
-int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key)
+int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key, bool finalLine)
 {
 	//Function Variables
 	bool num_key_found = false; // Used to store if we found a num key. 
@@ -154,12 +154,21 @@ int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** v
 		offset = 3;
 	}
 
+	//==============================================
+	//WARNING: this prefix and suffix need to be looked at for special 'at end' case
+	//==============================================
+
 	// extraction field
 	position_delimiter=line.find(":");
 	//Modify the prefix. Trim the opening garbage from the key_value
 	line.erase(0,position_delimiter + offset);
 	//Modify the suffix. Trim the ending garbage.
-	line.erase(line.length() - offset,line.length()-1);
+	if(finalLine)
+	{
+		line.erase(line.length()-1, line.length());
+	}else{
+		line.erase(line.length() - offset, line.length()-1);
+	}
 
 	//allocate space for 'value'
 	*value = (char*)calloc(line.length(), sizeof(char*));
@@ -280,7 +289,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::string comparing_string;
 
 		// opening input file
-		std::string input_file_name = output_file_name;
+		std::string input_file_name = csm_inv_log_dir + "/" + "output_5_9.json";
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
 
 		// checking if input file is open
@@ -448,14 +457,30 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 										{
 											more_fields = false;
 
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											//diffeerent numebr becasue no comma at the end.
-											line.erase(line.length()-1,line.length());
-											vector_of_the_modules.push_back(line); // severity 
+											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+											{
+												std::size_t found = 0;
+												found = line.find(vector_of_the_comparing_strings_modules[i]);
+												if (found!=std::string::npos)
+												{
+													module_key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+													vector_of_the_comparing_strings_modules[i].copy(module_key, vector_of_the_comparing_strings_modules[i].length());
+													module_key_found = true;
+												}
+
+
+												if( module_key_found)
+												{
+													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key, true);
+													vector_of_the_modules.push_back(module_value); 
+													module_key_value_vector_builder(module_key, module_value);
+													free(module_key);
+													free(module_value);
+													module_key_found = false;
+													//exit loop early
+													i = vector_of_the_comparing_strings_modules.size();
+												}
+											}
 
 											//grab next line
 											std::getline(input_file, line); // },
@@ -478,6 +503,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 												{
 													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key);
 													vector_of_the_modules.push_back(module_value); 
+													module_key_value_vector_builder(module_key, module_value);
 													free(module_key);
 													free(module_value);
 													module_key_found = false;
@@ -506,7 +532,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 				position_delimiter=line.find(":");
 					
 				//Modify the prefix. Trim the opening garbage from the key_value
-				if(i == 19 || i == 4 || i == 16){
+				if(i == 19 || i == 4 ){
 					//delimiter, space
 					//2 char spaces
 					line.erase(0,position_delimiter+2);
@@ -517,7 +543,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 				}
 		
 				//Modify the suffix. Trim the ending garbage.
-				if(i == 19 || i == 4 || i == 16){
+				if(i == 19 || i == 4 ){
 					line.erase(line.length()-2,line.length());
 				}else if( i == (vector_of_the_comparing_strings.size()-1) ){
 					//I think Fausto meant "last line of the record" which would have no comma and therefor need less trim
@@ -688,6 +714,155 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 	return 0;
 }
 
+int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_key, char* module_value)
+{
+	std::cout << "in functions" << std::endl;
+	printf("passed key: %s\n", module_key);
+
+	int check = 0; 
+
+	// take in keys and values and make fautso vectors
+	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+	{
+		printf("checking: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+		
+		check = strcmp(module_key, vector_of_the_comparing_strings_modules[i].c_str());
+
+		if( check != 0)
+		{
+			continue;
+		}
+
+		switch(i)
+		{
+			case 0:
+				module_status.push_back(module_value);
+				break;
+			case 1:
+				module_hw_version.push_back(module_value);
+				break;
+			case 2:
+				module_name.push_back(module_value);
+				break;
+			case 3:
+				module_number_of_chips.push_back(module_value);
+				break;
+			case 4:
+				module_description.push_back(module_value);
+				break;
+			case 5:
+				module_max_ib_ports.push_back(module_value);
+				break;
+			case 6:
+				module_module_index.push_back(module_value);
+				break;
+			case 7:
+				module_device_type.push_back(module_value);
+				break;
+			case 8:
+				module_serial_number.push_back(module_value);
+				break;
+			case 9:
+				module_path.push_back(module_value);
+				break;
+			case 10:
+				module_device_name.push_back(module_value);
+				break;
+			case 11:
+				module_severity.push_back(module_value);
+				break;
+			default:
+				//error?
+				break;
+		}
+
+	}
+
+	for(unsigned int i = 0; i < module_name.size(); i++)
+	{
+		printf("i: %i name: %s\n", i, module_name[i].c_str());
+	}
+
+	return 0;
+}
+
+std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int module_number)
+{
+	printf("in function \n");
+	printf("key passed: %s, module number: %lu\n", key.c_str(), module_number);
+
+	// setting field value
+	std::string field_value = "NULL";
+	std::size_t found; 
+
+	// take in keys and values and make fautso vectors
+	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+	{
+		printf("comparing_string: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
+
+		found = vector_of_the_comparing_strings_modules[i].find("\""+key+"\"");
+
+		if( found == std::string::npos )
+		{
+			continue;
+		}
+
+		printf("match at: %u\n", i);
+
+		// id and index in bound
+		switch (i)
+		{
+			case 0:
+				field_value = module_status.at( module_number );
+				break;
+			case 1:
+				field_value = module_hw_version.at(module_number);
+				break;
+			case 2:
+				field_value = module_name.at(module_number);
+				break;
+			case 3:
+				field_value = module_number_of_chips.at(module_number);
+				break;
+			case 4:
+				field_value = module_description.at(module_number);
+				break;
+			case 5:
+				field_value = module_max_ib_ports.at(module_number);
+				break;
+			case 6:
+				field_value = module_module_index.at(module_number);
+				break;
+			case 7:
+				field_value = module_device_type.at(module_number);
+				break;
+			case 8:
+				field_value = module_serial_number.at(module_number);
+				break;
+			case 9:
+				field_value = module_path.at(module_number);
+				break;
+			case 10:
+				field_value = module_device_name.at(module_number);
+				break;
+			case 11:
+				field_value = module_severity.at(module_number);
+				break;
+			default:
+				//error?
+				break;
+		}
+
+		// return real value of the field
+		return field_value;
+
+	}
+
+	// return real value of the field
+	return field_value;
+}
+
+
 std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector)
 {
 	// setting field value
@@ -783,7 +958,14 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vect
 			field_value = vector_of_the_os_versions.at( index_in_the_vector );
 			break;
 		case 24:
-			field_value = vector_of_the_modules.at( index_in_the_vector );
+			if(index_in_the_vector >= vector_of_the_modules.size())
+			{
+				field_value = "N/A";
+			}else{
+				field_value = vector_of_the_modules.at( index_in_the_vector );
+				//field_value = "N/A";
+			}
+			
 			break;
 	}
 
@@ -830,12 +1012,17 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vect
 	return "NULL";
 }
 
+std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int module_number)
+{
+	return "NULL";
+}
+
 int INV_SWITCH_CONNECTOR_ACCESS::TotalNumberOfRecords()
 {
 	return vector_of_the_switch_names.size();
 }
 
-int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key)
+int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key, bool finalLine)
 {
 
 	// need to go through and look at this code and clean it up and document...it really is a mess. :( 
