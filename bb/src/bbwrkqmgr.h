@@ -608,7 +608,7 @@ class WRKQMGR
 
     // Methods
     void addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId);
-    int addWrkQ(const LVKey* pLVKey, const uint64_t pJobId);
+    int addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();

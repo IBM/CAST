@@ -236,7 +236,20 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
     {
         LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pLV_Info.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pLV_Info;
-        rc = wrkqmgr.addWrkQ(pLVKey, pJobId);
+        // NOTE: We overload the TOLERATE_ALREADY_EXISTS_OPTION option that is passed in to this method.
+        //       This option is only passed in as non-zero if this work queue is being added for a restart case.
+        //       Therefore, if non-zero, we indicate on the addWrkQ() invocation to create the work queue as suspended.
+        // NOTE: In the restart case, we create the work queue as suspended directly, as the setSuspended() invocation
+        //       could fail (not likely) and the local metadata would not get updated.  In the whole scheme of things,
+        //       that is not critical as a resume operation for the host (that is likely coming in the future...)
+        //       should then enable the work queue object.  While any restarted transfer definitions would fail (local
+        //       metadata would indicate the host is not suspended), once officially resumed, any new start transfer
+        //       requests would succeed.
+        // NOTE: In the restart case, if the work queue already exists (fail over and then back for the same LVKey),
+        //       the setSuspended() invocation will set the metadata and the work queue object as suspended.
+        int l_SuspendOption = (pTolerateAlreadyExists ? 1 : 0);
+        rc = wrkqmgr.addWrkQ(pLVKey, pJobId, l_SuspendOption);
+        pLV_Info.getExtentInfo()->setSuspended(pLVKey, pLV_Info.getHostName(), pJobId, l_SuspendOption);
         if (!rc)
         {
             rc = update_xbbServerAddData(pMsg, pJobId);

@@ -657,7 +657,11 @@ int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, 
         rc = wrkqmgr.setSuspended(pLVKey, pValue);
         switch (rc)
         {
+            // NOTE: Even if the work queue had the suspend bit on (rc=2), we still unconditionally set the suspend
+            //       bit in BBLV_ExtentInfo flags as in the restart case when registering LVKeys from the "old server"
+            //       the work queues are constructed with the suspend bit on.
             case 0:
+            case 2:
             {
                 if ((((flags & BBLV_Suspended) == 0) && pValue) || ((flags & BBLV_Suspended) && (!pValue)))
                 {
@@ -684,9 +688,6 @@ int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, 
                              << ", work queue not present for " << *pLVKey << ". Tolerated condition for a " << l_Temp << " operation.";
             }
             break;
-
-            case 2:
-                break;
 
             default:
                 LOG(bb,info) << "BBLV_Info::setSuspended(): Unexpected return code " << rc \
@@ -822,7 +823,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                     }
                 }
 
-                if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 1))
+                if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 0))
                 {
                     dumpExtents("info", "Before sort/copy processing");
                 }
@@ -907,7 +908,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 
         LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue when exiting sort.";
 
-        if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 1))
+        if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 0))
         {
             dumpExtents("info", "After sort/copy processing");
         }
