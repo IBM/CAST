@@ -132,18 +132,18 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     return;
 }
 
-int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId)
+int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspendIndicator)
 {
     int rc = 0;
 
     stringstream l_Prefix;
-    l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId;
+    l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
     {
-        WRKQE* l_WrkQE = new WRKQE(pLVKey, pJobId);
+        WRKQE* l_WrkQE = new WRKQE(pLVKey, pJobId, pSuspendIndicator);
         l_WrkQE->setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueOnRemoveWorkItem", DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM));
         wrkqs.insert(std::pair<LVKey,WRKQE*>(*pLVKey, l_WrkQE));
     }
@@ -283,6 +283,7 @@ void WRKQMGR::calcThrottleMode()
 
     if (throttleMode != l_NewThrottleMode)
     {
+        LOG(bb,info) << "calcThrottleMode(): Throttle mode changing from " << (throttleMode ? "true" : "false") << " to " << (l_NewThrottleMode ? "true" : "false");
         if (l_NewThrottleMode)
         {
             Throttle_Timer.forcePop();
@@ -487,11 +488,17 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         l_OffsetStr << ")";
                     }
 
-                    if (!strcmp(pSev,"debug")) {
+                    int l_CheckForCanceledExtents = checkForCanceledExtents;
+                    if (!strcmp(pSev,"debug"))
+                    {
                         LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
 //                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
                         LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                      << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                                      << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                        if (l_CheckForCanceledExtents)
+                        {
+                            LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
 //                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
@@ -511,11 +518,17 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             qe->second->dump(pSev, "          ");
                         }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                    } else if (!strcmp(pSev,"info")) {
+                    }
+                    else if (!strcmp(pSev,"info"))
+                    {
                         LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
 //                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
                         LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                     << "  Check Canceled Extents: " << (checkForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                                     << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                        if (l_CheckForCanceledExtents)
+                        {
+                            LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
 //                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                        LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
@@ -711,42 +724,57 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
 
     if (pLVKey)
     {
+        // Request to return a specific work queue
         rc = getWrkQE(pLVKey, pWrkQE);
     }
     else
     {
-        // First, check the high priority work queue
-        if (HPWrkQE->getWrkQ()->size())
+        // Next, determine if we need to look for work queues with canceled extents.
+        // NOTE: This takes a higher priority than taking any work off the high priority
+        //       work queue because in restart cases we want to clear these extents as
+        //       quickly as possible.  If we first took work off the high priorty work
+        //       queue, it is possible to consume all the transfer threads waiting for
+        //       canceled extents to be removed (due to stop transfer) without any
+        //       transfer threads available to actually perform the remove of the canceled
+        //       extents, yielding deadlock.
+        if (getCheckForCanceledExtents())
         {
-            // High priority work exists...  Pass the high priority queue back...
-            pWrkQE = HPWrkQE;
+            // Search for any LVKey work queue with a canceled extent at the front...
+            rc = getWrkQE_WithCanceledExtents(pWrkQE);
         }
-        else
-        {
-            if (getCheckForCanceledExtents())
-            {
-                // Search for any LVKey work queue with a canceled extent at the front...
-                rc = getWrkQE_WithCanceledExtents(pWrkQE);
-            }
 
-            if (!rc)
+        if (!rc)
+        {
+            if (!pWrkQE)
             {
-                if (!pWrkQE)
+                // No work queue exists with canceled extents.
+                // Next, check the high priority work queue...
+                // NOTE: If we have high priority work items available and we have reached the maximum number of concurrent
+                //       cancel requests, we don't check the contents of the next high priority work item.
+                //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
+                //       working on a cancel request before dequeuing that high priority work item.
+                //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
+                if (HPWrkQE->getWrkQ()->size() && getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests())
                 {
-                    // No work queue found with canceled extents.
-                    // Find 'real' work on one of the LVKey work queues...
-                    rc = getWrkQE((LVKey*)0, pWrkQE);
+                    // High priority work exists...  Pass the high priority queue back...
+                    pWrkQE = HPWrkQE;
                 }
                 else
                 {
-                    // At least one work queue exists with a canceled extent at the front.
-                    // Return the work queue identified by pWrkQE.
+                    // No high priorty work exists that we want to schedule.
+                    // Find 'real' work on one of the LVKey work queues...
+                    rc = getWrkQE((LVKey*)0, pWrkQE);
                 }
             }
             else
             {
-                // Should not be able to get here...
+                // Currently, rc will always be returned as zero by getWrkQE_WithCanceledExtents().
+                // If we get here, at least one work queue has canceled extents...
             }
+        }
+        else
+        {
+            // Can't get here today...
         }
     }
 
@@ -1110,12 +1138,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
     BBLV_Info* l_LV_Info = 0;
 
     pWrkQE = 0;
-    // NOTE: The HP work queue is always present, so there must be at least two work queues.
-    //       We only need to return a work queue if there are at least two LVKey work queues.
-    //       This is because we only need to differentiate between a queue with no canceled
-    //       extents and one with canceled extents.  The normal findWork() processing can
-    //       do the necessary processing if there are only two work queues.
-    if (wrkqs.size() > 2)
+    if (wrkqs.size() > 1)
     {
         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
         {
@@ -1129,12 +1152,12 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                     // Get the LVKey and taginfo2 for this work item...
                     l_Key = (qe->second->getWrkQ()->front()).getLVKey();
                     l_LV_Info = metadata.getLV_Info(&l_Key);
-                    if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
+                    if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getExtent()->isCanceled())))
                     {
                         // Next extent is canceled...  Don't look any further
                         // and simply return this work queue.
                         pWrkQE = qe->second;
-                        pWrkQE->dump("info", "getWrkQE_WithCanceledExtents(): More than 2 work queues, extent being cancelled ");
+                        pWrkQE->dump("info", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
                         break;
                     }
                 }

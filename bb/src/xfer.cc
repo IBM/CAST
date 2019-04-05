@@ -1035,6 +1035,23 @@ int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t
     return rc;
 }
 
+int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    // NOTE: We know that the local cache of metadata for a jobid is still
+    //       valid if we can find the LVKey for the jobid in the metadata...
+    rc = metadata.verifyJobIdExists(pConnectionName, pLVKey, pJobId);
+    if (!rc)
+    {
+        LOG(bb,info) << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
+                     << ", " << *pLVKey << ", contribid " << pContribId \
+                     << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
+    }
+
+    return rc;
+}
+
 void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
 {
     if (pTransferDef)
@@ -1064,6 +1081,10 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     int rc = 1;     // Default is to not restart the transfer definition...
     stringstream errorText;
+
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
     LOG(bb,debug) << "xfer::prepareForRestart(): Pass " << pPass;
 
@@ -1105,33 +1126,68 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
     }
     else
     {
-        rc = pLV_Info->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
+        int rc2 = 0;
+        if (pPass == THIRD_PASS)
+        {
+            // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+            //       bbServer that is attempting to restart this transfer definition
+            rc2 = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+        }
+        if (!rc2)
+        {
+            rc = pLV_Info->prepareForRestart(pConnectionName, pLVKey, pTagInfo, pJob, pHandle, pContribId, pOrigTransferDef, pRebuiltTransferDef, pPass);
+        }
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
     }
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
 
-int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
-{
-    int rc = 0;
-
-    // NOTE: We know that the local cache of metadata for a jobid is still
-    //       valid if we can find the LVKey for the jobid in the metadata...
-    rc = metadata.verifyJobIdExists(pConnectionName, pLVKey, pJobId);
-    if (!rc)
-    {
-        LOG(bb,info) << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
-                     << ", " << *pLVKey << ", contribid " << pContribId \
-                     << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
-    }
-
-    return rc;
-}
-
 int prepareForRestartOriginalServerDead(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pHandle, BBJob pJob, const int32_t pContribId)
 {
-    return forceStopTransfer(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 1;     // Default is to not restart the transfer definition...
+    stringstream errorText;
+
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+
+    // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+    //       bbServer that is attempting to restart this transfer definition
+    int rc2 = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+    if (!rc2)
+    {
+        rc = forceStopTransfer(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
 }
 
 int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, const uint32_t pCount, const Extent* pExtent)
@@ -1438,6 +1494,7 @@ void* transferWorker(void* ptr)
         l_WrkQ = 0;
         l_WrkQE = 0;
         l_LV_Info = 0;
+        l_Extent = 0;
         l_Repost = true;
 
         try
@@ -1449,6 +1506,9 @@ void* transferWorker(void* ptr)
             //       the high priority work queue is returned.
             // NOTE: The findWork() invocation will return suspended work
             //       queues.
+            // NOTE: Canceled extents are always moved to the front of the
+            //       queue so we only have to check the first extent to see
+            //       if we are processing canceled extents for a given work queue.
             bool l_WorkRemains = true;
             if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
             {
@@ -1471,9 +1531,13 @@ void* transferWorker(void* ptr)
                                 l_Extent = l_ExtentInfo.extent;
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
+                                // NOTE: Even if this is for a canceled extent, we still want to process the throttle timer.
+                                //       The throttle timer processing performs work that is broader than just determining
+                                //       if we need to delay.
                                 wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
-                                if (l_ThreadDelay > 0)
+                                if (l_ThreadDelay > 0 && (!l_Extent->isCanceled()))
                                 {
+                                    // Delay specified and not for a canceled extent...
                                     LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
                                     if (!wrkqmgr.delayMessageSent())
                                     {
@@ -1542,15 +1606,13 @@ void* transferWorker(void* ptr)
                         // NOTE:  This will never be the case for the high-priority
                         //        work queue (async requests)
                         //
-                        // Peek at the work item.  If for a canceled transfer definition
-                        // (most likely because it was 'stopped'), process the entry as
-                        // we would any other entry.  Because it is for a canceled
-                        // transfer definition, the extent will simply be removed from the
-                        // work queue and any metadata is updated as necessary.
-                        if (l_LV_Info && (!(l_LV_Info->getNextExtentInfo().getTransferDef()->canceled())))
+                        // If for a canceled extent (stopped transfer definitions also have 'canceled' extents),
+                        // process the entry as we would any other entry.  Because it is for a canceled,
+                        // or stopped, transfer definition, the extent will simply be removed from the work queue
+                        // and any metadata is updated as necessary.
+                        if (!l_Extent->isCanceled())
                         {
-                            // Not for a canceled transfer definition.  Do not process
-                            // the next work item.
+                            // Not for a canceled extent.  Do not process the next work item.
                             l_ProcessNextWorkItem = false;
                         }
                     }
@@ -1698,7 +1760,7 @@ void startThreads(void)
     int rc;
     stringstream errorText;
     unsigned int x;
-    unsigned int numthreads = config.get(resolveServerConfigKey("numTransferThreads"), 1);
+    unsigned int numthreads = config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS);
 
     pthread_t tid;
     pthread_attr_t attr;
@@ -2735,7 +2797,7 @@ int removeJobInfo(const string& pHostName, const uint64_t pJobId)
     LOG(bb,info) << "RemoveJobInfo received for jobid=" << pJobId;
 
     // Perform any cleanup of the local bbServer metadata
-    metadata.ensureStageOutEnded(pJobId);
+    metadata.cleanUpAll(pJobId);
 
     if (sameHostName(pHostName))
     {

@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_daemon_main.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -33,7 +33,11 @@ int main( int argc, char **argv )
   signal( SIGTERM, ExitHandler );
   signal( SIGINT, ExitHandler );
 
-  int rc = Daemon->Run( argc, argv );
+  int rc = 0;
+  try {
+    rc = Daemon->Run( argc, argv );
+  }
+  catch ( ... ) {}
 
   if( Daemon != nullptr )
     delete Daemon;

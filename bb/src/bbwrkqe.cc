@@ -128,47 +128,50 @@ double WRKQE::processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pE
     if (rate)
     {
         // Must be a throttled work queue...
-        Extent* l_Extent = pExtentInfo.getExtent();
-        LOG(bb,debug) << "processBucket(): For extent with length " << l_Extent->getLength();
-        dump("debug", "processBucket(): Before bucket modification: ");
-
-        // NOTE: The code below is very similar to the code in transferExtent() in xfer.cc.  The code there
-        //       logs messages if an extent is not going to be transferred for some reason.  Here, we simply
-        //       want to check for those similar conditions, determining if we should decrement the bucket value.
-        if (pLV_Info)
+        if (getWrkQ_Size())
         {
-            if ((!(l_Extent->isCP_Transfer())) && l_Extent->getLength())
+            Extent* l_Extent = pExtentInfo.getExtent();
+            LOG(bb,debug) << "processBucket(): For extent with length " << l_Extent->getLength();
+            dump("debug", "processBucket(): Before bucket modification: ");
+
+            // NOTE: The code below is very similar to the code in transferExtent() in xfer.cc.  The code there
+            //       logs messages if an extent is not going to be transferred for some reason.  Here, we simply
+            //       want to check for those similar conditions, determining if we should decrement the bucket value.
+            if (pLV_Info)
             {
-                BBTagInfo* l_TagInfo = pLV_Info->getTagInfo(pTagId);
-                if (l_TagInfo)
+                if ((!(l_Extent->isCP_Transfer())) && l_Extent->getLength())
                 {
-                    if (!pLV_Info->stageOutEnded())
+                    BBTagInfo* l_TagInfo = pLV_Info->getTagInfo(pTagId);
+                    if (l_TagInfo)
                     {
-                        if (!(pLV_Info->resizeLogicalVolumeDuringStageOut() && pLV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
+                        if (!pLV_Info->stageOutEnded())
                         {
-                            l_TransferDef = pExtentInfo.transferDef;
-                            if (!l_TransferDef->failed())
+                            if (!(pLV_Info->resizeLogicalVolumeDuringStageOut() && pLV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
                             {
-                                if (!l_TagInfo->canceled())
+                                l_TransferDef = pExtentInfo.transferDef;
+                                if (!l_TransferDef->failed())
                                 {
-                                    //  Handle not marked as canceled
-                                    if (!l_TransferDef->canceled())
+                                    if (!l_TagInfo->canceled())
                                     {
-                                        // This extent will be transferred...
-                                        // NOTE: We are guaranteed that this work queue is throttled, so
-                                        //       even if this bucket has a value of zero, it must be decremented
-                                        uint64_t l_Length = (uint64_t)(l_Extent->getLength());
-                                        if (bucket >= 0)
+                                        //  Handle not marked as canceled
+                                        if (!l_TransferDef->canceled())
                                         {
-                                            // No delay
-                                            l_MadeBucketModification = true;
-                                            bucket -= (int64_t)l_Length;
-                                        }
-                                        else
-                                        {
-                                            // With delay
-                                            l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
-                                            LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
+                                            // This extent will be transferred...
+                                            // NOTE: We are guaranteed that this work queue is throttled, so
+                                            //       even if this bucket has a value of zero, it must be decremented
+                                            uint64_t l_Length = (uint64_t)(l_Extent->getLength());
+                                            if (bucket >= 0)
+                                            {
+                                                // No delay
+                                                l_MadeBucketModification = true;
+                                                bucket -= (int64_t)l_Length;
+                                            }
+                                            else
+                                            {
+                                                // With delay
+                                                l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
+                                                LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
+                                            }
                                         }
                                     }
                                 }
@@ -176,6 +179,14 @@ double WRKQE::processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pE
                         }
                     }
                 }
+            }
+        }
+        else
+        {
+            // All extents have been processed.  Set the bucket value to zero.
+            if (bucket)
+            {
+                bucket = 0;
             }
         }
     }

@@ -948,6 +948,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         handleFileLockFd = fd;
                         if (pLockFeedback)
                         {
+                            LOG(bb,debug) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd << " locked. Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
                             *pLockFeedback = HANDLEFILE_WAS_LOCKED;
                         }
                     }
@@ -1300,7 +1301,7 @@ void HandleFile::unlock(const int pFd)
             if (!rc)
             {
                 // Successful unlock...
-                LOG(bb,debug) << "unlock(): Handle file fd " << pFd << " unlocked";
+                LOG(bb,debug) << "<<<<<<<<<< Handle file fd " << pFd << " unlocked";
             }
             else
             {

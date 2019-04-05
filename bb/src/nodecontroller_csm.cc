@@ -417,6 +417,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
     vector<boost::property_tree::ptree> results;
     string cuml_rank = "-1";
     int    cuml_rankrc = 0;
+    string cuml_errortext;
     string exception_text = "";
 
     unsigned int MAXNODESPERCSMCALL = 32;
@@ -556,6 +557,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             {
                 cuml_rankrc = rank_rc;
                 cuml_rank   = rank;
+                cuml_errortext = e.get(e.front().first + ".error.text", "");
             }
         }
     }
@@ -567,6 +569,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
     if(cuml_rank != "-1")
     {
         output.put("error.firstFailRank", stoi(cuml_rank));
+        output.put("error.firstFailNode", nodelist[stoi(cuml_rank)]);
     }
     if(exception_text.size() > 0)
     {
@@ -575,6 +578,10 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
     if(cuml_rankrc)
     {
         output.put("error.command", args);
+    }
+    if(cuml_errortext.size() > 0)
+    {
+        output.put("error.text", cuml_errortext);
     }
     output.put("rc", cuml_rankrc);
 

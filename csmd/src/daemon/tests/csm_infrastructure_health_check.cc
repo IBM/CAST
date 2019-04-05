@@ -3,7 +3,7 @@
     csmd/src/daemon/tests/csm_infrastructure_health_check.cc
     _health_check.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -22,6 +22,7 @@ namespace po = boost::program_options;
 #include <iostream>
 
 #include "logging.h"
+#include "csm_daemon_exception.h"
 #include "csmi/include/csm_api_common.h"
 #include "csmi/src/common/include/csmi_common_utils.h"
 #include "csmi/src/common/include/csmi_api_internal.h"
@@ -31,7 +32,7 @@ namespace po = boost::program_options;
 #define TESTLOOPS 1
 
 template<typename T>
-static std::string ConvertToBytes(const T i_option)
+static std::string ConvertToBytes(const T &i_option)
 {
   std::stringstream ss;
   boost::archive::text_oarchive oa(ss);
@@ -52,7 +53,7 @@ int client_test(const HealthCheckData& i_option)
 {
   int rc = 0;
   std::cout << "Starting. Contacting local daemon..." << std::endl;
-  
+
   if (csm_init_lib() != 0)
   {
     std::cerr << "ERROR: csm_init_lib() failed." << std::endl;
@@ -63,11 +64,11 @@ int client_test(const HealthCheckData& i_option)
   for( int i=0; (i<TESTLOOPS) && (rc == 0); ++i)
   {
     csm_api_object* csm_obj = csm_api_object_new(CSM_infrastructure_test, NULL);
-  
+
     std::string payload = ConvertToBytes<HealthCheckData>(i_option);
     char *recvData=nullptr;
     uint32_t recvDataLen;
-  
+
     if (csmi_sendrecv_cmd(csm_obj, CSM_infrastructure_test, payload.c_str(), payload.length(),
                           &recvData, &recvDataLen) != 0 )
     {
@@ -84,7 +85,6 @@ int client_test(const HealthCheckData& i_option)
       std::cout << res.Dump();
       std::cout << "#############################################\n\n";
     }
-  
     csm_api_object_destroy(csm_obj);
   }
 
@@ -95,7 +95,7 @@ int client_test(const HealthCheckData& i_option)
     std::cerr << "ERROR: csm_term_lib() failed." << std::endl;
     rc++;
   }
-  
+
   std::cout << "Test complete: rc=" << rc << std::endl;
   return rc;
 
@@ -125,7 +125,7 @@ int ParseCommandLineOptions( int argc, char **argv, HealthCheckData &o_cmd_optio
   {
     o_cmd_option.set_verbose_option();
   }
-    
+
   return 1;
 
 }
@@ -135,12 +135,16 @@ int main(int argc, char **argv)
     int rc = 0;
     setLoggingLevel(csmd, error);
     setLoggingLevel(csmnet, error);
-    
+
     HealthCheckData cmd_option;
     rc = ParseCommandLineOptions(argc, argv, cmd_option);
     if (rc > 0)
     {
-      rc = client_test(cmd_option);
+      try { rc = client_test(cmd_option); }
+      catch ( csm::daemon::Exception &e )
+      {
+        std::cout << "Error detected: " << e.what() << std::endl;
+      }
     }
     return rc;
 }

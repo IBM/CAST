@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/error_inject.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -365,7 +365,11 @@ int main(int argc, char **argv)
 
     if(ParseCommandLineOptions(argc, argv, data))
     {
-      rc = client_test(data);
+      try { rc = client_test(data); }
+      catch ( ... )
+      {
+        std::cout << "Unspecified Error detected.";
+      }
     }
     return rc;
 }

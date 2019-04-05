@@ -2,7 +2,7 @@
    
     csmd/src/daemon/src/csmi_request_handler/csm_infrastructure_test_agg.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -25,7 +25,6 @@
 void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
                 std::vector<csm::daemon::CoreEvent*>& postEventList )
 {
-  
   if ( isSystemEvent(aEvent) )
   {
     TestSystemEvent(aEvent);
@@ -35,11 +34,11 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
   EventContextTestAgg_sptr context = aEvent.GetEventContext() ?
       std::dynamic_pointer_cast<EventContextTestAgg>( aEvent.GetEventContext() ) :
       EventContextTestAgg_sptr( new EventContextTestAgg( this, INITIAL_STATE, CopyEvent(aEvent) ));
-   
+
   LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_AGG: TEST_SETUP = " << context->GetAuxiliaryId();
-    
+
   csm::daemon::DaemonStateAgg * daemonState = dynamic_cast<csm::daemon::DaemonStateAgg *> (GetDaemonState());
-  
+
   if ( !daemonState )
   {
       LOG(csmd, error) << "Aggregator Daemon State could not be retrieved.";
@@ -90,7 +89,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
       daemonState->GetAllEPs(cnList, csm::daemon::ConnectionType::PRIMARY, true );
       std::vector<csm::daemon::ConnectedNodeStatus_sptr> cnDisconnectedList;
       daemonState->GetAllDisconnectedEPs(cnDisconnectedList, csm::daemon::ConnectionType::PRIMARY );
-    
+
       // find all secondary connection entries (connected and disconnected)
       csm::daemon::AddressListType cnList_sec;
       daemonState->GetAllEPs(cnList_sec, csm::daemon::ConnectionType::SECONDARY, true );
@@ -105,7 +104,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
       // populate the AggInfo
       AggInfo_sptr aggInfo = boost::make_shared<AggInfo>( data._local );
       data._agg_info.push_back(aggInfo);
-      
+
       // set up the test specific context
       context->SetNumCNs( cnList.size() + cnList_sec.size() );
       LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_AGG: Expecting total of " << context->GetNumCNs() << " replies from Agents";
@@ -146,7 +145,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
         replyMsg.SetData( CSMI_BASE::ConvertToBytes<HealthCheckData>(data) );
         replyMsg.CheckSumUpdate();
         csm::network::MessageAndAddress content(replyMsg, _AbstractMaster);
-      
+
         postEventList.push_back( CreateNetworkEvent(content, context) );
         LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_AGG::Send a reply right back to Master as no connected CN";
       }
@@ -154,7 +153,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
       {
         postEventList.push_back( CreateTimerEvent(_agg_timeout, context, WAIT_STATE) );
       }
-      
+
       // set the MessageId to 0 with the same context in all the outbound messages to CNs.
       // Will need to convert back to the original MessageId of the aEvent
       //   before sending a reply back to Master
@@ -175,7 +174,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
           postEventList.push_back(event);
         }
       }
-      
+
       context->SetAuxiliaryId(WAIT_STATE);
       break;
     }
@@ -232,7 +231,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
             LOG(csmd, warning) << "CSM_INFRASTRUCTURE_TEST_AGG: context->_cached_data._agg_info should be just one element";
           }
         }
-        
+
         if( ! allreplies )
         {
           size_t num = context->GetNumCNs() - context->GetRecvCNs();
@@ -247,7 +246,7 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
         LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_AGG: A Timeout Event...";
       }
       else break;
-      
+
       // ok, now it is time to get the correct MessageId for the reply to Master
       uint64_t reqMsgId = 0;
       if ( !GetMessageIDFromRequestInContext(context, reqMsgId) )
@@ -296,9 +295,14 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
       csm::network::Message msg;
       if (isTimerEvent(aEvent))
         msg = GetNetworkMessage( *(context->GetReqEvent()) );
-      else
+      else if( isNetworkEvent(aEvent))
         msg = GetNetworkMessage(aEvent);
-       
+      else
+      {
+        LOG( csmd, warning ) << "CSM_INFRASTRUCTURE_TEST_AGG: Invalid event type when preparing response. Will drop. This will cause timeout.";
+        return;
+      }
+
       // check if the original request is coming from a local csm api client
       csm::network::Address_sptr addr = GetNetworkAddress( *(context->GetReqEvent()) );
       if (addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_LOCAL)
@@ -310,12 +314,12 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
         addr = _AbstractMaster;
         LOG(csmd, debug) << "CSM_INFRASTRUCTURE_TEST_AGG: Forward a single aggregated reply to the Master";
       }
-      
+
       msg.SetData( CSMI_BASE::ConvertToBytes<HealthCheckData>(context->_cached_data) );
       msg.SetMessageID(reqMsgId);
       msg.CheckSumUpdate();
       postEventList.push_back( CreateNetworkEvent(msg, addr, context) );
-    
+
       context->SetAuxiliaryId(DONE_STATE);
 
       break;
@@ -354,6 +358,9 @@ void CSM_INFRASTRUCTURE_TEST_AGG::Process( const csm::daemon::CoreEvent &aEvent,
       }
       else
       {
+        if( !isNetworkEvent( aEvent ) )
+          break;
+
         csm::network::Message msg = GetNetworkMessage(aEvent);
         // start with the cached data in case the master responds with an error
         HealthCheckData data;

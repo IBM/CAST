@@ -29,6 +29,7 @@
 #include "bbinternal.h"
 #include "BBStatus.h"
 #include "BBTagInfo.h"
+#include "bbwrkqmgr.h"
 
 using namespace boost::archive;
 namespace bfs = boost::filesystem;

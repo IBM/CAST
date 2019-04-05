@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       17.0
 --   create:                06-22-2016
---   last modified:         02-21-2019
+--   last modified:         03-28-2019
 --   change log:
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
@@ -31,6 +31,7 @@
 --            - func_alt_type_val -                     added function for altering db types
 --            - func_csm_delete_func -                  added function for dropping all db functions
 --            - func_csm_drop_all_triggers -            added function for dropping all db triggers
+--            - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -3539,6 +3540,7 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_children_inventory_collection(
         IN i_description      text[],
         IN i_device_name      text[],
         IN i_device_type      text[],
+        IN i_hw_version       text[],
         IN i_max_ib_ports     int[],
         IN i_module_index     int[],
         IN i_number_of_chips  int[],
@@ -3566,6 +3568,7 @@ BEGIN
                 description      = i_description[i], 
                 device_name      = i_device_name[i], 
                 device_type      = i_device_type[i], 
+                hw_version       = i_hw_version[i],
                 max_ib_ports     = i_max_ib_ports[i], 
                 module_index     = i_module_index[i], 
                 number_of_chips  = i_number_of_chips[i], 
@@ -3578,8 +3581,8 @@ BEGIN
             o_update_count := o_update_count + 1;
         ELSE 
             INSERT INTO csm_switch_inventory 
-            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
-            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
+            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , hw_version     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
+            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_hw_version[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
@@ -3594,7 +3597,7 @@ $$ LANGUAGE 'plpgsql';
 -- fn_csm_switch_children_inventory_collection comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
+COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
 
 
 -----------------------------------------------------------------------------------------------
@@ -3948,6 +3951,7 @@ switch_inventory_comment            text[],
 switch_inventory_description        text[],
 switch_inventory_device_name        text[],
 switch_inventory_device_type        text[],
+switch_inventory_hw_version         text[],
 switch_inventory_max_ib_ports       int[],
 switch_inventory_module_index       int[],
 switch_inventory_number_of_chips    int[],
@@ -3984,9 +3988,9 @@ BEGIN
     ;
     --SWITCH_INVENTORY--
     SELECT 
-        COUNT(DISTINCT si.name) , array_agg(si.name)     , array_agg(si.host_system_guid)     , array_agg(si.discovery_time)     , array_agg(si.collection_time)     , array_agg(si.comment)     , array_agg(si.description)     , array_agg(si.device_name)     , array_agg(si.device_type)     , array_agg(si.max_ib_ports)     , array_agg(si.module_index)     , array_agg(si.number_of_chips)     , array_agg(si.path)     , array_agg(si.serial_number)     , array_agg(si.severity)     , array_agg(si.status)      
+        COUNT(DISTINCT si.name) , array_agg(si.name)     , array_agg(si.host_system_guid)     , array_agg(si.discovery_time)     , array_agg(si.collection_time)     , array_agg(si.comment)     , array_agg(si.description)     , array_agg(si.device_name)     , array_agg(si.device_type)     , array_agg(si.hw_version)     , array_agg(si.max_ib_ports)     , array_agg(si.module_index)     , array_agg(si.number_of_chips)     , array_agg(si.path)     , array_agg(si.serial_number)     , array_agg(si.severity)     , array_agg(si.status)      
     INTO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
-        r.switch_inventory_count, r.switch_inventory_name, r.switch_inventory_host_system_guid, r.switch_inventory_discovery_time, r.switch_inventory_collection_time, r.switch_inventory_comment, r.switch_inventory_description, r.switch_inventory_device_name, r.switch_inventory_device_type, r.switch_inventory_max_ib_ports, r.switch_inventory_module_index, r.switch_inventory_number_of_chips, r.switch_inventory_path, r.switch_inventory_serial_number, r.switch_inventory_severity, r.switch_inventory_status 
+        r.switch_inventory_count, r.switch_inventory_name, r.switch_inventory_host_system_guid, r.switch_inventory_discovery_time, r.switch_inventory_collection_time, r.switch_inventory_comment, r.switch_inventory_description, r.switch_inventory_device_name, r.switch_inventory_device_type, r.switch_inventory_hw_version, r.switch_inventory_max_ib_ports, r.switch_inventory_module_index, r.switch_inventory_number_of_chips, r.switch_inventory_path, r.switch_inventory_serial_number, r.switch_inventory_severity, r.switch_inventory_status 
     FROM 
         csm_switch_inventory AS si
     WHERE ( si.host_system_guid = i_switch_name )

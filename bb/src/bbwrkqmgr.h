@@ -257,6 +257,8 @@ class WRKQMGR
         asyncRequestFileSeqNbr(0),
         numberOfAllowedSkippedDumpRequests(DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS),
         numberOfSkippedDumpRequests(0),
+        numberOfAllowedConcurrentCancelRequests(0),
+        numberOfConcurrentCancelRequests(0),
         dumpOnRemoveWorkItemInterval(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL),
         dumpTimerCount(0),
         heartbeatDumpCount(0),
@@ -322,6 +324,13 @@ class WRKQMGR
         return (pOffset < MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 0 : 1);
     }
 
+    inline void decrementNumberOfConcurrentCancelRequests()
+    {
+        --numberOfConcurrentCancelRequests;
+
+        return;
+    }
+
     inline int delayMessageSent()
     {
         return delayMsgSent;
@@ -380,6 +389,16 @@ class WRKQMGR
         return lastDumpedNumberOfWorkQueueItemsProcessed;
     }
 
+    inline uint32_t getNumberOfAllowedConcurrentCancelRequests()
+    {
+        return numberOfAllowedConcurrentCancelRequests;
+    }
+
+    inline uint32_t getNumberOfConcurrentCancelRequests()
+    {
+        return numberOfConcurrentCancelRequests;
+    }
+
     inline uint64_t getNumberOfWorkQueueItemsProcessed()
     {
         return numberOfWorkQueueItemsProcessed;
@@ -415,6 +434,13 @@ class WRKQMGR
     inline int highPriorityWorkQueueIsEmpty(const LVKey* pLVKey)
     {
         return (HPWrkQE->getWrkQ_Size() == 0 ? 1 : 0);
+    }
+
+    inline void incrementNumberOfConcurrentCancelRequests()
+    {
+        ++numberOfConcurrentCancelRequests;
+
+        return;
     }
 
     inline void incrementNumberOfWorkItemsProcessed()
@@ -525,9 +551,23 @@ class WRKQMGR
         return;
     }
 
+    inline void setNumberOfAllowedConcurrentCancelRequests(const uint32_t pValue)
+    {
+        numberOfAllowedConcurrentCancelRequests = pValue;
+
+        return;
+    }
+
     inline void setNumberOfAllowedSkippedDumpRequests(const uint32_t pValue)
     {
         numberOfAllowedSkippedDumpRequests = pValue;
+
+        return;
+    }
+
+    inline void setNumberOfConcurrentCancelRequests(const uint32_t pValue)
+    {
+        numberOfConcurrentCancelRequests = pValue;
 
         return;
     }
@@ -568,7 +608,7 @@ class WRKQMGR
 
     // Methods
     void addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId);
-    int addWrkQ(const LVKey* pLVKey, const uint64_t pJobId);
+    int addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
@@ -616,6 +656,8 @@ class WRKQMGR
     volatile int        asyncRequestFileSeqNbr;
     uint32_t            numberOfAllowedSkippedDumpRequests;
     volatile uint32_t   numberOfSkippedDumpRequests;
+    uint32_t            numberOfAllowedConcurrentCancelRequests;
+    volatile uint32_t   numberOfConcurrentCancelRequests;
     uint64_t            dumpOnRemoveWorkItemInterval;
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;

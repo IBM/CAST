@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_daemon_network_manager.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -90,7 +90,8 @@ public:
     srand( time(nullptr) );
     _KeepThreadRunning = false;
     Unfreeze();
-    _IdleLoopRetry->JoinThread( _Thread );
+    try{ _IdleLoopRetry->JoinThread( _Thread ); }
+    catch ( Exception &e ) { LOG( csmd, error ) << "NetMgr Thread failure while waiting to exit" ; }
     _NetMgrChannel = nullptr;
     delete _IdleLoopRetry;
     delete _Thread;

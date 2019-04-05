@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_c_client_ack_test.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -163,8 +163,8 @@ int main(int argc, char **argv)
 {
     int rc = 0;
     // set true if you want client to be parent process for debugging
-    bool SeparateClient = TEST_SEPARATE_CLIENT;
-    bool DebugClient = ( !SeparateClient ) & false;
+    const bool SeparateClient = TEST_SEPARATE_CLIENT;
+    const bool DebugClient = ( !SeparateClient ) & false;
 
     setLoggingLevel(csmd, DBG_LEVEL);
     setLoggingLevel(csmnet, DBG_LEVEL);

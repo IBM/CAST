@@ -613,6 +613,8 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_UpdateStatus, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId);
+    LOG(bb,debug) << "update_xbbServerFileStatus(): Input " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":" \
+                  << " pFlags=0x" << hex << uppercase << pFlags << nouppercase << dec << ", pValue=" << pValue;
 
     ContribIdFile* l_ContribIdFile = 0;
     bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));

@@ -192,6 +192,10 @@ class Extent
         RETURN_FLAG(BBI_BSCFS_File_Transfer);
     }
 
+    inline int isCanceled() {
+        RETURN_FLAG(BBTD_Canceled);
+    }
+
     inline int isCP_Transfer() {
         RETURN_FLAG(BBI_CP_Transfer);
     }
