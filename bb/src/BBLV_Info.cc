@@ -313,25 +313,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 {
     stringstream errorText;
 
-    HandleFile* l_HandleFile = 0;
-    char* l_HandleFileName = 0;
-    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
-
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     bool l_UpdateTransferStatus = false;
-
-    BBTransferDef* l_TransferDef = pExtentInfo.getTransferDef();
-    if (pExtentInfo.getTransferDef()->stopped())
-    {
-        // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
-        //       bbServer that is attempting to restart this transfer definition.
-        // NOTE: If the load for some reason fails, we continue with the update not obtaining the lock.
-        //       On failure, appropriate console messages are sent by loadHandleFile().  By continuing on,
-        //       we could cause corruption of the contrib/contribid file, but we have no good option here.
-        //       Not being able to obtain the lock should be extremely rare, and some other major issue is
-        //       more than likely also in play.
-        HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_TransferDef->getJobId(), l_TransferDef->getJobStepId(), pExtentInfo.getHandle(), LOCK_HANDLEFILE, &l_LockFeedback);
-    }
 
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
@@ -463,19 +446,6 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     //        during that time.
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
-
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-    if (l_HandleFile)
-    {
-        l_HandleFile->close(l_LockFeedback);
-        delete l_HandleFile;
-        l_HandleFile = 0;
-    }
-
 
     return;
 }

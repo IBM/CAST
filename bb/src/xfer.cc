@@ -654,29 +654,29 @@ int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, cons
     {
         // We mark this transfer definition as extents enqueued.
         // Update the status for the ContribId and Handle files in the xbbServer data...
-        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Extents_Enqueued, 1);
+        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Extents_Enqueued, 1);
 
         if (!rc)
         {
             // We mark this transfer definition as stopped
             // Update the status for the ContribId and Handle files in the xbbServer data...
-            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Stopped, 1);
+            rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Stopped, 1);
 
             // We mark this transfer definition as canceled
             // Now update the status for the ContribId and Handle files in the xbbServer data...
             if (!rc)
             {
-                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Canceled, 1);
+                rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Canceled, 1);
                 // We mark this transfer definition as all extents processed
                 // Now update the status for the ContribId and Handle files in the xbbServer data...
                 if (!rc)
                 {
-                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Extents_Transferred, 1);
+                    rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_All_Extents_Transferred, 1);
                     // We mark this transfer definition as all files closed
                     // Now update the status for the ContribId and Handle files in the xbbServer data...
                     if (!rc)
                     {
-                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Files_Closed, 1);
+                        rc = ContribIdFile::update_xbbServerContribIdFile(pLVKey, pJobId, pJobStepId, pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_All_Files_Closed, 1);
                     }
                 }
             }
@@ -1130,7 +1130,7 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
         if (pPass == THIRD_PASS)
         {
             // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
-            //       bbServer that is attempting to restart this transfer definition
+            //       bbServer that is attempting to restart/stop additional contribids for this handle.
             rc2 = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
         }
         if (!rc2)
@@ -1167,7 +1167,7 @@ int prepareForRestartOriginalServerDead(const std::string& pConnectionName, cons
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
     // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
-    //       bbServer that is attempting to restart this transfer definition
+    //       bbServer that is attempting to restart/stop additional contribids for this handle.
     int rc2 = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc2)
     {
