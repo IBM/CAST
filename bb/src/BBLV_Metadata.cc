@@ -399,7 +399,8 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
     }
     else
     {
-        // Could not load the handle file
+        // Could not lock the handle file
+        LOG(bb,error) << "attemptToUnconditionallyStopThisTransferDefinition(): Could not lock the handle file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId;
     }
 
     if (l_HandleFile)

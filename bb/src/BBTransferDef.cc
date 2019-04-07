@@ -1140,6 +1140,10 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
 {
     int rc = 0;
 
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
+
     if (pPass == SECOND_PASS)
     {
         // Clean up the transfer definition for restart...
@@ -1148,34 +1152,59 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     }
     else if (pPass == THIRD_PASS)
     {
-        // First, reset the transfer definition/ContribId file flags
-        rc = resetForRestart(pLVKey, pHandle, pContribId);
-
+        // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+        //       bbServer that is attempting to restart/stop other transfer definitions for this handle.
+        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
         if (!rc)
         {
-            // Next, reset the appropriate flags for each individual file transfer to be restarted.
-            // The size transferred for the file in the local metadata is also reset.
-            int64_t l_Size = 0;
-            rc = ContribIdFile::update_xbbServerFileStatusForRestart(pLVKey, pRebuiltTransferDef, pHandle, pContribId, l_Size);
+            // First, reset the transfer definition/ContribId file flags
+            rc = resetForRestart(pLVKey, pHandle, pContribId);
 
             if (!rc)
             {
-                // Update the handle status to recalculate the total transfer size
-                rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId, 0, l_Size, NORMAL_SCAN);
+                // Next, reset the appropriate flags for each individual file transfer to be restarted.
+                // The size transferred for the file in the local metadata is also reset.
+                int64_t l_Size = 0;
+                rc = ContribIdFile::update_xbbServerFileStatusForRestart(pLVKey, pRebuiltTransferDef, pHandle, pContribId, l_Size);
 
+                if (!rc)
+                {
+                    // Update the handle status to recalculate the total transfer size
+                    rc = HandleFile::update_xbbServerHandleStatus(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId, 0, l_Size, NORMAL_SCAN);
+
+                }
+                else
+                {
+                    LOG(bb,error) << "BBTransferDef::prepareForRestart(): Attempting to reset cross bbServer metadata for jobid " << job.getJobId() \
+                                  <<   ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                                  << " for individual files to be restarted failed";
+                }
             }
             else
             {
                 LOG(bb,error) << "BBTransferDef::prepareForRestart(): Attempting to reset cross bbServer metadata for jobid " << job.getJobId() \
-                              <<   ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                              << " for individual files to be restarted failed";
+                              <<   ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId << " failed";
             }
         }
         else
         {
-            LOG(bb,error) << "BBTransferDef::prepareForRestart(): Attempting to reset cross bbServer metadata for jobid " << job.getJobId() \
+            // Could not lock handle file
+            LOG(bb,error) << "BBTransferDef::prepareForRestart(): Attempting to lock the handle file for jobid " << job.getJobId() \
                           <<   ", jobstepid " << job.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId << " failed";
         }
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
     }
 
     return rc;
@@ -1309,7 +1338,7 @@ void BBTransferDef::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Extents_Transferred, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, (stopped() ? LOCK_HANDLEFILE : DO_NOT_LOCK_HANDLEFILE), BBTD_All_Extents_Transferred, pValue);
 
     return;
 }
@@ -1320,7 +1349,7 @@ void BBTransferDef::setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandl
 
     // Update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_All_Files_Closed, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_All_Files_Closed, pValue);
 
     return;
 }
@@ -1349,7 +1378,7 @@ void BBTransferDef::setCanceled(const LVKey* pLVKey, const uint64_t pHandle, con
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Canceled, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Canceled, pValue);
 
     return;
 }
@@ -1365,8 +1394,9 @@ void BBTransferDef::setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHand
 
     // Now update the status for the ContribIdfiles in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION l_AllowBumpOfReportingContribs = (this->builtViaRetrieveTransferDefinition() ? DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS : ALLOW_BUMP_FOR_REPORTING_CONTRIBS);
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, l_AllowBumpOfReportingContribs, BBTD_Extents_Enqueued, pValue);
+    ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION l_AllowBumpOfReportingContribs = (builtViaRetrieveTransferDefinition() ? DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS : ALLOW_BUMP_FOR_REPORTING_CONTRIBS);
+
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, l_AllowBumpOfReportingContribs, (builtViaRetrieveTransferDefinition() ? LOCK_HANDLEFILE : DO_NOT_LOCK_HANDLEFILE), BBTD_Extents_Enqueued, pValue);
 
     return;
 }
@@ -1390,7 +1420,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Failed, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Failed, pValue);
 
     return;
 }
@@ -1429,7 +1459,7 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
 
     // Now update the status for the ContribId and Handle files in the xbbServer data...
     // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, BBTD_Stopped, pValue);
+    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Stopped, pValue);
 
     return;
 }
@@ -1467,52 +1497,38 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
         int l_Continue = DELAY_SECONDS;
         while (!rc && l_Continue--)
         {
-            // NOTE: The Handlefile is locked exclusive here to serialize between this bbServer checking for
-            //       the extents to be enqueued and another thread/bbServer enqueuing those extents.
-            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+            rc = extentsAreEnqueued();
             if (!rc)
             {
-                rc = extentsAreEnqueued();
-                if (!rc)
+                // Release the handle file
+                l_HandleFile->close(l_LockFeedback);
+
+                unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                 {
-                    // Release the handle file
-                    l_HandleFile->close(l_LockFeedback);
-
-                    unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                    if ((l_SecondsWaiting % 15) == 1)
                     {
-                        pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
-                        int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
-                        if ((l_SecondsWaiting % 15) == 1)
-                        {
-                            // Display this message every 15 seconds...
-                            FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
-                                      pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
-                            LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
-                                         << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
-                                         << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
-                                         << " seconds remain waiting for the extents to be enqueued.";
-                        }
-                        usleep((useconds_t)1000000);    // Delay 1 second
+                        // Display this message every 15 seconds...
+                        FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
+                                  pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
+                                     << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                     << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
+                                     << " seconds remain waiting for the extents to be enqueued.";
                     }
-                    lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
-
-                    // Check to make sure the job still exists after releasing/re-acquiring the lock
-                    // NOTE: The connection name is optional, and is potentially different for every
-                    //       transfer definition that is being stopped from the retrieve transfer archive.
-                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
-                    {
-                        rc = -1;
-                        l_Continue = 0;
-                    }
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
-            }
-            else
-            {
-                // Handle file could not be locked
-                rc = -1;
-                l_Continue = 0;
-                LOG(bb,error) << "Could not lock the handle file for " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                              << " when attempting to determine if all extents had been enqueued during stop transfer processing";
+                lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+
+                // Check to make sure the job still exists after releasing/re-acquiring the lock
+                // NOTE: The connection name is optional, and is potentially different for every
+                //       transfer definition that is being stopped from the retrieve transfer archive.
+                if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
+                {
+                    rc = -1;
+                    l_Continue = 0;
+                }
             }
         }
 
@@ -1576,21 +1592,33 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     rc = becomeUser(getUserId(), getGroupId());
                     if (!rc)
                     {
-                        // Mark the transfer definition as stopped
-                        markAsStopped(pLVKey, pHandle, pContribId);
-
-                        // If an unconditional restart, in addition to marking the transfer definition
-                        // as stopped, indicate that all extents have been enqueued/processed and all files closed.
-                        // NOTE:  No extents were enqueued/processed for an unconditional restart so these bits
-                        //        need to be set on here...
-                        if (l_UnconditionalRestart)
+                        // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+                        //       bbServer that is attempting to restart/stop other transfer definitions for this handle.
+                        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+                        if (!rc)
                         {
-                            setExtentsEnqueued(pLVKey, pHandle, pContribId);
-                            setAllExtentsTransferred(pLVKey, pHandle, pContribId);
-                            setAllFilesClosed(pLVKey, pHandle, pContribId);
-                        }
-                        rc = 1;
+                            // Mark the transfer definition as stopped
+                            markAsStopped(pLVKey, pHandle, pContribId);
 
+                            // If an unconditional restart, in addition to marking the transfer definition
+                            // as stopped, indicate that all extents have been enqueued/processed and all files closed.
+                            // NOTE:  No extents were enqueued/processed for an unconditional restart so these bits
+                            //        need to be set on here...
+                            if (l_UnconditionalRestart)
+                            {
+                                setExtentsEnqueued(pLVKey, pHandle, pContribId);
+                                setAllExtentsTransferred(pLVKey, pHandle, pContribId);
+                                setAllFilesClosed(pLVKey, pHandle, pContribId);
+                            }
+                            rc = 1;
+                        }
+                        else
+                        {
+                            // Could not lock handle file
+                            LOG(bb,error) << "Could not lock the handle file when attempting to restart the transfer definition for jobid " << pJobId \
+                                          << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                          << ".  The transfer definition will not be restarted.";
+                        }
                         becomeUser(0,0);
                     }
                     else
