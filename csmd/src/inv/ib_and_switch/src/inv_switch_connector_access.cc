@@ -154,10 +154,6 @@ int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** v
 		offset = 3;
 	}
 
-	//==============================================
-	//WARNING: this prefix and suffix need to be looked at for special 'at end' case
-	//==============================================
-
 	// extraction field
 	position_delimiter=line.find(":");
 	//Modify the prefix. Trim the opening garbage from the key_value
@@ -165,7 +161,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** v
 	//Modify the suffix. Trim the ending garbage.
 	if(finalLine)
 	{
-		line.erase(line.length()-1, line.length());
+		line.erase(line.length() - offset + 2, line.length());
 	}else{
 		line.erase(line.length() - offset, line.length()-1);
 	}
