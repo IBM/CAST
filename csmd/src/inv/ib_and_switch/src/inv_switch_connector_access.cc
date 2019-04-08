@@ -790,40 +790,76 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key
 		switch (i)
 		{
 			case 0:
-				field_value = module_status.at( module_number );
+				if(module_number < module_status.size())
+				{
+					field_value = module_status.at( module_number );
+				}
 				break;
 			case 1:
-				field_value = module_hw_version.at(module_number);
+				if(module_number < module_hw_version.size())
+				{
+					field_value = module_hw_version.at(module_number);
+				}
 				break;
 			case 2:
-				field_value = module_name.at(module_number);
+				if(module_number < module_name.size())
+				{
+					field_value = module_name.at(module_number);
+				}
 				break;
 			case 3:
-				field_value = module_number_of_chips.at(module_number);
+				if(module_number < module_number_of_chips.size())
+				{
+					field_value = module_number_of_chips.at(module_number);
+				}
 				break;
 			case 4:
-				field_value = module_description.at(module_number);
+				if(module_number < module_description.size())
+				{
+					field_value = module_description.at(module_number);
+				}
 				break;
 			case 5:
-				field_value = module_max_ib_ports.at(module_number);
+				if(module_number < module_max_ib_ports.size())
+				{
+					field_value = module_max_ib_ports.at(module_number);
+				}
 				break;
 			case 6:
-				field_value = module_module_index.at(module_number);
+				if(module_number < module_module_index.size())
+				{
+					field_value = module_module_index.at(module_number);
+				}
 				break;
 			case 7:
-				field_value = module_device_type.at(module_number);
+				if(module_number < module_device_type.size())
+				{
+					field_value = module_device_type.at(module_number);
+				}
 				break;
 			case 8:
-				field_value = module_serial_number.at(module_number);
+				if(module_number < module_serial_number.size())
+				{
+					field_value = module_serial_number.at(module_number);
+				}
 				break;
 			case 9:
-				field_value = module_path.at(module_number);
+				if(module_number < module_path.size())
+				{
+					field_value = module_path.at(module_number);
+				}
 				break;
 			case 10:
-				field_value = module_device_name.at(module_number);
+				if(module_number < module_device_name.size())
+				{
+					field_value = module_device_name.at(module_number);
+				}
 				break;
 			case 11:
-				field_value = module_severity.at(module_number);
+				if(module_number < module_severity.size())
+				{
+					field_value = module_severity.at(module_number);
+				}
 				break;
 			default:
 				//error?
