@@ -452,66 +452,55 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 									do{
 										//grab next line
 										std::getline(input_file, line);
+										// Is this the last module field?
+										bool end_of_modules = false;
 
 										if(line.find(",") == std::string::npos)
 										{
-											more_fields = false;
+											// at the end
+											// DETAILS: We didn't find a ',' in the line, so we assume it to be the last value. 
+											end_of_modules = true;
+										}
 
-											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+										for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+										{
+											std::size_t found = 0;
+											found = line.find(vector_of_the_comparing_strings_modules[i]);
+											if (found!=std::string::npos)
 											{
-												std::size_t found = 0;
-												found = line.find(vector_of_the_comparing_strings_modules[i]);
-												if (found!=std::string::npos)
-												{
-													module_key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
-													vector_of_the_comparing_strings_modules[i].copy(module_key, vector_of_the_comparing_strings_modules[i].length());
-													module_key_found = true;
-												}
-
-
-												if( module_key_found)
-												{
-													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key, true);
-													vector_of_the_modules.push_back(module_value); 
-													module_key_value_vector_builder(module_key, module_value);
-													free(module_key);
-													free(module_value);
-													module_key_found = false;
-													//exit loop early
-													i = vector_of_the_comparing_strings_modules.size();
-												}
+												module_key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+												vector_of_the_comparing_strings_modules[i].copy(module_key, vector_of_the_comparing_strings_modules[i].length());
+												module_key_found = true;
 											}
 
+											if( module_key_found)
+											{
+												if(end_of_modules)
+												{
+													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key, true);
+												}else{
+													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key);
+												}
+												
+												vector_of_the_modules.push_back(module_value); 
+												module_key_value_vector_builder(module_key, module_value);
+												free(module_key);
+												free(module_value);
+												module_key_found = false;
+												//exit loop early
+												i = vector_of_the_comparing_strings_modules.size();
+											}
+										}
+
+										if(end_of_modules)
+										{
+											more_fields = false;
 											//grab next line
 											std::getline(input_file, line); // },
 											std::getline(input_file, line); // { or ],
-
-										}else if(line.find(",") != std::string::npos){
-											//What module_key?
-											for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
-											{
-												std::size_t found = 0;
-												found = line.find(vector_of_the_comparing_strings_modules[i]);
-												if (found!=std::string::npos)
-												{
-													module_key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
-													vector_of_the_comparing_strings_modules[i].copy(module_key, vector_of_the_comparing_strings_modules[i].length());
-													module_key_found = true;
-												}
-
-												if( module_key_found)
-												{
-													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key);
-													vector_of_the_modules.push_back(module_value); 
-													module_key_value_vector_builder(module_key, module_value);
-													free(module_key);
-													free(module_value);
-													module_key_found = false;
-													//exit loop early
-													i = vector_of_the_comparing_strings_modules.size();
-												}
-											}
 										}
+											
+
 									}while(more_fields);
 
 									//increase the count
