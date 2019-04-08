@@ -701,15 +701,12 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 
 int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_key, char* module_value)
 {
-	std::cout << "in functions" << std::endl;
-	printf("passed key: %s\n", module_key);
 
 	int check = 0; 
 
 	// take in keys and values and make fautso vectors
 	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
 	{
-		printf("checking: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
 		
 		check = strcmp(module_key, vector_of_the_comparing_strings_modules[i].c_str());
 
@@ -761,11 +758,6 @@ int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_ke
 				break;
 		}
 
-	}
-
-	for(unsigned int i = 0; i < module_name.size(); i++)
-	{
-		printf("i: %i name: %s\n", i, module_name[i].c_str());
 	}
 
 	return 0;
