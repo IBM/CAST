@@ -42,7 +42,7 @@ void csmutil_logging_level_set(char *aLevelStr)
     if (strcasecmp(csmutil_logging_str[i], aLevelStr) == 0) break;
   if (i < NUM_SEVERITIES)
   {
-     fprintf( fp, "[csmapi]: The default log level: %s...\n", aLevelStr);
+     //fprintf( fp, "[csmapi]: The default log level: %s...\n", aLevelStr);
      default_log_level = (csmutil_logging_level) i;
   }
   else
