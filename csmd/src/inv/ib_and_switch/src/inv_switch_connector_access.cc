@@ -765,8 +765,6 @@ int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_ke
 
 std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int module_number)
 {
-	printf("in function \n");
-	printf("key passed: %s, module number: %lu\n", key.c_str(), module_number);
 
 	// setting field value
 	std::string field_value = "NULL";
@@ -775,7 +773,6 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key
 	// take in keys and values and make fautso vectors
 	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
 	{
-		printf("comparing_string: %s\n", vector_of_the_comparing_strings_modules[i].c_str());
 
 		found = vector_of_the_comparing_strings_modules[i].find("\""+key+"\"");
 
@@ -783,8 +780,6 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key
 		{
 			continue;
 		}
-
-		printf("match at: %u\n", i);
 
 		// id and index in bound
 		switch (i)
