@@ -1157,7 +1157,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                         // Next extent is canceled...  Don't look any further
                         // and simply return this work queue.
                         pWrkQE = qe->second;
-                        pWrkQE->dump("info", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
+                        pWrkQE->dump("debug", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
                         break;
                     }
                 }
