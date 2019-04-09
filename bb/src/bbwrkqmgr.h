@@ -48,8 +48,8 @@ const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wr
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
 const int DEFAULT_RETRY_VALUE = 10;         // Default, retry value for fread, fwrite, fseek, and ftell
-const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 12;    // Default, if no activity, dump every hour
-const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 300.0;    // In seconds, default is to dump wrkqmgr every 5 minutes
+const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 20;    // Default, if no activity, dump every hour
+const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 180.0;    // In seconds, default is to dump wrkqmgr every 3 minutes
 
 const uint64_t DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL = 1000;
 const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
