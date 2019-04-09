@@ -20,14 +20,40 @@ import sys
 #add the python library to the path
 sys.path.append('/opt/ibm/csm/lib')
 
-# eventually append the path as part of an rpm install
-
 import lib_csm_py as csm
 import lib_csm_inv_py as inv
 import lib_csm_wm_py as wm
 from pprint import pprint
+from datetime import datetime
 
 csm.init_lib()
+
+def create_timed_allocation(alloc_input):
+    start_time=datetime.now()
+    rc,handler,aid=wm.allocation_create(alloc_input)
+    end_time=datetime.now()
+    time_to_create = end_time - start_time
+    if (rc == 0):
+        print("Created allocation: " + str(aid) + " (isolated_cores = " + str(alloc_input.isolated_cores) + ")")
+#        print("Start time: " + str(start_time))
+#        print("End time: " + str(end_time))
+        print("Create time: " + str(time_to_create.total_seconds()))
+        return aid
+    else:
+        print("Create Failed")
+        csm.api_object_destroy(handler)
+        csm.term_lib()
+        sys.exit(rc)
+
+def delete_allocation(alloc_delete_input):
+    rc,handler=wm.allocation_delete(alloc_delete_input)
+    if (rc == 0):
+        print("Allocation " + str(alloc_delete_input.allocation_id) + " successfully deleted")
+    else:
+        print("Failed to delete allocation " + str(alloc_delete_input.allocation_id))
+        csm.api_object_destroy(handler)
+        csm.term_lib()
+        sys.exit(rc)
 
 input = inv.node_attributes_query_input_t()
 nodes=[str(sys.argv[1])]
@@ -58,97 +84,24 @@ else:
 
 print("Ready nodes: " + str(node_list))
 
+cores = [0, 0, 1, 0, 1, 2, 1, 0]
+
+# Initialize allocation create input struct
 alloc_input.set_compute_nodes(node_list)
-alloc_input.isolated_cores=0
 alloc_input.state=wm.csmi_state_t.CSM_RUNNING
-rc,handler,aid=wm.allocation_create(alloc_input)
 
-if (rc == 0):
-    print("Created allocation: " + str(aid))
-else:
-    print("Create Failed")
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
-
+# Initialize allocation delete input struct
 alloc_delete_input=wm.allocation_delete_input_t()
-alloc_delete_input.allocation_id=aid
-rc,handler=wm.allocation_delete(alloc_delete_input)
-if (rc == 0):
-    print("Allocation " + str(alloc_delete_input.allocation_id) + " successfully deleted")
-else:
-    print("Failed to delete allocation " + str(alloc_delete_input.allocation_id))
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
 
-alloc_input.isolated_cores=0
-rc,handler,aid=wm.allocation_create(alloc_input)
+for i in cores:
+    # Create Allocation with isolated_cores = cores[i]
+    alloc_input.isolated_cores=i
+    id=create_timed_allocation(alloc_input)
+    # Delete Allocation
+    alloc_delete_input.allocation_id=id
+    delete_allocation(alloc_delete_input)
 
-if (rc == 0):
-    print("Created allocation: " + str(aid))
-else:
-    print("Create Failed")
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
 
-alloc_delete_input=wm.allocation_delete_input_t()
-alloc_delete_input.allocation_id=aid
-rc,handler=wm.allocation_delete(alloc_delete_input)
-if (rc == 0):
-    print("Allocation " + str(alloc_delete_input.allocation_id) + " successfully deleted")
-else:
-    print("Failed to delete allocation " + str(alloc_delete_input.allocation_id))
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
-
-alloc_input.isolated_cores=1
-rc,handler,aid=wm.allocation_create(alloc_input)
-
-if (rc == 0):
-    print("Created allocation: " + str(aid))
-else:
-    print("Create Failed")
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
-
-alloc_delete_input=wm.allocation_delete_input_t()
-alloc_delete_input.allocation_id=aid
-rc,handler=wm.allocation_delete(alloc_delete_input)
-if (rc == 0):
-    print("Allocation " + str(alloc_delete_input.allocation_id) + " successfully deleted")
-else:
-    print("Failed to delete allocation " + str(alloc_delete_input.allocation_id))
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
-
-alloc_input.isolated_cores=0
-rc,handler,aid=wm.allocation_create(alloc_input)
-
-if (rc == 0):
-    print("Created allocation: " + str(aid))
-else:
-    print("Create Failed")
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
-
-alloc_delete_input=wm.allocation_delete_input_t()
-alloc_delete_input.allocation_id=aid
-rc,handler=wm.allocation_delete(alloc_delete_input)
-if (rc == 0):
-    print("Allocation " + str(alloc_delete_input.allocation_id) + " successfully deleted")
-else:
-    print("Failed to delete allocation " + str(alloc_delete_input.allocation_id))
-    csm.api_object_destroy(handler)
-    csm.term_lib()
-    sys.exit(rc)
-
+# Clean up handler and term lib
 csm.api_object_destroy(handler)
-
 csm.term_lib()
-
