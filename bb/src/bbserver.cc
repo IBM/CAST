@@ -873,35 +873,44 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         l_LockHeld = true;
 
         {
-            // NOTE: get_xbbServerHandleInfo() will only return a non-zero return code if the xbbServer data store cannot be found/loaded.
-            //       Otherwise, the l_HandleFile and l_ContribIdFile pointers can come back null if they could not be found with the given
-            //       input.
-            rc = HandleFile::get_xbbServerHandleInfo(l_JobId, l_JobStepId, l_NumberOfReportingContribs, l_HandleFile, l_ContribIdFile, l_Handle, l_ContribId);
-
-            if (!rc)
+            if (l_Handle)
             {
-                if (l_HandleFile)
-                {
-                    l_Tag = l_HandleFile->tag;
-                    l_NumContrib = l_HandleFile->numContrib;
-                    l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+                // NOTE: get_xbbServerHandleInfo() will only return a non-zero return code if the xbbServer data store cannot be found/loaded.
+                //       Otherwise, the l_HandleFile and l_ContribIdFile pointers can come back null if they could not be found with the given
+                //       input.
+                rc = HandleFile::get_xbbServerHandleInfo(l_JobId, l_JobStepId, l_NumberOfReportingContribs, l_HandleFile, l_ContribIdFile, l_Handle, l_ContribId);
 
-                    if (l_NumOfContribsInArray != l_NumContrib) {
-                        rc = -1;
-                        errorText << "Number of expected contributors, " << l_NumContrib << ", does not match the number of elements found in the expectContrib array, " << l_NumOfContribsInArray;
-                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                if (!rc)
+                {
+                    if (l_HandleFile)
+                    {
+                        l_Tag = l_HandleFile->tag;
+                        l_NumContrib = l_HandleFile->numContrib;
+                        l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+
+                        if (l_NumOfContribsInArray != l_NumContrib) {
+                            rc = -1;
+                            errorText << "Number of expected contributors, " << l_NumContrib << ", does not match the number of elements found in the expectContrib array, " << l_NumOfContribsInArray;
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
+
+                        // NOTE: No need to check the return code... The required size (without the training null terminator) is always returned...
+                        HandleFile::getTransferKeys(l_JobId, l_Handle, l_LengthOfTransferKeys, l_TransferKeyBufferSize, l_TransferKeyBuffer);
                     }
-
-                    // NOTE: No need to check the return code... The required size (without the training null terminator) is always returned...
-                    HandleFile::getTransferKeys(l_JobId, l_Handle, l_LengthOfTransferKeys, l_TransferKeyBufferSize, l_TransferKeyBuffer);
+                    else
+                    {
+                        rc = -2;
+                        errorText << "Handle " << l_Handle << ", contribid " << l_ContribId << " could not be found";
+                        bberror << err("rc", rc) << err("error.text", errorText.str());
+                        LOG(bb,warning) << errorText.str();
+                    }
                 }
-                else
-                {
-                    rc = -2;
-                    errorText << "Handle " << l_Handle << ", contribid " << l_ContribId << " could not be found";
-                    bberror << err("rc", rc) << err("error.text", errorText.str());
-                    LOG(bb,warning) << errorText.str();
-                }
+            }
+            else
+            {
+                rc = -1;
+                errorText << "msgin_gettransferinfo(): Invalid handle value " << l_Handle << " passed";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
         }
     }
@@ -1151,20 +1160,33 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
         {
             rc = HandleFile::get_xbbServerHandleList(l_Handles, l_Job, l_MatchStatus);
 
-            if (!rc) {
+            if (!rc)
+            {
                 l_NumAvailHandles = l_Handles.size();
-                if (l_NumAvailHandles < l_NumHandles) {
+                if (l_NumAvailHandles < l_NumHandles)
+                {
                     l_NumHandles = l_NumAvailHandles;
                 }
                 l_LengthOfHandleArray = sizeof(uint64_t)*(l_NumHandles+1);
                 l_HandleArray = (uint64_t*)(new char[l_LengthOfHandleArray]);
                 memset(l_HandleArray, 0, l_LengthOfHandleArray);
-                for(size_t i=0; i<l_NumHandles; ++i) {
-                    l_HandleArray[i] = l_Handles[i];
-                    LOG(bb,info) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
-                    ++l_NumHandlesReturned;
+                for(size_t i=0; i<l_NumHandles; ++i)
+                {
+                    if (l_Handles[i])
+                    {
+                        l_HandleArray[i] = l_Handles[i];
+                        LOG(bb,info) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
+                        ++l_NumHandlesReturned;
+                    }
+                    else
+                    {
+	                    errorText << "Complete list of transfer handles could not be determined from the xbbserver metadata.  Handle instance " << i << " has a handle value of " << l_Handles[i];
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
                 }
-            } else {
+            }
+            else
+            {
 	            errorText << "List of transfer handles could not be determined from the xbbserver metadata";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
