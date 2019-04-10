@@ -267,7 +267,9 @@ network inventory.
             "ufm":
             {
                 "ib_cable_errors" : "bad_ib_cable_records.txt",
-                "switch_errors"   : "bad_switch_records.txt"
+                "switch_errors"   : "bad_switch_records.txt",
+                "ufm_switch_output_file_name" : "ufm_switch_output_file.json",
+                "ufm_switch_input_file_name" : "ufm_switch_output_file.json"
             }
         }
 
@@ -283,6 +285,16 @@ network inventory.
 
     :switch_errors: 
         Output file location for records of IB switch errors as detected by CSM.
+
+        Relative to the ``csm_inv_log_dir``.
+
+    :ufm_switch_output_file_name: 
+        During inventory collection, CSM calls a ufm restfulAPI. The restfulAPI outputs json. CSM saves the json output to a file. CSM will use this value to name that file.
+        
+        Relative to the ``csm_inv_log_dir``.
+
+    :ufm_switch_input_file_name: 
+        During inventory collection, CSM needs to read from a json file that contains inventory data. This value is the name of the file to read from. Most of the time it should be the same as the output file above. As step 1 is collect the info and save it, then step 2 is to read that info, parse it, and send it to CSM database. CSM team has seperated these two values to give the system admin an opportunity to read from a different file other than what was collected and saved in step 1.
 
         Relative to the ``csm_inv_log_dir``.
         
