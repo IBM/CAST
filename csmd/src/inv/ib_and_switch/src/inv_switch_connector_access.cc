@@ -176,7 +176,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** v
 	return 0;
 }
 
-int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors)
+int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors, bool custom_input_override, std::string ufm_switch_output_file_name, std::string ufm_switch_input_file_name)
 {
 	try
 	{	
@@ -249,11 +249,10 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			//std::cout << &response;
 		}
 
-        // ToDo: replace this buffer push to a config file update like error paths below. 
-        std::string ufm_switch_output_filename = "ufm_switch_output_file.json";
-		
+        // set output name to the value passed in via parameter.
+		// add in the inv directory
+		std::string output_file_name = csm_inv_log_dir + "/" + ufm_switch_output_file_name;
 		// opening output file
-		std::string output_file_name = csm_inv_log_dir + "/" + ufm_switch_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 
 		// checking if output file is open
@@ -284,8 +283,20 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::string line;
 		std::string comparing_string;
 
+		//set input filename
+
 		// opening input file
-		std::string input_file_name = csm_inv_log_dir + "/" + "output_5_9.json";
+		std::string input_file_name = "";
+		
+
+		if(custom_input_override)
+		{
+			input_file_name = ufm_switch_input_file_name;
+		}else{
+			input_file_name = csm_inv_log_dir + "/" + ufm_switch_input_file_name;
+		}
+
+
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
 
 		// checking if input file is open
@@ -674,11 +685,11 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		}
 
 		std::cout << "UFM reported " << total_switch_records << " switch records." << std::endl;
-		std::cout << "This report from UFM can be found in '" << ufm_switch_output_filename << "' located at '" << csm_inv_log_dir << std::endl;
+		std::cout << "This report from UFM can be found in '" << ufm_switch_output_file_name << "' located at '" << csm_inv_log_dir << "'" << std::endl;
 
 		if(NA_serials_count > 0){
 			std::cerr << "WARNING: " << NA_serials_count << " Switches found with 'N/A' serial numbers and have been removed from CSM inventory collection data." << std::endl;
-			std::cerr << "These records copied into '" << switch_errors <<"' located at '" << csm_inv_log_dir << std::endl;
+			std::cerr << "These records copied into '" << switch_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
 		}
 
 		std::cout << std::endl;

@@ -72,10 +72,11 @@ void help(){
 	puts("                  |                               | ");
 	puts("  OPTIONAL:");
 	puts("    standalone_ib_and_switch_collection can have 1 optional parameters");
-	puts("    Argument      | Example value  | Description  ");                                                 
-	puts("    --------------|----------------|--------------");
-	puts("    -d, --details | NOT APPLICABLE | (FLAG) Turn on a more detailed output for UFM inventory collection.");
-	puts("                  |                | ");
+	puts("    Argument             | Example value       | Description  ");                                                 
+	puts("    ---------------------|---------------------|--------------");
+	puts("    -d, --details        | NOT APPLICABLE      | (FLAG) Turn on a more detailed output for UFM inventory collection.");
+	puts("    -i, --input_override | \"/temp/myFile.json\" | (STRING) Override the input field in the master config file.");
+	puts("                         |                     | ");
 	puts("");
     puts("GENERAL OPTIONS:");
     puts("[-h, --help]                  | Help.");
@@ -89,11 +90,12 @@ void help(){
 
 struct option longopts[] = {
     //general options
-    {"help",    no_argument,       0, 'h'},
-    {"verbose", required_argument, 0, 'v'},
-	{"config",  required_argument, 0, 'c'},
-	{"type",    required_argument, 0, 't'},
-	{"details", no_argument,       0, 'd'},
+    {"help",           no_argument,       0, 'h'},
+    {"verbose",        required_argument, 0, 'v'},
+	{"config",         required_argument, 0, 'c'},
+	{"type",           required_argument, 0, 't'},
+	{"details",        no_argument,       0, 'd'},
+	{"input_override", required_argument, 0, 'i'},
     {0,0,0,0}
 };
 
@@ -123,6 +125,9 @@ int main(int argc, char *argv[])
     //int i = 0;
     // value to help with some prints. informs if they should print or not.
     bool details = false; 
+    //override the path and filename for switch input to be read from 'inv_switch_connector_access'
+    bool custom_input_override = false;
+    std::string override_path_and_filename = "";
 	
     int totalSwitchRecords = 0;
     int totalIBRecords = 0;
@@ -138,7 +143,7 @@ int main(int argc, char *argv[])
 	requiredParameterCounter++;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:c:dt:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:c:di:t:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -151,6 +156,10 @@ int main(int argc, char *argv[])
                 break;
 			case 'd':
 				details = true;
+			    break;
+			case 'i':
+				custom_input_override = true;
+				override_path_and_filename = strdup(optarg);
 			    break;
 			case 't':
 				type_of_collection = std::atol(optarg);
@@ -206,6 +215,14 @@ int main(int argc, char *argv[])
 	std::string csm_inv_log_dir = "";
 	std::string ib_cable_errors = "";
 	std::string switch_errors = "";
+	std::string ufm_switch_output_file_name = "";
+	std::string ufm_switch_input_file_name = "";
+
+	if(custom_input_override)
+	{
+		ufm_switch_input_file_name = override_path_and_filename;
+	}
+
 	std::string ssl_file_path = "";
 	std::string ssl_file_name = "";
 
@@ -246,6 +263,10 @@ int main(int argc, char *argv[])
 		vector_of_the_comparing_strings.push_back("ufm_ssl_file_path");
 		vector_of_the_comparing_strings.push_back("ufm_ssl_file_name");
 
+		//elements in the list for finding the input and output file names
+		vector_of_the_comparing_strings.push_back("ufm_switch_output_file_name");
+		vector_of_the_comparing_strings.push_back("ufm_switch_input_file_name");
+
 		//Boolean values to see if we find all data we expect to see.
 		//It is possible someone points to a bad config file missing expected fields. 
 		//As we find vaild fields we will "turn on" these booleans, proving we found the data
@@ -258,6 +279,8 @@ int main(int argc, char *argv[])
 		//bool config_inventory_ufm_ufm_counters = false;    // sub field of 'ufm' called 'ufm_counters'
 		bool config_inventory_ufm_ufm_ssl_file_path = false;    // sub field of 'ufm' called 'ufm_ssl_file_path'
 		bool config_inventory_ufm_ufm_ssl_file_name = false;    // sub field of 'ufm' called 'ufm_ssl_file_name'
+		bool config_inventory_ufm_ufm_switch_output_file_name = false; // sub field of 'ufm' called 'ufm_switch_output_file_name'
+		bool config_inventory_ufm_ufm_switch_input_file_name = false;   // sub field of 'ufm' called 'ufm_switch_input_file_name'
 		
 		// reading the input file lines
 		//std::cout << "Reading master config file" << std::endl;
@@ -344,6 +367,19 @@ int main(int argc, char *argv[])
 							ssl_file_name = line;
 							config_inventory_ufm_ufm_ssl_file_name = true;
 							break;
+						case 10:
+							ufm_switch_output_file_name = line;
+							config_inventory_ufm_ufm_switch_output_file_name = true;
+							break;
+						case 11:
+							if(custom_input_override)
+							{
+								ufm_switch_input_file_name = override_path_and_filename;
+							}else{
+								ufm_switch_input_file_name = line;
+								config_inventory_ufm_ufm_switch_input_file_name = true;
+							}
+							break;
 					}
 				}
 			}
@@ -356,7 +392,9 @@ int main(int argc, char *argv[])
 			config_inventory_ufm_ib_cable_errors == false || 
 			config_inventory_ufm_switch_errors == false ||
 			config_inventory_ufm_ufm_ssl_file_path == false ||
-			config_inventory_ufm_ufm_ssl_file_name == false
+			config_inventory_ufm_ufm_ssl_file_name == false ||
+			config_inventory_ufm_ufm_switch_output_file_name == false ||
+			config_inventory_ufm_ufm_switch_input_file_name == false
 		)
 		{
 			std::cout << std::endl;
@@ -396,6 +434,20 @@ int main(int argc, char *argv[])
             {
             	std::cout << "Missing 'ssl_file_name' field. Setting this to a default vaule of: \"csm_ufm_ssl_key.txt\"" << std::endl;
             	ssl_file_name = "csm_ufm_ssl_key.txt";
+            }
+            if(config_inventory_ufm_ufm_switch_output_file_name == false)
+            {
+            	std::cout << "Missing 'ufm_switch_output_file_name' field. Setting this to a default vaule of: \"ufm_switch_output_file.json\"" << std::endl;
+            	ufm_switch_output_file_name = "ufm_switch_output_file.json";
+            }
+            if(config_inventory_ufm_ufm_switch_input_file_name == false)
+            {
+            	//only set default if the user hasn't overriden value.
+            	if(custom_input_override == false)
+            	{
+            		std::cout << "Missing 'ufm_switch_input_file_name' field. Setting this to a default vaule of: \"ufm_switch_output_file.json\"" << std::endl;
+            		ufm_switch_input_file_name = "ufm_switch_output_file.json";
+            	}
             }
             std::cout << "========" << std::endl;
             std::cout << std::endl;
@@ -539,7 +591,7 @@ int main(int argc, char *argv[])
 		{
 			int returnCode = 0;
 			// execute data collection for the switch cables
-			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors, custom_input_override, ufm_switch_output_file_name, ufm_switch_input_file_name);
 			if(returnCode == 1)
 			{
 				// return error
@@ -581,7 +633,7 @@ int main(int argc, char *argv[])
 		{
 			int returnCode = 0;
 			// execute data collection for the switch cables
-			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors, custom_input_override, ufm_switch_output_file_name, ufm_switch_input_file_name);
 			if(returnCode == 1)
 			{
 				// return error

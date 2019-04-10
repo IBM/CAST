@@ -363,16 +363,16 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			}
 
 			std::cout << "UFM reported " << total_ib_records << " IB records." << std::endl;
-			std::cout << "This report from UFM can be found in '" << ufm_ib_cable_output_filename << "' located at '" << csm_inv_log_dir << std::endl;
+			std::cout << "This report from UFM can be found in '" << ufm_ib_cable_output_filename << "' located at '" << csm_inv_log_dir << "'" << std::endl;
 	
 			if(NA_serials_count > 0){
 				std::cerr << "WARNING: " << NA_serials_count << " IB cables found with 'NA' serial numbers and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << std::endl;
+				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
 			}
 			
 			if(missing_cable_info_count > 0){
 				std::cerr << "WARNING: " << missing_cable_info_count << " IB cables found with no 'cable_info' and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << std::endl;
+				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
 			}
 
 			std::cout << std::endl;
