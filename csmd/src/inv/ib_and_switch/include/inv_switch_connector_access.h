@@ -44,7 +44,7 @@ public:
 
   static INV_SWITCH_CONNECTOR_ACCESS* GetInstance(){ if( _Instance == nullptr ){ _Instance = new INV_SWITCH_CONNECTOR_ACCESS(); } return _Instance; } // get the istance of the class object
   int GetCompiledWithSupport(); // get compiled_with_support_flag
-  int ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors); // execute data collection
+  int ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors, bool custom_input_override, std::string ufm_switch_output_file_name, std::string ufm_switch_input_file_name); // execute data collection
   std::string ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector); // return the value of the field
   std::string ReturnFieldValue_module(std::string key, unsigned long int module_number); // return the value of the field
   int TotalNumberOfRecords();
