@@ -472,7 +472,7 @@ def BB_GetTransferList(pMatchStatus, pNumHandles):
         raise BB_GetTransferListError(rc)
 
     l_HandleCount = min(pNumHandles, l_NumAvailHandles.value)
-    l_HandleArray = (c_uint64*l_HandleCount).from_address(addressof(l_Handles))
+    l_HandleArray = (c_ulonglong*l_HandleCount).from_address(addressof(l_Handles))
     l_Output = map(int, l_HandleArray)
 #    for i in xrange(l_HandleCount):
 #        l_Output.append(l_HandleArray[i])
