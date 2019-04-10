@@ -1848,7 +1848,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
         } else {
             if (rc == 0) {
                 getLogicalVolumeDevName(pLVUuid, l_DevName, sizeof(l_DevName));
-                rc = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
+                rc = doRemoveLogicalVolume(0, l_DevName);
                 if (rc) {
                     errorText << "Logical volume name of " << l_DevName << " could not be removed from volume group " << l_VolumeGroupName;
                     LOG(bb,error) << errorText.str();

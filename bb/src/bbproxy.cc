@@ -1543,75 +1543,84 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
         l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
         bberror << err("in.parms.handle", l_Handle);
 
-        // Switch to the uid/gid of requester.
-        switchIds();
-
-        // Resolve the contribid value
-        l_ContribId = getContribId(bbconnectionName);
-
-        LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
-
-        // Build the message to send to bbserver
-        txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
-        msgserver->addAttribute(txp::handle, l_Handle);
-        msgserver->addAttribute(txp::contribid, l_ContribId);
-
-        // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
-        delete msgserver;
-        msgserver = NULL;
-        if (rc)
+        if (l_Handle)
         {
-            errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-        }
+            // Switch to the uid/gid of requester.
+            switchIds();
 
-        // Wait for the response
-        rc = waitReply(reply, msgserver);
-        if (rc)
-        {
-            errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-        }
+            // Resolve the contribid value
+            l_ContribId = getContribId(bbconnectionName);
 
-        if (!msgserver)
+            LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
+
+            // Build the message to send to bbserver
+            txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
+            msgserver->addAttribute(txp::handle, l_Handle);
+            msgserver->addAttribute(txp::contribid, l_ContribId);
+
+            // Send the message to bbserver
+            rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+            delete msgserver;
+            msgserver = NULL;
+            if (rc)
+            {
+                errorText << "sendMessage to server failed";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+
+            // Wait for the response
+            rc = waitReply(reply, msgserver);
+            if (rc)
+            {
+                errorText << "waitReply failure";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+
+            if (!msgserver)
+            {
+                rc = -1;
+                errorText << "waitReply failure - null message returned";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+
+            rc = bberror.merge(msgserver);
+
+            // Process response data
+            // NOTE: If there is a failure indicated by a non-zero return code, the only fields that are returned
+            //       are handle, contribid, status and local status.  In that case, the status values will be BBNONE.
+            if (!rc)
+            {
+                l_JobId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobid))->getData();
+                l_JobStepId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobstepid))->getData();
+                l_Tag = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::tag))->getData();
+                l_NumContrib = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numcontrib))->getData();
+                l_Contrib = (uint32_t*)msgserver->retrieveAttrs()->at(txp::contrib)->getDataPtr();
+                l_NumReportingContribs = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numreportingcontribs))->getData();
+                l_TotalTransferKeyLength = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferKeyLength))->getData();
+                l_TotalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferSize))->getData();
+                l_LocalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localTransferSize))->getData();
+            }
+
+            l_Status = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::status))->getData();
+            l_LocalStatus = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localstatus))->getData();
+
+            delete msgserver;
+            msgserver = NULL;
+
+            char l_LocalStatusStr[64] = {'\0'};
+            char l_StatusStr[64] = {'\0'};
+            getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
+            getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
+            LOG(bb,info) << "msgin_gettransferinfo: handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
+            bberror << err("out.localstatus", l_LocalStatusStr) << err("out.status", l_StatusStr) \
+                    << err("out.localTransferSize", l_LocalTransferSize) << err("out.totalTransferSize", l_TotalTransferSize);
+        }
+        else
         {
             rc = -1;
-            errorText << "waitReply failure - null message returned";
+            errorText << "Invalid handle value " << l_Handle << "passed";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-
-        rc = bberror.merge(msgserver);
-
-        // Process response data
-        // NOTE: If there is a failure indicated by a non-zero return code, the only fields that are returned
-        //       are handle, contribid, status and local status.  In that case, the status values will be BBNONE.
-        if (!rc)
-        {
-            l_JobId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobid))->getData();
-            l_JobStepId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobstepid))->getData();
-            l_Tag = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::tag))->getData();
-            l_NumContrib = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numcontrib))->getData();
-            l_Contrib = (uint32_t*)msgserver->retrieveAttrs()->at(txp::contrib)->getDataPtr();
-            l_NumReportingContribs = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numreportingcontribs))->getData();
-            l_TotalTransferKeyLength = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferKeyLength))->getData();
-            l_TotalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferSize))->getData();
-            l_LocalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localTransferSize))->getData();
-        }
-
-        l_Status = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::status))->getData();
-        l_LocalStatus = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localstatus))->getData();
-
-        delete msgserver;
-        msgserver = NULL;
-
-        char l_LocalStatusStr[64] = {'\0'};
-        char l_StatusStr[64] = {'\0'};
-        getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
-        getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
-        LOG(bb,info) << "msgin_gettransferinfo: handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
-        bberror << err("out.localstatus", l_LocalStatusStr) << err("out.status", l_StatusStr) \
-                << err("out.localTransferSize", l_LocalTransferSize) << err("out.totalTransferSize", l_TotalTransferSize);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)

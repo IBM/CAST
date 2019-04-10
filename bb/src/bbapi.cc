@@ -354,7 +354,7 @@ int BB_GetVersion(size_t size, char* APIVersion)
         if (!APIVersion)
         {
             rc = EINVAL;
-            errorText << "Null parameter APIVersion";
+            errorText << "Invalid null parameter APIVersion";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
@@ -410,7 +410,7 @@ int BB_CreateTransferDef(BBTransferDef_t** transfer)
         if (!transfer)
         {
             rc = EINVAL;
-            errorText << "Null parameter transfer";
+            errorText << "Invalid null parameter transfer";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
@@ -538,7 +538,7 @@ int BB_AddFiles(BBTransferDef_t* transfer, const char* source, const char* targe
         else if (!source[0])
         {
             rc = EINVAL;
-            errorText << "Parameter source is NULL string";
+            errorText << "Invalid null string passed as source file";
 //            cerr << errorText << endl;
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
@@ -553,7 +553,7 @@ int BB_AddFiles(BBTransferDef_t* transfer, const char* source, const char* targe
         else if (!target[0])
         {
             rc = EINVAL;
-            errorText << "Parameter target is NULL string";
+            errorText << "Invalid null string passed as target file";
 //            cerr << errorText << endl;
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
@@ -1225,7 +1225,7 @@ int BB_GetTransferList(BBSTATUS pMatchStatus, uint64_t* pNumHandles, BBTransferH
         if (!pHandles)
         {
             rc = EINVAL;
-            errorText << "Invalid null parameter handle";
+            errorText << "Invalid null parameter handles";
 //            cerr << errorText << endl;
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
@@ -1321,7 +1321,7 @@ int BB_GetTransferInfo(BBTransferHandle_t pHandle, BBTransferInfo_t* pInfo)
         if (!pInfo)
         {
             rc = EINVAL;
-            errorText << "Invalid null parameter for return information";
+            errorText << "Invalid null parameter for return transfer information";
 //            cerr << errorText << endl;
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
@@ -2125,6 +2125,12 @@ int BB_GetServerByName(const char* bbserverName, const char* type,size_t bufsize
     ResponseDescriptor reply;
     txp::Msg* msg = 0;
     try{
+        if (!type)
+        {
+            rc = EFAULT;
+            errorText << "Invalid null parameter type";
+            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+        }
         string l_type=type;
         BBServerQuery l_query=BBWAITFOREPLYCOUNT;;
         if (l_type=="waitforreplycount"){
@@ -2132,18 +2138,18 @@ int BB_GetServerByName(const char* bbserverName, const char* type,size_t bufsize
         }
         else {
             rc=EINVAL;
-            errorText << "Parameter type is invalid--expecting all, active, or ready";
+            errorText << "Invalid type value " << l_type << " passed.  Expecting all, active, or ready";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         if (!bufsize){
             rc = EINVAL;
-            errorText << "Parameter bufsize is 0";
+            errorText << "Invalid bufsize " << bufsize << " passed";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         if (!buffer)
         {
             rc = EFAULT;
-            errorText << "Parameter buffer is NULL";
+            errorText << "Invalid null parameter buffer";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
@@ -2194,7 +2200,7 @@ int BB_GetServer(const char* type, size_t bufsize, char* buffer)
         if (!type)
         {
             rc = EFAULT;
-            errorText << "Parameter type is NULL";
+            errorText << "Invalid null parameter type";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         string l_type=type;
@@ -2216,19 +2222,19 @@ int BB_GetServer(const char* type, size_t bufsize, char* buffer)
         }
         else {
             rc=EINVAL;
-            errorText << "Parameter type is invalid--expecting all, active, or ready";
+            errorText << "Invalid type value " << l_type << " passed.  Expecting all, active, or ready";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
         if (!bufsize){
             rc = EINVAL;
-            errorText << "Parameter bufsize is 0";
+            errorText << "Invalid bufsize " << bufsize << " passed";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         if (!buffer)
         {
             rc = EFAULT;
-            errorText << "Parameter buffer is NULL";
+            errorText << "Invalid null parameter buffer";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
 
@@ -2280,13 +2286,13 @@ int BB_SetServer(const char * type, const char* buffer){
         if ( (!type) || (!type[0]) )
         {
             rc = EFAULT;
-            errorText << "Parameter type is NULL or 0 length";
+            errorText << "Invalid null parameter type or zero length string passed for type";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         if ( (!buffer) || (!strlen(buffer) ) )
         {
             rc = EINVAL;
-            errorText << "Parameter buffer is NULL or 0 length string";
+            errorText << "Invalid null parameter buffer or zero length string passed for buffer";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         txp::Msg::buildMsg(txp::BB_SETSERVER, msg);
@@ -2324,7 +2330,7 @@ int BB_OpenServer(const char* buffer){
         if ( (!buffer) || (!strlen(buffer) ) )
         {
             rc = EINVAL;
-            errorText << "Parameter buffer is NULL or 0 length string";
+            errorText << "Invalid null parameter buffer or zero length string passed for buffer";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         txp::Msg::buildMsg(txp::BB_OPENSERVER, msg);
@@ -2362,7 +2368,7 @@ int BB_CloseServer(const char* buffer){
         if ( (!buffer) || (!strlen(buffer) ) )
         {
             rc = EINVAL;
-            errorText << "Parameter buffer is NULL or 0 length string";
+            errorText << "Invalid null parameter buffer or zero length string passed for buffer";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         txp::Msg::buildMsg(txp::BB_CLOSESERVER, msg);
