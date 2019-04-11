@@ -24,6 +24,7 @@
 #include "connections.h"
 #include "LVLookup.h"
 #include "bbconndata.h"
+#include "bbGrabStderr.h"
 
 #if BBPROXY
 #include "bbproxy_flightlog.h"
@@ -502,6 +503,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             LOG(bb,info) << "csm_bb_cmd:  node[" << x << "]=" << in.node_names[x];
         }
 
+        GrabStderr grabstderr;
         FL_Write(FLCSM, CSMBBCMD, "CSM: call csm_bb_cmd to %ld compute nodes",in.node_names_count,0,0,0);
         rc = csm_bb_cmd(&csmhandle, &in, &out);
         FL_Write(FLCSM, CSMBBCMDRC, "CSM: call csm_bb_cmd.  rc=%ld",rc,0,0,0);
@@ -536,7 +538,9 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
                 results.emplace_back();
                 results.back().put(to_string(rank) + ".rc", rc);
                 results.back().put(to_string(rank) + ".error.text", "csm_bb_cmd failure");
-            }
+                char * l_buffer = grabstderr.getStdErrBuffer();
+                if (l_buffer[0]!=0) results.back().put(to_string(rank) + ".error.stderr", l_buffer);
+            }   
         }
     }
     free(nodenames);
