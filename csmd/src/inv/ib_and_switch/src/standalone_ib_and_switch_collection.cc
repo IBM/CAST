@@ -72,10 +72,11 @@ void help(){
 	puts("                  |                               | ");
 	puts("  OPTIONAL:");
 	puts("    standalone_ib_and_switch_collection can have 1 optional parameters");
-	puts("    Argument      | Example value  | Description  ");                                                 
-	puts("    --------------|----------------|--------------");
-	puts("    -d, --details | NOT APPLICABLE | (FLAG) Turn on a more detailed output for UFM inventory collection.");
-	puts("                  |                | ");
+	puts("    Argument             | Example value       | Description  ");                                                 
+	puts("    ---------------------|---------------------|--------------");
+	puts("    -d, --details        | NOT APPLICABLE      | (FLAG) Turn on a more detailed output for UFM inventory collection.");
+	puts("    -i, --input_override | \"/temp/myFile.json\" | (STRING) Override the input field in the master config file.");
+	puts("                         |                     | ");
 	puts("");
     puts("GENERAL OPTIONS:");
     puts("[-h, --help]                  | Help.");
@@ -89,11 +90,12 @@ void help(){
 
 struct option longopts[] = {
     //general options
-    {"help",    no_argument,       0, 'h'},
-    {"verbose", required_argument, 0, 'v'},
-	{"config",  required_argument, 0, 'c'},
-	{"type",    required_argument, 0, 't'},
-	{"details", no_argument,       0, 'd'},
+    {"help",           no_argument,       0, 'h'},
+    {"verbose",        required_argument, 0, 'v'},
+	{"config",         required_argument, 0, 'c'},
+	{"type",           required_argument, 0, 't'},
+	{"details",        no_argument,       0, 'd'},
+	{"input_override", required_argument, 0, 'i'},
     {0,0,0,0}
 };
 
@@ -123,6 +125,9 @@ int main(int argc, char *argv[])
     //int i = 0;
     // value to help with some prints. informs if they should print or not.
     bool details = false; 
+    //override the path and filename for switch input to be read from 'inv_switch_connector_access'
+    bool custom_input_override = false;
+    std::string override_path_and_filename = "";
 	
     int totalSwitchRecords = 0;
     int totalIBRecords = 0;
@@ -138,7 +143,7 @@ int main(int argc, char *argv[])
 	requiredParameterCounter++;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:c:dt:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hv:c:di:t:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
@@ -151,6 +156,10 @@ int main(int argc, char *argv[])
                 break;
 			case 'd':
 				details = true;
+			    break;
+			case 'i':
+				custom_input_override = true;
+				override_path_and_filename = strdup(optarg);
 			    break;
 			case 't':
 				type_of_collection = std::atol(optarg);
@@ -206,6 +215,14 @@ int main(int argc, char *argv[])
 	std::string csm_inv_log_dir = "";
 	std::string ib_cable_errors = "";
 	std::string switch_errors = "";
+	std::string ufm_switch_output_file_name = "";
+	std::string ufm_switch_input_file_name = "";
+
+	if(custom_input_override)
+	{
+		ufm_switch_input_file_name = override_path_and_filename;
+	}
+
 	std::string ssl_file_path = "";
 	std::string ssl_file_name = "";
 
@@ -246,6 +263,10 @@ int main(int argc, char *argv[])
 		vector_of_the_comparing_strings.push_back("ufm_ssl_file_path");
 		vector_of_the_comparing_strings.push_back("ufm_ssl_file_name");
 
+		//elements in the list for finding the input and output file names
+		vector_of_the_comparing_strings.push_back("ufm_switch_output_file_name");
+		vector_of_the_comparing_strings.push_back("ufm_switch_input_file_name");
+
 		//Boolean values to see if we find all data we expect to see.
 		//It is possible someone points to a bad config file missing expected fields. 
 		//As we find vaild fields we will "turn on" these booleans, proving we found the data
@@ -258,6 +279,8 @@ int main(int argc, char *argv[])
 		//bool config_inventory_ufm_ufm_counters = false;    // sub field of 'ufm' called 'ufm_counters'
 		bool config_inventory_ufm_ufm_ssl_file_path = false;    // sub field of 'ufm' called 'ufm_ssl_file_path'
 		bool config_inventory_ufm_ufm_ssl_file_name = false;    // sub field of 'ufm' called 'ufm_ssl_file_name'
+		bool config_inventory_ufm_ufm_switch_output_file_name = false; // sub field of 'ufm' called 'ufm_switch_output_file_name'
+		bool config_inventory_ufm_ufm_switch_input_file_name = false;   // sub field of 'ufm' called 'ufm_switch_input_file_name'
 		
 		// reading the input file lines
 		//std::cout << "Reading master config file" << std::endl;
@@ -344,6 +367,19 @@ int main(int argc, char *argv[])
 							ssl_file_name = line;
 							config_inventory_ufm_ufm_ssl_file_name = true;
 							break;
+						case 10:
+							ufm_switch_output_file_name = line;
+							config_inventory_ufm_ufm_switch_output_file_name = true;
+							break;
+						case 11:
+							if(custom_input_override)
+							{
+								ufm_switch_input_file_name = override_path_and_filename;
+							}else{
+								ufm_switch_input_file_name = line;
+								config_inventory_ufm_ufm_switch_input_file_name = true;
+							}
+							break;
 					}
 				}
 			}
@@ -356,7 +392,9 @@ int main(int argc, char *argv[])
 			config_inventory_ufm_ib_cable_errors == false || 
 			config_inventory_ufm_switch_errors == false ||
 			config_inventory_ufm_ufm_ssl_file_path == false ||
-			config_inventory_ufm_ufm_ssl_file_name == false
+			config_inventory_ufm_ufm_ssl_file_name == false ||
+			config_inventory_ufm_ufm_switch_output_file_name == false ||
+			config_inventory_ufm_ufm_switch_input_file_name == false
 		)
 		{
 			std::cout << std::endl;
@@ -396,6 +434,20 @@ int main(int argc, char *argv[])
             {
             	std::cout << "Missing 'ssl_file_name' field. Setting this to a default vaule of: \"csm_ufm_ssl_key.txt\"" << std::endl;
             	ssl_file_name = "csm_ufm_ssl_key.txt";
+            }
+            if(config_inventory_ufm_ufm_switch_output_file_name == false)
+            {
+            	std::cout << "Missing 'ufm_switch_output_file_name' field. Setting this to a default vaule of: \"ufm_switch_output_file.json\"" << std::endl;
+            	ufm_switch_output_file_name = "ufm_switch_output_file.json";
+            }
+            if(config_inventory_ufm_ufm_switch_input_file_name == false)
+            {
+            	//only set default if the user hasn't overriden value.
+            	if(custom_input_override == false)
+            	{
+            		std::cout << "Missing 'ufm_switch_input_file_name' field. Setting this to a default vaule of: \"ufm_switch_output_file.json\"" << std::endl;
+            		ufm_switch_input_file_name = "ufm_switch_output_file.json";
+            	}
             }
             std::cout << "========" << std::endl;
             std::cout << std::endl;
@@ -539,7 +591,7 @@ int main(int argc, char *argv[])
 		{
 			int returnCode = 0;
 			// execute data collection for the switch cables
-			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors, custom_input_override, ufm_switch_output_file_name, ufm_switch_input_file_name);
 			if(returnCode == 1)
 			{
 				// return error
@@ -581,7 +633,7 @@ int main(int argc, char *argv[])
 		{
 			int returnCode = 0;
 			// execute data collection for the switch cables
-			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors);
+			returnCode = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ExecuteDataCollection(rest_address,authentication_string_for_the_http_request, csm_inv_log_dir, switch_errors, custom_input_override, ufm_switch_output_file_name, ufm_switch_input_file_name);
 			if(returnCode == 1)
 			{
 				// return error
@@ -750,9 +802,6 @@ int main(int argc, char *argv[])
 		SWITCHinput->inventory_count = totalSwitchRecords;
 		// create memory for it
 		SWITCHinput->inventory = (csmi_switch_details_t**)calloc(SWITCHinput->inventory_count, sizeof(csmi_switch_details_t*));
-		
-		//temp tracker to address switch connector string format of data collection 
-		int modules_tracker = 0; // module field tracker
 
 		// loop through copy
 		// will most likely be something like
@@ -831,28 +880,27 @@ int main(int argc, char *argv[])
 				csm_init_struct_ptr(csmi_switch_inventory_record_t, SWITCHinput->inventory[i]->inventory[j]);
 				
 				// individual module fields  
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->status           = strdup(temp_string.c_str());
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->hw_version       = strdup(temp_string.c_str());
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->name             = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("status", j);          SWITCHinput->inventory[i]->inventory[j]->status           = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("hw_version", j);      SWITCHinput->inventory[i]->inventory[j]->hw_version       = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("name", j);            SWITCHinput->inventory[i]->inventory[j]->name             = strdup(temp_string.c_str());
+				                                                                                                         SWITCHinput->inventory[i]->inventory[j]->host_system_guid = strdup(SWITCHinput->inventory[i]->switch_data->switch_name);
 				
-				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->host_system_guid = strdup(SWITCHinput->inventory[i]->switch_data->switch_name);
-				
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = -1.0;
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("number_of_chips", j); SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = -1.0;
 
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->description      = strdup(temp_string.c_str()); 
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("description", j);     SWITCHinput->inventory[i]->inventory[j]->description      = strdup(temp_string.c_str()); 
 				
 				//check for special "system" which is a UFM hack to give us main serial number
-				if(strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "SYSTEM") == 0)
+				if(strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "system") == 0 || strcmp(SWITCHinput->inventory[i]->inventory[j]->description, "SYSTEM") == 0)
 				{
 					isSystem = true;
 				}
 
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->max_ib_ports     = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->max_ib_ports  = -1.0; 
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("max_ib_ports", j);    SWITCHinput->inventory[i]->inventory[j]->max_ib_ports     = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->max_ib_ports  = -1.0; 
 				//fw version , can go here
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->module_index     = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->module_index  = -1.0;
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("module_index", j);    SWITCHinput->inventory[i]->inventory[j]->module_index     = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->module_index  = -1.0;
 				//temperature we aren't gathering.
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->device_type      = strdup(temp_string.c_str());
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->serial_number    = strdup(temp_string.c_str());  
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("device_type", j);     SWITCHinput->inventory[i]->inventory[j]->device_type      = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("serial_number", j);   SWITCHinput->inventory[i]->inventory[j]->serial_number    = strdup(temp_string.c_str());  
 				//if this is the system module then copy the serial number back to the main switch record. 
 				//For now, we decided to keep this "hack" module in the CSM database.
 				//maybe in the future, we may decided to not record the "system" module
@@ -864,13 +912,13 @@ int main(int argc, char *argv[])
 					}
 					SWITCHinput->inventory[i]->switch_data->serial_number = strdup(SWITCHinput->inventory[i]->inventory[j]->serial_number); 
 				}
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->path             = strdup(temp_string.c_str()); 
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->device_name      = strdup(temp_string.c_str());
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("path", j);             SWITCHinput->inventory[i]->inventory[j]->path             = strdup(temp_string.c_str()); 
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("device_name", j);      SWITCHinput->inventory[i]->inventory[j]->device_name      = strdup(temp_string.c_str());
 				//type field
-				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(24, modules_tracker); modules_tracker++; SWITCHinput->inventory[i]->inventory[j]->severity         = strdup(temp_string.c_str());
-				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->discovery_time   = strdup(strdup("N/A"));                                      
-				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->collection_time  = strdup(strdup("N/A"));                                      
-				                                                                                                                    SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A"));                                      
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("severity", j);         SWITCHinput->inventory[i]->inventory[j]->severity         = strdup(temp_string.c_str());
+				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->discovery_time   = strdup(strdup("N/A"));                                      
+				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->collection_time  = strdup(strdup("N/A"));                                      
+				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A"));                                    
 			}
 			//resume base switch information
 			                                                                                 
