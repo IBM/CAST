@@ -716,14 +716,15 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
             {
                 // rc=0 indicates that an existing LVKey was not found and a new one was added
                 // rc=1 indicates that an existing LVKey was found
-
+                string l_Text = (rc == 0 ? "created new into" : "found and reused from");
                 rc = 0;
                 l_Continue = 0;
                 // Log the input/results
                 Uuid lv_uuid = l_LVKey.second;
                 lv_uuid.copyTo(lv_uuid_str);
-                LOG(bb,info) << "getHandle: " << l_LVKey << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", numcontrib " << l_NumContrib \
-                             << ", contrib " << l_Temp.str() << " -> handle " << l_Handle;
+                LOG(bb,info) << "getHandle: hostname " << l_HostName << ", " << l_LVKey << ", job" << l_JobStr.str() \
+                             << ", tag " << l_Tag << ", numcontrib " << l_NumContrib << ", contrib " << l_Temp.str() \
+                             << " -> handle " << l_Handle << ". Handle value was " << l_Text << " the local cache.";
             }
             else
             {
@@ -749,9 +750,9 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                         // Display this message every 15 seconds...
                         FL_Write(FLDelay, GetHandleWaitForLVKey, "Attempting to get the transfer handle for jobid %ld, jobstepid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
                                  l_Job.getJobId(), l_Job.getJobStepId(), (uint64_t)l_Continue, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_gettransferhandle: Attempting to get the transfer handle for jobid " << l_Job.getJobId() \
-                                     << ", jobstepid " << l_Job.getJobStepId() << ". Delay of 1 second before retry. " << l_Continue \
-                                     << " seconds remain waiting for the LVKey.";
+                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_gettransferhandle: Hostname " << l_HostName << ", " << l_LVKey \
+                                     << " attempting to get the transfer handle for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                     << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the LVKey.";
                     }
                     usleep((useconds_t)1000000);    // Delay 1 second
                 }
