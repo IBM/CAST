@@ -2,7 +2,7 @@
 
     csmd/src/inv/src/inv_dcgm_access.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -765,7 +765,7 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
          return false;
       }
 
-      dcgmFieldValue_t csm_allocation_field_values[CSM_ALLOCATION_FIELD_COUNT]; 
+      dcgmFieldValue_v1 csm_allocation_field_values[CSM_ALLOCATION_FIELD_COUNT]; 
 
       // scanning the gpus
       for (int i = 0; i < dcgm_gpu_count; i++)
@@ -842,7 +842,7 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
    
    dcgmReturn_t rc(DCGM_ST_OK);
    
-   dcgmFieldValue_t csm_environmental_field_values[CSM_ENVIRONMENTAL_FIELD_COUNT]; 
+   dcgmFieldValue_v1 csm_environmental_field_values[CSM_ENVIRONMENTAL_FIELD_COUNT]; 
 
    // scan the gpus
    for (int i = 0; i < dcgm_gpu_count; i++)
@@ -902,8 +902,14 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
             }
             else
             {
-               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
-                                  << " unexpected case!";
+               LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                    << " unexpected case!";
+            
+               LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                    << " version = " << csm_environmental_field_values[j].version
+                                    << " fieldId = " << csm_environmental_field_values[j].fieldId
+                                    << " fieldType = " << csm_environmental_field_values[j].fieldType
+                                    << " status = " << csm_environmental_field_values[j].status;
             }
          }
 
