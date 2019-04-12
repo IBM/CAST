@@ -128,6 +128,43 @@ int ContribIdFile::isStopped(const BBJob pJob, const uint64_t pHandle, const uin
     return rc;
 }
 
+string ContribIdFile::isServicedBy(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId)
+{
+    string l_ServicingHostname = "";
+    ContribIdFile* l_ContribIdFile = 0;
+
+    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    l_HandleFilePath /= bfs::path(to_string(pJob.getJobId()));
+    l_HandleFilePath /= bfs::path(to_string(pJob.getJobStepId()));
+    l_HandleFilePath /= bfs::path(to_string(pHandle));
+
+    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
+    if (rc >= 0)
+    {
+        // Process the contribid file
+        if (rc == 1 && l_ContribIdFile)
+        {
+            l_ServicingHostname = l_ContribIdFile->hostname;
+        }
+        else
+        {
+            // Could be normal...
+        }
+    }
+    else
+    {
+        // Could be normal...
+    }
+
+    if (l_ContribIdFile)
+    {
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+
+    return l_ServicingHostname;
+}
+
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid)
 {
     int rc = 0;

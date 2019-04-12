@@ -4021,7 +4021,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             if (nowActive!=serverName)
             {
                 rc = makeActivebbserver(serverName);
-                bberror << err("inbbproxy.activeServerAfterActivate",connectionNameFromAlias());
+                bberror << err("inbbproxy.activeServerAfterActivate", connectionNameFromAlias());
                 if (!rc)
                 {
                     // Now register the known Burst Buffer logical volumes to the new bbServer.
@@ -4126,10 +4126,9 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                         }
                         else
                         {
-                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
-                                      << ". The logical volume associated with this device will not be registered to the new bbServer." \
-                                      << ". Processing continues for additional burst buffers logical volumes.";
-                            LOG_ERROR_TEXT(errorText);
+                            LOG(bb,error) << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
+                                          << ". The logical volume associated with this device will not be registered to the new bbServer." \
+                                          << ". Processing continues for additional burst buffers logical volumes.";
                         }
                         rc = 0;
                     }
