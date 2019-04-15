@@ -818,7 +818,7 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
                     // NOTE: No need to catch the return code.  If the append doesn't work,
                     //       appendAsyncRequest() will log the failure...
                     char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-                    snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s %s", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, pCN_HostName.c_str(), l_TransferStatusStr);
+                    snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "handle %lu %lu %lu 0 0 %s %s", pTagId.getJobId(), pTagId.getJobStepId(), pHandle, pCN_HostName.c_str(), l_StatusStr);
                     AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
                     wrkqmgr.appendAsyncRequest(l_Request);
                     pAppendAsyncRequestFlag = ASYNC_REQUEST_HAS_BEEN_APPENDED;
