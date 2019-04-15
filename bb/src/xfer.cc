@@ -1625,7 +1625,7 @@ void* transferWorker(void* ptr)
                         //        entries to still be processed.
                         if (!l_LV_Info->hasCanceledExtents())
                         {
-                            // Work queue does not have any cancelled extents.
+                            // Work queue does not have any canceled extents.
                             // Do not process the next work item.
                             l_ProcessNextWorkItem = false;
                         }
