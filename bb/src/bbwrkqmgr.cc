@@ -1167,10 +1167,10 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                     // Get the LVKey and taginfo2 for this work item...
                     l_Key = (qe->second->getWrkQ()->front()).getLVKey();
                     l_LV_Info = metadata.getLV_Info(&l_Key);
-                    if (l_LV_Info && ((l_LV_Info->getNextExtentInfo().getExtent()->isCanceled())))
+                    if (l_LV_Info && ((l_LV_Info->hasCanceledExtents())))
                     {
-                        // Next extent is canceled...  Don't look any further
-                        // and simply return this work queue.
+                        // Next extent to be transferred is canceled...
+                        // Don't look any further and simply return this work queue.
                         pWrkQE = qe->second;
                         pWrkQE->dump("debug", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
                         break;

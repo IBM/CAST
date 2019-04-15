@@ -1617,13 +1617,16 @@ void* transferWorker(void* ptr)
                         // NOTE:  This will never be the case for the high-priority
                         //        work queue (async requests)
                         //
-                        // If for a canceled extent (stopped transfer definitions also have 'canceled' extents),
-                        // process the entry as we would any other entry.  Because it is for a canceled,
-                        // or stopped, transfer definition, the extent will simply be removed from the work queue
-                        // and any metadata is updated as necessary.
-                        if (!l_Extent->isCanceled())
+                        // Check for canceled extents. If this work queue has canceled extents, continue to
+                        // process the next work item.
+                        // NOTE:  'Dummy' extents for non-transfers (local/remote CP) could also exist on the work
+                        //        queue. It is possible that we could also process one of those entries instead of a
+                        //        canceled extent. Therefore even is suspended, it is possible for local/remote CP
+                        //        entries to still be processed.
+                        if (!l_LV_Info->hasCanceledExtents())
                         {
-                            // Not for a canceled extent.  Do not process the next work item.
+                            // Work queue does not have any cancelled extents.
+                            // Do not process the next work item.
                             l_ProcessNextWorkItem = false;
                         }
                     }

@@ -187,6 +187,10 @@ class BBLV_Info
         return tagInfoMap.getTransferHandles(pHandles, pJob, pMatchStatus, pStageOutStarted);
     }
 
+    inline int hasCanceledExtents() {
+        return extentInfo.hasCanceledExtents();
+    }
+
     inline int hasContribId(const uint32_t pContribId) {
         return tagInfoMap.hasContribId(pContribId);
     };
