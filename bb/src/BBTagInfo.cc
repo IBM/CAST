@@ -346,7 +346,7 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
 
                     if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
                     {
-                        l_Handle = stoul(handle.path().filename().string());
+                        l_Handle = stoull(handle.path().filename().string());
                     }
                     else
                     {
