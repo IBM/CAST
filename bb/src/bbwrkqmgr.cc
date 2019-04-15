@@ -507,7 +507,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                         LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
                                       << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                      << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                                      << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
                         if (outOfOrderOffsets.size())
                         {
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
@@ -537,7 +537,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                         LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
                                      << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                     << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                                     << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
                         if (outOfOrderOffsets.size())
                         {
                             LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
@@ -633,6 +633,21 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
     }
 
     heartbeatDumpCount = 0;
+
+    return;
+}
+
+void WRKQMGR::endProcessingHP_Request(AsyncRequest& pRequest)
+{
+    string l_Data = pRequest.getData();
+    for (auto it=inflightHP_Requests.begin(); it!=inflightHP_Requests.end(); ++it)
+    {
+        if (*it == l_Data)
+        {
+            inflightHP_Requests.erase(it);
+            break;
+        }
+    }
 
     return;
 }
@@ -1726,6 +1741,28 @@ void WRKQMGR::setThrottleTimerPoppedCount(const double pTimerInterval)
     }
 
     return;
+}
+
+int WRKQMGR::startProcessingHP_Request(AsyncRequest& pRequest)
+{
+    int rc = 0;
+
+    string l_Data = pRequest.getData();
+    for (auto it=inflightHP_Requests.begin(); it!=inflightHP_Requests.end(); ++it)
+    {
+        if (*it == l_Data)
+        {
+            rc = -1;
+            break;
+        }
+    }
+
+    if (!rc)
+    {
+        inflightHP_Requests.push_back(l_Data);
+    }
+
+    return rc;
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.

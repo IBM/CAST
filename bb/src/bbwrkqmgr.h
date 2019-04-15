@@ -616,6 +616,7 @@ class WRKQMGR
     int createAsyncRequestFile(const char* pAsyncRequestFileName);
     void dump(const char* pSev, const char* pPrefix, DUMP_OPTION pOption=DUMP_ALWAYS);
     void dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPostfix);
+    void endProcessingHP_Request(AsyncRequest& pRequest);
     int findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset);
     void dumpHeartbeatData(const char* pSev, const char* pPrefix=0);
     int findWork(const LVKey* pLVKey, WRKQE* &pWrkQE);
@@ -638,6 +639,7 @@ class WRKQMGR
     int setSuspended(const LVKey* pLVKey, const int pValue);
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
     void setThrottleTimerPoppedCount(const double pTimerInterval);
+    int startProcessingHP_Request(AsyncRequest& pRequest);
     void unlock(const LVKey* pLVKey, const char* pMethod);
     void unpinLock(const LVKey* pLVKey, const char* pMethod);
     void updateHeartbeatData(const string& pHostName);
@@ -677,6 +679,7 @@ class WRKQMGR
     map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;
     vector<uint64_t>    outOfOrderOffsets;
+    vector<string>      inflightHP_Requests;
   private:
     int                 lockPinned;
     volatile int        checkForCanceledExtents;

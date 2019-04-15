@@ -128,141 +128,152 @@ void processAsyncRequest(WorkID& pWorkItem)
     {
         if (!l_Request.sameHostName())
         {
-            char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-            char l_Str1[64] = {'\0'};
-            char l_Str2[64] = {'\0'};
-            uint64_t l_JobId = UNDEFINED_JOBID;
-            uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
-            uint64_t l_Handle = UNDEFINED_HANDLE;
-            uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-            uint64_t l_CancelScope = 0;
-
-            // Process the request
-            bool l_LogAsInfo = true;
-            rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
-            if (rc == 8)
+            if (!wrkqmgr.startProcessingHP_Request(l_Request))
             {
-                if (strstr(l_Cmd, "heartbeat"))
-                {
-                    l_LogAsInfo = false;
-                    LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
-                                  << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                }
-                else
-                {
-                    LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
-                                 << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                }
+                // Process the request
+                char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+                char l_Str1[64] = {'\0'};
+                char l_Str2[64] = {'\0'};
+                uint64_t l_JobId = UNDEFINED_JOBID;
+                uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
+                uint64_t l_Handle = UNDEFINED_HANDLE;
+                uint32_t l_ContribId = UNDEFINED_CONTRIBID;
+                uint64_t l_CancelScope = 0;
 
-                rc = 0;
-                if (strcmp(l_Str1, "''") == 0)
+                bool l_LogAsInfo = true;
+                rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
+                if (rc == 8)
                 {
-                    l_Str1[0] = '\0';
-                }
-                if (strcmp(l_Str2, "''") == 0)
-                {
-                    l_Str2[0] = '\0';
-                }
-                if (strstr(l_Cmd, "cancel"))
-                {
-                    // Process cancel request...
-                    if (strstr(l_Str1, "cancelrequest"))
+                    if (strstr(l_Cmd, "heartbeat"))
                     {
-                        // This was a direct cancel request from a given compute node to the bbServer servicing
-                        // that CN at the request's hostname.  That request is now being propagated to all other bbServers...
-                        rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
-                    }
-                    else if (strstr(l_Str1, "stoprequest"))
-                    {
-                        // This was a direct stop transfers request that is now being propagated to all other bbServers...
-                        rc = metadata.stopTransfer(l_Request.getHostName(), l_Str2, l_JobId, l_JobStepId, l_Handle, l_ContribId);
+                        l_LogAsInfo = false;
+                        LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                      << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                      << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
                     else
                     {
-                        LOG(bb,error) << "Invalid data indicating type of cancel operation from request data " << l_Request.getData() << " to this bbServer";
+                        LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                     << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                     << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
 
-                    // NOTE: The rc value could be returned as position indicating a non-error...
-                    if (rc < 0)
+                    rc = 0;
+                    if (strcmp(l_Str1, "''") == 0)
                     {
-                        LOG(bb,error) << "Failure when attempting to propagate cancel operation " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                        l_Str1[0] = '\0';
                     }
-                    wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                }
-
-                else if (strstr(l_Cmd, "handle"))
-                {
-                    // Process the handle status request...
-                    // NOTE:  We send the completion message here because some other bbServer has updated the
-                    //        status for the handle.  This is the mechanism used to notify handle status changes
-                    //        to other bbServers that have already finished processing a handle.  However,
-                    //        if a bbServer still has extents on a work queue for the handle in question, a status
-                    //        change will be sent here and also might be sent again when this bbServer processes
-                    //        that last extent for the handle.  This is probably only in the status case of BBFAILED.
-                    BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
-                    metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
-                    wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                }
-
-                else if (strstr(l_Cmd, "heartbeat"))
-                {
-                    // Process a heartbeat from another bbServer...
-                    wrkqmgr.updateHeartbeatData(l_Request.getHostName(), l_Str2);
-                }
-
-                else if (strstr(l_Cmd, "removejobinfo"))
-                {
-                    rc = removeJobInfo(l_Request.getHostName(), l_JobId);
-                    if (rc)
+                    if (strcmp(l_Str2, "''") == 0)
                     {
-                        if (rc != -2)
+                        l_Str2[0] = '\0';
+                    }
+                    if (strstr(l_Cmd, "cancel"))
+                    {
+                        // Process cancel request...
+                        if (strstr(l_Str1, "cancelrequest"))
+                        {
+                            // This was a direct cancel request from a given compute node to the bbServer servicing
+                            // that CN at the request's hostname.  That request is now being propagated to all other bbServers...
+                            rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                        }
+                        else if (strstr(l_Str1, "stoprequest"))
+                        {
+                            // This was a direct stop transfers request that is now being propagated to all other bbServers...
+                            rc = metadata.stopTransfer(l_Request.getHostName(), l_Str2, l_JobId, l_JobStepId, l_Handle, l_ContribId);
+                        }
+                        else
+                        {
+                            LOG(bb,error) << "Invalid data indicating type of cancel operation from request data " << l_Request.getData() << " to this bbServer";
+                        }
+
+                        // NOTE: The rc value could be returned as position indicating a non-error...
+                        if (rc < 0)
+                        {
+                            LOG(bb,error) << "Failure when attempting to propagate cancel operation " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                        }
+                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                    }
+
+                    else if (strstr(l_Cmd, "handle"))
+                    {
+                        // Process the handle status request...
+                        // NOTE:  We send the completion message here because some other bbServer has updated the
+                        //        status for the handle.  This is the mechanism used to notify handle status changes
+                        //        to other bbServers that have already finished processing a handle.  However,
+                        //        if a bbServer still has extents on a work queue for the handle in question, a status
+                        //        change will be sent here and also might be sent again when this bbServer processes
+                        //        that last extent for the handle.  This is probably only in the status case of BBFAILED.
+                        BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
+                        metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
+                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                    }
+
+                    else if (strstr(l_Cmd, "heartbeat"))
+                    {
+                        // Process a heartbeat from another bbServer...
+                        wrkqmgr.updateHeartbeatData(l_Request.getHostName(), l_Str2);
+                    }
+
+                    else if (strstr(l_Cmd, "removejobinfo"))
+                    {
+                        rc = removeJobInfo(l_Request.getHostName(), l_JobId);
+                        if (rc)
+                        {
+                            if (rc != -2)
+                            {
+                                LOG(bb,error) << "Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                            }
+                        }
+                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                    }
+
+                    else if (strstr(l_Cmd, "removelogicalvolume"))
+                    {
+                        LVKey l_LVKeyStg = LVKey("", Uuid(l_Str2));
+                        LVKey* l_LVKey = &l_LVKeyStg;
+                        metadata.removeAllLogicalVolumesForUuid(l_Request.getHostName(), l_LVKey, l_JobId);
+                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                    }
+
+                    else if (strstr(l_Cmd, "setsuspend"))
+                    {
+                        // NOTE: In this path l_JobId is the pValue
+                        rc = metadata.setSuspended(l_Request.getHostName(), l_Str1, (int)l_JobId);
+                        if (rc)
                         {
                             LOG(bb,error) << "Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
                         }
+                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
                     }
-                    wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                }
-
-                else if (strstr(l_Cmd, "removelogicalvolume"))
-                {
-                    LVKey l_LVKeyStg = LVKey("", Uuid(l_Str2));
-                    LVKey* l_LVKey = &l_LVKeyStg;
-                    metadata.removeAllLogicalVolumesForUuid(l_Request.getHostName(), l_LVKey, l_JobId);
-                    wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                }
-
-                else if (strstr(l_Cmd, "setsuspend"))
-                {
-                    // NOTE: In this path l_JobId is the pValue
-                    rc = metadata.setSuspended(l_Request.getHostName(), l_Str1, (int)l_JobId);
-                    if (rc)
+                    else
                     {
-                        LOG(bb,error) << "Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                        LOG(bb,error) << "Unknown async request command from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
-                    wrkqmgr.updateHeartbeatData(l_Request.getHostName());
                 }
                 else
                 {
-                    LOG(bb,error) << "Unknown async request command from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                    // Failure when attempting to parse the request...  Log it and continue...
+                    LOG(bb,error) << "Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
                 }
-            }
-            else
-            {
-                // Failure when attempting to parse the request...  Log it and continue...
-                LOG(bb,error) << "Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
-            }
 
-            if (l_LogAsInfo)
-            {
-                LOG(bb,info) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                             << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                if (l_LogAsInfo)
+                {
+                    LOG(bb,info) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                }
+                else
+                {
+                    LOG(bb,debug) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                }
+                wrkqmgr.endProcessingHP_Request(l_Request);
             }
             else
             {
-                LOG(bb,debug) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                              << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                // Request already being processed by a transfer thread
+                // NOTE: This would be for a stoprequest that is broadcast multiple times
+                //       for an 'old' bbServer just coming online to process.  If this bbServer
+                //       is already processing an identical previous request, just ignore this request.
             }
         }
         else
