@@ -550,7 +550,7 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
     LVKey l_LVKey;
     BBTagID l_TagId;
     uint64_t l_NumContrib = 0;
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     BBTagInfo* l_TagInfo = (BBTagInfo*)0;
     std::vector<uint32_t>* l_Contrib = 0;
     uint32_t* l_ContribArray = 0;
@@ -711,7 +711,7 @@ int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, con
     if (tagInfoMap2.find(*pLVKey) != tagInfoMap2.end()) {
         rc = tagInfoMap2[*pLVKey].getTransferHandle(pHandle, pLVKey, pJob, pTag, pNumContrib, pContrib);
     } else {
-        pHandle = 0;
+        pHandle = UNDEFINED_HANDLE;
     }
 
     return rc;
@@ -1000,6 +1000,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
     activecontroller->gethostname(l_ServerHostName);
     string l_Result = ", the transfer definition was not found on the bbServer at " + l_ServerHostName;
 
+    string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pJobId, pJobStepId), pHandle, pContribId);
     bool l_Restart = true;
     bool l_Continue = true;
     while (l_Restart && l_Continue)
@@ -1007,90 +1008,108 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
         l_Restart = false;
         for(auto it = tagInfoMap2.begin(); ((!rc) && it != tagInfoMap2.end()); ++it)
         {
-            l_Continue = false;
-            rc = it->second.stopTransfer(&(it->first), pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, l_LockWasReleased);
-            switch (rc)
+            if (l_ServerHostName == l_ServicedByHostname)
             {
-                case 0:
+                l_Continue = false;
+                rc = it->second.stopTransfer(&(it->first), pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, l_LockWasReleased);
+                switch (rc)
                 {
-                    // The transfer definition being searched for could not be found with this LVKey.
-                    // Continue to the next LVKey...
-                    l_Continue = true;
+                    case 0:
+                    {
+                        // The transfer definition being searched for could not be found with this LVKey.
+                        // Continue to the next LVKey...
+                        ContribIdFile::update_xbbServerContribIdFileNewHostName(&(it->first), pJobId, pJobStepId, pHandle, pContribId);
+                        l_Continue = true;
 
+                        break;
+                    }
+
+                    case 1:
+                    {
+                        // Found the transfer definition on this bbServer.
+                        // It was processed, and operation logged.
+                        // The cross bbserver metadata was also appropriately reset
+                        // as part of the operation.
+                        ContribIdFile::update_xbbServerContribIdFileNewHostName(&(it->first), pJobId, pJobStepId, pHandle, pContribId);
+                        l_Result = ", the transfer definition was successfully stopped using information from this bbServer's local cache.";
+
+                        break;
+                    }
+
+                    case 2:
+                    {
+                        // Found the transfer definition on this bbServer.
+                        // However, no extents were left to be transferred.
+                        // Situation was logged, and nothing more to do...
+                        l_Result = ", the transfer definition was found and had already finished.";
+
+                        break;
+                    }
+
+                    case 3:
+                    {
+                        // Found the transfer definition on this bbServer.
+                        // However, it was already in a stopped state.
+                        // Situation was logged, and nothing more to do...
+                        l_Result = ", the transfer definition was already stopped.";
+
+                        break;
+                    }
+
+                    case 4:
+                    {
+                        // Found the transfer definition on this bbServer.
+                        // However, it was already in a canceled state.
+                        // Situation was logged, and nothing more to do...
+                        l_Result = ", the transfer definition was already canceled.";
+
+                        break;
+                    }
+
+                    case 5:
+                    {
+                        // Found the transfer definition on this bbServer.
+                        // However, extents had not yet been scheduled.
+                        // Situation was logged, and nothing more to do...
+                        l_Result = ", the transfer definition did not yet have any extents scheduled for transfer. A start transfer request was caught in mid-flight and the original request was issued to the new bbServer to complete the transfer request.";
+
+                        break;
+                    }
+
+                    default:
+                    {
+                        // Error occurred....  Log it and continue...
+                        l_Result = ", processing during the search for the transfer definition caused a failure.";
+                        LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId
+                                      << ", handle " << pHandle << ", contribId " << pContribId << ", rc=" << rc << ". Stop transfer processing continues for the remaining transfer definitions in the set.";
+                        l_Continue = true;
+
+                        break;
+                    }
+                }
+
+                if (l_LockWasReleased == TRANSFER_QUEUE_LOCK_RELEASED)
+                {
+                    l_Restart = true;
                     break;
                 }
 
-                case 1:
+                if (!l_Continue)
                 {
-                    // Found the transfer definition on this bbServer.
-                    // It was processed, and operation logged.
-                    // The cross bbserver metadata was also appropriately reset
-                    // as part of the operation.
-                    l_Result = ", the transfer definition was successfully stopped using information from this bbServer's local cache.";
-
-                    break;
-                }
-
-                case 2:
-                {
-                    // Found the transfer definition on this bbServer.
-                    // However, no extents were left to be transferred.
-                    // Situation was logged, and nothing more to do...
-                    l_Result = ", the transfer definition was found and had already finished.";
-
-                    break;
-                }
-
-                case 3:
-                {
-                    // Found the transfer definition on this bbServer.
-                    // However, it was already in a stopped state.
-                    // Situation was logged, and nothing more to do...
-                    l_Result = ", the transfer definition was already stopped.";
-
-                    break;
-                }
-
-                case 4:
-                {
-                    // Found the transfer definition on this bbServer.
-                    // However, it was already in a canceled state.
-                    // Situation was logged, and nothing more to do...
-                    l_Result = ", the transfer definition was already canceled.";
-
-                    break;
-                }
-
-                case 5:
-                {
-                    // Found the transfer definition on this bbServer.
-                    // However, extents had not yet been scheduled.
-                    // Situation was logged, and nothing more to do...
-                    l_Result = ", the transfer definition did not yet have any extents scheduled for transfer. A start transfer request was caught in mid-flight and the original request was issued to the new bbServer to complete the transfer request.";
-
-                    break;
-                }
-
-                default:
-                {
-                    // Error occurred....  Log it and continue...
-                    l_Result = ", processing during the search for the transfer definition caused a failure.";
-                    LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId
-                                  << ", handle " << pHandle << ", contribId " << pContribId << ", rc=" << rc << ". Stop transfer processing continues for the remaining transfer definitions in the set.";
-
                     break;
                 }
             }
-
-            if (l_LockWasReleased == TRANSFER_QUEUE_LOCK_RELEASED)
+            else
             {
-                l_Restart = true;
-                break;
-            }
-
-            if (!l_Continue)
-            {
-                break;
+                // The transfer definition being searched for is not being serviced by this bbServer.
+                // Catagorize as the transfer definition was not found on this bbServer.
+                // NOTE: The transfer definition could actually be present on this bbServer, if
+                //       this happens to be the second failover processing for the transfer definition.
+                //       However, such a transfer definition should have had all of its extents already
+                //       processed (stopped or completed) and a restart operation is more than likely
+                //       to follow this stop request on this bbServer to restart and reuse the transfer
+                //       definition.
+                ContribIdFile::update_xbbServerContribIdFileNewHostName(&(it->first), pJobId, pJobStepId, pHandle, pContribId);
             }
         }
     }
