@@ -266,7 +266,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
 
-    pHandle = 0;
+    pHandle = UNDEFINED_HANDLE;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_GetHandle, "get handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
@@ -379,8 +379,8 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     int rc = 0;
     stringstream errorText;
 
-    pJobId = 0;
-    pJobStepId = 0;
+    pJobId = UNDEFINED_JOBID;
+    pJobStepId = UNDEFINED_JOBSTEPID;
     pNumberOfReportingContribs = 0;
     pHandleFile = 0;
     pContribIdFile = 0;
@@ -1171,7 +1171,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
-    LOG(bb,debug) << "Writing:" << l_ArchiveName;
+    LOG(bb,debug) << "saveHandleFile (passed in):" << l_ArchiveName;
     ofstream l_ArchiveFile{l_ArchiveName};
     text_oarchive l_Archive{l_ArchiveFile};
 

@@ -914,7 +914,7 @@ int BB_GetTransferHandle(BBTAG pTag, uint64_t pNumContrib, uint32_t pContrib[], 
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
         // Initialize return handle
-        *pHandle = 0;
+        *pHandle = UNDEFINED_HANDLE;
 
         // Verify initialization
         rc = ENODEV;

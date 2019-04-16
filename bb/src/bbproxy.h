@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 
+#include "bbinternal.h"
 #include "Uuid.h"
 
 const ssize_t SECTOR_SIZE = 512;
@@ -125,7 +126,7 @@ public:
 	LV_Data() : mountpoint("")
 	{
 	    lvuuid = Uuid();
-	    jobid = 0;
+	    jobid = UNDEFINED_JOBID;
 	    groupid = (gid_t)-1;
 	    userid = (uid_t)-1;
 	};

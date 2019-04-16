@@ -1006,7 +1006,7 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
     int rc;
     stringstream errorText;
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
@@ -1335,7 +1335,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
     int rc = 0;
     stringstream errorText;
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
     uint64_t l_Tag = 0;
@@ -1519,7 +1519,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
 
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_Tag = 0;
     uint64_t l_NumContrib = 0;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
@@ -1675,7 +1675,7 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
     int rc = 0;
     stringstream errorText;
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
     uint64_t l_BufferSize = 0;
@@ -3043,7 +3043,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     uint64_t  l_JobId = UNDEFINED_JOBID;
     uint64_t  l_JobStepId = UNDEFINED_JOBSTEPID;
-    uint64_t  l_Handle = 0;
+    uint64_t  l_Handle = UNDEFINED_HANDLE;
     uint32_t  l_ContribId = 0;
     BBTransferDef l_Transfer;
 

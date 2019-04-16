@@ -14,6 +14,7 @@
 #include "bbinternal.h"
 #include "BBLV_Info.h"
 #include "BBLV_ExtentInfo.h"
+#include "bbserver_flightlog.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
 #include "BBTransferDef.h"

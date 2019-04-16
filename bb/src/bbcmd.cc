@@ -462,7 +462,7 @@ int bbcmd_gethandle(po::variables_map& vm)
 {
     int rc=0;
 
-    uint64_t l_TransferHandle = 0;
+    uint64_t l_TransferHandle = UNDEFINED_HANDLE;
     uint64_t l_NumContribs = 0;
     uint32_t* l_Contrib = 0;
 

@@ -657,7 +657,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
     bberror.clear(pConnectionName);
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     LVKey l_LVKey;
     LVKey* l_LVKeyPtr = &l_LVKey;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
@@ -839,7 +839,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
 
     bberror.clear(pConnectionName);
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint32_t l_ContribId;
 
     uint64_t l_JobId = UNDEFINED_JOBID;
@@ -1016,8 +1016,8 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
 
     bberror.clear(pConnectionName);
 
-    uint64_t l_JobId = 0;
-    uint64_t l_Handle = 0;
+    uint64_t l_JobId = UNDEFINED_JOBID;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_LengthOfTransferKeys = (64*1024)-1;
     uint64_t l_TransferKeyBufferSize = 0;
     uint32_t l_ContribId = 0;
@@ -1584,7 +1584,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     bberror.clear(pConnectionName);
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
     uint32_t l_PerformOperation = 0;
 

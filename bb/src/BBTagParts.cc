@@ -270,6 +270,7 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
     {
         if (pContribId == UNDEFINED_CONTRIBID || it->first == pContribId)
         {
+            uint32_t l_ContribId = it->first;
             // NOTE: If we are using multiple transfer threads, we have to make sure that there are
             //       no extents for this transfer definition currently in-flight on this bbServer...
             //       If so, delay for a bit...
@@ -277,7 +278,7 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
             //       be suspended, so no new extents should start processing when we release/re-acquire
             //       the lock below...
             uint32_t i = 0;
-            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, pContribId))
+            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId))
             {
                 unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
                 {
@@ -286,9 +287,9 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
                     if ((i++ % 40) == 12)
                     {
                         FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
-                                 pHandle, pContribId, 0, 0);
+                                 pHandle, l_ContribId, 0, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
-                                     << ", contribid " << pContribId;
+                                     << ", contribid " << l_ContribId;
                         pLV_Info->getExtentInfo()->dumpInFlight("info");
                     }
                     usleep((useconds_t)250000);
@@ -297,7 +298,7 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
             }
 
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
-            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
+            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, l_ContribId, pLockWasReleased);
         }
     }
 

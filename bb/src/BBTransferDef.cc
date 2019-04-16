@@ -582,8 +582,8 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                 {
                     // Recoverable error occurred....  Log it and continue...
                     ++l_Failed;
-                    LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId
-                                  << ", handle " << pHandle << ", contribId " << pContribId << ", rc=" << rc << ". Stop transfer processing continues for the remaining transfer definitions.";
+                    LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << transferdefs[i]->getHostName() << ", jobid " << transferdefs[i]->getJobId() << ", jobstepid " << transferdefs[i]->getJobStepId()
+                                  << ", handle " << transferdefs[i]->getTransferHandle() << ", contribId " << transferdefs[i]->getContribId() << ", rc=" << rc << ". Stop transfer processing continues for the remaining transfer definitions.";
 
                     break;
                 }
@@ -591,8 +591,8 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                 default:
                 {
                     // Fatal error occurred....  Log it and exit...
-                    LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId
-                                  << ", handle " << pHandle << ", contribId " << pContribId << ", rc=" << rc << ". Stop transfer processing is ended for the remainder of the transfer definitions.";
+                    LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << transferdefs[i]->getHostName() << ", jobid " << transferdefs[i]->getJobId() << ", jobstepid " << transferdefs[i]->getJobStepId()
+                                  << ", handle " << transferdefs[i]->getTransferHandle() << ", contribId " << transferdefs[i]->getContribId() << ", rc=" << rc << ". Stop transfer processing is ended for the remainder of the transfer definitions.";
 
                     break;
                 }
