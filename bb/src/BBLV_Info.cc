@@ -247,7 +247,7 @@ int BBLV_Info::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const B
 
     if(!l_TagInfo)
     {
-        int l_GeneratedHandle = 0;
+        int l_GeneratedHandle = UNDEFINED_HANDLE;
         BBTagInfo l_NewTagInfo = BBTagInfo(&tagInfoMap, pNumContrib, pContrib, pJob, pTag, l_GeneratedHandle);
         rc = tagInfoMap.addTagInfo(pLVKey, pJob, l_TagId, l_NewTagInfo, l_GeneratedHandle);
         if (!rc) {
@@ -855,7 +855,7 @@ int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, const 
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
-        rc = extentInfo.setSuspended(pLVKey, pHostName, jobid, pValue);
+        rc = extentInfo.setSuspended(pLVKey, hostname, jobid, pValue);
     }
     else
     {
@@ -875,7 +875,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
     {
         if (!stageOutStarted())
         {
-            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
+            rc = tagInfoMap.stopTransfer(pLVKey, this, hostname, jobid, pJobStepId, pHandle, pContribId, pLockWasReleased);
 
             if (rc == 1)
             {
@@ -893,8 +893,8 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
             // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
             // Return an error message.
             rc = -1;
-            LOG(bb,error) << "BBLV_Info::stopTransfer(): For hostname " << pHostName << ", connection " \
-                          << connectionName << ", jobid " << pJobId << ", jobidstep " << pJobStepId \
+            LOG(bb,error) << "BBLV_Info::stopTransfer(): For hostname " << hostname << ", connection " \
+                          << connectionName << ", jobid " << jobid << ", jobidstep " << pJobStepId \
                           << ", handle " << pHandle << ", contribid " << pContribId \
                           << ", the remove logical volume request has been run, or is currently running for " << *pLVKey \
                           << ". Suspend or resume operations are not allowed for this environment.";
