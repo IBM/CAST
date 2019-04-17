@@ -770,7 +770,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
         ++l_Attempts;
         try
         {
-            LOG(bb,info) << "Reading:" << pHandleFileName;
+            LOG(bb,debug) << "Reading:" << pHandleFileName;
             ifstream l_ArchiveFile{pHandleFileName};
             text_iarchive l_Archive{l_ArchiveFile};
             l_Archive >> *l_HandleFile;
@@ -949,7 +949,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         handleFileLockFd = fd;
                         if (pLockFeedback)
                         {
-                            LOG(bb,info) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd << " locked. Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                            LOG(bb,debug) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd << " locked. Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
                             *pLockFeedback = HANDLEFILE_WAS_LOCKED;
                         }
                     }
@@ -1111,7 +1111,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
     snprintf(l_ArchivePathWithName, sizeof(l_ArchivePathWithName), "%s/%lu", l_ArchivePath, pHandle);
-    LOG(bb,info) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
+    LOG(bb,debug) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
     ofstream l_ArchiveFile{l_ArchivePathWithName};
     text_oarchive ha{l_ArchiveFile};
 
@@ -1171,7 +1171,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
-    LOG(bb,info) << "saveHandleFile (existing):" << l_ArchiveName;
+    LOG(bb,debug) << "saveHandleFile (existing):" << l_ArchiveName;
     ofstream l_ArchiveFile{l_ArchiveName};
     text_oarchive l_Archive{l_ArchiveFile};
 
@@ -1302,7 +1302,7 @@ void HandleFile::unlock(const int pFd)
             if (!rc)
             {
                 // Successful unlock...
-                LOG(bb,info) << "<<<<<<<<<< Handle file fd " << pFd << " unlocked";
+                LOG(bb,debug) << "<<<<<<<<<< Handle file fd " << pFd << " unlocked";
             }
             else
             {
