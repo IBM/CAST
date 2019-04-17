@@ -438,6 +438,27 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
         //       when updateAllTransferStatus() is invoked above.
     }
 
+    if (pExtentInfo.getTransferDef()->stopped())
+    {
+        string l_Hostname;
+        activecontroller->gethostname(l_Hostname);
+        string l_ServicingHostname = ContribIdFile::isServicedBy(BBJob(pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getTransferDef()->getJobStepId()), pExtentInfo.getHandle(), pExtentInfo.getContrib());
+        if (l_Hostname != l_ServicingHostname)
+        {
+            // The transfer definition is now being serviced by another bbServer.
+            // Remove this transfer definition from our local cache.
+            pTagInfo->removeTransferDef(pExtentInfo.getContrib());
+            LOG(bb,info) << "Transfer definition associated with " << *pLVKey << ", handle " << pExtentInfo.getHandle() << " contribid " << pExtentInfo.getContrib() \
+                         << " is now fully stopped. All processing to be made by this bbServer for this transfer definition is now complete. This transfer definition is now being serviced by " \
+                         << l_ServicingHostname << ". The local cached version of the transfer definition is now deleted.";
+        }
+        else
+        {
+            LOG(bb,info) << "Transfer definition associated with " << *pLVKey << ", handle " << pExtentInfo.getHandle() << " contribid " << pExtentInfo.getContrib() \
+                         << " is now fully stopped. This transfer definiiton is still being serviced by this bbServer so all local cached metadata will be retained.";
+        }
+    }
+
     // NOTE:  Removing the extent from the in-flight queue has to be done AFTER
     //        any metadata updates above.  When running with multiple transfer threads,
     //        this entry must remain in the queue as the lock on the transfer queue

@@ -130,19 +130,49 @@ A system administrator can also configure this tool's output. CSM may detect som
             "ufm":
             {
                 "ib_cable_errors" : "bad_ib_cable_records.txt",
-                "switch_errors"   : "bad_switch_records.txt"
+                "switch_errors"   : "bad_switch_records.txt",
+                "ufm_switch_output_file_name" : "ufm_switch_output_file.json",
+                "ufm_switch_input_file_name" : "ufm_switch_output_file.json"
             }
         }
     }
+
+:csm_inv_log_dir:
+    The absolute path for inventory collection logs.
+
+:ufm:
+    :ib_cable_errors: 
+        Output file location for records of bad IB cables as detected by CSM.
+        
+        Relative to the ``csm_inv_log_dir``.
+
+    :switch_errors: 
+        Output file location for records of IB switch errors as detected by CSM.
+
+        Relative to the ``csm_inv_log_dir``.
+
+    :ufm_switch_output_file_name: 
+        During inventory collection, CSM calls a ufm restfulAPI. The restfulAPI outputs json. CSM saves the json output to a file. CSM will use this value to name that file.
+        
+        Relative to the ``csm_inv_log_dir``.
+
+    :ufm_switch_input_file_name: 
+        During inventory collection, CSM needs to read from a json file that contains inventory data. This value is the name of the file to read from. Most of the time it should be the same as the output file above. As step 1 is collect the info and save it, then step 2 is to read that info, parse it, and send it to CSM database. CSM team has seperated these two values to give the system admin an opportunity to read from a different file other than what was collected and saved in step 1.
+
+        Relative to the ``csm_inv_log_dir``.
 
 Using the Tool
 **************
 
 The UFM Inventory collection tool has multiple flags. 
 
+For help run the tool with the ``-h, --help`` flag. This will give useful help for all flags and example values.
+
 The first flag is ``-c, --config``. This flag tells the tool where your ``master.cfg`` file is located. If this flag is not provided, then the tool will look in the default location of: ``/etc/ibm/csm/csm_master.cfg``. 
 
 The second flag is ``-t, --type``. This flag determines what type of inventory should be collected. 1 = ib cables, 2 = switches, 3 = ib cables and switches. If this flag is not provided, then the tool will default to type 3, collecting information on both ib cables and switches. 
+
+Another flag, ``-i, --input_override``, overrides the value for ``ufm_switch_input_file_name`` defined in the ``master.cfg``. This is a direct and literal full path including the filename and extension. This is useful if the tool needs to be passed switch inventory information from a seperate origin source for a single run. 
 
 Output
 ******

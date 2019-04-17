@@ -138,44 +138,43 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		}
 	
 		// Write whatever content we already have to output.
-		std::stringstream ss;
+		//std::stringstream ss;
 		if (response.size() > 0){
 			// necessary at cause of repetition
-			ss << &response;
+			//ss << &response;
 		}
 		
 		// opening output file
 
         //TEMP 
         // ToDo: replace this buffer push to a config file update like error paths below. 
-        std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.txt";
+        std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.json";
 
 
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
-		
+
 		// checking if output file is open
-		if ( ! output_file.is_open() ){
+		if ( ! output_file.is_open() )
+		{
 			// printing error and return
-			std::cerr << "Output file " << output_file_name << " not open, return"  << std::endl;
+			std::cout << "Output file " << output_file_name << " not open, return"  << std::endl;
 			return 1;
-		}else{
-			// updating output file
-			// response_copy_1 is not nedded because response_copy_2 is equal to response_copy_2
-			output_file << response_copy_2;
-			boost::system::error_code error;
-			while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
-			{
-				output_file << &response;
-			}
-			
-			// closing the output file
-			output_file.close();
-			
-			// checking for errors
-			if (error != boost::asio::error::eof){
-				throw boost::system::system_error(error);
-			}
+		} 
+
+		boost::system::error_code error;
+		while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
+		{
+			output_file << &response;
+		}
+
+		// closing the output file
+		output_file.close();
+
+		// checking for errors
+		if (error != boost::asio::error::eof)
+		{
+			throw boost::system::system_error(error);
 		}
 	
 		// vectors with the fields
@@ -364,16 +363,16 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			}
 
 			std::cout << "UFM reported " << total_ib_records << " IB records." << std::endl;
-			std::cout << "This report from UFM can be found in '" << ufm_ib_cable_output_filename << "' located at '" << csm_inv_log_dir << std::endl;
+			std::cout << "This report from UFM can be found in '" << ufm_ib_cable_output_filename << "' located at '" << csm_inv_log_dir << "'" << std::endl;
 	
 			if(NA_serials_count > 0){
 				std::cerr << "WARNING: " << NA_serials_count << " IB cables found with 'NA' serial numbers and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << std::endl;
+				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
 			}
 			
 			if(missing_cable_info_count > 0){
 				std::cerr << "WARNING: " << missing_cable_info_count << " IB cables found with no 'cable_info' and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << std::endl;
+				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
 			}
 
 			std::cout << std::endl;

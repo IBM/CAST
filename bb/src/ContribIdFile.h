@@ -179,6 +179,7 @@ public:
 
     static int allExtentsTransferredButThisContribId(const uint64_t pHandle, const BBTagID& pTagId, const uint32_t pContribId);
     static int isStopped(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId);
+    static string isServicedBy(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid=0);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey* pLVKey, const bfs::path& pHandleFilePath, const uint32_t pContribId);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& pNumHandleContribs, uint64_t& pNumLVUuidContribs, const bfs::path& pHandleFilePath, const uint32_t pContribId);

@@ -85,27 +85,24 @@ if ([ "$ngpus" -ne "4" ] && [ "$ngpus" -ne "6" ]) ; then echo -e "Unsupported nu
 export OMP_NUM_THREADS=1
 n=${#eyecatcher[@]}
 err=0
+sockets=( `numactl --hardware |grep cpus|awk 'NF>3 {print $2}'`)
+cpus=( `numactl --hardware |grep cpus|awk 'NF>3 {print $4}'`)
 
 output_lines=$(($ngpus/2))
 # check devices on socket 0 and 1
-for socket in 0 88; do
+let j=0; let k=0
+for socket in ${sockets[@]}; do
    i=0
-   if [ "$socket" -eq "0" ]; then
-      if [ "$ngpus" -eq "4" ]; then
-         export CUDA_VISIBLE_DEVICES=0,1
-      else
-         export CUDA_VISIBLE_DEVICES=0,1,2
-      fi
-      cmd="numactl -N 0 --membind 0 $GPU_HEALTH 1>/tmp/$$ 2>&1"
-   else
-      if [ "$ngpus" -eq "4" ]; then
-         export CUDA_VISIBLE_DEVICES=2,3
-      else
-         export CUDA_VISIBLE_DEVICES=3,4,5
-      fi
-      cmd="numactl -N 8 --membind 8 $GPU_HEALTH 1>/tmp/$$ 2>&1"
+   gpus="${k}"
+   k=$((k+1)); gpus+=",${k}"
+   if [ "$ngpus" -eq "6" ]; then
+      k=$((k+1)); gpus+=",${k}"
    fi
-   export GOMP_CPU_AFFINITY="$socket"
+   export CUDA_VISIBLE_DEVICES="${gpus}"
+
+   cmd="numactl -N $socket --membind $socket $GPU_HEALTH 1>/tmp/$$ 2>&1"
+
+   export GOMP_CPU_AFFINITY="${cpus[$j]}"
    eval ${cmd}
    rc=$?
    echo -e "\nUsing GOMP_CPU_AFFINITY=$GOMP_CPU_AFFINITY"
@@ -118,8 +115,6 @@ for socket in 0 88; do
          while read -r line; do
             aline=($line)
             value=${aline[${pos[$i]}]}
-            #ivalue=${value%.*}
-            # if [ $ivalue -lt ${EXPECTED_VALUE[$i]} ]; then
             if (( $(echo "$value < ${EXPECTED_VALUE[$i]}" | bc -l) )); then
                echo "Checking GPU $counter: ${eyecatcher[$i]}"
                echo -e "ERROR, expecting: ${EXPECTED_VALUE[$i]} ${unit[$i]}, got: $value ${unit[$i]}."
@@ -138,6 +133,7 @@ for socket in 0 88; do
    else 
       echo "$GPU_HEALTH error, rc=$rc"
    fi
+   j=$((j+1)); k=$((k+1))
 done   
 
 

@@ -234,7 +234,6 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
 
     if (!rc)
     {
-        LOG(bb,debug) << "taginfo: Adding " << *pLVKey << " from host " << pLV_Info.getHostName() << " for jobid " << pJobId;
         tagInfoMap2[*pLVKey] = pLV_Info;
         // NOTE: We overload the TOLERATE_ALREADY_EXISTS_OPTION option that is passed in to this method.
         //       This option is only passed in as non-zero if this work queue is being added for a restart case.
@@ -259,6 +258,12 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
     {
         // Reset return code for tolerated exceptions
         rc = 0;
+    }
+
+    if (rc == 0 || rc == -2)
+    {
+        LOG(bb,info) << "BBLV_Metadata::addLVKey(): Adding " << *pLVKey << " from host " << pLV_Info.getHostName() \
+                     << " for jobid " << pJobId << ". LVKey entry was " << (rc ? "found and reused from" : "created new into") << " the local cache.";
     }
 
     return rc;
@@ -648,19 +653,35 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 }
 
 // NOTE:  This method returns the LVKey and BBTagInfo given the jobid, jobstepid, tab, numcontrib and contrib[] values...
-int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
+int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = -2;    // LVKey not registered with bbserver
-    for(auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it) {
-        if (((it->first).first == pConnectionName) && ((it->second).getJobId() == pJob.getJobId())) {
-            // Correct connection and correct jobid...
-            rc = (it->second).getTagInfo(pTagInfo, pJob, pTag, pNumContrib, pContrib);
-            // Return code values:
-            // -1 = Contrib list did not match
-            //  0 = Tag value did not match
-            //  1 = Tag and contrib list matched
-            *pLVKey = it->first;
-            break;
+    bool l_ConnectionNameFound = false;
+    for (auto it = tagInfoMap2.begin(); it != tagInfoMap2.end(); ++it)
+    {
+        if ((it->first).first == pConnectionName)
+        {
+            l_ConnectionNameFound = true;
+            if ((it->second).getJobId() == pJob.getJobId())
+            {
+                // Correct connection and correct jobid...
+                rc = (it->second).getTagInfo(pTagInfo, pJob, pTag, pNumContrib, pContrib);
+                // Return code values:
+                // -1 = Contrib list did not match
+                //  0 = Tag value did not match
+                //  1 = Tag and contrib list matched
+                *pLVKey = it->first;
+                break;
+            }
         }
+    }
+
+    if (rc == -2)
+    {
+        stringstream l_JobStr;
+        pJob.getStr(l_JobStr);
+        LOG(bb,info) << "BBLV_Metadata::getLVKey(): LVKey not found for connection " << pConnectionName \
+                     << ", job" << l_JobStr.str() << ", tag " << pTag << ", number of contribs " << pNumContrib \
+                     << ". Connection name was " << (l_ConnectionNameFound ? "" : "not ") << "found in the local cache.";
     }
 
     return rc;
