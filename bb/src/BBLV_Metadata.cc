@@ -1011,14 +1011,13 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
             if (l_ServerHostName == l_ServicedByHostname)
             {
                 l_Continue = false;
-                rc = it->second.stopTransfer(&(it->first), pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, l_LockWasReleased);
+                rc = it->second.stopTransfer(&(it->first), pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, l_LockWasReleased);
                 switch (rc)
                 {
                     case 0:
                     {
                         // The transfer definition being searched for could not be found with this LVKey.
                         // Continue to the next LVKey...
-                        ContribIdFile::update_xbbServerContribIdFileNewHostName(&(it->first), pJobId, pJobStepId, pHandle, pContribId);
                         l_Continue = true;
 
                         break;
@@ -1030,7 +1029,6 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
                         // It was processed, and operation logged.
                         // The cross bbserver metadata was also appropriately reset
                         // as part of the operation.
-                        ContribIdFile::update_xbbServerContribIdFileNewHostName(&(it->first), pJobId, pJobStepId, pHandle, pContribId);
                         l_Result = ", the transfer definition was successfully stopped using information from this bbServer's local cache.";
 
                         break;
@@ -1109,7 +1107,6 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
                 //       processed (stopped or completed) and a restart operation is more than likely
                 //       to follow this stop request on this bbServer to restart and reuse the transfer
                 //       definition.
-                ContribIdFile::update_xbbServerContribIdFileNewHostName(&(it->first), pJobId, pJobStepId, pHandle, pContribId);
             }
         }
     }
@@ -1128,7 +1125,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
             if (rc == 1)
             {
                 // Transfer definition was previously serviced by this bbServer.
-                // However, this bbServer was previosly restarted so this transfer
+                // However, this bbServer was previously restarted so this transfer
                 // definition was not found in the local metadata.  This transfer
                 // definition was unconditionally stopped.
                 l_Result = ", the transfer definition was successfully stopped using information from the cross bbServer metadata.";

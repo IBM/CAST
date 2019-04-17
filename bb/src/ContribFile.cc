@@ -44,7 +44,7 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
         ++l_Attempts;
         try
         {
-            LOG(bb,debug) << "Reading:" << pContribFileName;
+            LOG(bb,info) << "Reading:" << pContribFileName;
             ifstream l_ArchiveFile{pContribFileName.c_str()};
             text_iarchive l_Archive{l_ArchiveFile};
             l_Archive >> *l_ContribFile;
@@ -119,7 +119,7 @@ int ContribFile::save(const string& pContribFileName)
 
     try
     {
-        LOG(bb,debug) << "Writing:" << pContribFileName;
+        LOG(bb,info) << "Writing:" << pContribFileName;
         ofstream l_ArchiveFile{pContribFileName};
         text_oarchive l_Archive{l_ArchiveFile};
         l_Archive << *this;

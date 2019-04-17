@@ -301,7 +301,7 @@ void BBTagInfoMap::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const
     return;
 }
 
-int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
@@ -309,7 +309,7 @@ int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const s
 
     for (auto it = tagInfoMap.begin(); ((!rc) && it != tagInfoMap.end()); ++it)
     {
-         rc = it->second.stopTransfer(pLVKey, pLV_Info, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
+         rc = it->second.stopTransfer(pLVKey, pLV_Info, pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
     }
 
     return rc;

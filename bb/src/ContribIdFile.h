@@ -195,7 +195,7 @@ public:
     static string toBeServicedBy(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId,
                                              const ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION pAllowBumpOfReportingContribs, const HANDLEFILE_LOCK_OPTION pLockOption, const uint64_t pFlags, const int pValue=1);
-    static int update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
+    static int update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerContribIdFileResetForRestart(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, ExtentInfo& pExtentInfo, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, uint64_t pHandle, uint32_t pContribId, Extent* pExtent, const uint64_t pFlags, const int pValue=1);

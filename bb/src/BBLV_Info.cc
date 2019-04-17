@@ -865,17 +865,17 @@ int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, const 
     return rc;
 }
 
-int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
     // NOTE: pLockWasReleased intentionally not initialized
 
-    if ((pHostName == UNDEFINED_HOSTNAME || pHostName == hostname) && (pJobId == UNDEFINED_JOBID || pJobId == jobid))
+    if ((pCN_HostName == UNDEFINED_HOSTNAME || pCN_HostName == hostname) && (pJobId == UNDEFINED_JOBID || pJobId == jobid))
     {
         if (!stageOutStarted())
         {
-            rc = tagInfoMap.stopTransfer(pLVKey, this, hostname, jobid, pJobStepId, pHandle, pContribId, pLockWasReleased);
+            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, hostname, jobid, pJobStepId, pHandle, pContribId, pLockWasReleased);
 
             if (rc == 1)
             {

@@ -623,9 +623,15 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     return rc;
 }
 
-int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
+
+    // NOTE: It is important to only invoke this method when the transfer definition is already marked as stopped.  Otherwise, the contrib file
+    //       will more than likely become corrupted.  The handle file lock is not obtained in many cases when updating the contribid file
+    //       within the contrib file during non-failover processing.  The handle file lock is not obtained in those cases for performance reasons.
+    //       The handle file lock is obtained when the transfer definition is marked as stopped because more then one bbServer can/will be
+    //       updating one or more contribid files within the contrib file.
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_UpdateNewHostName, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
@@ -650,16 +656,13 @@ int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey,
 #ifndef __clang_analyzer__  // zeroing rc is not necessary, but safer to have this here
                 rc = 0;
 #endif
-                string l_HostName;
-                activecontroller->gethostname(l_HostName);
-
-                if (l_ContribIdFile->hostname != l_HostName)
+                if (l_ContribIdFile->hostname != pHostName)
                 {
                     LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                    LOG(bb,info) << "           Request made to change the servicing hostname from " << l_ContribIdFile->hostname << " to " << l_HostName << ".";
+                    LOG(bb,info) << "           Request made to change the servicing hostname from " << l_ContribIdFile->hostname << " to " << pHostName << ".";
                 }
 
-                l_ContribIdFile->newhostname = l_HostName;
+                l_ContribIdFile->newhostname = pHostName;
 
                 rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
 

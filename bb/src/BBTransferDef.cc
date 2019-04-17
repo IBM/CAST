@@ -1465,7 +1465,7 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
 }
 
 #define DELAY_SECONDS 120
-int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
     stringstream errorText;
@@ -1478,7 +1478,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
     bool l_StopDefinition = false;
 
-    if (job.getJobStepId() == pJobStepId)
+    if (pJobStepId == UNDEFINED_JOBSTEPID || job.getJobStepId() == pJobStepId)
     {
         // NOTE: We cannot check the local metadata for stopped() nor canceled().
         //       In the case where a transfer definition has already failed over
@@ -1539,7 +1539,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             case 0:
             {
                 l_UnconditionalRestart = true;
-                LOG(bb,info) << "Transfer definition associated with CN host " << pHostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                LOG(bb,info) << "Transfer definition associated with CN host " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
                              << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
                              << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not responding." \
                              << " The transfer definition will be stopped and then restarted.";
@@ -1610,6 +1610,10 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                                 setAllExtentsTransferred(pLVKey, pHandle, pContribId);
                                 setAllFilesClosed(pLVKey, pHandle, pContribId);
                             }
+
+                            // Update the contribid file with the proposed new servicing bbServer
+                            ContribIdFile::update_xbbServerContribIdFileNewHostName(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+
                             rc = 1;
                         }
                         else
@@ -1624,7 +1628,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     else
                     {
                         rc = -2;
-                        errorText << "becomeUser failed when attempting to stop the transfer definition associated with host " << pHostName \
+                        errorText << "becomeUser failed when attempting to stop the transfer definition associated with host " << pCN_HostName \
                                   << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
                                   << " when attempting to become uid=" << getUserId() << ", gid=" << getGroupId();
                         bberror << err("error.uid", getUserId()) << err("error.gid", getGroupId());
@@ -1650,7 +1654,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             default:
             {
                 // rc already -1
-                errorText << "Job no longer exists or the handle file could not be locked for the transfer definition associated with host " << pHostName \
+                errorText << "Job no longer exists or the handle file could not be locked for the transfer definition associated with host " << pCN_HostName \
                           << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
                           << ".  Stop transfer request ignored.";
                 LOG_ERROR_TEXT_RC(errorText, rc);

@@ -82,7 +82,7 @@ class BBTagInfo
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setCanceledForHandle(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
-    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
     int update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleFile, const char* pHandleFileName, const BBJob pJob, BBLV_Info* pLV_Info, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
     int xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle);
 
