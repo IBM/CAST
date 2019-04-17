@@ -1100,7 +1100,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
             else
             {
                 // The transfer definition being searched for is not being serviced by this bbServer.
-                // Catagorize as the transfer definition was not found on this bbServer.
+                // Categorize as the transfer definition was not found on this bbServer.
                 // NOTE: The transfer definition could actually be present on this bbServer, if
                 //       this happens to be the second failover processing for the transfer definition.
                 //       However, such a transfer definition should have had all of its extents already

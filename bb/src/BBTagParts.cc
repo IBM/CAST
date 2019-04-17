@@ -268,7 +268,9 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
 
     for (auto it = tagParts.begin(); ((!rc) && it != tagParts.end()); ++it)
     {
-        if (pContribId == UNDEFINED_CONTRIBID || it->first == pContribId)
+        // NOTE: Check for an already stopped transfer definition.  If so, then this transfer definition
+        //       IS NOT associated with the correct LVKey.  This LVKey has already been failed over...
+        if ((pContribId == UNDEFINED_CONTRIBID || it->first == pContribId) && (!(it->second).stopped()))
         {
             uint32_t l_ContribId = it->first;
             // NOTE: If we are using multiple transfer threads, we have to make sure that there are
