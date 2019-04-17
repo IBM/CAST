@@ -282,7 +282,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 }
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
-                            lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBLV_Info to be registered");
+                            lockTransferQueue(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBLV_Info to be registered");
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
@@ -324,7 +324,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 }
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
-                            lockTransferQueue(l_LVKey, "BBTagInfoMap2::getLVKey - Waiting for BBTagInfo to be registered");
+                            lockTransferQueue(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBTagInfo to be registered");
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, l_LV_Info, (BBTagInfo*)0, l_FromJobId, l_ContribId))
