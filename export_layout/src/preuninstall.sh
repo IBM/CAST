@@ -36,6 +36,8 @@
 #  in which case the provisions of the GPL apply INSTEAD OF those given above.
 # 
 
-echo Running export_layout pre-uninstall script
+echo Running export_layout pre-uninstall script arg=$1
+
 cd /opt/ibm/export_layout/modules
-make clean
+if [ "$1" -eq "0" ]; then make clean
+fi
