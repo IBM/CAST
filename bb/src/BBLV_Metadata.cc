@@ -1111,7 +1111,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
         }
     }
 
-    if (sameHostName(pHostName))
+    if (sameHostName(pHostName) && rc <= 0)
     {
         // NOTE: It is possible for a given hostname to be found in more than one bbServer.
         //       Append the stop operation for the stop transfer request to the async request file.
