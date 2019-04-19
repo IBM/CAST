@@ -140,6 +140,7 @@
 #define BB_ResetContribIdFileForRestartFlagsMask      0xE8E00000008FFFFF
 #define BB_ResetHandleFileAttributesFlagsMask         0xEBE0000F00000000
 #define BB_RetrieveTransferDefinitionsFlagsMask       0x000F7000008FFFFF
+#define BB_ResetTransferDefinitionForRestartFlagsMask 0x000F7000008FFFFF
 #define BB_UpdateHandleStatusMask1                    0x1700800000000000
 #define BB_UpdateHandleStatusMask2                    0x1500000000000000
 #define BB_UpdateHandleStatusMask3                    0x1000000000000000

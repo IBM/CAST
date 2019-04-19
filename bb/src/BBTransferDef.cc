@@ -1152,6 +1152,9 @@ int BBTransferDef::prepareForRestart(const LVKey* pLVKey, const BBJob pJob, cons
     }
     else if (pPass == THIRD_PASS)
     {
+        // Reset the flags in the local cached transfer definition
+        flags &= BB_ResetTransferDefinitionForRestartFlagsMask;
+
         // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
         //       bbServer that is attempting to restart/stop other transfer definitions for this handle.
         rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJob.getJobId(), pJob.getJobStepId(), pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
