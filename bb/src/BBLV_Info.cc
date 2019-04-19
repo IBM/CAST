@@ -525,8 +525,8 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
 
-    LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId \
-                 << ":  " << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr;
+    LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId << ":";
+    LOG(bb,info) << "           " << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr;
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.
@@ -731,7 +731,8 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
 
     char l_TransferStatusStr[64] = {'\0'};
-    switch (l_Status) {
+    switch (l_Status)
+    {
         case BBSTOPPED:
         {
             strCpy(l_TransferStatusStr, "stopped", sizeof(l_TransferStatusStr));
@@ -765,8 +766,8 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
         char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
         lv_uuid.copyTo(lv_uuid_str);
 
-        LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for handle " << pHandle \
-                     << ":  " << *pLVKey << ", status " << l_StatusStr;
+        LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for handle " << pHandle << ":";
+        LOG(bb,info) << "           " << *pLVKey << ", status " << l_StatusStr;
 
         // NOTE:  The char array is copied to heap by addAttribute and the storage for
         //        the logical volume uuid attribute is owned by the message facility.
