@@ -51,8 +51,9 @@ int BBTagParts::allExtentsTransferred(const uint32_t pContribId) {
 int BBTagParts::anyCanceledTransferDefinitions() {
     int rc = 0;
 
+    // NOTE: It is only considered canceled if the stopped bit is also off
     for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
-        rc = (it->second).canceled();
+        rc = ((!(it->second).stopped()) && (it->second).canceled());
     }
 
     return rc;
