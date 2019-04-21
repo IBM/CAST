@@ -14,6 +14,7 @@
 #include "bbinternal.h"
 #include "BBLV_Info.h"
 #include "BBLV_ExtentInfo.h"
+#include "bbserver_flightlog.h"
 #include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
 #include "BBTransferDef.h"
@@ -358,6 +359,27 @@ Extent* BBLV_ExtentInfo::getMinimumTrimExtent() {
     }
 
     return l_Extent;
+}
+
+int BBLV_ExtentInfo::hasCanceledExtents()
+{
+    int rc = 0;
+    Extent* l_Extent;
+
+    // NOTE:  Must bypass all groupkey/filekey extents with a zero value.  These are extent entries for non-transfers.
+    //        Once we get past all zeroed groupkey/filekey entries, all canceled extents are next.  So the first of
+    //        the non-zero groupkey/filekey extents indicates whether any canceled extents exist.
+    for (size_t i=0; i<allExtents.size(); ++i)
+    {
+        l_Extent = allExtents[i].getExtent();
+        if (l_Extent->lba.groupkey && l_Extent->lba.filekey)
+        {
+            rc = l_Extent->isCanceled();
+            break;
+        }
+    }
+
+    return rc;
 }
 
 int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight)

@@ -207,8 +207,8 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                             if (handle.path().filename().string() == to_string(pHandle))
                             {
                                 rc = 0;
-                                pJobId = stoul(job.filename().string());
-                                pJobStepId = stoul(jobstep.path().filename().string());
+                                pJobId = stoull(job.filename().string());
+                                pJobStepId = stoull(jobstep.path().filename().string());
                                 break;
                             }
                         }
@@ -266,7 +266,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
 
-    pHandle = 0;
+    pHandle = UNDEFINED_HANDLE;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_GetHandle, "get handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
@@ -311,7 +311,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                                             if (!BBTagInfo::compareContrib(l_NumOfContribsInArray, l_ContribArray, pContrib))
                                             {
                                                 rc = 1;
-                                                pHandle = stoul(handle.path().filename().string());
+                                                pHandle = stoull(handle.path().filename().string());
                                             }
 
                                             delete[] l_ContribArray;
@@ -379,8 +379,8 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     int rc = 0;
     stringstream errorText;
 
-    pJobId = 0;
-    pJobStepId = 0;
+    pJobId = UNDEFINED_JOBID;
+    pJobStepId = UNDEFINED_JOBSTEPID;
     pNumberOfReportingContribs = 0;
     pHandleFile = 0;
     pContribIdFile = 0;
@@ -770,6 +770,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
         ++l_Attempts;
         try
         {
+            LOG(bb,debug) << "Reading:" << pHandleFileName;
             ifstream l_ArchiveFile{pHandleFileName};
             text_iarchive l_Archive{l_ArchiveFile};
             l_Archive >> *l_HandleFile;
@@ -1077,7 +1078,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         {
             if (BBSTATUS_AND(pMatchStatus, l_HandleFile->status) != BBNONE)
             {
-                pHandles.push_back(stoul(handle.path().filename().string()));
+                pHandles.push_back(stoull(handle.path().filename().string()));
             }
         }
 
@@ -1170,7 +1171,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
-    LOG(bb,debug) << "saveHandleFile (passed): l_ArchiveName=" << l_ArchiveName;
+    LOG(bb,debug) << "saveHandleFile (existing):" << l_ArchiveName;
     ofstream l_ArchiveFile{l_ArchiveName};
     text_oarchive l_Archive{l_ArchiveFile};
 

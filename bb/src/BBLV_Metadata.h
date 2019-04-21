@@ -69,7 +69,7 @@ class BBLV_Metadata
     int stopTransfer(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     int verifyJobIdExists(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId);
 
-    map<LVKey, BBLV_Info> tagInfoMap2;
+    map<LVKey, BBLV_Info> metaDataMap;
 };
 
 #endif /* BB_BBLVMETADATA_H_ */

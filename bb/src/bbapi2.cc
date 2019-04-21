@@ -39,7 +39,7 @@ using namespace std;
 txp::Log bbapi2_log(txp::Log::DEFAULT_LOG_DESTINATION, txp::Log::DEFAULT_OPEN_LOGSTATE, txp::Log::DEBUG_LOGLEVEL);
 #endif
 
-uint64_t BBJOBID = 0;
+uint64_t BBJOBID = UNDEFINED_JOBID;
 
 /*******************************************************************************
  | Helper routines

@@ -138,8 +138,8 @@ def BB_CreateLogicalVolume(pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
             if (rc in l_ToleratedErrorRCs):
                 dummy = BBError()
                 if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
-                    print "Logical volume cannot be created because of a suspended condition.  This create logical volume request will be attempted again in three seconds."
-                    time.sleep(3)
+                    print "Logical volume cannot be created because of a suspended condition.  This create logical volume request will be attempted again in 15 seconds."
+                    time.sleep(15)
                 else:
                     print "Logical volume cannot be created now, rc %d. See error details." % (rc)
                     break
@@ -311,8 +311,8 @@ def BB_RestartTransfers(pHostName, pHandle, pTransferDefs, pTransferDefsSize):
             if (rc in l_ToleratedErrorRCs):
                 dummy = BBError()
                 if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
-                    print "Restart transfers cannot be performed for handle %s because of a suspended condition.  This restart transfers request will be attempted again in three seconds." % (l_Handle)
-                    time.sleep(3)
+                    print "Restart transfers cannot be performed for handle %s because of a suspended condition.  This restart transfers request will be attempted again in 15 seconds." % (l_Handle)
+                    time.sleep(15)
                 else:
                     print "Restart transfers cannot be performed for handle %s. See error details." % (l_Handle)
                     break
@@ -346,12 +346,13 @@ def BB_RetrieveTransfers(pHostHame, pHandle, pFlags=DEFAULT_BB_RTV_TRANSFERDEFS_
     l_HostName = bb.cvar("hostname", pHostHame)
     l_Handle = bb.cvar("handle", pHandle)
     l_Flags = bb.cvar("flags", pFlags)
+    l_BufferSizeIncr = 16*1024
 
     l_NumTransferDefs = bb.cvar("numtransferdefs", 0)
-    l_NumBytesAvailable = bb.cvar("numbytesavailable", 16383)
+    l_NumBytesAvailable = bb.cvar("numbytesavailable", l_BufferSizeIncr)
     l_BufferSize = bb.cvar("size", 0)
     while (l_NumBytesAvailable.value > l_BufferSize.value):
-        l_BufferSize = bb.cvar("size", l_NumBytesAvailable.value + 1)
+        l_BufferSize = bb.cvar("size", ((l_NumBytesAvailable.value + (l_BufferSizeIncr - 1)) / l_BufferSizeIncr) * l_BufferSizeIncr)
         l_Buffer = bb.cvar("buffer", l_BufferSize.value)
         print '%sBB_RetrieveTransfers issued to retrieve transfer definitions using this criteria:  hostname %s, handle %d, flags %s, bytesavailable %d, bytesprovided %d' % (os.linesep, ValueMap.get(l_HostName.value, l_HostName.value), l_Handle.value, BB_RTV_TRANSFERDEFS_FLAGS[l_Flags.value], l_NumBytesAvailable.value, l_BufferSize.value)
         rc = bb.api.BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags, byref(l_NumTransferDefs), byref(l_NumBytesAvailable), l_BufferSize, byref(l_Buffer))

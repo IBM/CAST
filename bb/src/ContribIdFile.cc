@@ -428,6 +428,43 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     return rc;
 }
 
+string ContribIdFile::toBeServicedBy(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId)
+{
+    string l_ToBeServicingHostname = "";
+    ContribIdFile* l_ContribIdFile = 0;
+
+    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    l_HandleFilePath /= bfs::path(to_string(pJob.getJobId()));
+    l_HandleFilePath /= bfs::path(to_string(pJob.getJobStepId()));
+    l_HandleFilePath /= bfs::path(to_string(pHandle));
+
+    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
+    if (rc >= 0)
+    {
+        // Process the contribid file
+        if (rc == 1 && l_ContribIdFile)
+        {
+            l_ToBeServicingHostname = l_ContribIdFile->newhostname;
+        }
+        else
+        {
+            // Could be normal...
+        }
+    }
+    else
+    {
+        // Could be normal...
+    }
+
+    if (l_ContribIdFile)
+    {
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+
+    return l_ToBeServicingHostname;
+}
+
 int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId,
                                                  const ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION pAllowBumpOfReportingContribs, const HANDLEFILE_LOCK_OPTION pLockOption, const uint64_t pFlags, const int pValue)
 {
@@ -580,6 +617,97 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     else
     {
         FL_Write6(FLMetaData, CIF_UpdateFile_ErrEnd, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
+                  l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
+    }
+
+    return rc;
+}
+
+int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    int rc = 0;
+
+    // NOTE: It is important to only invoke this method when the transfer definition is already marked as stopped.  Otherwise, the contrib file
+    //       will more than likely become corrupted.  The handle file lock is not obtained in many cases when updating the contribid file
+    //       within the contrib file during non-failover processing.  The handle file lock is not obtained in those cases for performance reasons.
+    //       The handle file lock is obtained when the transfer definition is marked as stopped because more then one bbServer can/will be
+    //       updating one or more contribid files within the contrib file.
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, CIF_UpdateNewHostName, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
+    ContribIdFile* l_ContribIdFile = 0;
+    HandleFile* l_HandleFile = 0;
+    char* l_HandleFileName = 0;
+    HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+
+    rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+    if (!rc)
+    {
+        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        l_HandleFilePath /= bfs::path(to_string(pJobId));
+        l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+        l_HandleFilePath /= bfs::path(to_string(pHandle));
+        rc = loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+        switch (rc)
+        {
+            case 1:
+            {
+#ifndef __clang_analyzer__  // zeroing rc is not necessary, but safer to have this here
+                rc = 0;
+#endif
+                if (l_ContribIdFile->hostname != pHostName)
+                {
+                    LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                    LOG(bb,info) << "           Request made to change the servicing hostname from " << l_ContribIdFile->hostname << " to " << pHostName << ".";
+                }
+
+                l_ContribIdFile->newhostname = pHostName;
+
+                rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+
+                break;
+            }
+
+            case 0:
+            {
+                rc = -1;
+                LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFileNewHostName(): ContribId " << pContribId << " could not be found in the contrib file for jobid " \
+                              << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath.string();
+
+                break;
+            }
+
+            default:
+            {
+                LOG(bb,error) << "ContribIdFile::update_xbbServerContribIdFileNewHostName(): Could not load the contrib file for jobid " << pJobId << ", jobstepid " << pJobStepId \
+                              << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath.string();
+            }
+        }
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
+    }
+
+    if (l_ContribIdFile)
+    {
+        FL_Write6(FLMetaData, CIF_UpdateNewHostName_End, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
+                  l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
+        delete l_ContribIdFile;
+        l_ContribIdFile = 0;
+    }
+    else
+    {
+        FL_Write6(FLMetaData, CIF_UpdateNewHostName_ErrEnd, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
                   l_FL_Counter, pJobId, pHandle, pContribId, rc, 0);
     }
 
@@ -1003,13 +1131,15 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
                 }
             }
 
-            string l_Hostname;
-            activecontroller->gethostname(l_Hostname);
-            if (l_ContribIdFile->hostname != l_Hostname)
+            string l_HostName;
+            activecontroller->gethostname(l_HostName);
+            if (l_ContribIdFile->hostname != l_HostName)
             {
-                LOG(bb,info) << "xbbServer: Servicing hostname for " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << " changed from " << l_ContribIdFile->hostname << " to " << l_Hostname;
-                l_ContribIdFile->hostname = l_Hostname;
+                LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                LOG(bb,info) << "           Change of servicing hostname from " << l_ContribIdFile->hostname << " to " << l_HostName << " is now complete.";
+                l_ContribIdFile->hostname = l_HostName;
             }
+            l_ContribIdFile->newhostname.clear();
 
             rc = saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
             if (rc)

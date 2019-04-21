@@ -250,7 +250,7 @@ def RestartTransfers(pEnv):
             l_Flags = BB_RTV_TRANSFERDEFS_FLAGS.get(pEnv["FLAGS"], DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS)
 
         l_ActiveServer = BB_GetServer("active")
-        if (pEnv["IO_FAILOVER"]):
+        if (pEnv["IO_FAILOVER"] == 1):
             # New ESS, set up that environment
             l_PrimaryServer = BB_GetServer("primary")
             l_BackupServer = BB_GetServer("backup")
@@ -326,7 +326,7 @@ def RestartTransfers(pEnv):
                 if not error.handleError():
                     raise
 
-        if (pEnv["IO_FAILOVER"]):
+        if (pEnv["IO_FAILOVER"] == 1):
             # Now, close the connection to the previously active bbServer
             try:
                 # First, make sure we have no waiters...

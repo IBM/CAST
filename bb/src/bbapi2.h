@@ -41,8 +41,6 @@ extern std::string ProcessId;
  *******************************************************************************/
 #define DEFAULT_RTV_TRANSFERDEFS_FLAGS ONLY_DEFINITIONS_WITH_UNFINISHED_FILES;
 
-const uint64_t UNDEFINED_HANDLE = 0;
-
 
 // External routines needed by bbapi.cc
 extern int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* unixpath, bool& performCleanup);

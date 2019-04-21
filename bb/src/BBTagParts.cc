@@ -51,8 +51,9 @@ int BBTagParts::allExtentsTransferred(const uint32_t pContribId) {
 int BBTagParts::anyCanceledTransferDefinitions() {
     int rc = 0;
 
+    // NOTE: It is only considered canceled if the stopped bit is also off
     for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
-        rc = (it->second).canceled();
+        rc = ((!(it->second).stopped()) && (it->second).canceled());
     }
 
     return rc;
@@ -260,7 +261,7 @@ int BBTagParts::setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t 
     return rc;
 }
 
-int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_Info* pLV_Info, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, BBLV_Info* pLV_Info, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
@@ -268,8 +269,11 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
 
     for (auto it = tagParts.begin(); ((!rc) && it != tagParts.end()); ++it)
     {
-        if (pContribId == UNDEFINED_CONTRIBID || it->first == pContribId)
+        // NOTE: Check for an already stopped transfer definition.  If so, then this transfer definition
+        //       IS NOT associated with the correct LVKey.  This LVKey has already been failed over...
+        if ((pContribId == UNDEFINED_CONTRIBID || it->first == pContribId) && (!(it->second).stopped()))
         {
+            uint32_t l_ContribId = it->first;
             // NOTE: If we are using multiple transfer threads, we have to make sure that there are
             //       no extents for this transfer definition currently in-flight on this bbServer...
             //       If so, delay for a bit...
@@ -277,7 +281,7 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
             //       be suspended, so no new extents should start processing when we release/re-acquire
             //       the lock below...
             uint32_t i = 0;
-            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, pContribId))
+            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId))
             {
                 unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
                 {
@@ -286,9 +290,9 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
                     if ((i++ % 40) == 12)
                     {
                         FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
-                                 pHandle, pContribId, 0, 0);
+                                 pHandle, l_ContribId, 0, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
-                                     << ", contribid " << pContribId;
+                                     << ", contribid " << l_ContribId;
                         pLV_Info->getExtentInfo()->dumpInFlight("info");
                     }
                     usleep((useconds_t)250000);
@@ -297,7 +301,7 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, BBLV_
             }
 
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
-            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
+            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, l_ContribId, pLockWasReleased);
         }
     }
 

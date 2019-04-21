@@ -90,7 +90,7 @@ class BBLV_Info
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, const BBLV_ExtentInfo& pLVKey_ExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, TRANSFER_QUEUE_RELEASED& pLockWasReleased, const int pRemoveOption);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
-    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
     void updateAllContribsReported(const LVKey* pLVKey);
     int updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight);
     void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, const BBTagID& pTagId, const int32_t pContribId, int& pNewStatus, uint32_t pNumberOfExpectedInFlight);
@@ -185,6 +185,10 @@ class BBLV_Info
 
     inline void getTransferHandles(vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus, const int pStageOutStarted) {
         return tagInfoMap.getTransferHandles(pHandles, pJob, pMatchStatus, pStageOutStarted);
+    }
+
+    inline int hasCanceledExtents() {
+        return extentInfo.hasCanceledExtents();
     }
 
     inline int hasContribId(const uint32_t pContribId) {

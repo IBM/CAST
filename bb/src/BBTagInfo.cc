@@ -117,7 +117,7 @@ BBTagInfo::BBTagInfo(BBTagInfoMap* pTagInfo, const uint64_t pNumContrib, const u
     for (size_t i=0; i<(size_t)pNumContrib; ++i) {
         expectContrib.push_back(pContrib[i]);
     }
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     getTransferHandle(l_Handle, pTagInfo, pJob, pTag, pGeneratedHandle);
     setTransferHandle(l_Handle);
 
@@ -319,7 +319,7 @@ void BBTagInfo::expectContribToSS(stringstream& pSS) const {
 
 uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
 {
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint32_t* l_ContribArray = 0;
     HandleFile* l_HandleFile = 0;
     uint64_t l_NumOfContribsInArray = 0;
@@ -346,7 +346,7 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
 
                     if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
                     {
-                        l_Handle = stoul(handle.path().filename().string());
+                        l_Handle = stoull(handle.path().filename().string());
                     }
                     else
                     {
@@ -417,7 +417,7 @@ BBSTATUS BBTagInfo::getStatus(const int pStageOutStarted) {
 }
 
 void BBTagInfo::getTransferHandle(uint64_t& pHandle, BBTagInfoMap* pTagInfo, const BBJob pJob, const uint64_t pTag, int& pGeneratedHandle) {
-    pGeneratedHandle = 0;
+    pGeneratedHandle = UNDEFINED_HANDLE;
     pHandle = get_xbbServerHandle(pJob, pTag);
     if (!pHandle) {
         pGeneratedHandle = 1;
@@ -725,7 +725,7 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
     return;
 }
 
-int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
@@ -733,12 +733,12 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const stri
 
     if (pHandle == transferHandle)
     {
-        rc = parts.stopTransfer(pLVKey, pHostName, pLV_Info, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
+        rc = parts.stopTransfer(pLVKey, pHostName, pCN_HostName, pLV_Info, pJobId, pJobStepId, transferHandle, pContribId, pLockWasReleased);
         if (rc == 1)
         {
             int l_Value = 1;
             // Set the stopped indicator in the local metadata...
-            setStopped(pLVKey, pJobId, pJobStepId, pHandle, pContribId, l_Value);
+            setStopped(pLVKey, pJobId, pJobStepId, transferHandle, pContribId, l_Value);
         }
     }
 

@@ -19,14 +19,14 @@
 
 #include <boost/serialization/serialization.hpp>
 
+#include "bbinternal.h"
+
 using namespace std;
 
 /*******************************************************************************
  | Constants
  *******************************************************************************/
 const uint32_t ARCHIVE_BBJOB_VERSION = 1;
-const uint64_t UNDEFINED_JOBID = 0;
-const uint64_t UNDEFINED_JOBSTEPID = 0;
 
 /**
  * \class BBJob
