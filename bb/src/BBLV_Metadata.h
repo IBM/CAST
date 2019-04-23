@@ -60,6 +60,7 @@ class BBLV_Metadata
     size_t getTotalTransferSize(const LVKey& pLVKey);
     int getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
     void getTransferHandles(vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus);
+    int hasLVKey(const LVKey* pLVKey, const uint64_t pJobId);
     void removeAllLogicalVolumesForUuid(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId);
     void removeLVKey(const uint64_t pJobId, const LVKey* pLVKey);
     int retrieveTransfers(BBTransferDefs& pTransferDefs);

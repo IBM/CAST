@@ -508,6 +508,7 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
     uint32_t l_Finished = 0;
     uint32_t l_AlreadyStopped = 0;
     uint32_t l_AlreadyCanceled = 0;
+    uint32_t l_NotFoundButAlreadyStopped = 0;
     uint32_t l_Failed = 0;
     uint32_t l_DidNotMatchSelectionCriteria = 0;
     uint32_t l_NotProcessed = (uint32_t)transferdefs.size();
@@ -578,6 +579,17 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                     break;
                 }
 
+                case 5:
+                {
+                    // The transfer definition being searched for could not be found with this LVKey.
+                    // However, the transfer definition was last serviced by this server and the
+                    // cross-bbServer metadata already has this transfer definition marked as stopped.
+                    // Situation was logged, and nothing more to do...
+                    ++l_NotFoundButAlreadyStopped;
+
+                    break;
+                }
+
                 case -2:
                 {
                     // Recoverable error occurred....  Log it and continue...
@@ -643,6 +655,7 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
     bberror.errdirect("out.numberAlreadyFinished", l_Finished);
     bberror.errdirect("out.numberAlreadyStopped", l_AlreadyStopped);
     bberror.errdirect("out.numberAlreadyCanceled", l_AlreadyCanceled);
+    bberror.errdirect("out.numberNotInLocalCacheAlreadyStopped", l_NotFoundButAlreadyStopped);
     bberror.errdirect("out.numberFailed", l_Failed);
     bberror.errdirect("out.numberNotMatchingSelectionCriteria", l_DidNotMatchSelectionCriteria);
     bberror.errdirect("out.numberNotProcessed", l_NotProcessed);
@@ -657,12 +670,13 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                  << ", a stop transfer operation was completed for " << l_Stopped << " transfer definition(s), " \
                  << l_NotFound << " transfer definition(s) were not found on the bbServer at " << l_ServerHostName << ", " << l_Finished \
                  << " transfer definition(s) were already finished, " << l_AlreadyStopped << " transfer definition(s) were already stopped, " \
+                 << l_NotFoundButAlreadyStopped << " transfer definition(s) were last serviced by this bbServer not found in the local cache but already marked as stopped in the metadata, " \
                  << l_AlreadyCanceled << " transfer definition(s) were already canceled, " \
                  << l_DidNotMatchSelectionCriteria << " transfer definition(s) did not match the selection criteria, " \
                  << l_NotProcessed << " transfer definition(s) were not processed, and " << l_Failed << " failure(s) occurred during this processing." \
                  << " See previous messages for additional details.";
 
-    pNumStoppedTransferDefs = l_AlreadyStopped + l_Stopped;
+    pNumStoppedTransferDefs = l_Stopped + l_AlreadyStopped + l_NotFoundButAlreadyStopped;
 
     return;
 }

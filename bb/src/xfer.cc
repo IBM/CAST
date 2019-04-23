@@ -1908,12 +1908,12 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                             pMarkFailedFromProxy = 0;
 
                             // We will not restart this transfer definition
-                            errorText << "Transfer definition associated with jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                      << ", handle " << pHandle << ", contribid " << pContribId \
-                                      << " was not restarted because it was not in a stopped state." \
-                                      << " If a prior attempt was made to stop the transfer, it may not have been stopped" \
-                                      << " because the transfer for all extents had already completed.  See prior messages for this handle.";
-                            LOG_ERROR_TEXT_RC(errorText, -2);
+                            LOG(bb,info) << "Transfer definition associated with jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                         << ", handle " << pHandle << ", contribid " << pContribId \
+                                         << " was not restarted because it was not in a stopped state." \
+                                         << " If a prior attempt was made to stop the transfer, it may not have been stopped" \
+                                         << " because the transfer for all extents had already completed.  See prior messages for this handle.";
+                            LOG_RC(-2);
 
                             break;
                         }
@@ -2316,7 +2316,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                                  << ", handle " << pHandle << ", contribid " << (uint32_t)pContribId \
                                                  << ", however no extents are left to be transferred for any file." \
                                                  << " A restart for this transfer definition is not necessary.";
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
+                                    LOG_RC(rc);
                                 }
                             }
                         }

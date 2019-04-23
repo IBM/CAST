@@ -1907,79 +1907,111 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         // The getHandle() code would have primed that information into this server's local
                         // metadata if the client had obtained the handle to use via getHandle().
                         //
-                        // Check the cross bbServer metadata for the handle value.  If found and this contributor is
-                        // valid for that handle, prime the local metadata and retry the getInfo() operation above...
-                        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, DO_NOT_LOCK_HANDLEFILE);
-                        if (!rc)
+                        // First, verify that the LVKey was registered...
+                        if (metadata.hasLVKey(&l_LVKey, l_Job.getJobId()))
                         {
-                            // The handle exists on one or more other servers...
-                            l_Tag = l_HandleFile->tag;
-
-                            // Get the contrib array from the Handlefile, which is an array of unit32_t's
-                            uint64_t l_NumContrib = 0;
-                            l_HandleFile->getContribArray(l_NumContrib, l_ContribArray);
-                            if (hasContribId(l_ContribId, l_NumContrib, l_ContribArray))
+                            // LVKey was found...  Continue on to reconstruct the remaining local cached metadata.
+                            //
+                            // NOTE: We only restart transfer definitions if the original LV on the CN still exists.
+                            //       This logic will need to change if we ever attempt to failover CNs or create 'substitute'
+                            //       LVs for prior failing transfer definitions.
+                            //
+                            //       We now 'register' each existing LVKey from the CN to the 'new' bbServer as part of the
+                            //       activiate of the connection to the 'new' bbServer. That registration processing to the
+                            //       'new' bbServer will be complete by the time any restart transfer processing is attempted.
+                            //       In addition, processing for the CN is now suspended during the stop/retart processing.
+                            //       Therefore, if the LVKey was not registered as part of the activation of the new connection,
+                            //       any associated transfer definitions found in the cross-bbServer metadata will not be restarted.
+                            //
+                            // Check the cross bbServer metadata for the handle value.  If found and this contributor is
+                            // valid for that handle, prime the local metadata and retry the getInfo() operation above...
+                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, DO_NOT_LOCK_HANDLEFILE);
+                            if (!rc)
                             {
-                                rc = 0;
-                                delete[] l_HandleFileName;
-                                l_HandleFileName = 0;
-                                delete l_HandleFile;
-                                l_HandleFile = 0;
+                                // The handle exists on one or more other servers...
+                                l_Tag = l_HandleFile->tag;
 
-                                //  Next, determine if this contributor has already been registered
-                                bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-                                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
-                                l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
-                                l_HandleFilePath /= bfs::path(to_string(l_Handle));
-                                Uuid l_lvuuid3 = Uuid();
-                                Uuid* l_lvuuid3_Ptr = &l_lvuuid3;
-
-                                if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                // Get the contrib array from the Handlefile, which is an array of unit32_t's
+                                uint64_t l_NumContrib = 0;
+                                l_HandleFile->getContribArray(l_NumContrib, l_ContribArray);
+                                if (hasContribId(l_ContribId, l_NumContrib, l_ContribArray))
                                 {
-                                    // Restart case...
-                                    // First ensure that this transfer definition is marked as stopped in the cross bbServer metadata
-                                    int l_Attempts = 1;
-                                    bool l_AllDone = false;
-                                    while (!l_AllDone)
+                                    rc = 0;
+                                    delete[] l_HandleFileName;
+                                    l_HandleFileName = 0;
+                                    delete l_HandleFile;
+                                    l_HandleFile = 0;
+
+                                    //  Next, determine if this contributor has already been registered
+                                    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                                    l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
+                                    l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
+                                    l_HandleFilePath /= bfs::path(to_string(l_Handle));
+                                    Uuid l_lvuuid3 = Uuid();
+                                    Uuid* l_lvuuid3_Ptr = &l_lvuuid3;
+
+                                    if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                     {
-                                        l_AllDone = true;
-
-                                        rc = 1;
-                                        uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
-                                        while ((rc) && (l_Continue--))
+                                        // Restart case...
+                                        // First ensure that this transfer definition is marked as stopped in the cross bbServer metadata
+                                        int l_Attempts = 1;
+                                        bool l_AllDone = false;
+                                        while (!l_AllDone)
                                         {
-                                            // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
-                                            //       bbServer that is marking the handle/contribid file as 'stopped'
-                                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE, &l_LockFeedback);
-                                            if (!rc)
-                                            {
-                                                rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
-                                                if (rc == 1)
-                                                {
-                                                    if (l_ContribIdFile)
-                                                    {
-                                                        // Valid contribid file
-                                                        if (!l_ContribIdFile->stopped())
-                                                        {
-                                                            // Contribid is not marked as stopped
-                                                            if (l_ContribIdFile->notRestartable())
-                                                            {
-                                                                // All extents have been processed, all files closed, no failed files, not canceled.
-                                                                // The transfer definition is not marked as stopped, therefore, no need to restart this
-                                                                // transfer definition.
+                                            l_AllDone = true;
 
-                                                                // This condition overrides any failure detected on bbProxy...
-                                                                l_MarkFailedFromProxy = 0;
-                                                                LOG(bb,info) << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                                                                             << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                             << ", all extents for the handle file have been processed.  The transfer either finished or was canceled." \
-                                                                             << "  See previous messages.";
-                                                                BAIL;
+                                            rc = 1;
+                                            uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
+                                            while ((rc) && (l_Continue--))
+                                            {
+                                                // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+                                                //       bbServer that is marking the handle/contribid file as 'stopped'
+                                                rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, LOCK_HANDLEFILE, &l_LockFeedback);
+                                                if (!rc)
+                                                {
+                                                    rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, l_ContribId, l_lvuuid3_Ptr);
+                                                    if (rc == 1)
+                                                    {
+                                                        if (l_ContribIdFile)
+                                                        {
+                                                            // Valid contribid file
+                                                            if (!l_ContribIdFile->stopped())
+                                                            {
+                                                                // Contribid is not marked as stopped
+                                                                if (l_ContribIdFile->notRestartable())
+                                                                {
+                                                                    // All extents have been processed, all files closed, no failed files, not canceled.
+                                                                    // The transfer definition is not marked as stopped, therefore, no need to restart this
+                                                                    // transfer definition.
+
+                                                                    // This condition overrides any failure detected on bbProxy...
+                                                                    l_MarkFailedFromProxy = 0;
+                                                                    LOG(bb,info) << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                                                                 << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                                 << ", all extents for the handle file have been processed.  The transfer either finished or was canceled." \
+                                                                                 << "  See previous messages.";
+                                                                    BAIL;
+                                                                }
+                                                                else
+                                                                {
+                                                                    // Transfer definition is restartable.
+                                                                    // First ensure that the handle file is stopped.
+                                                                    if (l_HandleFile->stopped())
+                                                                    {
+                                                                        // Stopped, will exit both loops...
+                                                                        rc = 0;
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        // Handle file not stopped.
+                                                                        // Continue to spin...
+                                                                    }
+                                                                }
                                                             }
                                                             else
                                                             {
-                                                                // Transfer definition is restartable.
-                                                                // First ensure that the handle file is stopped.
+                                                                // Contribid is marked as stopped.
+                                                                // First ensure that the handle file is also stopped.
                                                                 if (l_HandleFile->stopped())
                                                                 {
                                                                     // Stopped, will exit both loops...
@@ -1994,287 +2026,295 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                         }
                                                         else
                                                         {
-                                                            // Contribid is marked as stopped.
-                                                            // First ensure that the handle file is also stopped.
-                                                            if (l_HandleFile->stopped())
-                                                            {
-                                                                // Stopped, will exit both loops...
-                                                                rc = 0;
-                                                            }
-                                                            else
-                                                            {
-                                                                // Handle file not stopped.
-                                                                // Continue to spin...
-                                                            }
+                                                            rc = 1;
+                                                            // This condition overrides any failure detected on bbProxy...
+                                                            l_MarkFailedFromProxy = 0;
+                                                            LOG(bb,info) << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                                                         << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                            BAIL;
                                                         }
                                                     }
                                                     else
                                                     {
+                                                        // The Contrib file could not be loaded -or-
+                                                        // the ContribId file could not be found in the Contrib file
                                                         rc = 1;
                                                         // This condition overrides any failure detected on bbProxy...
                                                         l_MarkFailedFromProxy = 0;
-                                                        LOG(bb,info) << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                                        LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
                                                                      << " All transfers for this contributor may have already finished.  See previous messages.";
                                                         BAIL;
                                                     }
+
+                                                    if (rc && l_Continue)
+                                                    {
+                                                        // Release the lock on the handle file
+                                                        l_HandleFile->close(l_LockFeedback);
+
+                                                        int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
+                                                        if ((l_SecondsWaiting % 15) == 1)
+                                                        {
+                                                            // Display this message every 15 seconds...
+                                                            FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                                                                      l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                                            LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
+                                                                         << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                         << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
+                                                                         << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                                                        }
+                                                        // If we will wait for at least another minute, re-append the stop transfer request
+                                                        // every 60 seconds in case the 'old' bbServer just came online...
+                                                        if ((l_Continue > 60) && (l_SecondsWaiting % 60) == 0)
+                                                        {
+                                                            BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
+                                                                                                             (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
+                                                        }
+                                                        unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+                                                        {
+                                                            usleep((useconds_t)1000000);    // Delay 1 second
+                                                        }
+                                                        lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+
+                                                        // Check to make sure the job still exists after releasing/re-acquiring the lock
+                                                        if (!jobStillExists(pConnectionName, &l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
+                                                        {
+                                                            // Job no longer exists... Indicate to not restart this transfer definition.
+                                                            rc = 1;
+                                                            // This condition overrides any failure detected on bbProxy...
+                                                            l_MarkFailedFromProxy = 0;
+                                                            BAIL;
+                                                        }
+                                                    }
+
+                                                    // Clean up for the next iteration...
+                                                    if (l_ContribIdFile)
+                                                    {
+                                                        delete l_ContribIdFile;
+                                                        l_ContribIdFile = 0;
+                                                    }
+                                                    if (l_HandleFileName)
+                                                    {
+                                                        delete[] l_HandleFileName;
+                                                        l_HandleFileName = 0;
+                                                    }
+                                                    if (l_HandleFile)
+                                                    {
+                                                        l_HandleFile->close(l_LockFeedback);
+                                                        delete l_HandleFile;
+                                                        l_HandleFile = 0;
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    // The Contrib file could not be loaded -or-
-                                                    // the ContribId file could not be found in the Contrib file
+                                                    // Handle file could not be loaded
+                                                    //
+                                                    // This condition overrides any failure detected on bbProxy...
+                                                    l_MarkFailedFromProxy = 0;
+                                                    if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                                    {
+                                                        rc = 1;
+                                                        LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from loadHandleFile() (2))." \
+                                                                     << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                        BAIL;
+                                                    }
+                                                    else
+                                                    {
+                                                        rc = -1;
+                                                        errorText << "Transfer handle could not be found on any server (2)";
+                                                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                                    }
+                                                }
+                                            }
+
+                                            if (rc == 1)
+                                            {
+                                                if (l_Attempts--)
+                                                {
+                                                    rc = prepareForRestartOriginalServerDead(pConnectionName, &l_LVKey, l_Handle, l_Job, l_ContribId);
+                                                    switch (rc)
+                                                    {
+                                                        case 1:
+                                                        {
+                                                            // Reset of cross bbServer metadata was successful...  Continue...
+                                                            rc = 0;
+                                                            LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata and was successfully stopped" \
+                                                                      << " after the original bbServer was unresponsive";
+                                                            l_AllDone = false;
+                                                        }
+                                                        break;
+
+                                                        case 2:
+                                                        {
+                                                            // Indicate to not restart this transfer definition
+                                                            rc = 1;
+                                                            // This condition overrides any failure detected on bbProxy...
+                                                            l_MarkFailedFromProxy = 0;
+                                                            LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but no file associated with the transfer definition needed to be restarted." \
+                                                                         << " Most likely, the transfer completed for the contributor or was canceled. Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                            BAIL;
+                                                        }
+                                                        break;
+
+                                                        default:
+                                                        {
+                                                            // Indicate to not restart this transfer definition
+                                                            rc = 1;
+                                                            // This condition overrides any failure detected on bbProxy...
+                                                            l_MarkFailedFromProxy = 0;
+                                                            errorText << "Attempt to reset the cross bbServer metadata for the transfer definition associated with contribid " << l_ContribId << " to stopped failed." \
+                                                                      << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    // Indicate to not restart this transfer definition (Should not get here...)
                                                     rc = 1;
                                                     // This condition overrides any failure detected on bbProxy...
                                                     l_MarkFailedFromProxy = 0;
-                                                    LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
-                                                                 << " All transfers for this contributor may have already finished.  See previous messages.";
-                                                    BAIL;
-                                                }
-
-                                                if (rc && l_Continue)
-                                                {
-                                                    // Release the lock on the handle file
-                                                    l_HandleFile->close(l_LockFeedback);
-
-                                                    int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
-                                                    if ((l_SecondsWaiting % 15) == 1)
-                                                    {
-                                                        // Display this message every 15 seconds...
-                                                        FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
-                                                                  l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
-                                                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
-                                                                     << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                     << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
-                                                                     << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
-                                                    }
-                                                    // If we will wait for at least another minute, re-append the stop transfer request
-                                                    // every 60 seconds in case the 'old' bbServer just came online...
-                                                    if ((l_Continue > 60) && (l_SecondsWaiting % 60) == 0)
-                                                    {
-                                                        BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
-                                                                                                         (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
-                                                    }
-                                                    unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
-                                                    {
-                                                        usleep((useconds_t)1000000);    // Delay 1 second
-                                                    }
-                                                    lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
-
-                                                    // Check to make sure the job still exists after releasing/re-acquiring the lock
-                                                    if (!jobStillExists(pConnectionName, &l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
-                                                    {
-                                                        // Job no longer exists... Indicate to not restart this transfer definition.
-                                                        rc = 1;
-                                                        // This condition overrides any failure detected on bbProxy...
-                                                        l_MarkFailedFromProxy = 0;
-                                                        BAIL;
-                                                    }
-                                                }
-
-                                                // Clean up for the next iteration...
-                                                if (l_ContribIdFile)
-                                                {
-                                                    delete l_ContribIdFile;
-                                                    l_ContribIdFile = 0;
-                                                }
-                                                if (l_HandleFileName)
-                                                {
-                                                    delete[] l_HandleFileName;
-                                                    l_HandleFileName = 0;
-                                                }
-                                                if (l_HandleFile)
-                                                {
-                                                    l_HandleFile->close(l_LockFeedback);
-                                                    delete l_HandleFile;
-                                                    l_HandleFile = 0;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                // Handle file could not be loaded
-                                                //
-                                                // This condition overrides any failure detected on bbProxy...
-                                                l_MarkFailedFromProxy = 0;
-                                                if (l_TransferPtr->builtViaRetrieveTransferDefinition())
-                                                {
-                                                    rc = 1;
-                                                    LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from loadHandleFile() (2))." \
-                                                                 << " All transfers for this contributor may have already finished.  See previous messages.";
-                                                    BAIL;
-                                                }
-                                                else
-                                                {
-                                                    rc = -1;
-                                                    errorText << "Transfer handle could not be found on any server (2)";
+                                                    errorText << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but it does not have a status of stopped." \
+                                                              << " The transfer definition was marked as stopped after the original bbServer was unresponsive," \
+                                                              << " but the cross bbServer metadata no longer shows the transfer definition as stopped." \
+                                                              << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
                                                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                                 }
                                             }
                                         }
+                                    }
 
-                                        if (rc == 1)
+                                    if (!rc)
+                                    {
+                                        //  getHandle() will create the necessary local metadata for this LVKey and handle value.
+                                        //
+                                        //  Objective is to get the local metadata created and then we will iterate through this
+                                        //  loop again.  Next time through, the local metadata will be found and we can then go on
+                                        //  to registering the transfer definition with queueTransfer().
+                                        LVKey* l_LVKeyPtr = &l_LVKey;
+
+                                        // NOTE: We may have to spin for a while waiting for the LVKey to be registered.
+                                        //       This is the case where we are in the process of activating this
+                                        //       bbServer, but we have not finished registering all of the LVKeys.
+                                        //       If necessary, spin for up to 2 minutes.
+                                        int l_Continue = DELAY_SECONDS;
+                                        rc = -2;
+                                        while (rc && l_Continue--)
                                         {
-                                            if (l_Attempts--)
+                                            rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_ContribArray, l_Handle, DO_NOT_LOCK_TRANSFER_QUEUE);
+                                            switch (rc)
                                             {
-                                                rc = prepareForRestartOriginalServerDead(pConnectionName, &l_LVKey, l_Handle, l_Job, l_ContribId);
-                                                switch (rc)
+                                                case 0:
                                                 {
-                                                    case 1:
-                                                    {
-                                                        // Reset of cross bbServer metadata was successful...  Continue...
-                                                        rc = 0;
-                                                        LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata and was successfully stopped" \
-                                                                  << " after the original bbServer was unresponsive";
-                                                        l_AllDone = false;
-                                                    }
-                                                    break;
-
-                                                    case 2:
-                                                    {
-                                                        // Indicate to not restart this transfer definition
-                                                        rc = 1;
-                                                        // This condition overrides any failure detected on bbProxy...
-                                                        l_MarkFailedFromProxy = 0;
-                                                        LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but no file associated with the transfer definition needed to be restarted." \
-                                                                     << " Most likely, the transfer completed for the contributor or was canceled. Therefore, the transfer definition cannot be restarted. See any previous messages.";
-                                                        BAIL;
-                                                    }
-                                                    break;
-
-                                                    default:
-                                                    {
-                                                        // Indicate to not restart this transfer definition
-                                                        rc = 1;
-                                                        // This condition overrides any failure detected on bbProxy...
-                                                        l_MarkFailedFromProxy = 0;
-                                                        errorText << "Attempt to reset the cross bbServer metadata for the transfer definition associated with contribid " << l_ContribId << " to stopped failed." \
-                                                                  << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
-                                                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                                                    }
-                                                    break;
+                                                    // Local metadata was successfully created.  Iterate and continue processing...
                                                 }
+                                                break;
+
+                                                case -2:
+                                                {
+                                                    // LVKey could not be found...  Spin for a while waiting for the
+                                                    // registration of the necessary LVKey...
+                                                    //
+                                                    // NOTE: Not sure we can get here anymore...  @DLH
+                                                    unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
+                                                    {
+                                                        int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
+                                                        if ((l_SecondsWaiting % 15) == 1)
+                                                        {
+                                                            // Display this message every 15 seconds...
+                                                            FL_Write6(FLDelay, StartTransferWaitForLVKey, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
+                                                                      l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                                            LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
+                                                                         << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                         << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the LVKey.";
+                                                        }
+                                                        usleep((useconds_t)1000000);    // Delay 1 second
+                                                    }
+                                                    lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
+                                                }
+                                                break;
+
+                                                default:
+                                                {
+                                                    if (rc > 0)
+                                                    {
+                                                        // Local metadata was found.  We hit he window where we were activating this bbServer and the
+                                                        // LVKey was not yet registered when checking above, but it now exists on this bbServer.
+                                                        // Continue...
+                                                        //
+                                                        // NOTE: Not sure we can get here anymore...  @DLH
+                                                        rc = 0;
+                                                    }
+                                                    else
+                                                    {
+                                                        // Negative return codes indicate an error.
+                                                        // NOTE: errstate already filled in by gethandle()...
+                                                        // This condition overrides any failure detected on bbProxy...
+                                                        l_MarkFailedFromProxy = 0;
+                                                        LOG_RC_AND_BAIL(rc);
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        }
+                                        if (rc)
+                                        {
+                                            // NOTE: Not sure we can get here anymore...  @DLH
+                                            stringstream l_JobStr;
+                                            l_Job.getStr(l_JobStr);
+                                            if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                            {
+                                                // This is a restart transfer scenrio and the LVKey cannot be found
+                                                rc = -1;
+                                                // This condition overrides any failure detected on bbProxy...
+                                                l_MarkFailedFromProxy = 0;
+                                                errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
+                                                          << " on this bbServer for contribid " << l_ContribId \
+                                                          << ".  This is a restart scenario and the expected LVKey was not found.";
+                                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                             }
                                             else
                                             {
-                                                // Indicate to not restart this transfer definition (Should not get here...)
-                                                rc = 1;
+                                                // This is a start transfer and the LVKey cannot be found
+                                                rc = -1;
                                                 // This condition overrides any failure detected on bbProxy...
                                                 l_MarkFailedFromProxy = 0;
-                                                errorText << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but it does not have a status of stopped." \
-                                                          << " The transfer definition was marked as stopped after the original bbServer was unresponsive," \
-                                                          << " but the cross bbServer metadata no longer shows the transfer definition as stopped." \
-                                                          << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
+                                                          << " on this bbServer for contribid " << l_ContribId \
+                                                          << ".  This is not a restart scenario and either the contribid is already known" \
+                                                          << " for this job to another bbServer in the cluster or a logical volume has yet" \
+                                                          << " to be created for the job on this bbServer.";
                                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                             }
                                         }
                                     }
                                 }
-
-                                if (!rc)
+                                else
                                 {
-                                    //  getHandle() will create the necessary local metadata for this LVKey and handle value.
-                                    //
-                                    //  Objective is to get the local metadata created and then we will iterate through this
-                                    //  loop again.  Next time through, the local metadata will be found and we can then go on
-                                    //  to registering the transfer definition with queueTransfer().
-                                    LVKey* l_LVKeyPtr = &l_LVKey;
-
-                                    // NOTE: We may have to spin for a while waiting for the LVKey to be registered.
-                                    //       This is the case where we are in the process of activating this
-                                    //       bbServer, but we have not finished registering all of the LVKeys.
-                                    //       If necessary, spin for up to 2 minutes.
-                                    int l_Continue = DELAY_SECONDS;
-                                    rc = -2;
-                                    while (rc && l_Continue--)
-                                    {
-                                        rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_ContribArray, l_Handle, DO_NOT_LOCK_TRANSFER_QUEUE);
-                                        switch (rc)
-                                        {
-                                            case 0:
-                                            {
-                                                // Local metadata was successfully created.  Iterate and continue processing...
-                                            }
-                                            break;
-
-                                            case -2:
-                                            {
-                                                // LVKey could not be found...  Spin for a while waiting for the
-                                                // registration of the necessary LVKey...
-                                                unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
-                                                {
-                                                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
-                                                    if ((l_SecondsWaiting % 15) == 1)
-                                                    {
-                                                        // Display this message every 15 seconds...
-                                                        FL_Write6(FLDelay, StartTransferWaitForLVKey, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
-                                                                  l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
-                                                        LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
-                                                                     << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                     << ". Delay of 1 second before retry. " << l_Continue << " seconds remain waiting for the LVKey.";
-                                                    }
-                                                    usleep((useconds_t)1000000);    // Delay 1 second
-                                                }
-                                                lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
-                                            }
-                                            break;
-
-                                            default:
-                                            {
-                                                if (rc > 0)
-                                                {
-                                                    // Local metadata was found.  We hit he window where we were activating this bbServer and the
-                                                    // LVKey was not yet registered when checking above, but it now exists on this bbServer.
-                                                    // Continue...
-                                                    rc = 0;
-                                                }
-                                                else
-                                                {
-                                                    // Negative return codes indicate an error.
-                                                    // NOTE: errstate already filled in by gethandle()...
-                                                    // This condition overrides any failure detected on bbProxy...
-                                                    l_MarkFailedFromProxy = 0;
-                                                    LOG_RC_AND_BAIL(rc);
-                                                }
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    if (rc)
-                                    {
-                                        stringstream l_JobStr;
-                                        l_Job.getStr(l_JobStr);
-                                        if (l_TransferPtr->builtViaRetrieveTransferDefinition())
-                                        {
-                                            // This is a restart transfer scenrio and the LVKey cannot be found
-                                            rc = -1;
-                                            // This condition overrides any failure detected on bbProxy...
-                                            l_MarkFailedFromProxy = 0;
-                                            errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
-                                                      << " on this bbServer for contribid " << l_ContribId \
-                                                      << ".  This is a restart scenario and the expected LVKey was not found.";
-                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                                        }
-                                        else
-                                        {
-                                            // This is a start transfer and the LVKey cannot be found
-                                            rc = -1;
-                                            // This condition overrides any failure detected on bbProxy...
-                                            l_MarkFailedFromProxy = 0;
-                                            errorText << "A logical volume (LVKey) is not currently associated with job" << l_JobStr.str() \
-                                                      << " on this bbServer for contribid " << l_ContribId \
-                                                      << ".  This is not a restart scenario and either the contribid is already known" \
-                                                      << " for this job to another bbServer in the cluster or a logical volume has yet" \
-                                                      << " to be created for the job on this bbServer.";
-                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                                        }
-                                    }
+                                    rc = -1;
+                                    // This condition overrides any failure detected on bbProxy...
+                                    l_MarkFailedFromProxy = 0;
+                                    errorText << "Contribid is not a listed contributor for the specified handle";
+                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                                 }
                             }
                             else
                             {
-                                rc = -1;
                                 // This condition overrides any failure detected on bbProxy...
                                 l_MarkFailedFromProxy = 0;
-                                errorText << "Contribid is not a listed contributor for the specified handle";
-                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                if (l_TransferPtr->builtViaRetrieveTransferDefinition())
+                                {
+                                    rc = 1;
+                                    LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from loadHandleFile() (1))." \
+                                                 << " All transfers for this contributor may have already finished.  See previous messages.";
+                                    BAIL;
+                                }
+                                else
+                                {
+                                    rc = -1;
+                                    errorText << "Transfer handle could not be found on any server (1)";
+                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                }
                             }
                         }
                         else
@@ -2283,15 +2323,25 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             l_MarkFailedFromProxy = 0;
                             if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                             {
+                                // For a restart operation, this is a case where residual jobs/transfer definitions exist
+                                // in the cross-bbServer metadata that the retrieve/stop/restart processing found and is
+                                // now trying to restart.  We skip over such residual jobs/transfer definitions.
                                 rc = 1;
-                                LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from loadHandleFile() (1))." \
-                                             << " All transfers for this contributor may have already finished.  See previous messages.";
+                                LOG(bb,info) << "Transfer definition associated with " << l_LVKey << ", hostname " << l_HostName \
+                                             << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                             << ", handle " << l_Handle << ", contribid " << l_ContribId << " was not considered for restart."\
+                                             << " The necessary local metadata for the transfer definition could not be found on this server." \
+                                             << " This is caused by residual jobs/transfer definitions that are not currently active" \
+                                             << " being found in the metadata by the retrieve/stop processing.";
                                 BAIL;
                             }
                             else
                             {
                                 rc = -1;
-                                errorText << "Transfer handle could not be found on any server (1)";
+                                errorText << "Failure occurred when attempting to start the transfer definition associated with " \
+                                          << l_LVKey << ", hostname " << l_HostName << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                          << ", handle " << l_Handle << ", contribid " << l_ContribId << ", rc " << rc \
+                                          << ".  The necessary local metadata for the transfer definition could not be found on this server.";
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                         }
