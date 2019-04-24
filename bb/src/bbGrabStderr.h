@@ -20,7 +20,7 @@ public:
     
 private:
     void setNonBlockMode(int pFD);
-    int buffSize;
+    size_t buffSize;
     char* buffer;
     int  stderrPipeFD[2];
     int dupSTDERR_FILENO;
