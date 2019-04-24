@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include "bbGrabStderr.h"
 
-    GrabStderr::GrabStderr(int pBuffSize){
+    GrabStderr::GrabStderr(size_t  pBuffSize){
         stderrPipeFD[0]=-1;
         stderrPipeFD[1]=-1;
         buffSize=pBuffSize;

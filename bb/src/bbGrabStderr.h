@@ -12,7 +12,7 @@
  *******************************************************************************/
 class GrabStderr {
 public:
-    GrabStderr(int pBuffSize=2048);
+    GrabStderr(size_t pBuffSize=2048);
     char * getStdErrBuffer();
     ~GrabStderr();
     void dumpBuff2stderr();
