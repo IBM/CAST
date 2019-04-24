@@ -13,30 +13,7 @@
 ###########################################################
 
 use JSON;
-
-sub getBBENVDir
-{
-    my $bbenvdir = "/tmp";
-    eval
-    {
-        $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
-	    $json = decode_json($jsondata);
-        $bbenvdir = $json->{"bb"}{"envdir"};
-    };
-    
-    if($bbenvdir eq "")
-    {
-        my @pwentry   = getpwuid($<);
-        @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
-        $bbenvdir  = @pwentry[7] . "/.bbtmp";
-    }
-    return $bbenvdir;
-}
-
-sub getBBENVName
-{    
-    return &getBBENVDir() . "/env." . $ENV{"LSB_SUB_JOB_ID"};
-}
+use File::Temp qw/ tempfile /;
 
 sub bbfail
 {
@@ -45,19 +22,33 @@ sub bbfail
     die $desc;
 }
 
-sub openBBENV
+sub bpost
 {
-    $maskvalue = umask() | 7;  # mask off world bits
-    umask($maskvalue);
-    
-    my $bbenvfile = &getBBENVName();
-    open(BBENV, ">". $bbenvfile) || bbfail "Unable to open BB_ENVFILE file ($bbenvfile).  $!";
-    
-    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-	$atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat $bbenvfile.  $!";
-    if($mode & 0077)
+    my($desc, $mailbox, $filedata) = @_;
+    $bpostbin = $ENV{'LSF_BINDIR'};
+    if($bpostbin ne "")    # LSF available
     {
-        bbfail "Permissions on $bbenvfile are too broad, the group and world fields should be zero.";
+        my $fh;
+        my $tmpfilename;
+        my $fileoption = "";
+        $mailbox = $::BPOSTMBOX if(!defined $mailbox);
+        if($filedata ne "")
+        {
+            ($fh, $tmpfilename) = tempfile();
+            $fileoption = "-a $tmpfilename";
+            print $fh $filedata;
+        }
+        system("$bpostbin/bpost $fileoption -d '$desc' -i $mailbox " . $ENV{"LSB_SUB_JOB_ID"});
+        
+        if($filedata ne "")
+        {
+            close($fh);
+            unlink($tmpfilename);
+        }
+    }
+    else
+    {
+        print "Message: $desc\n";
     }
 }
 
@@ -65,11 +56,6 @@ sub openBBENV
 if($ENV{"LSB_SUB_JOB_ID"} eq "-1")
 {
     exit(0);
-}
-
-if(!-d &getBBENVDir())
-{
-    mkdir(&getBBENVDir(), 0700);
 }
 
 open(TMP, $ENV{LSB_SUB_PARM_FILE});
@@ -91,20 +77,21 @@ if(exists $ENV{LSF_SUB4_SUB_ENV_VARS})
 
 %SKIP = ( "CSM_ALLOCATION_ID" => 1);
 
-openBBENV();
+my @ENVDATA = ();
 foreach $var (@vars)
 {
     if($var =~ /all/)
     {
         foreach $key (keys %ENV)
         {
-            print BBENV "$key=$ENV{$key}\n" if(!exists $SKIP{$key});
+            push(@ENVDATA, "$key=$ENV{$key}") if(!exists $SKIP{$key});
         }
     }
     else
     {
         ($key, $value) = $var =~ /(\S+?)=(\S+)/;
-        print BBENV "$key=$value\n";
+        push(@ENVDATA, "$key=$vaule");
     }
 }
-close(BBENV);
+my $envdata_str = join("\n", @ENVDATA);
+bpost("BB Path=" . $ENV{"BBPATH"}, 119, $envdata_str);

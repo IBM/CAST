@@ -108,14 +108,6 @@ sub phase4
         "  Stagein Status=" . $ENV{"LSF_STAGE_IN_STATUS"} . 
         "  JobExit=" . $ENV{"LSB_JOBEXIT_STAT"} . 
         "  Stage Status=" . $ENV{"LSF_STAGE_JOB_STATUS"});
-
-    if(($jobstatus =~ /DONE/) ||
-       ($jobstatus =~ /EXIT/))
-    {
-    	my $bbenvfile = getBBENVName();
-        bpost("BB: Removing envfile $bbenvfile.  Status=$jobstatus. Allocation ID=" . $ENV{"CSM_ALLOCATION_ID"});
-        unlink($bbenvfile);
-    }
     
     bpost("BB: Removing logical volume $BBPATH and metadata");
     

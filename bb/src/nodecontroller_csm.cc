@@ -520,6 +520,12 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
                         istringstream resultstream(string("{") + line.substr(off+3) + string("}"));
                         results.emplace_back();
                         boost::property_tree::read_json(resultstream, results.back());
+                        if(results.back().empty())
+                        {
+                            results.pop_back();
+                            rc = -1;
+                            cuml_errortext = string("no data from node");
+                        }
                     }
                 }
             }
@@ -547,6 +553,9 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
         int    rank_rc;
         for (auto &e : results)
         {
+            if(e.empty())
+                continue;
+            
             string rank = e.front().first;
             LOG(bb,info) << "processing results from rank " << rank;
             if (nodebcast)
