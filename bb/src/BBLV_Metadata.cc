@@ -536,7 +536,7 @@ int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyI
 }
 
 BBLV_Info* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
-    for(auto it =  metaDataMap.begin(); it != metaDataMap.end(); ++it) {
+    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if ((it->first).second == pLVKey->second) {
             return const_cast <BBLV_Info*> (&(it->second));
         }
@@ -560,13 +560,16 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
     //             rc < 0, -> error
 
     bool l_HandleWasAdded = false;
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
-        if((it->second).getTagInfo(pHandle, pContribId, l_TagId, l_TagInfo)) {
-            // We found the handle that is currently associated with 'some' LVKey.
-            if ((it->second).getJobId() == pJob.getJobId()) {
-                // This handle is associated with the correct jobid...
-                // NOTE: We do not verify any jobstepid criteria...
-                if((it->first).first == pConnectionName) {
+    uint64_t l_JobId = pJob.getJobId();
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end() && (!rc) && (!l_HandleWasAdded); ++it)
+    {
+        if ((it->second).getJobId() == l_JobId)
+        {
+            if ((it->second).getTagInfo(pHandle, pContribId, l_TagId, l_TagInfo))
+            {
+                // We found the handle that is currently associated with 'some' LVKey.
+                if ((it->first).first == pConnectionName)
+                {
                     // Correct LVKey...  Set the return data...
                     pLVKey = it->first;
                     pLV_Info = &(it->second);
@@ -575,19 +578,23 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
                     pContrib = pTagInfo->getExpectContrib();
                     rc = 1;
                     break;
-                } else {
+                }
+                else
+                {
                     l_Contrib = l_TagInfo->getExpectContrib();
                     l_TagInfo = 0;
                     l_NumContrib = (uint64_t)l_Contrib->size();
                     l_ContribArray = (uint32_t*)(new char[sizeof(uint32_t)*l_NumContrib]);
-                    for(uint64_t i=0; i<l_NumContrib; ++i)
+                    for (uint64_t i=0; i<l_NumContrib; ++i)
                     {
                         l_ContribArray[i] = (*l_Contrib)[i];
                     }
                     l_Handle = pHandle;
                     // Add this handle under the LVKey associated with the connection and jobid...
-                    for(auto it2 = metaDataMap.begin(); it2 != metaDataMap.end(); ++it2) {
-                        if((it2->first).first == pConnectionName && (it2->second).getJobId() == pJob.getJobId()) {
+                    for (auto it2 = metaDataMap.begin(); it2 != metaDataMap.end(); ++it2)
+                    {
+                        if ((it2->first).first == pConnectionName && (it2->second).getJobId() == l_JobId)
+                        {
                             // NOTE: We use the LVKey value from the current entry and
                             //       we use the tag value from that returned by getTagInfo
                             //       above for the 'incorrect' LVKey....
@@ -596,12 +603,16 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
                             uint32_t l_Dummy = 0;
 
                             rc = queueTransfer(pConnectionName, &l_LVKey, pJob, l_TagId.getTag(), l_TransferDef, (int32_t)(-1), l_NumContrib, l_ContribArray, l_Handle, 0, l_Dummy, (vector<struct stat*>*)0);
-                            if (!rc) {
+                            if (!rc)
+                            {
                                 l_HandleWasAdded = true;
-                            } else {
+                            }
+                            else
+                            {
                                 // NOTE:  errstate already filled in...
                                 LOG(bb,error) << "Handle " << pHandle << " could not be added to the LVKey metadata for the compute node.";
                             }
+                            break;
                         }
                     }
                     delete[] l_ContribArray;
@@ -611,13 +622,17 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
         }
     }
 
-    if (!rc && l_HandleWasAdded) {
+    if (!rc && l_HandleWasAdded)
+    {
         // The handle was added to a new LVKey...  Find that LVKey and set the return data...
         // NOTE: If we didn't find the handle at all above, we won't find it this time either
         //       and return that indication.
-        for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
-            if((it->first).first == pConnectionName && (it->second).getJobId() == pJob.getJobId()) {
-                if(((it->second).getTagInfo(pHandle, pContribId, l_TagId, l_TagInfo))) {
+        for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+        {
+            if ((it->first).first == pConnectionName && (it->second).getJobId() == l_JobId)
+            {
+                if (((it->second).getTagInfo(pHandle, pContribId, l_TagId, l_TagInfo)))
+                {
                     pLVKey = it->first;
                     pLV_Info = &(it->second);
                     pTagInfo = l_TagInfo;
@@ -688,7 +703,7 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 }
 
 BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
-    for(auto it =  metaDataMap.begin(); it != metaDataMap.end(); ++it) {
+    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if (it->first == *pLVKey) {
             return const_cast <BBLV_Info*> (&(it->second));
         }
@@ -718,11 +733,27 @@ int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, con
 }
 
 void BBLV_Metadata::getTransferHandles(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus) {
-    for(auto it =  metaDataMap.begin(); it != metaDataMap.end(); ++it) {
+    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         it->second.getTransferHandles(pHandles, pJob, pMatchStatus, it->second.stageOutStarted());
     }
 
     return;
+}
+
+int BBLV_Metadata::hasLVKey(const LVKey* pLVKey, const uint64_t pJobId)
+{
+    int rc = 0;
+
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+    {
+        if (it->first == *pLVKey && (it->second).getJobId() == pJobId)
+        {
+            rc = 1;
+            break;
+        }
+    }
+
+    return rc;
 }
 
 void BBLV_Metadata::removeAllLogicalVolumesForUuid(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId)
