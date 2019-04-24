@@ -25,8 +25,6 @@ require AutoLoader;
              bpost
              cmd
              setupUserEnvironment
-             getBBENVDir
-             getBBENVName
              bbfail
              bbwaitTransfersComplete
 );
@@ -418,81 +416,32 @@ sub setupBSCFS
     defaultenv("BSCFS_MNT_PATH", "local_path", "/bscfs");
 }
 
-sub getBBENVDir
-{
-    my $bbenvdir = "/tmp";
-    eval
-    {
-        $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
-	    $::jsoncfg = $json = decode_json($jsondata);
-        $bbenvdir = $json->{"bb"}{"envdir"};
-        $controller = $json->{"bb"}{"cmd"}{"controller"};
-    };
-    
-    if($bbenvdir eq "")
-    {
-        my @pwentry   = getpwuid($<);
-        @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
-        $bbenvdir  = @pwentry[7] . "/.bbtmp";
-    }
-    return $bbenvdir;
-}
-
-sub getBBENVName
-{    
-    return &getBBENVDir() . "/env.$::JOBID";
-}
-
 sub openBBENV
 {
-    my $bbenvfile = getBBENVName();
-    open(BBENV, $bbenvfile) || bbfail "Unable to open BB_ENVFILE file($bbenvfile).  $!";
-    
-    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-        $atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat BB_ENVFILE.  $!";
-    if($mode & 0077)
-    {
-	    bbfail "Permissions on BB_ENVFILE are too broad, the group and world fields should be zero.";
-    }
+    my $bbenvfile;
+    ($BBENV, $bbenvfile) = tempfile(UNLINK => 1);
+    $bpostbin = $ENV{'LSF_BINDIR'};
+    system("$bpostbin/bread -a $bbenvfile -i 119 $::JOBID") if(! -f $bbenvfile);
 }
 
 sub setupBBPATH
 {
-    openBBENV();
-    while($line = <BBENV>)
-    {
-        if($line =~ /^BBPATH=/)
-        {
-            chomp($line);
-            ($key, $value) = $line =~ /(\S+)=(.*)/;
-            if($value !~ /^\/mnt\/bb_[a-z0-9]+/)
-            {
-                bbfail "BBPATH appears to be corrupted or tainted.";
-            }
-            $ENV{"BBPATH"} = $value;
-        }
-        if($line =~ /^LSB_SUB_ADDITIONAL=/)
-        {
-            chomp($line);
-            ($key, $value) = $line =~ /(\S+)=(.*)/;
-            $ENV{"LSB_SUB_ADDITIONAL"} = $value;
-        }
-    }
-    close(BBENV);
-    $::BBPATH = $ENV{"BBPATH"};
+    my $bpostbin = $ENV{'LSF_BINDIR'};
+    my $bbpathdata = `$bpostbin/bread -w -i 119 $::JOBID`;  # root calls this, cannot use files
+    ($ENV{"BBPATH"} = $::BBPATH) = $bbpathdata =~ /BB Path=(\S+)/;
 }
 
 sub setupUserEnvironment
 {
     $ENV{"PATH"} = $ENV{"PATH_PRESERVE"};
     openBBENV();
-    while($line = <BBENV>)
+    while($line = <$BBENV>)
     {
         chomp($line);
         ($key, $value) = $line =~ /(\S+)=(.*)/;
         $ENV{$key} = $value;
     }
-    close(BBENV);
+    close($BBENV);
 }
 
 1;
