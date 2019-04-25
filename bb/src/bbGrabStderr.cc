@@ -15,13 +15,10 @@
 #include <fcntl.h>
 #include "bbGrabStderr.h"
 
-    GrabStderr::GrabStderr(size_t  pBuffSize){
+    GrabStderr::GrabStderr(){
         stderrPipeFD[0]=-1;
         stderrPipeFD[1]=-1;
-        buffSize=pBuffSize;
-        buffer=new char[buffSize];
         dupRC = 0;
-        buffEnd = 0;
         pipe2(stderrPipeFD, O_CLOEXEC);
         dupSTDERR_FILENO = dup(STDERR_FILENO);
         dupRC = dup2(stderrPipeFD[1],STDERR_FILENO);
@@ -30,16 +27,16 @@
         setNonBlockMode(STDERR_FILENO);
     }
 
-    char * GrabStderr::getStdErrBuffer(){
-        buffer[0]=0;
+    void GrabStderr::getStdErrBuffer(char* pBuffer,const size_t pBuffSize) const{
+        pBuffer[0]=0;
         if (stderrPipeFD[0] != -1){
-            buffEnd=read(stderrPipeFD[0],buffer,buffSize-1);
-            if (buffEnd != -1) buffer[buffEnd]=0;
+            int buffEnd=read(stderrPipeFD[0],pBuffer,pBuffSize-1);
+            if (buffEnd != -1) pBuffer[buffEnd]=0;
         }
-        return buffer;
+        return;
     }
 
-    void GrabStderr::setNonBlockMode(int pFD) { 
+    void GrabStderr::setNonBlockMode(const int pFD) { 
             int flags = fcntl(pFD,F_GETFL);
             flags |= O_NONBLOCK;
             fcntl(pFD,F_SETFL,flags);    
@@ -56,9 +53,4 @@
             close(dupSTDERR_FILENO);
             dupSTDERR_FILENO=-1;
         }
-        
-        if (buffer) delete [] buffer;
-    }
-    void GrabStderr::dumpBuff2stderr(){
-        fprintf(stderr,"stderr:\n %s\n\n",buffer);
     }

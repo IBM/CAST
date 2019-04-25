@@ -532,13 +532,15 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             }
         }
         if(rc)
-        {
+        {   
+            const size_t l_BUFSIZE = 2048;
+            char l_buffer[l_BUFSIZE];
             for(const auto& rank: csmbbranklist)
             {
                 results.emplace_back();
                 results.back().put(to_string(rank) + ".rc", rc);
                 results.back().put(to_string(rank) + ".error.text", "csm_bb_cmd failure");
-                char * l_buffer = grabstderr.getStdErrBuffer();
+                grabstderr.getStdErrBuffer(l_buffer,l_BUFSIZE);
                 if (l_buffer[0]!=0) results.back().put(to_string(rank) + ".error.stderr", l_buffer);
             }   
         }

@@ -12,18 +12,14 @@
  *******************************************************************************/
 class GrabStderr {
 public:
-    GrabStderr(size_t pBuffSize=2048);
-    char * getStdErrBuffer();
+    GrabStderr();
+    void getStdErrBuffer(char* pBuffer,const size_t pBuffSize) const;
     ~GrabStderr();
-    void dumpBuff2stderr();
 public:
     
 private:
     void setNonBlockMode(int pFD);
-    size_t buffSize;
-    char* buffer;
     int  stderrPipeFD[2];
     int dupSTDERR_FILENO;
     int dupRC;
-    int buffEnd;
 };
