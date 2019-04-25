@@ -28,6 +28,7 @@ const char* hitname = "/var/log/";
 typedef FILE* (*fopentype)(const char*, const char*);
 typedef int (*renametype)(const char*, const char*);
 typedef int (*unlinktype)(const char*);
+typedef int (*_xstattype) (int vers, const char *file, struct stat *buf);
 
 /***
 Override fopen64, rename, and unlink symbols for console logrotate capability.
@@ -135,17 +136,13 @@ extern "C" int unlink(const char* path)
     if (rc) errno=savedErrno;
     return rc;
 }
-/***
- * The override of the stat library call is done differently since it is not called out as a weak symbol.  
- * The stat library call is overridden here and then calls into fstatat to get the struct stat.
- ***/
-extern "C" int stat(const char* path, struct stat *buf)
+extern "C" int __xstat (int vers, const char *file, struct stat *buf)
 {
     int   rc;
     uid_t uid = 0;
     gid_t gid = 0;
     bool  switchuid = false;
-    if(strncmp(path, hitname, strlen(hitname)) == 0)
+    if(strncmp(file, hitname, strlen(hitname)) == 0)
     {
         uid = setfsuid(~0);
         gid = setfsgid(~0);
@@ -155,9 +152,12 @@ extern "C" int stat(const char* path, struct stat *buf)
             switchuid = true;
         }
     }
-    int filehandle = -1;
-    int fstatatflags = AT_NO_AUTOMOUNT;
-    rc = fstatat(filehandle, path, buf, fstatatflags);
+    static _xstattype orig__xstat = NULL;
+    if(orig__xstat == NULL)
+    {
+        orig__xstat = (_xstattype)dlsym(RTLD_NEXT, "__xstat");
+    }
+    rc = (orig__xstat)(vers, file, buf);
     int savedErrno = 0;
     if (rc) savedErrno=errno;
     if(switchuid)
