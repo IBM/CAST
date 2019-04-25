@@ -378,7 +378,7 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
 
     pNumRestartedTransferDefs = 0;
 
-    for (size_t i=0; ((!rc) && i<transferdefs.size()); i++)
+    for (size_t i=0; (i<transferdefs.size()); i++)
     {
         if ((pHostName == UNDEFINED_HOSTNAME || transferdefs[i]->getHostName() == pHostName) &&
             (pJobId == UNDEFINED_JOBID || transferdefs[i]->getJobId() == pJobId) &&
@@ -436,7 +436,6 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                         break;
                     }
                 }
-                rc = 0;
                 becomeUser(0,0);
             }
             else
@@ -447,53 +446,51 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                           << ", jobstepid " << transferdefs[i]->getJobStepId() << ", handle " << transferdefs[i]->getTransferHandle() << ", contribId " << transferdefs[i]->getContribId()
                           << " when attempting to become uid=" << transferdefs[i]->getUserId() << ", gid=" << transferdefs[i]->getGroupId();
                 bberror << err("error.uid", transferdefs[i]->getUserId()) << err("error.gid", transferdefs[i]->getGroupId());
-                LOG_ERROR_TEXT_RC(errorText, rc);
+                LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
             }
+            rc = 0;
         }
     }
 
-    if (!rc)
+    string l_HostNamePrt1 = "For host name " + hostname;
+    if (hostname == UNDEFINED_HOSTNAME)
     {
-        string l_HostNamePrt1 = "For host name " + hostname;
-        if (hostname == UNDEFINED_HOSTNAME)
-        {
-            l_HostNamePrt1 = "For all host names";
-        }
-        string l_HostNamePrt2 = "host name " + hostname;
-        if (hostname == UNDEFINED_HOSTNAME)
-        {
-            l_HostNamePrt2 = "all host names";
-        }
-
-        ostringstream l_ContribIdPrt;
-        l_ContribIdPrt << pContribId;
-        string l_ContribIdPrt1 = "contribid " + l_ContribIdPrt.str();
-        if (pContribId == UNDEFINED_CONTRIBID)
-        {
-            l_ContribIdPrt1 = "all contribids";
-        }
-        l_ContribIdPrt.str("");
-        l_ContribIdPrt.clear();
-        l_ContribIdPrt << contribid;
-        string l_ContribIdPrt2 = "contribid " + l_ContribIdPrt.str();
-        if (contribid == UNDEFINED_CONTRIBID)
-        {
-            l_ContribIdPrt2 = "all contribids";
-        }
-
-        bberror.errdirect("out.numTransferDefs", transferdefs.size());
-        bberror.errdirect("out.numberRestarted", l_NumberRestarted);
-        bberror.errdirect("out.numberNotInStoppedState", l_NotInStoppedState);
-        bberror.errdirect("out.numberFailed", l_NumberFailed);
-        LOG(bb,info) << l_HostNamePrt1 << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", and " << l_ContribIdPrt1 \
-                     << " using an archive of " << transferdefs.size() << " transfer definition(s) generated using the criteria of " \
-                     << l_HostNamePrt2 << ", jobid " << jobid << ", jobstepid " << jobstepid << ", handle " << handle << ", and " << l_ContribIdPrt2 \
-                     << ", a restart operation was completed for " << l_NumberRestarted << " transfer definition(s), " << l_NotInStoppedState \
-                     << " transfer definition(s) were not in a stopped state, and a restart was attempted but failed for " \
-                     << l_NumberFailed << " transfer definition(s). See previous messages for additional details.";
-
-        pNumRestartedTransferDefs = l_NumberRestarted;
+        l_HostNamePrt1 = "For all host names";
     }
+    string l_HostNamePrt2 = "host name " + hostname;
+    if (hostname == UNDEFINED_HOSTNAME)
+    {
+        l_HostNamePrt2 = "all host names";
+    }
+
+    ostringstream l_ContribIdPrt;
+    l_ContribIdPrt << pContribId;
+    string l_ContribIdPrt1 = "contribid " + l_ContribIdPrt.str();
+    if (pContribId == UNDEFINED_CONTRIBID)
+    {
+        l_ContribIdPrt1 = "all contribids";
+    }
+    l_ContribIdPrt.str("");
+    l_ContribIdPrt.clear();
+    l_ContribIdPrt << contribid;
+    string l_ContribIdPrt2 = "contribid " + l_ContribIdPrt.str();
+    if (contribid == UNDEFINED_CONTRIBID)
+    {
+        l_ContribIdPrt2 = "all contribids";
+    }
+
+    bberror.errdirect("out.numTransferDefs", transferdefs.size());
+    bberror.errdirect("out.numberRestarted", l_NumberRestarted);
+    bberror.errdirect("out.numberNotInStoppedState", l_NotInStoppedState);
+    bberror.errdirect("out.numberFailed", l_NumberFailed);
+    LOG(bb,info) << l_HostNamePrt1 << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", and " << l_ContribIdPrt1 \
+                 << " using an archive of " << transferdefs.size() << " transfer definition(s) generated using the criteria of " \
+                 << l_HostNamePrt2 << ", jobid " << jobid << ", jobstepid " << jobstepid << ", handle " << handle << ", and " << l_ContribIdPrt2 \
+                 << ", a restart operation was completed for " << l_NumberRestarted << " transfer definition(s), " << l_NotInStoppedState \
+                 << " transfer definition(s) were not in a stopped state, and a restart was attempted but failed for " \
+                 << l_NumberFailed << " transfer definition(s). See previous messages for additional details.";
+
+    pNumRestartedTransferDefs = l_NumberRestarted;
 
     return;
 }

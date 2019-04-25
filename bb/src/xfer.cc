@@ -1798,7 +1798,7 @@ void startThreads(void)
         {
             errorText << "Error occurred in startThreads()";
             bberror << err("error.numthreads", numthreads);
-            LOG_ERROR_TEXT_RC_AND_RAS_AND_BAIL(errorText, rc, bb.sc.pthread_create);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.sc.pthread_create);
         }
     }
 

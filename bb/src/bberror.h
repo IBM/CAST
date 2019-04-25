@@ -110,6 +110,11 @@
     bberror << bailout; \
 }
 
+#define LOG_ERROR_RAS_AND_BAIL(TEXT,RASID) { \
+    LOG(bb,error) << TEXT.str(); \
+    bberror << RAS(RASID) << bailout; \
+}
+
 #define LOG_ERROR_RC_WITH_EXCEPTION(FILE,FUNC,LINE,EXCEPTION,RC) { \
     try { \
         LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
@@ -158,6 +163,11 @@
     bberror << RAS(RASID); \
 }
 
+#define LOG_ERROR_TEXT_RAS_AND_BAIL(TEXT,RASID) { \
+    LOG(bb,error) << TEXT.str(); \
+    bberror << RAS(RASID) << bailout; \
+}
+
 #define LOG_ERROR_TEXT_ERRNO(TEXT,ERRNO) { \
     LOG(bb,error) << TEXT.str(); \
     bberror << err("error.errno", ERRNO) << err("error.strerror", strerror(ERRNO)); \
@@ -176,6 +186,12 @@
     bberror << err("error.text", TEXT.str()) << errloc(ERRNO) << RAS(RASID); \
 }
 
+#define LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(TEXT,ERRNO,RASID) { \
+    LOG(bb,error) << TEXT.str(); \
+    bberror << err("error.errno", ERRNO) << err("error.strerror", strerror(ERRNO)); \
+    bberror << err("error.text", TEXT.str()) << errloc(ERRNO) << RAS(RASID) << bailout; \
+}
+
 #define LOG_ERROR_TEXT_RC_AND_BAIL(TEXT,RC) { \
     LOG(bb,error) << TEXT.str(); \
     bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
@@ -186,9 +202,17 @@
     bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID); \
 }
 
-#define LOG_ERROR_TEXT_RC_AND_RAS_AND_BAIL(TEXT,RC,RASID) { \
+#define LOG_ERROR_TEXT_RC_RAS_AND_BAIL(TEXT,RC,RASID) { \
     LOG(bb,error) << TEXT.str(); \
     bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID) << bailout; \
+}
+
+#define LOG_RAS(RASID) { \
+    bberror << RAS(RASID); \
+}
+
+#define LOG_RAS_AND_BAIL(RASID) { \
+    bberror << RAS(RASID) << bailout; \
 }
 
 #define LOG_RC(RC) { \
@@ -203,7 +227,7 @@
     bberror << errloc(RC) << RAS(RASID); \
 }
 
-#define LOG_RC_AND_RAS_AND_BAIL(RC,RASID) { \
+#define LOG_RC_RAS_AND_BAIL(RC,RASID) { \
     bberror << errloc(RC) << RAS(RASID) << bailout; \
 }
 
