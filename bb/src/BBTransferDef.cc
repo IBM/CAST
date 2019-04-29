@@ -1514,9 +1514,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             rc = extentsAreEnqueued();
             if (!rc)
             {
-                // Release the handle file
-                l_HandleFile->close(l_LockFeedback);
-
+                // NOTE: The handle file will not have been already locked in this path...
                 unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                 {
                     pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
