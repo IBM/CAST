@@ -32,6 +32,7 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     handle /= bfs::path(to_string(pTagId.getJobId()));
     handle /= bfs::path(to_string(pTagId.getJobStepId()));
     handle /= bfs::path(to_string(pHandle));
+    ContribFile* l_ContribFile = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_AllExtentsXfered, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTagId.getJobId(), pHandle, pContribId);
@@ -42,7 +43,6 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
         {
             if ((rc != 1) || (!bfs::is_directory(lvuuid))) continue;
             bfs::path contribs_file = lvuuid.path() / "contribs";
-            ContribFile* l_ContribFile = 0;
             int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
             if (!rc2)
             {
@@ -75,6 +75,12 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     {
         rc = -1;  //  Error case...
         LOG(bb,error) << "Handle file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << handle.string() << " does not exist.";
+    }
+
+    if (l_ContribFile)
+    {
+        delete l_ContribFile;
+        l_ContribFile=NULL;
     }
 
     FL_Write6(FLMetaData, CIF_AllExtentsXfered_End, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, rc=%ld",
@@ -248,7 +254,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
 
     pContribIdFile = 0;
 
-    ContribFile* l_ContribFile;
+    ContribFile* l_ContribFile = 0;
     Uuid lv_uuid = pLVKey->second;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);

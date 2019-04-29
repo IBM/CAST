@@ -2495,7 +2495,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     if (l_ContribArray)
     {
-        delete l_ContribArray;
+        delete[] l_ContribArray;
         l_ContribArray = 0;
     }
 
