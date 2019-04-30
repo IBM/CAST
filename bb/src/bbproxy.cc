@@ -528,7 +528,7 @@ void msgin_changeowner(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         if (rc)
         {
-            LOG_RC_AND_RAS(rc, bb.admin.failure);
+            SET_RC_AND_RAS(rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -681,7 +681,7 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         LOG(bb,info) << "msgin_getusage: mountpoint=" << mountpoint;
 
         rc = proxy_GetUsage(mountpoint, usage);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -747,7 +747,7 @@ void msgin_getdeviceusage(txp::Id id, const string& pConnectionName, txp::Msg* m
         LOG(bb,info) << "msgin_getdeviceusage: devicenum=" << devicenum;
 
         rc = proxy_GetDeviceUsage(devicenum, usage);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -830,12 +830,12 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if(usage.totalBytesWritten || usage.totalBytesRead)
         {
             rc = startMonitoringMount(mountpoint, usage);
-            if(rc) LOG_RC_AND_BAIL(rc);
+            if(rc) SET_RC_AND_BAIL(rc);
         }
         else
         {
             rc = stopMonitoringMount(mountpoint);
-            if(rc) LOG_RC_AND_BAIL(rc);
+            if(rc) SET_RC_AND_BAIL(rc);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -1179,8 +1179,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             // NOTE: errstate already filled in...
             errorText << "Could not retrieve the userid and groupid for the mountpoint";
-            bberror << err("error.jobid",jobid);
-            LOG_ERROR_RAS_AND_BAIL(errorText, bb.admin.failure);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
@@ -1188,7 +1187,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended. Attempt to retry the create logical volume request when the connection is not suspended.";
-            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
+            LOG_WARNING_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         LOG(bb,info) << "Create: " << mountpoint << ", " << mountsize << ", " << createflags << ", " << l_UserId << ":" << l_GroupId << ", jobid=" << jobid;
@@ -1285,7 +1284,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 errorText << "usage registration failed for mountpoint "<< mountpoint;
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
                 FL_Write(FLBBUsage, USAGEREGFAIL, "usage registration failed for mountpoint errno=%ld create_flags=%lx user=%ld group=%ld",errno,createflags,l_UserId,l_GroupId);
-                LOG_RC_RAS_AND_BAIL(rc, bb.admin.failure);
+                SET_RC_RAS_AND_BAIL(rc, bb.admin.failure);
             }
         }
     }
@@ -2149,7 +2148,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         if (rc != -2)
         {
-            LOG_RC_AND_RAS(rc, bb.admin.failure);
+            SET_RC_AND_RAS(rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -2251,10 +2250,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             rc = -2;
             errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
-            LOG(bb,info) << errorText.str();
-            bberror << err("error.text", errorText.str()) << errloc(rc) << bailout;
+            LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
         }
-
 
         if (!l_lvuuid.is_null())
         {
@@ -2329,7 +2326,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 {
                     // NOTE: removeLogicalVolume() filled in bberror
                     bberror<<err("err.isMountedRc", isMountedRc);
-                    LOG_RC_RAS_AND_BAIL(rc, bb.admin.failure);
+                    SET_RC_RAS_AND_BAIL(rc, bb.admin.failure);
                 }
             }
 
@@ -2615,7 +2612,7 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     {
         // On any error, restore the on-entry suspend state
         updateSuspendMap(DEFAULT_SERVER_ALIAS, l_EntrySuspendState);
-        LOG_RC_AND_RAS(rc, bb.admin.failure);
+        SET_RC_AND_RAS(rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3116,7 +3113,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                 // A retry could be attempted in this suspended scenario.  Return -2.
                 rc = -2;
                 errorText << "Connection to the active server is suspended. Attempt to retry the start transfer request when the connection is not suspended.";
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
             }
         }
 
@@ -4146,11 +4143,14 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                         }
                         else
                         {
-                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
+                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] << ", rc " << rc \
                                       << ". The logical volume associated with this device will not be registered to the new bbServer." \
                                       << ". Processing continues for additional burst buffers logical volumes.";
-                            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+                            LOG_WARNING_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
                         }
+
+                        // Clear bberror for any 'tolerated' exceptions
+                        bberror.forceClear();
                         rc = 0;
                     }
                 }
@@ -4550,7 +4550,7 @@ int doAuthenticate(const string& name){
         << ", process_whoami=" << process_whoami.c_str() << ", process_instance=" << process_instance.c_str() \
         << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() << ", rc=" << rc;
         LOG_ERROR_TEXT_ERRNO(errorText, EINVAL);
-        LOG_RC_AND_RAS(rc, bb.net.authfailed);
+        SET_RC_AND_RAS(rc, bb.net.authfailed);
     }
 
     delete msg;

@@ -40,13 +40,13 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
     try{
         rc = getIPPort(pIPinfo, l_ipaddr, l_port);
         if (rc) {
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
         if (l_ipaddr=="0.0.0.0")l_ipaddr="127.0.0.1";
         rc = inet_pton(AF_INET, l_ipaddr.c_str(), &l_ipremote);
         if (rc!=1) {
-            if (rc<0)LOG_RC_AND_BAIL(errno);
-            LOG_RC_AND_BAIL(EINVAL);
+            if (rc<0) SET_RC_AND_BAIL(errno);
+            SET_RC_AND_BAIL(EINVAL);
         }
         sock->willDialRemote();
         sock->loadCertificateToTrustStore(config.get(pName + ".sslcertif", NO_CONFIG_VALUE));
@@ -56,7 +56,7 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
         if (sock->attachRemote(retryConnectDelay,retryConnectCount) <= 0)
         {
             LOG(bb,error) << "SSL failure, sock->attachRemote(), errno = " << errno << ", (" << strerror(errno) << ")";
-            LOG_RC_AND_BAIL(errno);
+            SET_RC_AND_BAIL(errno);
         }
         else {
             sock->verifyCertificates();
@@ -66,11 +66,11 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
             }
             sock->keepAlive();
         }
-        
+
     }
     catch(ExceptionBailout& e)
     {
@@ -96,13 +96,13 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
     try{
         rc = getIPPort(pIPinfo, l_ipaddr, l_port);
         if (rc) {
-            if (rc) LOG_RC_AND_BAIL(rc);
+            if (rc) SET_RC_AND_BAIL(rc);
         }
         if (l_ipaddr=="0.0.0.0")l_ipaddr="127.0.0.1";
         rc = inet_pton(AF_INET, l_ipaddr.c_str(), &l_ipremote);
         if (rc!=1) {
-            if (rc<0)LOG_RC_AND_BAIL(errno);
-            LOG_RC_AND_BAIL(EINVAL);
+            if (rc<0) SET_RC_AND_BAIL(errno);
+            SET_RC_AND_BAIL(EINVAL);
         }
         sock->willDialRemote();
         sock->setRemoteAddr(l_ipremote, l_port);
@@ -111,7 +111,7 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
         if (sock->attachRemote(retryConnectDelay,retryConnectCount) <= 0)
         {
             LOG(bb,error) << "nonSSL failure, sock->attachRemote(), errno = " << errno << ", (" << strerror(errno) << ")";
-            LOG_RC_AND_BAIL(errno);
+            SET_RC_AND_BAIL(errno);
         }
         else {
             bool l_turnOnKeepAlive = config.get("bb.usekeepalive", true);
@@ -120,7 +120,7 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);              
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
             }
             sock->keepAlive();
         }
@@ -134,7 +134,7 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
         stringstream errorText;
         errorText << "nonSSL failure in attempting to connect to "<<pName;
         LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.net.nonSSLconnectAttemptFailed);
-        
+
     }
     return sock;
 }

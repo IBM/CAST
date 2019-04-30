@@ -82,6 +82,9 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
                 else
                 {
                     rc = -2;
+                    stringstream errorText;
+                    errorText << "Not enough room in the buffer";
+                    SET_ERROR_TEXT_RC(errorText, rc);
                 }
             }
         }
@@ -1255,6 +1258,7 @@ int HandleFile::testForLock(const char* pFilePath)
 
         case -2:
         {
+            rc = -1;
             bberror << err("out.handlefilelocked", "Could not open");
             errorText << "Could not open handle file " << l_LockFile << " to test for file lock, errno=" << errno << ":" << strerror(errno);
             LOG_ERROR_TEXT_ERRNO(errorText, errno);

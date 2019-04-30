@@ -59,10 +59,10 @@ static int bbapi_SetVariable(const string& pVariable, const string& pValue)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -330,10 +330,10 @@ int Coral_GetVar(const char* pVariable)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 
@@ -375,10 +375,10 @@ int Coral_SetVar(const char* pVariable, const char* pValue)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -417,7 +417,7 @@ int Coral_StageOutStart(const char* pMountpoint)
         if(rc) bberror << errloc(rc) <<bailout;
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
