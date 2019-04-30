@@ -1,9 +1,9 @@
 .. _CSM_Database:
 
-CSM Database
-============
+Database
+========
 
-CSM database (CSM DB) holds information about systems hardware configuration, hardware inventory, RAS, diagnostics, job steps, job allocations, and CSM configuration. This information is essential for the CORAL system to run properly and for resources accounting.
+CSM Database (CSM DB) holds information about systems hardware configuration, hardware inventory, RAS, diagnostics, job steps, job allocations, and CSM configuration. This information is essential for the CORAL system to run properly and for resources accounting.
 
 CSM DB uses PostgreSQL.
 

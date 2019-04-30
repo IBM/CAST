@@ -1,7 +1,7 @@
 .. _CSMDInfrastructure:
 
-CSM Infrastructure
-==================
+Infrastructure
+==============
 
 The managing process of CSM. The infrastructure facilitates the interaction of the local CSM APIs
 and the CSM Database and cluster Compute nodes.
