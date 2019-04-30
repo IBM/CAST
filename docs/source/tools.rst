@@ -103,7 +103,7 @@ This tool connects to UFM and collects inventory information on all Mellanox har
 Setup and Configuration
 ***********************
 
-This tool requires a properly set up ``master.cfg`` file. The system administrator should update the following ``ufm`` section with the proper ``rest_address`` and ``rest_port``. Without the address for the UFM server, this tool can not communicate with UFM.
+This tool requires a properly set up ``csm_master.cfg`` file. The system administrator should update the following ``ufm`` section with the proper ``rest_address`` and ``rest_port``. Without the address for the UFM server, this tool can not communicate with UFM. 
 
 .. code-block:: json
 
@@ -119,7 +119,7 @@ This tool requires a properly set up ``master.cfg`` file. The system administrat
 
 The system administrator must also create an SSL key for their UFM username and password. You can read more on how to do that here: :ref:`UFM_Credentials`.
 
-A system administrator can also configure this tool's output. CSM may detect some network hardware that is not Mellanox hardware or may collect incomplete records for Mellanox hardware. If this is the case, CSM will capture what data it can and output those records to a `bad_records` file. The default location and names of these files are copied from the ``master.cfg`` file and reproduced below. A system administrator can update the ``master.cfg`` file to customize or change these filenames should they choose. 
+A system administrator can also configure this tool's output. CSM may detect some network hardware that is not Mellanox hardware or may collect incomplete records for Mellanox hardware. If this is the case, CSM will capture what data it can and output those records to a `bad_records` file. The default location and names of these files are copied from the ``csm_master.cfg`` file and reproduced below. A system administrator can update the ``csm_master.cfg`` file to customize or change these filenames should they choose. 
 
 .. code-block:: json
 
@@ -168,16 +168,16 @@ The UFM Inventory collection tool has multiple flags.
 
 For help run the tool with the ``-h, --help`` flag. This will give useful help for all flags and example values.
 
-The first flag is ``-c, --config``. This flag tells the tool where your ``master.cfg`` file is located. If this flag is not provided, then the tool will look in the default location of: ``/etc/ibm/csm/csm_master.cfg``. 
+The first flag is ``-c, --config``. This flag tells the tool where your ``csm_master.cfg`` file is located. If this flag is not provided, then the tool will look in the default location of: ``/etc/ibm/csm/csm_master.cfg``. 
 
 The second flag is ``-t, --type``. This flag determines what type of inventory should be collected. 1 = ib cables, 2 = switches, 3 = ib cables and switches. If this flag is not provided, then the tool will default to type 3, collecting information on both ib cables and switches. 
 
-Another flag, ``-i, --input_override``, overrides the value for ``ufm_switch_input_file_name`` defined in the ``master.cfg``. This is a direct and literal full path including the filename and extension. This is useful if the tool needs to be passed switch inventory information from a seperate origin source for a single run. 
+Another flag, ``-i, --input_override``, overrides the value for ``ufm_switch_input_file_name`` defined in the ``csm_master.cfg``. This is a direct and literal full path including the filename and extension. This is useful if the tool needs to be passed switch inventory information from a seperate origin source for a single run. 
 
 Output
 ******
 
-All output information for this tool is printed to the console. The ``-d, --details`` flag can be used to turn on extra information. If there are bad or incomplete records for hardware inventory they will not be copied into the :ref:`CSM_Database` and instead placed into the `bad_records` files specified in the ``master.cfg`` file.
+All output information for this tool is printed to the console. The ``-d, --details`` flag can be used to turn on extra information. If there are bad or incomplete records for hardware inventory they will not be copied into the :ref:`CSM_Database` and instead placed into the `bad_records` files specified in the ``csm_master.cfg`` file.
 
 
 
