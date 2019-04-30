@@ -1,5 +1,5 @@
-{ 
-  "bb" : 
+{
+  "bb" :
   {
       "devpath" :
       {
@@ -89,11 +89,11 @@
 	      "severity" : "FATAL",
 	      "message" : "The X509 certificate verification failed.",
 	      "description" : "The certificate failed verification."
-	  }	  
+	  }
       },
       "cfgerr" :
       {
-	  "noconnectscript" : 
+	  "noconnectscript" :
 	  {
 	      "severity" : "FATAL",
 	      "message" : "Access failed to NVMf connection script.",
@@ -334,7 +334,7 @@
 	      }
 	  }
       },
-      "usage" : 
+      "usage" :
       {
 	  "writeThreshExceeded" :
 	  {
@@ -353,6 +353,15 @@
 	      "severity" : "WARNING",
 	      "message" : "The maximum RSS threshold has been reached.",
 	      "description" : "The maximum resident set size (RSS) in memory has exceeded the threshold."
+	  }
+      },
+      "admin" :
+      {
+	  "failure" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An admin level command or API operation failed.",
+	      "description" : "An admin level command or API operation failed."
 	  }
       }
   }

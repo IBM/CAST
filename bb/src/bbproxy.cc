@@ -388,14 +388,14 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         if (rc)
         {
             errorText << "mkdir failed";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, errno, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -478,14 +478,14 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
                     lsofRunCmd(pathname);
                 }
             }
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -525,12 +525,17 @@ void msgin_changeowner(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         // NOTE:  If doChangeOwner() fails, it fills in errstate...
         rc = doChangeOwner(pathname, newowner, newgroup);
+
+        if (rc)
+        {
+            LOG_RC_AND_RAS(rc, bb.admin.failure);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -572,14 +577,14 @@ void msgin_changemode(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc)
         {
             errorText << "chmod failed";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, errno, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -633,7 +638,7 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
         {
             // NOTE: resizeLogicalVolume() filled in errstate
             errorText << "Resize operation for logical volume associated with " << mountpoint << " failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
         LOG(bb,info) << "Resize operation for logical volume associated with " << mountpoint << " completed.";
     }
@@ -641,7 +646,7 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -707,7 +712,7 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 #undef ADDFIELD
     LOG(bb,info) << "Get usage.name totalBytesRead="<<usage.totalBytesRead<<" totalBytesWritten="<<usage.totalBytesWritten<<" localBytesRead="<< usage.localBytesRead<<" localBytesWritten="<<usage.localBytesWritten<<" burstBytesRead="<<usage.burstBytesRead<<" burstBytesWritten="<<usage.burstBytesWritten;
 
-    sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName, response);
     delete response;
     response=NULL;
 
@@ -777,7 +782,7 @@ void msgin_getdeviceusage(txp::Id id, const string& pConnectionName, txp::Msg* m
     usageattr(num_err_log_entries);
 #undef usageattr
 
-    sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName, response);
     delete response;
     response=NULL;
 
@@ -914,7 +919,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     addBBErrorToMsg(response);
     response->addAttribute(txp::value64, l_Value);
 
-    sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName, response);
     delete response;
     response=NULL;
 
@@ -1141,7 +1146,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             stringstream errorText;
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Insert input values into errstate...
@@ -1163,7 +1168,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             rc = -1;
             errorText << "Requested size of " << mountsize << " is either invalid or too small. The minimum size that can be specified is " << MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE << " bytes. Suffixes of 'B', 'S', 'K', 'M', 'G', and 'T' are honored.";
             bberror << err("error.lvsize", lvsize);
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Retrieve the uid/gid of the mount point
@@ -1175,7 +1180,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             // NOTE: errstate already filled in...
             errorText << "Could not retrieve the userid and groupid for the mountpoint";
             bberror << err("error.jobid",jobid);
-            LOG_ERROR_AND_BAIL(errorText);
+            LOG_ERROR_RAS_AND_BAIL(errorText, bb.admin.failure);
         }
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
@@ -1183,7 +1188,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended. Attempt to retry the create logical volume request when the connection is not suspended.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         LOG(bb,info) << "Create: " << mountpoint << ", " << mountsize << ", " << createflags << ", " << l_UserId << ":" << l_GroupId << ", jobid=" << jobid;
@@ -1192,7 +1197,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         if (rc)
         {
             // NOTE: createLogicalVolume() filled in errstate
-            BAIL;
+            LOG_RAS_AND_BAIL(bb.admin.failure);
         }
 
         // Any error from this point forward must remove the newly created logical volume...
@@ -1204,7 +1209,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             rc = -1;
             errorText << "Retrieving the uuid for the newly created logical volume failed, rc=" << rc << ". The mount point may no longer have a mounted file system or the directory for the mount point may not exist.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Build the message to send to bbserver
@@ -1225,13 +1230,13 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         msgserver->addAttribute(txp::option, (uint32_t)0);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver = NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -1239,14 +1244,14 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -1280,7 +1285,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 errorText << "usage registration failed for mountpoint "<< mountpoint;
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
                 FL_Write(FLBBUsage, USAGEREGFAIL, "usage registration failed for mountpoint errno=%ld create_flags=%lx user=%ld group=%ld",errno,createflags,l_UserId,l_GroupId);
-                LOG_RC_AND_BAIL(rc);
+                LOG_RC_RAS_AND_BAIL(rc, bb.admin.failure);
             }
         }
     }
@@ -1288,7 +1293,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     if (rc && onErrorRemoveNewLogicalVolume)
@@ -1431,7 +1436,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
         msgserver->addAttribute(txp::contrib, (const char*)l_Contrib, sizeof(uint32_t) * l_NumContrib);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -1559,7 +1564,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
             msgserver->addAttribute(txp::contribid, l_ContribId);
 
             // Send the message to bbserver
-            rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+            rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
             delete msgserver;
             msgserver = NULL;
             if (rc)
@@ -1718,7 +1723,7 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::handle, l_Handle);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver = NULL;
         if (rc)
@@ -1845,7 +1850,7 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::uuid, l_lvuuid_str, sizeof(l_lvuuid_str), txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -1982,7 +1987,7 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
 #endif
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -2103,7 +2108,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         LOG(bb,info) << "msgin_removejobinfo: jobid=" << l_JobId;
@@ -2113,13 +2118,13 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         msgserver->addAttribute(txp::jobid, l_JobId);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -2127,14 +2132,14 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -2142,12 +2147,16 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         delete(msgserver);
         msgserver=NULL;
 
+        if (rc != -2)
+        {
+            LOG_RC_AND_RAS(rc, bb.admin.failure);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -2200,7 +2209,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Switch to the uid/gid of requester.
@@ -2260,7 +2269,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             msgserver->addAttribute(txp::contribid, contribid);
 
             // Send the message to bbserver
-            rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+            rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
             delete msgserver;
             msgserver=NULL;
             if (rc)
@@ -2268,7 +2277,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 errorText << "sendMessage to server failed";
                 LOG_ERROR_TEXT(errorText);
             }
-            else {
+            else
+            {
                 // Wait for the response
                 rc = waitReply(reply, msgserver);
                 if (rc)
@@ -2298,6 +2308,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 }
             }
 
+            // NOTE: Even if any of the processing performed on bbServer for this remove operation failed above,
+            //       we logged it and we now continue to perform the remove on the CN.  We are in plow-ahead mode...
             proxy_GetUsage(l_MountPoint, usage);
 
             if (!isMountedRc )
@@ -2307,7 +2319,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 {
                     errorText << "Attempt to remove logical volume " << theDevName << " that was once associated with " << l_MountPoint \
                               << " was not successful.  The logical volume may no longer exist.";
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
             }
             else
@@ -2316,8 +2328,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 if (rc)
                 {
                     // NOTE: removeLogicalVolume() filled in bberror
-                    bberror<<err("err.isMountedRc",isMountedRc);
-                    LOG_RC_AND_BAIL(rc);
+                    bberror<<err("err.isMountedRc", isMountedRc);
+                    LOG_RC_RAS_AND_BAIL(rc, bb.admin.failure);
                 }
             }
 
@@ -2332,7 +2344,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     if(mountpoint)
@@ -2401,7 +2413,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         activecontroller->gethostname(l_HostName);
@@ -2438,7 +2450,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
             // Restart transfers must be performed against a suspended connection
             rc = -1;
             errorText << "Connection to the active server is not suspended. Attempt to retry the restart transfers request when the connection is suspended.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         l_TransferDefs = new BBTransferDefs();
@@ -2453,7 +2465,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     if (l_TransferDefs)
@@ -2558,13 +2570,13 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         msgserver->addAttribute(txp::hostname, hostname.c_str(), hostname.size()+1, txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -2572,14 +2584,14 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -2587,13 +2599,12 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         delete msgserver;
         msgserver = NULL;
-
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     if (rc == 0 || rc == -2)
@@ -2604,6 +2615,7 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     {
         // On any error, restore the on-entry suspend state
         updateSuspendMap(DEFAULT_SERVER_ALIAS, l_EntrySuspendState);
+        LOG_RC_AND_RAS(rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -2658,7 +2670,7 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         activecontroller->gethostname(l_HostName);
@@ -2703,13 +2715,13 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         msgserver->addAttribute(txp::hostname, hostname.c_str(), hostname.size()+1, txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -2717,14 +2729,14 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -2740,6 +2752,11 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
                          << ", l_NumBytesAvailable = " << l_NumBytesAvailable;
             LOG(bb,debug) << "l_TransferDefs = |" << l_TransferDefs << "|";
         }
+        else
+        {
+            errorText << "Failure occurred on bbServer for the retrieve transfers request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+        }
         delete(msgserver);
         msgserver=NULL;
 
@@ -2748,7 +2765,7 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -2837,7 +2854,7 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::rate, rate);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -2973,7 +2990,7 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
         msgserver->addAttribute(txp::uuid, l_lvuuid_str, sizeof(l_lvuuid_str), txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -3166,7 +3183,7 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         activecontroller->gethostname(l_HostName);
@@ -3211,13 +3228,13 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         msgserver->addAttribute(txp::transferdefs, (const char*)msg->retrieveAttrs()->at(txp::transferdefs)->getDataPtr(), (uint64_t)(msg->retrieveAttrs()->at(txp::transferdefs)->getDataLength()), txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -3225,14 +3242,14 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -3240,6 +3257,11 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if (!rc)
         {
             l_NumStoppedTransferDefs = ((txp::Attr_uint32*)msgserver->retrieveAttrs()->at(txp::numTransferDefs))->getData();
+        }
+        else
+        {
+            errorText << "Failure occurred on bbServer for the stop transfers request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
         }
         delete(msgserver);
         msgserver=NULL;
@@ -3249,7 +3271,7 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3266,14 +3288,9 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         response->addAttribute(txp::numTransferDefs, l_NumStoppedTransferDefs);
     }
 
-    rc=sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName,response);
     delete response;
     response=NULL;
-    if (rc)
-    {
-        errorText << "sendMessage to server failed";
-        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-    }
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
@@ -3323,7 +3340,6 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Insert input/dft values into errstate...
         bberror << err("in.parms.hostname", l_HostNamePrt1) << err("in.dft.hostname", l_HostNamePrt2);
 
-
         // Switch to the uid/gid of requester.
         switchIds();
 
@@ -3340,13 +3356,13 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         msgserver->addAttribute(txp::hostname, hostname.c_str(), hostname.size()+1, txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -3354,18 +3370,20 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
         rc = bberror.merge(msgserver);
+        delete msgserver;
+        msgserver = NULL;
 
         if (rc == 0 || rc == -2)
         {
@@ -3375,16 +3393,17 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                 LOG(bb,info) << "Connection from the CN hostname " << l_HostNamePrt2 << " is now marked as suspended to the active bbServer";
             }
         }
-
-        delete msgserver;
-        msgserver = NULL;
-
+        else
+        {
+            errorText << "Failure occurred on bbServer for the suspend request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3846,6 +3865,12 @@ void msgin_transfer_progress(txp::Id id, const string& pConnectionName, txp::Msg
     return;
 }
 
+
+
+//*****************************************************************************
+//  bbapi -> bbProxy - >bbServer requests (Server specific related operations)
+//*****************************************************************************
+
 void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -3878,7 +3903,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
         if (rc) {
             stringstream errorText;
             errorText << "The getbyservername request failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
         LOG(bb,info)<<"msgin_getserverbyname: l_query="<<l_query<<" serverName="<<serverName<<" waitforreplycount="<<count;
     }
@@ -3887,7 +3912,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
     {
         LOG(bb,always)<<"msgin_getserver: exception caught";
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3899,9 +3924,6 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
 }
 
@@ -3949,7 +3971,7 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                 if (rc) {
                     stringstream errorText;
                     errorText << "The getserver request failed for an invalid option="<<l_query;
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
                 break;
         }
@@ -3960,7 +3982,7 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     {
         LOG(bb,always)<<"msgin_getserver: exception caught";
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3974,9 +3996,6 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     }
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
 }
 
@@ -4067,13 +4086,13 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                                 msgserver->addAttribute(txp::option, (uint32_t)1);
 
                                 // Send the message to bbserver
-                                rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+                                rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
                                 delete msgserver;
                                 msgserver = NULL;
                                 if (rc)
                                 {
                                     errorText << "sendMessage to server failed";
-                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                                 }
 
                                 // Wait for the response
@@ -4081,7 +4100,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                                 if (rc)
                                 {
                                     errorText << "waitReply failure when processing device " << l_DevNames[i];
-                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText,rc);
+                                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                                 }
 
                                 rc = bberror.merge(msgserver);
@@ -4103,9 +4122,10 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
                                     default:
                                     {
-                                        LOG(bb,error) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
-                                                     << ", registration failed for jobid " << l_LV_Data.jobid << ". See bbServer console log for more information." \
-                                                     << " Continuing to process additional devices...";
+                                        errorText << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                  << ", registration failed for jobid " << l_LV_Data.jobid << ". See bbServer console log for more information." \
+                                                  << " Continuing to process additional devices...";
+                                        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
                                     }
                                 }
 
@@ -4126,29 +4146,28 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                         }
                         else
                         {
-                            LOG(bb,error) << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
-                                          << ". The logical volume associated with this device will not be registered to the new bbServer." \
-                                          << ". Processing continues for additional burst buffers logical volumes.";
+                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
+                                      << ". The logical volume associated with this device will not be registered to the new bbServer." \
+                                      << ". Processing continues for additional burst buffers logical volumes.";
+                            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
                         }
                         rc = 0;
                     }
                 }
                 else
                 {
-                    stringstream errorText;
                     errorText << "The setserver request activate failed for serverName="<<serverName;
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
             }
         }
         else if (actionName=="offline")
         {
-            rc =takeActivebbserverOffline(serverName);
+            rc = takeActivebbserverOffline(serverName);
             if (rc)
             {
-                stringstream errorText;
                 errorText << "The setserver request offline failed for serverName="<<serverName;
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
         }
         else
@@ -4156,9 +4175,8 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=EINVAL;
             if (rc)
             {
-                stringstream errorText;
                 errorText << "The setserver request failed for an invalid action="<<actionName;
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
         }
     }
@@ -4166,7 +4184,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -4175,9 +4193,6 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     addReply(msg, response);
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
 }
 
@@ -4200,7 +4215,7 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=-1;
             stringstream errorText;
             errorText << "Root user or primary group required";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         string serverName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
@@ -4220,14 +4235,14 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc) {
             stringstream errorText;
             errorText << "The open request failed for the bbserver serverName="<<serverName;
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -4236,9 +4251,6 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     addReply(msg, response);
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
     }
 
@@ -4261,7 +4273,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=-1;
             stringstream errorText;
             errorText << "Root user or primary group required";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         string serverName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
@@ -4283,7 +4295,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=EBUSY;
             stringstream errorText;
             errorText << "The bbserver is active for serverName="<<serverName;
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
         else
         {
@@ -4327,7 +4339,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             {
                 stringstream errorText;
                 errorText << "The close request failed for the bbserver serverName="<<serverName;
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
         }
 
@@ -4336,7 +4348,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -4346,11 +4358,10 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
-
-    EXIT(__FILE__,__FUNCTION__);
-    return;
 }
 // #undef DELAY_SECONDS
+
+
 
 //*****************************************************************************
 //  Main routines
@@ -4521,7 +4532,7 @@ int doAuthenticate(const string& name){
     msg->addAttribute(txp::version, BBAPI_CLIENTVERSIONSTR, strlen(BBAPI_CLIENTVERSIONSTR)+1);
 
     // Send the message to bbserver
-    rc=sendMessage(name, msg, resp);
+    rc = sendMessage(name, msg, resp);
     delete msg;
     msg=NULL;
     if (rc)

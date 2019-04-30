@@ -1514,10 +1514,6 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
                         }
                     }
-                    if (l_ExitEarly)
-                    {
-                        break;
-                    }
                 }
                 else
                 {
