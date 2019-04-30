@@ -2277,7 +2277,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 errorText << "sendMessage to server failed";
                 LOG_ERROR_TEXT(errorText);
             }
-            else {
+            else
+            {
                 // Wait for the response
                 rc = waitReply(reply, msgserver);
                 if (rc)
@@ -2307,6 +2308,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 }
             }
 
+            // NOTE: Even if any of the processing performed on bbServer for this remove operation failed above,
+            //       we logged it and we now continue to perform the remove on the CN.  We are in plow-ahead mode...
             proxy_GetUsage(l_MountPoint, usage);
 
             if (!isMountedRc )
@@ -2751,7 +2754,8 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         }
         else
         {
-            LOG_RC_AND_RAS(rc, bb.admin.failure);
+            errorText << "Failure occurred on bbServer for the retrieve transfers request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
         }
         delete(msgserver);
         msgserver=NULL;
@@ -3256,7 +3260,8 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         }
         else
         {
-            LOG_RC_AND_RAS(rc, bb.admin.failure);
+            errorText << "Failure occurred on bbServer for the stop transfers request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
         }
         delete(msgserver);
         msgserver=NULL;
@@ -3390,7 +3395,8 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         }
         else
         {
-            LOG_RC_AND_RAS(rc, bb.admin.failure);
+            errorText << "Failure occurred on bbServer for the suspend request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -4140,16 +4146,16 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                         }
                         else
                         {
-                            LOG(bb,error) << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
-                                          << ". The logical volume associated with this device will not be registered to the new bbServer." \
-                                          << ". Processing continues for additional burst buffers logical volumes.";
+                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
+                                      << ". The logical volume associated with this device will not be registered to the new bbServer." \
+                                      << ". Processing continues for additional burst buffers logical volumes.";
+                            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
                         }
                         rc = 0;
                     }
                 }
                 else
                 {
-                    stringstream errorText;
                     errorText << "The setserver request activate failed for serverName="<<serverName;
                     LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
@@ -4157,10 +4163,9 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         }
         else if (actionName=="offline")
         {
-            rc =takeActivebbserverOffline(serverName);
+            rc = takeActivebbserverOffline(serverName);
             if (rc)
             {
-                stringstream errorText;
                 errorText << "The setserver request offline failed for serverName="<<serverName;
                 LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
@@ -4170,7 +4175,6 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=EINVAL;
             if (rc)
             {
-                stringstream errorText;
                 errorText << "The setserver request failed for an invalid action="<<actionName;
                 LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
