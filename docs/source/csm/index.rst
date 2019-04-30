@@ -22,6 +22,7 @@ CSM is a cognitive self learning system for managing and overseeing a HPC cluste
     :maxdepth: 2
 
     csm-user-guide/index.rst
+    csm-installation-and-configuration/index.rst
     csm-apis/index.rst
     csmdb/index.rst
     csmd/index.rst
