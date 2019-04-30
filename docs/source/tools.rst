@@ -103,7 +103,7 @@ This tool connects to UFM and collects inventory information on all Mellanox har
 Setup and Configuration
 ***********************
 
-This tool requires a properly set up ``csm_master.cfg`` file. The system administrator should update the following ``ufm`` section with the proper ``rest_address`` and ``rest_port``. Without the address for the UFM server, this tool can not communicate with UFM. 
+This tool requires a properly set up ``csm_master.cfg`` file. The system administrator should update the following ``ufm`` section with the proper ``rest_address`` and ``rest_port``. Without the address for the UFM server, this tool can not communicate with UFM. For more information about configuration files, look here: :ref:`CSMDConfig`.
 
 .. code-block:: json
 
