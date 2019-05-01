@@ -422,12 +422,13 @@ int nvmfConnectPath(const string& serial, const string& connectionKey)
     string ipAddr = ele[2];
     vector<string> ipv4_ele = buildTokens(ipAddr,".");
     
-    size_t keyenvsize = 16 + connectionKey.size();
-    char*  keyenv     = (char*)malloc(keyenvsize);
-    snprintf(keyenv, keyenvsize, "NVMEKEY=%s", connectionKey.c_str());
-    putenv(keyenv);
+    bfs::path keyfile = bfs::path("/tmp") / bfs::unique_path();
+    ofstream ofs;
+    ofs.open(keyfile.string(), ofstream::out | ofstream::app);
+    ofs << connectionKey;
+    ofs.close();
 
-    string cmd =  bb_nvmfConnectPath  +" "+network+" " + nameSpace+" "+ipAddr+" "+ port +" 2>&1; echo  rc=$?;";
+    string cmd =  bb_nvmfConnectPath + " " + network + " " + nameSpace + " " + ipAddr + " " + port + " " + keyfile.string() + " 2>&1; echo  rc=$?;";
     LOG(bb,info) << " cmd=" << cmd;
     bool success = false;
     stringstream errorText;
@@ -440,6 +441,7 @@ int nvmfConnectPath(const string& serial, const string& connectionKey)
             success = true;
         }
     }
+    bfs::remove(keyfile);
     if(!success)
     {
         bberror << err("error.executable",bb_nvmfConnectPath );
