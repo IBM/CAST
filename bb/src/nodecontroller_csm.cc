@@ -546,6 +546,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
                 results.emplace_back();
                 results.back().put(to_string(rank) + ".rc", rc);
                 results.back().put(to_string(rank) + ".error.text", "csm_bb_cmd failure");
+                l_buffer[0]=0;
                 grabstderr.getStdErrBuffer(l_buffer,l_BUFSIZE);
                 if (l_buffer[0]!=0) results.back().put(to_string(rank) + ".error.stderr", l_buffer);
             }   
