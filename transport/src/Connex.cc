@@ -365,7 +365,7 @@ int ConnexSocket::read(txp::Msg* &oMsg, char* pDataBuffer, const size_t pDataBuf
                 }
             }
         } else {
-            l_RC = -1;  // errno is not set
+            l_RC = -errno;  
         }
 
         int l_RC2 = 0;
