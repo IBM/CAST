@@ -110,11 +110,6 @@
     bberror << bailout; \
 }
 
-#define LOG_ERROR_RAS_AND_BAIL(TEXT,RASID) { \
-    LOG(bb,error) << TEXT.str(); \
-    bberror << RAS(RASID) << bailout; \
-}
-
 #define LOG_ERROR_RC_WITH_EXCEPTION(FILE,FUNC,LINE,EXCEPTION,RC) { \
     try { \
         LOG(bb,error) << "Exception caught in file " << FILE << ", function " << FUNC << ", line " << LINE << ":" << EXCEPTION.what(); \
@@ -207,6 +202,26 @@
     bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID) << bailout; \
 }
 
+#define LOG_INFO_TEXT(TEXT) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()); \
+}
+
+#define LOG_INFO_TEXT_RC(TEXT,RC) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC); \
+}
+
+#define LOG_INFO_TEXT_AND_BAIL(TEXT) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << bailout; \
+}
+
+#define LOG_INFO_TEXT_RC_AND_BAIL(TEXT,RC) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
+}
+
 #define LOG_RAS(RASID) { \
     bberror << RAS(RASID); \
 }
@@ -215,24 +230,70 @@
     bberror << RAS(RASID) << bailout; \
 }
 
-#define LOG_RC(RC) { \
-    bberror << errloc(RC); \
+#define LOG_WARNING_TEXT(TEXT) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()); \
 }
 
-#define LOG_RC_AND_BAIL(RC) { \
-    bberror << errloc(RC) << bailout; \
+#define LOG_WARNING_TEXT_RC(TEXT,RC) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC); \
 }
 
-#define LOG_RC_AND_RAS(RC,RASID) { \
-    bberror << errloc(RC) << RAS(RASID); \
+#define LOG_WARNING_TEXT_RC_AND_RAS(TEXT,RC,RASID) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID); \
 }
 
-#define LOG_RC_RAS_AND_BAIL(RC,RASID) { \
-    bberror << errloc(RC) << RAS(RASID) << bailout; \
+#define LOG_WARNING_TEXT_RC_RAS_AND_BAIL(TEXT,RC,RASID) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID) << bailout; \
+}
+
+#define LOG_WARNING_TEXT_AND_BAIL(TEXT) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << bailout; \
+}
+
+#define LOG_WARNING_TEXT_RC_AND_BAIL(TEXT,RC) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
 }
 
 #define LOOP_COUNT(FILE,FUNC,CRUMB) { \
     bberror.addIncr(FILE, FUNC, CRUMB, 1, 1); \
+}
+
+#define SET_ERROR_TEXT(TEXT) { \
+    bberror << err("error.text", TEXT.str()); \
+}
+
+#define SET_ERROR_TEXT_AND_BAIL(TEXT) { \
+    bberror << err("error.text", TEXT.str()) << bailout; \
+}
+
+#define SET_ERROR_TEXT_RC(TEXT,RC) { \
+    bberror << err("error.text", TEXT.str()) << errloc(RC); \
+}
+
+#define SET_ERROR_TEXT_RC_AND_BAIL(TEXT,RC) { \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
+}
+
+#define SET_RC(RC) { \
+    bberror << errloc(RC); \
+}
+
+#define SET_RC_AND_BAIL(RC) { \
+    bberror << errloc(RC) << bailout; \
+}
+
+#define SET_RC_AND_RAS(RC,RASID) { \
+    bberror << errloc(RC) << RAS(RASID); \
+}
+
+#define SET_RC_RAS_AND_BAIL(RC,RASID) { \
+    bberror << errloc(RC) << RAS(RASID) << bailout; \
 }
 
 #define UPDATE_TS(KEY) { \

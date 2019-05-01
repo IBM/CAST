@@ -1238,7 +1238,7 @@ int main(int orig_argc, const char** orig_argv)
         if (rc)
         {
             // NOTE:  bberror (error.text) was already written to...
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
 
         rc = setupNodeController("bb.cmd");

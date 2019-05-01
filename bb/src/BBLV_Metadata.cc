@@ -124,6 +124,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
 
 int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
     int rc = 0;
+    stringstream errorText;
 
     try
     {
@@ -138,7 +139,8 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
         else
         {
             rc = -2;
-            LOG(bb,info) << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
+            errorText << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
+            LOG_INFO_TEXT_RC(errorText, rc);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -151,7 +153,8 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
         //       which servers 'may' take an exception trying to concurrently remove the data.
         //       Simply log this as an info...
         rc = -2;
-        LOG(bb,info) << "JobId " << pJobId << " was not found in the cross-bbServer metadata (via exception)";
+        errorText << "JobId " << pJobId << " was not found in the cross-bbServer metadata (via exception)";
+        LOG_INFO_TEXT_RC(errorText, rc);
         // LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -188,7 +191,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
             if (!pTolerateAlreadyExists)
             {
                 rc = -1;
-                LOG_ERROR_TEXT(errorText);
+                LOG_ERROR_TEXT_RC(errorText, rc);
             }
             else
             {
@@ -205,7 +208,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
                 if (!pTolerateAlreadyExists)
                 {
                     rc = -1;
-                    LOG_ERROR_TEXT(errorText);
+                    LOG_ERROR_TEXT_RC(errorText, rc);
                 }
                 else
                 {
@@ -224,7 +227,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
                 {
                     errorText << "Hostname " << (it->second).getHostName() << " is currently suspended. Therefore " << *pLVKey << " cannot be added.  Registration failed with bbserver." \
                               << " Attempt to retry the create logical volume request when the connection is not suspended.";
-                    LOG_ERROR_TEXT(errorText);
+                    LOG_INFO_TEXT(errorText);
                     rc = 1;
                     break;
                 }
@@ -251,6 +254,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
         pLV_Info.getExtentInfo()->setSuspended(pLVKey, pLV_Info.getHostName(), pJobId, l_SuspendOption);
         if (!rc)
         {
+            // NOTE: If necessary, errstate will be filled in by update_xbbServerAddData()
             rc = update_xbbServerAddData(pMsg, pJobId);
         }
     }

@@ -358,17 +358,17 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         else
                         {
                             rc = -2;
-                            LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
-                                         << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo). Cancel request ignored.";
-                            LOG_RC_AND_BAIL(rc);
+                            errorText << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
+                                      << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via TagInfo). Cancel request ignored.";
+                            LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                     }
                     else
                     {
                         rc = -2;
-                        LOG(bb,info) << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
-                                     << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo). Cancel request ignored.";
-                        LOG_RC_AND_BAIL(rc);
+                        errorText << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ", handle " << l_Handle \
+                                  << ", contribid " << l_ContribId << ". However no extents are left to be transferred (via ExtentInfo). Cancel request ignored.";
+                        LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
 
@@ -392,9 +392,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 {
                                     // If the handle status is BBFULLSUCCESS, do not allow the cancel
                                     rc = -2;
-                                    LOG(bb,info) << "A cancel request was made for handle " << l_Handle \
-                                                 << ". However, the handle currently has a status of BBFULLSUCCESS. Cancel request ignored.";
-                                    LOG_RC_AND_BAIL(rc);
+                                    errorText << "A cancel request was made for handle " << l_Handle \
+                                              << ". However, the handle currently has a status of BBFULLSUCCESS. Cancel request ignored.";
+                                    LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
                                 }
                                 break;
 
@@ -497,6 +497,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
 {
     ENTRY(__FILE__,__FUNCTION__);
     int rc = 0;
+    stringstream errorText;
 
     bberror.clear(pConnectionName);
 
@@ -534,15 +535,15 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
         // NOTE: We switch to the uid/gid of the mount point, as those ids should 'own' the xbbbserver metadata entries...
         switchIdsToMountPoint(msg);
 
-        // NOTE:  If addLogicalVolume() fails, it fills in the error state...
+        // NOTE: If needed, addLogicalVolume() fills in errstate...
         rc = addLogicalVolume(pConnectionName, l_HostName, msg, l_LVKeyPtr, l_JobId, (TOLERATE_ALREADY_EXISTS_OPTION)l_Option);
-        if (rc)
+        if (rc > 0)
         {
-            if (rc < 0)
-            {
-                LOG_RC(rc);
-            }
-            BAIL;
+            // Positive rc...
+            // Send -2 back to bbProxy as a possible tolerated exception...
+            // NOTE:  addLogicalVolume() filled in the errstate, except for rc...
+            rc = -2;
+            SET_RC(rc);
         }
     }
     catch (ExceptionBailout& e) { }
@@ -561,13 +562,6 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     if (rc)
     {
         bberror << err("error.jobid", l_JobId) << err("error.uuid",lv_uuid_str);
-        if (rc > 0)
-        {
-            // Positive rc...
-            // Send -2 back to bbProxy as a possible tolerated exception...
-            rc = -2;
-            LOG_RC(rc);
-        }
     }
 
     addReply(msg, response);
@@ -609,7 +603,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         rc = getThrottleRate(pConnectionName, &l_LVKey, l_Rate);
 
         if (rc) {
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
 
         LOG(bb,info) << "msgin_getthrottlerate: Local Connection Name " << pConnectionName << ", LV Uuid " \
@@ -902,8 +896,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
                     {
                         rc = -2;
                         errorText << "Handle " << l_Handle << ", contribid " << l_ContribId << " could not be found";
-                        bberror << err("rc", rc) << err("error.text", errorText.str());
-                        LOG(bb,warning) << errorText.str();
+                        LOG_WARNING_TEXT_RC(errorText, rc);
                     }
                 }
             }
@@ -1264,8 +1257,10 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         lockTransferQueue((LVKey*)0, "msgin_removejobinfo");
         l_LockHeld = true;
         rc = removeJobInfo(l_HostName, l_JobId);
-        if (rc) {
-            LOG_RC_AND_BAIL(rc);
+        if (rc)
+        {
+            // NOTE: errstate already filled in...
+            BAIL;
         }
     }
     catch (ExceptionBailout& e) { }
@@ -1313,7 +1308,7 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
         rc = removeLogicalVolume(pConnectionName, &l_LVKey);
 
         if (rc) {
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
     }
     catch (ExceptionBailout& e) { }
@@ -1489,7 +1484,7 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
         else
         {
             l_DataObtainedLocally = 0;
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
     }
     catch (ExceptionBailout& e) { }
@@ -1555,7 +1550,7 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
         rc = setThrottleRate(pConnectionName, &l_LVKey, l_Rate);
 
         if (rc) {
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
     }
     catch (ExceptionBailout& e) { }
@@ -1869,14 +1864,14 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 // Start transfer request, first message volley...  Suggest to submit again...
                                 errorText << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
                                           << " Suspended condition detected during the first message volley to bbServer. Attempt to retry the start transfer request when the connection is not suspended.";
-                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                             else
                             {
                                 // Start transfer request, second message volley...  Indicate to not submit again, as restart logic will resubmit...
                                 errorText << "Hostname " << l_LV_Info->getHostName() << " is currently suspended. Therefore, no transfer is allowed to start at this time." \
                                           << " Suspended condition detected during the second message volley to bbServer.  A following restart transfer request will resubmit this transfer definition.";
-                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                         }
                         else
@@ -1986,11 +1981,11 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
                                                                     // This condition overrides any failure detected on bbProxy...
                                                                     l_MarkFailedFromProxy = 0;
-                                                                    LOG(bb,info) << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                                                                                 << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                                 << ", all extents for the handle file have been processed.  The transfer either finished or was canceled." \
-                                                                                 << "  See previous messages.";
-                                                                    BAIL;
+                                                                    errorText << "msgin_starttransfer(): For jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                                                              << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                              << ", all extents for the handle file have been processed.  The transfer either finished or was canceled." \
+                                                                              << "  See previous messages.";
+                                                                    LOG_INFO_TEXT_AND_BAIL(errorText);
                                                                 }
                                                                 else
                                                                 {
@@ -2029,9 +2024,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                             rc = 1;
                                                             // This condition overrides any failure detected on bbProxy...
                                                             l_MarkFailedFromProxy = 0;
-                                                            LOG(bb,info) << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
-                                                                         << " All transfers for this contributor may have already finished.  See previous messages.";
-                                                            BAIL;
+                                                            errorText << "msgin_starttransfer(): ContribId " << l_ContribId << " was not found in the cross bbServer metadata (ContribIdFile pointer is NULL)." \
+                                                                      << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                            LOG_INFO_TEXT_AND_BAIL(errorText);
                                                         }
                                                     }
                                                     else
@@ -2041,9 +2036,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                         rc = 1;
                                                         // This condition overrides any failure detected on bbProxy...
                                                         l_MarkFailedFromProxy = 0;
-                                                        LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
-                                                                     << " All transfers for this contributor may have already finished.  See previous messages.";
-                                                        BAIL;
+                                                        errorText << "msgin_starttransfer(): Error occurred when attempting to load the contrib file for contribid " << l_ContribId << " (Negative rc from loadContribIdFile())." \
+                                                                  << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                        LOG_INFO_TEXT_AND_BAIL(errorText);
                                                     }
 
                                                     if (rc && l_Continue)
@@ -2149,9 +2144,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                             rc = 1;
                                                             // This condition overrides any failure detected on bbProxy...
                                                             l_MarkFailedFromProxy = 0;
-                                                            LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but no file associated with the transfer definition needed to be restarted." \
-                                                                         << " Most likely, the transfer completed for the contributor or was canceled. Therefore, the transfer definition cannot be restarted. See any previous messages.";
-                                                            BAIL;
+                                                            errorText << "ContribId " << l_ContribId << " was found in the cross bbServer metadata, but no file associated with the transfer definition needed to be restarted." \
+                                                                      << " Most likely, the transfer completed for the contributor or was canceled. Therefore, the transfer definition cannot be restarted. See any previous messages.";
+                                                            LOG_INFO_TEXT_AND_BAIL(errorText);
                                                         }
                                                         break;
 
@@ -2251,7 +2246,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                         // NOTE: errstate already filled in by gethandle()...
                                                         // This condition overrides any failure detected on bbProxy...
                                                         l_MarkFailedFromProxy = 0;
-                                                        LOG_RC_AND_BAIL(rc);
+                                                        SET_RC_AND_BAIL(rc);
                                                     }
                                                 }
                                                 break;
@@ -2423,7 +2418,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
             // NOTE: errstate filled in by bbProxy
             rc = -1;
-            LOG_RC(rc);
+            SET_RC(rc);
         }
     }
     else
@@ -2455,7 +2450,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             //        and l_MarkFailedFromProxy still be set on at this
             //        point in the code...  @DLH
             rc = -2;
-            LOG_RC(rc);
+            SET_RC(rc);
         }
     }
 
@@ -2556,6 +2551,10 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
 
         // Demarshall the archive into the transfer definitions object
         l_TransferDefs->demarshall(l_Archive);
+
+        // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
+        //        that all prior restart related requests have first been processed by this bbServer.
+        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
 
         // Process the transfer definitions object for the stop transfers operation
         l_TransferDefs->stopTransfers(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_NumStoppedTransferDefs);
@@ -2850,7 +2849,7 @@ int bb_main(std::string who)
             delete [] l_AsyncRequestFileNamePtr;
             l_AsyncRequestFileNamePtr = 0;
         }
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         /* Start memory/io fs/io monitor */
         uint64_t bbserverFileIOwarnSeconds = config.get("bb.bbserverFileIOwarnSeconds", 300);

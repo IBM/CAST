@@ -404,7 +404,8 @@ void BBTransferDefs::restartTransfers(const string& pHostName, const uint64_t pJ
                                      << ", handle " << transferdefs[i]->getTransferHandle() << ", contribid " << transferdefs[i]->getContribId() \
                                      << " was not restarted because it was not in a stopped state." \
                                      << " If a prior attempt was made to stop the transfer, it may have not been stopped" \
-                                     << " because transfers for all extents had already completed.  See prior messages for this handle.";
+                                     << " because the job may no longer exist or transfers for all extents had already completed." \
+                                     << " See prior messages for this handle/contribid in both the bbProxy and bbServer console logs.";
 
                         // Clear bberror for the tolerated exception
                         bberror.forceClear();

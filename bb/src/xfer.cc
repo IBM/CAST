@@ -1049,15 +1049,17 @@ int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t
 int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId)
 {
     int rc = 0;
+    stringstream errorText;
 
     // NOTE: We know that the local cache of metadata for a jobid is still
     //       valid if we can find the LVKey for the jobid in the metadata...
     rc = metadata.verifyJobIdExists(pConnectionName, pLVKey, pJobId);
     if (!rc)
     {
-        LOG(bb,info) << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
-                     << ", " << *pLVKey << ", contribid " << pContribId \
-                     << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
+        errorText << "jobStillExists(): JobId " << pJobId << " no longer exists for input connection " << pConnectionName \
+                  << ", " << *pLVKey << ", contribid " << pContribId \
+                  << ", BBLV_Info* 0x" << pLV_Info << ", BBTagInfo* 0x" << pTagInfo;
+        LOG_INFO_TEXT(errorText);
     }
 
     return rc;
@@ -1913,7 +1915,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                          << " was not restarted because it was not in a stopped state." \
                                          << " If a prior attempt was made to stop the transfer, it may not have been stopped" \
                                          << " because the transfer for all extents had already completed.  See prior messages for this handle.";
-                            LOG_RC(-2);
+                            SET_RC(-2);
 
                             break;
                         }
@@ -2316,7 +2318,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                                  << ", handle " << pHandle << ", contribid " << (uint32_t)pContribId \
                                                  << ", however no extents are left to be transferred for any file." \
                                                  << " A restart for this transfer definition is not necessary.";
-                                    LOG_RC(rc);
+                                    SET_RC(rc);
                                 }
                             }
                         }
@@ -3171,17 +3173,17 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             rc = -2;
             if (!(l_LV_Info->stageOutEndedComplete())) {
                 errorText << "Stageout end was received for " << *pLVKey << ", but stageout end has already been received and is currently being processed";
-                LOG_ERROR_TEXT(errorText);
+                LOG_INFO_TEXT_RC(errorText, rc);
             } else {
                 errorText << "Stageout end was received for " << *pLVKey << ", but stageout end has already been received and has finished being processed";
-                LOG_ERROR_TEXT(errorText);
+                LOG_INFO_TEXT_RC(errorText, rc);
             }
         }
     } else {
         // LVKey could not be found in taginfo2...
         rc = -2;
         errorText << "Stageout end was received, but no transfer handles can be found for " << *pLVKey << ". Cleanup of metadata not required.";
-        LOG_ERROR_TEXT(errorText);
+        LOG_INFO_TEXT_RC(errorText, rc);
     }
 
     EXIT(__FILE__,__FUNCTION__);

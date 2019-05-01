@@ -796,10 +796,10 @@ int BB_CancelTransfer(BBTransferHandle_t pHandle, BBCANCELSCOPE pScope)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 
@@ -862,10 +862,10 @@ int BB_GetThrottleRate(const char* mountpoint, uint64_t* rate)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -939,10 +939,10 @@ int BB_GetTransferHandle(BBTAG pTag, uint64_t pNumContrib, uint32_t pContrib[], 
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -1010,10 +1010,10 @@ int BB_GetTransferKeys(BBTransferHandle_t handle, size_t buffersize, char* buffe
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -1032,6 +1032,8 @@ int BB_GetTransferKeys(BBTransferHandle_t handle, size_t buffersize, char* buffe
                 {
                     // Not enough room in the buffer
                     rc = -2;
+                    errorText << "Not enough room in the buffer";
+                    SET_ERROR_TEXT_RC(errorText, rc);
                 }
             }
             else
@@ -1092,10 +1094,10 @@ int BB_SetThrottleRate(const char* mountpoint, uint64_t rate)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1173,10 +1175,10 @@ int BB_StartTransfer(BBTransferDef_t* pTransfer, BBTransferHandle_t pHandle)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 
@@ -1254,10 +1256,10 @@ int BB_GetTransferList(BBSTATUS pMatchStatus, uint64_t* pNumHandles, BBTransferH
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -1341,10 +1343,10 @@ int BB_GetTransferInfo(BBTransferHandle_t pHandle, BBTransferInfo_t* pInfo)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -1419,10 +1421,10 @@ int BB_CreateDirectory(const char* newpathname)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1476,10 +1478,10 @@ int BB_RemoveDirectory(const char* pathname)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1552,10 +1554,10 @@ int BB_ChangeOwner(const char* pathname, const char* owner, const char* group)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1610,10 +1612,10 @@ int BB_ChangeMode(const char* pathname, mode_t mode)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1685,10 +1687,10 @@ int BB_CreateLogicalVolume(const char* mountpoint, const char* size, BBCREATEFLA
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1760,10 +1762,10 @@ int BB_ResizeMountPoint(const char* mountpoint, const char* size, BBRESIZEFLAGS 
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         // NOTE:  The storage for logical volume will be deleted by the invoker...
         rc = bberror.merge(msg);
@@ -1818,10 +1820,10 @@ int BB_RemoveLogicalVolume(const char* mountpoint)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1860,10 +1862,10 @@ int BB_RemoveJobInfo()
         txp::Msg::buildMsg(txp::BB_REMOVEJOBINFO, msg);
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -1925,10 +1927,10 @@ int BB_GetUsage(const char* mountpoint, BBUsage_t* usage)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if(rc == 0)
@@ -2002,10 +2004,10 @@ int BB_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t* usage)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if(rc == 0)
@@ -2094,10 +2096,10 @@ int BB_SetUsageLimit(const char* mountpoint, BBUsage_t* usage)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -2159,10 +2161,10 @@ int BB_GetServerByName(const char* bbserverName, const char* type,size_t bufsize
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -2173,7 +2175,7 @@ int BB_GetServerByName(const char* bbserverName, const char* type,size_t bufsize
             if (bufsize < l_BufferSize)
             {
                 rc=ERANGE;
-                LOG_RC_AND_BAIL(rc);
+                SET_RC_AND_BAIL(rc);
             }
             memcpy(buffer,l_Buffer,l_BufferSize);
         }
@@ -2244,10 +2246,10 @@ int BB_GetServer(const char* type, size_t bufsize, char* buffer)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         if (!rc)
@@ -2258,7 +2260,7 @@ int BB_GetServer(const char* type, size_t bufsize, char* buffer)
             if (bufsize < l_BufferSize)
             {
                 rc=ERANGE;
-                LOG_RC_AND_BAIL(rc);
+                SET_RC_AND_BAIL(rc);
             }
             memcpy(buffer,l_Buffer,l_BufferSize);
         }
@@ -2300,10 +2302,10 @@ int BB_SetServer(const char * type, const char* buffer){
         msg->addAttribute(txp::variable,type,  strlen(type) + 1);
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -2338,10 +2340,10 @@ int BB_OpenServer(const char* buffer){
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -2376,10 +2378,10 @@ int BB_CloseServer(const char* buffer){
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -2417,10 +2419,10 @@ int BB_Suspend(const char* pHostName)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -2457,10 +2459,10 @@ int BB_Resume(const char* pHostName)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -2509,10 +2511,10 @@ int BB_RetrieveTransfers(const char* pHostName, const uint64_t pHandle, const BB
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 
@@ -2573,10 +2575,10 @@ int BB_StopTransfers(const char* pHostName, const uint64_t pHandle, uint32_t* pN
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 
@@ -2622,10 +2624,10 @@ int BB_RestartTransfers(const char* pHostName, const uint64_t pHandle, uint32_t*
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 

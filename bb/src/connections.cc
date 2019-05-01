@@ -339,7 +339,7 @@ int versionCheck(const std::string& pReceivedVersion){
         bberror << err("error.receivedversion", pReceivedVersion);
         bberror << err("error.myversion",myVersionString);
         bberror << err("error.whoami", process_whoami);
-        LOG_RC_RAS_AND_BAIL(-1, bb.cfgerr.versionmismatch);
+        SET_RC_RAS_AND_BAIL(-1, bb.cfgerr.versionmismatch);
     }
     if( myV.get("gitcommit", "commit_NOTFOUND_"+process_whoami) != receivedV.get("gitcommit", "xyz"))
         LOG(bb,info)<<"gitcommit levels are different,  received="<<pReceivedVersion<<" my Version="<<BBAPI_CLIENTVERSIONSTR;
