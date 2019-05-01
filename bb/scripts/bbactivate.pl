@@ -588,7 +588,7 @@ sub configureVolumeGroup
                 }
                 my $ismounted = safe_cmd("grep '$dmpath ' /proc/mounts", 1);
                 output("Mounted $vgname-$lvname at: $ismounted");
-                if($ismounted !~ /\S/)
+                if(($ismounted !~ /\S/) && ($lvname =~ /bb_/))
                 {
                     cmd("lvremove -f /dev/$vgname/$lvname");
                 }
