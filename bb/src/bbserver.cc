@@ -2552,6 +2552,10 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
         // Demarshall the archive into the transfer definitions object
         l_TransferDefs->demarshall(l_Archive);
 
+        // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
+        //        that all prior restart related requests have first been processed by this bbServer.
+        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
+
         // Process the transfer definitions object for the stop transfers operation
         l_TransferDefs->stopTransfers(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_NumStoppedTransferDefs);
 
