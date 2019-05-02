@@ -20,8 +20,22 @@ As shown above, all daemons communicate directly point to point. The compute dae
 Configuration
 --------------
 
+Each type of daemon has its own configuration file. Default configuration files can be found here: ``/opt/ibm/csm/share/etc``
 
+CSM Daemons and Corresponding Configuration Files
+
+================== ============================================================================================
+Master Daemon      | `csm_master.cfg <https://github.com/IBM/CAST/blob/master/csmconf/csm_master.cfg>`_
+Aggregator Daemon  | `csm_aggregator.cfg <https://github.com/IBM/CAST/blob/master/csmconf/csm_aggregator.cfg>`_
+Utility Daemon     | `csm_utility.cfg <https://github.com/IBM/CAST/blob/master/csmconf/csm_utility.cfg>`_
+Compute Daemon     | `csm_compute.cfg <https://github.com/IBM/CAST/blob/master/csmconf/csm_compute.cfg>`_
+================== ============================================================================================
+
+If edits are made to a configuration file, then a daemon must be killed and started again.
+
+A detailed explanation of configuration settings can also be found at: :ref:`CSMDInfrastructure`
 
 
 Daemon Functionality
 --------------------
+
