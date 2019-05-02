@@ -10,4 +10,5 @@ This is a user guide. **READ THIS FIRST**
 
     introduction.rst
     csm_database.rst
+    csm_infrastructure.rst
     
