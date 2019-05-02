@@ -1,3 +1,5 @@
+.. _CSMDExecutable:
+
 CSMD Executable
 ===============
 
