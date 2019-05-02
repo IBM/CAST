@@ -298,6 +298,7 @@ network inventory.
 
         Relative to the ``csm_inv_log_dir``.
         
+.. _CSMDNetBlock:
 
 The Network[``net``] Block
 __________________________
