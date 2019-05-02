@@ -55,11 +55,12 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
        */
       csm::daemon::TimerContent content = tev->GetContent();
 
+      int64_t remaining = content.RemainingMicros();
       // uSleep does an interruptable sleep and returns true if we got interrupted
-      LOG( csmd, trace ) << "Setting timer to trigger in " << content.RemainingMicros() << "µs.";
+      LOG( csmd, trace ) << "Setting timer to trigger in " << remaining << "µs.";
       bool interrupted = false;
-      try { retry->uSleep( content.RemainingMicros() ); }
-      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); }
+      try { interrupted = retry->uSleep( remaining ); }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); throw csm::daemon::Exception("Fatal problem in timer mgr"); }
       // after returning from sleep, we better check if we still need to keep running
       if( ! aMgr->GetThreadKeepRunning() )
         break;
@@ -68,7 +69,7 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
         // we got interrupted - means, there's another timer-event potentially earlier timer
         // or the main thread closes the jitter window (need to prevent any timer from waking up while it's closed
         // so we put the current event back into the timer queue and pretent that we're just all new...
-        LOG( csmd, trace ) << "Timer interrupted with " << content.RemainingMicros() << "µs remaining.";
+        LOG( csmd, trace ) << "Timer interrupted with " << remaining << "µs remaining.";
         timers->RestoreEvent( tev );
         continue;
       }
