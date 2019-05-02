@@ -9,4 +9,5 @@ This is a user guide. **READ THIS FIRST**
     :maxdepth: 2
 
     introduction.rst
+    csm_database.rst
     
