@@ -18,6 +18,8 @@
 #include <map>
 #include <utility>
 
+#include "time.h"
+
 #include "bbinternal.h"
 #include "BBTagID.h"
 #include "bbwrkqe.h"
@@ -190,18 +192,20 @@ class HeartbeatEntry
 {
   public:
     HeartbeatEntry() :
-        count(0),
-        currentTime(""),
-        serverCurrentTime("") {
+        count(0)
+    {
+        currentTime = timeval {.tv_sec=0, .tv_usec=0};
+        serverCurrentTime = "";
     }
 
-    HeartbeatEntry(const uint64_t pCount, const string& pCurrentTime, const string& pServerCurrentTime) :
+    HeartbeatEntry(const uint64_t pCount, const struct timeval& pCurrentTime, const string& pServerCurrentTime) :
         count(pCount),
         currentTime(pCurrentTime),
         serverCurrentTime(pServerCurrentTime) {
     }
 
-    static string getHeartbeatCurrentTime();
+    static void getCurrentTime(struct timeval& pTime);
+    static string getHeartbeatCurrentTimeStr();
 
     inline uint64_t getCount()
     {
@@ -213,7 +217,7 @@ class HeartbeatEntry
         return serverCurrentTime;
     }
 
-    inline string getTime()
+    inline struct timeval getTime()
     {
         return currentTime;
     }
@@ -227,9 +231,11 @@ class HeartbeatEntry
 
     ~HeartbeatEntry() {};
 
+    int serverDeclaredDead(const uint64_t pAllowedNumberOfSeconds);
+
     uint64_t count;             // Incremented when ANY command is received
                                 // from a given bbServer.
-    string currentTime;         // Timestamp of when ANY command was last received
+    struct timeval currentTime; // Timestamp of when ANY command was last received
                                 // from a given bbServer.
     string serverCurrentTime;   // Timestamp provided by the reporting bbServer.
                                 // Only updated when a real heartbeat command
@@ -538,7 +544,6 @@ class WRKQMGR
         return;
     }
 
-
     inline void setLastQueueWithEntries(LVKey pLVKey)
     {
         if (lastQueueWithEntries != pLVKey)
@@ -621,9 +626,12 @@ class WRKQMGR
     void dumpHeartbeatData(const char* pSev, const char* pPrefix=0);
     int findWork(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest);
+    HeartbeatEntry* getHeartbeatEntry(const string& pHostName);
+    uint64_t getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
     void lock(const LVKey* pLVKey, const char* pMethod);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);

@@ -2367,10 +2367,9 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         rc = getLogicalVolumeUUID(transfer->files[e.sourceindex], l_current_lvuuid);
                         if (!rc) {
                             if (l_lvuuid.is_null()) {
-                                // NOTE:  We get the lvuuid from the first extent transfer local source/target file.
-                                //        Long term, we probably need to verify that the lvuuid we found is indeed for
-                                //        the LV for this job...
-                                // \todo - @DLH
+                                // NOTE:  We get the lvuuid from the first extent transfer local source file.
+                                //        bbServer processing ensures that the LVUuid passed matches the LVUuid
+                                //        associated with the handle/contribid.
                                 l_lvuuid = l_current_lvuuid;
                             } else {
                                 if (l_lvuuid == l_current_lvuuid) {
@@ -2415,10 +2414,9 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                         {
                             if (l_lvuuid.is_null())
                             {
-                                // NOTE:  We get the lvuuid from the first extent transfer local source/target file.
-                                //        Long term, we probably need to verify that the lvuuid we found is indeed for
-                                //        the LV for this job...
-                                // \todo - @DLH
+                                // NOTE:  We get the lvuuid from the first extent transfer local target file.
+                                //        bbServer processing ensures that the LVUuid passed matches the LVUuid
+                                //        associated with the handle/contribid.
                                 l_lvuuid = l_current_lvuuid;
                             }
                             else

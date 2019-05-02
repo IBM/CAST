@@ -18,8 +18,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "time.h"
-
 #include "bbinternal.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
@@ -92,23 +90,17 @@ int isGpfsFile(const char* pFileName, bool& pValue)
     return rc;
 }
 
-
-/*
- * Static methods
- */
-string HeartbeatEntry::getHeartbeatCurrentTime()
+string timevalToStr(const struct timeval& pTime)
 {
 	char l_Buffer[20] = {'\0'};
 	char l_ReturnTime[27] = {'\0'};
 
-    timeval l_CurrentTime;
-    gettimeofday(&l_CurrentTime, NULL);
-    unsigned long l_Micro = l_CurrentTime.tv_usec;
+    unsigned long l_Micro = pTime.tv_usec;
 
     // localtime is not thread safe
     // NOTE:  No spaces in the formatted timestamp, because this can be sent as part of an
     //        async request message.  That processing uses scanf to parse the data...
-    strftime(l_Buffer, sizeof(l_Buffer), "%Y-%m-%d_%H:%M:%S", localtime((const time_t*)&l_CurrentTime.tv_sec));
+    strftime(l_Buffer, sizeof(l_Buffer), "%Y-%m-%d_%H:%M:%S", localtime((const time_t*)&pTime.tv_sec));
     snprintf(l_ReturnTime, sizeof(l_ReturnTime), "%s.%06lu", l_Buffer, l_Micro);
 
     return string(l_ReturnTime);
@@ -116,8 +108,35 @@ string HeartbeatEntry::getHeartbeatCurrentTime()
 
 
 /*
+ * Static methods
+ */
+void HeartbeatEntry::getCurrentTime(struct timeval& pTime)
+{
+    gettimeofday(&pTime, NULL);
+
+    return;
+}
+
+string HeartbeatEntry::getHeartbeatCurrentTimeStr()
+{
+    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
+    getCurrentTime(l_CurrentTime);
+
+    return timevalToStr(l_CurrentTime);
+}
+
+
+/*
  * Non-static methods
  */
+int HeartbeatEntry::serverDeclaredDead(const uint64_t pAllowedNumberOfSeconds)
+{
+    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
+    getCurrentTime(l_CurrentTime);
+    struct timeval l_LastTimeServerReported = getTime();
+
+    return ((uint64_t)(l_CurrentTime.tv_sec - l_LastTimeServerReported.tv_sec) < pAllowedNumberOfSeconds ? 0 : 1);
+}
 
 void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
 {
@@ -394,7 +413,7 @@ void WRKQMGR::checkThrottleTimer()
         {
             // Tell the world this bbServer is still alive...
             char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-            string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTime();
+            string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTimeStr();
             snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
             AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
             appendAsyncRequest(l_Request);
@@ -598,7 +617,7 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
             for (auto it=heartbeatData.begin(); it!=heartbeatData.end(); ++it)
             {
                 LOG(bb,debug) << i << ") " << it->first << " -> Count " << (it->second).getCount() \
-                              << ", time reported: " << (it->second).getTime() \
+                              << ", time reported: " << timevalToStr((it->second).getTime()) \
                               << ", timestamp from bbServer: " << (it->second).getServerTime();
                 ++i;
             }
@@ -612,7 +631,7 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
             for (auto it=heartbeatData.begin(); it!=heartbeatData.end(); ++it)
             {
                 LOG(bb,info) << i << ") " << it->first << " -> Count " << (it->second).getCount() \
-                              << ", time reported: " << (it->second).getTime() \
+                              << ", time reported: " << timevalToStr((it->second).getTime()) \
                               << ", timestamp from bbServer: " << (it->second).getServerTime();
                 ++i;
             }
@@ -883,6 +902,21 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
     return rc;
 }
+
+uint64_t WRKQMGR::getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId)
+{
+    // NOTE: If the server has been declared dead, then we return a count of 1.
+    //       Those routines that invoke this method use this count as a loop control
+    //       variable and we want to make sure that we go through the loop at least
+    //       once.
+    uint64_t l_Count = 1;
+    if (!isServerDead(pJob, pHandle, pContribId))
+    {
+        l_Count = getDeclareServerDeadCount();
+    }
+
+    return l_Count;
+};
 
 int WRKQMGR::getThrottleRate(LVKey* pLVKey, uint64_t& pRate)
 {
@@ -1188,6 +1222,33 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 
     return rc;
 }
+
+int WRKQMGR::isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId)
+{
+    int rc = 0;
+
+    HeartbeatEntry* l_HeartbeatEntry = getHeartbeatEntry(ContribIdFile::isServicedBy(pJob, pHandle, pContribId));
+    if (l_HeartbeatEntry)
+    {
+        rc = l_HeartbeatEntry->serverDeclaredDead(declareServerDeadCount);
+    }
+
+    return rc;
+}
+
+HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
+{
+    for (auto it=heartbeatData.begin(); it!=heartbeatData.end(); ++it)
+    {
+        if (it->first == pHostName)
+        {
+            return &(it->second);
+        }
+    }
+
+    return (HeartbeatEntry*)0;
+}
+
 
 void WRKQMGR::loadBuckets()
 {
@@ -1864,7 +1925,8 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
 {
     uint64_t l_Count = 0;
 
-    string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTime();
+    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
+    HeartbeatEntry::getCurrentTime(l_CurrentTime);
     map<string, HeartbeatEntry>::iterator it = heartbeatData.find(pHostName);
     if (it != heartbeatData.end())
     {
@@ -1889,7 +1951,8 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName, const string& pServer
         l_Count = (it->second).getCount();
     }
 
-    string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTime();
+    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
+    HeartbeatEntry::getCurrentTime(l_CurrentTime);
     HeartbeatEntry l_Entry = HeartbeatEntry(++l_Count, l_CurrentTime, pServerTimeStamp);
 
     heartbeatData[pHostName] = l_Entry;
@@ -2027,7 +2090,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             {
                                 rc = -1;
                                 stringstream l_Temp;
-                                l_Temp << "0" << oct << (bfs::status(l_Path)).permissions();
+                                l_Temp << "0" << oct << (bfs::status(l_Path)).permissions() << dec;
                                 errorText << "Verification of permissions failed for bbServer metadata directory " << l_Path.c_str() \
                                           << ". Requires read and execute for all users, but permissions are " \
                                           << l_Temp.str() << ".";

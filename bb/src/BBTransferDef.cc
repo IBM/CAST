@@ -1479,7 +1479,6 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
     return;
 }
 
-#define DELAY_SECONDS 120
 int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
 {
     int rc = 0;
@@ -1506,33 +1505,35 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
         //       completed the processing performed by the second volley from
         //       bbProxy.  We have to make sure that the extents are first enqueued
         //       so that the stop processing is properly performed.
-        //
-        //       We spin for up to 2 minutes...
         string l_ConnectionName = string();
-        int l_Continue = DELAY_SECONDS;
+        uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId);
+        uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
         while (!rc && l_Continue--)
         {
             rc = extentsAreEnqueued();
             if (!rc)
             {
-                // NOTE: The handle file will not have been already locked in this path...
-                unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                if (l_Continue)
                 {
-                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
-                    int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
-                    if ((l_SecondsWaiting % 15) == 1)
+                    // NOTE: The handle file will not have been already locked in this path...
+                    unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                     {
-                        // Display this message every 15 seconds...
-                        FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
-                                  pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
-                                     << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
-                                     << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
-                                     << " seconds remain waiting for the extents to be enqueued.";
+                        pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                        int l_SecondsWaiting = l_OriginalDeclareServerDeadCount - l_Continue;
+                        if ((l_SecondsWaiting % 15) == 5)
+                        {
+                            // Display this message every 15 seconds, after an initial wait of 5 seconds...
+                            FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
+                                      pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
+                            LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
+                                         << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                         << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
+                                         << " seconds remain waiting for the extents to be enqueued.";
+                        }
+                        usleep((useconds_t)1000000);    // Delay 1 second
                     }
-                    usleep((useconds_t)1000000);    // Delay 1 second
+                    lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                 }
-                lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
 
                 // Check to make sure the job still exists after releasing/re-acquiring the lock
                 // NOTE: The connection name is optional, and is potentially different for every
@@ -1690,7 +1691,6 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
     return rc;
 }
-#undef DELAY_SECONDS
 #endif
 
 void BBTransferDef::unlock()
