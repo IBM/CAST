@@ -33,7 +33,7 @@ Compute Daemon     | `csm_compute.cfg <https://github.com/IBM/CAST/blob/master/c
 
 If edits are made to a configuration file, then a daemon must be killed and started again.
 
-A detailed explanation of configuration settings can also be found at: :ref:`CSMDInfrastructure`
+A detailed explanation of configuration settings can also be found at: :ref:`CSMDInfrastructure` and also at: :ref:`CSMDConfig`.
 
 
 Daemon Functionality
