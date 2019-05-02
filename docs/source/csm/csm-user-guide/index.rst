@@ -3,4 +3,10 @@
 User Guide
 ==========
 
-This is a user guide.
+This is a user guide. **READ THIS FIRST**
+
+ .. toctree::
+    :maxdepth: 2
+
+    introduction.rst
+    
