@@ -52,6 +52,58 @@ Compute node states
      - DISCOVERED
      - IN_SERVICE
      - By system admin action
+   * - 3 
+     - IN_SERVICE
+     - ADMIN_RESERVE
+     - By system admin action
+   * - 4
+     - ADMIN_RESERVE
+     - IN_SERVICE
+     - By system admin action
+   * - 5
+     - IN_SERVICE
+     - MAINTENANCE
+     - By system admin action
+   * - 6
+     - MAINTENANCE
+     - IN_SERVICE
+     - By system admin action
+   * - 7
+     - IN_SERVICE
+     - OUT_OF_SERVICE
+     - By system admin action
+   * - 8
+     - OUT_OF_SERVICE
+     - IN_SERVICE
+     - By system admin action
+   * - 9
+     - HARD_FAILURE
+     - OUT_OF_SERVICE
+     - By system admin action
+   * - 10
+     - HARD_FAILURE
+     - IN_SERVICE
+     - By system admin action
+   * - 11
+     - IN_SERVICE
+     - SOFT_FAILURE
+     - By CSM RAS subsystem
+   * - 12
+     - DISCOVERED
+     - HARD_FAILURE
+     - By CSM RAS subsystem
+   * - 13
+     - IN_SERVICE
+     - HARD_FAILURE
+     - By CSM RAS subsystem
+   * - 14
+     - DISCOVERED
+     - SOFT_FAILURE
+     - By CSM RAS subsystem
+   * - 15
+     - SOFT_FAILURE
+     - IN_SERVICE
+     - CSM soft recovery
 
 Below is a visual graph of daemon state transitions. The numbers in this graph correspond to the number in column 1 of the :ref:`CSM_USER_GUIDE_CSM_Daemon_State_Transitions` table shown above.
 
