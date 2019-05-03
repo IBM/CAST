@@ -18,6 +18,18 @@ Compute node states
      - Node is healthy for scheduler to use. This is the only state scheduler consider the node for scheduling.
    * - ADMIN_RESERVE
      - No
-     - Reserved for system administrator activity. Processing RAS events.
+     - Reserved for system administrator activities. Processes RAS events.
+   * - MAINTENANCE
+     - No
+     - Reserved for system administrator activities. Does **NOT** process RAS events.
+   * - SOFT_FAILURE 
+     - No 
+     - CSM reserved.
+   * - HARD_FAILURE
+     - No
+     - CSM reserved.
+   * - OUT_OF_SERVICE
+     - No 
+     - Hardware / Software problem. Does **NOT** process RAS events.
 
 This is a node.
