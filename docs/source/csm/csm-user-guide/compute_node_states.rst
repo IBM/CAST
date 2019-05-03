@@ -3,6 +3,8 @@
 Compute node states
 ===================
 
+.. _CSM_USER_GUIDE_CSM_Daemon_States:
+
 .. list-table:: CSM Daemon States
    :widths: 20 10 50
    :header-rows: 1
@@ -32,4 +34,29 @@ Compute node states
      - No 
      - Hardware / Software problem. Does **NOT** process RAS events.
 
-This is a node.
+.. _CSM_USER_GUIDE_CSM_Daemon_State_Transitions:
+
+.. list-table:: CSM Daemon State Transitions
+   :widths: 10 20 20 50
+   :header-rows: 1
+
+   * - Number
+     - Start State
+     - End State
+     - Comments
+   * - 1 
+     - 
+     - DISCOVERED
+     - By CSM inventory
+   * - 2 
+     - DISCOVERED
+     - IN_SERVICE
+     - By system admin action
+
+Below is a visual graph of daemon state transitions. The numbers in this graph correspond to the number in column 1 of the :ref:`CSM_USER_GUIDE_CSM_Daemon_State_Transitions` table shown above.
+
+.. image:: https://user-images.githubusercontent.com/4662139/57146316-0bf90500-6d93-11e9-8a72-a227bacfab51.png
+   :alt: Visual Map of Daemon State Transitions
+
+
+
