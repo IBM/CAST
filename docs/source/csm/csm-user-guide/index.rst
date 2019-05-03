@@ -12,4 +12,5 @@ This is a user guide. **READ THIS FIRST**
     csm_database.rst
     csm_infrastructure.rst
     compute_node_states.rst
+    job_launch.rst
     
