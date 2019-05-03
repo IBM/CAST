@@ -4,7 +4,7 @@ Compute node states
 ===================
 
 .. list-table:: CSM Daemon States
-   :widths: 25 25 50
+   :widths: 20 10 50
    :header-rows: 1
 
    * - State
