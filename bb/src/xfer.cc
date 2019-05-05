@@ -2496,11 +2496,15 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                                 LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
                                                 // Queue a WorkID object for every extent to the work queue
                                                 WorkID l_WorkId(*pLVKey, l_TagId);
+#if 0
+                                                // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
+                                                //       for cancel transfer or stop/restart processing
                                                 if (i+1 == (l_TransferDef->extents).size())
                                                 {
                                                     // Validate work queue on last add...
                                                     l_ValidateOption = VALIDATE_WORK_QUEUE;
                                                 }
+#endif
                                                 l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                             }
                                             l_WrkQE->dump("info", "After pushing work onto this queue ");
@@ -3079,11 +3083,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                     l_Temp2.push(l_WorkId);
                                 } else {
                                     LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
+#if 0
+                                    // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
+                                    //       for cancel transfer or stop/restart processing
                                     if (!l_Temp.size())
                                     {
                                         // Validate work queue on last add...
                                         l_ValidateOption = VALIDATE_WORK_QUEUE;
                                     }
+#endif
                                     l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                 }
                             }
