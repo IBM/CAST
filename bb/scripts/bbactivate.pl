@@ -153,6 +153,7 @@ GetOptions(
     "bscfswork=s"     => \$CFG{"bscfswork"},
     "sslcert=s"       => \$CFG{"sslcert"},
     "sslpriv=s"       => \$CFG{"sslpriv"},
+    "sharednode!"     => \$CFG{"sharednode"},
     "dryrun!"         => \$CFG{"dryrun"},
     "drypath=s"       => \$CFG{"drypath"},
     "scriptpath=s"    => \$SCRIPTPATH,
@@ -189,6 +190,7 @@ makeConfigFile() if($CFG{"skip"} !~ /config/i);
 if($CFG{"bbServer"})
 {
     filterLVM()   if($CFG{"skip"} !~ /lvm/i);
+    clearNVMf()   if($CFG{"sharednode"} == 0);
     startServer() if($CFG{"skip"} !~ /start/i);
 }
 if($CFG{"bbcmd"})
@@ -228,6 +230,7 @@ sub setDefaults
     &def("bbcmd",            1, 0);
     &def("bbhealth",         1, 1);
     &def("shutdown",         1, 0);
+    &def("sharednode",       1, 0);
     &def("sslcert",          1, "default");
     &def("sslpriv",          1, "default");
     &def("metadata",         1, "");
@@ -503,8 +506,13 @@ sub configureNVMeTarget
     my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
     {
-        output("NVMe over Fabrics target has already been configured");
-        return;
+        if($CFG{"sharednode"})
+        {
+            output("NVMe over Fabrics target has already been configured and the node is shared.  Skipping NVMe over Fabrics setup");
+            return;
+        }
+        output("NVMe over Fabrics target has already been configured.  Clearing potentially stale NVMe over Fabrics target configuration");
+        cmd("nvmetcli clear", 1);
     }
 
     output("ipaddr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
@@ -526,10 +534,12 @@ sub configureNVMeTarget
     output("NVMe over Fabrics target offload is $state");
 
     $json->{"hosts"}[0]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"servercfg"} . "#" . &genRandomName();
-    $json->{"hosts"}[1]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"backupcfg"} . "#" . &genRandomName();
     $json->{"subsystems"}[0]{"allowed_hosts"}[0] = $json->{"hosts"}[0]{"nqn"};
-    $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
-
+    if($cfgfile->{"bb"}{"proxy"}{"backupcfg"} ne "")
+    {
+        $json->{"hosts"}[1]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"backupcfg"} . "#" . &genRandomName();
+        $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
+    }
     $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
@@ -595,6 +605,12 @@ sub configureVolumeGroup
             }
         }
     }
+}
+
+sub clearNVMf
+{
+    setprefix("Clearing NVMf connections: ");
+    cmd("nvme disconnect -n burstbuffer", 1);
 }
 
 sub startServer
