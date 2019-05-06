@@ -453,7 +453,7 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
 
     if (pPass == FIRST_PASS)
     {
-        int l_Attempts = 2;
+        int l_Attempts = 1;
         bool l_AllDone = false;
         while (!l_AllDone)
         {
@@ -462,7 +462,8 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
             // Make sure that the HandleFile indicates that the handle has at least
             // one transfer definition that is stopped
             rc = 1;
-            uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
+            uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(pJob, pHandle, pContribId);
+            uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
             while ((rc == 1) && (l_Continue--))
             {
                 BBSTATUS l_Status;
@@ -487,23 +488,26 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
                                  << ", handle " << pHandle << ". Cannot restart any transfer definitions under this handle.";
                 }
 
-                if (rc && l_Continue)
+                if (rc)
                 {
-                    if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
+                    if (l_Continue)
                     {
-                        // Display this message every 15 seconds...
-                        FL_Write6(FLDelay, PrepareForRestart, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
-                                  (uint64_t)pJob.getJobId(), (uint64_t)pJob.getJobStepId(), (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo::prepareForRestart: Attempting to restart a transfer definition for jobid " << pJob.getJobId() \
-                                     << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
-                                     << ". Waiting for the handle to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
-                                     << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                        if (((l_OriginalDeclareServerDeadCount - l_Continue) % 15) == 5)
+                        {
+                            // Display this message every 15 seconds, after an initial wait of 5 seconds...
+                            FL_Write6(FLDelay, PrepareForRestart, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                                      (uint64_t)pJob.getJobId(), (uint64_t)pJob.getJobStepId(), (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
+                            LOG(bb,info) << ">>>>> DELAY <<<<< BBTagInfo::prepareForRestart: Attempting to restart a transfer definition for jobid " << pJob.getJobId() \
+                                         << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " << pContribId \
+                                         << ". Waiting for the handle to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
+                                         << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                        }
+                        unlockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
+                        {
+                            usleep((useconds_t)1000000);    // Delay 1 second
+                        }
+                        lockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
                     }
-                    unlockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
-                    {
-                        usleep((useconds_t)1000000);    // Delay 1 second
-                    }
-                    lockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
 
                     // Check to make sure the job still exists after releasing/re-acquiring the lock
                     if (!jobStillExists(pConnectionName, pLVKey, (BBLV_Info*)0, this, pJob.getJobId(), pContribId))
@@ -516,7 +520,7 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
 
             if (rc > 0)
             {
-                if (--l_Attempts)
+                if (l_Attempts--)
                 {
                     rc = prepareForRestartOriginalServerDead(pConnectionName, pLVKey, pHandle, pJob, pContribId);
                     switch (rc)

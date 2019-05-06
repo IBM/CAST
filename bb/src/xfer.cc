@@ -372,8 +372,9 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     {
         l_AllDone = true;
 
-        rc = 2;
-        uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
+        rc = -2;
+        uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId);
+        uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
         while ((rc != 1) && (l_Continue--))
         {
             ++l_RetryAttempts;
@@ -567,34 +568,37 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                 l_ContribIdFile = 0;
             }
 
-            if ((!rc) && l_Continue)
+            if (!rc)
             {
-                // Spin, waiting for the transfer definition to be marked as stopped and for all of the prior enqueued
-                // extents to be processed for the transfer definition.
-                // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
-                //       \todo - What to do???  @DLH
-                // NOTE: Currently set to log after 1 second of not being able to clear, and every 15 seconds thereafter...
-                if (((wrkqmgr.getDeclareServerDeadCount() - l_Continue) % 15) == 1)
+                if (l_Continue)
                 {
-                    FL_Write6(FLDelay, RestartWaitForStop2, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
-                              (uint64_t)pJobId, (uint64_t)pJobStepId, (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
-                    LOG(bb,info) << ">>>>> DELAY <<<<< contribIdStopped(): Attempting to restart a transfer definition for jobid " << pJobId \
-                                 << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
-                                 << ". Waiting for all extents to finish being processed on the prior bbServer" \
-                                 << " and the transfer definition to be marked as stopped. Delay of 1 second before retry. " \
-                                 << l_Continue << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
-                    if (pOrigTransferDef)
+                    // Spin, waiting for the transfer definition to be marked as stopped and for all of the prior enqueued
+                    // extents to be processed for the transfer definition.
+                    // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
+                    //       \todo - What to do???  @DLH
+                    // NOTE: Currently set to log after 5 seconds of not being able to clear, and every 15 seconds thereafter...
+                    if (((l_OriginalDeclareServerDeadCount - l_Continue) % 15) == 5)
                     {
-                        // The prior bbServer is this same bbServer...
-                        // Dump out the extents in question...
-                        pLV_Info->getExtentInfo()->dump("info", "contribIdStopped(): Waiting for all extents to be processed");
+                        FL_Write6(FLDelay, RestartWaitForStop2, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                                  (uint64_t)pJobId, (uint64_t)pJobStepId, (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< contribIdStopped(): Attempting to restart a transfer definition for jobid " << pJobId \
+                                     << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                     << ". Waiting for all extents to finish being processed on the prior bbServer" \
+                                     << " and the transfer definition to be marked as stopped. Delay of 1 second before retry. " \
+                                     << l_Continue << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                        if (pOrigTransferDef)
+                        {
+                            // The prior bbServer is this same bbServer...
+                            // Dump out the extents in question...
+                            pLV_Info->getExtentInfo()->dump("info", "contribIdStopped(): Waiting for all extents to be processed");
+                        }
                     }
+                    unlockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
+                    {
+                        usleep((useconds_t)1000000);
+                    }
+                    lockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
                 }
-                unlockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
-                {
-                    usleep((useconds_t)1000000);
-                }
-                lockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
 
                 // Check to make sure the job still exists after releasing/re-acquiring the lock
                 // NOTE: The connection name is optional, and is potentially different from what
@@ -610,7 +614,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
 
         if (rc == -2)
         {
-            if (++l_Attempts <= 2)
+            if (l_Attempts--)
             {
                 rc = prepareForRestartOriginalServerDead(pConnectionName, pLVKey, pHandle, BBJob(pJobId, pJobStepId), pContribId);
                 switch (rc)
@@ -2492,11 +2496,15 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                                 LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
                                                 // Queue a WorkID object for every extent to the work queue
                                                 WorkID l_WorkId(*pLVKey, l_TagId);
+#if 0
+                                                // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
+                                                //       for cancel transfer or stop/restart processing
                                                 if (i+1 == (l_TransferDef->extents).size())
                                                 {
                                                     // Validate work queue on last add...
                                                     l_ValidateOption = VALIDATE_WORK_QUEUE;
                                                 }
+#endif
                                                 l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                             }
                                             l_WrkQE->dump("info", "After pushing work onto this queue ");
@@ -3075,11 +3083,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                     l_Temp2.push(l_WorkId);
                                 } else {
                                     LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
+#if 0
+                                    // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
+                                    //       for cancel transfer or stop/restart processing
                                     if (!l_Temp.size())
                                     {
                                         // Validate work queue on last add...
                                         l_ValidateOption = VALIDATE_WORK_QUEUE;
                                     }
+#endif
                                     l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                 }
                             }

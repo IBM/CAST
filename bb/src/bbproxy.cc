@@ -571,7 +571,7 @@ void msgin_changemode(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Switch to the uid/gid of requester.
         switchIds();
 
-        LOG(bb,info) << "msgin_changemode: pathname=" << pathname << ", newmode=" << newmode;
+        LOG(bb,info) << "msgin_changemode: pathname=" << pathname << ", newmode=0" << oct << newmode << dec;
 
         rc = chmod(pathname, newmode);
         if (rc)

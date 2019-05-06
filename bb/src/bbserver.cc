@@ -1833,7 +1833,10 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 l_MarkFailedFromProxy = 0;
 
                                 rc = -1;
-                                errorText << "LVKeys do not match for the handle verses the files in the transfer definition";
+                                errorText << "LVKeys do not match for the handle verses the files in the transfer definition." \
+                                          << " The most likely causes for this error are that the source or target file does not" \
+                                          << " reside in the mounted file system for the logical volume associated with the job/contribid" \
+                                          << " or the incorrect handle is being used for the start transfer operation.";
                                 bberror << err("error.proxy_lvuuid", lv_uuid_str) << err("error.server_lvuuid", lv_uuid2_str);
                                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
@@ -1950,13 +1953,14 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         // Restart case...
                                         // First ensure that this transfer definition is marked as stopped in the cross bbServer metadata
                                         int l_Attempts = 1;
-                                        bool l_AllDone = false;
-                                        while (!l_AllDone)
+                                        bool l_AllDone2 = false;
+                                        while (!l_AllDone2)
                                         {
-                                            l_AllDone = true;
+                                            l_AllDone2 = true;
 
                                             rc = 1;
-                                            uint64_t l_Continue = wrkqmgr.getDeclareServerDeadCount();
+                                            uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(l_Job, l_Handle, l_ContribId);
+                                            uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
                                             while ((rc) && (l_Continue--))
                                             {
                                                 // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
@@ -2041,34 +2045,37 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                         LOG_INFO_TEXT_AND_BAIL(errorText);
                                                     }
 
-                                                    if (rc && l_Continue)
+                                                    if (rc)
                                                     {
-                                                        // Release the lock on the handle file
-                                                        l_HandleFile->close(l_LockFeedback);
+                                                        if (l_Continue)
+                                                        {
+                                                            // Release the lock on the handle file
+                                                            l_HandleFile->close(l_LockFeedback);
 
-                                                        int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
-                                                        if ((l_SecondsWaiting % 15) == 1)
-                                                        {
-                                                            // Display this message every 15 seconds...
-                                                            FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
-                                                                      l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
-                                                            LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
-                                                                         << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
-                                                                         << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
-                                                                         << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                                                            int l_SecondsWaiting = l_OriginalDeclareServerDeadCount - l_Continue;
+                                                            if ((l_SecondsWaiting % 15) == 5)
+                                                            {
+                                                                // Display this message every 15 seconds, after an initial wait of 5 seconds...
+                                                                FL_Write6(FLDelay, RestartWaitForStop1, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
+                                                                          l_Job.getJobId(), l_Job.getJobStepId(), l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
+                                                                LOG(bb,info) << ">>>>> DELAY <<<<< msgin_starttransfer (restart): Attempting to restart a transfer definition for jobid " << l_Job.getJobId() \
+                                                                             << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                                                                             << ". Waiting for transfer definition to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
+                                                                             << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
+                                                            }
+                                                            // If we will wait for at least another minute, re-append the stop transfer request
+                                                            // every 60 seconds in case the 'old' bbServer just came online...
+                                                            if ((l_Continue > 60) && (l_SecondsWaiting % 60) == 0)
+                                                            {
+                                                                BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
+                                                                                                                 (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
+                                                            }
+                                                            unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+                                                            {
+                                                                usleep((useconds_t)1000000);    // Delay 1 second
+                                                            }
+                                                            lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
                                                         }
-                                                        // If we will wait for at least another minute, re-append the stop transfer request
-                                                        // every 60 seconds in case the 'old' bbServer just came online...
-                                                        if ((l_Continue > 60) && (l_SecondsWaiting % 60) == 0)
-                                                        {
-                                                            BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
-                                                                                                             (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
-                                                        }
-                                                        unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
-                                                        {
-                                                            usleep((useconds_t)1000000);    // Delay 1 second
-                                                        }
-                                                        lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
 
                                                         // Check to make sure the job still exists after releasing/re-acquiring the lock
                                                         if (!jobStillExists(pConnectionName, &l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
@@ -2108,10 +2115,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                     if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                                     {
                                                         rc = 1;
-                                                        LOG(bb,info) << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from loadHandleFile() (2))." \
-                                                                     << " All transfers for this contributor may have already finished.  See previous messages.";
-                                                        BAIL;
-                                                    }
+                                                        errorText << "msgin_starttransfer(): Error occurred when attempting to re-prime the metadata for contribid " << l_ContribId << " (Negative rc from loadHandleFile() (2))." \
+                                                                  << " All transfers for this contributor may have already finished.  See previous messages.";
+                                                        LOG_INFO_TEXT_AND_BAIL(errorText);                                                    }
                                                     else
                                                     {
                                                         rc = -1;
@@ -2134,7 +2140,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                             rc = 0;
                                                             LOG(bb,info) << "ContribId " << l_ContribId << " was found in the cross bbServer metadata and was successfully stopped" \
                                                                       << " after the original bbServer was unresponsive";
-                                                            l_AllDone = false;
+                                                            l_AllDone2 = false;
                                                         }
                                                         break;
 
@@ -2173,7 +2179,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                               << " The transfer definition was marked as stopped after the original bbServer was unresponsive," \
                                                               << " but the cross bbServer metadata no longer shows the transfer definition as stopped." \
                                                               << " Therefore, the transfer definition cannot be restarted. See any previous messages.";
-                                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                                    LOG_ERROR_TEXT_AND_BAIL(errorText);
                                                 }
                                             }
                                         }
@@ -2322,14 +2328,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 // in the cross-bbServer metadata that the retrieve/stop/restart processing found and is
                                 // now trying to restart.  We skip over such residual jobs/transfer definitions.
                                 rc = 1;
-                                LOG(bb,info) << "Transfer definition associated with " << l_LVKey << ", hostname " << l_HostName \
-                                             << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                                             << ", handle " << l_Handle << ", contribid " << l_ContribId << " was not considered for restart."\
-                                             << " The necessary local metadata for the transfer definition could not be found on this server." \
-                                             << " This is caused by residual jobs/transfer definitions that are not currently active" \
-                                             << " being found in the metadata by the retrieve/stop processing.";
-                                BAIL;
-                            }
+                                errorText << "Transfer definition associated with " << l_LVKey << ", hostname " << l_HostName \
+                                          << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                          << ", handle " << l_Handle << ", contribid " << l_ContribId << " was not considered for restart."\
+                                          << " The necessary local metadata for the transfer definition could not be found on this server." \
+                                          << " This is caused by residual jobs/transfer definitions that are not currently active" \
+                                          << " being found in the metadata by the retrieve/stop processing.";
+                                LOG_INFO_TEXT_AND_BAIL(errorText);                            }
                             else
                             {
                                 rc = -1;

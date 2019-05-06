@@ -527,7 +527,7 @@ class BBHandler : public TSHandler
         {
         	char l_Buffer[20] = {'\0'};
 
-            timeval l_CurrentTime;
+            struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
             gettimeofday(&l_CurrentTime, NULL);
             unsigned long l_Micro = l_CurrentTime.tv_usec;
 
