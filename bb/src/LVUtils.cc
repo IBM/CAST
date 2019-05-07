@@ -270,11 +270,37 @@ int doInitializeFileSystem(const char* pVolumeGroupName, const char* pDevName, c
                     }
                 }
 
+                if (config.get(process_whoami+".genUuidOnCreateLogicalVolume", DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME))
+                {
+                    // Now, generate a Uuid and assign it to the device for the logical volume.
+                    // NOTE: We assign a Uuid so that we can verify that it is properly set in the
+                    //       linux metadata (i.e., /dev/disk/by-uuid) before returning to the user.
+                    // NOTE: If we don't generate our own Uuid, one is assigned by mkfs.xfs above.
+                    //       However, we have experienced that this assignment is asynchronous to
+                    //       our completion of the create logical volume command.  Whereas, if we
+                    //       assign our own, we don't return to the user until the linux metadata
+                    //       reflects that known Uuid assignment.
+                    string l_UuidStr;
+                    snprintf(l_Cmd, sizeof(l_Cmd), "uuidgen --random");
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                        l_UuidStr = l_Line;
+                        break;
+                    }
+
+                    snprintf(l_Cmd, sizeof(l_Cmd), "xfs_admin -U %s %s", l_UuidStr.c_str(), l_DevName);
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                    }
+                }
+
                 if (l_DevName) {
                     delete[] l_DevName;
                 }
             }
-                break;
+            break;
 
             case BBEXT4:
             {
@@ -284,27 +310,54 @@ int doInitializeFileSystem(const char* pVolumeGroupName, const char* pDevName, c
                 char l_Cmd[1024] = {'\0'};
                 snprintf(l_Cmd, sizeof(l_Cmd), "mkfs.ext4 -F %s 2>&1;", l_DevName);
 
-                for (auto& l_Line : runCommand(l_Cmd)) {
+                for (auto& l_Line : runCommand(l_Cmd))
+                {
                     vector<std::string> l_Error = {ERROR_PREFIX};
-                    if (!fuzzyMatch(l_Line, l_Error)) {
+                    if (!fuzzyMatch(l_Line, l_Error))
+                    {
                         LOG(bb,info) << l_Line;
 
                         // This output indicates success...
                         vector<std::string> l_Output = {"Writing superblocks and filesystem accounting information:", "done"};
-                        if (fuzzyMatch(l_Line, l_Output)) {
+                        if (fuzzyMatch(l_Line, l_Output))
+                        {
                             rc = 0;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         LOG(bb,error) << l_Line;
                         break;
                     }
                 }
+#if 0
+                // See above...  Not sure we need to assign Uuid for EXT4
+                if (config.get(process_whoami+".genUuidOnCreateLogicalVolume", DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME))
+                {
+                    Uuid l_Uuid;
+                    string l_UuidStr;
+                    snprintf(l_Cmd, sizeof(l_Cmd), "uuidgen --random");
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                        l_UuidStr = l_Line;
+                        l_Uuid.copyFrom(l_UuidStr.c_str());
+                        break;
+                    }
 
-                if (l_DevName) {
+                    snprintf(l_Cmd, sizeof(l_Cmd), "tune2fs -U %s %s", l_UuidStr.c_str(), l_DevName);
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                    }
+                }
+#endif
+                if (l_DevName)
+                {
                     delete[] l_DevName;
                 }
             }
-                break;
+            break;
 
             case BBFSCUSTOM1:
             case BBFSCUSTOM2:

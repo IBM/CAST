@@ -1105,6 +1105,8 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
     return;
 }
 
+#define ATTEMPTS 300
+#define LOG_WARNING_CLIP_VALUE 1
 void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1119,6 +1121,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     uint64_t    createflags;
     Uuid        l_lvuuid;
     char        l_lvuuid_str[LENGTH_UUID_STR] = {'\0'};
+    char l_DevName[1024] = {'\0'};
     BBUsage_t   usage;
 
     bool onErrorRemoveNewLogicalVolume = false;
@@ -1261,9 +1264,9 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         delete msgserver;
         msgserver=NULL;
 
-        if (!rc){
+        if (!rc)
+        {
             // Maintain the logicaVolumeData map
-            char l_DevName[1024] = {'\0'};
             getLogicalVolumeDevName(l_lvuuid, l_DevName, sizeof(l_DevName));
             addLogicalVolumeData(l_DevName, mountpoint, l_lvuuid, jobid, l_GroupId, l_UserId);
         }
@@ -1293,6 +1296,40 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    if (!rc)
+    {
+        // NOTE: Not sure why, but we have had issues at start transfer time where the /dev/disk/by-uuid directory
+        //       does not appear to be immediately updated with the correct uuid for the device name associated with
+        //       this logical volume.  Before returning, wait until we can find the correct uuid for the device name
+        //       of this newly created logical volume.
+        rc = -1;
+        int l_Attempts = ATTEMPTS;
+        while (rc && --l_Attempts)
+        {
+            Uuid l_Uuid = Uuid();
+            if (!getUUID(l_DevName, l_Uuid))
+            {
+                rc = (l_Uuid == l_lvuuid ? 0 : -1);
+                if (rc)
+                {
+                    usleep((useconds_t)100000);    // Delay 100 milliseconds
+                }
+            }
+        }
+        if ((ATTEMPTS - l_Attempts) > LOG_WARNING_CLIP_VALUE)
+        {
+            if (!rc)
+            {
+                LOG(bb,warning) << "msgin_createlogicalvolume: mountpoint=" << mountpoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", number of getUUID() attempts=" << (ATTEMPTS - l_Attempts);
+            }
+            else
+            {
+                errorText << "msgin_createlogicalvolume: For mountpoint=" << mountpoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", the uuid was not successfully registered with /dev/disk/by-uuid. rc=" << rc;
+                LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+            }
+        }
     }
 
     if (rc && onErrorRemoveNewLogicalVolume)
@@ -1330,6 +1367,8 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
+#undef LOG_WARNING_CLIP_VALUE
+#undef ATTEMPTS
 
 void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {

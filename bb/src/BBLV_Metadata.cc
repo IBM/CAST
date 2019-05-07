@@ -299,7 +299,7 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
         bfs::path l_HandleFilePath = bfs::path(string(l_HandleFileName)).parent_path();
 
         bool l_AllDone = false;
-        while ((!l_AllDone) && l_Attempts--)
+        while ((!l_AllDone) && --l_Attempts)
         {
             l_AllDone = true;
             // Iterate through the logical volumes...
