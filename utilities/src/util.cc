@@ -13,6 +13,7 @@
 
 
 #include <cstring>
+#include <iostream>
 #include <mntent.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -154,21 +155,59 @@ int getLogicalVolumeDeviceName(const std::string pFile, std::string &pLogicalVol
     return 0;
 }
 
+#define ATTEMPTS 10
+#define LOG_WARNING_CLIP_VALUE 1
 int getUUID(const char* pLogicalVolumeDeviceName, Uuid& pUuid)
 {
+    int rc = -1;
+
     bfs::path uuidpath("/dev/disk/by-uuid");
     bfs::path vglv(pLogicalVolumeDeviceName);
-    for(const auto& uuid : boost::make_iterator_range(bfs::directory_iterator(uuidpath), {}))
+
+    bool l_Continue = true;
+    int l_Attempts = ATTEMPTS;
+    while (l_Continue && --l_Attempts)
     {
-        if(bfs::equivalent(uuid, vglv))
+        l_Continue = false;
+        try
         {
-            LOG(bb,debug) << "getUUID(): pLogicalVolumeDeviceName=" << pLogicalVolumeDeviceName << ", vglv=" << vglv.string() << ", uuid=" << uuid.path().filename().string();
-            pUuid.copyFrom(uuid.path().filename().string().c_str());
-            return 0;
+            for(const auto& uuid : boost::make_iterator_range(bfs::directory_iterator(uuidpath), {}))
+            {
+                // NOTE: It is possible to receive 'operation not allowed' from bfs::equivalent().
+                //       In that case, we exit the loop and start all over again...
+                if(bfs::equivalent(uuid, vglv))
+                {
+                    LOG(bb,debug) << "getUUID(): ** MATCH ** vglv=" << vglv.string() << ", uuid=" << uuid.path().filename().string();
+                    pUuid.copyFrom(uuid.path().filename().string().c_str());
+                    rc = 0;
+                    break;
+                }
+                else
+                {
+                    LOG(bb,debug) << "getUUID(): uuid=" << uuid.path().filename().string();
+                }
+            }
+        }
+        catch(std::exception& e)
+        {
+            try
+            {
+                LOG(bb,error) << "Exception caught in file " << __FILE__ << ", function " << __FUNCTION__ << ", line " << __LINE__ << ":" << e.what();
+            }
+            catch(std::exception& e) {}
+            l_Continue = true;
         }
     }
-    return -1;
+
+    if ((ATTEMPTS - l_Attempts) > LOG_WARNING_CLIP_VALUE)
+    {
+        LOG(bb,warning) << "getUUID(): pLogicalVolumeDeviceName=" << pLogicalVolumeDeviceName << ", return uuid=|" << pUuid.str() << "|,  number of attempts=" << (ATTEMPTS - l_Attempts) << ", rc=" << rc;
+    }
+
+    return rc;
 }
+#undef LOG_WARNING_CLIP_VALUE
+#undef ATTEMPTS
 
 int getLogicalVolumeUUID(const std::string& pFile, Uuid& pUuid)
 {
