@@ -63,8 +63,23 @@ run_bucket () {
 	memory_usage=`ps -eo rss -o args | grep "csm[d]\b" | grep master | cut -d ' ' -f 1`
 	printf "%-40s %10s\n" "${bucket_type} ${bucket_name}" "BEFORE: ${memory_usage}" >> ${MEMORY_LOG}
 
+	# Determine bash or python bucket
+	bash_bucket="${FVT_PATH}/buckets/${bucket_type}/${bucket_name}.sh"
+        python_bucket="${FVT_PATH}/buckets/${bucket_type}/${bucket_name}.py"
+
+        if [ -e ${bash_bucket} ]
+        then
+                full_bucket="${bash_bucket}"
+        elif [ -e ${python_bucket} ]
+        then
+                full_bucket="${python_bucket}"
+        else
+                echo "error - could not find ${bucket_type} ${bucket_name} bucket"
+                exit 1
+        fi
+
 	# Run bucket script
-	${FVT_PATH}/buckets/${bucket_type}/${bucket_name}.sh
+	${full_bucket}
 	rc=$?
 	if [ "$rc" -ne 0 ]
 	then
@@ -108,6 +123,7 @@ run_bucket "error_injection" "versioning"
 ${FVT_PATH}/setup/csm_uninstall.sh
 ${FVT_PATH}/setup/csm_install.sh
 run_bucket "basic" "python_libraries"
+run_bucket "advanced" "allocation_timing"
 
 ## TODO DON'T USE THIS IF USER AND SECOND_USER ARE NOT SET AND CONFIGURED!
 #run_bucket "basic" "pamd"
