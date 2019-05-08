@@ -11,7 +11,7 @@ Software Dependencies
 CSM has software dependencies. Verify that the following packages are installed: 
 
 Hard dependencies
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 Without these dependencies CSM cannot run.
 
@@ -28,5 +28,22 @@ Without these dependencies CSM cannot run.
    * - Postgres SQL
      - 9.2.18 or higher
      - `xCAT document for migration <https://xcat-docs.readthedocs.io/en/stable/advanced/hierarchy/databases/postgres_configure.html>`_
+   * - openssl-libs
+     - 1.0.1e-60 or higher
+     - 
+   * - perl-YAML
+     - 0.84-5 or higher
+     - Required by the Diagnostic's tests.
+   * - perl-JSON
+     - 2.59 or higher
+     - Required by the Diagnostic's tests that get information from the UFM. 
+   * - cast-boost
+     - 1.60.0-4
+     - Found on Box
+   * - P9 Witherspoon firmware level
+     - **BMC:** ibm-v2.0-0-r46-0-gbed584c or higher **Host:** IBM-witherspoon-ibm-OP9_v1.19_1.185 or higher
+     - Found on Box
+
 
 Soft Dependencies
+^^^^^^^^^^^^^^^^^
