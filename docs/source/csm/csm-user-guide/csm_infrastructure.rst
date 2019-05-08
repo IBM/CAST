@@ -39,6 +39,8 @@ A detailed explanation of configuration settings can also be found at: :ref:`CSM
 Daemon Functionality
 --------------------
 
+.. _CSM_USER_GUIDE_Infrastructure_Master_Daemon:
+
 Master daemon
 ~~~~~~~~~~~~~
 
@@ -47,6 +49,8 @@ CSM master daemon runs on the management node and supports the following activit
 * CSM DB access
 * CSM API support
 * CSM RAS master functions
+
+.. _CSM_USER_GUIDE_Infrastructure_Aggregator_Daemon:
 
 Aggregator daemon
 ~~~~~~~~~~~~~~~~~
@@ -61,6 +65,8 @@ The CSM aggregator daemon runs on the management node and facilitates communicat
 
 A new connection from compute nodes is considered a secondary connection until the compute node tells the aggregator otherwise. This assures that any messages along the secondary path between compute nodes and master get filtered.
 
+.. _CSM_USER_GUIDE_Infrastructure_Utility_Daemon:
+
 Utility daemon
 ~~~~~~~~~~~~~~
 
@@ -71,6 +77,8 @@ The CSM utility daemon runs on the login and launch nodes and supports the follo
 * Steps
 * CSM API support
 * Environmental data collection
+
+.. _CSM_USER_GUIDE_Infrastructure_Compute_Daemon:
 
 Compute daemon
 ~~~~~~~~~~~~~~
