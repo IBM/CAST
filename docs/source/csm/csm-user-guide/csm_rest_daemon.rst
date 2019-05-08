@@ -31,7 +31,7 @@ Copy the sample script from ``/opt/ibm/csm/share/rest_scripts/spectrum_scale`` t
   $ cp /opt/ibm/csm/share/rest_scripts/spectrum_scale/create_node_leave_event.sh ~/
 
 
-Edit the copy of create_node_leave_event.sh and replace ``__CSMRESTD_IP__`` with the IP address that was configured for csmrestd to listen on in /etc/ibm/csm/csmrestd.cfg. Optionally, the LOCATION_NAME can also be modified to refer to a real node_name in the csm_node table. 
+Edit the copy of create_node_leave_event.sh and replace ``__CSMRESTD_IP__`` with the IP address that was configured for csmrestd to listen on in /etc/ibm/csm/csmrestd.cfg. Optionally, the ``LOCATION_NAME`` can also be modified to refer to a real node_name in the csm_node table. 
 Start the local CSM daemon, then csmrestd if either of them are not currently running.
 
 .. code-block:: bash
