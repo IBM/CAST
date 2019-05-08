@@ -11,4 +11,5 @@ This is a guide. **READ THIS SECOND**
     :maxdepth: 2
 
     introduction.rst
+    pre_requisites.rst
 
