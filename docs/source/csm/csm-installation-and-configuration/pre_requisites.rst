@@ -45,5 +45,7 @@ Without these dependencies CSM cannot run.
      - Found on Box
 
 
+.. note:: this seems wrong. ( P9 Witherspoon firmware level) What is BMC? what is host? should those be 2 seperate software values and not a 'version'?
+
 Soft Dependencies
 ^^^^^^^^^^^^^^^^^
