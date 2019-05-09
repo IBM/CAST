@@ -89,10 +89,10 @@ If an SSL setup is desired, the csm.net.ssl section of the config file(s) needs 
 .. code-block:: json
 
   {
-    “ssl”:
+    "ssl":
     {
-        “ca_file” : “<full path to CA file>”,
-        “cred_pem”: “<full path to credentials in pem format>”
+        "ca_file" : "<full path to CA file>",
+        "cred_pem" : "<full path to credentials in pem format>"
     }
   }
 
@@ -114,7 +114,7 @@ CSM daemons heartbeat interval can be configure on csm.net section of the config
             "socket"      : "/run/csmd.sock",
             "permissions" : 777,
             "group"       : ""
-        },
+        }
      }
   }
 
@@ -159,6 +159,33 @@ The *privileged_prolog* and *privileged_epilog* files are python scripts that ha
 
 The *privileged.ini* file configures the logging levels for the script. It is only needed if extending or using the packaged scripts. For more details see the comments in the bundled scripts, the packaged **POST_README.md** file or the Configuring allocation prolog and epilog scripts section in the *CSM User Guide*.
 
+CSM PAM Module
+~~~~~~~~~~~~~~
+
+The ibm-csm-core rpm does install a PAM module that may be enabled by a system administrator. This module performs two operations: prevent unauthorized users from obtaining access to a compute node and placing users who have active allocations into the correct cgroup.
+
+To enable the CSM PAM Module for ssh sessions:
+
+1.	Add always authorized users to /etc/pam.d/csm/whitelist (newline delimited).
+2.	Uncomment the following line from /etc/pam.d/sshd:
+
+.. code-block:: bash
+
+  account    required     libcsmpam.so
+  session    required     libcsmpam.so
+
+3.	Restart the ssh daemon:
+
+.. code-block:: bash
+
+  $ systemctl restart  sshd.service
+
+
+Non root users who do not have an active allocation on the node and are not whitelisted will now be prevented from logging into the node via ssh. Users who have an active allocation will be placed into the appropriate cgroup when logging in via ssh.
+
+For more details on the behavior and configuration of this module please refer to ``/etc/pam.d/csm/README.md``, :ref:`CSMPAM`, or the Configuring the CSM PAM module section in the CSM User Guide.
+
+**WARNING:** The CSM PAM module should only be enabled on nodes that will run the CSM compute daemon, as ssh logins will be restricted to root and users specified in whitelist.
 
 
 
