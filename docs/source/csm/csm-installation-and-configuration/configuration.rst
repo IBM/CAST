@@ -122,13 +122,42 @@ The heartbeat interval setting defines the time between 2 subsequent unidirectio
 
 It might take up to 3 intervals to detect a dead connection because of the following heartbeat process: After receiving a message the daemon waits one interval to send its heartbeat one way. If it doesn't get any heartbeat after one more interval, it will retry and wait for another interval before declaring the connection broken. This setting needs to balance the requirements between fast detection of dead connections and network traffic overhead. Note that if a daemon fails or is shut down, the closed socket will be detected immediately in many cases. The heartbeat-based detection is mostly only needed for errors in the network hardware itself (e.g. broken or disconnected cable, switch, port).
 
+Environmental Buckets
+~~~~~~~~~~~~~~~~~~~~~
+
+The daemons are enabled to execute predefined environmental data collection. The execution is controlled in the configuration files in section *csm.data_collection* with can list a number of buckets each with a list of the predefined items. Currently CSM supports three types of data collection items: "gpu", "environmental" and “ssd”.
+
+Prolog/Epilog Scripts Compute
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to create allocations both a **privileged_prolog** and **privileged_epilog** script must be present in ``/opt/ibm/csm/prologs/`` on the compute nodes. 
+
+Review the sample scripts and make any customization required.
+
+To use the packaged sample scripts ``/opt/ibm/csm/share/prologs/`` run the following on the management node:
+
+.. code-block:: bash
+
+  $ xdcp compute /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs/
+
+This will copy the following files to the compute nodes:
+
+* privileged_prolog ( access: 700 )
+* privileged_prolog ( access: 700 )
+* privileged.ini 	   ( access: 600 )
+
+The *privileged_prolog* and *privileged_epilog* files are python scripts that have command line arguments for type, user flags and system flags. The type is either *allocation* or *step*, and the flags are space delimited alpha-numeric strings of flags. If a new version of one of these scripts are written it must implement the options as below:
 
 
+.. code-block:: bash
 
+  --type [allocation|step]
 
+  --user_flags "[string of flags, spaces allowed]"
 
+  --sys_flags "[string of flags, spaces allowed]"
 
-
+The *privileged.ini* file configures the logging levels for the script. It is only needed if extending or using the packaged scripts. For more details see the comments in the bundled scripts, the packaged **POST_README.md** file or the Configuring allocation prolog and epilog scripts section in the *CSM User Guide*.
 
 
 
