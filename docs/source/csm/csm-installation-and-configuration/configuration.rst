@@ -64,8 +64,9 @@ Review the configuration and ACL files. Make the following suggested updates (no
   #. On compute configurations, substitute ``__AGGREGATOR_B__`` with the secondary aggregator or leave it untouched if you set up a system without failover.
   #. If an aggregator is run on the management node too, make sure to provide a unique entry for csm.net.local_client_listen.socket in order to avoid name collision and   strange behavior.
   #. Create a new Linux group for privileged access.
-     #. Add users to this group.
-     #. Make this group privileged in the ACL file. (For more information see Section “6.3.1 Configuring user control, security, and access level” of the “CSM User Guide”)
+
+     a. Add users to this group.
+     b. Make this group privileged in the ACL file. (For more information see Section “6.3.1 Configuring user control, security, and access level” of the “CSM User Guide”)
 
 Review all configuration and ACL files.
 
