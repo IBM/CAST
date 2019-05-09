@@ -302,7 +302,48 @@ Use CSM API command line ``csm_node_attributes_update`` to update the compute no
 
   $ /opt/ibm/csm/bin/csm_node_attributes_update –s IN_SERVICE -n c650f02p09
 
+CSM REST Daemon Installation and Configuration
+----------------------------------------------
 
+The CSM REST daemon should be installed and configured on the management node and service nodes. CSM REST daemon enables CSM RAS events to be created by IBM crassd for events detected from compute node BMCs. It also enables CSM RAS events to be created via the CSM Event Correlator from console logs. For example, GPU XID errors are monitored via the CSM Event Correlator mechanism. 
+
+**On the service nodes:**
+
+Install the ibm-csm-restd rpm if it is not already installed:
+
+.. code-block:: bash
+
+  $ rpm -ivh ibm-csm-restd-1.5.0-*.ppc64le.rpm
+
+
+Copy the default configuration file from /opt/ibm/csm/share/etc to /etc/ibm/csm:
+
+.. code-block:: bash
+
+  $ cp /opt/ibm/csm/share/etc/csmrestd.cfg /etc/ibm/csm/
+
+
+Edit /etc/ibm/csm/csmrestd.cfg and replace ``__CSMRESTD_IP__`` with ``127.0.0.1``.
+The CSM REST daemon requires that the local CSM daemon is running before it is started. 
+
+Start csmrestd using systemctl:
+
+.. code-block:: bash
+
+  $ systemctl start csmrestd
+
+
+**On the management node (optional):**
+
+If the CSM DB on your management node was not re-created as part of the CSM installation and you intend to enable IBM POWER HW Monitor collection of BMC RAS events from your service nodes, you can manually update the CSM RAS types in the CSM DB using the following process:
+With all daemons stopped:
+
+.. code-block:: bash
+
+  $ /opt/ibm/csm/db/csm_db_ras_type_script.sh -l csmdb csm_ras_type_data.csv
+
+
+This will import any CSM RAS types into the CSM DB that were added on later releases, and it is a no-op for any events that already exist in the CSM DB.
 
 
 
