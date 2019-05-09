@@ -3,7 +3,7 @@
 Pre-Requisites
 ==============
 
-All nodes participating in CSM must be running Red Hat Enterprise Linux for PPC64LE.
+All nodes participating in :ref:`CSM` must be running Red Hat Enterprise Linux for PPC64LE.
 
 Software Dependencies
 ---------------------
