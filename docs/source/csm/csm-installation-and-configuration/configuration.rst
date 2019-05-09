@@ -3,7 +3,7 @@
 Configuration
 =============
 
-Now that everything needed for CSM has been installed, CSM needs to be configured.
+Now that everything needed for :ref:`CSM` has been installed, CSM needs to be configured.
 
 :ref:`CSMDConfig`
 
