@@ -1,3 +1,5 @@
+.. _CSM_Database_schema_version_upgrade:
+
 Using csm_db_schema_version_upgrade_17_0.sh
 ===========================================
 
