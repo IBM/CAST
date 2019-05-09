@@ -15,4 +15,5 @@ This is a guide. **READ THIS SECOND**
     updating_from_a_previous_version.rst
     installation.rst
     configuration.rst
+    uninstallation.rst
 
