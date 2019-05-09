@@ -12,4 +12,5 @@ This is a guide. **READ THIS SECOND**
 
     introduction.rst
     pre_requisites.rst
+    updating_from_a_previous_version.rst
 
