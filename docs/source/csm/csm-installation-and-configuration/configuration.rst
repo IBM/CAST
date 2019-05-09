@@ -232,8 +232,66 @@ Start the compute daemon
 
   $ xdsh compute "systemctl start csmd-compute"
 
+Run the Infrastructure Health Check
+-----------------------------------
 
+Run CSM infrastructure health check on the login / launch node to verify the infrastructure status:
 
+.. code-block:: bash
+  
+  # /opt/ibm/csm/bin/csm_infrastructure_health_check -v
+  Starting. Contacting local daemon...
+  Connected. Checking infrastructure... (this may take a moment. Please be patient...)
+  
+  ###### RESPONSE FROM THE LOCAL DAEMON #######
+  MASTER: c650mnp06 (bounced=0; version=1.5.0)
+  	DB_free_conn_size: 10
+  	DB_locked_conn_pool_size: 0
+  	Timer_test: success
+  	DB_sql_query_test: success
+  	Multicast_test: success
+  	Network_vchannel_test: success
+  	User_permission_test: success
+  	UniqueID_test: success
+  
+  Aggregators:1
+      AGGREGATOR: c650f02p05 (bounced=0; version=1.5.0)
+  	Active_primary: 4
+  	Unresponsive_primary: 0
+  	Active_secondary: 0
+  	Unresponsive_secondary: 0
+  
+  	Primary Nodes:
+  		Active: 4
+  			COMPUTE: c650f02p17 (bounced=0; version=1.5.0; link=PRIMARY)
+  			COMPUTE: c650f02p13 (bounced=1; version=1.5.0; link=PRIMARY)
+  			COMPUTE: c650f02p11 (bounced=0; version=1.5.0; link=PRIMARY)
+  			COMPUTE: c650f02p09 (bounced=0; version=1.5.0; link=PRIMARY)
+  		Unresponsive: 0
+  
+  	Secondary Nodes:
+  		Active: 0
+  		Unresponsive: 0
+  
+  
+    Unresponsive Aggregators: 0
+  
+  Utility Nodes:1
+      UTILITY: c650f02p07 (bounced=0; version=1.5.0)
+  
+    Unresponsive Utility Nodes: 0
+  
+  Local_daemon: MASTER: c650mnp06 (bounced=0; version=1.5.0)
+  	Status:
+  #############################################
+  
+  Finished. Cleaning up...
+  Test complete: rc=0
+  #
+
+Note that is some cases the list and status of nodes might not be 100% accurate if there were infrastructure changes immediately before or during the test. This usually results in timeout warnings and a rerun of the test should return an updated status.
+
+Another important thing to note happens if there are any unresponsive compute nodes. First, unresponsive nodes will not show a daemon build version and will also not list the connection type as primary or secondary. Additionally, the unresponsive nodes are unable to provide info about their configured primary or secondary aggregator. Instead the aggregators report the last known connection status of those compute nodes. For example, if the compute node did use a connection as the primary link even if the compute configuration defines the connection as secondary, the aggregator will show this compute as an unresponsive primary node. 
 
 
 
