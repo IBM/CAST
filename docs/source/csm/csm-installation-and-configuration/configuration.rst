@@ -293,6 +293,34 @@ Note that is some cases the list and status of nodes might not be 100% accurate 
 
 Another important thing to note happens if there are any unresponsive compute nodes. First, unresponsive nodes will not show a daemon build version and will also not list the connection type as primary or secondary. Additionally, the unresponsive nodes are unable to provide info about their configured primary or secondary aggregator. Instead the aggregators report the last known connection status of those compute nodes. For example, if the compute node did use a connection as the primary link even if the compute configuration defines the connection as secondary, the aggregator will show this compute as an unresponsive primary node. 
 
+Environment Setup for Job Launch
+--------------------------------
+
+Use CSM API command line ``csm_node_attributes_update`` to update the compute nodes state to ``IN_SERVICE``. 
+
+.. code-block:: bash
+
+  $ /opt/ibm/csm/bin/csm_node_attributes_update –s IN_SERVICE -n c650f02p09
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
