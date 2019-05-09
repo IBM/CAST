@@ -831,7 +831,7 @@ protected:
                                                                  const int aErrorCode,
                                                                  const std::string &aErrorText )
   {
-    if( isNetworkEvent( aEvent ) )
+    if( isTimerEvent( aEvent ) )
     {
       csm::daemon::TimerContent timerData = dynamic_cast<const csm::daemon::TimerEvent *>( &aEvent )->GetContent();
       const csm::daemon::NetworkEvent *request = dynamic_cast<const csm::daemon::NetworkEvent *>( aEvent.GetEventContext()->GetReqEvent() );
