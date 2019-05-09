@@ -187,6 +187,51 @@ For more details on the behavior and configuration of this module please refer t
 
 **WARNING:** The CSM PAM module should only be enabled on nodes that will run the CSM compute daemon, as ssh logins will be restricted to root and users specified in whitelist.
 
+Start CSM Daemons
+-----------------
+
+Before we start CSM daemon we need to start CSM daemons dependency:
+
+**Login, Launch and Compute node**
+
+Start NVIDIA persistence and DCGM
+
+.. code-block:: bash
+
+  $ xdsh compute,service,utility "systemctl start nvidia-persistenced"
+  $ xdsh compute,service,utility "systemctl start dcgm"
+
+**Management node**
+
+Start the master daemon
+
+.. code-block:: bash
+
+  $ systemctl start csmd-master
+
+Start the aggregator daemon
+
+.. code-block:: bash
+
+  $ systemctl start csmd-aggregator
+
+**Login and Launch node**
+
+Start the utility daemon
+
+.. code-block:: bash
+
+  $ xdsh login,launch "systemctl start csmd-utility"
+
+
+**Compute node**
+
+Start the compute daemon
+
+.. code-block:: bash
+
+  $ xdsh compute "systemctl start csmd-compute"
+
 
 
 
