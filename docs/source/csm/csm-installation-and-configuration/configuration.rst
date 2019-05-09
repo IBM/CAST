@@ -81,9 +81,46 @@ On management node:
   $ xdcp compute,login,launch /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
   $ xdcp compute,login,launch /etc/ibm/csm/csm_api.cfg /etc/ibm/csm/csm_api.cfg
 
+SSL Configuration
+~~~~~~~~~~~~~~~~~
 
+If an SSL setup is desired, the csm.net.ssl section of the config file(s) needs to be set up. 
 
+.. code-block:: json
 
+  {
+    “ssl”:
+    {
+        “ca_file” : “<full path to CA file>”,
+        “cred_pem”: “<full path to credentials in pem format>”
+    }
+  }
+
+If the strings are non-empty, the daemon assumes that SSL is requested. This means if the SSL setup fails, it will not fall back to non-SSL communication.
+
+Heartbeat interval
+~~~~~~~~~~~~~~~~~~
+
+CSM daemons heartbeat interval can be configure on csm.net section of the config file(s). 
+
+.. code-block:: json
+
+  {
+    "net" :
+    {
+        "heartbeat_interval" : 15,
+        "local_client_listen" :
+        {
+            "socket"      : "/run/csmd.sock",
+            "permissions" : 777,
+            "group"       : ""
+        },
+     }
+  }
+
+The heartbeat interval setting defines the time between 2 subsequent unidirectional heartbeat messages in case there's no other network traffic on a connection. The default is 15 Seconds. If two daemons are configured with a different interval, they will use the minimum of the two settings for the heartbeat on the connection. This allows to configure a short interval between Aggregator and Master and a longer interval between Aggregator and Compute to reduce network interference on compute nodes.
+
+It might take up to 3 intervals to detect a dead connection because of the following heartbeat process: After receiving a message the daemon waits one interval to send its heartbeat one way. If it doesn't get any heartbeat after one more interval, it will retry and wait for another interval before declaring the connection broken. This setting needs to balance the requirements between fast detection of dead connections and network traffic overhead. Note that if a daemon fails or is shut down, the closed socket will be detected immediately in many cases. The heartbeat-based detection is mostly only needed for errors in the network hardware itself (e.g. broken or disconnected cable, switch, port).
 
 
 
