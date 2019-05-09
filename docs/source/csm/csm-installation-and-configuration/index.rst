@@ -16,4 +16,5 @@ This is a guide. **READ THIS SECOND**
     installation.rst
     configuration.rst
     uninstallation.rst
+    appendices.rst
 
