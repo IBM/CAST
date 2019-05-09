@@ -14,4 +14,5 @@ This is a guide. **READ THIS SECOND**
     pre_requisites.rst
     updating_from_a_previous_version.rst
     installation.rst
+    configuration.rst
 
