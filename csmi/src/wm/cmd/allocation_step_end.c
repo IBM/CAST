@@ -41,20 +41,20 @@
 
 static struct option long_options[] =
 {
-	{"help",                    no_argument,       0, 'h'},
-	{"verbose",                 required_argument, 0, 'v'},
-	{"allocation_id",           required_argument, 0, 'a'},
-	{"cpu_stats",               required_argument, 0, 'c'},
-	{"exit_status",             required_argument, 0, 'e'},
-	{"error_message",                required_argument, 0, 'E'},
-	{"gpu_stats",               required_argument, 0, 'G'},
-	{"io_stats",                required_argument, 0, 'i'},
-	{"memory_stats",            required_argument, 0, 'm'},
-	{"max_memory",              required_argument, 0, 'M'},
-	{"omp_thread_limit",       required_argument, 0, 'n'},
-	{"step_id",                 required_argument, 0, 's'},
-	{"total_u_time",            required_argument, 0, 't'},
-	{"total_s_time",            required_argument, 0, 'T'},
+	{"help",             no_argument,       0, 'h'},
+	{"verbose",          required_argument, 0, 'v'},
+	{"allocation_id",    required_argument, 0, 'a'},
+	{"cpu_stats",        required_argument, 0, 'c'},
+	{"exit_status",      required_argument, 0, 'e'},
+	{"error_message",    required_argument, 0, 'E'},
+	{"gpu_stats",        required_argument, 0, 'G'},
+	{"io_stats",         required_argument, 0, 'i'},
+	{"memory_stats",     required_argument, 0, 'm'},
+	{"max_memory",       required_argument, 0, 'M'},
+	{"omp_thread_limit", required_argument, 0, 'n'},
+	{"step_id",          required_argument, 0, 's'},
+	{"total_u_time",     required_argument, 0, 't'},
+	{"total_s_time",     required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
 
