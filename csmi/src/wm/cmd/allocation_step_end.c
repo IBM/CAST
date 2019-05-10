@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	/*Variables for checking cmd line args*/
 	int opt;
 	/*check optional args*/
-	while((opt = getopt_long(argc, argv, "hv:a:c:e:E:G:i:m:M:n:s:S:t:T:", long_options, &option_index)) != -1){
+	while((opt = getopt_long(argc, argv, "hv:a:c:e:E:G:i:m:M:n:s:t:T:", long_options, &option_index)) != -1){
 		switch(opt){
 			case 'h':
                 USAGE();
