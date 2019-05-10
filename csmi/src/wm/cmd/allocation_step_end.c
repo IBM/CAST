@@ -83,7 +83,7 @@ void help(){
 	puts("    -G, --gpu_stats         | \"gpu_s_good\"           | (STRING) TBD. Tracked and given to CSM by job leader.");
 	puts("    -i, --io_stats          | \"io_sts_good\"          | (STRING) TBD. Tracked and given to CSM by job leader.");
 	puts("    -m, --memory_stats      | \"mem_sts_good\"         | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -M, --max_memory        | \"max_mem_good\"         | (STRING) TBD. Tracked and given to CSM by job leader.");
+	puts("    -M, --max_memory        | 1                      | (LONG INTEGER) The maximum memory usage of the step.");
 	puts("    -n, --omp_thread_limit |  \"omp_thread_limit\"     | (STRING) TBD. Tracked and given to CSM by job leader.");
 	puts("    -s, --step_id           | 1                      | (LONG INTEGER) Uniquely identify this step.");
 	puts("    -t, --total_u_time      | 0.0                    | (DOUBLE) Relates to the 'us' (aka: user mode) value of %Cpu(s) of the 'top' Linux cmd.");
