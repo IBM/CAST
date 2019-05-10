@@ -94,7 +94,7 @@ void help(){
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("FULL EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_allocation_step_end -a 1 -c \"cpu_good\" -e 1 -E \"error\" -g \"some\" -G \"gpu_s_good\" -i \"io_sts_good\" -m \"mem_sts_good\" -M 1 -n \"t_num_threads_good\" -s 1 -t 0.0 -T 1.5");
+	puts("  csm_allocation_step_end -a 1 -c \"cpu_good\" -e 1 -E \"error\" -G \"gpu_s_good\" -i \"io_sts_good\" -m \"mem_sts_good\" -M 1 -n \"t_num_threads_good\" -s 1 -t 0.0 -T 1.5");
 	puts("____________________");
 }
 
