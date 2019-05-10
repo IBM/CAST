@@ -62,7 +62,7 @@ void help(){
 	puts("_____CSM_ALLOCATION_STEP_END_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_allocation_step_end ARGUMENTS [OPTIONS]");
-	puts("  csm_allocation_step_end -a allocation_id -s step_id -e exit_status -E err_text  -c cpu_stats -t total_u_time -T total_s_time -n total_num_threads -G gpu_stats -m memory_stats -M max_memory -i io_stats");
+	puts("  csm_allocation_step_end -a allocation_id -c cpu_stats -e exit_status -E err_text -G gpu_stats -i io_stats -n total_num_threads -m memory_stats -M max_memory -s step_id -t total_u_time -T total_s_time");
 	puts("");
 	puts("SUMMARY: Used to move a record in the 'csm_step' table to the 'csm_step_history' of CSM database.");
 	puts("");
