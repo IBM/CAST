@@ -77,14 +77,14 @@ void help(){
 	puts("    ------------------------|------------------------|--------------");
 	/*The following lines may have 2 extra spaces to account for the escaped quotes. This way it lines up in the command line window.*/
 	puts("    -a, --allocation_id     | 1                      | (LONG INTEGER) Allocation that this step is part of.");
-	puts("    -c, --cpu_stats         | \"cpu_good\"             | (STRING) TBD. Tracked and given to CSM by job leader.");
+	puts("    -c, --cpu_stats         | \"cpu_good\"             | (STRING) Statistics gathered from the CPU for the step. Tracked and given to CSM by job leader.");
 	puts("    -e, --exit_status       | 1                      | (INTEGER) Step's exit status. Tracked and given to CSM by job leader.");
 	puts("    -E, --err_text          | \"error\"                | (STRING) Step's error text. Tracked and given to CSM by job leader.");
-	puts("    -G, --gpu_stats         | \"gpu_s_good\"           | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -i, --io_stats          | \"io_sts_good\"          | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -m, --memory_stats      | \"mem_sts_good\"         | (STRING) TBD. Tracked and given to CSM by job leader.");
+	puts("    -G, --gpu_stats         | \"gpu_s_good\"           | (STRING) Statistics gathered from the GPU for the step. Tracked and given to CSM by job leader.");
+	puts("    -i, --io_stats          | \"io_sts_good\"          | (STRING) General input output statistics for the step.");
+	puts("    -m, --memory_stats      | \"mem_sts_good\"         | (STRING) Memory statistics for the the step.");
 	puts("    -M, --max_memory        | 1                      | (LONG INTEGER) The maximum memory usage of the step.");
-	puts("    -n, --omp_thread_limit |  \"omp_thread_limit\"     | (STRING) TBD. Tracked and given to CSM by job leader.");
+	puts("    -n, --omp_thread_limit |  \"omp_thread_limit\"     | (STRING) Max number of omp threads used by the step.");
 	puts("    -s, --step_id           | 1                      | (LONG INTEGER) Uniquely identify this step.");
 	puts("    -t, --total_u_time      | 0.0                    | (DOUBLE) Relates to the 'us' (aka: user mode) value of %Cpu(s) of the 'top' Linux cmd.");
 	puts("    -T, --total_s_time      | 1.5                    | (DOUBLE) Relates to the 'sy' (aka: system mode) value of %Cpu(s) of the 'top' Linux cmd.");
