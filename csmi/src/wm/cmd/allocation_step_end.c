@@ -62,7 +62,7 @@ void help(){
 	puts("_____CSM_ALLOCATION_STEP_END_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_allocation_step_end ARGUMENTS [OPTIONS]");
-	puts("  csm_allocation_step_end -a allocation_id -c cpu_stats -e exit_status -E err_text -G gpu_stats -i io_stats -n total_num_threads -m memory_stats -M max_memory -s step_id -t total_u_time -T total_s_time");
+	puts("  csm_allocation_step_end -a allocation_id -c cpu_stats -e exit_status -E err_text -G gpu_stats -i io_stats -m memory_stats -M max_memory -n total_num_threads -s step_id -t total_u_time -T total_s_time");
 	puts("");
 	puts("SUMMARY: Used to move a record in the 'csm_step' table to the 'csm_step_history' of CSM database.");
 	puts("");
@@ -94,7 +94,7 @@ void help(){
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("FULL EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_allocation_step_end -a 1 -s 1 -g \"some\" -e 1 -E \"error\"  -c \"cpu_good\" -t 0.0 -T 1.5 -n \"t_num_threads_good\" -G \"gpu_s_good\" -m \"mem_sts_good\" -M \"max_mem_good\"  -i \"io_sts_good\"");
+	puts("  csm_allocation_step_end -a 1 -c \"cpu_good\" -e 1 -E \"error\" -g \"some\" -G \"gpu_s_good\" -i \"io_sts_good\" -m \"mem_sts_good\" -M 1 -n \"t_num_threads_good\" -s 1 -t 0.0 -T 1.5");
 	puts("____________________");
 }
 
