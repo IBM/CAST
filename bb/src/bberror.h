@@ -314,6 +314,9 @@ const std::vector<std::string> KEYS_TO_REMAIN = {"dft",
                                                  "in",
                                                  "out",
                                                  "rc",
+                                                 "goodcount",
+                                                 "failcount",
+                                                 "voidcount",
                                                  "syscall"};
 
 
