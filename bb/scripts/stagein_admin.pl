@@ -68,8 +68,8 @@ sub phase1()
     
     print "Creating mount point $BBPATH\n";
     $result = bbcmd("$TARGET_ALL mkdir --path=$BBPATH");
+    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH") if(bbgetsuccess($resullt) > 0);
     failureCleanAndExit() if(bbgetrc($result) != 0);
-    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
     
     print "Changing mount point $BBPATH ownership to $JOBUSER\n";
     $result = bbcmd("$TARGET_ALL chown --path=$BBPATH --user=$JOBUSER --group=$JOBGROUP");
@@ -81,15 +81,7 @@ sub phase1()
     
     print "Creating logical volume $BBPATH with size $BB_SSD_MIN\n";
     $result = bbcmd("$TARGET_ALL create --mount=$BBPATH --size=$BB_SSD_MIN");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
-    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
-    
-    print "Changing logical volume $BBPATH ownership to $JOBUSER\n";
-    $result = bbcmd("$TARGET_ALL chown --path=$BBPATH --user=$JOBUSER --group=$JOBGROUP");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
-    
-    print "Changing mode for logical volume $BBPATH\n";
-    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
+    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH") if(bbgetsuccess($resullt) > 0);
     failureCleanAndExit() if(bbgetrc($result) != 0);
 }
 

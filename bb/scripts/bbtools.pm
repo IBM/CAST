@@ -22,6 +22,7 @@ require AutoLoader;
 @EXPORT = qw(
              bbcmd
              bbgetrc
+             bbgetsuccess
              bpost
              cmd
              setupUserEnvironment
@@ -320,6 +321,12 @@ sub bbgetrc
 {
     my($json) = @_;
     return $json->{"rc"};
+}
+
+sub bbgetsuccess
+{
+    my($json) = @_;
+    return $json->{"goodcount"};
 }
 
 sub killpids
