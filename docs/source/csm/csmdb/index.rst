@@ -15,7 +15,7 @@ CSM DB uses PostgreSQL.
     csm_db_backup_script_v1_sh.rst
     csm_db_connections_script_sh.rst
     csm_db_history_delete_py.rst
-    csm_db_schema_version_upgrade_17_0_sh.rst
+    csm_db_schema_version_upgrade_18_0_sh.rst
     csm_db_script_sh.rst
     csm_db_stats_sh.rst
     csm_ras_type_script_sh.rst

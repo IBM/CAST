@@ -15,14 +15,16 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
---   current_version:   17.0
+--   current_version:   18.0
 --   create:            06-13-2016
---   last modified:     03-28-2019
+--   last modified:     05-09-2019
 --   change log:
+--     18.0  -  Moving this version to sync with DB schema version.
+--           -  Added in fn_csm_node_state_history_temp_table
+--           -  Updated the fn_csm_switch_attributes_query_details function
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
 --           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
---           - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
@@ -97,6 +99,7 @@ DROP FUNCTION IF EXISTS fn_csm_node_update();
 DROP FUNCTION IF EXISTS fn_csm_node_delete(i_node_names text[]);
 DROP FUNCTION IF EXISTS fn_csm_node_state();
 DROP FUNCTION IF EXISTS fn_csm_node_attributes_query_details(text);
+DROP FUNCTION IF EXISTS fn_csm_node_state_history_temp_table(i_state compute_node_states, i_start_t timestamp, i_end_t timestamp, OUT node_name text, OUT state compute_node_states, OUT hours_of_state numeric, OUT total_range_time numeric, OUT "%_of_state" numeric);
 DROP TYPE IF EXISTS ras_event_severity;
 DROP TYPE IF EXISTS compute_node_states;
 DROP TYPE IF EXISTS node_details;

@@ -27,5 +27,6 @@ file(GLOB INSTALL_FILES
   "csm_db_schema_updates_16_0_ms.sql"
   "csm_db_schema_updates_16_2_ms.sql"
   "csm_db_schema_updates_17_0_ms.sql"
+  "csm_db_schema_updates_18_0_ms.sql"
 )
 install(FILES ${INSTALL_FILES} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME}/${SUBDIR})

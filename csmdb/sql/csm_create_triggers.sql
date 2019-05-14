@@ -15,10 +15,17 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       17.0
+--   current_version:       18.0
 --   create:                06-22-2016
---   last modified:         03-28-2019
+--   last modified:         05-14-2019
 --   change log:
+--     18.0   - Moving this version to sync with DB schema version
+--            - Updated the fn_csm_switch_attributes_query_details function
+--            - Updated the fn_csm_switch_inventory_history_dump function (added in type and fw_version)
+--            - Updated the fn_csm_allocation_update function (added field core_blink)
+--            - Updated the tr_csm_allocation_update (added fields smt_mode and blink_core)
+--            - Updated the fn_csm_allocation_history_dump function (added field core_blink)
+--            - fn_csm_node_state_history_temp_table    added function for labs to query node states time duration and percentages.
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
@@ -31,7 +38,6 @@
 --            - func_alt_type_val -                     added function for altering db types
 --            - func_csm_delete_func -                  added function for dropping all db functions
 --            - func_csm_drop_all_triggers -            added function for dropping all db triggers
---            - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -606,7 +612,8 @@ BEGIN
             a.time_limit,
             a.wc_key,
             NULL,
-            a.smt_mode
+            a.smt_mode,
+            a.core_blink
         );
         DELETE FROM csm_allocation WHERE allocation_id=allocationid;
 
@@ -691,7 +698,8 @@ BEGIN
             requeue,
             time_limit,
             wc_key,
-            smt_mode)
+            smt_mode,
+            core_blink)
         VALUES
             (now(),
             NEW.allocation_id,
@@ -725,7 +733,8 @@ BEGIN
             NEW.requeue,
             NEW.time_limit,
             NEW.wc_key, 
-            NEW.smt_mode);
+            NEW.smt_mode,
+            NEW.core_blink);
         RETURN NEW;
     END IF;
 RETURN NULL;
@@ -738,7 +747,7 @@ LANGUAGE 'plpgsql';
 ---------------------------------------------------------------------------------------------------
 
 CREATE TRIGGER tr_csm_allocation_update
-    BEFORE UPDATE OF allocation_id,primary_job_id,secondary_job_id,ssd_file_system_name,launch_node_name,isolated_cores,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,projected_memory,type,job_type,user_name,user_id,user_group_id,user_group_name,user_script,begin_time,account,comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key
+    BEFORE UPDATE OF allocation_id,primary_job_id,secondary_job_id,ssd_file_system_name,launch_node_name,isolated_cores,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,projected_memory,type,job_type,user_name,user_id,user_group_id,user_group_name,user_script,begin_time,account,comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key,smt_mode,core_blink
     ON csm_allocation
     FOR EACH ROW
     EXECUTE PROCEDURE fn_csm_allocation_update()
@@ -4336,7 +4345,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             serial_number,
             severity,
             status,
-            operation)            
+            operation,
+            type,
+            fw_version)            
         VALUES(
             now(),
             OLD.name,
@@ -4355,7 +4366,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             OLD.serial_number,
             OLD.severity,
             OLD.status,
-            'D');
+            'D',
+            OLD.type,
+            OLD.fw_version);
         RETURN OLD;
      ELSEIF (TG_OP = 'UPDATE') THEN
         IF  (
@@ -4371,7 +4384,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             (OLD.path             = NEW.path OR OLD.path IS NULL) AND
             (OLD.serial_number    = NEW.serial_number OR OLD.serial_number IS NULL) AND
             (OLD.severity         = NEW.severity OR OLD.severity IS NULL) AND
-            (OLD.status           = NEW.status OR OLD.status IS NULL)) THEN
+            (OLD.status           = NEW.status OR OLD.status IS NULL) AND
+            (OLD.type             = NEW.type OR OLD.type IS NULL) AND
+            (OLD.fw_version       = NEW.fw_version OR OLD.fw_version IS NULL)) THEN
             OLD.collection_time = now();
         ELSE
         INSERT INTO csm_switch_inventory_history(
@@ -4392,7 +4407,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             serial_number,
             severity,
             status,
-            operation)            
+            operation,
+            type,
+            fw_version)
         VALUES(
             now(),
             NEW.name,
@@ -4411,7 +4428,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             NEW.serial_number,
             NEW.severity,
             NEW.status,
-            'U');
+            'U',
+            NEW.type,
+            NEW.fw_version);
         RETURN NEW;
         END IF;
      ELSEIF (TG_OP = 'INSERT') THEN
@@ -4433,7 +4452,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             serial_number,
             severity,
             status,
-            operation)            
+            operation,
+            type,
+            fw_version)
         VALUES(
             now(),
             NEW.name,
@@ -4452,7 +4473,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             NEW.serial_number,
             NEW.severity,
             NEW.status,
-            'I');
+            'I',
+            NEW.type,
+            NEW.fw_version);
         RETURN NEW;
     END IF;
 -- RETURN NULL;
@@ -5210,5 +5233,138 @@ $$ LANGUAGE plpgsql;
 -----------------------------------------------------------
 
 COMMENT ON FUNCTION func_alt_type_val(_type regtype, _val  text) is 'function to alter existing db types.';
+
+----------------------------------------------------------------------------------------------------------------------------------
+-- Function to append to an existing db TYPE
+----------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION fn_csm_node_state_history_temp_table(
+    i_state compute_node_states,
+    i_start_t timestamp,
+    i_end_t timestamp,
+    OUT node_name text,
+    OUT state compute_node_states,
+    OUT hours_of_state numeric,
+    OUT total_range_time numeric,
+    OUT "%_of_state" numeric
+)
+RETURNS setof record
+AS $$
+DECLARE
+    o_state text := i_state;
+    o_start_t timestamp := i_start_t;
+    o_end_t timestamp := i_end_t;
+
+BEGIN
+SET client_min_messages TO WARNING;
+DROP TABLE IF EXISTS temp_csm_node_state_history;
+-- Create the temp table to process the data
+CREATE TEMP TABLE temp_csm_node_state_history AS
+select *
+from(
+    select
+    a.history_time,
+    a.node_name,
+    a.nextnode,
+    a.state,
+    a.nextstate,
+    CASE
+        WHEN a.node_name = nextnode THEN nextdate::timestamp
+        ELSE now()::timestamp
+    END AS state_change_time
+    from 
+        (select
+            b.history_time,
+            b.node_name,
+            b.state,
+            LEAD(b.node_name) OVER (ORDER BY b.node_name, b.history_time) AS nextnode,
+            LEAD(b.history_time) OVER (ORDER BY b.node_name) AS nextdate,
+            LEAD(b.state) OVER (ORDER BY b.node_name) AS nextstate
+        from
+        csm_node_state_history b
+        ) a
+    group by
+        a.history_time,
+        a.node_name,
+        a.state,
+        a.nextnode,
+        a.nextdate,
+        a.nextstate
+    ORDER BY
+        node_name,
+        history_time
+    ) a
+WHERE
+    (history_time, a.state_change_time) overlaps
+    (o_start_t::timestamp, o_end_t::timestamp);
+
+-- Now we can query the temp table results and return the data for processing. 
+RETURN QUERY
+select
+    sub2.node_name,
+    sub2.state,
+    trunc(extract(epoch from sum(d2-d1)/3600)::numeric, 10) AS hours_of_state,
+    trunc(EXTRACT(EPOCH FROM (r2-r1)/3600)::numeric, 10) AS total_range_time,
+    trunc(EXTRACT(EPOCH FROM sum(d2-d1)/3600)::numeric, 8) / trunc(EXTRACT(EPOCH FROM (r2-r1)/3600)::numeric, 4)*100 AS "%_of_state"
+from(
+    select
+        sub.history_time,
+        sub.node_name,
+        sub.state,
+        state_change_time,
+        CASE
+            WHEN history_time <= r1 AND state_change_time >= r1 THEN r1
+            WHEN history_time >= r1 AND history_time <= r2 THEN history_time
+            ELSE NULL
+        END AS d1,
+        CASE
+            WHEN state_change_time >= r2 THEN r2
+            WHEN state_change_time <= r2 THEN state_change_time
+            ELSE NULL
+        END AS d2,
+        r1,
+        r2
+    from(
+        SELECT
+            t.history_time,
+            t.node_name,
+            t.state,
+            t.state_change_time,
+            o_start_t::timestamp AS r1, --<---This sets the specified time range begin time
+            o_end_t::timestamp AS r2 --<---This sets the specified time range end time
+        FROM
+            temp_csm_node_state_history t
+        ) sub
+        WHERE
+            sub.state = $1
+        GROUP BY
+            sub.history_time,
+            sub.node_name,
+            sub.state,
+            sub.state_change_time,
+            sub.r1,
+            sub.r2
+        ORDER BY
+            sub.node_name,
+            sub.history_time,
+            sub.state_change_time,
+            sub.r1,
+            sub.r2
+    ) sub2
+    GROUP BY
+        sub2.node_name,
+        sub2.state,
+        sub2.r1,
+        sub2.r2
+    ORDER BY
+        "%_of_state";
+END;
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- fn_csm_node_state_history_temp_table comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION fn_csm_node_state_history_temp_table(i_state compute_node_states, i_start_t timestamp, i_end_t timestamp, OUT node_name text, OUT state compute_node_states, OUT hours_of_state numeric, OUT total_range_time numeric, OUT "%_of_state" numeric) is 'function to gather statistical information related to the csm_node_state_history state durations.';
 
 COMMIT;

@@ -55,446 +55,446 @@ BEGIN
         CREATE INDEX ix_csm_allocation_history_b ON csm_allocation_history (allocation_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_history_b '' on csm_allocation_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_history_b '' on csm_allocation_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_allocation_history_c ON csm_allocation_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_history_c '' on csm_allocation_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_history_c '' on csm_allocation_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_allocation_history_d ON csm_allocation_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_history_d '' on csm_allocation_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_history_d '' on csm_allocation_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_allocation_node_history_b ON csm_allocation_node_history (allocation_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_node_history_b '' on csm_allocation_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_node_history_b '' on csm_allocation_node_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_allocation_node_history_c ON csm_allocation_node_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_node_history_c '' on csm_allocation_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_node_history_c '' on csm_allocation_node_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_allocation_node_history_d ON csm_allocation_node_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_node_history_d '' on csm_allocation_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_node_history_d '' on csm_allocation_node_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_allocation_state_history_b ON csm_allocation_state_history (allocation_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_state_history_b '' on csm_allocation_state_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_state_history_b '' on csm_allocation_state_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_allocation_state_history_c ON csm_allocation_state_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_state_history_c '' on csm_allocation_state_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_state_history_c '' on csm_allocation_state_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_allocation_state_history_d ON csm_allocation_state_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_allocation_state_history_d '' on csm_allocation_state_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_allocation_state_history_d '' on csm_allocation_state_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_config_history_b ON csm_config_history (csm_config_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_config_history_b '' on csm_config_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_config_history_b '' on csm_config_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_config_history_c ON csm_config_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_config_history_c '' on csm_config_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_config_history_c '' on csm_config_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_config_history_d ON csm_config_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_config_history_d '' on csm_config_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_config_history_d '' on csm_config_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_db_schema_version_history_b ON csm_db_schema_version_history (version);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_db_schema_version_history_b '' on csm_db_schema_version_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_db_schema_version_history_b '' on csm_db_schema_version_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_db_schema_version_history_c ON csm_db_schema_version_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_db_schema_version_history_c '' on csm_db_schema_version_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_db_schema_version_history_c '' on csm_db_schema_version_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_db_schema_version_history_d ON csm_db_schema_version_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_db_schema_version_history_d '' on csm_db_schema_version_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_db_schema_version_history_d '' on csm_db_schema_version_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_diag_result_history_b ON csm_diag_result_history (run_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_result_history_b '' on csm_diag_result_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_result_history_b '' on csm_diag_result_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_diag_result_history_c ON csm_diag_result_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_result_history_c '' on csm_diag_result_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_result_history_c '' on csm_diag_result_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_diag_result_history_d ON csm_diag_result_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_result_history_d '' on csm_diag_result_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_result_history_d '' on csm_diag_result_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_diag_run_history_b ON csm_diag_run_history (run_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_run_history_b '' on csm_diag_run_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_run_history_b '' on csm_diag_run_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_diag_run_history_c ON csm_diag_run_history (allocation_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_run_history_c '' on csm_diag_run_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_run_history_c '' on csm_diag_run_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_diag_run_history_d ON csm_diag_run_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_run_history_d '' on csm_diag_run_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_run_history_d '' on csm_diag_run_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_diag_run_history_e ON csm_diag_run_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_diag_run_history_e '' on csm_diag_run_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_diag_run_history_e '' on csm_diag_run_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_dimm_history_b ON csm_dimm_history (node_name, serial_number);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_dimm_history_b '' on csm_dimm_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_dimm_history_b '' on csm_dimm_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_dimm_history_c ON csm_dimm_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_dimm_history_c '' on csm_dimm_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_dimm_history_c '' on csm_dimm_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_dimm_history_d ON csm_dimm_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_dimm_history_d '' on csm_dimm_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_dimm_history_d '' on csm_dimm_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_gpu_history_c ON csm_gpu_history (node_name, gpu_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_gpu_history_c '' on csm_gpu_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_gpu_history_c '' on csm_gpu_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_gpu_history_d ON csm_gpu_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_gpu_history_d '' on csm_gpu_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_gpu_history_d '' on csm_gpu_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_gpu_history_e ON csm_gpu_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_gpu_history_e '' on csm_gpu_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_gpu_history_e '' on csm_gpu_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_hca_history_b ON csm_hca_history (node_name, serial_number);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_hca_history_b '' on csm_hca_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_hca_history_b '' on csm_hca_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_hca_history_c ON csm_hca_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_hca_history_c '' on csm_hca_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_hca_history_c '' on csm_hca_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_hca_history_d ON csm_hca_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_hca_history_d '' on csm_hca_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_hca_history_d '' on csm_hca_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_ib_cable_history_b ON csm_ib_cable_history (serial_number);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ib_cable_history_b '' on csm_ib_cable_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ib_cable_history_b '' on csm_ib_cable_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_ib_cable_history_c ON csm_ib_cable_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ib_cable_history_c '' on csm_ib_cable_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ib_cable_history_c '' on csm_ib_cable_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_ib_cable_history_d ON csm_ib_cable_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ib_cable_history_d '' on csm_ib_cable_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ib_cable_history_d '' on csm_ib_cable_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_lv_history_c ON csm_lv_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_lv_history_c '' on csm_lv_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_lv_history_c '' on csm_lv_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_lv_history_d ON csm_lv_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_lv_history_d '' on csm_lv_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_lv_history_d '' on csm_lv_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_lv_update_history_c ON csm_lv_update_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_lv_update_history_c '' on csm_lv_update_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_lv_update_history_c '' on csm_lv_update_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_lv_update_history_d ON csm_lv_update_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_lv_update_history_d '' on csm_lv_update_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_lv_update_history_d '' on csm_lv_update_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_node_history_c ON csm_node_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_node_history_c '' on csm_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_node_history_c '' on csm_node_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_node_history_d ON csm_node_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_node_history_d '' on csm_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_node_history_d '' on csm_node_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_node_state_history_c ON csm_node_state_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_node_state_history_c '' on csm_node_state_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_node_state_history_c '' on csm_node_state_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_node_state_history_d ON csm_node_state_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_node_state_history_d '' on csm_node_state_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_node_state_history_d '' on csm_node_state_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_processor_socket_history_c ON csm_processor_socket_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_processor_socket_history_c '' on csm_processor_socket_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_processor_socket_history_c '' on csm_processor_socket_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_processor_socket_history_d ON csm_processor_socket_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_processor_socket_history_d '' on csm_processor_socket_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_processor_socket_history_d '' on csm_processor_socket_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_ras_event_action_f ON csm_ras_event_action (master_time_stamp);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ras_event_action_f '' on csm_ras_event_action already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ras_event_action_f '' on csm_ras_event_action already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_ras_event_action_g ON csm_ras_event_action (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ras_event_action_g '' on csm_ras_event_action already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ras_event_action_g '' on csm_ras_event_action already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_ras_event_action_h ON csm_ras_event_action (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ras_event_action_h '' on csm_ras_event_action already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ras_event_action_h '' on csm_ras_event_action already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_ssd_history_c ON csm_ssd_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ssd_history_c '' on csm_ssd_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ssd_history_c '' on csm_ssd_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_ssd_history_d ON csm_ssd_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ssd_history_d '' on csm_ssd_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ssd_history_d '' on csm_ssd_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_ssd_wear_history_c ON csm_ssd_wear_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ssd_wear_history_c '' on csm_ssd_wear_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ssd_wear_history_c '' on csm_ssd_wear_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_ssd_wear_history_d ON csm_ssd_wear_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_ssd_wear_history_d '' on csm_ssd_wear_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_ssd_wear_history_d '' on csm_ssd_wear_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_step_history_f ON csm_step_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_history_f '' on csm_step_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_history_f '' on csm_step_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_step_history_g ON csm_step_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_history_g '' on csm_step_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_history_g '' on csm_step_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_step_node_b ON csm_step_node (allocation_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_node_b '' on csm_step_node already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_node_b '' on csm_step_node already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_step_node_c ON csm_step_node (allocation_id, step_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_node_c '' on csm_step_node already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_node_c '' on csm_step_node already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_step_node_history_b ON csm_step_node_history (allocation_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_node_history_b '' on csm_step_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_node_history_b '' on csm_step_node_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_step_node_history_c ON csm_step_node_history (allocation_id, step_id);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_node_history_c '' on csm_step_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_node_history_c '' on csm_step_node_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_step_node_history_d ON csm_step_node_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_node_history_d '' on csm_step_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_node_history_d '' on csm_step_node_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_step_node_history_e ON csm_step_node_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_step_node_history_e '' on csm_step_node_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_step_node_history_e '' on csm_step_node_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_switch_history_c ON csm_switch_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_switch_history_c '' on csm_switch_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_switch_history_c '' on csm_switch_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_switch_history_d ON csm_switch_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_switch_history_d '' on csm_switch_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_switch_history_d '' on csm_switch_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_switch_inventory_history_b ON csm_switch_inventory_history (name);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_switch_inventory_history_b '' on csm_switch_inventory_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_switch_inventory_history_b '' on csm_switch_inventory_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_switch_inventory_history_c ON csm_switch_inventory_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_switch_inventory_history_c '' on csm_switch_inventory_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_switch_inventory_history_c '' on csm_switch_inventory_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_switch_inventory_history_d ON csm_switch_inventory_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_switch_inventory_history_d '' on csm_switch_inventory_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_switch_inventory_history_d '' on csm_switch_inventory_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_vg_history_b ON csm_vg_history (vg_name, node_name);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_vg_history_b '' on csm_vg_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_vg_history_b '' on csm_vg_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_vg_history_c ON csm_vg_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_vg_history_c '' on csm_vg_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_vg_history_c '' on csm_vg_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_vg_history_d ON csm_vg_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_vg_history_d '' on csm_vg_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_vg_history_d '' on csm_vg_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
     BEGIN
         CREATE INDEX ix_csm_vg_ssd_history_b ON csm_vg_ssd_history (vg_name, node_name);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_vg_ssd_history_b '' on csm_vg_ssd_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_vg_ssd_history_b '' on csm_vg_ssd_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_vg_ssd_history_c ON csm_vg_ssd_history (ctid);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_vg_ssd_history_c '' on csm_vg_ssd_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_vg_ssd_history_c '' on csm_vg_ssd_history already exists, skipping';
     END;
     BEGIN
         CREATE INDEX ix_csm_vg_ssd_history_d ON csm_vg_ssd_history (archive_history_time);
     EXCEPTION
         WHEN duplicate_table
-        THEN RAISE NOTICE 'index ''ix_csm_vg_ssd_history_d '' on csm_vg_ssd_history already exists, skipping';
+        THEN RAISE INFO 'index ''ix_csm_vg_ssd_history_d '' on csm_vg_ssd_history already exists, skipping';
     END;
     ------------------------------------------------------------------------------------------------------------------------------
 END;
