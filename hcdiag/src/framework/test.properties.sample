@@ -155,7 +155,7 @@ timeout     = 10
 description = check if the filesystem is mounted corretly
 executable  = /opt/ibm/csm/hcdiag/tests/chk-nfs-mount/chk-nfs-mount.sh
 timeout     = 10
-args        = /home nfs4 /shared nfs4
+args        = /home nfs /shared nfs
 
 ## chk-noping
 [tests.chk-noping]
@@ -335,20 +335,21 @@ targetType  = Compute
 
 ##  IBM spectrum mpi package dgemm-gpu
 [tests.dgemm-gpu]
-description = measure GPU performance.
-executable  = /opt/ibm/csm/hcdiag/tests/dgemm-gpu/dgemm-gpu.sh
-group       = gpu
-timeout     = 2000
-targetType  = Compute
-args        = -l
+description  = measure GPU performance.
+executable   = /opt/ibm/csm/hcdiag/tests/dgemm-gpu/dgemm-gpu.sh
+group        = gpu
+timeout      = 2000
+targetType   = Compute
+args         = -l 
 
 [tests.dgemm-per-socket]
 description = measure CPU performance per socket.
-executable  = /opt/ibm/csm/hcdiag/tests/dgemm-per-socket/dgemm-per-socket.sh
+executable  = /opt/ibm/csm/hcdiag/tests/dgemm/dgemm.sh
 group       = cpu
 timeout     = 800
 targetType  = Compute
 args        = -s
+
 
 # strong recomend to run on the node, just invoking this script
 # NOTE: NVIDIA distributes the fieldiag binary and the source code for the
@@ -710,8 +711,7 @@ tests=chk-cpu,chk-memory,chk-mlnx-pci,chk-nvlink-speed,gpu-health
 # 1 min
 [bucket.node_health]
 description = A default set of tests designed to provide comprehensive node_health.
-tests=chk-load-cpu,chk-load-mem,chk-smt,chk-gpfs-mount,chk-nfs-mount,chk-process,chk-power,chk-free-memory,chk-cpu,chk-gpu-ats,chk-aslr,chk-sw-level,chk-idle-state
-#tests=chk-load-cpu,chk-load-mem,chk-smt,chk-gpfs-mount,chk-nfs-mount,chk-process,chk-power,chk-zombies,chk-free-memory,chk-cpu,chk-gpu-ats,chk-aslr,chk-sw-level
+tests=chk-load-cpu,chk-load-mem,chk-smt,chk-gpfs-mount,chk-nfs-mount,chk-process,chk-power,chk-free-memory,chk-cpu,chk-aslr,chk-sw-level,chk-idle-state
 
 ##############
 # 1 min
