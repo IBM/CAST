@@ -631,6 +631,7 @@ fi
         LogMsg "[End     ] Exiting $0 script"
         echo "${line1_out}"
         echo "${line3_log}" >> $logfile
+        exit 0
     fi
 #fi
 
@@ -639,7 +640,7 @@ fi
 #----------------------------------------------------------------
 
 #if [[ $(bc <<< "${version}") < "$required_pre_migration" ]]; then
-if [[ $(bc <<< "${version}") < "$upgrade_16_2" ]]; then
+if [[ $(bc <<< "${version}") < "$upgrade_16_2" ]] || [[ $(bc <<< "${version}") == "$upgrade_16_2" ]] ; then
         db_prev_ver_upgrades 2>&1
         db_prev_ver_17_0 2>&1
 
