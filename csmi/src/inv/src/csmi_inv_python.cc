@@ -599,7 +599,9 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, path, , NULL, )
 		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, serial_number, , NULL, )
 		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, severity, , NULL, )
-		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, status, , NULL, );
+		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, status, , NULL, )
+		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, type, , NULL, )
+		STRING_PROPERTY(csmi_switch_inventory_record_t, char*, fw_version, , NULL, );
 
     class_<csmi_switch_ports_record_t,csmi_switch_ports_record_t*>("switch_ports_record_t")
 		STRING_PROPERTY(csmi_switch_ports_record_t, char*, name, , NULL, )
