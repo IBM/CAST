@@ -66,6 +66,8 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	char** serial_numbers = NULL;
 	char** severities = NULL;
 	char** statuses = NULL;
+	char** types = NULL;
+	char** fw_versions = NULL;
 	
 	int total_switch_inventories = 0;
 	for(uint32_t i = 0; i < input->inventory_count; i++){
@@ -88,6 +90,8 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	serial_numbers    = (char**)calloc(total_switch_inventories, sizeof(char*));
 	severities        = (char**)calloc(total_switch_inventories, sizeof(char*));
 	statuses          = (char**)calloc(total_switch_inventories, sizeof(char*));
+	types             = (char**)calloc(total_switch_inventories, sizeof(char*));
+	fw_versions       = (char**)calloc(total_switch_inventories, sizeof(char*));
 	
 	int total_switch_inventories_tracker = 0;
 	
@@ -108,6 +112,8 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 			serial_numbers    [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->serial_number   );
 			severities        [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->severity        );
 			statuses          [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->status          );
+			types             [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->type            );
+			fw_versions       [total_switch_inventories_tracker] = strdup(input->inventory[i]->inventory[j]->fw_version      );
 			total_switch_inventories_tracker++;
 		}
 	}
@@ -130,7 +136,9 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 			"$12::text[], "
 			"$13::text[], "
 			"$14::text[], "
-			"$15::text[] "
+			"$15::text[], "
+			"$16::text[], "
+			"$17::text[] "
 			");";
     
 	/* Build the parameterized list. */
@@ -150,6 +158,8 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	dbReq->AddTextArrayParam(serial_numbers   , total_switch_inventories);
 	dbReq->AddTextArrayParam(severities       , total_switch_inventories);
 	dbReq->AddTextArrayParam(statuses         , total_switch_inventories);
+	dbReq->AddTextArrayParam(types            , total_switch_inventories);
+	dbReq->AddTextArrayParam(fw_versions      , total_switch_inventories);
 	
 	//free memory
 	for(int i = 0; i < total_switch_inventories; i++){
@@ -164,6 +174,8 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 		free(serial_numbers   [i]);
 		free(severities       [i]);
 		free(statuses         [i]);
+		free(types            [i]);
+		free(fw_versions      [i]);
 	}
 	//free original guys
 	free(names            );
@@ -180,8 +192,8 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 	free(serial_numbers   );
 	free(severities       );
 	free(statuses         );
-	
-	
+	free(types            );
+	free(fw_versions      );
 	
 	*dbPayload = dbReq;
 
