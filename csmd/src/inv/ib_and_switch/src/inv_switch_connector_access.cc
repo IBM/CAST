@@ -883,6 +883,18 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key
 					field_value = module_severity.at(index);
 				}
 				break;
+			case 12:
+				if(index < module_type.size())
+				{
+					field_value = module_type.at(index);
+				}
+				break;
+			case 13:
+				if(index < module_fw_version.size())
+				{
+					field_value = module_fw_version.at(index);
+				}
+				break;
 			default:
 				//error?
 				break;
