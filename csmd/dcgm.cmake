@@ -2,7 +2,7 @@
 #
 #    csmd/dcgm.cmake
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -36,7 +36,7 @@
 # CSM GA version:
 # datacenter-gpu-manager-1.4.0-1.ppc64le 
 # datacenter-gpu-manager-1.4.1-1.ppc64le
-set(REQUIRED_DCGM_VERSION "datacenter-gpu-manager-1.4")
+set(REQUIRED_DCGM_VERSION "datacenter-gpu-manager-1.6")
 
 # Check if DCGM is installed
 execute_process(COMMAND "/usr/bin/rpm" "-q" "datacenter-gpu-manager"
