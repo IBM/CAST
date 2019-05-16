@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       18.0
 --   create:                06-22-2016
---   last modified:         05-14-2019
+--   last modified:         05-16-2019
 --   change log:
 --     18.0   - Moving this version to sync with DB schema version
 --            - Updated the fn_csm_switch_attributes_query_details function
@@ -26,6 +26,7 @@
 --            - Updated the tr_csm_allocation_update (added fields smt_mode and blink_core)
 --            - Updated the fn_csm_allocation_history_dump function (added field core_blink)
 --            - fn_csm_node_state_history_temp_table    added function for labs to query node states time duration and percentages.
+--            - fn_csm_switch_children_inventory_collection - added two new input fields: type, fw_version
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
@@ -3557,6 +3558,8 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_children_inventory_collection(
         IN i_serial_number    text[],
         IN i_severity         text[],
         IN i_status           text[],
+        IN i_type             text[],
+        IN i_fw_version       text[],
         OUT o_insert_count int,
         OUT o_update_count int,
         OUT o_delete_count int
@@ -3584,14 +3587,16 @@ BEGIN
                 path             = i_path[i], 
                 serial_number    = i_serial_number[i], 
                 severity         = i_severity[i], 
-                status           = i_status[i] 
+                status           = i_status[i], 
+                type             = i_type[i], 
+                fw_version       = i_fw_version[i]
             WHERE 
                 name = i_name[i];
             o_update_count := o_update_count + 1;
         ELSE 
             INSERT INTO csm_switch_inventory 
-            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , hw_version     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
-            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_hw_version[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
+            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , hw_version     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     , type     , fw_version     ) VALUES
+            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_hw_version[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i], i_type[i], i_fw_version[i]);
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
@@ -3606,7 +3611,7 @@ $$ LANGUAGE 'plpgsql';
 -- fn_csm_switch_children_inventory_collection comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
+COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
 
 
 -----------------------------------------------------------------------------------------------
