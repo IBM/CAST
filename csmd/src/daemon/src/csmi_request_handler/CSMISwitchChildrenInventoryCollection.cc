@@ -118,7 +118,7 @@ bool CSMISwitchChildrenInventoryCollection::CreatePayload(
 		}
 	}
 	
-	int SQLparameterCount = 15;
+	int SQLparameterCount = 17;
 
 	std::string stmt = 
 		"SELECT * FROM fn_csm_switch_children_inventory_collection("
