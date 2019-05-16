@@ -933,7 +933,9 @@ int main(int argc, char *argv[])
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("severity", adjusted_index);         SWITCHinput->inventory[i]->inventory[j]->severity         = strdup(temp_string.c_str());
 				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->discovery_time   = strdup(strdup("N/A"));                                      
 				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->collection_time  = strdup(strdup("N/A"));                                      
-				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A"));                                    
+				                                                                                                          SWITCHinput->inventory[i]->inventory[j]->comment          = strdup(strdup("N/A"));   
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("type", adjusted_index);             SWITCHinput->inventory[i]->inventory[j]->type             = strdup(temp_string.c_str()); 
+				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("fw_version", adjusted_index);       SWITCHinput->inventory[i]->inventory[j]->fw_version       = strdup(temp_string.c_str());                               
 			}
 			//resume base switch information
 			                                                                                 
