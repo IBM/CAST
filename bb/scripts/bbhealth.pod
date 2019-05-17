@@ -30,4 +30,8 @@ multiple consecutive failures, the delay between polls is exponentially increase
 
 Specifies the maximum delay between polling events that bbhealth uses to query bbProxy's connection status.  --maxsleep is in seconds, the default is 3600.  
 
+=item B<-v>
+
+Enables verbose output
+
 =back
