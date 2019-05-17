@@ -68,15 +68,18 @@ INV_SWITCH_CONNECTOR_ACCESS::INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_comparing_strings_modules.push_back("\"number_of_chips\"");     
 	vector_of_the_comparing_strings_modules.push_back("\"description\"");         
 	vector_of_the_comparing_strings_modules.push_back("\"max_ib_ports\"");        
-	//vector_of_the_comparing_strings_modules.push_back("\"fw_version\""); 
+	
 	vector_of_the_comparing_strings_modules.push_back("\"module_index\""); 
 	//vector_of_the_comparing_strings_modules.push_back("\"temperature\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"device_type\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"serial_number\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"path\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"device_name\""); 
-	//vector_of_the_comparing_strings_modules.push_back("\"type\""); 
+	
 	vector_of_the_comparing_strings_modules.push_back("\"severity\""); 
+
+	vector_of_the_comparing_strings_modules.push_back("\"type\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"fw_version\""); 
 
 	vector_of_the_num_values.push_back("\"number_of_chips\"");  
 	vector_of_the_num_values.push_back("\"max_ib_ports\""); 
@@ -764,6 +767,12 @@ int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_ke
 			case 11:
 				module_severity.push_back(module_value);
 				break;
+			case 12:
+				module_type.push_back(module_value);
+				break;
+			case 13:
+				module_fw_version.push_back(module_value);
+				break;
 			default:
 				//error?
 				break;
@@ -774,12 +783,19 @@ int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_ke
 	return 0;
 }
 
-std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int module_number)
+std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int index)
 {
 
 	// setting field value
 	std::string field_value = "NULL";
 	std::size_t found; 
+	
+	// Notes to remember when someone fixes later.
+	// inventory can have different number of modules. 
+	// this is tracked outside this function. (via index parameter)
+	// the way fautso vectors work is one long list.
+	// gotta offset this list by the number of total modules coming before
+	// when we build a json tree from the raw json file, hopefully we can eliminate this whole list system. 
 
 	// take in keys and values and make fautso vectors
 	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
@@ -796,75 +812,87 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key
 		switch (i)
 		{
 			case 0:
-				if(module_number < module_status.size())
+				if(index < module_status.size())
 				{
-					field_value = module_status.at( module_number );
+					field_value = module_status.at( index );
 				}
 				break;
 			case 1:
-				if(module_number < module_hw_version.size())
+				if(index < module_hw_version.size())
 				{
-					field_value = module_hw_version.at(module_number);
+					field_value = module_hw_version.at(index);
 				}
 				break;
 			case 2:
-				if(module_number < module_name.size())
+				if(index < module_name.size())
 				{
-					field_value = module_name.at(module_number);
+					field_value = module_name.at(index);
 				}
 				break;
 			case 3:
-				if(module_number < module_number_of_chips.size())
+				if(index < module_number_of_chips.size())
 				{
-					field_value = module_number_of_chips.at(module_number);
+					field_value = module_number_of_chips.at(index);
 				}
 				break;
 			case 4:
-				if(module_number < module_description.size())
+				if(index < module_description.size())
 				{
-					field_value = module_description.at(module_number);
+					field_value = module_description.at(index);
 				}
 				break;
 			case 5:
-				if(module_number < module_max_ib_ports.size())
+				if(index < module_max_ib_ports.size())
 				{
-					field_value = module_max_ib_ports.at(module_number);
+					field_value = module_max_ib_ports.at(index);
 				}
 				break;
 			case 6:
-				if(module_number < module_module_index.size())
+				if(index < module_module_index.size())
 				{
-					field_value = module_module_index.at(module_number);
+					field_value = module_module_index.at(index);
 				}
 				break;
 			case 7:
-				if(module_number < module_device_type.size())
+				if(index < module_device_type.size())
 				{
-					field_value = module_device_type.at(module_number);
+					field_value = module_device_type.at(index);
 				}
 				break;
 			case 8:
-				if(module_number < module_serial_number.size())
+				if(index < module_serial_number.size())
 				{
-					field_value = module_serial_number.at(module_number);
+					field_value = module_serial_number.at(index);
 				}
 				break;
 			case 9:
-				if(module_number < module_path.size())
+				if(index < module_path.size())
 				{
-					field_value = module_path.at(module_number);
+					field_value = module_path.at(index);
 				}
 				break;
 			case 10:
-				if(module_number < module_device_name.size())
+				if(index < module_device_name.size())
 				{
-					field_value = module_device_name.at(module_number);
+					field_value = module_device_name.at(index);
 				}
 				break;
 			case 11:
-				if(module_number < module_severity.size())
+				if(index < module_severity.size())
 				{
-					field_value = module_severity.at(module_number);
+					field_value = module_severity.at(index);
+				}
+				break;
+			case 12:
+				if(index < module_type.size())
+				{
+					field_value = module_type.at(index);
+				}
+				break;
+			case 13:
+				if(index < module_fw_version.size())
+				{
+					field_value = module_fw_version.at(index);
 				}
 				break;
 			default:
@@ -1031,7 +1059,7 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vect
 	return "NULL";
 }
 
-std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int module_number)
+std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int index)
 {
 	return "NULL";
 }

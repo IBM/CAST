@@ -17,11 +17,12 @@
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
 --   current_version:   18.0
 --   create:            06-13-2016
---   last modified:     05-09-2019
+--   last modified:     05-16-2019
 --   change log:
 --     18.0  -  Moving this version to sync with DB schema version.
 --           -  Added in fn_csm_node_state_history_temp_table
 --           -  Updated the fn_csm_switch_attributes_query_details function
+--           -  Added 2 new input fields to fn_csm_switch_children_inventory_collection: text[], text[] 
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
 --           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
@@ -133,7 +134,7 @@ DROP FUNCTION IF EXISTS fn_csm_diag_result_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_db_schema_version_history_dump();
 -- CSM INVENTORY COLLECTION RELATED FUNCTIONS
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],text[],text[],text[],text[],boolean[],text[],text[],text[],int[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],int[],text[],text[]);
-DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
+DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[], text[], text[]);
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text, OUT o_runtime bigint) CASCADE;
 

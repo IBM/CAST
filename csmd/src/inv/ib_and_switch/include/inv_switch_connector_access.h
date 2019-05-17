@@ -46,7 +46,7 @@ public:
   int GetCompiledWithSupport(); // get compiled_with_support_flag
   int ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors, bool custom_input_override, std::string ufm_switch_output_file_name, std::string ufm_switch_input_file_name); // execute data collection
   std::string ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector); // return the value of the field
-  std::string ReturnFieldValue_module(std::string key, unsigned long int module_number); // return the value of the field
+  std::string ReturnFieldValue_module(std::string key, unsigned long int index); // return the value of the field
   int TotalNumberOfRecords();
   ~INV_SWITCH_CONNECTOR_ACCESS();
 
@@ -110,6 +110,8 @@ private:
   std::vector<std::string> module_path;
   std::vector<std::string> module_device_name;
   std::vector<std::string> module_severity;
+  std::vector<std::string> module_type;
+  std::vector<std::string> module_fw_version;
   
 
 };
@@ -135,7 +137,7 @@ public:
   int GetCompiledWithSupport(); // get compiled_with_support
   int ExecuteDataCollection(); // execute data collection
   std::string ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector); // return the value of the field
-  std::string ReturnFieldValue_module(std::string key, unsigned long int module_number); // return the value of the field
+  std::string ReturnFieldValue_module(std::string key, unsigned long int index); // return the value of the field
   int TotalNumberOfRecords();
   ~INV_SWITCH_CONNECTOR_ACCESS();
 
@@ -199,6 +201,8 @@ private:
   std::vector<std::string> module_path;
   std::vector<std::string> module_device_name;
   std::vector<std::string> module_severity;
+  std::vector<std::string> module_type;
+  std::vector<std::string> module_fw_version;
 
 };
 
