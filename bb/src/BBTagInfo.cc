@@ -870,8 +870,21 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid jobstepid of " << UNDEFINED_JOBSTEPID << " to the cross bbServer metadata";
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
+                    else if (pContribId == NO_CONTRIBID)
+                    {
+                        rc = -1;
+                        errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid contribid of " << NO_CONTRIBID << " to the cross bbServer metadata";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                    else if (pContribId == UNDEFINED_CONTRIBID)
+                    {
+                        rc = -1;
+                        errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid contribid of " << UNDEFINED_CONTRIBID << " to the cross bbServer metadata";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
 
-                    LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is not already registered.  It will be added.";
+                    LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
+                                 << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
                     bfs::path l_LVUuidPath = handle / bfs::path(lv_uuid_str);
                     bfs::create_directories(l_LVUuidPath);
 
