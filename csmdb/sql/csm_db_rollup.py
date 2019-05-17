@@ -52,9 +52,13 @@ def rollupDir (directory):
 
         iFile="{0}/{1}".format(directory,f)
 
-        sFile=f.split(".")
-        weekStr=datetime.strptime(sFile[2],"%Y-%m-%d").strftime("%Y-%U")
-        aFile="{0}/{1}-{2}.json".format(archiveDir, sFile[0], weekStr)
+        # If the file doesn't match our pattern ignore it.
+        try:
+            sFile=f.split(".")
+            weekStr=datetime.strptime(sFile[2],"%Y-%m-%d").strftime("%Y-%U")
+            aFile="{0}/{1}-{2}.json".format(archiveDir, sFile[0], weekStr)
+        except:
+            continue
 
         # Get the contents first
         contents=""

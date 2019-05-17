@@ -168,7 +168,6 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     # Append the logs to the file.
     try:
         with open(file_name, 'a') as file:
-
             colnames = [desc[0] for desc in cursor.description]
             for row in cursor:
                 file.write('{{ "type":"db-{0}", "data":{1} }}\n'.format(
