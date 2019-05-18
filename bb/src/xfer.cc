@@ -85,6 +85,21 @@ void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
     return;
 }
 
+int lockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (!wrkqmgr.transferQueueIsLocked())
+    {
+        lockTransferQueue(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
+
 void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -93,6 +108,21 @@ void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 
     EXIT(__FILE__,__FUNCTION__);
     return;
+}
+
+int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (wrkqmgr.transferQueueIsLocked())
+    {
+        unlockTransferQueue(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
 }
 
 void pinTransferQueueLock(const LVKey* pLVKey, const char* pMethod)
@@ -1071,6 +1101,8 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV
 
 void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
 {
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
+
     if (pTransferDef && pLV_Info)
     {
         // Mark the transfer definition failed
@@ -1088,6 +1120,11 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
                       << " because the pointer to the transfer definition or LV info was passed as NULL.";
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "markTransferFailed");
+    }
+
     return;
 }
 
@@ -1098,12 +1135,18 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     int rc = 1;     // Default is to not restart the transfer definition...
     stringstream errorText;
+    stringstream l_Text;
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
-    LOG(bb,debug) << "xfer::prepareForRestart(): Pass " << pPass;
+    l_Text << "xfer::prepareForRestart(): Pass " << pPass;
+    LOG(bb,debug) << l_Text;
+
+    // It is possible to entry this section of code without the transfer queue locked.
+    // If not locked, we lock the transfer queue during the prepareForRestart() logic.
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, l_Text.str().c_str());
 
     if (pPass == FIRST_PASS)
     {
@@ -1166,6 +1209,11 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
         l_HandleFile->close(l_LockFeedback);
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, l_Text.str().c_str());
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -1837,6 +1885,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
     {
         int l_GeneratedHandle = UNDEFINED_HANDLE;
         BBTagInfo l_NewTagInfo = BBTagInfo(pTagInfoMap, pNumContrib, pContrib, pJob, pTagId.getTag(), l_GeneratedHandle);
+
         rc = pTagInfoMap->addTagInfo(pLVKey, pJob, pTagId, l_NewTagInfo, l_GeneratedHandle);
         if (!rc)
         {
@@ -1976,7 +2025,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                         // NOTE: * After the invocation of addTransferDef(), l_OrigInputTransferDef must be used to address the input
                         // NOTE:   transfer definition
                         // NOTE: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
                         rc = l_TagInfo->addTransferDef(pConnectionName, pLVKey, pJob, pLV_Info, pTagId, (uint32_t)pContribId, l_TagInfo->transferHandle, pTransferDef);
                         if (rc)
                         {
@@ -2392,6 +2440,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     BBTagID l_TagId(pJob, pTag);
     BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
+    int l_TransferQueueWasLocked = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
@@ -2459,6 +2508,11 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                 {
                     if (pPerformOperation)
                     {
+                        // It is possible to enter this section of code without the transfer queue locked.
+                        // We lock around the merging of the flags and inserting of any extents into the
+                        // work queue.
+                        l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "queueTransfer");
+
                         // Merge in the flags from the transfer definition to the extent info...
                         l_LV_Info->mergeFlags(pTransferDef->flags);
 
@@ -2477,10 +2531,10 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 rc = l_LV_Info->addExtents(pHandle, (uint32_t)pContribId, l_TransferDef, pStats);
                                 if (!rc)
                                 {
-                                    LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
-                                                 << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
-                                                 << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
-                                                 << " extents";
+                                    LOG(bb,debug) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
+                                                  << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
+                                                  << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
+                                                  << " extents";
                                     // If necessary, sort the extents...
                                     rc = l_LV_Info->sortExtents(pLVKey);
                                     if (!rc)
@@ -2616,6 +2670,11 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         }
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "queueTransfer");
+    }
+
     FL_Write(FLXfer, DoQueueTransferCMP, "Finishing queueTransfer  rc=%ld",rc,0,0,0);
 
     EXIT(__FILE__,__FUNCTION__);
@@ -2662,18 +2721,14 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
 {
     ENTRY(__FILE__,__FUNCTION__);
 
+    // NOTE: The pLockTransferQueueOption is no longer used.  If the transfer queue needs to be locked,
+    //       it is done in the queueTransfer()/queueTagInfo() paths later.
+
     int rc = 0;
     stringstream errorText;
-    bool l_LockAcquired = false;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
-
-    if (pLockTransferQueueOption)
-    {
-        lockTransferQueue(pLVKey, "getHandle");
-        l_LockAcquired = true;
-    }
 
     try
     {
@@ -2725,14 +2780,6 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    if (l_LockAcquired)
-    {
-#ifndef __clang_analyzer__
-        l_LockAcquired = false;
-#endif
-        unlockTransferQueue(pLVKey, "getHandle");
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -3150,7 +3197,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     }
                 }
 
-                LOG(bb,info) << "Stageout: Ended:   " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
+                LOG(bb,debug) << "Stageout: Ended:   " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
 
                 // Remove the work queue
                 rc = wrkqmgr.rmvWrkQ(pLVKey);

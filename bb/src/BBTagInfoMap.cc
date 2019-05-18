@@ -60,9 +60,20 @@ int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagI
     int rc = 0;
 
     LOG(bb,debug) << "BBTagInfoMap::addTagInfo(): LVKey " << *pLVKey << ", job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), tagid " << pTagId.getTag() << ", generated handle " << pGeneratedHandle;
+
+    // It is possible to enter this section of code without the transfer queue locked.
+    // Inserting into a std::map is not thread safe, so we must acquire the lock around
+    // the insert.
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::addTagInfo");
+
     tagInfoMap[pTagId] = pTagInfo;
     if (pGeneratedHandle) {
         rc = update_xbbServerAddData(pLVKey, pJob, pTagId.getTag(), pTagInfo);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfoMap::addTagInfo");
     }
 
     return rc;
@@ -79,12 +90,14 @@ void BBTagInfoMap::cleanUpAll(const LVKey* pLVKey)
         if (!l_JobStr.str().size()) {
             it->first.getJob().getStr(l_JobStr);
         }
-        LOG(bb,info) << "taginfo: TagId(" << l_JobStr.str() << "," << it->first.getTag() << ") with handle 0x" \
-                     << hex << uppercase << setfill('0') << setw(16) << it->second.transferHandle \
-                     << setfill(' ') << nouppercase << dec << " (" << it->second.transferHandle \
-                     << ") removed from " << *pLVKey;
+        LOG(bb,debug) << "taginfo: TagId(" << l_JobStr.str() << "," << it->first.getTag() << ") with handle 0x" \
+                      << hex << uppercase << setfill('0') << setw(16) << it->second.transferHandle \
+                      << setfill(' ') << nouppercase << dec << " (" << it->second.transferHandle \
+                      << ") removed from " << *pLVKey;
         it = tagInfoMap.erase(it);
     }
+
+    return;
 }
 
 void BBTagInfoMap::dump(char* pSev, const char* pPrefix)
@@ -140,14 +153,12 @@ int BBTagInfoMap::getTagInfo(const uint64_t pHandle, const uint32_t pContribId, 
 {
     int rc = 0;
 
-    if (hasContribId(pContribId)) {
-        for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
-            if (pHandle == it->second.getTransferHandle()) {
-                pTagId = it->first;
-                pTagInfo = &(it->second);
-                rc = 1;
-                break;
-            }
+    for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
+        if (pHandle == it->second.getTransferHandle() && it->second.inExpectContrib(pContribId)) {
+            pTagId = it->first;
+            pTagInfo = &(it->second);
+            rc = 1;
+            break;
         }
     }
 
@@ -158,11 +169,18 @@ BBTagInfo* BBTagInfoMap::getTagInfo(const BBTagID& pTagId)
 {
     BBTagInfo* l_TagInfo = (BBTagInfo*)0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
+
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
         if (it->first == pTagId) {
             l_TagInfo = &(it->second);
             break;
         }
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBTagInfoMap::getTagInfo");
     }
 
     return l_TagInfo;
@@ -193,6 +211,7 @@ int BBTagInfoMap::getTagInfo(BBTagInfo* &pTagInfo, const BBJob pJob, const uint6
 size_t BBTagInfoMap::getTotalTransferSize()
 {
     size_t l_TotalSize = 0;
+
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
         l_TotalSize += it->second.getTotalTransferSize();
     }
@@ -207,17 +226,17 @@ void BBTagInfoMap::getTransferHandles(std::vector<uint64_t>& pHandles, const BBJ
         if (pJob.getJobStepId() == 0) {
             if (pJob.getJobId() == it->first.getJobId()) {
                 l_Match = true;
-                    }
+            }
         } else {
             if (pJob == it->first.getJob()) {
                 l_Match = true;
-                }
             }
+        }
         if (l_Match) {
             if ( BBSTATUS_AND(pMatchStatus, it->second.getStatus(pStageOutStarted)) != BBNONE ) {
                 pHandles.push_back(it->second.getTransferHandle());
+            }
         }
-    }
     }
 
     return;
@@ -227,22 +246,36 @@ int BBTagInfoMap::hasContribId(const uint32_t pContribId)
 {
     int rc = 0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::hasContribId");
+
     for (auto it = tagInfoMap.begin(); rc == 0 && it != tagInfoMap.end(); ++it) {
         rc = it->second.inExpectContrib(pContribId);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBTagInfoMap::hasContribId");
     }
 
     return rc;
 }
 
-
 int BBTagInfoMap::isUniqueHandle(uint64_t pHandle)
 {
     int rc = 1;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::isUniqueHandle");
+
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
         if (pHandle == it->second.getTransferHandle()) {
             rc = 0;
             break;
         }
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBTagInfoMap::isUniqueHandle");
     }
 
     return rc;
@@ -319,12 +352,19 @@ void BBTagInfoMap::updateAllContribsReported(const LVKey* pLVKey, int& pAllRepor
 {
     pAllReported = 0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::updateAllContribsReported");
+
     int l_AllReported = 1;
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
         if (!(it->second.allContribsReported())) {
             l_AllReported = 0;
             break;
         }
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfoMap::updateAllContribsReported");
     }
 
     pAllReported = l_AllReported;
@@ -335,6 +375,8 @@ void BBTagInfoMap::updateAllContribsReported(const LVKey* pLVKey, int& pAllRepor
 int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight)
 {
     int rc = 0;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::updateAllTransferHandleStatus");
 
     // Update the status for all transferHandles
     int l_AllContribsReportedForAllTransferHandles = 1;
@@ -363,6 +405,11 @@ int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, c
         pLVKey_ExtentInfo.updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfoMap::updateAllTransferHandleStatus");
+    }
+
     return rc;
 }
 
@@ -370,6 +417,8 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
 {
     int rc = 0;
     stringstream errorText;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::update_xbbServerAddData");
 
     try
     {
@@ -483,6 +532,11 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfoMap::update_xbbServerAddData");
     }
 
     return rc;

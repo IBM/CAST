@@ -846,14 +846,14 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     ContribIdFile* l_ContribIdFile = 0;
     uint32_t* l_ContribArray = 0;
 
-    LVKey l_LVKeyStg;
-    LVKey* l_LVKey = &l_LVKeyStg;
+//    LVKey l_LVKeyStg;
+//    LVKey* l_LVKey = &l_LVKeyStg;
 //    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
 
     uint64_t l_LengthOfTransferKeys = 0;
     uint64_t l_TransferKeyBufferSize = 15;
     char l_TransferKeyBuffer[16] = {'\0'};
-    bool l_LockHeld = false;
+//    bool l_LockHeld = false;
 
     try
     {
@@ -864,8 +864,8 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
 
         switchIds(msg);
 
-        lockTransferQueue((LVKey*)0, "msgin_gettransferinfo");
-        l_LockHeld = true;
+//        lockTransferQueue((LVKey*)0, "msgin_gettransferinfo");
+//        l_LockHeld = true;
 
         {
             if (l_Handle)
@@ -916,8 +916,8 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_LockHeld)
-        unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
+//    if (l_LockHeld)
+//        unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
 
     // Build the response message
     txp::Msg* response;
@@ -1016,7 +1016,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
     uint32_t l_ContribId = 0;
     char* l_TransferKeyBuffer = 0;
 
-    bool l_LockHeld = false;
+//    bool l_LockHeld = false;
 
     try
     {
@@ -1028,8 +1028,8 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
 
         switchIds(msg);
 
-        lockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
-        l_LockHeld = true;
+//        lockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
+//        l_LockHeld = true;
 
         {
             rc = -2;
@@ -1079,8 +1079,8 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
+//    if (l_LockHeld)
+//        unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
 
     // Build the response message
     txp::Msg* response;
@@ -1130,7 +1130,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
     uint64_t* l_HandleArray = 0;
     uint64_t l_LengthOfHandleArray = 0;
     std::vector<uint64_t> l_Handles;
-    bool l_LockHeld = false;
+//    bool l_LockHeld = false;
 
     try
     {
@@ -1148,8 +1148,8 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
 
         switchIds(msg);
 
-        lockTransferQueue((LVKey*)0, "msgin_gettransferlist");
-        l_LockHeld = true;
+//        lockTransferQueue((LVKey*)0, "msgin_gettransferlist");
+//        l_LockHeld = true;
 
         {
             rc = HandleFile::get_xbbServerHandleList(l_Handles, l_Job, l_MatchStatus);
@@ -1194,8 +1194,8 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
+//    if (l_LockHeld)
+//        unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
 
     // Build the response message
     txp::Msg* response;
@@ -1431,6 +1431,8 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
         switchIds(msg);
 
         // Process retrievetransfers message
+        // NOTE: Not sure we need this lock anymore...
+        //       \todo @DLH
         lockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
         l_LockHeld = true;
 
@@ -1657,12 +1659,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         l_TransferPtr->setTransferHandle(l_Handle);
         l_TransferPtr->setHostName(l_HostName);
 
-        LOG(bb,info) << "msgin_starttransfer: Input " << l_LVKey << ", hostname " << l_HostName << ", handle " << l_Handle \
-                     << ", contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
-                     << ", mark_failed_from bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
-                     << ", restart " << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "yes" : "no");
-//                     << ", all_CN_CP_TransfersInDefinition " << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false")
-//                     << ", noStageinOrStageoutTransfersInDefinition " << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
+        LOG(bb,debug) << "msgin_starttransfer: Input " << l_LVKey << ", hostname " << l_HostName \
+                      << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle \
+                      << ", contribid " << l_ContribId << ", perform operation=" << (l_PerformOperation ? "true" : "false") \
+                      << ", mark_failed_from bbProxy=" << (l_MarkFailedFromProxy ? "true" : "false") \
+                      << ", restart=" << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "true" : "false");
+//                      << ", all_CN_CP_TransfersInDefinition=" << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false")
+//                      << ", noStageinOrStageoutTransfersInDefinition=" << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
 
         if (l_PerformOperation && config.get(process_whoami+".bringup.dumpTransferDefinitionAfterDemarshall", 0)) {
             l_TransferPtr->dump("info", "Transfer Definition (after demarshall)");
@@ -1756,6 +1759,14 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         }
                         if (!rc)
                         {
+                            // We drop the lock on the transfer queue here so other threads can process in parallel.
+                            // We may have some I/O intensive paths later, like acquiring stats for source files,
+                            // where dropping the lock now is very beneficial.  Any later non-thread-safe code paths
+                            // will re-acquire/drop the lock on the transfer queue.  Examples of this are insertion
+                            // into the BBTagParts map and adding extents to the work queue.
+                            l_LockHeld = false;
+                            unlockTransferQueue(&l_LVKey, "msgin_starttransfer_early");
+
                             Uuid l_lvuuid2 = l_LVKey2.second;
                             l_lvuuid2.copyTo(lv_uuid2_str);
                             // NOTE: bbproxy verified that the jobstep for this transfer matches the jobstep
@@ -1766,9 +1777,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             l_TransferPtr->setTag(l_Tag);
 
                             // NOTE:  Perform the lvuuid checks only during the second pass of processing...
-                            LOG(bb,info ) << "msgin_starttransfer:  contribid " << l_ContribId << ", perform operation " << l_PerformOperation \
-                                          << ", mark_failed_from_bbProxy " << (l_MarkFailedFromProxy ? "true" : "false") \
-                                          << ", no stage in/out in transfer definition " << l_TransferPtr->noStageinOrStageoutTransfersInDefinition() \
+                            LOG(bb,info ) << "msgin_starttransfer: Start processing " << l_LVKey << ", hostname " << l_HostName \
+                                          << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() << ", handle " << l_Handle \
+                                          << ", contribid " << l_ContribId << ", perform operation=" << (l_PerformOperation ? "true" : "false") \
+                                          << ", restart=" << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "true" : "false") \
+                                          << ", mark_failed_from_bbProxy=" << (l_MarkFailedFromProxy ? "true" : "false") \
+                                          << ", all_CN_CP_TransfersInDefinition=" << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
+                                          << ", noStageinOrStageoutTransfersInDefinition=" << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false") \
                                           << ", lvuuid " << lv_uuid_str << ", lvuuid2 " << lv_uuid2_str;
                             if (!l_PerformOperation || l_lvuuid == l_lvuuid2 || l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
                             {
@@ -1786,10 +1801,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     LOG(bb,debug) << "msgin_starttransfer: Found " << l_LVKey2 << ", job" << l_JobStr.str() << ", tag " << l_Tag \
                                                   << ", handle " << l_Handle << ", numcontrib " << l_NumContrib << ", contrib " << l_ContribStr.str();
 
-                                    // Start transfer
+                                    // Schedule the transfer
                                     // NOTE:  Must use l_LVKey2 as it could be an noStageinOrStageoutTransfersInDefinition.  In that case, we want to
                                     //        pass the LVKey we received from getInfo() above and not the null one passed in the message...
-
                                     rc = queueTransfer(pConnectionName, &l_LVKey2, l_Job, l_Tag, l_TransferPtr, l_ContribId,
                                                        l_NumContrib, l_ContribArray, l_Handle, l_PerformOperation, l_MarkFailedFromProxy, &l_Stats);
                                     if (rc)
@@ -2392,8 +2406,21 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
+    // NOTE: Lock protocol requires that if both the handle file and transfer queue are locked,
+    //       the handle file must be released first.  The remaining 'cleanup' items are at the
+    //       end of this procedure.
+    if (l_HandleFile)
+    {
+        l_HandleFile->close(l_LockFeedback);
+        delete l_HandleFile;
+        l_HandleFile = 0;
+    }
+
     if (l_LockHeld)
+    {
+        l_LockHeld = false;
         unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
+    }
 
     // Build the response message
     txp::Msg* response;
@@ -2483,14 +2510,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     {
         delete[] l_HandleFileName;
         l_HandleFileName = 0;
-    }
-
-
-    if (l_HandleFile)
-    {
-        l_HandleFile->close(l_LockFeedback);
-        delete l_HandleFile;
-        l_HandleFile = 0;
     }
 
     if (l_ContribArray)

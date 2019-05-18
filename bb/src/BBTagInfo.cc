@@ -142,6 +142,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfo::addTransferDef");
+
     // NOTE: The handle file is locked exclusive here to serialize amongst multiple bbServers
     //       adding transfer definitions...
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
@@ -229,6 +231,11 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
         rc = -1;
         errorText << "BBTagInfo::addTransferDef: Handle file could not be loaded for " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId;
         LOG_ERROR(errorText);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfo::addTransferDef");
     }
 
     if (l_HandleFileName)
