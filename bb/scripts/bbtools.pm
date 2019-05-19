@@ -180,8 +180,6 @@ my %mkuniq   = map { $_, 1 } @::HOSTLIST_ARRAY;
 @::HOSTLIST_ARRAY = keys %mkuniq;
 
 $::HOSTLIST = join(",", @::HOSTLIST_ARRAY);
-if (! $QUIET) {print "HOSTLIST: $::HOSTLIST\n"};
-
 $::JOBUSER = untaint($::JOBUSER);
 $oldpath = $ENV{'PATH'};
 $ENV{'PATH'} = '/bin:/usr/bin';
@@ -303,7 +301,7 @@ sub bbcmd
         if(!$QUIET) { printf("rc = %s\n", $result->{"rc"}) }
         if($result->{"rc"})
         {
-            printf("Command failure.  rc=%s\n", $result->{"rc"});
+            if(!$QUIET) { printf("Command failure.  rc=%s\n", $result->{"rc"}); }
         }
     };
     alarm(0);
@@ -426,9 +424,25 @@ sub setupBSCFS
 sub openBBENV
 {
     my $bbenvfile;
+    my $envnotready = 60;
     ($BBENV, $bbenvfile) = tempfile(UNLINK => 1);
     $bpostbin = $ENV{'LSF_BINDIR'};
-    system("$bpostbin/bread -a $bbenvfile -i 119 $::JOBID") if(! -f $bbenvfile);
+    do 
+    {
+        system("$bpostbin/bread -a $bbenvfile -i 119 $::JOBID");
+        if(! -f $bbenvfile)
+        {
+            $envnotready--;
+            sleep(1);
+        }
+        else
+        {
+            $envnotready = -1;
+        }
+    }
+    while($envnotready > 0);
+    return -1 if($envnotready == 0);
+    return 0;
 }
 
 sub setupBBPATH
@@ -441,7 +455,8 @@ sub setupBBPATH
 sub setupUserEnvironment
 {
     $ENV{"PATH"} = $ENV{"PATH_PRESERVE"};
-    openBBENV();
+    my $rc = openBBENV();
+    return -1 if($rc);
     while($line = <$BBENV>)
     {
         chomp($line);
@@ -449,6 +464,7 @@ sub setupUserEnvironment
         $ENV{$key} = $value;
     }
     close($BBENV);
+    return 0;
 }
 
 1;

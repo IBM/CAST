@@ -42,9 +42,10 @@ $::BPOSTMBOX = 120;
 exit(0) if($::BB_SSD_MIN eq "");
 
 my @cleanup = ();
-sub failureCleanAndExit()
+sub failureCleanAndExit
 {
-    bpost("BB stage-in failure detected, cleaning up");
+    my ($reason) = @_;
+    bpost("BB stage-in failure detected: $reason");
     foreach $cmd (reverse @cleanup)
     {
         print("BB stage-in failure cleanup: $cmd\n");
@@ -69,27 +70,33 @@ sub phase1()
     print "Creating mount point $BBPATH\n";
     $result = bbcmd("$TARGET_ALL mkdir --path=$BBPATH");
     push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH") if(bbgetsuccess($resullt) > 0);
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    failureCleanAndExit("mkdir failed") if(bbgetrc($result) != 0);
     
     print "Changing mount point $BBPATH ownership to $JOBUSER\n";
     $result = bbcmd("$TARGET_ALL chown --path=$BBPATH --user=$JOBUSER --group=$JOBGROUP");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    failureCleanAndExit("chown failed") if(bbgetrc($result) != 0);
     
     print "Changing mode for mount point $BBPATH\n";
     $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    failureCleanAndExit("chmod failed") if(bbgetrc($result) != 0);
     
     print "Creating logical volume $BBPATH with size $BB_SSD_MIN\n";
     $result = bbcmd("$TARGET_ALL create --mount=$BBPATH --size=$BB_SSD_MIN");
     push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH") if(bbgetsuccess($resullt) > 0);
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    failureCleanAndExit("create LV failed") if(bbgetrc($result) != 0);
+}
+
+sub phase2_failure
+{
+    open(FH,'>',$ENV{"BB_ERR_FILE"});
+    close(FH);
+    exit(0);
 }
 
 sub phase2
 {
-    &setupUserEnvironment();
-    $rc = 0;
-    $errfile = $ENV{"BB_ERR_FILE"};
+    $rc = &setupUserEnvironment();
+    &phase2_failure() if($rc);
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
 
@@ -98,12 +105,7 @@ sub phase2
         bpost("BB: Calling user stage-in script: $bbscript");
         $scriptrc = cmd("$bbscript 2>&1", $timeout, 1);
         bpost("BB: User stage-in script exited with $scriptrc ", $::BPOSTMBOX + 1, $::LASTOUTPUT);
-        if($scriptrc != 0)
-        {
-          open(FH,'>',$ENV{"BB_ERR_FILE"});
-          close(FH);
-          exit(0);
-        }
+        &phase2_failure() if($scriptrc != 0);
     }
 }
 
@@ -125,15 +127,22 @@ sub phase3
             # Handles that haven't successfully started as user script errors.  
             # Failed or stuck-in-progress are potentially recoverable.
             $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED");
-            $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
-            $BADEXITRC = $BADNONRECOVEXITRC if($numfailed > 0);
-            &failureCleanAndExit();
+            $numnotstarted = $result->{"0"}{"out"}{"numavailhandles"};
+            if($numnotstarted == $numfailed)
+            {
+                $BADEXITRC = $BADNONRECOVEXITRC;
+                &failureCleanAndExit("User script exited without starting a transfer on $numnotstarted handle(s)");
+            }
+            else
+            {
+                &failureCleanAndExit("$numfailed handles did not complete normally");
+            }
         }
         if( -e $ENV{"BB_ERR_FILE"})
         {  
             unlink $ENV{"BB_ERR_FILE"};
             $BADEXITRC = $BADNONRECOVEXITRC;
-            &failureCleanAndExit();
+            &failureCleanAndExit("User script failed");
         }
     }
     else
