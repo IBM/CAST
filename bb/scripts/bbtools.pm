@@ -430,12 +430,18 @@ sub openBBENV
     do 
     {
         system("$bpostbin/bread -a $bbenvfile -i 119 $::JOBID");
-        last if(-f $bbenvfile);
-        $envnotready--;
-        sleep(1);
+        if(! -f $bbenvfile)
+        {
+            $envnotready--;
+            sleep(1);
+        }
+        else
+        {
+            $envnotready = -1;
+        }
     }
-    while(!$envready);
-    return -1 if(!$envnotready);
+    while($envnotready > 0);
+    return -1 if($envnotready == 0);
     return 0;
 }
 

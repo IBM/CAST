@@ -42,7 +42,7 @@ $::BPOSTMBOX = 120;
 exit(0) if($::BB_SSD_MIN eq "");
 
 my @cleanup = ();
-sub failureCleanAndExit()
+sub failureCleanAndExit
 {
     my ($reason) = @_;
     bpost("BB stage-in failure detected: $reason");
