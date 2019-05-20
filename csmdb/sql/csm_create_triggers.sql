@@ -824,7 +824,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_projected_memory  integer,
     OUT o_state             text,
     OUT o_runtime           bigint,
-    OUT o_smt_mode          smallint
+    OUT o_smt_mode          smallint,
+    OUT o_core_blink        boolean
 )
 RETURNS record AS $$
 DECLARE
@@ -840,13 +841,13 @@ BEGIN
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
         num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint,
-        smt_mode
+        smt_mode, core_blink
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
         o_num_gpus, o_num_processors,
-        o_projected_memory, o_runtime, o_smt_mode
+        o_projected_memory, o_runtime, o_smt_mode, o_core_blink
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 
@@ -944,7 +945,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode smallint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode smallint, out o_core_blink boolean) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 -----------------------------------------------------------
 -- fn_csm_allocation_dead_records_on_lv 
