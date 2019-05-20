@@ -351,6 +351,8 @@ typedef struct {
     char* serial_number;  /**< serial_number of the module. unique identifier. */
     char* severity;  /**< severity of the module according to the highest severity of related events. values: Info, Warning, Minor, Critical */
     char* status;  /**< current module status. valid values: ok, fault */
+    char* type;  /**< The category of this piece of hardware inventory. For example: "FAN", "PS", "SYSTEM", or "MGMT". */
+    char* fw_version;  /**< The firmware version on this piece of inventory. */
 } csmi_switch_inventory_record_t;
 /**
  * @brief A switch ports record in the **csm_switch_ports** table of the CSM database.

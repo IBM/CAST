@@ -68,15 +68,18 @@ INV_SWITCH_CONNECTOR_ACCESS::INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_comparing_strings_modules.push_back("\"number_of_chips\"");     
 	vector_of_the_comparing_strings_modules.push_back("\"description\"");         
 	vector_of_the_comparing_strings_modules.push_back("\"max_ib_ports\"");        
-	//vector_of_the_comparing_strings_modules.push_back("\"fw_version\""); 
+	
 	vector_of_the_comparing_strings_modules.push_back("\"module_index\""); 
 	//vector_of_the_comparing_strings_modules.push_back("\"temperature\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"device_type\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"serial_number\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"path\""); 
 	vector_of_the_comparing_strings_modules.push_back("\"device_name\""); 
-	//vector_of_the_comparing_strings_modules.push_back("\"type\""); 
+	
 	vector_of_the_comparing_strings_modules.push_back("\"severity\""); 
+
+	vector_of_the_comparing_strings_modules.push_back("\"type\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"fw_version\""); 
 
 	vector_of_the_num_values.push_back("\"number_of_chips\"");  
 	vector_of_the_num_values.push_back("\"max_ib_ports\""); 
@@ -764,6 +767,12 @@ int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_ke
 			case 11:
 				module_severity.push_back(module_value);
 				break;
+			case 12:
+				module_type.push_back(module_value);
+				break;
+			case 13:
+				module_fw_version.push_back(module_value);
+				break;
 			default:
 				//error?
 				break;
@@ -872,6 +881,18 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key
 				if(index < module_severity.size())
 				{
 					field_value = module_severity.at(index);
+				}
+				break;
+			case 12:
+				if(index < module_type.size())
+				{
+					field_value = module_type.at(index);
+				}
+				break;
+			case 13:
+				if(index < module_fw_version.size())
+				{
+					field_value = module_fw_version.at(index);
 				}
 				break;
 			default:

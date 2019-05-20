@@ -110,6 +110,8 @@ private:
   std::vector<std::string> module_path;
   std::vector<std::string> module_device_name;
   std::vector<std::string> module_severity;
+  std::vector<std::string> module_type;
+  std::vector<std::string> module_fw_version;
   
 
 };
@@ -199,6 +201,8 @@ private:
   std::vector<std::string> module_path;
   std::vector<std::string> module_device_name;
   std::vector<std::string> module_severity;
+  std::vector<std::string> module_type;
+  std::vector<std::string> module_fw_version;
 
 };
 

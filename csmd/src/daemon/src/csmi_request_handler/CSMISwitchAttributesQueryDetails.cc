@@ -138,7 +138,7 @@ void CSMISwitchAttributesQueryDetails::CreateOutputStruct(
         LOG(csmapi, trace) << STATE_NAME ":CreateOutputStruct: Enter";
 
 		// Error check
-        if(fields->nfields != 43 )
+        if(fields->nfields != 45 )
         {
             *output = nullptr;
             return;
@@ -222,6 +222,8 @@ void CSMISwitchAttributesQueryDetails::CreateOutputStruct(
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->serial_number, strdup("N/A"), strdup);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->severity, strdup("N/A"), strdup);	       d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->status, strdup("N/A"), strdup);           d++;
+			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->type, strdup("N/A"), strdup);	           d++;
+			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->fw_version, strdup("N/A"), strdup);       d++;
         }
 		
         *output = o;

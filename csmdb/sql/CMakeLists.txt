@@ -23,7 +23,7 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_stats.sh"
   "csm_db_connections_script.sh"
   "csm_db_ras_type_script.sh"
-  "csm_db_schema_version_upgrade_17_0.sh"
+  "csm_db_schema_version_upgrade_18_0.sh"
   "csm_db_backup_script_v1.sh"
   "csm_db_history_archive.py"
   "csm_db_history_delete.py"

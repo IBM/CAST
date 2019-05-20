@@ -15,10 +15,20 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       17.0
+--   current_version:       18.0
 --   create:                06-22-2016
---   last modified:         03-28-2019
+--   last modified:         05-20-2019
 --   change log:
+--     18.0   - Moving this version to sync with DB schema version
+--            - Updated the fn_csm_switch_attributes_query_details function
+--            - Updated the fn_csm_switch_inventory_history_dump function (added in type and fw_version)
+--            - Updated the fn_csm_allocation_update function (added field core_blink)
+--            - Updated the tr_csm_allocation_update (added fields smt_mode and blink_core)
+--            - Updated the fn_csm_allocation_history_dump function (added field core_blink)
+--            - fn_csm_node_state_history_temp_table    added function for labs to query node states time duration and percentages.
+--            - fn_csm_switch_children_inventory_collection - added two new input fields: type, fw_version
+--            - updated fn_csm_switch_attributes_query_details - to include type and fw_version
+--            - Updated the fn_csm_allocation_update_state function (added field core_blink along with description)
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
@@ -31,7 +41,6 @@
 --            - func_alt_type_val -                     added function for altering db types
 --            - func_csm_delete_func -                  added function for dropping all db functions
 --            - func_csm_drop_all_triggers -            added function for dropping all db triggers
---            - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2   - Moving this version to sync with DB schema version
 --            fn_csm_switch_inventory_history_dump
 --            - (Transactions were being recorded into the history table if a particular field was 'NULL')
@@ -606,7 +615,8 @@ BEGIN
             a.time_limit,
             a.wc_key,
             NULL,
-            a.smt_mode
+            a.smt_mode,
+            a.core_blink
         );
         DELETE FROM csm_allocation WHERE allocation_id=allocationid;
 
@@ -691,7 +701,8 @@ BEGIN
             requeue,
             time_limit,
             wc_key,
-            smt_mode)
+            smt_mode,
+            core_blink)
         VALUES
             (now(),
             NEW.allocation_id,
@@ -725,7 +736,8 @@ BEGIN
             NEW.requeue,
             NEW.time_limit,
             NEW.wc_key, 
-            NEW.smt_mode);
+            NEW.smt_mode,
+            NEW.core_blink);
         RETURN NEW;
     END IF;
 RETURN NULL;
@@ -738,7 +750,7 @@ LANGUAGE 'plpgsql';
 ---------------------------------------------------------------------------------------------------
 
 CREATE TRIGGER tr_csm_allocation_update
-    BEFORE UPDATE OF allocation_id,primary_job_id,secondary_job_id,ssd_file_system_name,launch_node_name,isolated_cores,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,projected_memory,type,job_type,user_name,user_id,user_group_id,user_group_name,user_script,begin_time,account,comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key
+    BEFORE UPDATE OF allocation_id,primary_job_id,secondary_job_id,ssd_file_system_name,launch_node_name,isolated_cores,user_flags,system_flags,ssd_min,ssd_max,num_nodes,num_processors,num_gpus,projected_memory,type,job_type,user_name,user_id,user_group_id,user_group_name,user_script,begin_time,account,comment,job_name,job_submit_time,queue,requeue,time_limit,wc_key,smt_mode,core_blink
     ON csm_allocation
     FOR EACH ROW
     EXECUTE PROCEDURE fn_csm_allocation_update()
@@ -813,7 +825,8 @@ CREATE OR REPLACE FUNCTION fn_csm_allocation_update_state(
     OUT o_projected_memory  integer,
     OUT o_state             text,
     OUT o_runtime           bigint,
-    OUT o_smt_mode          smallint
+    OUT o_smt_mode          smallint,
+    OUT o_core_blink        boolean
 )
 RETURNS record AS $$
 DECLARE
@@ -829,13 +842,13 @@ BEGIN
         primary_job_id, secondary_job_id, user_flags,
         system_flags, num_nodes, user_name,
         num_gpus, num_processors, projected_memory, (extract(EPOCH from  now() - begin_time))::bigint,
-        smt_mode
+        smt_mode, core_blink
     INTO 
         o_state, o_isolated_cores,
         o_primary_job_id, o_secondary_job_id, o_user_flags,
         o_system_flags, o_num_nodes, o_user_name,
         o_num_gpus, o_num_processors,
-        o_projected_memory, o_runtime, o_smt_mode
+        o_projected_memory, o_runtime, o_smt_mode, o_core_blink
     FROM csm_allocation a
     WHERE allocation_id = i_allocationid;
 
@@ -933,7 +946,7 @@ $$ LANGUAGE 'plpgsql';
 
 COMMENT ON FUNCTION fn_csm_allocation_state_history_state_change() is 'csm_allocation_state_change function to amend summarized column(s) on UPDATE.';
 COMMENT ON TRIGGER tr_csm_allocation_state_change ON csm_allocation is 'csm_allocation trigger to amend summarized column(s) on UPDATE.';
-COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode smallint) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
+COMMENT ON FUNCTION fn_csm_allocation_update_state(IN i_allocationid bigint, IN i_state text, OUT o_primary_job_id bigint, OUT o_secondary_job_id integer, OUT o_user_flags text, OUT o_system_flags text, OUT o_num_nodes integer, OUT o_nodes text, OUT o_isolated_cores integer, OUT o_user_name text, OUT o_runtime bigint, OUT o_smt_mode smallint, out o_core_blink boolean) is 'csm_allocation_update_state function that ensures the allocation can be legally updated to the supplied state'; --TODO
 
 -----------------------------------------------------------
 -- fn_csm_allocation_dead_records_on_lv 
@@ -3548,6 +3561,8 @@ CREATE OR REPLACE FUNCTION fn_csm_switch_children_inventory_collection(
         IN i_serial_number    text[],
         IN i_severity         text[],
         IN i_status           text[],
+        IN i_type             text[],
+        IN i_fw_version       text[],
         OUT o_insert_count int,
         OUT o_update_count int,
         OUT o_delete_count int
@@ -3575,14 +3590,16 @@ BEGIN
                 path             = i_path[i], 
                 serial_number    = i_serial_number[i], 
                 severity         = i_severity[i], 
-                status           = i_status[i] 
+                status           = i_status[i], 
+                type             = i_type[i], 
+                fw_version       = i_fw_version[i]
             WHERE 
                 name = i_name[i];
             o_update_count := o_update_count + 1;
         ELSE 
             INSERT INTO csm_switch_inventory 
-            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , hw_version     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     ) VALUES
-            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_hw_version[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i]);
+            (name     , host_system_guid     , discovery_time, collection_time, comment     , description     , device_name     , device_type     , hw_version     , max_ib_ports     , module_index     , number_of_chips     , path     , serial_number     , severity     , status     , type     , fw_version     ) VALUES
+            (i_name[i], i_host_system_guid[i], now()         , now()          , i_comment[i], i_description[i], i_device_name[i], i_device_type[i], i_hw_version[i], i_max_ib_ports[i], i_module_index[i], i_number_of_chips[i], i_path[i], i_serial_number[i], i_severity[i], i_status[i], i_type[i], i_fw_version[i]);
             o_insert_count := o_insert_count + 1;
         END IF;
     END LOOP;
@@ -3597,7 +3614,7 @@ $$ LANGUAGE 'plpgsql';
 -- fn_csm_switch_children_inventory_collection comments
 -----------------------------------------------------------
 
-COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
+COMMENT ON FUNCTION fn_csm_switch_children_inventory_collection(int, text[], text[], text[], text[], text[], text[], text[], int[], int[], int[], text[], text[], text[], text[], text[], text[]) is 'function to INSERT and UPDATE switch children inventory.';
 
 
 -----------------------------------------------------------------------------------------------
@@ -3958,7 +3975,9 @@ switch_inventory_number_of_chips    int[],
 switch_inventory_path               text[],
 switch_inventory_serial_number      text[],
 switch_inventory_severity           text[],
-switch_inventory_status             text[]
+switch_inventory_status             text[],
+switch_inventory_type               text[],
+switch_inventory_fw_version         text[]
 );
 
 -----------------------------------------------------------
@@ -3988,9 +4007,9 @@ BEGIN
     ;
     --SWITCH_INVENTORY--
     SELECT 
-        COUNT(DISTINCT si.name) , array_agg(si.name)     , array_agg(si.host_system_guid)     , array_agg(si.discovery_time)     , array_agg(si.collection_time)     , array_agg(si.comment)     , array_agg(si.description)     , array_agg(si.device_name)     , array_agg(si.device_type)     , array_agg(si.hw_version)     , array_agg(si.max_ib_ports)     , array_agg(si.module_index)     , array_agg(si.number_of_chips)     , array_agg(si.path)     , array_agg(si.serial_number)     , array_agg(si.severity)     , array_agg(si.status)      
+        COUNT(DISTINCT si.name) , array_agg(si.name)     , array_agg(si.host_system_guid)     , array_agg(si.discovery_time)     , array_agg(si.collection_time)     , array_agg(si.comment)     , array_agg(si.description)     , array_agg(si.device_name)     , array_agg(si.device_type)     , array_agg(si.hw_version)     , array_agg(si.max_ib_ports)     , array_agg(si.module_index)     , array_agg(si.number_of_chips)     , array_agg(si.path)     , array_agg(si.serial_number)     , array_agg(si.severity)     , array_agg(si.status)     , array_agg(si.type)     , array_agg(si.fw_version)      
     INTO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
-        r.switch_inventory_count, r.switch_inventory_name, r.switch_inventory_host_system_guid, r.switch_inventory_discovery_time, r.switch_inventory_collection_time, r.switch_inventory_comment, r.switch_inventory_description, r.switch_inventory_device_name, r.switch_inventory_device_type, r.switch_inventory_hw_version, r.switch_inventory_max_ib_ports, r.switch_inventory_module_index, r.switch_inventory_number_of_chips, r.switch_inventory_path, r.switch_inventory_serial_number, r.switch_inventory_severity, r.switch_inventory_status 
+        r.switch_inventory_count, r.switch_inventory_name, r.switch_inventory_host_system_guid, r.switch_inventory_discovery_time, r.switch_inventory_collection_time, r.switch_inventory_comment, r.switch_inventory_description, r.switch_inventory_device_name, r.switch_inventory_device_type, r.switch_inventory_hw_version, r.switch_inventory_max_ib_ports, r.switch_inventory_module_index, r.switch_inventory_number_of_chips, r.switch_inventory_path, r.switch_inventory_serial_number, r.switch_inventory_severity, r.switch_inventory_status, r.switch_inventory_type, r.switch_inventory_fw_version 
     FROM 
         csm_switch_inventory AS si
     WHERE ( si.host_system_guid = i_switch_name )
@@ -4336,7 +4355,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             serial_number,
             severity,
             status,
-            operation)            
+            operation,
+            type,
+            fw_version)            
         VALUES(
             now(),
             OLD.name,
@@ -4355,7 +4376,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             OLD.serial_number,
             OLD.severity,
             OLD.status,
-            'D');
+            'D',
+            OLD.type,
+            OLD.fw_version);
         RETURN OLD;
      ELSEIF (TG_OP = 'UPDATE') THEN
         IF  (
@@ -4371,7 +4394,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             (OLD.path             = NEW.path OR OLD.path IS NULL) AND
             (OLD.serial_number    = NEW.serial_number OR OLD.serial_number IS NULL) AND
             (OLD.severity         = NEW.severity OR OLD.severity IS NULL) AND
-            (OLD.status           = NEW.status OR OLD.status IS NULL)) THEN
+            (OLD.status           = NEW.status OR OLD.status IS NULL) AND
+            (OLD.type             = NEW.type OR OLD.type IS NULL) AND
+            (OLD.fw_version       = NEW.fw_version OR OLD.fw_version IS NULL)) THEN
             OLD.collection_time = now();
         ELSE
         INSERT INTO csm_switch_inventory_history(
@@ -4392,7 +4417,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             serial_number,
             severity,
             status,
-            operation)            
+            operation,
+            type,
+            fw_version)
         VALUES(
             now(),
             NEW.name,
@@ -4411,7 +4438,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             NEW.serial_number,
             NEW.severity,
             NEW.status,
-            'U');
+            'U',
+            NEW.type,
+            NEW.fw_version);
         RETURN NEW;
         END IF;
      ELSEIF (TG_OP = 'INSERT') THEN
@@ -4433,7 +4462,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             serial_number,
             severity,
             status,
-            operation)            
+            operation,
+            type,
+            fw_version)
         VALUES(
             now(),
             NEW.name,
@@ -4452,7 +4483,9 @@ CREATE FUNCTION fn_csm_switch_inventory_history_dump()
             NEW.serial_number,
             NEW.severity,
             NEW.status,
-            'I');
+            'I',
+            NEW.type,
+            NEW.fw_version);
         RETURN NEW;
     END IF;
 -- RETURN NULL;
@@ -5210,5 +5243,138 @@ $$ LANGUAGE plpgsql;
 -----------------------------------------------------------
 
 COMMENT ON FUNCTION func_alt_type_val(_type regtype, _val  text) is 'function to alter existing db types.';
+
+----------------------------------------------------------------------------------------------------------------------------------
+-- Function to append to an existing db TYPE
+----------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION fn_csm_node_state_history_temp_table(
+    i_state compute_node_states,
+    i_start_t timestamp,
+    i_end_t timestamp,
+    OUT node_name text,
+    OUT state compute_node_states,
+    OUT hours_of_state numeric,
+    OUT total_range_time numeric,
+    OUT "%_of_state" numeric
+)
+RETURNS setof record
+AS $$
+DECLARE
+    o_state text := i_state;
+    o_start_t timestamp := i_start_t;
+    o_end_t timestamp := i_end_t;
+
+BEGIN
+SET client_min_messages TO WARNING;
+DROP TABLE IF EXISTS temp_csm_node_state_history;
+-- Create the temp table to process the data
+CREATE TEMP TABLE temp_csm_node_state_history AS
+select *
+from(
+    select
+    a.history_time,
+    a.node_name,
+    a.nextnode,
+    a.state,
+    a.nextstate,
+    CASE
+        WHEN a.node_name = nextnode THEN nextdate::timestamp
+        ELSE now()::timestamp
+    END AS state_change_time
+    from 
+        (select
+            b.history_time,
+            b.node_name,
+            b.state,
+            LEAD(b.node_name) OVER (ORDER BY b.node_name, b.history_time) AS nextnode,
+            LEAD(b.history_time) OVER (ORDER BY b.node_name) AS nextdate,
+            LEAD(b.state) OVER (ORDER BY b.node_name) AS nextstate
+        from
+        csm_node_state_history b
+        ) a
+    group by
+        a.history_time,
+        a.node_name,
+        a.state,
+        a.nextnode,
+        a.nextdate,
+        a.nextstate
+    ORDER BY
+        node_name,
+        history_time
+    ) a
+WHERE
+    (history_time, a.state_change_time) overlaps
+    (o_start_t::timestamp, o_end_t::timestamp);
+
+-- Now we can query the temp table results and return the data for processing. 
+RETURN QUERY
+select
+    sub2.node_name,
+    sub2.state,
+    trunc(extract(epoch from sum(d2-d1)/3600)::numeric, 10) AS hours_of_state,
+    trunc(EXTRACT(EPOCH FROM (r2-r1)/3600)::numeric, 10) AS total_range_time,
+    trunc(EXTRACT(EPOCH FROM sum(d2-d1)/3600)::numeric, 8) / trunc(EXTRACT(EPOCH FROM (r2-r1)/3600)::numeric, 4)*100 AS "%_of_state"
+from(
+    select
+        sub.history_time,
+        sub.node_name,
+        sub.state,
+        state_change_time,
+        CASE
+            WHEN history_time <= r1 AND state_change_time >= r1 THEN r1
+            WHEN history_time >= r1 AND history_time <= r2 THEN history_time
+            ELSE NULL
+        END AS d1,
+        CASE
+            WHEN state_change_time >= r2 THEN r2
+            WHEN state_change_time <= r2 THEN state_change_time
+            ELSE NULL
+        END AS d2,
+        r1,
+        r2
+    from(
+        SELECT
+            t.history_time,
+            t.node_name,
+            t.state,
+            t.state_change_time,
+            o_start_t::timestamp AS r1, --<---This sets the specified time range begin time
+            o_end_t::timestamp AS r2 --<---This sets the specified time range end time
+        FROM
+            temp_csm_node_state_history t
+        ) sub
+        WHERE
+            sub.state = $1
+        GROUP BY
+            sub.history_time,
+            sub.node_name,
+            sub.state,
+            sub.state_change_time,
+            sub.r1,
+            sub.r2
+        ORDER BY
+            sub.node_name,
+            sub.history_time,
+            sub.state_change_time,
+            sub.r1,
+            sub.r2
+    ) sub2
+    GROUP BY
+        sub2.node_name,
+        sub2.state,
+        sub2.r1,
+        sub2.r2
+    ORDER BY
+        "%_of_state";
+END;
+$$ LANGUAGE plpgsql;
+
+-----------------------------------------------------------
+-- fn_csm_node_state_history_temp_table comments
+-----------------------------------------------------------
+
+COMMENT ON FUNCTION fn_csm_node_state_history_temp_table(i_state compute_node_states, i_start_t timestamp, i_end_t timestamp, OUT node_name text, OUT state compute_node_states, OUT hours_of_state numeric, OUT total_range_time numeric, OUT "%_of_state" numeric) is 'function to gather statistical information related to the csm_node_state_history state durations.';
 
 COMMIT;

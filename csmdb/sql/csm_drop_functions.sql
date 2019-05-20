@@ -15,14 +15,18 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
---   current_version:   17.0
+--   current_version:   18.0
 --   create:            06-13-2016
---   last modified:     03-28-2019
+--   last modified:     05-20-2019
 --   change log:
+--     18.0  -  Moving this version to sync with DB schema version.
+--           -  Added in fn_csm_node_state_history_temp_table
+--           -  Updated the fn_csm_switch_attributes_query_details function
+--           -  Added 2 new input fields to fn_csm_switch_children_inventory_collection: text[], text[]
+--           -  Added new input field to fn_csm_allocation_update_state: OUT o_core_blink boolean
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
 --           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)
---           - (1.5.x) updated the fn_csm_switch_attributes_query_details function
 --     16.2  -  Moving this version to sync with DB schema version.
 --     16.1  -  added 'fn_csm_ssd_dead_records'
 --           -  added 'fn_csm_allocation_dead_records_on_lv'
@@ -90,13 +94,14 @@ DROP FUNCTION IF EXISTS fn_csm_step_begin(i_step_id bigint,i_allocation_id bigin
 DROP FUNCTION IF EXISTS fn_csm_step_end(IN i_stepid bigint,IN i_allocationid bigint,IN i_exitstatus int,IN i_errormessage text,IN i_cpustats text,IN i_totalutime double precision,IN i_totalstime double precision,IN i_ompthreadlimit text,IN i_gpustats text,IN i_memorystats text,IN i_maxmemory bigint,IN i_iostats text,OUT o_user_flags text,OUT o_num_nodes int,OUT o_nodes text, OUT o_end_time timestamp);
 DROP FUNCTION IF EXISTS fn_csm_allocation_update();
 DROP FUNCTION IF EXISTS fn_csm_allocation_state_history_state_change();
-DROP FUNCTION IF EXISTS fn_csm_allocation_update_state(IN i_allocationid bigint,IN i_state text,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_nodes text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_shared boolean,OUT o_num_gpus integer,OUT o_num_processors integer,OUT o_projected_memory integer,OUT o_state text, OUT o_runtime bigint, OUT o_smt_mode smallint);
+DROP FUNCTION IF EXISTS fn_csm_allocation_update_state(IN i_allocationid bigint,IN i_state text,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_nodes text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_shared boolean,OUT o_num_gpus integer,OUT o_num_processors integer,OUT o_projected_memory integer,OUT o_state text, OUT o_runtime bigint, OUT o_smt_mode smallint, OUT o_core_blink boolean`);
 DROP FUNCTION IF EXISTS fn_csm_allocation_dead_records_on_lv(i_allocation_id bigint);
 DROP FUNCTION IF EXISTS fn_csm_lv_upsert(l_logical_volume_name text,l_node_name text,l_allocation_id bigint,l_vg_name text,l_state char(1),l_current_size bigint,l_max_size bigint,l_begin_time timestamp,l_updated_time timestamp,l_file_system_mount text,l_file_system_type text);
 DROP FUNCTION IF EXISTS fn_csm_node_update();
 DROP FUNCTION IF EXISTS fn_csm_node_delete(i_node_names text[]);
 DROP FUNCTION IF EXISTS fn_csm_node_state();
 DROP FUNCTION IF EXISTS fn_csm_node_attributes_query_details(text);
+DROP FUNCTION IF EXISTS fn_csm_node_state_history_temp_table(i_state compute_node_states, i_start_t timestamp, i_end_t timestamp, OUT node_name text, OUT state compute_node_states, OUT hours_of_state numeric, OUT total_range_time numeric, OUT "%_of_state" numeric);
 DROP TYPE IF EXISTS ras_event_severity;
 DROP TYPE IF EXISTS compute_node_states;
 DROP TYPE IF EXISTS node_details;
@@ -130,7 +135,7 @@ DROP FUNCTION IF EXISTS fn_csm_diag_result_history_dump();
 DROP FUNCTION IF EXISTS fn_csm_db_schema_version_history_dump();
 -- CSM INVENTORY COLLECTION RELATED FUNCTIONS
 DROP FUNCTION IF EXISTS fn_csm_switch_inventory_collection(int,text[],text[],text[],text[],text[],text[],boolean[],text[],text[],text[],int[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],int[],text[],text[]);
-DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[]);
+DROP FUNCTION IF EXISTS fn_csm_switch_children_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],int[],int[],int[],text[],text[],text[],text[], text[], text[]);
 DROP FUNCTION IF EXISTS fn_csm_ib_cable_inventory_collection(int,text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[],text[]);
 DROP FUNCTION IF EXISTS fn_csm_allocation_delete_start(i_allocation_id bigint,i_primary_job_id bigint,i_secondary_job_id integer,i_timeout_time bigint,OUT o_allocation_id bigint,OUT o_primary_job_id bigint,OUT o_secondary_job_id integer,OUT o_user_flags text,OUT o_system_flags text,OUT o_num_nodes integer,OUT o_state text,OUT o_type text,OUT o_isolated_cores integer,OUT o_user_name text,OUT o_nodelist text, OUT o_runtime bigint) CASCADE;
 

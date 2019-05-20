@@ -15,10 +15,12 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   17.0
+--   current_version:   18.0
 --   create:            12-14-2015
---   last modified:     02-15-2019
---   change log:    
+--   last modified:     05-13-2019
+--   change log:
+--   18.0   Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
+--          Added in type and fw_version to the csm_switch_inventory and csm_inventory_history tables with comments.
 --   17.0   Added smt_mode to csm_allocation and csm_allocation_history
 --	    Added new fields to csm_lv_history - num_reads, num_writes (01-25-2019)
 --   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
@@ -306,6 +308,7 @@ CREATE TABLE csm_allocation (
     time_limit                      bigint      not null,
     wc_key                          text,
     smt_mode                        smallint    default 0,
+    core_blink                      boolean     not null,
 
     
     -- resource_comments            tbd     not null,
@@ -361,6 +364,7 @@ CREATE TABLE csm_allocation (
     COMMENT ON COLUMN csm_allocation.time_limit is 'the time limit requested or imposed on the job';
     COMMENT ON COLUMN csm_allocation.wc_key is 'arbitrary string for grouping orthogonal accounts together';
     COMMENT ON COLUMN csm_allocation.smt_mode is 'the smt mode of the allocation';
+    COMMENT ON COLUMN csm_allocation.core_blink is 'flag indicating whether or not to run a blink operation on allocation cores.';
     COMMENT ON INDEX csm_allocation_pkey IS 'pkey index on allocation_id';
 --  COMMENT ON INDEX uk_csm_allocation_b IS 'uniqueness on primary_job_id, secondary_job_id';
     COMMENT ON SEQUENCE csm_allocation_allocation_id_seq IS 'used to generate primary keys on allocation ids';
@@ -443,7 +447,8 @@ CREATE TABLE csm_allocation_history (
     time_limit                      bigint      not null,
     wc_key                          text,
     archive_history_time            timestamp,
-    smt_mode                        smallint
+    smt_mode                        smallint,
+    core_blink                      boolean     not null
 
 );
 
@@ -503,6 +508,7 @@ CREATE INDEX ix_csm_allocation_history_d
     COMMENT ON COLUMN csm_allocation_history.wc_key is 'arbitrary string for grouping orthogonal accounts together';
     COMMENT ON COLUMN csm_allocation_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
     COMMENT ON COLUMN csm_allocation_history.smt_mode is 'the smt mode of the allocation';
+    COMMENT ON COLUMN csm_allocation_history.core_blink is 'flag indicating whether or not to run a blink operation on allocation cores.';
     COMMENT ON INDEX ix_csm_allocation_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_history_b IS 'index on allocation_id';
     COMMENT ON INDEX ix_csm_allocation_history_c IS 'index on ctid';
@@ -2547,6 +2553,8 @@ CREATE TABLE csm_switch_inventory (
     serial_number       text,
     severity            text,
     status              text,
+    type                text,
+    fw_version          text,
     PRIMARY KEY (name),
     FOREIGN KEY (host_system_guid) references csm_switch(switch_name)
 );
@@ -2577,6 +2585,8 @@ CREATE TABLE csm_switch_inventory (
     COMMENT ON COLUMN csm_switch_inventory.serial_number is 'serial_number of the module.';
     COMMENT ON COLUMN csm_switch_inventory.severity is 'severity of the module according to the highest severity of related events. values: Info, Warning, Minor, Critical';
     COMMENT ON COLUMN csm_switch_inventory.status is 'current module status. valid values: ok, fault';
+    COMMENT ON COLUMN csm_switch_inventory.type is 'The category of this piece of hardware inventory. For example: "FAN", "PS", "SYSTEM", or "MGMT".';
+    COMMENT ON COLUMN csm_switch_inventory.fw_version is 'The firmware version on this piece of inventory.';
     COMMENT ON INDEX csm_switch_inventory_pkey IS 'pkey index on name';
 
 ---------------------------------------------------------------------------------------------------
@@ -2600,7 +2610,9 @@ CREATE TABLE csm_switch_inventory_history (
     severity                text,
     status                  text,
     operation               char(1)     not null,
-    archive_history_time    timestamp
+    archive_history_time    timestamp,
+    type                    text,
+    fw_version              text
 );
 
 -------------------------------------------------
@@ -2642,6 +2654,8 @@ CREATE INDEX ix_csm_switch_inventory_history_d
     COMMENT ON COLUMN csm_switch_inventory_history.status is 'current module status. valid values: ok, fault';
     COMMENT ON COLUMN csm_switch_inventory_history.operation is 'operation of transaction (I - INSERT), (U - UPDATE), (D - DELETE)';
     COMMENT ON COLUMN csm_switch_inventory_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
+    COMMENT ON COLUMN csm_switch_inventory_history.type is 'The category of this piece of hardware inventory. For example: "FAN", "PS", "SYSTEM", or "MGMT".';
+    COMMENT ON COLUMN csm_switch_inventory_history.fw_version is 'The firmware version on this piece of inventory.';
     COMMENT ON INDEX ix_csm_switch_inventory_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_switch_inventory_history_b IS 'index on name';
     COMMENT ON INDEX ix_csm_switch_inventory_history_c IS 'index on ctid';

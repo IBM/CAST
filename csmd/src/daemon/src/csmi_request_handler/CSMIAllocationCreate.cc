@@ -159,6 +159,11 @@ bool CSMIAllocationCreate_Master::CreatePayload(
             allocation->smt_mode = 0;
         }
 
+        if ( allocation->_metadata < CSM_DEVELOPMENT )
+        {
+            allocation->core_blink = CSM_FALSE;
+        }
+
         // --------------------------------------------------------------------------
         // Build the insert allocation statement.
         // --------------------------------------------------------------------------
@@ -170,7 +175,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "job_type,             user_name,            user_id,         user_group_id,"
                 "user_script,          account,              comment,         job_name,"
                 "job_submit_time,      queue,                requeue,         time_limit,"
-                "wc_key,               isolated_cores,       smt_mode"
+                "wc_key,               isolated_cores,       smt_mode,        core_blink"
             ") VALUES ("
                 "default,        'now',        $1::bigint,   $2::integer,"
                 "$3::text,       $4::text,     $5::text,     $6::text,"
@@ -179,10 +184,10 @@ bool CSMIAllocationCreate_Master::CreatePayload(
                 "$15::text,      $16::text,    $17::integer, $18::integer, "
                 "$19::text,      $20::text,    $21::text,    $22::text,"
                 "$23::timestamp, $24::text,    $25::text,    $26::bigint,"
-                "$27::text,      $28::integer, $29::smallint"
+                "$27::text,      $28::integer, $29::smallint,$30::boolean "
             ") returning allocation_id, begin_time";
 
-        const int paramCount = 29;
+        const int paramCount = 30;
         csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
         dbReq->AddNumericParam<int64_t>(allocation->primary_job_id);                // $1 - bigint
         dbReq->AddNumericParam<int32_t>(allocation->secondary_job_id);              // $2 - integer
@@ -220,6 +225,7 @@ bool CSMIAllocationCreate_Master::CreatePayload(
         dbReq->AddTextParam(allocation->wc_key); // $27 - text
         dbReq->AddNumericParam<int32_t>(allocation->isolated_cores); // $28 - text
         dbReq->AddNumericParam<short>(allocation->smt_mode); // $29 - smallint
+        dbReq->AddNumericParam<char>(allocation->core_blink == CSM_TRUE ? 't' : 'f'); // $30 - boolean
         // --------------------------------------------------------------------------
         
 
@@ -319,6 +325,7 @@ bool CSMIAllocationCreate_Master::ReserveNodes(
     mcastAlloc->state            = allocation->state;
     mcastAlloc->user_name        = allocation->user_name;
     mcastAlloc->smt_mode         = allocation->smt_mode;
+    mcastAlloc->core_blink       = allocation->core_blink;
 
     // Node details.
     mcastAlloc->shared            = allocation->shared; 
