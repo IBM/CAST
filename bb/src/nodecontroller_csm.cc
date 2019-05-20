@@ -416,15 +416,24 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
     boost::property_tree::ptree pt;
     queue<uint32_t> ranklistqueue;
     vector<boost::property_tree::ptree> results;
+    vector<std::string> results_host;
     string cuml_rank = "-1";
     int    cuml_rankrc = 0;
     string cuml_errortext;
+    boost::property_tree::ptree cuml_badresult;
     string exception_text = "";
+    unsigned successcount = 0;
+    map<std::string, uint32_t> bcast_host2rank_map;
 
     unsigned int MAXNODESPERCSMCALL = 32;
     if(nodebcast)
     {
         MAXNODESPERCSMCALL = nodelist.size();
+        int count = 0;
+        for(const auto& node : nodelist)
+        {
+            bcast_host2rank_map[node] = count++;
+        }
     }
 
     const char** nodenames = (const char**)malloc(sizeof(const char*) * MAXNODESPERCSMCALL);
@@ -442,7 +451,6 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
     {
         list<string> tmparguments;
         list<uint32_t> csmbbranklist;
-        list<string> host2rank;
 
         tmparguments.clear();
         in.node_names_count = 0;
@@ -464,7 +472,6 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
                     inarray[nodelist[rank]] = true;
                     nodenames[in.node_names_count++] = nodelist[rank].c_str();
                 }
-                host2rank.push_back(nodelist[rank] + "=" + to_string(rank));
                 tmparguments.push_back(nodelist[rank] + ":" + to_string(rank));
             }
         }
@@ -528,6 +535,15 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
                             rc = -1;
                             cuml_errortext = string("no data from node");
                         }
+                        else
+                        {
+                            size_t beginoff = 0;
+                            if(line.find(";") == 0) beginoff = 1;
+
+                            std::string tmphost = line.substr(beginoff,off - beginoff); 
+                            results_host.push_back( tmphost );
+                        }
+                        
                     }
                 }
             }
@@ -541,38 +557,68 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
         {   
             const size_t l_BUFSIZE = 2048;
             char l_buffer[l_BUFSIZE];
-            for(const auto& rank: csmbbranklist)
+            int grabRC = grabstderr.getStdErrBuffer(l_buffer,l_BUFSIZE);
+            if (grabRC > 0)
             {
-                results.emplace_back();
-                results.back().put(to_string(rank) + ".rc", rc);
-                results.back().put(to_string(rank) + ".error.text", "csm_bb_cmd failure");
-                grabstderr.getStdErrBuffer(l_buffer,l_BUFSIZE);
-                if (l_buffer[0]!=0) results.back().put(to_string(rank) + ".error.stderr", l_buffer);
-            }   
+                output.put("error.csm_stderr", l_buffer);
+            }
+            else
+            {
+                output.put("error.csm_stderrgrabrc", grabRC);
+            }
+            string hostlist = in.node_names[0];
+            for(uint32_t x=1; x<in.node_names_count; x++)
+            {
+                hostlist += string(",") + in.node_names[x];
+            }
+
+            output.put("error.csm_hostlist", hostlist);
+            output.put("error.csm_rc", rc);
+            cuml_rankrc = -1;
         }
     }
     free(nodenames);
 
     try
     {
-        int    index = 0;
+        int    index = -1;
         int    rank_rc;
-        for (auto &e : results)
+        for (const auto &e : results)
         {
+            index++;
             if(e.empty())
                 continue;
             
             string rank = e.front().first;
-            LOG(bb,info) << "processing results from rank " << rank;
-            if (nodebcast)
-                rank = to_string(ranklist[index++]);
-            output.boost::property_tree::ptree::put_child(rank, e.front().second);
+            if(nodebcast)
+                rank = to_string(bcast_host2rank_map[results_host[index]]);
+            LOG(bb,info) << "Processing results from rank " << rank;
+
             rank_rc = e.get(e.front().first + ".rc", 0);
+            if(rank_rc == 0)
+                successcount++;
+            
             if ((cuml_rankrc == 0) && (rank_rc != 0))
             {
                 cuml_rankrc = rank_rc;
                 cuml_rank   = rank;
+                cuml_badresult = e;
                 cuml_errortext = e.get(e.front().first + ".error.text", "");
+            }
+            if(!nodebcast)
+            {
+                output.boost::property_tree::ptree::put_child(rank, e.front().second);
+            }
+        }
+        if(nodebcast) // include summary output only
+        {
+            if(cuml_rankrc == 0)
+            {
+                output.boost::property_tree::ptree::put_child(results[0].front().first, results[0].front().second); // pick first (good) result
+            }
+            else
+            {
+                output.boost::property_tree::ptree::put_child(cuml_rank, cuml_badresult.front().second); // pick first bad result
             }
         }
     }
@@ -581,6 +627,9 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
         cuml_rankrc = -1;
         exception_text = e.what();
     }
+    output.put("goodcount", successcount);                      // good rc
+    output.put("failcount", results.size() - successcount);     // bad rc
+    output.put("voidcount", ranklist.size() - results.size());  // response not received
     if(cuml_rank != "-1")
     {
         output.put("error.firstFailRank", stoi(cuml_rank));

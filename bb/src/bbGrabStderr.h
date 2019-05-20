@@ -10,16 +10,21 @@
  |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
+#include <errno.h>
 class GrabStderr {
 public:
     GrabStderr();
-    void getStdErrBuffer(char* pBuffer,const size_t pBuffSize) const;
+    int getStdErrBuffer(char* pBuffer,const size_t pBuffSize) const;
     ~GrabStderr();
-public:
+    int error() const;
     
+
 private:
-    void setNonBlockMode(int pFD);
+    int setNonBlockMode(int pFD);
     int  stderrPipeFD[2];
     int dupSTDERR_FILENO;
     int dupRC;
+    int pipe0RC;
+    int pipe1RC;
+    int stdERRrc;
 };

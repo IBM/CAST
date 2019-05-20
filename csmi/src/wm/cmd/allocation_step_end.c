@@ -41,20 +41,20 @@
 
 static struct option long_options[] =
 {
-	{"help",                    no_argument,       0, 'h'},
-	{"verbose",                 required_argument, 0, 'v'},
-	{"allocation_id",           required_argument, 0, 'a'},
-	{"cpu_stats",               required_argument, 0, 'c'},
-	{"exit_status",             required_argument, 0, 'e'},
-	{"error_message",                required_argument, 0, 'E'},
-	{"gpu_stats",               required_argument, 0, 'G'},
-	{"io_stats",                required_argument, 0, 'i'},
-	{"memory_stats",            required_argument, 0, 'm'},
-	{"max_memory",              required_argument, 0, 'M'},
-	{"omp_thread_limit",       required_argument, 0, 'n'},
-	{"step_id",                 required_argument, 0, 's'},
-	{"total_u_time",            required_argument, 0, 't'},
-	{"total_s_time",            required_argument, 0, 'T'},
+	{"help",             no_argument,       0, 'h'},
+	{"verbose",          required_argument, 0, 'v'},
+	{"allocation_id",    required_argument, 0, 'a'},
+	{"cpu_stats",        required_argument, 0, 'c'},
+	{"exit_status",      required_argument, 0, 'e'},
+	{"error_message",    required_argument, 0, 'E'},
+	{"gpu_stats",        required_argument, 0, 'G'},
+	{"io_stats",         required_argument, 0, 'i'},
+	{"memory_stats",     required_argument, 0, 'm'},
+	{"max_memory",       required_argument, 0, 'M'},
+	{"omp_thread_limit", required_argument, 0, 'n'},
+	{"step_id",          required_argument, 0, 's'},
+	{"total_u_time",     required_argument, 0, 't'},
+	{"total_s_time",     required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
 
@@ -62,7 +62,7 @@ void help(){
 	puts("_____CSM_ALLOCATION_STEP_END_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_allocation_step_end ARGUMENTS [OPTIONS]");
-	puts("  csm_allocation_step_end -a allocation_id -s step_id -e exit_status -E err_text  -c cpu_stats -t total_u_time -T total_s_time -n total_num_threads -G gpu_stats -m memory_stats -M max_memory -i io_stats");
+	puts("  csm_allocation_step_end -a allocation_id -c cpu_stats -e exit_status -E err_text -G gpu_stats -i io_stats -m memory_stats -M max_memory -n total_num_threads -s step_id -t total_u_time -T total_s_time");
 	puts("");
 	puts("SUMMARY: Used to move a record in the 'csm_step' table to the 'csm_step_history' of CSM database.");
 	puts("");
@@ -77,14 +77,14 @@ void help(){
 	puts("    ------------------------|------------------------|--------------");
 	/*The following lines may have 2 extra spaces to account for the escaped quotes. This way it lines up in the command line window.*/
 	puts("    -a, --allocation_id     | 1                      | (LONG INTEGER) Allocation that this step is part of.");
-	puts("    -c, --cpu_stats         | \"cpu_good\"             | (STRING) TBD. Tracked and given to CSM by job leader.");
+	puts("    -c, --cpu_stats         | \"cpu_good\"             | (STRING) Statistics gathered from the CPU for the step. Tracked and given to CSM by job leader.");
 	puts("    -e, --exit_status       | 1                      | (INTEGER) Step's exit status. Tracked and given to CSM by job leader.");
 	puts("    -E, --err_text          | \"error\"                | (STRING) Step's error text. Tracked and given to CSM by job leader.");
-	puts("    -G, --gpu_stats         | \"gpu_s_good\"           | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -i, --io_stats          | \"io_sts_good\"          | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -m, --memory_stats      | \"mem_sts_good\"         | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -M, --max_memory        | \"max_mem_good\"         | (STRING) TBD. Tracked and given to CSM by job leader.");
-	puts("    -n, --omp_thread_limit |  \"omp_thread_limit\"     | (STRING) TBD. Tracked and given to CSM by job leader.");
+	puts("    -G, --gpu_stats         | \"gpu_s_good\"           | (STRING) Statistics gathered from the GPU for the step. Tracked and given to CSM by job leader.");
+	puts("    -i, --io_stats          | \"io_sts_good\"          | (STRING) General input output statistics for the step.");
+	puts("    -m, --memory_stats      | \"mem_sts_good\"         | (STRING) Memory statistics for the the step.");
+	puts("    -M, --max_memory        | 1                      | (LONG INTEGER) The maximum memory usage of the step.");
+	puts("    -n, --omp_thread_limit |  \"omp_thread_limit\"     | (STRING) Max number of omp threads used by the step.");
 	puts("    -s, --step_id           | 1                      | (LONG INTEGER) Uniquely identify this step.");
 	puts("    -t, --total_u_time      | 0.0                    | (DOUBLE) Relates to the 'us' (aka: user mode) value of %Cpu(s) of the 'top' Linux cmd.");
 	puts("    -T, --total_s_time      | 1.5                    | (DOUBLE) Relates to the 'sy' (aka: system mode) value of %Cpu(s) of the 'top' Linux cmd.");
@@ -94,7 +94,7 @@ void help(){
 	puts("[-v, --verbose verbose_level] | Set verbose level. Valid verbose levels: {off, trace, debug, info, warning, error, critical, always, disable}");
 	puts("");
 	puts("FULL EXAMPLE OF USING THIS COMMAND:");
-	puts("  csm_allocation_step_end -a 1 -s 1 -g \"some\" -e 1 -E \"error\"  -c \"cpu_good\" -t 0.0 -T 1.5 -n \"t_num_threads_good\" -G \"gpu_s_good\" -m \"mem_sts_good\" -M \"max_mem_good\"  -i \"io_sts_good\"");
+	puts("  csm_allocation_step_end -a 1 -c \"cpu_good\" -e 1 -E \"error\" -G \"gpu_s_good\" -i \"io_sts_good\" -m \"mem_sts_good\" -M 1 -n \"t_num_threads_good\" -s 1 -t 0.0 -T 1.5");
 	puts("____________________");
 }
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	/*Variables for checking cmd line args*/
 	int opt;
 	/*check optional args*/
-	while((opt = getopt_long(argc, argv, "hv:a:b:c:e:E:g:G:i:m:M:n:s:S:t:T:", long_options, &option_index)) != -1){
+	while((opt = getopt_long(argc, argv, "hv:a:c:e:E:G:i:m:M:n:s:t:T:", long_options, &option_index)) != -1){
 		switch(opt){
 			case 'h':
                 USAGE();

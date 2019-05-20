@@ -25,31 +25,32 @@ sub isSetuid
 sub setDefaults
 {
     $drain = 0;
+    $::DEFAULT_HOSTLIST = "localhost";
     $newserver = "primary";
     @::GETOPS=(
-	"server=s" => \$newserver,
-	"drain!" => \$drain
+        "server=s" => \$newserver,
+        "drain!" => \$drain,
+        "v!" => \$verbose
 	);
 }
-
 
 BEGIN
 {
     if(isSetuid())
     {
-	unshift(@INC, '/opt/ibm/bb/scripts/');
+        unshift(@INC, '/opt/ibm/bb/scripts/');
     }
     else
     {
-	($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
-	unshift(@INC, abs_path($dir));
+        ($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
+        unshift(@INC, abs_path($dir));
     }
 
     setDefaults();
 }
 
 use bbtools;
-
+$bbtools::QUIET = 1 if(!$verbose);
 
 my @cleanup = ();
 sub failureCleanAndExit()

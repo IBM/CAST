@@ -2,7 +2,7 @@
 
     csmd/src/inv/include/inv_dcgm_access.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -88,8 +88,8 @@ public:
   typedef dcgmReturn_t (*dcgmGetDeviceAttributes_ptr_t)(dcgmHandle_t, unsigned int, dcgmDeviceAttributes_t*);
   // dcgmGetDeviceAttributes_ptr_t - dcgmReturn_t DECLDIR dcgmGetDeviceAttributes(dcgmHandle_t pDcgmHandle, unsigned int gpuId, dcgmDeviceAttributes_t *pDcgmAttr);
   
-  typedef dcgmReturn_t (*dcgmGetLatestValuesForFields_ptr_t)(dcgmHandle_t, int, unsigned short [], unsigned int, dcgmFieldValue_t []);
-  // dcgmGetLatestValuesForFields - dcgmReturn_t dcgmGetLatestValuesForFields(dcgmHandle_t pDcgmHandle, int gpuId, unsigned short fields[], unsigned int count, dcgmFieldValue_t values[]); 
+  typedef dcgmReturn_t (*dcgmGetLatestValuesForFields_ptr_t)(dcgmHandle_t, int, unsigned short [], unsigned int, dcgmFieldValue_v1 []);
+  // dcgmGetLatestValuesForFields - dcgmReturn_t dcgmGetLatestValuesForFields(dcgmHandle_t pDcgmHandle, int gpuId, unsigned short fields[], unsigned int count, dcgmFieldValue_v1 values[]); 
   
   typedef dcgmReturn_t (*dcgmFieldGroupDestroy_ptr_t)(dcgmHandle_t, dcgmFieldGrp_t);
   // dcgmFieldGroupDestroy - dcgmReturn_t dcgmFieldGroupDestroy(dcgmHandle_t dcgmHandle, dcgmFieldGrp_t dcgmFieldGroupId);
