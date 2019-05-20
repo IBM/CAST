@@ -310,7 +310,7 @@ bool CSMIAllocationQuery::CreateOutputStruct(
     o->wc_key               = strdup(fields->data[28]);
     o->isolated_cores       = strtol(fields->data[29], nullptr, 10);
     o->smt_mode             = (int16_t) strtol(fields->data[30], nullptr, 10);
-    o->core_blink           = strtol(fields->data[31], nullptr, 10) == CSM_TRUE;                                                         
+    o->core_blink           = csm_convert_psql_bool(fields->data[31][0]) ? CSM_TRUE : CSM_FALSE;                                                         
     
     // IFF a history time was found build the history.
     if ( fields->data[32][0] )
