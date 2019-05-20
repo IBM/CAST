@@ -17,12 +17,13 @@
 --   usage:             ./csm_db_script.sh <----- -f (force) will drop all functions in DB
 --   current_version:   18.0
 --   create:            06-13-2016
---   last modified:     05-16-2019
+--   last modified:     05-20-2019
 --   change log:
 --     18.0  -  Moving this version to sync with DB schema version.
 --           -  Added in fn_csm_node_state_history_temp_table
 --           -  Updated the fn_csm_switch_attributes_query_details function
---           -  Added 2 new input fields to fn_csm_switch_children_inventory_collection: text[], text[] 
+--           -  Added 2 new input fields to fn_csm_switch_children_inventory_collection: text[], text[]
+--           -  Added new input field to fn_csm_allocation_update_state: OUT o_core_blink boolean
 --     17.0  -  Moving this version to sync with DB schema version.
 --           -  fn_csm_allocation_update_state - added in:  o_smt_mode smallint 
 --           -  fn_csm_lv_history_dump - added in: bigint x2 (num_reads, num_writes)

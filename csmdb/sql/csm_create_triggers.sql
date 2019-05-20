@@ -17,7 +17,7 @@
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
 --   current_version:       18.0
 --   create:                06-22-2016
---   last modified:         05-17-2019
+--   last modified:         05-20-2019
 --   change log:
 --     18.0   - Moving this version to sync with DB schema version
 --            - Updated the fn_csm_switch_attributes_query_details function
@@ -28,6 +28,7 @@
 --            - fn_csm_node_state_history_temp_table    added function for labs to query node states time duration and percentages.
 --            - fn_csm_switch_children_inventory_collection - added two new input fields: type, fw_version
 --            - updated fn_csm_switch_attributes_query_details - to include type and fw_version
+--            - Updated the fn_csm_allocation_update_state function (added field core_blink along with description)
 --     17.0   - Moving this version to sync with DB schema version
 --            - fn_csm_allocation_history_dump -        added field:    smt_mode
 --            - fn_csm_allocation_update -              added field:    smt_mode
