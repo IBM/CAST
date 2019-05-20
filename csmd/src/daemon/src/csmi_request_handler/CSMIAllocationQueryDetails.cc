@@ -240,7 +240,7 @@ bool CSMIAllocationQueryDetails::CreateResponsePayload(
     {
         csm::db::DBTuple *fields = tuples[0];
 
-        if ( !( fields->nfields == 37 ) ) 
+        if ( !( fields->nfields == 38 ) ) 
         {
             ctx->SetErrorCode( CSMERR_DB_ERROR );
             ctx->SetErrorMessage("Incorrect number of fields received by query.");
@@ -315,13 +315,13 @@ bool CSMIAllocationQueryDetails::CreateResponsePayload(
 
             csm_prep_csv_to_struct();
 
-            csm_parse_psql_array_to_struct(fields->data[35], ad->state_transitions,
+            csm_parse_psql_array_to_struct(fields->data[36], ad->state_transitions,
                         ad->num_transitions, ->history_time,
                         strdup("N/A"), strdup);
 
             // No easy way to do this.
             i = 0;                                                  
-            nodeStr = strtok_r(fields->data[36], ",\"{}", &saveptr);
+            nodeStr = strtok_r(fields->data[37], ",\"{}", &saveptr);
             while ( nodeStr != NULL && i < ad->num_transitions )             
             {                                                       
                 ad->state_transitions[i++]->state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, nodeStr); 
