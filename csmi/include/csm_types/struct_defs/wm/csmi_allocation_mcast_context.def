@@ -98,6 +98,10 @@ CSMI_VERSION_START(CSM_VERSION_1_5_0)
 CSMI_STRUCT_MEMBER(int16_t,  smt_mode,        BASIC,  ,    0, ) /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
 CSMI_VERSION_END(0b18c6e3992d27e0bbb6ce96ab623cae)
 
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(csm_bool, core_blink,BASIC,  , CSM_FALSE,       ) /**< Flag for blinking allocation cores. */
+CSMI_VERSION_END(0)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

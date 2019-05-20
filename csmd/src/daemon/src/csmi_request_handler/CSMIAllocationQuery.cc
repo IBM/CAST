@@ -96,7 +96,7 @@ bool CSMIAllocationQuery::CreatePayload(
             "a.comment,  a.job_name, "\
             "a.job_submit_time, "\
             "a.queue, a.requeue, a.time_limit, "\
-            "a.wc_key, a.isolated_cores, a.smt_mode "
+            "a.wc_key, a.isolated_cores, a.smt_mode, a.core_blink "
 
         std::string stmt = "SELECT "
             SELECT_BODY
@@ -270,7 +270,7 @@ bool CSMIAllocationQuery::CreateOutputStruct(
 {
     LOG( csmapi, debug ) << STATE_NAME ":CreateOutputStruct: Enter";
 	
-    if ( !( fields->nfields == 31 || fields->nfields == 34 ) ) 
+    if ( !( fields->nfields == 32 || fields->nfields == 35 ) ) 
     {
         *output = nullptr;
         return false;
@@ -310,16 +310,16 @@ bool CSMIAllocationQuery::CreateOutputStruct(
     o->wc_key               = strdup(fields->data[28]);
     o->isolated_cores       = strtol(fields->data[29], nullptr, 10);
     o->smt_mode             = (int16_t) strtol(fields->data[30], nullptr, 10);
-                                                  
+    o->core_blink           = strtol(fields->data[31], nullptr, 10) == CSM_TRUE;                                                         
     
     // IFF a history time was found build the history.
-    if ( fields->data[31][0] )
+    if ( fields->data[32][0] )
     {
         o->history = (csmi_allocation_history_t *)malloc(sizeof(csmi_allocation_history_t));
 
-        o->history->end_time             = strdup(fields->data[31]);
-        o->history->exit_status          = strtol(fields->data[32], nullptr, 10);
-        o->history->archive_history_time = strdup(fields->data[33]);
+        o->history->end_time             = strdup(fields->data[32]);
+        o->history->exit_status          = strtol(fields->data[33], nullptr, 10);
+        o->history->archive_history_time = strdup(fields->data[34]);
     }
 
     *output = o;
