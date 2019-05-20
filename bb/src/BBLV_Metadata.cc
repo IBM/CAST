@@ -170,9 +170,16 @@ void BBLV_Metadata::accumulateTotalLocalContributorInfo(const uint64_t pHandle, 
     pTotalContributors = 0;
     pTotalLocalReportingContributors = 0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::accumulateTotalLocalContributorInfo");
+
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         it->second.accumulateTotalLocalContributorInfo(pHandle, pTotalContributors, pTotalLocalReportingContributors);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::accumulateTotalLocalContributorInfo");
     }
 
     return;
@@ -476,6 +483,8 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
 }
 
 void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::dump");
+
     if (metaDataMap.size()) {
         char l_Temp[LENGTH_UUID_STR] = {'\0'};
         if (!strcmp(pSev,"debug")) {
@@ -503,6 +512,11 @@ void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             LOG(bb,info) << "";
         }
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::dump");
     }
 }
 
@@ -565,6 +579,9 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
 
     bool l_HandleWasAdded = false;
     uint64_t l_JobId = pJob.getJobId();
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(&pLVKey, "BBLV_Metadata::getInfo");
+
     for (auto it = metaDataMap.begin(); it != metaDataMap.end() && (!rc) && (!l_HandleWasAdded); ++it)
     {
         if ((it->second).getJobId() == l_JobId)
@@ -649,12 +666,20 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
         }
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(&pLVKey, "BBLV_Metadata::getInfo");
+    }
+
     return rc;
 }
 
 // NOTE:  This method only returns the LVKey given the jobid and contribid...
 int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, const uint64_t pJobId, const uint32_t pContribId) {
     int rc = -2;    // LVKey not registered with bbserver
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLVKey_1");
+
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         // NOTE:  Connection name can come in as an empty string when invoked as part of processAsyncRequest()...
@@ -668,12 +693,20 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
         }
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBLV_Metadata::getLVKey_1");
+    }
+
     return rc;
 }
 
 // NOTE:  This method returns the LVKey and BBTagInfo given the jobid, jobstepid, tab, numcontrib and contrib[] values...
 int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = -2;    // LVKey not registered with bbserver
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLVKey_2");
+
     bool l_ConnectionNameFound = false;
     for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
@@ -703,29 +736,55 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
                      << ". Connection name was " << (l_ConnectionNameFound ? "" : "not ") << "found in the local cache.";
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBLV_Metadata::getLVKey_2");
+    }
+
     return rc;
 }
 
 BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
+    BBLV_Info* l_BBLV_Info = 0;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
+
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if (it->first == *pLVKey) {
-            return const_cast <BBLV_Info*> (&(it->second));
+            l_BBLV_Info = const_cast <BBLV_Info*> (&(it->second));
+            break;
         }
     }
 
-    return (BBLV_Info*)0;
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBLV_Metadata::getLV_Info");
+    }
+
+    return l_BBLV_Info;
 }
 
 size_t BBLV_Metadata::getTotalTransferSize(const LVKey& pLVKey) {
+    size_t l_Size = 0;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(&pLVKey, "BBLV_Metadata::getTotalTransferSize");
+
     if (metaDataMap.find(pLVKey) != metaDataMap.end()) {
-        return metaDataMap[pLVKey].getTotalTransferSize();
-    } else {
-        return 0;
+        l_Size = metaDataMap[pLVKey].getTotalTransferSize();
     }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(&pLVKey, "BBTagInfoMap::getTotalTransferSize");
+    }
+
+    return l_Size;
 }
 
 int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = 0;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getTransferHandle");
 
     if (metaDataMap.find(*pLVKey) != metaDataMap.end()) {
         rc = metaDataMap[*pLVKey].getTransferHandle(pHandle, pLVKey, pJob, pTag, pNumContrib, pContrib);
@@ -733,12 +792,24 @@ int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, con
         pHandle = UNDEFINED_HANDLE;
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfoMap::getTransferHandle");
+    }
+
     return rc;
 }
 
 void BBLV_Metadata::getTransferHandles(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus) {
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::getTransferHandles");
+
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         it->second.getTransferHandles(pHandles, pJob, pMatchStatus, it->second.stageOutStarted());
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::getTransferHandles");
     }
 
     return;
@@ -748,6 +819,8 @@ int BBLV_Metadata::hasLVKey(const LVKey* pLVKey, const uint64_t pJobId)
 {
     int rc = 0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::hasLVKey");
+
     for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         if (it->first == *pLVKey && (it->second).getJobId() == pJobId)
@@ -755,6 +828,11 @@ int BBLV_Metadata::hasLVKey(const LVKey* pLVKey, const uint64_t pJobId)
             rc = 1;
             break;
         }
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBLV_Metadata::hasLVKey");
     }
 
     return rc;
@@ -842,7 +920,7 @@ void BBLV_Metadata::removeAllLogicalVolumesForUuid(const string& pHostName, cons
 
 void BBLV_Metadata::removeLVKey(const uint64_t pJobId, const LVKey* pLVKey)
 {
-    LOG(bb,info) << "taginfo: Removing " << *pLVKey << " for jobid " << pJobId;
+    LOG(bb,debug) << "taginfo: Removing " << *pLVKey << " for jobid " << pJobId;
     metaDataMap.erase(*pLVKey);
 
     return;
@@ -851,6 +929,8 @@ void BBLV_Metadata::removeLVKey(const uint64_t pJobId, const LVKey* pLVKey)
 int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
 {
     int rc = 0;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::retrieveTransfers");
 
     if (pTransferDefs.getHostName() != UNDEFINED_HOSTNAME)
     {
@@ -891,15 +971,28 @@ int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
         rc = 1;
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::retrieveTransfers");
+    }
+
     return rc;
 }
 
 void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
 {
     int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
+
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
     }
 
     return;
@@ -1178,6 +1271,9 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
 int BBLV_Metadata::verifyJobIdExists(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId)
 {
     int rc = 0;
+
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::verifyJobIdExists");
+
     for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         if ((it->second).getJobId() == pJobId)
@@ -1187,6 +1283,10 @@ int BBLV_Metadata::verifyJobIdExists(const std::string& pConnectionName, const L
         }
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBLV_Metadata::verifyJobIdExists");
+    }
+
     return rc;
 }
-

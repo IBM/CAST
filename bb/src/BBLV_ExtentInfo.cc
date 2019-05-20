@@ -632,8 +632,8 @@ void BBLV_ExtentInfo::setStageOutEndedComplete(const LVKey* pLVKey, const uint64
 {
     if ((((flags & BBLV_Stage_Out_End_Complete) == 0) && pValue) || ((flags & BBLV_Stage_Out_End_Complete) && (!pValue)))
     {
-        LOG(bb,info) << "BBLV_ExtentInfo::setStageOutEndedComplete(): For " << *pLVKey \
-                    << " -> Changing from: " << ((flags & BBLV_Stage_Out_End_Complete) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+        LOG(bb,debug) << "BBLV_ExtentInfo::setStageOutEndedComplete(): For " << *pLVKey \
+                      << " -> Changing from: " << ((flags & BBLV_Stage_Out_End_Complete) ? "true" : "false") << " to " << (pValue ? "true" : "false");
     }
     SET_FLAG(BBLV_Stage_Out_End_Complete, pValue);
 
@@ -743,6 +743,8 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
     int rc = 0;
 
     pNumberOfNewExtentsCanceled = 0;
+
+    // NOTE: The transfer queue lock will have already been obtained prior to invoking this method.
 
     if ((pHandle && pContribId) || resizeLogicalVolumeDuringStageOut() || BSCFS_InRequest())
     {

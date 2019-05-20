@@ -1268,6 +1268,13 @@ void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
 {
     if (!transferQueueIsLocked())
     {
+#if 0
+        // Verify lock protocol
+        if (handleFileLockFd != -1)
+        {
+            abort();
+        }
+#endif
         pthread_mutex_lock(&lock_transferqueue);
         if (strstr(pMethod, "%") == NULL)
         {
@@ -1831,6 +1838,13 @@ void WRKQMGR::unlock(const LVKey* pLVKey, const char* pMethod)
 {
     if (transferQueueIsLocked())
     {
+#if 0
+        // Verify lock protocol
+        if (handleFileLockFd != -1)
+        {
+            abort();
+        }
+#endif
         if (!lockPinned)
         {
             pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry

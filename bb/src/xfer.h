@@ -66,7 +66,14 @@ extern int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, ui
 
 extern int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfo* pTagInfo, const uint64_t pJobId, const uint32_t pContribId);
 
+// Use this method to lock the transfer queue if it is known that this thread
+// does not already own the lock.
 extern void lockTransferQueue(const LVKey* pLVKey, const char* pMethod);
+
+// Use this method to lock the transfer queue if it is possible that this thread
+// already owns the lock.  The return value indicates whether the lock needed to
+// be obtained and was obtained.
+extern int lockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
 
 extern void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId);
 
@@ -90,6 +97,13 @@ extern void startTransferThreads();
 
 extern void switchIdsToMountPoint(txp::Msg* pMsg);
 
+// Use this method to unlock the transfer queue if it is known that this thread
+// already owns the lock.
 extern void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod);
+
+// Use this method to unlock the transfer queue if it is possible that this thread
+// may not own the lock.  The return value indicates whether the lock needed to
+// be released and was released.
+extern int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
 
 #endif /* BB_XFER_H_ */

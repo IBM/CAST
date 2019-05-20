@@ -78,16 +78,6 @@ class BBTagInfoMap
     int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight);
     int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo& pTagInfo);
 
-    inline void removeTagInfo(const BBTagID& pTagId) {
-        tagInfoMap.erase(pTagId);
-
-        return;
-    }
-
-    inline size_t size() {
-        return tagInfoMap.size();
-    }
-
     map<BBTagID, BBTagInfo, BBTagID_Compare> tagInfoMap;
 };
 

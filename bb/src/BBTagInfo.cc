@@ -142,6 +142,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfo::addTransferDef");
+
     // NOTE: The handle file is locked exclusive here to serialize amongst multiple bbServers
     //       adding transfer definitions...
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback;
@@ -229,6 +231,11 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
         rc = -1;
         errorText << "BBTagInfo::addTransferDef: Handle file could not be loaded for " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId;
         LOG_ERROR(errorText);
+    }
+
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "BBTagInfo::addTransferDef");
     }
 
     if (l_HandleFileName)
@@ -870,8 +877,21 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid jobstepid of " << UNDEFINED_JOBSTEPID << " to the cross bbServer metadata";
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
+                    else if (pContribId == NO_CONTRIBID)
+                    {
+                        rc = -1;
+                        errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid contribid of " << NO_CONTRIBID << " to the cross bbServer metadata";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                    else if (pContribId == UNDEFINED_CONTRIBID)
+                    {
+                        rc = -1;
+                        errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to add invalid contribid of " << UNDEFINED_CONTRIBID << " to the cross bbServer metadata";
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
 
-                    LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is not already registered.  It will be added.";
+                    LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
+                                 << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
                     bfs::path l_LVUuidPath = handle / bfs::path(lv_uuid_str);
                     bfs::create_directories(l_LVUuidPath);
 

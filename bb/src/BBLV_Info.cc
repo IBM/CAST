@@ -82,6 +82,11 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
 
     // NOTE: pLockWasReleased intentionally not initialized
 
+    // It is possible to enter this section of code without the transfer queue locked.
+    // Inserting into a std::map is not thread safe, so we must acquire the lock around
+    // the insert.
+    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "cancelExtents entry");
+
     size_t l_NumberOfNewExtentsCanceled = 0;
     extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);
 
@@ -135,6 +140,11 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
         LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        unlockTransferQueue(pLVKey, "cancelExtents exit");
+    }
+
     return;
 }
 
@@ -173,7 +183,7 @@ void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, TRANSFER_QUEUE_RELEASED
 
     if (!stageOutEnded())
     {
-        LOG(bb,info) << "taginfo: Stageout end processing being initiated for jobid " << jobid << ", for " << *pLVKey;
+        LOG(bb,debug) << "taginfo: Stageout end processing being initiated for jobid " << jobid << ", for " << *pLVKey;
 
         // NOTE: if stageoutEnd() fails, it fills in errstate.  However, we are not setting a rc here...
         if (stageoutEnd(string(""), pLVKey, FORCED))
