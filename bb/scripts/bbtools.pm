@@ -464,6 +464,17 @@ sub setupUserEnvironment
         $ENV{$key} = $value;
     }
     close($BBENV);
+
+    if(exists $ENV{"LSB_SUB3_CWD"})
+    {
+        my $dir = $ENV{"LSB_SUB3_CWD"};
+        ($dir) =~ s/^\"(.*)\"/$1/;
+        chdir($dir);
+    }
+    elsif(exists $ENV{"PWD"})
+    {
+        chdir($ENV{"PWD"});
+    }
     return 0;
 }
 
