@@ -107,7 +107,7 @@ GROUP BY {0}
                     "timestamp" : data["job_submit_time"],
                     "type"      : "allocation",
                     "uid"       : data["allocation_id"],
-                    "data"      : data
+                    "data"      : data.decode('utf-8', 'ignore')
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
@@ -139,7 +139,7 @@ GROUP BY {0}, a.end_time
                     "timestamp" : data["job_submit_time"],
                     "type"      : "allocation",
                     "uid"       : data["allocation_id"],
-                    "data"      : data
+                    "data"      : data.decode('utf-8', 'ignore')
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
@@ -160,7 +160,7 @@ GROUP BY {0}
                     "timestamp" : data["begin_time"],
                     "type"      : "allocation-step",
                     "uid"       : "{0}-{1}".format(data["allocation_id"],data["step_id"]),
-                    "data"      : data
+                    "data"      : data.decode('utf-8', 'ignore')
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
@@ -187,7 +187,7 @@ GROUP BY {0}, {1}
                     "timestamp" : data["begin_time"],
                     "type"      : "allocation-step",
                     "uid"       : "{0}-{1}".format(data["allocation_id"],data["step_id"]),
-                    "data"      : data
+                    "data"      : data.decode('utf-8', 'ignore')
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
