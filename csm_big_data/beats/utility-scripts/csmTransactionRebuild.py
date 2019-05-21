@@ -26,6 +26,19 @@ DEFAULT_DATABASE="csmdb"
 DEFAULT_USER="postgres"
 DEFAULT_OUTPUT="csm-transaction.log"
 
+def sanitize_string(v):
+    return v.decode('utf-8', 'ignore')
+
+def sanitize_dict(d):
+  for k, v in d.iteritems():
+    if isinstance(v, dict):
+      d[k] = sanitize_dict(v)
+    elif isinstance(v, str):
+      d[k] = sanitize_string(v)
+    else:
+      d[k] = v
+  return d
+
 def dump_allocations( db, user, output ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
@@ -107,7 +120,7 @@ GROUP BY {0}
                     "timestamp" : data["job_submit_time"],
                     "type"      : "allocation",
                     "uid"       : data["allocation_id"],
-                    "data"      : data.decode('utf-8', 'ignore')
+                    "data"      : sanitize_dict(data)
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
@@ -139,7 +152,7 @@ GROUP BY {0}, a.end_time
                     "timestamp" : data["job_submit_time"],
                     "type"      : "allocation",
                     "uid"       : data["allocation_id"],
-                    "data"      : data.decode('utf-8', 'ignore')
+                    "data"      : sanitize_dict(data)
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
@@ -160,7 +173,7 @@ GROUP BY {0}
                     "timestamp" : data["begin_time"],
                     "type"      : "allocation-step",
                     "uid"       : "{0}-{1}".format(data["allocation_id"],data["step_id"]),
-                    "data"      : data.decode('utf-8', 'ignore')
+                    "data"      : sanitize_dict(data)
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
@@ -187,7 +200,7 @@ GROUP BY {0}, {1}
                     "timestamp" : data["begin_time"],
                     "type"      : "allocation-step",
                     "uid"       : "{0}-{1}".format(data["allocation_id"],data["step_id"]),
-                    "data"      : data.decode('utf-8', 'ignore')
+                    "data"      : sanitize_dict(data)
                 }
                 file.write('{0}\n'.format(json.dumps(data_wrapped, default=str)))
 
