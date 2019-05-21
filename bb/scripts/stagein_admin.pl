@@ -56,7 +56,6 @@ sub failureCleanAndExit
 }
 
 @STGIN = ();
-push(@STGIN, "$bbtools::FLOOR/bb/scripts/stagein_user_bscfs.pl") if($ENV{"LSB_SUB_ADDITIONAL"} =~ /bscfs/);
 push(@STGIN, $BB_STGIN_SCRIPT) if($BB_STGIN_SCRIPT ne "");
 
 phase1() if($ARGV[0] == 1);
@@ -99,6 +98,8 @@ sub phase2
     &phase2_failure() if($rc);
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
+
+    unshift(@STGIN, "$bbtools::FLOOR/bb/scripts/stagein_user_bscfs.pl") if(exists $ENV{"BSCFS_MNT_PATH"});
 
     foreach $bbscript (@STGIN)
     {
