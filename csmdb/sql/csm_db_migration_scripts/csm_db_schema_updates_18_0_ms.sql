@@ -43,12 +43,12 @@ BEGIN;
 DO $$ 
     BEGIN
         BEGIN
-            ALTER TABLE csm_allocation ADD COLUMN core_blink boolean not null;
+            ALTER TABLE csm_allocation ADD COLUMN core_blink boolean NOT NULL DEFAULT FALSE;
         EXCEPTION
             WHEN duplicate_column THEN RAISE INFO 'column core_blink already exists in csm_allocation, skipping.';
         END;
         BEGIN
-            ALTER TABLE csm_allocation_history ADD COLUMN core_blink boolean not null;
+            ALTER TABLE csm_allocation_history ADD COLUMN core_blink boolean;
         EXCEPTION
             WHEN duplicate_column THEN RAISE INFO 'column core_blink already exists in csm_allocation_history, skipping.';
         END;

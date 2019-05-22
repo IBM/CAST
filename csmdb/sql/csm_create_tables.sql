@@ -17,7 +17,7 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   18.0
 --   create:            12-14-2015
---   last modified:     05-13-2019
+--   last modified:     05-22-2019
 --   change log:
 --   18.0   Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
 --          Added in type and fw_version to the csm_switch_inventory and csm_inventory_history tables with comments.
@@ -307,8 +307,8 @@ CREATE TABLE csm_allocation (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
-    smt_mode                        smallint    default 0,
-    core_blink                      boolean     not null,
+    smt_mode                        smallint    not null    default 0,
+    core_blink                      boolean     not null    default FALSE,
 
     
     -- resource_comments            tbd     not null,
@@ -448,7 +448,7 @@ CREATE TABLE csm_allocation_history (
     wc_key                          text,
     archive_history_time            timestamp,
     smt_mode                        smallint,
-    core_blink                      boolean     not null
+    core_blink                      boolean
 
 );
 
