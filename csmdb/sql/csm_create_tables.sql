@@ -307,8 +307,8 @@ CREATE TABLE csm_allocation (
     requeue                         text,
     time_limit                      bigint      not null,
     wc_key                          text,
-    smt_mode                        smallint    default 0,
-    core_blink                      boolean     default FALSE,
+    smt_mode                        smallint    not null    default 0,
+    core_blink                      boolean     not null    default FALSE,
 
     
     -- resource_comments            tbd     not null,
