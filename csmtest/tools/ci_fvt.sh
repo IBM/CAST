@@ -102,8 +102,6 @@ run_bucket "basic" "step"
 run_bucket "basic" "bb"
 run_bucket "basic" "db_script"
 run_bucket "basic" "ib_inventory"
-run_bucket "basic" "switch_inventory"
-run_bucket "basic" "inventory_collection"
 run_bucket "basic" "compute_node"
 run_bucket "advanced" "allocation"
 run_bucket "error_injection" "allocation"
@@ -112,16 +110,12 @@ run_bucket "error_injection" "node"
 run_bucket "error_injection" "ib_inventory"
 run_bucket "error_injection" "switch_inventory"
 run_bucket "error_injection" "messaging"
-run_bucket "basic" "hcdiag"
 run_bucket "basic" "csm_ctrl_cmd"
 run_bucket "basic" "soft_failure_recovery"
+#${FVT_PATH}/setup/csm_uninstall.sh
+#${FVT_PATH}/setup/csm_install.sh
 ${FVT_PATH}/tools/dual_aggregator/shutdown_daemons.sh
-sleep 5
-${FVT_PATH}/setup/csm_setup.sh
-run_bucket "error_injection" "infrastructure"
-run_bucket "error_injection" "versioning"
-${FVT_PATH}/setup/csm_uninstall.sh
-${FVT_PATH}/setup/csm_install.sh
+${FVT_PATH}/tools/dual_aggregator/start_daemons.sh
 run_bucket "basic" "python_libraries"
 run_bucket "advanced" "allocation_timing"
 
