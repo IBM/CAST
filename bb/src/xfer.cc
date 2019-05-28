@@ -1842,6 +1842,7 @@ void startThreads(void)
     for(x=0; x<numbuffers; x++)
     {
         void* buffer = mmap(NULL, transferBufferSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+        memset(buffer, 0, transferBufferSize);  // force physical page allocation
         returnTransferBuffer(buffer);
     }
 
