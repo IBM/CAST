@@ -529,28 +529,28 @@ typedef struct {
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
     uint32_t serial_numbers_count; /**< Number of serial numbers to query on, size of @ref serial_numbers. */
     char** serial_numbers; /**< Listing of serial numbers to query the database for matches of, size defined by @ref serial_numbers_count. */
-    uint32_t comment_count; /**< Number of comment strings to query on, size of @ref comment. */
-    char** comment; /**< Filter results of the database query to only include cables containing comments in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t comments_count; /**< Number of comment strings to query on, size of @ref comment. */
+    char** comments; /**< Filter results of the database query to only include cables containing comments in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
     uint32_t guids_count; /**< Number of guid strings to query on, size of @ref guids. */
     char** guids; /**< Filter results of the database query to only include cables containing guids in this list. API will search both 'guid_s1' and 'guid_s2' fields in 'csm_ib_cable' table. */
-    uint32_t identifier_count; /**< Number of identifier strings to query on, size of @ref identifier. */
-    char** identifier; /**< Filter results of the database query to only include cables containing identifiers in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t identifiers_count; /**< Number of identifier strings to query on, size of @ref identifier. */
+    char** identifiers; /**< Filter results of the database query to only include cables containing identifiers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
     uint32_t lengths_count; /**< Number of length strings to query on, size of @ref length. */
-    char** length; /**< Filter results of the database query to only include cables containing lengths in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
-    uint32_t name_count; /**< Number of name strings to query on, size of @ref name. */
-    char** name; /**< Filter results of the database query to only include cables containing names in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
-    uint32_t part_number_count; /**< Number of part_number strings to query on, size of @ref part_number. */
-    char** part_number; /**< Filter results of the database query to only include cables containing part_numbers in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    char** lengths; /**< Filter results of the database query to only include cables containing lengths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t names_count; /**< Number of name strings to query on, size of @ref name. */
+    char** names; /**< Filter results of the database query to only include cables containing names in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t part_numbers_count; /**< Number of part_number strings to query on, size of @ref part_number. */
+    char** part_numbers; /**< Filter results of the database query to only include cables containing part_numbers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
     uint32_t ports_count; /**< Number of port strings to query on, size of @ref ports. */
-    char** ports; /**< Filter results of the database query to only include cables containing ports in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table. */
-    uint32_t revision_count; /**< Number of revision strings to query on, size of @ref revision. */
-    char** revision; /**< Filter results of the database query to only include cables containing revisions in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
-    uint32_t severity_count; /**< Number of severity strings to query on, size of @ref severity. */
-    char** severity; /**< Filter results of the database query to only include cables containing severities in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
-    uint32_t type_count; /**< Number of type strings to query on, size of @ref type. */
-    char** type; /**< Filter results of the database query to only include cables containing types in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
-    uint32_t width_count; /**< Number of width strings to query on, size of @ref width. */
-    char** width; /**< Filter results of the database query to only include cables containing widths in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    char** ports; /**< Filter results of the database query to only include cables containing ports in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table. */
+    uint32_t revisions_count; /**< Number of revision strings to query on, size of @ref revision. */
+    char** revisions; /**< Filter results of the database query to only include cables containing revisions in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t severities_count; /**< Number of severity strings to query on, size of @ref severity. */
+    char** severities; /**< Filter results of the database query to only include cables containing severities in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t types_count; /**< Number of type strings to query on, size of @ref type. */
+    char** types; /**< Filter results of the database query to only include cables containing types in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t widths_count; /**< Number of width strings to query on, size of @ref width. */
+    char** widths; /**< Filter results of the database query to only include cables containing widths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
 } csm_ib_cable_query_input_t;
 /**
  * @brief A wrapper for the output of @ref csm_ib_cable_query.
