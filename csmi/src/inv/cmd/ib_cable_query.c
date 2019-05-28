@@ -68,8 +68,7 @@ void help(){
 	puts("    -s, --serial_numbers | \"abc123,xyz789\"                           | (STRING) This is a csv field of serial numbers to query. Filter results to only include records that have a matching serial numbers. The serial number is a unique identification for an ib cable.");
 	puts("    -S, --severities     | \"Info\"                                    | (STRING) Filter results of the database query to only include cables containing severities in this csv list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'  ");
 	puts("    -t, --types          | \"Copper cable- unequalized, %VCSEL%\"      | (STRING) This is a csv field of types to query. Filter results to only include records that have a matching types. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'");
-	puts("    -w, --widths         | \"IB_4x,%8x%\"                              | (STRING) This is a csv field of widths to query. Filter results to only include records that have a matching widths. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'  the width of the cable - physical state of IB port (Optional Values: IB_1x ,IB_4
-x, IB_8x, IB_12x");
+	puts("    -w, --widths         | \"IB_4x,%8x%\"                              | (STRING) This is a csv field of widths to query. Filter results to only include records that have a matching widths. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'  the width of the cable - physical state of IB port (Optional Values: IB_1x ,IB_4x, IB_8x, IB_12x");
 	puts("                         |                                           | ");
 	puts("  FILTERS:");
 	puts("    csm_ib_cable_query can have 2 optional filters.");
