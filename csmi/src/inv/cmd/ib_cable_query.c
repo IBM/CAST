@@ -64,6 +64,7 @@ void help(){
 	puts("    -n, --names          | \"%248a0703006d40f0_14%\"                   | (STRING) Filter results of the database query to only include cables containing names in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
 	puts("    -p, --part_numbers   | \"00WT050,%XXYYZZ\"                         | (STRING) Filter results of the database query to only include cables containing part_numbers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'  ");
 	puts("    -P, --ports          | \"14,%2%\"                                  | (STRING) Filter results of the database query to only include cables containing ports in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table.  ");
+	puts("    -r, --revisions      | \"A1,B%\"                                   | (STRING) Filter results of the database query to only include cables containing revisions in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'  ");
 	
 
 	puts("    -s, --serial_numbers | \"abc123,xyz789\"                           | (STRING) This is a csv field of serial numbers to query. Filter results to only include records that have a matching serial numbers. The serial number is a unique identification for an ib cable.");
