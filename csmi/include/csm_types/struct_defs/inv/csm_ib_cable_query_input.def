@@ -57,8 +57,8 @@ CSMI_STRUCT_MEMBER(char**  , serial_numbers      , ARRAY_STR, serial_numbers_cou
 CSMI_VERSION_END(3e69eda81e00d592815ea50c6d0889b6)
 
 CSMI_VERSION_START(CSM_DEVELOPMENT)
-CSMI_STRUCT_MEMBER(uint32_t, comment_count    , BASIC    ,                  , 0   , ) /**< Number of comment strings to query on, size of @ref comment. */
-CSMI_STRUCT_MEMBER(char**  , comment          , ARRAY_STR, type_count       , NULL, ) /**< Filter results of the database query to only include cables containing comments in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, comments_count    , BASIC    ,                  , 0   , ) /**< Number of comment strings to query on, size of @ref comment. */
+CSMI_STRUCT_MEMBER(char**  , comments          , ARRAY_STR, comments_count       , NULL, ) /**< Filter results of the database query to only include cables containing comments in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
 CSMI_STRUCT_MEMBER(uint32_t, guids_count      , BASIC    ,                  , 0   , ) /**< Number of guid strings to query on, size of @ref guids. */
 CSMI_STRUCT_MEMBER(char**  , guids            , ARRAY_STR, guids_count      , NULL, ) /**< Filter results of the database query to only include cables containing guids in this list. API will search both 'guid_s1' and 'guid_s2' fields in 'csm_ib_cable' table. */
 CSMI_STRUCT_MEMBER(uint32_t, identifier_count , BASIC    ,                  , 0   , ) /**< Number of identifier strings to query on, size of @ref identifier. */
