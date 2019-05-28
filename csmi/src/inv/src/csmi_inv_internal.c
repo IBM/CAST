@@ -781,13 +781,44 @@ const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_output_t= {
     cast_csm_ib_cable_inventory_collection_output_t
 };
 
-const csmi_struct_node_t csm_ib_cable_query_input_tree[7] = {{"offset",offsetof(csm_ib_cable_query_input_t,offset),0,NULL,0x123b4b4c,36},
+const csmi_struct_node_t csm_ib_cable_query_input_tree[38] = {{"serial_numbers_count",offsetof(csm_ib_cable_query_input_t,serial_numbers_count),0,NULL,0x54252ca8,24},
+{"offset",offsetof(csm_ib_cable_query_input_t,offset),0,NULL,0x123b4b4c,36},
+{"identifier",offsetof(csm_ib_cable_query_input_t,identifier),offsetof(csm_ib_cable_query_input_t, indentifier_count),NULL,0xbe5ad288,5},
+{"guids",offsetof(csm_ib_cable_query_input_t,guids),offsetof(csm_ib_cable_query_input_t, guid_s1_count),NULL,0xf88d061,5},
+{"revision",offsetof(csm_ib_cable_query_input_t,revision),offsetof(csm_ib_cable_query_input_t, revision_count),NULL,0x2aabb274,5},
+{"name",offsetof(csm_ib_cable_query_input_t,name),offsetof(csm_ib_cable_query_input_t, name_count),NULL,0x7c9b0c46,5},
+{"guids_count",offsetof(csm_ib_cable_query_input_t,guids_count),0,NULL,0xf68e4129,24},
+{"part_number_count",offsetof(csm_ib_cable_query_input_t,part_number_count),0,NULL,0x83398ac,24},
+{"ports",offsetof(csm_ib_cable_query_input_t,ports),offsetof(csm_ib_cable_query_input_t, ports_count),NULL,0x10288afd,5},
+{"comment_count",offsetof(csm_ib_cable_query_input_t,comment_count),0,NULL,0x18d87860,24},
+{"part_number",offsetof(csm_ib_cable_query_input_t,part_number),offsetof(csm_ib_cable_query_input_t, part_number_count),NULL,0x532f81a4,5},
+{"lengths_count",offsetof(csm_ib_cable_query_input_t,lengths_count),0,NULL,0x6390dba2,24},
+{"identifier_count",offsetof(csm_ib_cable_query_input_t,identifier_count),0,NULL,0xa9790490,24},
+{"comment",offsetof(csm_ib_cable_query_input_t,comment),offsetof(csm_ib_cable_query_input_t, type_count),NULL,0xd363aa58,5},
+{"serial_numbers",offsetof(csm_ib_cable_query_input_t,serial_numbers),offsetof(csm_ib_cable_query_input_t, serial_numbers_count),NULL,0xff70c8a0,5},
+{"revision_count",offsetof(csm_ib_cable_query_input_t,revision_count),0,NULL,0x365257c,24},
+{"length",offsetof(csm_ib_cable_query_input_t,length),offsetof(csm_ib_cable_query_input_t, length_count),NULL,0xb2deac7,5},
 {"limit",offsetof(csm_ib_cable_query_input_t,limit),0,NULL,0xfdcc804,36},
-{"serial_numbers_count",offsetof(csm_ib_cable_query_input_t,serial_numbers_count),0,NULL,0x54252ca8,24},
+{"severity_count",offsetof(csm_ib_cable_query_input_t,severity_count),0,NULL,0x1131bda8,24},
+{"severity",offsetof(csm_ib_cable_query_input_t,severity),offsetof(csm_ib_cable_query_input_t, severity_count),NULL,0x16a499a0,5},
+{NULL,0,0,NULL,0,0},
+{"width_count",offsetof(csm_ib_cable_query_input_t,width_count),0,NULL,0x4ac9446d,24},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"ports_count",offsetof(csm_ib_cable_query_input_t,ports_count),0,NULL,0x6b0e80c5,24},
+{"type",offsetof(csm_ib_cable_query_input_t,type),offsetof(csm_ib_cable_query_input_t, type_count),NULL,0x7c9ebd07,5},
+{"type_count",offsetof(csm_ib_cable_query_input_t,type_count),0,NULL,0xb9a8924f,24},
+{NULL,0,0,NULL,0,0},
+{"name_count",offsetof(csm_ib_cable_query_input_t,name_count),0,NULL,0xf0f914ce,24},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{"serial_numbers",offsetof(csm_ib_cable_query_input_t,serial_numbers),offsetof(csm_ib_cable_query_input_t, serial_numbers_count),NULL,0xff70c8a0,5}}
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"width",offsetof(csm_ib_cable_query_input_t,width),offsetof(csm_ib_cable_query_input_t, type_count),NULL,0x10a3b0a5,5}}
 ;
 
 void* cast_csm_ib_cable_query_input_t(void* ptr,size_t index, char isArray) { 
@@ -795,7 +826,7 @@ void* cast_csm_ib_cable_query_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_query_input_t= {
-    7,
+    38,
     csm_ib_cable_query_input_tree,
     cast_csm_ib_cable_query_input_t
 };

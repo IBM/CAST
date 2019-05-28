@@ -55,6 +55,33 @@ CSMI_STRUCT_MEMBER(uint32_t, serial_numbers_count, BASIC    ,                   
 CSMI_STRUCT_MEMBER(char**  , serial_numbers      , ARRAY_STR, serial_numbers_count, NULL, ) /**< Listing of serial numbers to query the database for matches of, size defined by @ref serial_numbers_count. */
 
 CSMI_VERSION_END(3e69eda81e00d592815ea50c6d0889b6)
+
+CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_STRUCT_MEMBER(uint32_t, comment_count    , BASIC    ,                  , 0   , ) /**< Number of comment strings to query on, size of @ref comment. */
+CSMI_STRUCT_MEMBER(char**  , comment          , ARRAY_STR, type_count       , NULL, ) /**< Filter results of the database query to only include cables containing comments in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, guids_count      , BASIC    ,                  , 0   , ) /**< Number of guid strings to query on, size of @ref guids. */
+CSMI_STRUCT_MEMBER(char**  , guids            , ARRAY_STR, guids_count      , NULL, ) /**< Filter results of the database query to only include cables containing guids in this list. API will search both 'guid_s1' and 'guid_s2' fields in 'csm_ib_cable' table. */
+CSMI_STRUCT_MEMBER(uint32_t, identifier_count , BASIC    ,                  , 0   , ) /**< Number of identifier strings to query on, size of @ref identifier. */
+CSMI_STRUCT_MEMBER(char**  , identifier       , ARRAY_STR, identifier_count , NULL, ) /**< Filter results of the database query to only include cables containing identifiers in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, length_count     , BASIC    ,                  , 0   , ) /**< Number of length strings to query on, size of @ref length. */
+CSMI_STRUCT_MEMBER(char**  , length           , ARRAY_STR, length_count     , NULL, ) /**< Filter results of the database query to only include cables containing lengths in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, name_count       , BASIC    ,                  , 0   , ) /**< Number of name strings to query on, size of @ref name. */
+CSMI_STRUCT_MEMBER(char**  , name             , ARRAY_STR, name_count       , NULL, ) /**< Filter results of the database query to only include cables containing names in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, part_number_count, BASIC    ,                  , 0   , ) /**< Number of part_number strings to query on, size of @ref part_number. */
+CSMI_STRUCT_MEMBER(char**  , part_number      , ARRAY_STR, part_number_count, NULL, ) /**< Filter results of the database query to only include cables containing part_numbers in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, ports_count      , BASIC    ,                  , 0   , ) /**< Number of port strings to query on, size of @ref ports. */
+CSMI_STRUCT_MEMBER(char**  , ports            , ARRAY_STR, ports_count      , NULL, ) /**< Filter results of the database query to only include cables containing ports in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table. */
+CSMI_STRUCT_MEMBER(uint32_t, revision_count   , BASIC    ,                  , 0   , ) /**< Number of revision strings to query on, size of @ref revision. */
+CSMI_STRUCT_MEMBER(char**  , revision         , ARRAY_STR, revision_count   , NULL, ) /**< Filter results of the database query to only include cables containing revisions in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, severity_count   , BASIC    ,                  , 0   , ) /**< Number of severity strings to query on, size of @ref severity. */
+CSMI_STRUCT_MEMBER(char**  , severity         , ARRAY_STR, severity_count   , NULL, ) /**< Filter results of the database query to only include cables containing severities in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, type_count       , BASIC    ,                  , 0   , ) /**< Number of type strings to query on, size of @ref type. */
+CSMI_STRUCT_MEMBER(char**  , type             , ARRAY_STR, type_count       , NULL, ) /**< Filter results of the database query to only include cables containing types in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(uint32_t, width_count      , BASIC    ,                  , 0   , ) /**< Number of width strings to query on, size of @ref width. */
+CSMI_STRUCT_MEMBER(char**  , width            , ARRAY_STR, type_count       , NULL, ) /**< Filter results of the database query to only include cables containing widths in this list. API uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_VERSION_END(0)
+
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER
