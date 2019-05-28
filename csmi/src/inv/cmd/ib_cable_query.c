@@ -44,7 +44,7 @@ void help(){
 	puts("_____CSM_IB_CABLE_QUERY_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_ib_cable_query ARGUMENTS [OPTIONS]");
-	puts("  csm_ib_cable_query [-c comments] [-g guids] [-i identifiers] [-l lengths] [-n names] [-p part_numbers] [-P ports] [-s serial_numbers] [-l limit] [-o offset] [-h] [-v verbose_level]");
+	puts("  csm_ib_cable_query [-c comments] [-g guids] [-i identifiers] [-L lengths] [-n names] [-p part_numbers] [-P ports] [-s serial_numbers] [-l limit] [-o offset] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Used to query the 'csm_ib_cable' table of the CSM database.");
 	puts("");
@@ -60,7 +60,7 @@ void help(){
 	puts("    -c, --comments       | \"comment,%nick%\"                          | (STRING) Filter results of the database query to only include cables containing comments in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
 	puts("    -g, --guids          | \"248a:0703:006d:40f0,ec0d:9a03:00d3:05b4\" | (STRING) Filter results of the database query to only include cables containing guids in this list. This field will search both 'guid_s1' and 'guid_s2' fields in 'csm_ib_cable' table. ");
 	puts("    -i, --identifiers    | \"QSFP+,Unknown\"                           | (STRING) Filter results of the database query to only include cables containing identifiers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
-	puts("    -l, --lengths        | \"2 m,%3%\"                                 | (STRING) Filter results of the database query to only include cables containing lengths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'. ");
+	puts("    -L, --lengths        | \"2 m,%3%\"                                 | (STRING) Filter results of the database query to only include cables containing lengths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'. ");
 	puts("    -n, --names          | \"%248a0703006d40f0_14%\"                   | (STRING) Filter results of the database query to only include cables containing names in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
 	puts("    -p, --part_numbers   | \"00WT050,%XXYYZZ\"                         | (STRING) Filter results of the database query to only include cables containing part_numbers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'  ");
 	puts("    -P, --ports          | \"14,%2%\"                                  | (STRING) Filter results of the database query to only include cables containing ports in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table.  ");
