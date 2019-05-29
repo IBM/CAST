@@ -84,9 +84,6 @@ extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 
 void setSsdWriteDirect(unsigned int pValue);
-
-// NOTE: This lock is not used today.  Serialization of all metadata is controlled by the transfer queue lock
-//extern pthread_mutex_t MetadataMutex;
 #endif
 
 /*******************************************************************************
@@ -166,6 +163,7 @@ const string NO_CONTRIBID_STR = to_string(NO_CONTRIBID);
 const string NO_HOSTNAME = "%%_NuLl_HoStNaMe_%%";
 const string UNDEFINED_CONNECTION_NAME = "";
 const string UNDEFINED_HOSTNAME = "";
+const string DEFAULT_LOCK_DEBUG_LEVEL = "debug";
 const char DEVICE_DIRECTORY[] = "dev";
 const char DEVICE_MAPPER_DIRECTORY[] = "dev/mapper";
 const char ERROR_PREFIX[] = "ERROR - ";
@@ -205,19 +203,19 @@ enum FIND_BB_DEVNAMES_OPTION
 };
 typedef enum FIND_BB_DEVNAMES_OPTION FIND_BB_DEVNAMES_OPTION;
 
-enum TRANSFER_QUEUE_RELEASED
+enum LOCAL_METADATA_RELEASED
 {
-    TRANSFER_QUEUE_LOCK_NOT_RELEASED    = 0,
-    TRANSFER_QUEUE_LOCK_RELEASED        = 1
+    LOCAL_METADATA_LOCK_NOT_RELEASED    = 0,
+    LOCAL_METADATA_LOCK_RELEASED        = 1
 };
-typedef enum TRANSFER_QUEUE_RELEASED TRANSFER_QUEUE_RELEASED;
+typedef enum LOCAL_METADATA_RELEASED LOCAL_METADATA_RELEASED;
 
 enum HANDLEFILE_LOCK_OPTION
 {
     TEST_FOR_HANDLEFILE_LOCK        = -1,   // Not currently used
     DO_NOT_LOCK_HANDLEFILE          = 0,
     LOCK_HANDLEFILE                 = 1,
-    LOCK_HANDLEFILE_WITH_TEST_FIRST = 2     // Not curently used
+    LOCK_HANDLEFILE_WITH_TEST_FIRST = 2     // Not currently used
 };
 typedef enum HANDLEFILE_LOCK_OPTION HANDLEFILE_LOCK_OPTION;
 

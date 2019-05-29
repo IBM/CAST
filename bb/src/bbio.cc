@@ -396,12 +396,19 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     setNumWritesNoSync(l_FileIndex, 0);
                     setTotalSizeWritesNoSync(l_FileIndex, 0);
                     unlockTransferQueue(&pKey, "performIO - Before periodic fsync to PFS");
+                    try
                     {
                         LOG(bb,info) << "Periodic PFS fsync start: targetindex=" << l_FileIndex << ", # writes " << l_NumberOfWrites << ", size of writes " << l_SizeOfWrites << ", triggered by extent " << *pExtent;
                         FL_Write(FLTInf2, PSYNC_PFS, "Performing periodic PFS fsync.  Target index=%ld", pExtent->targetindex,0,0,0);
                         fsync(l_FileIndex);
                         FL_Write(FLTInf2, PSYNC_PFSCMP, "Performed periodic PFS fsync.  Target index=%ld", pExtent->targetindex,0,0,0);
                         LOG(bb,info) << "Periodic PFS fsync end: targetindex=" << l_FileIndex;
+                    }
+                    catch (ExceptionBailout& e) { }
+                    catch (exception& e)
+                    {
+                        rc = -1;
+                        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
                     }
                     lockTransferQueue(&pKey, "performIO - After periodic fsync to PFS");
                 }

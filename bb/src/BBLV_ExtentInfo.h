@@ -91,7 +91,7 @@ class BBLV_ExtentInfo
     // Static methods
 
     // Non-static methods
-    int addExtents(const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, vector<struct stat*>* pStats);
+    int addExtents(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo, BBTransferDef* pTransferDef, vector<struct stat*>* pStats);
     void addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo);
     void dump(const char* pSev, const char* pPrefix=0) const;
     void dumpExtents(const char* pSev, const char* pPrefix=0) const;

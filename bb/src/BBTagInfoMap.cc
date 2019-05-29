@@ -28,11 +28,6 @@ namespace bs = boost::system;
 #include "bbwrkqmgr.h"
 
 
-// Static data...
-// NOTE: This lock is not used today.  Serialization of all metadata is controlled by the transfer queue lock
-// pthread_mutex_t MetadataMutex = PTHREAD_MUTEX_INITIALIZER;
-
-
 //
 // BBTagInfoMap class
 //
@@ -55,7 +50,7 @@ void BBTagInfoMap::accumulateTotalLocalContributorInfo(const uint64_t pHandle, s
     return;
 }
 
-int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID pTagId, BBTagInfo& pTagInfo, int& pGeneratedHandle)
+int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID pTagId, BBTagInfo* &pTagInfo, int& pGeneratedHandle)
 {
     int rc = 0;
 
@@ -64,16 +59,18 @@ int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagI
     // It is possible to enter this section of code without the transfer queue locked.
     // Inserting into a std::map is not thread safe, so we must acquire the lock around
     // the insert.
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::addTagInfo");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfoMap::addTagInfo");
 
-    tagInfoMap[pTagId] = pTagInfo;
-    if (pGeneratedHandle) {
-        rc = update_xbbServerAddData(pLVKey, pJob, pTagId.getTag(), pTagInfo);
+    tagInfoMap[pTagId] = *pTagInfo;
+    pTagInfo = &tagInfoMap[pTagId];
+
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBTagInfoMap::addTagInfo");
     }
 
-    if (l_TransferQueueWasLocked)
-    {
-        unlockTransferQueue(pLVKey, "BBTagInfoMap::addTagInfo");
+    if (pGeneratedHandle) {
+        rc = update_xbbServerAddData(pLVKey, pJob, pTagId.getTag(), pTagInfo);
     }
 
     return rc;
@@ -102,6 +99,8 @@ void BBTagInfoMap::cleanUpAll(const LVKey* pLVKey)
 
 void BBTagInfoMap::dump(char* pSev, const char* pPrefix)
 {
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::dump");
+
     if (tagInfoMap.size()) {
         if (!strcmp(pSev,"debug")) {
             LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo") << ", " \
@@ -122,6 +121,11 @@ void BBTagInfoMap::dump(char* pSev, const char* pPrefix)
             LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo") << ", " \
                          << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
         }
+    }
+
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::dump");
     }
 
     return;
@@ -169,7 +173,7 @@ BBTagInfo* BBTagInfoMap::getTagInfo(const BBTagID& pTagId)
 {
     BBTagInfo* l_TagInfo = (BBTagInfo*)0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
 
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
         if (it->first == pTagId) {
@@ -178,9 +182,9 @@ BBTagInfo* BBTagInfoMap::getTagInfo(const BBTagID& pTagId)
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagInfoMap::getTagInfo");
+        unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::getTagInfo");
     }
 
     return l_TagInfo;
@@ -246,15 +250,15 @@ int BBTagInfoMap::hasContribId(const uint32_t pContribId)
 {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::hasContribId");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::hasContribId");
 
     for (auto it = tagInfoMap.begin(); rc == 0 && it != tagInfoMap.end(); ++it) {
         rc = it->second.inExpectContrib(pContribId);
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagInfoMap::hasContribId");
+        unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::hasContribId");
     }
 
     return rc;
@@ -264,7 +268,7 @@ int BBTagInfoMap::isUniqueHandle(uint64_t pHandle)
 {
     int rc = 1;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::isUniqueHandle");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::isUniqueHandle");
 
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
         if (pHandle == it->second.getTransferHandle()) {
@@ -273,9 +277,9 @@ int BBTagInfoMap::isUniqueHandle(uint64_t pHandle)
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagInfoMap::isUniqueHandle");
+        unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::isUniqueHandle");
     }
 
     return rc;
@@ -334,7 +338,7 @@ void BBTagInfoMap::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const
     return;
 }
 
-int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
@@ -352,7 +356,7 @@ void BBTagInfoMap::updateAllContribsReported(const LVKey* pLVKey, int& pAllRepor
 {
     pAllReported = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::updateAllContribsReported");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfoMap::updateAllContribsReported");
 
     int l_AllReported = 1;
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
@@ -362,9 +366,9 @@ void BBTagInfoMap::updateAllContribsReported(const LVKey* pLVKey, int& pAllRepor
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagInfoMap::updateAllContribsReported");
+        unlockLocalMetadata(pLVKey, "BBTagInfoMap::updateAllContribsReported");
     }
 
     pAllReported = l_AllReported;
@@ -376,7 +380,7 @@ int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, c
 {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::updateAllTransferHandleStatus");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfoMap::updateAllTransferHandleStatus");
 
     // Update the status for all transferHandles
     int l_AllContribsReportedForAllTransferHandles = 1;
@@ -405,26 +409,24 @@ int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, c
         pLVKey_ExtentInfo.updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagInfoMap::updateAllTransferHandleStatus");
+        unlockLocalMetadata(pLVKey, "BBTagInfoMap::updateAllTransferHandleStatus");
     }
 
     return rc;
 }
 
-int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo& pTagInfo)
+int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo* &pTagInfo)
 {
     int rc = 0;
     stringstream errorText;
-
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfoMap::update_xbbServerAddData");
 
     try
     {
         bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
-        bfs::path handle = jobstepid / bfs::path(to_string(pTagInfo.getTransferHandle()));
+        bfs::path handle = jobstepid / bfs::path(to_string(pTagInfo->getTransferHandle()));
 
         // NOTE:  There is a window between creating the job directory and
         //        performing the chmod to the correct uid:gid.  Therefore, if
@@ -447,18 +449,14 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                 // On first attempt, log the creation of the handle directory...
                 if (l_Attempts == 119)
                 {
-                    LOG(bb,info) << "xbbServer: Handle " << pTagInfo.getTransferHandle() << " is not already registered.  It will be added.";
+                    LOG(bb,info) << "xbbServer: Handle " << pTagInfo->getTransferHandle() << " is not already registered.  It will be added.";
                 }
 
                 // Attempt to create the handle directory
                 bfs::create_directories(handle, l_ErrorCode);
                 if (l_ErrorCode.value() == EACCES)
                 {
-                    unlockTransferQueue(pLVKey, "BBTagInfoMap::update_xbbServerAddData() - Waiting for correct permissions on jobid directory");
-                    {
-                        usleep((useconds_t)1000000);    // Delay 1 second
-                    }
-                    lockTransferQueue(pLVKey, "BBTagInfoMap::update_xbbServerAddData() - Waiting for correct permissions on jobid directory");
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 else
                 {
@@ -489,7 +487,7 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
             // NOTE: We want the creation of the directory and the handle file as close together as possible.
             //       The handle file is 'assumed' to exist if the directory exists...
             HandleFile* l_HandleFile = 0;
-            rc = HandleFile::saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pTag, pTagInfo, pTagInfo.getTransferHandle());
+            rc = HandleFile::saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pTag, *pTagInfo, pTagInfo->getTransferHandle());
             if (!rc)
             {
                 if (!l_JobStepDirectoryAlreadyExists)
@@ -532,11 +530,6 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    if (l_TransferQueueWasLocked)
-    {
-        unlockTransferQueue(pLVKey, "BBTagInfoMap::update_xbbServerAddData");
     }
 
     return rc;

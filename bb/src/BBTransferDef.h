@@ -356,7 +356,7 @@ class BBTransferDef
     void setJob();
 #if BBSERVER
     void setStopped(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
-    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
 #endif
     void unlock();
 

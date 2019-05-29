@@ -40,7 +40,7 @@ typedef std::pair<uint64_t, uint64_t> BSCFS_SortValue;
 // BBLV_ExtentInfo - Non-static methods
 //
 
-int BBLV_ExtentInfo::addExtents(const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, vector<struct stat*>* pStats) {
+int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo, BBTransferDef* pTransferDef, vector<struct stat*>* pStats) {
     int rc = 0;
     stringstream errorText;
 
@@ -173,10 +173,14 @@ int BBLV_ExtentInfo::addExtents(const uint64_t pHandle, const uint32_t pContribI
                     pTransferDef->dumpExtents("info", "New vector of extents before being added to allExtents");
                 }
 
-                for(std::vector<Extent>::size_type i = 0; i < pTransferDef->extents.size(); ++i)
+                lockTransferQueue(pLVKey, "BBLV_ExtentInfo::addExtents");
                 {
-                    allExtents.push_back(ExtentInfo(pHandle, pContribId, &(pTransferDef->extents[i]), pTransferDef));
+                    for(std::vector<Extent>::size_type i = 0; i < pTransferDef->extents.size(); ++i)
+                    {
+                        allExtents.push_back(ExtentInfo(pHandle, pContribId, &(pTransferDef->extents[i]), pTagInfo, pTransferDef));
+                    }
                 }
+                unlockTransferQueue(pLVKey, "BBLV_ExtentInfo::addExtents");
             }
             else
             {
@@ -389,6 +393,8 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
 
     LOG(bb,debug) << "moreExtentsToTransfer: pHandle: " << pHandle << ", pContrib: " << pContrib << ", pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight;
 
+    int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_ExtentInfo::moreExtentsToTransfer");
+
     // Check for in-flight extents with the same handle/contrib
     if (inflight.size())
     {
@@ -419,6 +425,11 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
         }
     }
 
+    if (l_TransferQueueLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_ExtentInfo::moreExtentsToTransfer");
+    }
+
     return rc;
 }
 
@@ -428,6 +439,8 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     uint32_t l_NumberInFlight = 0;
 
     LOG(bb,debug) << "moreExtentsToTransferForFile: pHandle: " << pHandle << ", pContrib: " << pContrib << ", pSourceIndex: " << pSourceIndex << ", pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight;
+
+    int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_ExtentInfo::moreExtentsToTransferForFile");
 
     // Check for in-flight extents with the same handle/contrib/sourceindex
     if (inflight.size())
@@ -469,6 +482,11 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
         }
     }
 
+    if (l_TransferQueueLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_ExtentInfo::moreExtentsToTransferForFile");
+    }
+
     return rc;
 }
 
@@ -477,6 +495,8 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
     int rc = 0;
 
     LOG(bb,debug) << "moreInFlightExtentsForTransferDefinition: pHandle: " << pHandle << ", pContrib: " << pContrib;
+
+    int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition");
 
     // Check for in-flight extents with the same handle/contrib
     if (inflight.size())
@@ -489,6 +509,11 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
                 break;
             }
         }
+    }
+
+    if (l_TransferQueueLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition");
     }
 
     return rc;
@@ -744,198 +769,202 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 
     pNumberOfNewExtentsCanceled = 0;
 
-    // NOTE: The transfer queue lock will have already been obtained prior to invoking this method.
-
-    if ((pHandle && pContribId) || resizeLogicalVolumeDuringStageOut() || BSCFS_InRequest())
+    int l_TransferQueueLocked = lockTransferQueueIfNeeded(pLVKey, "sort extents");
     {
-        try
+        if ((pHandle && pContribId) || resizeLogicalVolumeDuringStageOut() || BSCFS_InRequest())
         {
-            if (allExtents.size())
+            try
             {
-                // Extents exist...
-
-                // NOTE: The way the groupkeys and filekeys are set, normal files will
-                //       always sort in front of all BSCFS files.  This should not be a
-                //       problem as ther are no plans to mix normal and BSCFS extents
-                //       for a given work queue.
-                uint64_t l_BSCFS_GroupKey = 2;
-                Extent* l_ExtentPtr = 0;
-                map<BSCFS_SortKey, uint64_t> BSCFS_SortMap;
-                map<BSCFS_SortKey, uint64_t>::iterator it_BSCFS_SortMap;
-
-                // When entering, we are assured there are no in-flight extents for this LVKey
-
-                size_t l_AlreadyMarkedAsCanceled = 0;
-                size_t l_NotMarkedAsCanceled = 0;
-                size_t l_NotMarkedAsCanceledBSCFS = 0;
-                bool l_CheckForNewlyCanceledExtents = ((pHandle && pContribId) ? true : false);
-
-                LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue upon entry to sort";
-
-                for (size_t i=0; i<allExtents.size(); ++i)
+                if (allExtents.size())
                 {
-                    Extent* l_Extent = allExtents[i].extent;
+                    // Extents exist...
 
-                    // Reset the extent for sort processing
-                    l_Extent->resetForSort();
+                    // NOTE: The way the groupkeys and filekeys are set, normal files will
+                    //       always sort in front of all BSCFS files.  This should not be a
+                    //       problem as ther are no plans to mix normal and BSCFS extents
+                    //       for a given work queue.
+                    uint64_t l_BSCFS_GroupKey = 2;
+                    Extent* l_ExtentPtr = 0;
+                    map<BSCFS_SortKey, uint64_t> BSCFS_SortMap;
+                    map<BSCFS_SortKey, uint64_t>::iterator it_BSCFS_SortMap;
 
-                    if (l_Extent->flags & BBI_TargetSSDSSD || (!l_Extent->len))
+                    // When entering, we are assured there are no in-flight extents for this LVKey
+
+                    size_t l_AlreadyMarkedAsCanceled = 0;
+                    size_t l_NotMarkedAsCanceled = 0;
+                    size_t l_NotMarkedAsCanceledBSCFS = 0;
+                    bool l_CheckForNewlyCanceledExtents = ((pHandle && pContribId) ? true : false);
+
+                    LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue upon entry to sort";
+
+                    for (size_t i=0; i<allExtents.size(); ++i)
                     {
-                        // Dummy extent for local SSD cp or zero length file.
-                        // Leave the group key and file key as zero so it sorts
-                        // to the front.
+                        Extent* l_Extent = allExtents[i].extent;
 
-                        ++l_NotMarkedAsCanceled;
-                    }
-                    else if (l_Extent->flags & BBTD_Canceled)
-                    {
-                        // Extent is already marked as being canceled
-                        l_Extent->lba.groupkey = l_CanceledGroupKey;
-                        l_Extent->lba.filekey = l_CanceledFileKey;
+                        // Reset the extent for sort processing
+                        l_Extent->resetForSort();
 
-                        ++l_AlreadyMarkedAsCanceled;
-                    }
-                    else if (l_CheckForNewlyCanceledExtents &&
-                             (*pHandle == l_Extent->getHandle() && (*pContribId == UNDEFINED_CONTRIBID || *pContribId == l_Extent->getContribId())))
-                    {
-                        // This is an extent to be newly marked as canceled
-                        l_Extent->lba.groupkey = l_CanceledGroupKey;
-                        l_Extent->lba.filekey = l_CanceledFileKey;
-
-                        l_Extent->setCanceled();
-                        ++pNumberOfNewExtentsCanceled;
-                    }
-                    else if (l_Extent->isRegularExtent())
-                    {
-                        // This is a non-canceled regular extent for transfer
-                        l_Extent->lba.groupkey = l_NonCanceledGroupKey;
-                        l_Extent->lba.filekey = l_NonCanceledFileKey;
-
-                        //  Since we know this is the maximum LBA of those extents left, we can use
-                        //  this extent as a location that we can trim the logical volume back to during
-                        //  stage out.
-                        //  NOTE: This value will only be used if we sort in descending LBA order.
-                        //  NOTE: Can only possibly be used if this is an extent for stageout...
-                        l_Extent->setTrimAnchor();
-
-                        ++l_NotMarkedAsCanceled;
-                    }
-                    else
-                    {
-                        // This is a non-canceled BSCFS extent
-                        uint64_t l_GroupKey;
-                        BSCFS_SortKey l_Key = make_pair(allExtents[i].getTransferDef(), l_Extent->getBundleID());
-                        it_BSCFS_SortMap = BSCFS_SortMap.find(l_Key);
-                        if (it_BSCFS_SortMap != BSCFS_SortMap.end())
+                        if (l_Extent->flags & BBI_TargetSSDSSD || (!l_Extent->len))
                         {
-                            // Use the group key as found in the map
-                            l_GroupKey = BSCFS_SortMap[l_Key];
+                            // Dummy extent for local SSD cp or zero length file.
+                            // Leave the group key and file key as zero so it sorts
+                            // to the front.
+
+                            ++l_NotMarkedAsCanceled;
+                        }
+                        else if (l_Extent->flags & BBTD_Canceled)
+                        {
+                            // Extent is already marked as being canceled
+                            l_Extent->lba.groupkey = l_CanceledGroupKey;
+                            l_Extent->lba.filekey = l_CanceledFileKey;
+
+                            ++l_AlreadyMarkedAsCanceled;
+                        }
+                        else if (l_CheckForNewlyCanceledExtents &&
+                                 (*pHandle == l_Extent->getHandle() && (*pContribId == UNDEFINED_CONTRIBID || *pContribId == l_Extent->getContribId())))
+                        {
+                            // This is an extent to be newly marked as canceled
+                            l_Extent->lba.groupkey = l_CanceledGroupKey;
+                            l_Extent->lba.filekey = l_CanceledFileKey;
+
+                            l_Extent->setCanceled();
+                            ++pNumberOfNewExtentsCanceled;
+                        }
+                        else if (l_Extent->isRegularExtent())
+                        {
+                            // This is a non-canceled regular extent for transfer
+                            l_Extent->lba.groupkey = l_NonCanceledGroupKey;
+                            l_Extent->lba.filekey = l_NonCanceledFileKey;
+
+                            //  Since we know this is the maximum LBA of those extents left, we can use
+                            //  this extent as a location that we can trim the logical volume back to during
+                            //  stage out.
+                            //  NOTE: This value will only be used if we sort in descending LBA order.
+                            //  NOTE: Can only possibly be used if this is an extent for stageout...
+                            l_Extent->setTrimAnchor();
+
+                            ++l_NotMarkedAsCanceled;
                         }
                         else
                         {
-                            // Increment the group key
-                            l_GroupKey = ++l_BSCFS_GroupKey;
-                            // Insert the new key
-                            BSCFS_SortMap[l_Key] = l_GroupKey;
+                            // This is a non-canceled BSCFS extent
+                            uint64_t l_GroupKey;
+                            BSCFS_SortKey l_Key = make_pair(allExtents[i].getTransferDef(), l_Extent->getBundleID());
+                            it_BSCFS_SortMap = BSCFS_SortMap.find(l_Key);
+                            if (it_BSCFS_SortMap != BSCFS_SortMap.end())
+                            {
+                                // Use the group key as found in the map
+                                l_GroupKey = BSCFS_SortMap[l_Key];
+                            }
+                            else
+                            {
+                                // Increment the group key
+                                l_GroupKey = ++l_BSCFS_GroupKey;
+                                // Insert the new key
+                                BSCFS_SortMap[l_Key] = l_GroupKey;
+                            }
+                            l_Extent->lba.groupkey = l_GroupKey;
+                            l_Extent->lba.filekey = l_Extent->getTransferOrder();
+
+                            // NOTE: No trim anchor needs to be set as we do not resize the logical volume if BSCFS is in the request.
+
+                            ++l_NotMarkedAsCanceledBSCFS;
                         }
-                        l_Extent->lba.groupkey = l_GroupKey;
-                        l_Extent->lba.filekey = l_Extent->getTransferOrder();
-
-                        // NOTE: No trim anchor needs to be set as we do not resize the logical volume if BSCFS is in the request.
-
-                        ++l_NotMarkedAsCanceledBSCFS;
                     }
-                }
 
-                if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 0))
-                {
-                    dumpExtents("info", "Before sort/copy processing");
-                }
-
-                // Perform the sort of the extents vector...
-                if (!resizeLogicalVolumeDuringStageOut())
-                {
-                    LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", start sorting " << allExtents.size() << " extent(s) for the LVKey, positive SSD stride";
-                    sort(allExtents.begin(), allExtents.end(), compareOpPositiveStride);
-                }
-                else
-                {
-                    LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", start sorting " << allExtents.size() << " extent(s) for the LVKey, negative SSD stride";
-                    sort(allExtents.begin(), allExtents.end(), compareOpNegativeStride);
-                }
-                LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", end sorting " << allExtents.size() << " extent(s) for the LVKey";
-
-                // Find the first/last extent for each (transfer definition,sourceindex)
-                BBTransferDef* l_TransferDef;
-                FileValue l_Value;
-                map<FileKey, FileValue> l_FileMap;
-                map<FileKey, FileValue>::iterator it_FileMap;
-                for (size_t i=0; i<allExtents.size(); ++i)
-                {
-                    l_ExtentPtr = allExtents[i].getExtent();
-                    l_TransferDef = allExtents[i].getTransferDef();
-                    // Now bookkeep the first/last per (BBTransferDef,sourceindex)
-                    FileKey l_Key = make_pair(l_TransferDef, l_ExtentPtr->getSourceIndex());
-                    it_FileMap = l_FileMap.find(l_Key);
-                    if (it_FileMap != l_FileMap.end())
+                    if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 0))
                     {
-                        // Maintain the existing entry for this (transfer definition, sourceindex)
-                        l_Value = make_pair((it_FileMap->second).first, l_ExtentPtr);
+                        dumpExtents("info", "Before sort/copy processing");
+                    }
+
+                    // Perform the sort of the extents vector...
+                    if (!resizeLogicalVolumeDuringStageOut())
+                    {
+                        LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", start sorting " << allExtents.size() << " extent(s) for the LVKey, positive SSD stride";
+                        sort(allExtents.begin(), allExtents.end(), compareOpPositiveStride);
                     }
                     else
                     {
-                        // Create a new entry for this (transfer definition, sourceindex)
-                        l_Value = make_pair(l_ExtentPtr, l_ExtentPtr);
+                        LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", start sorting " << allExtents.size() << " extent(s) for the LVKey, negative SSD stride";
+                        sort(allExtents.begin(), allExtents.end(), compareOpNegativeStride);
                     }
-                    l_FileMap[l_Key] = l_Value;
-                }
+                    LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", end sorting " << allExtents.size() << " extent(s) for the LVKey";
 
-                // Set the first/last values in the sorted vector
-                for (size_t i=0; i<allExtents.size(); ++i)
+                    // Find the first/last extent for each (transfer definition,sourceindex)
+                    BBTransferDef* l_TransferDef;
+                    FileValue l_Value;
+                    map<FileKey, FileValue> l_FileMap;
+                    map<FileKey, FileValue>::iterator it_FileMap;
+                    for (size_t i=0; i<allExtents.size(); ++i)
+                    {
+                        l_ExtentPtr = allExtents[i].getExtent();
+                        l_TransferDef = allExtents[i].getTransferDef();
+                        // Now bookkeep the first/last per (BBTransferDef,sourceindex)
+                        FileKey l_Key = make_pair(l_TransferDef, l_ExtentPtr->getSourceIndex());
+                        it_FileMap = l_FileMap.find(l_Key);
+                        if (it_FileMap != l_FileMap.end())
+                        {
+                            // Maintain the existing entry for this (transfer definition, sourceindex)
+                            l_Value = make_pair((it_FileMap->second).first, l_ExtentPtr);
+                        }
+                        else
+                        {
+                            // Create a new entry for this (transfer definition, sourceindex)
+                            l_Value = make_pair(l_ExtentPtr, l_ExtentPtr);
+                        }
+                        l_FileMap[l_Key] = l_Value;
+                    }
+
+                    // Set the first/last values in the sorted vector
+                    for (size_t i=0; i<allExtents.size(); ++i)
+                    {
+                        l_ExtentPtr = allExtents[i].getExtent();
+                        l_TransferDef = allExtents[i].getTransferDef();
+                        // Now find the entry in the map giving the first/last extents for this (transfer definition,sourceindex)
+                        FileKey l_Key = make_pair(l_TransferDef, l_ExtentPtr->getSourceIndex());
+                        it_FileMap = l_FileMap.find(l_Key);
+                        if ((it_FileMap->second).first == l_ExtentPtr)
+                        {
+                            l_ExtentPtr->flags |= BBI_First_Extent;
+                        }
+                        if ((it_FileMap->second).second == l_ExtentPtr)
+                        {
+                            l_ExtentPtr->flags |= BBI_Last_Extent;
+                        }
+                    }
+
+                    LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", " << l_AlreadyMarkedAsCanceled << " extent(s) were already marked as canceled, " \
+                                 << pNumberOfNewExtentsCanceled << " additional extent(s) were newly marked as canceled, " \
+                                 << l_NotMarkedAsCanceled << " regular and " << l_NotMarkedAsCanceledBSCFS << " BSCFS extent(s) remain to be transfered";
+                }
+                else
                 {
-                    l_ExtentPtr = allExtents[i].getExtent();
-                    l_TransferDef = allExtents[i].getTransferDef();
-                    // Now find the entry in the map giving the first/last extents for this (transfer definition,sourceindex)
-                    FileKey l_Key = make_pair(l_TransferDef, l_ExtentPtr->getSourceIndex());
-                    it_FileMap = l_FileMap.find(l_Key);
-                    if ((it_FileMap->second).first == l_ExtentPtr)
-                    {
-                        l_ExtentPtr->flags |= BBI_First_Extent;
-                    }
-                    if ((it_FileMap->second).second == l_ExtentPtr)
-                    {
-                        l_ExtentPtr->flags |= BBI_Last_Extent;
-                    }
+                    LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", no extents on the work queue for the LVKey";
                 }
-
-                LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", " << l_AlreadyMarkedAsCanceled << " extent(s) were already marked as canceled, " \
-                             << pNumberOfNewExtentsCanceled << " additional extent(s) were newly marked as canceled, " \
-                             << l_NotMarkedAsCanceled << " regular and " << l_NotMarkedAsCanceledBSCFS << " BSCFS extent(s) remain to be transfered";
             }
-            else
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
             {
-                LOG(bb,info) << "sortExtents(): For " << *pLVKey << ", no extents on the work queue for the LVKey";
+                rc = -1;
+                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
             }
-        }
-        catch(ExceptionBailout& e) { }
-        catch(exception& e)
-        {
-            rc = -1;
-            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        }
 
 #if BBSERVER
-        // Cause the ResizeSSD_Timer to pop on the first transfered extent.
-        // NOTE:  We set it whether or not we are resizing the SSD during stageout.
-        ResizeSSD_Timer.forcePop();
+            // Cause the ResizeSSD_Timer to pop on the first transfered extent.
+            // NOTE:  We set it whether or not we are resizing the SSD during stageout.
+            ResizeSSD_Timer.forcePop();
 #endif
+            LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue when exiting sort.";
 
-        LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue when exiting sort.";
-
-        if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 0))
-        {
-            dumpExtents("info", "After sort/copy processing");
+            if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 0))
+            {
+                dumpExtents("info", "After sort/copy processing");
+            }
         }
+    }
+    if (l_TransferQueueLocked)
+    {
+        unlockTransferQueue(pLVKey, "sort extents");
     }
 
     return rc;
