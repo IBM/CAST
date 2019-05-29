@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:l:o:s:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "c:g:hi:v:l:L:n:o:p:P:r:s:S:t:w:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'h':
                 USAGE();
