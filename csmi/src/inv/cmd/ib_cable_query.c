@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 	int return_value = 0;
 	int requiredParameterCounter = 0;
 	int optionalParameterCounter = 0;
-	const int NUMBER_OF_REQUIRED_ARGUMENTS = 1;
+	const int NUMBER_OF_REQUIRED_ARGUMENTS = 0;
 	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
 	int opt;
@@ -155,6 +155,15 @@ int main(int argc, char *argv[])
 	/*check optional args*/
 	while ((opt = getopt_long(argc, argv, "c:g:hi:v:l:L:n:o:p:P:r:s:S:t:w:", longopts, &indexptr)) != -1) {
 		switch(opt){
+			case 'c':
+			{
+                csm_optarg_test( "-c, --comments", optarg, USAGE );
+                csm_parse_csv( optarg, input->comments, input->comments_count,
+                            char*, csm_str_to_char, NULL, "-c, --comments", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'h':
                 USAGE();
 				return CSMI_HELP;
@@ -175,8 +184,8 @@ int main(int argc, char *argv[])
                 csm_optarg_test( "-s, --serial_numbers", optarg, USAGE );
                 csm_parse_csv( optarg, input->serial_numbers, input->serial_numbers_count,
                             char*, csm_str_to_char, NULL, "-s, --serial_numbers", USAGE );
-				/* Increment requiredParameterCounter so later we can check if arguments were correctly set before calling API. */
-				requiredParameterCounter++;
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
 				break;
 			}
 			default:
