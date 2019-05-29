@@ -106,7 +106,18 @@ struct option longopts[] = {
 	{"help",           no_argument,       0, 'h'},
 	{"verbose",        required_argument, 0, 'v'},
 	//api arguments
+	{"comments",       required_argument, 0, 'c'},
+	{"guids",          required_argument, 0, 'g'},
+	{"identifiers",    required_argument, 0, 'i'},
+	{"lengths",        required_argument, 0, 'L'},
+	{"names",          required_argument, 0, 'n'},
+	{"part_numbers",   required_argument, 0, 'p'},
+	{"ports",          required_argument, 0, 'P'},
+	{"revisions",      required_argument, 0, 'r'},
 	{"serial_numbers", required_argument, 0, 's'},
+	{"severities",     required_argument, 0, 'S'},
+	{"types",          required_argument, 0, 't'},
+	{"widths",         required_argument, 0, 'w'},
 	//filters
 	{"limit",          required_argument, 0, 'l'},
 	{"offset",         required_argument, 0, 'o'},
