@@ -272,7 +272,8 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 						//Is this a serial number?
 						if(i == 2){
 							//is it a bad serial_number?
-							if(line.find("NA") != std::string::npos){
+							if( line.find("NA") != std::string::npos ||
+								line.find("N/A") != std::string::npos ){
 								//override i value, set to extra case 13
 								i = 13;
 							}
@@ -366,7 +367,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			std::cout << "This report from UFM can be found in '" << ufm_ib_cable_output_filename << "' located at '" << csm_inv_log_dir << "'" << std::endl;
 	
 			if(NA_serials_count > 0){
-				std::cerr << "WARNING: " << NA_serials_count << " IB cables found with 'NA' serial numbers and have been removed from CSM inventory collection data." << std::endl;
+				std::cerr << "WARNING: " << NA_serials_count << " IB cables were discovered, but are missing serial numbers and have been removed from CSM inventory collection data." << std::endl;
 				std::cerr << "These records copied into '" << ib_cable_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
 			}
 			
