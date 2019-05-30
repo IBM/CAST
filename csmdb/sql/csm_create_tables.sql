@@ -17,10 +17,17 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   18.0
 --   create:            12-14-2015
---   last modified:     05-22-2019
+--   last modified:     05-29-2019
 --   change log:
 --   18.0   Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
 --          Added in type and fw_version to the csm_switch_inventory and csm_inventory_history tables with comments.
+--          Additional descriptions that have been updated include the following fields in the csm_step_history table:
+--              cpu_stats            - 'statistics gathered from the CPU for the step.';
+--              omp_thread_limit     - 'max number of omp threads used by the step.';
+--              gpu_stats            - 'statistics gathered from the GPU for the step.';
+--              memory_stats         - 'memory statistics for the the step.';
+--              max_memory           - 'the maximum memory usage of the step.';
+--              io_stats             - 'general input output statistics for the step.';
 --   17.0   Added smt_mode to csm_allocation and csm_allocation_history
 --	    Added new fields to csm_lv_history - num_reads, num_writes (01-25-2019)
 --   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
@@ -1177,14 +1184,14 @@ CREATE INDEX ix_csm_step_history_g
     COMMENT ON COLUMN csm_step_history.user_flags is 'user space prolog/epilog flags';
     COMMENT ON COLUMN csm_step_history.exit_status is 'step/s exit status. will be tracked and given to csm by job leader';
     COMMENT ON COLUMN csm_step_history.error_message is 'step/s error text. will be tracked and given to csm by job leader. the following columns need their proper data types tbd:';
-    COMMENT ON COLUMN csm_step_history.cpu_stats is 'will be tracked and given to csm by job leader';
+    COMMENT ON COLUMN csm_step_history.cpu_stats is 'statistics gathered from the CPU for the step.';
     COMMENT ON COLUMN csm_step_history.total_u_time is 'relates to the (us) (aka: user mode) value of %cpu(s) of the (top) linux cmd. todo: design how we get this data';
     COMMENT ON COLUMN csm_step_history.total_s_time is 'relates to the (sy) (aka: system mode) value of %cpu(s) of the (top) linux cmd. todo: design how we get this data';
-    COMMENT ON COLUMN csm_step_history.omp_thread_limit is 'will be tracked and given to csm by job leader';
-    COMMENT ON COLUMN csm_step_history.gpu_stats is 'will be tracked and given to csm by job leader';
-    COMMENT ON COLUMN csm_step_history.memory_stats is 'will be tracked and given to csm by job leader';
-    COMMENT ON COLUMN csm_step_history.max_memory is 'will be tracked and given to csm by job leader';
-    COMMENT ON COLUMN csm_step_history.io_stats is 'will be tracked and given to csm by job leader';
+    COMMENT ON COLUMN csm_step_history.omp_thread_limit is 'max number of omp threads used by the step.';
+    COMMENT ON COLUMN csm_step_history.gpu_stats is 'statistics gathered from the GPU for the step.';
+    COMMENT ON COLUMN csm_step_history.memory_stats is 'memory statistics for the the step.';
+    COMMENT ON COLUMN csm_step_history.max_memory is 'the maximum memory usage of the step.';
+    COMMENT ON COLUMN csm_step_history.io_stats is 'general input output statistics for the step.';
     COMMENT ON COLUMN csm_step_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
     COMMENT ON INDEX ix_csm_step_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_step_history_b IS 'index on begin_time, end_time';

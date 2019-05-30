@@ -1007,14 +1007,14 @@ csm_step_history (DB table overview)
   user_flags           | text                        |           | extended |              | user space prolog/epilog flags
   exit_status          | integer                     |           | plain    |              | step/s exit status. will be tracked and given to csm by job leader
   error_message        | text                        |           | extended |              | step/s error text. will be tracked and given to csm by job leader. the following columns need their proper data types tbd:
-  cpu_stats            | text                        |           | extended |              | will be tracked and given to csm by job leader
+  cpu_stats            | text                        |           | extended |              | statistics gathered from the CPU for the step.
   total_u_time         | double precision            |           | plain    |              | relates to the (us) (aka: user mode) value of %cpu(s) of the (top) linux cmd. todo: design how we get this data
   total_s_time         | double precision            |           | plain    |              | relates to the (sy) (aka: system mode) value of %cpu(s) of the (top) linux cmd. todo: design how we get this data
-  omp_thread_limit     | text                        |           | extended |              | will be tracked and given to csm by job leader
-  gpu_stats            | text                        |           | extended |              | will be tracked and given to csm by job leader
-  memory_stats         | text                        |           | extended |              | will be tracked and given to csm by job leader
-  max_memory           | bigint                      |           | plain    |              | will be tracked and given to csm by job leader
-  io_stats             | text                        |           | extended |              | will be tracked and given to csm by job leader
+  omp_thread_limit     | text                        |           | extended |              | max number of omp threads used by the step.
+  gpu_stats            | text                        |           | extended |              | statistics gathered from the GPU for the step.
+  memory_stats         | text                        |           | extended |              | memory statistics for the the step.
+  max_memory           | bigint                      |           | plain    |              | the maximum memory usage of the step.
+  io_stats             | text                        |           | extended |              | general input output statistics for the step.
   archive_history_time | timestamp without time zone |           | plain    |              | timestamp when the history data has been archived and sent to: BDS, archive file, and or other
  Indexes:
      "ix_csm_step_history_a" btree (history_time)
