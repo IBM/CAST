@@ -39,6 +39,16 @@ BEGIN;
 -- fn_csm_allocation_update (added field core_blink)
 -- fn_csm_allocation_history_dump (added field core_blink)
 ---------------------------------------------------------------------------------
+-- Additional descriptions that have been updated include the following fields
+-- in the csm_step_history table:
+---------------------------------------------------------------------------------
+-- cpu_stats            | 'statistics gathered from the CPU for the step.';
+-- omp_thread_limit     | 'max number of omp threads used by the step.';
+-- gpu_stats            | 'statistics gathered from the GPU for the step.';
+-- memory_stats         | 'memory statistics for the the step.';
+-- max_memory           | 'the maximum memory usage of the step.';
+-- io_stats             | 'general input output statistics for the step.';
+---------------------------------------------------------------------------------
 
 DO $$ 
     BEGIN
@@ -83,5 +93,13 @@ COMMENT ON COLUMN csm_switch_inventory_history.type is 'The category of this pie
 
 COMMENT ON COLUMN csm_switch_inventory.fw_version is 'The firmware version on this piece of inventory.';
 COMMENT ON COLUMN csm_switch_inventory_history.fw_version is 'The firmware version on this piece of inventory.';
+
+-- Additional descriptions that have been updated include:
+COMMENT ON COLUMN csm_step_history.cpu_stats is 'statistics gathered from the CPU for the step.';
+COMMENT ON COLUMN csm_step_history.omp_thread_limit is 'max number of omp threads used by the step.';
+COMMENT ON COLUMN csm_step_history.gpu_stats is 'statistics gathered from the GPU for the step.';
+COMMENT ON COLUMN csm_step_history.memory_stats is 'memory statistics for the the step.';
+COMMENT ON COLUMN csm_step_history.max_memory is 'the maximum memory usage of the step.';
+COMMENT ON COLUMN csm_step_history.io_stats is 'general input output statistics for the step.';
 
 COMMIT;
