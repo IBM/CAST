@@ -331,6 +331,16 @@ int main(int argc, char *argv[])
 	for(i = 0; i < input->identifiers_count; i++){
 		csmutil_logging(debug, "      identifiers[%i]: %s", i, input->identifiers[i]);
 	}
+	csmutil_logging(debug, "    lengths_count:    %i", input->lengths_count);
+	csmutil_logging(debug, "    lengths:          %p", input->lengths);
+	for(i = 0; i < input->lengths_count; i++){
+		csmutil_logging(debug, "      lengths[%i]: %s", i, input->lengths[i]);
+	}
+	csmutil_logging(debug, "    names_count:    %i", input->names_count);
+	csmutil_logging(debug, "    names:          %p", input->names);
+	for(i = 0; i < input->names_count; i++){
+		csmutil_logging(debug, "      names[%i]: %s", i, input->names[i]);
+	}
 	csmutil_logging(debug, "    limit:                %i", input->limit);
 	csmutil_logging(debug, "    offset:               %i", input->offset);
 	csmutil_logging(debug, "    serial_numbers_count: %i", input->serial_numbers_count);
