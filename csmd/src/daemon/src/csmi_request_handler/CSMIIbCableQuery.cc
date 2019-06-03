@@ -62,8 +62,8 @@ bool CSMIIbCableQuery::CreatePayload(
 	if(input->guid_count > 0)
 	{
 		SQLparameterCount++;
-		add_param_sql(stmtParams, input->guid_count > 0, SQLparameterCount, "( guid_s1 = ANY ( $","::text[] ) OR ")
-		add_param_sql(stmtParams, input->guid_count > 0, SQLparameterCount, "guid_s2 = ANY ( $","::text[] ) ) AND ")
+		add_param_sql(stmtParams, input->guids_count > 0, SQLparameterCount, "( guid_s1 = ANY ( $","::text[] ) OR ")
+		add_param_sql(stmtParams, input->guids_count > 0, SQLparameterCount, "guid_s2 = ANY ( $","::text[] ) ) AND ")
 	}
 	add_param_sql(stmtParams, input->identifiers_count > 0, ++SQLparameterCount, "identifier LIKE ANY ( $","::text[] ) AND ")
 	add_param_sql(stmtParams, input->lengths_count > 0, ++SQLparameterCount, "length LIKE ANY ( $","::text[] ) AND ")
@@ -76,7 +76,7 @@ bool CSMIIbCableQuery::CreatePayload(
 		add_param_sql(stmtParams, input->ports_count > 0, SQLparameterCount, "port_s2 = ANY ( $","::text[] ) ) AND ")
 	}
 	add_param_sql(stmtParams, input->revisions_count > 0, ++SQLparameterCount, "revision LIKE ANY ( $","::text[] ) AND ")
-	add_param_sql(stmtParams, input->serialnumbers_count > 0, ++SQLparameterCount, "serial_number = ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->serial_numbers_count > 0, ++SQLparameterCount, "serial_number = ANY ( $","::text[] ) AND ")
 	add_param_sql(stmtParams, input->severities_count > 0, ++SQLparameterCount, "severity LIKE ANY ( $","::text[] ) AND ")
 	add_param_sql(stmtParams, input->types_count > 0, ++SQLparameterCount, "type LIKE ANY ( $","::text[] ) AND ")
 	add_param_sql(stmtParams, input->widths_count > 0, ++SQLparameterCount, "width LIKE ANY ( $","::text[] ) AND ")
@@ -90,7 +90,6 @@ bool CSMIIbCableQuery::CreatePayload(
     }
 
 	/*Create the SQL Statement*/
-	int SQLparameterCount = 1;
 	std::string stmt = 
 		"SELECT "
 			"serial_number, "
