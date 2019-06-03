@@ -161,7 +161,7 @@ bool CSMIIbCableQuery::CreatePayload(
 	/* Release memory using CSM API function. */
 	csm_free_struct_ptr( API_PARAMETER_INPUT_TYPE, input );
 	/*Print the SQL statement to the log for reference. */
-	LOG( csmapi, trace ) << STATE_NAME ":CreatePayload: Parameterized SQL: " << stmt;
+	LOG( csmapi, debug ) << STATE_NAME ":CreatePayload: Parameterized SQL: " << stmt;
     
     LOG( csmapi, trace ) << STATE_NAME ":CreatePayload: Exit";
 
