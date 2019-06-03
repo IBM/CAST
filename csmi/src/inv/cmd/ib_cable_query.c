@@ -316,6 +316,16 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "  value of input:         %p", input);
 	csmutil_logging(debug, "  address of input:       %p", &input);
 	csmutil_logging(debug, "  API_PARAMETER_INPUT_TYPE contains the following:");
+	csmutil_logging(debug, "    comments_count:       %i", input->comments_count);
+	csmutil_logging(debug, "    comments:             %p", input->comments);
+	for(i = 0; i < input->comments_count; i++){
+		csmutil_logging(debug, "      comments[%i]: %s", i, input->comments[i]);
+	}
+	csmutil_logging(debug, "    guids_count:          %i", input->guids_count);
+	csmutil_logging(debug, "    guids:                %p", input->guids);
+	for(i = 0; i < input->guids_count; i++){
+		csmutil_logging(debug, "      guids[%i]: %s", i, input->guids[i]);
+	}
 	csmutil_logging(debug, "    limit:                %i", input->limit);
 	csmutil_logging(debug, "    offset:               %i", input->offset);
 	csmutil_logging(debug, "    serial_numbers_count: %i", input->serial_numbers_count);
