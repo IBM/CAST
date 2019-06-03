@@ -51,6 +51,44 @@ bool CSMIIbCableQuery::CreatePayload(
 		return false;
 	}
 
+	// =====================================================================
+	// Construct the query's constraints via "WHERE" Statement.
+
+	std::string stmtParams = "";
+	int SQLparameterCount = 0;
+	
+	//where statement parameters
+	add_param_sql(stmtParams, input->comments_count > 0, ++SQLparameterCount, "comment LIKE ANY ( $","::text[] ) AND ")
+	if(input->guid_count > 0)
+	{
+		SQLparameterCount++;
+		add_param_sql(stmtParams, input->guid_count > 0, SQLparameterCount, "( guid_s1 = ANY ( $","::text[] ) OR ")
+		add_param_sql(stmtParams, input->guid_count > 0, SQLparameterCount, "guid_s2 = ANY ( $","::text[] ) ) AND ")
+	}
+	add_param_sql(stmtParams, input->identifiers_count > 0, ++SQLparameterCount, "identifier LIKE ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->lengths_count > 0, ++SQLparameterCount, "length LIKE ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->names_count > 0, ++SQLparameterCount, "name LIKE ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->part_numbers_count > 0, ++SQLparameterCount, "part_number LIKE ANY ( $","::text[] ) AND ")
+	if(input->ports_count > 0)
+	{
+		SQLparameterCount++;
+		add_param_sql(stmtParams, input->ports_count > 0, SQLparameterCount, "( port_s1 = ANY ( $","::text[] ) OR ")
+		add_param_sql(stmtParams, input->ports_count > 0, SQLparameterCount, "port_s2 = ANY ( $","::text[] ) ) AND ")
+	}
+	add_param_sql(stmtParams, input->revisions_count > 0, ++SQLparameterCount, "revision LIKE ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->serialnumbers_count > 0, ++SQLparameterCount, "serial_number = ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->severities_count > 0, ++SQLparameterCount, "severity LIKE ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->types_count > 0, ++SQLparameterCount, "type LIKE ANY ( $","::text[] ) AND ")
+	add_param_sql(stmtParams, input->widths_count > 0, ++SQLparameterCount, "width LIKE ANY ( $","::text[] ) AND ")
+	
+    // Replace the last 4 characters if any parameters were found.
+    if ( SQLparameterCount > 0)
+    {
+        int len = stmtParams.length() - 1;
+        for( int i = len - 3; i < len; ++i)
+            stmtParams[i] = ' ';
+    }
+
 	/*Create the SQL Statement*/
 	int SQLparameterCount = 1;
 	std::string stmt = 
@@ -71,14 +109,32 @@ bool CSMIIbCableQuery::CreatePayload(
 			"severity, "
 			"type, "
 			"width "
-		"FROM "
-			"csm_ib_cable "
-		"WHERE ("
-			"serial_number = ANY( $1::text[] ) "
-			")"
-		"ORDER BY "
+		"FROM ";
+	if(SQLparameterCount > 0)
+	{
+		//Filters have been provided. 
+		//Filter query pased off of input.
+		stmt.append("WHERE (");
+		stmt.append( stmtParams );
+		stmt.append(") ");
+	}
+	//stmt.append("ORDER BY ");
+	/*
+	switch (input->order_by)
+	{
+		case 'a':
+			stmt.append("switch_name ASC NULLS LAST ");
+			break;
+		case 'b':
+			stmt.append("switch_name DESC NULLS LAST ");
+			break;
+		default:
+			stmt.append("switch_name ASC NULLS LAST ");
+	}
+	*/
+	stmt.append(	"ORDER BY "
 			"serial_number "
-			"ASC NULLS LAST ";
+			"ASC NULLS LAST ");
 	add_param_sql( stmt, input->limit > 0, ++SQLparameterCount, "LIMIT $", "::int ")
 
     add_param_sql( stmt, input->offset > 0, ++SQLparameterCount, "OFFSET $", "::int ")
@@ -87,7 +143,18 @@ bool CSMIIbCableQuery::CreatePayload(
 	
 	/* Build the parameterized list. */
 	csm::db::DBReqContent *dbReq = new csm::db::DBReqContent(stmt, SQLparameterCount); 
-	dbReq->AddTextArrayParam(input->serial_numbers, input->serial_numbers_count);
+	if ( input->comments_count > 0 ) dbReq->AddTextArrayParam(input->comments, input->comments_count);
+	if ( input->guids_count > 0 ) dbReq->AddTextArrayParam(input->guids, input->guids_count);
+	if ( input->identifiers_count > 0 ) dbReq->AddTextArrayParam(input->identifiers, input->identifiers_count);
+	if ( input->lengths_count > 0 ) dbReq->AddTextArrayParam(input->lengths, input->lengths_count);
+	if ( input->names_count > 0 ) dbReq->AddTextArrayParam(input->names, input->names_count);
+	if ( input->part_numbers_count > 0 ) dbReq->AddTextArrayParam(input->part_numbers, input->part_numbers_count);
+	if ( input->ports_count > 0 ) dbReq->AddTextArrayParam(input->ports, input->ports_count);
+	if ( input->revisions_count > 0 ) dbReq->AddTextArrayParam(input->revisions, input->revisions_count);
+	if ( input->serial_numbers_count > 0 ) dbReq->AddTextArrayParam(input->serial_numbers, input->serial_numbers_count);
+	if ( input->severities_count > 0 ) dbReq->AddTextArrayParam(input->severities, input->severities_count);
+	if ( input->types_count > 0 ) dbReq->AddTextArrayParam(input->types, input->types_count);
+	if ( input->widths_count > 0 ) dbReq->AddTextArrayParam(input->widths, input->widths_count);
 	if(input->limit > 0) dbReq->AddNumericParam<int>(input->limit);
 	if(input->offset > 0) dbReq->AddNumericParam<int>(input->offset);
 
