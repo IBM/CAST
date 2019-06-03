@@ -12,17 +12,17 @@ ix_csm_allocation_state_history_a,csm_allocation_state_history,index on,history_
 ix_csm_allocation_state_history_b,csm_allocation_state_history,index on,allocation_id
 ix_csm_allocation_state_history_c,csm_allocation_state_history,index on,ctid
 ix_csm_allocation_state_history_d,csm_allocation_state_history,index on,archive_history_time
-ix_csm_config_bucket_a,csm_config_bucket,index on,"bucket_id, time_stamp, item_list"
+ix_csm_config_bucket_a,csm_config_bucket,index on,"time_stamp, bucket_id, item_list"
 ix_csm_config_history_a,csm_config_history,index on,history_time
 ix_csm_config_history_b,csm_config_history,index on,csm_config_id
 ix_csm_config_history_c,csm_config_history,index on,ctid
 ix_csm_config_history_d,csm_config_history,index on,archive_history_time
-ix_csm_db_schema_version_a,csm_db_schema_version,index on,"version, create_time"
+ix_csm_db_schema_version_a,csm_db_schema_version,index on,"create_time, version"
 ix_csm_db_schema_version_history_a,csm_db_schema_version_history,index on,history_time
 ix_csm_db_schema_version_history_b,csm_db_schema_version_history,index on,version
 ix_csm_db_schema_version_history_c,csm_db_schema_version_history,index on,ctid
 ix_csm_db_schema_version_history_d,csm_db_schema_version_history,index on,archive_history_time
-ix_csm_diag_result_a,csm_diag_result,index on,"node_name, run_id, test_name"
+ix_csm_diag_result_a,csm_diag_result,index on,"node_name, test_name, run_id"
 ix_csm_diag_result_history_a,csm_diag_result_history,index on,history_time
 ix_csm_diag_result_history_b,csm_diag_result_history,index on,run_id
 ix_csm_diag_result_history_c,csm_diag_result_history,index on,ctid
@@ -33,12 +33,12 @@ ix_csm_diag_run_history_c,csm_diag_run_history,index on,allocation_id
 ix_csm_diag_run_history_d,csm_diag_run_history,index on,ctid
 ix_csm_diag_run_history_e,csm_diag_run_history,index on,archive_history_time
 ix_csm_dimm_history_a,csm_dimm_history,index on,history_time
-ix_csm_dimm_history_b,csm_dimm_history,index on,"serial_number, node_name"
+ix_csm_dimm_history_b,csm_dimm_history,index on,"node_name, serial_number"
 ix_csm_dimm_history_c,csm_dimm_history,index on,ctid
 ix_csm_dimm_history_d,csm_dimm_history,index on,archive_history_time
 ix_csm_gpu_history_a,csm_gpu_history,index on,history_time
 ix_csm_gpu_history_b,csm_gpu_history,index on,serial_number
-ix_csm_gpu_history_c,csm_gpu_history,index on,"gpu_id, node_name"
+ix_csm_gpu_history_c,csm_gpu_history,index on,"node_name, gpu_id"
 ix_csm_gpu_history_d,csm_gpu_history,index on,ctid
 ix_csm_gpu_history_e,csm_gpu_history,index on,archive_history_time
 ix_csm_hca_history_a,csm_hca_history,index on,history_time
@@ -58,7 +58,7 @@ ix_csm_lv_update_history_a,csm_lv_update_history,index on,history_time
 ix_csm_lv_update_history_b,csm_lv_update_history,index on,logical_volume_name
 ix_csm_lv_update_history_c,csm_lv_update_history,index on,ctid
 ix_csm_lv_update_history_d,csm_lv_update_history,index on,archive_history_time
-ix_csm_node_a,csm_node,index on,"node_name, state"
+ix_csm_node_a,csm_node,index on,"state, node_name"
 ix_csm_node_history_a,csm_node_history,index on,history_time
 ix_csm_node_history_b,csm_node_history,index on,node_name
 ix_csm_node_history_c,csm_node_history,index on,ctid
@@ -68,7 +68,7 @@ ix_csm_node_state_history_b,csm_node_state_history,index on,"state, node_name"
 ix_csm_node_state_history_c,csm_node_state_history,index on,ctid
 ix_csm_node_state_history_d,csm_node_state_history,index on,archive_history_time
 ix_csm_processor_socket_history_a,csm_processor_socket_history,index on,history_time
-ix_csm_processor_socket_history_b,csm_processor_socket_history,index on,"node_name, serial_number"
+ix_csm_processor_socket_history_b,csm_processor_socket_history,index on,"serial_number, node_name"
 ix_csm_processor_socket_history_c,csm_processor_socket_history,index on,ctid
 ix_csm_processor_socket_history_d,csm_processor_socket_history,index on,archive_history_time
 ix_csm_ras_event_action_a,csm_ras_event_action,index on,msg_id
@@ -80,29 +80,29 @@ ix_csm_ras_event_action_f,csm_ras_event_action,index on,master_time_stamp
 ix_csm_ras_event_action_g,csm_ras_event_action,index on,ctid
 ix_csm_ras_event_action_h,csm_ras_event_action,index on,archive_history_time
 ix_csm_ssd_history_a,csm_ssd_history,index on,history_time
-ix_csm_ssd_history_b,csm_ssd_history,index on,"node_name, serial_number"
+ix_csm_ssd_history_b,csm_ssd_history,index on,"serial_number, node_name"
 ix_csm_ssd_history_c,csm_ssd_history,index on,ctid
 ix_csm_ssd_history_d,csm_ssd_history,index on,archive_history_time
 ix_csm_ssd_wear_history_a,csm_ssd_wear_history,index on,history_time
-ix_csm_ssd_wear_history_b,csm_ssd_wear_history,index on,"node_name, serial_number"
+ix_csm_ssd_wear_history_b,csm_ssd_wear_history,index on,"serial_number, node_name"
 ix_csm_ssd_wear_history_c,csm_ssd_wear_history,index on,ctid
 ix_csm_ssd_wear_history_d,csm_ssd_wear_history,index on,archive_history_time
 ix_csm_step_history_a,csm_step_history,index on,history_time
-ix_csm_step_history_b,csm_step_history,index on,"begin_time, end_time"
+ix_csm_step_history_b,csm_step_history,index on,"end_time, begin_time"
 ix_csm_step_history_c,csm_step_history,index on,"end_time, allocation_id"
 ix_csm_step_history_d,csm_step_history,index on,end_time
 ix_csm_step_history_e,csm_step_history,index on,step_id
 ix_csm_step_history_f,csm_step_history,index on,ctid
 ix_csm_step_history_g,csm_step_history,index on,archive_history_time
 ix_csm_step_node_b,csm_step_node,index on,allocation_id
-ix_csm_step_node_c,csm_step_node,index on,"step_id, allocation_id"
+ix_csm_step_node_c,csm_step_node,index on,"allocation_id, step_id"
 ix_csm_step_node_history_a,csm_step_node_history,index on,history_time
 ix_csm_step_node_history_b,csm_step_node_history,index on,allocation_id
 ix_csm_step_node_history_c,csm_step_node_history,index on,"step_id, allocation_id"
 ix_csm_step_node_history_d,csm_step_node_history,index on,ctid
 ix_csm_step_node_history_e,csm_step_node_history,index on,archive_history_time
 ix_csm_switch_history_a,csm_switch_history,index on,history_time
-ix_csm_switch_history_b,csm_switch_history,index on,"history_time, switch_name"
+ix_csm_switch_history_b,csm_switch_history,index on,"switch_name, history_time"
 ix_csm_switch_history_c,csm_switch_history,index on,ctid
 ix_csm_switch_history_d,csm_switch_history,index on,archive_history_time
 ix_csm_switch_inventory_history_a,csm_switch_inventory_history,index on,history_time
@@ -110,10 +110,10 @@ ix_csm_switch_inventory_history_b,csm_switch_inventory_history,index on,name
 ix_csm_switch_inventory_history_c,csm_switch_inventory_history,index on,ctid
 ix_csm_switch_inventory_history_d,csm_switch_inventory_history,index on,archive_history_time
 ix_csm_vg_history_a,csm_vg_history,index on,history_time
-ix_csm_vg_history_b,csm_vg_history,index on,"vg_name, node_name"
+ix_csm_vg_history_b,csm_vg_history,index on,"node_name, vg_name"
 ix_csm_vg_history_c,csm_vg_history,index on,ctid
 ix_csm_vg_history_d,csm_vg_history,index on,archive_history_time
 ix_csm_vg_ssd_history_a,csm_vg_ssd_history,index on,history_time
-ix_csm_vg_ssd_history_b,csm_vg_ssd_history,index on,"node_name, vg_name"
+ix_csm_vg_ssd_history_b,csm_vg_ssd_history,index on,"vg_name, node_name"
 ix_csm_vg_ssd_history_c,csm_vg_ssd_history,index on,ctid
 ix_csm_vg_ssd_history_d,csm_vg_ssd_history,index on,archive_history_time

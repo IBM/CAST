@@ -17,7 +17,7 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   18.0
 --   create:            12-14-2015
---   last modified:     05-29-2019
+--   last modified:     06-03-2019
 --   change log:
 --   18.0   Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
 --          Added in type and fw_version to the csm_switch_inventory and csm_inventory_history tables with comments.
@@ -25,9 +25,14 @@
 --              cpu_stats            - 'statistics gathered from the CPU for the step.';
 --              omp_thread_limit     - 'max number of omp threads used by the step.';
 --              gpu_stats            - 'statistics gathered from the GPU for the step.';
---              memory_stats         - 'memory statistics for the the step.';
---              max_memory           - 'the maximum memory usage of the step.';
+--              memory_stats         - 'memory statistics for the the step (bytes).';
+--              max_memory           - 'the maximum memory usage of the step (bytes).';
 --              io_stats             - 'general input output statistics for the step.';
+--          Modifications to some constraints related to the csm_switch and csm_switch_inventory tables
+--              csm_switch_inventory DROP CONSTRAINT csm_switch_inventory_host_system_guid_fkey
+--              csm_switch ADD UNIQUE (gu_id)
+--              csm_switch_inventory ADD CONSTRAINT csm_switch_inventory_fkey FOREIGN KEY (host_system_guid) REFERENCES csm_switch (gu_id);
+--              COMMENT ON CONSTRAINT uk_csm_switch_gu_id_a ON csm_switch IS 'uniqueness on gu_id';
 --   17.0   Added smt_mode to csm_allocation and csm_allocation_history
 --	    Added new fields to csm_lv_history - num_reads, num_writes (01-25-2019)
 --   16.2   Modified TYPE csm_compute_node_states - added in HARD_FAILURE (Included below is the updated comments)
@@ -1189,8 +1194,8 @@ CREATE INDEX ix_csm_step_history_g
     COMMENT ON COLUMN csm_step_history.total_s_time is 'relates to the (sy) (aka: system mode) value of %cpu(s) of the (top) linux cmd. todo: design how we get this data';
     COMMENT ON COLUMN csm_step_history.omp_thread_limit is 'max number of omp threads used by the step.';
     COMMENT ON COLUMN csm_step_history.gpu_stats is 'statistics gathered from the GPU for the step.';
-    COMMENT ON COLUMN csm_step_history.memory_stats is 'memory statistics for the the step.';
-    COMMENT ON COLUMN csm_step_history.max_memory is 'the maximum memory usage of the step.';
+    COMMENT ON COLUMN csm_step_history.memory_stats is 'memory statistics for the the step (bytes).';
+    COMMENT ON COLUMN csm_step_history.max_memory is 'the maximum memory usage of the step (bytes).';
     COMMENT ON COLUMN csm_step_history.io_stats is 'general input output statistics for the step.';
     COMMENT ON COLUMN csm_step_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
     COMMENT ON INDEX ix_csm_step_history_a IS 'index on history_time';
@@ -2290,7 +2295,8 @@ CREATE TABLE csm_switch (
     total_alarms                int,
     type                        text,
     vendor                      text,
-PRIMARY KEY (switch_name)
+PRIMARY KEY (switch_name),
+CONSTRAINT uk_csm_switch_gu_id_a UNIQUE(gu_id)
 );
 
 -------------------------------------------------
@@ -2333,6 +2339,7 @@ PRIMARY KEY (switch_name)
     COMMENT ON COLUMN csm_switch.type is 'type of system. (Optional Values: switch, host, gateway)';
     COMMENT ON COLUMN csm_switch.vendor is 'system vendor';
     COMMENT ON INDEX csm_switch_pkey IS 'pkey index on switch_name';
+    COMMENT ON CONSTRAINT uk_csm_switch_gu_id_a ON csm_switch IS 'uniqueness on gu_id';
 --  COMMENT ON INDEX ix_csm_switch_a IS 'index on switch_name';
 
 ---------------------------------------------------------------------------------------------------
@@ -2563,7 +2570,7 @@ CREATE TABLE csm_switch_inventory (
     type                text,
     fw_version          text,
     PRIMARY KEY (name),
-    FOREIGN KEY (host_system_guid) references csm_switch(switch_name)
+    FOREIGN KEY (host_system_guid) references csm_switch(gu_id)
 );
 
 -------------------------------------------------

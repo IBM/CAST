@@ -1012,8 +1012,8 @@ csm_step_history (DB table overview)
   total_s_time         | double precision            |           | plain    |              | relates to the (sy) (aka: system mode) value of %cpu(s) of the (top) linux cmd. todo: design how we get this data
   omp_thread_limit     | text                        |           | extended |              | max number of omp threads used by the step.
   gpu_stats            | text                        |           | extended |              | statistics gathered from the GPU for the step.
-  memory_stats         | text                        |           | extended |              | memory statistics for the the step.
-  max_memory           | bigint                      |           | plain    |              | the maximum memory usage of the step.
+  memory_stats         | text                        |           | extended |              | memory statistics for the the step (bytes).
+  max_memory           | bigint                      |           | plain    |              | the maximum memory usage of the step (bytes).
   io_stats             | text                        |           | extended |              | general input output statistics for the step.
   archive_history_time | timestamp without time zone |           | plain    |              | timestamp when the history data has been archived and sent to: BDS, archive file, and or other
  Indexes:
@@ -1966,8 +1966,9 @@ csm_switch (DB table overview)
   vendor                  | text                        |           | extended |              | system vendor
  Indexes:
      "csm_switch_pkey" PRIMARY KEY, btree (switch_name)
+     "uk_csm_switch_gu_id_a" UNIQUE CONSTRAINT, btree (gu_id)
  Referenced by:
-     TABLE "csm_switch_inventory" CONSTRAINT "csm_switch_inventory_host_system_guid_fkey" FOREIGN KEY (host_system_guid) REFERENCES csm_switch(switch_name)
+     TABLE "csm_switch_inventory" CONSTRAINT "csm_switch_inventory_host_system_guid_fkey" FOREIGN KEY (host_system_guid) REFERENCES csm_switch(gu_id)
  Triggers:
      tr_csm_switch_history_dump BEFORE INSERT OR DELETE OR UPDATE ON csm_switch FOR EACH ROW EXECUTE PROCEDURE fn_csm_switch_history_dump()
  Has OIDs: no
@@ -2186,7 +2187,7 @@ csm_switch_inventory (DB table overview)
  Indexes:
      "csm_switch_inventory_pkey" PRIMARY KEY, btree (name)
  Foreign-key constraints:
-     "csm_switch_inventory_host_system_guid_fkey" FOREIGN KEY (host_system_guid) REFERENCES csm_switch(switch_name)
+     "csm_switch_inventory_host_system_guid_fkey" FOREIGN KEY (host_system_guid) REFERENCES csm_switch(gu_id)
  Triggers:
      tr_csm_switch_inventory_history_dump BEFORE INSERT OR DELETE OR UPDATE ON csm_switch_inventory FOR EACH ROW EXECUTE PROCEDURE fn_csm_switch_inventory_history_dump()
  Has OIDs: no
@@ -2445,7 +2446,7 @@ PK, FK, UK keys and Index Charts
 Primary Keys (default Indexes)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. csv-table::
-   :file: csm_db_appendix_table_csv_files/csm_db_pks_05_14_2019_15_06_47.csv
+   :file: csm_db_appendix_table_csv_files/csm_db_pks_06_03_2019_11_47_00.csv
    :header-rows: 1
    :class: longtable
    :widths: 1 1 1 1
@@ -2453,7 +2454,7 @@ Primary Keys (default Indexes)
 Foreign Keys
 ^^^^^^^^^^^^
 .. csv-table::
-   :file: csm_db_appendix_table_csv_files/csm_db_fks_05_14_2019_15_06_47.csv
+   :file: csm_db_appendix_table_csv_files/csm_db_fks_06_03_2019_11_47_00.csv
    :header-rows: 1
    :class: longtable
    :widths: 1 1 1 1 1
@@ -2461,7 +2462,7 @@ Foreign Keys
 Indexes
 ^^^^^^^
 .. csv-table::
-   :file: csm_db_appendix_table_csv_files/csm_db_indexes_05_14_2019_15_06_47.csv
+   :file: csm_db_appendix_table_csv_files/csm_db_indexes_06_03_2019_11_47_00.csv
    :header-rows: 1
    :class: longtable
    :widths: 1 1 1 1 
@@ -2469,7 +2470,7 @@ Indexes
 Unique UKs
 ^^^^^^^^^^^^^^
 .. csv-table::
-   :file: csm_db_appendix_table_csv_files/csm_db_uks_05_14_2019_15_06_47.csv
+   :file: csm_db_appendix_table_csv_files/csm_db_uks_06_03_2019_11_47_00.csv
    :header-rows: 1
    :class: longtable
    :widths: 1 1 1 1 
@@ -2477,7 +2478,7 @@ Unique UKs
 Functions and Triggers
 ^^^^^^^^^^^^^^^^^^^^^^
 .. csv-table::
-   :file: csm_db_appendix_table_csv_files/csm_triggers_functions_05_14_2019_15_06_47.csv
+   :file: csm_db_appendix_table_csv_files/csm_triggers_functions_06_03_2019_11_47_00.csv
    :header-rows: 1
    :class: longtable
    :widths: 1 1 1 1 1 1 1 1 
@@ -2486,7 +2487,7 @@ CSM DB Schema (pdf)
 -------------------
 (CSM DB schema version 18.0):
 
-.. image:: https://user-images.githubusercontent.com/6536949/57708276-0e7f1880-7637-11e9-90ad-2306c8f986ee.jpg
+.. image:: https://user-images.githubusercontent.com/6536949/58822248-1530f800-8605-11e9-8267-4ec42f0dfef3.jpg
               :width: 600px
               :height: 500px
               :scale: 100%

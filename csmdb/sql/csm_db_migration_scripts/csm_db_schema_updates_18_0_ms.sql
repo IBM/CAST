@@ -16,6 +16,7 @@
 --===============================================================================
 --   usage:         ./csm_db_schema_version_upgrade_18_0.sh
 --   Purpose:		Upgrades associated with DB schema 18.0
+--   Last modified:	06-03-2019
 --===============================================================================
 
 SET client_min_messages TO WARNING;
@@ -45,11 +46,16 @@ BEGIN;
 -- cpu_stats            | 'statistics gathered from the CPU for the step.';
 -- omp_thread_limit     | 'max number of omp threads used by the step.';
 -- gpu_stats            | 'statistics gathered from the GPU for the step.';
--- memory_stats         | 'memory statistics for the the step.';
--- max_memory           | 'the maximum memory usage of the step.';
+-- memory_stats         | 'memory statistics for the the step (bytes).';
+-- max_memory           | 'the maximum memory usage of the step (bytes).';
 -- io_stats             | 'general input output statistics for the step.';
 ---------------------------------------------------------------------------------
-
+-- csm_switch and csm_switch_inventory modifications to table keys/references
+---------------------------------------------------------------------------------
+-- csm_switch_inventory DROP CONSTRAINT csm_switch_inventory_host_system_guid_fkey on old FK (switch_name)
+-- csm_switch ADD CONSTRAINT uk_csm_switch_gu_id_a UNIQUE (gu_id) for FK reference from csm_switch_inventory
+-- csm_switch_inventory ADD CONSTRAINT csm_switch_inventory_host_system_guid_fkey FOREIGN KEY (host_system_guid) REFERENCES csm_switch (gu_id);
+---------------------------------------------------------------------------------
 DO $$ 
     BEGIN
         BEGIN
@@ -83,6 +89,48 @@ DO $$
         EXCEPTION
             WHEN duplicate_column THEN RAISE INFO 'column fw_version already exists in csm_switch_inventory_history, skipping.';
         END;
+        BEGIN
+        -- Check the existence of the foreign key based on field names and tables.
+        -- then drop is exists
+            IF (SELECT 1 FROM
+                    information_schema.table_constraints tc
+                        INNER JOIN information_schema.constraint_column_usage ccu
+                            USING (constraint_catalog, constraint_schema, constraint_name)
+                        INNER JOIN information_schema.key_column_usage kcu
+                            USING (constraint_catalog, constraint_schema, constraint_name)
+                        WHERE constraint_type = 'FOREIGN KEY'
+                            AND ccu.table_name = 'csm_switch'
+                            AND ccu.column_name = 'switch_name'
+                            AND tc.table_name = 'csm_switch_inventory'
+                            AND kcu.column_name = 'host_system_guid') >= 1 THEN 
+            ALTER TABLE csm_switch_inventory DROP CONSTRAINT IF EXISTS csm_switch_inventory_host_system_guid_fkey;
+            --RAISE INFO 'FK csm_switch_inventory_host_system_guid_fkey does not exist, skipping.';
+            END IF;
+        END;
+        BEGIN
+            ALTER TABLE csm_switch ADD CONSTRAINT uk_csm_switch_gu_id_a UNIQUE (gu_id);
+        EXCEPTION
+            WHEN duplicate_table THEN RAISE INFO 'UK (gu_id) already exist in csm_switch, skipping.';
+        END;
+        BEGIN
+        -- Check the existence of the foreign key based on field names and tables.
+        -- then create is does not exist.
+            IF NOT EXISTS (SELECT 1 FROM
+                    information_schema.table_constraints tc
+                        INNER JOIN information_schema.constraint_column_usage ccu
+                            USING (constraint_catalog, constraint_schema, constraint_name)
+                        INNER JOIN information_schema.key_column_usage kcu
+                            USING (constraint_catalog, constraint_schema, constraint_name)
+                        WHERE constraint_type = 'FOREIGN KEY'
+                            AND ccu.table_name = 'csm_switch'
+                            AND ccu.column_name = 'gu_id'
+                            AND tc.table_name = 'csm_switch_inventory'
+                            AND kcu.column_name = 'host_system_guid') THEN 
+                ALTER TABLE csm_switch_inventory ADD CONSTRAINT csm_switch_inventory_host_system_guid_fkey FOREIGN KEY (host_system_guid) REFERENCES csm_switch (gu_id);
+            ELSE
+                RAISE INFO 'FK (host_system_guid) already exist in csm_switch_inventory, skipping.';
+            END IF;
+        END;
     END;
 $$;
 COMMENT ON COLUMN csm_allocation.core_blink is 'flag indicating whether or not to run a blink operation on allocation cores.';
@@ -98,8 +146,9 @@ COMMENT ON COLUMN csm_switch_inventory_history.fw_version is 'The firmware versi
 COMMENT ON COLUMN csm_step_history.cpu_stats is 'statistics gathered from the CPU for the step.';
 COMMENT ON COLUMN csm_step_history.omp_thread_limit is 'max number of omp threads used by the step.';
 COMMENT ON COLUMN csm_step_history.gpu_stats is 'statistics gathered from the GPU for the step.';
-COMMENT ON COLUMN csm_step_history.memory_stats is 'memory statistics for the the step.';
-COMMENT ON COLUMN csm_step_history.max_memory is 'the maximum memory usage of the step.';
+COMMENT ON COLUMN csm_step_history.memory_stats is 'memory statistics for the the step (bytes).';
+COMMENT ON COLUMN csm_step_history.max_memory is 'the maximum memory usage of the step (bytes).';
 COMMENT ON COLUMN csm_step_history.io_stats is 'general input output statistics for the step.';
+COMMENT ON CONSTRAINT uk_csm_switch_gu_id_a ON csm_switch IS 'uniqueness on gu_id';
 
 COMMIT;

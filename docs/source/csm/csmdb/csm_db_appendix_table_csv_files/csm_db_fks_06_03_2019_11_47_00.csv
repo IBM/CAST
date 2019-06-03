@@ -13,6 +13,6 @@ csm_ssd_node_name_fkey,csm_ssd,node_name,csm_node,node_name
 csm_step_allocation_id_fkey,csm_step,allocation_id,csm_allocation,allocation_id
 csm_step_node_allocation_id_fkey,csm_step_node,"allocation_id, node_name",csm_allocation_node,"allocation_id, node_name"
 csm_step_node_step_id_fkey,csm_step_node,"step_id, allocation_id",csm_step,"step_id, allocation_id"
-csm_switch_inventory_host_system_guid_fkey,csm_switch_inventory,host_system_guid,csm_switch,switch_name
+csm_switch_inventory_host_system_guid_fkey,csm_switch_inventory,host_system_guid,csm_switch,gu_id
 csm_vg_ssd_serial_number_fkey,csm_vg_ssd,"serial_number, node_name",csm_ssd,"serial_number, node_name"
 csm_vg_ssd_vg_name_fkey,csm_vg_ssd,"vg_name, node_name",csm_vg,"vg_name, node_name"
