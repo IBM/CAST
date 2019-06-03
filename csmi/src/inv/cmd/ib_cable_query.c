@@ -176,6 +176,15 @@ int main(int argc, char *argv[])
 			case 'h':
                 USAGE();
 				return CSMI_HELP;
+			case 'i':
+			{
+                csm_optarg_test( "-i, --identifiers", optarg, USAGE );
+                csm_parse_csv( optarg, input->identifiers, input->identifiers_count,
+                            char*, csm_str_to_char, NULL, "-i, --identifiers", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'v':
 				/*Error check to make sure 'verbose' field is valid.*/
                 csm_set_verbosity( optarg, USAGE )
