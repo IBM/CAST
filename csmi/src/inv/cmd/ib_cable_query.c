@@ -247,6 +247,15 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
+			case 'S':
+			{
+                csm_optarg_test( "-S, --severities", optarg, USAGE );
+                csm_parse_csv( optarg, input->severities, input->severities_count,
+                            char*, csm_str_to_char, NULL, "-S, --severities", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'v':
 				/*Error check to make sure 'verbose' field is valid.*/
                 csm_set_verbosity( optarg, USAGE )
