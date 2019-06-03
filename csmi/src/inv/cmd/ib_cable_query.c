@@ -185,10 +185,6 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
-			case 'v':
-				/*Error check to make sure 'verbose' field is valid.*/
-                csm_set_verbosity( optarg, USAGE )
-				break;
 			case 'l':
 				csm_optarg_test( "-l, --limit", optarg, USAGE );
                 csm_str_to_int32( input->limit, optarg, arg_check, "-l, --limit", USAGE );
@@ -206,6 +202,10 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
+			case 'v':
+				/*Error check to make sure 'verbose' field is valid.*/
+                csm_set_verbosity( optarg, USAGE )
+				break;
 			default:
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
                 USAGE();
