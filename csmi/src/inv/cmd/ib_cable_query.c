@@ -346,6 +346,11 @@ int main(int argc, char *argv[])
 	for(i = 0; i < input->part_numbers_count; i++){
 		csmutil_logging(debug, "      part_numbers[%i]: %s", i, input->part_numbers[i]);
 	}
+	csmutil_logging(debug, "    ports_count:          %i", input->ports_count);
+	csmutil_logging(debug, "    ports:                %p", input->ports);
+	for(i = 0; i < input->ports_count; i++){
+		csmutil_logging(debug, "      ports[%i]: %s", i, input->ports[i]);
+	}
 	csmutil_logging(debug, "    limit:                %i", input->limit);
 	csmutil_logging(debug, "    offset:               %i", input->offset);
 	csmutil_logging(debug, "    serial_numbers_count: %i", input->serial_numbers_count);
