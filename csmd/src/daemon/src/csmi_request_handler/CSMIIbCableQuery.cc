@@ -108,7 +108,8 @@ bool CSMIIbCableQuery::CreatePayload(
 			"severity, "
 			"type, "
 			"width "
-		"FROM ";
+		"FROM "
+			"csm_ib_cable ";
 	if(SQLparameterCount > 0)
 	{
 		//Filters have been provided. 
