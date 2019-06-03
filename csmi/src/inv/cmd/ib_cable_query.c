@@ -256,6 +256,24 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
+			case 't':
+			{
+                csm_optarg_test( "-t, --types", optarg, USAGE );
+                csm_parse_csv( optarg, input->types, input->types_count,
+                            char*, csm_str_to_char, NULL, "-t, --types", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'w':
+			{
+                csm_optarg_test( "-w, --widths", optarg, USAGE );
+                csm_parse_csv( optarg, input->widths, input->widths_count,
+                            char*, csm_str_to_char, NULL, "-w, --widths", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'v':
 				/*Error check to make sure 'verbose' field is valid.*/
                 csm_set_verbosity( optarg, USAGE )
