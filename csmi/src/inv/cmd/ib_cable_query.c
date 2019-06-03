@@ -353,13 +353,31 @@ int main(int argc, char *argv[])
 	for(i = 0; i < input->ports_count; i++){
 		csmutil_logging(debug, "      ports[%i]: %s", i, input->ports[i]);
 	}
+	csmutil_logging(debug, "    revisions_count:      %i", input->revisions_count);
+	csmutil_logging(debug, "    revisions:            %p", input->revisions);
+	for(i = 0; i < input->revisions_count; i++){
+		csmutil_logging(debug, "      revisions[%i]: %s", i, input->revisions[i]);
+	}
 	csmutil_logging(debug, "    serial_numbers_count: %i", input->serial_numbers_count);
 	csmutil_logging(debug, "    serial_numbers:       %p", input->serial_numbers);
 	for(i = 0; i < input->serial_numbers_count; i++){
 		csmutil_logging(debug, "      serial_numbers[%i]: %s", i, input->serial_numbers[i]);
 	}
-	
-	
+	csmutil_logging(debug, "    severities_count:     %i", input->severities_count);
+	csmutil_logging(debug, "    severities:           %p", input->severities);
+	for(i = 0; i < input->severities_count; i++){
+		csmutil_logging(debug, "      severities[%i]: %s", i, input->severities[i]);
+	}
+	csmutil_logging(debug, "    types_count:          %i", input->types_count);
+	csmutil_logging(debug, "    types:                %p", input->types);
+	for(i = 0; i < input->types_count; i++){
+		csmutil_logging(debug, "      types[%i]: %s", i, input->types[i]);
+	}
+	csmutil_logging(debug, "    widths_count:         %i", input->widths_count);
+	csmutil_logging(debug, "    widths:               %p", input->widths);
+	for(i = 0; i < input->widths_count; i++){
+		csmutil_logging(debug, "      widths[%i]: %s", i, input->widths[i]);
+	}
 	csmutil_logging(debug, "  value of output:        %p", output);
 	csmutil_logging(debug, "  address of output:      %p", &output);
 	
