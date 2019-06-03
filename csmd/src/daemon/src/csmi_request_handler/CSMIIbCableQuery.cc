@@ -59,7 +59,7 @@ bool CSMIIbCableQuery::CreatePayload(
 	
 	//where statement parameters
 	add_param_sql(stmtParams, input->comments_count > 0, ++SQLparameterCount, "comment LIKE ANY ( $","::text[] ) AND ")
-	if(input->guid_count > 0)
+	if(input->guids_count > 0)
 	{
 		SQLparameterCount++;
 		add_param_sql(stmtParams, input->guids_count > 0, SQLparameterCount, "( guid_s1 = ANY ( $","::text[] ) OR ")
