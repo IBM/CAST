@@ -207,6 +207,10 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
+			case 'o':
+                csm_optarg_test( "-o, --offset", optarg, USAGE );
+                csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
+				break;
 			case 'p':
 			{
                 csm_optarg_test( "-p, --part_numbers", optarg, USAGE );
@@ -234,10 +238,6 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
-			case 'o':
-                csm_optarg_test( "-o, --offset", optarg, USAGE );
-                csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
-				break;
 			case 's':
 			{
                 csm_optarg_test( "-s, --serial_numbers", optarg, USAGE );
