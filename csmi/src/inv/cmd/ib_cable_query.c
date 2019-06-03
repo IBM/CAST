@@ -207,6 +207,15 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
+			case 'p':
+			{
+                csm_optarg_test( "-p, --part_numbers", optarg, USAGE );
+                csm_parse_csv( optarg, input->part_numbers, input->part_numbers_count,
+                            char*, csm_str_to_char, NULL, "-p, --part_numbers", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
