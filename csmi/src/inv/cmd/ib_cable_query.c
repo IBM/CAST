@@ -164,6 +164,15 @@ int main(int argc, char *argv[])
 				optionalParameterCounter++;
 				break;
 			}
+			case 'g':
+			{
+                csm_optarg_test( "-g, --guids", optarg, USAGE );
+                csm_parse_csv( optarg, input->guids, input->guids_count,
+                            char*, csm_str_to_char, NULL, "-g, --guids", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'h':
                 USAGE();
 				return CSMI_HELP;
