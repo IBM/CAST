@@ -189,6 +189,24 @@ int main(int argc, char *argv[])
 				csm_optarg_test( "-l, --limit", optarg, USAGE );
                 csm_str_to_int32( input->limit, optarg, arg_check, "-l, --limit", USAGE );
                 break;
+            case 'L':
+			{
+                csm_optarg_test( "-L, --lengths", optarg, USAGE );
+                csm_parse_csv( optarg, input->lengths, input->lengths_count,
+                            char*, csm_str_to_char, NULL, "-L, --lengths", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'n':
+			{
+                csm_optarg_test( "-n, --names", optarg, USAGE );
+                csm_parse_csv( optarg, input->names, input->names_count,
+                            char*, csm_str_to_char, NULL, "-n, --names", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
