@@ -3,18 +3,18 @@ csm_allocation_pkey,csm_allocation,pkey index on,allocation_id
 csm_config_pkey,csm_config,pkey index on,csm_config_id
 csm_db_schema_version_pkey,csm_db_schema_version,pkey index on,version
 csm_diag_run_pkey,csm_diag_run,pkey index on,run_id
-csm_dimm_pkey,csm_dimm,pkey index on,"serial_number, node_name"
+csm_dimm_pkey,csm_dimm,pkey index on,"node_name, serial_number"
 csm_gpu_pkey,csm_gpu,pkey index on,"node_name, gpu_id"
-csm_hca_pkey,csm_hca,pkey index on,"node_name, serial_number"
+csm_hca_pkey,csm_hca,pkey index on,"serial_number, node_name"
 csm_ib_cable_pkey,csm_ib_cable,pkey index on,serial_number
 csm_lv_pkey,csm_lv,pkey index on,"node_name, logical_volume_name"
 csm_node_pkey,csm_node,pkey index on,node_name
-csm_processor_socket_pkey,csm_processor_socket,pkey index on,"node_name, serial_number"
+csm_processor_socket_pkey,csm_processor_socket,pkey index on,"serial_number, node_name"
 csm_ras_event_action_pkey,csm_ras_event_action,pkey index on,rec_id
 csm_ras_type_pkey,csm_ras_type,pkey index on,msg_id
 csm_ras_type_audit_pkey,csm_ras_type_audit,pkey index on,msg_id_seq
 csm_ssd_pkey,csm_ssd,pkey index on,"node_name, serial_number"
-csm_step_pkey,csm_step,pkey index on,"allocation_id, step_id"
+csm_step_pkey,csm_step,pkey index on,"step_id, allocation_id"
 csm_switch_pkey,csm_switch,pkey index on,switch_name
 csm_switch_inventory_pkey,csm_switch_inventory,pkey index on,name
-csm_vg_pkey,csm_vg,pkey index on,"node_name, vg_name"
+csm_vg_pkey,csm_vg,pkey index on,"vg_name, node_name"

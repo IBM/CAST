@@ -15,11 +15,11 @@
 #--------------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------------
-#   usage:              ./csm_db_schema_version_upgrade_17_0.sh
+#   usage:              ./csm_db_schema_version_upgrade_18_0.sh
 #   current_version:    01.0
 #   migration_version:  18.0 # <--------example version after the DB upgrade
 #   create:             04-29-2019
-#   last modified:      05-22-2019
+#   last modified:      06-03-2019
 #--------------------------------------------------------------------------------
 
 #set -x
@@ -798,6 +798,7 @@ THE_END`
         LogMsg "[Error   ] Cannot perform the upgrade process to $migration_db_version"
         LogMsg "${line2_log}"
         LogMsg "[End     ] Exiting $0 script"
+        LogMsg "${line2_log}"
         echo "${line1_out}"
         exit 0
         
