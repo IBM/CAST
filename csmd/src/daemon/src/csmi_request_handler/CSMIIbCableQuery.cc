@@ -118,23 +118,18 @@ bool CSMIIbCableQuery::CreatePayload(
 		stmt.append( stmtParams );
 		stmt.append(") ");
 	}
-	//stmt.append("ORDER BY ");
-	/*
+	stmt.append("ORDER BY ");
 	switch (input->order_by)
 	{
 		case 'a':
-			stmt.append("switch_name ASC NULLS LAST ");
+			stmt.append("serial_number ASC NULLS LAST ");
 			break;
 		case 'b':
-			stmt.append("switch_name DESC NULLS LAST ");
+			stmt.append("serial_number DESC NULLS LAST ");
 			break;
 		default:
-			stmt.append("switch_name ASC NULLS LAST ");
+			stmt.append("serial_number ASC NULLS LAST ");
 	}
-	*/
-	stmt.append(	"ORDER BY "
-			"serial_number "
-			"ASC NULLS LAST ");
 	add_param_sql( stmt, input->limit > 0, ++SQLparameterCount, "LIMIT $", "::int ")
 
     add_param_sql( stmt, input->offset > 0, ++SQLparameterCount, "OFFSET $", "::int ")
