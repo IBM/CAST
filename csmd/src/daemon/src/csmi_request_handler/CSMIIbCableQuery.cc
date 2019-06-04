@@ -124,8 +124,80 @@ bool CSMIIbCableQuery::CreatePayload(
 		case 'a':
 			stmt.append("serial_number ASC NULLS LAST ");
 			break;
-		case 'b':
+		case 'A':
 			stmt.append("serial_number DESC NULLS LAST ");
+			break;
+		case 'b':
+			stmt.append("guid_s1 ASC NULLS LAST ");
+			break;
+		case 'B':
+			stmt.append("guid_s1 DESC NULLS LAST ");
+			break;
+		case 'c':
+			stmt.append("guid_s2 ASC NULLS LAST ");
+			break;
+		case 'C':
+			stmt.append("guid_s2 DESC NULLS LAST ");
+			break;
+		case 'd':
+			stmt.append("identifier ASC NULLS LAST ");
+			break;
+		case 'D':
+			stmt.append("identifier DESC NULLS LAST ");
+			break;
+		case 'e':
+			stmt.append("length ASC NULLS LAST ");
+			break;
+		case 'E':
+			stmt.append("length DESC NULLS LAST ");
+			break;
+		case 'f':
+			stmt.append("name ASC NULLS LAST ");
+			break;
+		case 'F':
+			stmt.append("name DESC NULLS LAST ");
+			break;
+		case 'g':
+			stmt.append("part_number ASC NULLS LAST ");
+			break;
+		case 'G':
+			stmt.append("part_number DESC NULLS LAST ");
+			break;
+		case 'h':
+			stmt.append("port_s1 ASC NULLS LAST ");
+			break;
+		case 'H':
+			stmt.append("port_s1 DESC NULLS LAST ");
+			break;
+		case 'i':
+			stmt.append("port_s2 ASC NULLS LAST ");
+			break;
+		case 'I':
+			stmt.append("port_s2 DESC NULLS LAST ");
+			break;
+		case 'j':
+			stmt.append("revision ASC NULLS LAST ");
+			break;
+		case 'J':
+			stmt.append("revision DESC NULLS LAST ");
+			break;
+		case 'k':
+			stmt.append("severity ASC NULLS LAST ");
+			break;
+		case 'K':
+			stmt.append("severity DESC NULLS LAST ");
+			break;
+		case 'l':
+			stmt.append("type ASC NULLS LAST ");
+			break;
+		case 'L':
+			stmt.append("type DESC NULLS LAST ");
+			break;
+		case 'm':
+			stmt.append("width ASC NULLS LAST ");
+			break;
+		case 'M':
+			stmt.append("width DESC NULLS LAST ");
 			break;
 		default:
 			stmt.append("serial_number ASC NULLS LAST ");
