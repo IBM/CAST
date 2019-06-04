@@ -79,6 +79,7 @@ CSMI_STRUCT_MEMBER(uint32_t, types_count       , BASIC    ,                   , 
 CSMI_STRUCT_MEMBER(char**  , types             , ARRAY_STR, types_count       , NULL, ) /**< Filter results of the database query to only include cables containing types in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
 CSMI_STRUCT_MEMBER(uint32_t, widths_count      , BASIC    ,                   , 0   , ) /**< Number of width strings to query on, size of @ref width. */
 CSMI_STRUCT_MEMBER(char**  , widths            , ARRAY_STR, widths_count      , NULL, ) /**< Filter results of the database query to only include cables containing widths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+CSMI_STRUCT_MEMBER(char, order_by, BASIC, , '\0', ) /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY serial_number ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY serial_number ASC NULLS LAST', [b] =  'ORDER BY serial_number DESC NULLS LAST' */
 CSMI_VERSION_END(0)
 
 

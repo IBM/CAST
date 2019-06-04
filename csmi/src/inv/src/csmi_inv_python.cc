@@ -747,7 +747,8 @@ BOOST_PYTHON_MODULE(lib_csm_inv_py)
 		.add_property("types_count", &csm_ib_cable_query_input_t::types_count,&csm_ib_cable_query_input_t::types_count," Number of type strings to query on, size of @ref type. ")
 		ARRAY_STR_PROPERTY(csm_ib_cable_query_input_t, char**, types, types_count, NULL, )
 		.add_property("widths_count", &csm_ib_cable_query_input_t::widths_count,&csm_ib_cable_query_input_t::widths_count," Number of width strings to query on, size of @ref width. ")
-		ARRAY_STR_PROPERTY(csm_ib_cable_query_input_t, char**, widths, widths_count, NULL, );
+		ARRAY_STR_PROPERTY(csm_ib_cable_query_input_t, char**, widths, widths_count, NULL, )
+		.add_property("order_by", &csm_ib_cable_query_input_t::order_by,&csm_ib_cable_query_input_t::order_by," Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY serial_number ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY serial_number ASC NULLS LAST', [b] =  'ORDER BY serial_number DESC NULLS LAST' ");
 
     class_<csm_ib_cable_query_output_t,csm_ib_cable_query_output_t*>("ib_cable_query_output_t")
 		.add_property("results_count", &csm_ib_cable_query_output_t::results_count,&csm_ib_cable_query_output_t::results_count," Number of records retrieved by the query, size of @ref results.")

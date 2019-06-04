@@ -551,6 +551,7 @@ typedef struct {
     char** types; /**< Filter results of the database query to only include cables containing types in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
     uint32_t widths_count; /**< Number of width strings to query on, size of @ref width. */
     char** widths; /**< Filter results of the database query to only include cables containing widths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY serial_number ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY serial_number ASC NULLS LAST', [b] =  'ORDER BY serial_number DESC NULLS LAST' */
 } csm_ib_cable_query_input_t;
 /**
  * @brief A wrapper for the output of @ref csm_ib_cable_query.
