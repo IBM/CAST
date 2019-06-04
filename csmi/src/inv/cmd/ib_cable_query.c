@@ -79,8 +79,8 @@ void help(){
 	puts("                         |                              | The serial number is a unique identification for an ib cable. ");
 	puts("    -S, --severities     | \"Info\"                       | (STRING) Filter results of the database query to only include cables containing severities in this csv list.");
 	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
-	puts("    -t, --types          | \"Copper cable- unequalized,  | (STRING) This is a csv field of types to query. Filter results to only include records that have a matching types. ");
-	puts("                         | %VCSEL%\"                     | This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'");
+	puts("    -t, --types          | \"%VCSEL%\"                    | (STRING) This is a csv field of types to query. Filter results to only include records that have a matching types. ");
+	puts("                         |                              | This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'");
 	puts("    -w, --widths         | \"IB_4x,%8x%\"                 | (STRING) This is a csv field of widths to query. Filter results to only include records that have a matching widths.");
 	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
 	puts("                         |                              |  The width of the cable - physical state of IB port (Optional Values: IB_1x ,IB_4x, IB_8x, IB_12x");
