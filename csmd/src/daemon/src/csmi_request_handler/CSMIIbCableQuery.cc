@@ -214,7 +214,7 @@ void CSMIIbCableQuery::CreateOutputStruct(
     csm::db::DBTuple * const & fields, 
     DB_RECORD_STRUCT **record)
 {
-    LOG( csmapi, debug ) << STATE_NAME ":CreateOutputStruct: Enter";
+    LOG( csmapi, trace ) << STATE_NAME ":CreateOutputStruct: Enter";
     
 	// Error check
     if ( fields->nfields != 16 )
@@ -249,5 +249,5 @@ void CSMIIbCableQuery::CreateOutputStruct(
 	
 	*record = r;
 
-    LOG( csmapi, debug ) << STATE_NAME ":CreateOutputStruct: Exit";
+    LOG( csmapi, trace ) << STATE_NAME ":CreateOutputStruct: Exit";
 }
