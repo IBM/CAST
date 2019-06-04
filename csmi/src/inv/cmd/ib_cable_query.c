@@ -242,8 +242,19 @@ int main(int argc, char *argv[])
 			case 'O':
 			{
 				if(strlen(optarg) == 1 && 
-                    (  optarg[0] == 'a' 
-					|| optarg[0] == 'b'
+                    (  optarg[0] == 'a' || optarg[0] == 'A' 
+                    || optarg[0] == 'b' || optarg[0] == 'B' 
+                    || optarg[0] == 'c' || optarg[0] == 'C' 
+                    || optarg[0] == 'd' || optarg[0] == 'D' 
+                    || optarg[0] == 'e' || optarg[0] == 'E' 
+                    || optarg[0] == 'f' || optarg[0] == 'F' 
+                    || optarg[0] == 'g' || optarg[0] == 'G' 
+                    || optarg[0] == 'h' || optarg[0] == 'H' 
+                    || optarg[0] == 'i' || optarg[0] == 'I'
+                    || optarg[0] == 'j' || optarg[0] == 'J'
+                    || optarg[0] == 'k' || optarg[0] == 'K' 
+                    || optarg[0] == 'l' || optarg[0] == 'L' 
+                    || optarg[0] == 'm' || optarg[0] == 'M' 
 					)
 				)
                 {
