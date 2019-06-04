@@ -14,6 +14,7 @@
 #include "bbinternal.h"
 #include "bbserver_flightlog.h"
 #include "BBLV_Info.h"
+#include "BBTagInfo.h"
 #include "BBTagParts.h"
 #include "logging.h"
 
@@ -27,11 +28,12 @@ int BBTagParts::addTransferDef(const LVKey* pLVKey, const uint64_t pHandle, cons
     // It is possible to enter this section of code without the transfer queue locked.
     // Inserting into a std::map is not thread safe, so we must acquire the lock around
     // the insert.
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagParts::addTransferDef");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagParts::addTransferDef");
+
     tagParts[pContribId] = *pTransferDef;
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagParts::addTransferDef");
+        unlockLocalMetadata(pLVKey, "BBTagParts::addTransferDef");
     }
 
     // Return the transfer definition just copied into tagparts...
@@ -48,87 +50,107 @@ int BBTagParts::addTransferDef(const LVKey* pLVKey, const uint64_t pHandle, cons
     return rc;
 }
 
-int BBTagParts::allExtentsTransferred(const uint32_t pContribId) {
+int BBTagParts::allExtentsTransferred(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     int rc = -1;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::allExtentsTransferred");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::allExtentsTransferred");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         rc = tagParts[pContribId].allExtentsTransferred();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::allExtentsTransferred");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::allExtentsTransferred");
     }
 
     return rc;
 }
 
-int BBTagParts::anyCanceledTransferDefinitions() {
+int BBTagParts::anyCanceledTransferDefinitions(BBTagInfo* pTagInfo) {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::anyCanceledTransferDefinitions");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::anyCanceledTransferDefinitions");
+    }
 
     // NOTE: It is only considered canceled if the stopped bit is also off
     for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
         rc = ((!(it->second).stopped()) && (it->second).canceled());
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::anyCanceledTransferDefinitions");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::anyCanceledTransferDefinitions");
     }
 
     return rc;
 }
 
-int BBTagParts::anyFailedTransferDefinitions() {
+int BBTagParts::anyFailedTransferDefinitions(BBTagInfo* pTagInfo) {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::anyFailedTransferDefinitions");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::anyFailedTransferDefinitions");
+    }
 
     for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
         rc = (it->second).failed();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::anyFailedTransferDefinitions");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::anyFailedTransferDefinitions");
     }
 
     return rc;
 }
 
-int BBTagParts::anyStoppedTransferDefinitions() {
+int BBTagParts::anyStoppedTransferDefinitions(BBTagInfo* pTagInfo) {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::anyStoppedTransferDefinitions");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::anyStoppedTransferDefinitions");
+    }
 
     for (auto it = tagParts.begin(); (!rc) && it != tagParts.end(); ++it) {
         rc = (it->second).stopped();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::anyStoppedTransferDefinitions");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::anyStoppedTransferDefinitions");
     }
 
     return rc;
 }
 
-int BBTagParts::canceled(const uint32_t pContribId) {
+int BBTagParts::canceled(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     int rc = -1;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::canceled");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::canceled");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         rc = tagParts[pContribId].canceled();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::canceled");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::canceled");
     }
 
     return rc;
@@ -155,6 +177,9 @@ void BBTagParts::cleanUpAll(const LVKey* pLVKey, const BBTagID pTagId)
 }
 
 void BBTagParts::dump(const char* pSev) {
+
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::dump");
+
     if (tagParts.size()) {
         if (!strcmp(pSev,"debug")) {
             LOG(bb,debug) << ">>>>> Start: " << tagParts.size() \
@@ -177,47 +202,64 @@ void BBTagParts::dump(const char* pSev) {
         }
     }
 
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::dump");
+    }
+
     return;
 }
 
-int BBTagParts::failed(const uint32_t pContribId) {
+int BBTagParts::failed(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     int rc = -1;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::failed");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::failed");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         rc = tagParts[pContribId].failed();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::failed");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::failed");
     }
 
     return rc;
 }
 
-BBJob BBTagParts::getJob(const uint32_t pContribId) {
+BBJob BBTagParts::getJob(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     BBJob l_Job = BBJob();
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getJob");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getJob");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         l_Job = tagParts[pContribId].getJob();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getJob");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getJob");
     }
 
     return l_Job;
 }
 
-BBSTATUS BBTagParts::getStatus(const uint32_t pContribId) {
+BBSTATUS BBTagParts::getStatus(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     BBSTATUS l_Status = BBNONE;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getStatus");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getStatus");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         l_Status = tagParts[pContribId].getStatus();
@@ -225,86 +267,106 @@ BBSTATUS BBTagParts::getStatus(const uint32_t pContribId) {
         l_Status = BBNOTREPORTED;
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getStatus");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getStatus");
     }
 
     return l_Status;
 }
 
-uint64_t BBTagParts::getTag(const uint32_t pContribId) {
+uint64_t BBTagParts::getTag(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     uint64_t l_Tag = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getTag");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getTag");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         l_Tag = tagParts[pContribId].getTag();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getTag");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getTag");
     }
 
     return l_Tag;
 }
 
-size_t BBTagParts::getTotalTransferSize() {
+size_t BBTagParts::getTotalTransferSize(BBTagInfo* pTagInfo) {
     size_t l_TotalSize = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getTotalTransferSize_1");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getTotalTransferSize_1");
+    }
 
     for (auto it = tagParts.begin(); it != tagParts.end(); ++it) {
         l_TotalSize += BBTransferDef::getTotalTransferSize(&(it->second));
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getTotalTransferSize_1");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getTotalTransferSize_1");
     }
 
     return l_TotalSize;
 }
 
-size_t BBTagParts::getTotalTransferSize(const uint32_t pContribId) {
+size_t BBTagParts::getTotalTransferSize(BBTagInfo* pTagInfo, const uint32_t pContribId) {
     size_t l_TotalSize = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getTotalTransferSize_2");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getTotalTransferSize_2");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         l_TotalSize = BBTransferDef::getTotalTransferSize(&(tagParts[pContribId]));
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getTotalTransferSize_2");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getTotalTransferSize_2");
     }
 
     return l_TotalSize;
 }
 
-size_t BBTagParts::getTotalTransferSize(const uint32_t pContribId, const uint32_t pSourceIndex) {
+size_t BBTagParts::getTotalTransferSize(BBTagInfo* pTagInfo, const uint32_t pContribId, const uint32_t pSourceIndex) {
     size_t l_TotalSize = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getTotalTransferSize_3");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getTotalTransferSize_3");
+    }
 
     if (tagParts.find(pContribId) != tagParts.end()) {
         l_TotalSize = BBTransferDef::getTotalTransferSize(&(tagParts[pContribId]), pSourceIndex);
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getTotalTransferSize_3");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getTotalTransferSize_3");
     }
 
     return l_TotalSize;
 }
 
-BBTransferDef* BBTagParts::getTransferDef(const uint32_t pContribId) const {
+BBTransferDef* BBTagParts::getTransferDef(BBTagInfo* pTagInfo, const uint32_t pContribId) const {
     BBTransferDef* l_TransferDefPtr = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getTransferDef");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getTransferDef");
+    }
 
     for (auto it = tagParts.begin(); it != tagParts.end(); ++it) {
         if (it->first == pContribId) {
@@ -313,9 +375,9 @@ BBTransferDef* BBTagParts::getTransferDef(const uint32_t pContribId) const {
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBTagParts::getTransferDef");
+        unlockLocalMetadata((LVKey*)0, "BBTagParts::getTransferDef");
     }
 
     return l_TransferDefPtr;
@@ -347,10 +409,14 @@ void BBTagParts::removeTargetFiles(const LVKey* pLVKey, const uint32_t pContribI
     return;
 }
 
-int BBTagParts::setCanceled(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue) {
+int BBTagParts::setCanceled(const LVKey* pLVKey, BBTagInfo* pTagInfo, uint64_t pHandle, const uint32_t pContribId, const int pValue) {
     int rc = -1;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagParts::setCanceled");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagParts::setCanceled");
+    }
 
     for (auto it = tagParts.begin(); it != tagParts.end(); ++it) {
         if (it->first == pContribId) {
@@ -360,19 +426,23 @@ int BBTagParts::setCanceled(const LVKey* pLVKey, uint64_t pHandle, const uint32_
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagParts::setCanceled");
+        unlockLocalMetadata(pLVKey, "BBTagParts::setCanceled");
     }
 
     return rc;
 }
 
-int BBTagParts::setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue)
+int BBTagParts::setFailed(const LVKey* pLVKey, BBTagInfo* pTagInfo, uint64_t pHandle, const uint32_t pContribId, const int pValue)
 {
     int rc = -1;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagParts::setFailed");
+    int l_LocalMetadataWasLocked = 0;
+    if (pTagInfo->localMetadataLockRequired())
+    {
+        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagParts::setFailed");
+    }
 
     for (auto it = tagParts.begin(); it != tagParts.end(); ++it)
     {
@@ -384,15 +454,15 @@ int BBTagParts::setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t 
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagParts::setFailed");
+        unlockLocalMetadata(pLVKey, "BBTagParts::setFailed");
     }
 
     return rc;
 }
 
-int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, BBLV_Info* pLV_Info, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, BBLV_Info* pLV_Info, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
@@ -414,9 +484,9 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
             uint32_t i = 0;
             while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId))
             {
-                unlockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+                unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
                 {
-                    pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                    pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
                     // NOTE: Currently set to send info to console after 3 seconds of not being able to clear, and every 10 seconds thereafter...
                     if ((i++ % 40) == 12)
                     {
@@ -428,7 +498,7 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
                     }
                     usleep((useconds_t)250000);
                 }
-                lockTransferQueue(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+                lockLocalMetadata(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
             }
 
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));

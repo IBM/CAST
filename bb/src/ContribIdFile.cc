@@ -485,6 +485,8 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     char* l_HandleFileName = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
+
     if (pLockOption == LOCK_HANDLEFILE)
     {
         // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
@@ -613,6 +615,11 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
         l_HandleFile = 0;
     }
 
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
+    }
+
     if (l_ContribIdFile)
     {
         FL_Write6(FLMetaData, CIF_UpdateFile_End, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld, flags=0x%lx, rc=%ld",
@@ -646,6 +653,8 @@ int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey,
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "ContribIdFile::update_xbbServerContribIdFileNewHostName");
 
     rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc)
@@ -702,6 +711,11 @@ int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey,
         l_HandleFile->close(l_LockFeedback);
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "ContribIdFile::update_xbbServerContribIdFileNewHostName");
     }
 
     if (l_ContribIdFile)
@@ -823,6 +837,8 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
     FL_Write(FLMetaData, CIF_UpdateStatus, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId);
     LOG(bb,debug) << "update_xbbServerFileStatus(): Input " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":" \
                   << " pFlags=0x" << hex << uppercase << pFlags << nouppercase << dec << ", pValue=" << pValue;
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "ContribIdFile::update_xbbServerFileStatus");
 
     if (pTransferDef->stopped())
     {
@@ -1051,6 +1067,11 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
         l_HandleFile->close(l_LockFeedback);
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "ContribIdFile::update_xbbServerFileStatus");
     }
 
     if (l_ContribIdFile)

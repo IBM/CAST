@@ -18,6 +18,7 @@
 #include "Extent.h"
 #include "ExtentInfo.h"
 #include "util.h"
+#include "xfer.h"
 
 
 void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
@@ -30,11 +31,11 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         // NOTE:  This method exists to make sure that the number of work queue entries
         //        matches the number of entries in the vector of extents to transfer
         //        for this LVKey when we are adding an entry to the work queue.
-        LVKey l_Key = pWorkItem.getLVKey();
-        BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
+        BBLV_Info* l_LV_Info = pWorkItem.getLV_Info();
         if (l_LV_Info && (getWrkQ_Size() != l_LV_Info->getNumberOfExtents()))
         {
-            LOG(bb,error) << "WRKQE::addWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
+            LOG(bb,error) << "WRKQE::addWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" \
+                          << l_LV_Info->getNumberOfExtents() << ")";
             abort();
         }
     }
@@ -57,13 +58,15 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
 
     if (wrkq)
     {
+        int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - entry");
+
         if (getWrkQ_Size())
         {
-            BBLV_Info* l_WorkItemLV_Info = metadata.getLV_Info(&lvKey);
-            if (l_WorkItemLV_Info)
+            BBLV_Info* l_LV_Info = getLV_Info();
+            if (l_LV_Info)
             {
                 // NOTE: The high priority work queue will not fall into this leg...
-                ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
+                ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
@@ -101,6 +104,11 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         {
             LOG(bb,info) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << ", CurSize " << getWrkQ_Size();
         }
+
+        if (l_TransferQueueLocked)
+        {
+            unlockTransferQueue((LVKey*)0, "WRKQE::dump - exit");
+        }
     }
     else
     {
@@ -119,9 +127,10 @@ void WRKQE::loadBucket()
     return;
 }
 
-double WRKQE::processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo)
+double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
 {
     double l_Delay = 0;
+    BBLV_Info* l_LV_Info = 0;
     BBTransferDef* l_TransferDef = 0;
     bool l_MadeBucketModification = false;
 
@@ -137,41 +146,39 @@ double WRKQE::processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pE
             // NOTE: The code below is very similar to the code in transferExtent() in xfer.cc.  The code there
             //       logs messages if an extent is not going to be transferred for some reason.  Here, we simply
             //       want to check for those similar conditions, determining if we should decrement the bucket value.
-            if (pLV_Info)
+            l_LV_Info = getLV_Info();
+            if ((!(l_Extent->isCP_Transfer())) && l_Extent->getLength())
             {
-                if ((!(l_Extent->isCP_Transfer())) && l_Extent->getLength())
+                BBTagInfo* l_TagInfo = pExtentInfo.getTagInfo();
+                if (l_TagInfo)
                 {
-                    BBTagInfo* l_TagInfo = pLV_Info->getTagInfo(pTagId);
-                    if (l_TagInfo)
+                    if (!l_LV_Info->stageOutEnded())
                     {
-                        if (!pLV_Info->stageOutEnded())
+                        if (!(l_LV_Info->resizeLogicalVolumeDuringStageOut() && l_LV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
                         {
-                            if (!(pLV_Info->resizeLogicalVolumeDuringStageOut() && pLV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
+                            l_TransferDef = pExtentInfo.transferDef;
+                            if (!l_TransferDef->failed())
                             {
-                                l_TransferDef = pExtentInfo.transferDef;
-                                if (!l_TransferDef->failed())
+                                if (!l_TagInfo->canceled())
                                 {
-                                    if (!l_TagInfo->canceled())
+                                    //  Handle not marked as canceled
+                                    if (!l_TransferDef->canceled())
                                     {
-                                        //  Handle not marked as canceled
-                                        if (!l_TransferDef->canceled())
+                                        // This extent will be transferred...
+                                        // NOTE: We are guaranteed that this work queue is throttled, so
+                                        //       even if this bucket has a value of zero, it must be decremented
+                                        uint64_t l_Length = (uint64_t)(l_Extent->getLength());
+                                        if (bucket >= 0)
                                         {
-                                            // This extent will be transferred...
-                                            // NOTE: We are guaranteed that this work queue is throttled, so
-                                            //       even if this bucket has a value of zero, it must be decremented
-                                            uint64_t l_Length = (uint64_t)(l_Extent->getLength());
-                                            if (bucket >= 0)
-                                            {
-                                                // No delay
-                                                l_MadeBucketModification = true;
-                                                bucket -= (int64_t)l_Length;
-                                            }
-                                            else
-                                            {
-                                                // With delay
-                                                l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
-                                                LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
-                                            }
+                                            // No delay
+                                            l_MadeBucketModification = true;
+                                            bucket -= (int64_t)l_Length;
+                                        }
+                                        else
+                                        {
+                                            // With delay
+                                            l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
+                                            LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
                                         }
                                     }
                                 }
@@ -213,10 +220,9 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         //        matches the number of entries in the vector of extents to transfer
         //        for this LVKey when we are removing the first entry from the work queue.
         LVKey l_Key = (wrkq->front()).getLVKey();
-        BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
-        if (l_LV_Info && (getWrkQ_Size() != l_LV_Info->getNumberOfExtents()))
+        if (getWrkQ_Size() != getLV_Info()->getNumberOfExtents())
         {
-            LOG(bb,error) << "WRKQE::removeWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << l_LV_Info->getNumberOfExtents() << ") to transfer for " << l_Key;
+            LOG(bb,error) << "WRKQE::removeWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << getLV_Info()->getNumberOfExtents() << ") to transfer for " << l_Key;
             abort();
         }
     }

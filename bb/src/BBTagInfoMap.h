@@ -56,7 +56,7 @@ class BBTagInfoMap
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
-    int addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID pTagId, BBTagInfo& pTagInfo, int& pGeneratedHandle);
+    int addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID pTagId, BBTagInfo* &pTagInfo, int& pGeneratedHandle);
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     size_t getNumberOfTransferDefs(const BBTagID& pTagId);
@@ -73,10 +73,10 @@ class BBTagInfoMap
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
-    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
     void updateAllContribsReported(const LVKey* pLVKey, int& pAllReported);
     int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight);
-    int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo& pTagInfo);
+    int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo* &pTagInfo);
 
     map<BBTagID, BBTagInfo, BBTagID_Compare> tagInfoMap;
 };
