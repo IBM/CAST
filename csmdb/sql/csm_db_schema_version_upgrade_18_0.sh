@@ -15,7 +15,7 @@
 #--------------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------------
-#   usage:              ./csm_db_schema_version_upgrade_17_0.sh
+#   usage:              ./csm_db_schema_version_upgrade_18_0.sh
 #   current_version:    01.0
 #   migration_version:  18.0 # <--------example version after the DB upgrade
 #   create:             04-29-2019
