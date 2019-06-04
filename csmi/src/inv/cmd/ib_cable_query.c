@@ -44,7 +44,7 @@ void help(){
 	puts("_____CSM_IB_CABLE_QUERY_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_ib_cable_query ARGUMENTS [OPTIONS]");
-	puts("  csm_ib_cable_query [-c comments] [-g guids] [-i identifiers] [-L lengths] [-n names] [-p part_numbers] [-P ports] [-r revisions] [-s serial_numbers] [-S severities] [-t types] [-w widths] [-l limit] [-o offset] [-h] [-v verbose_level]");
+	puts("  csm_ib_cable_query [-c comments] [-g guids] [-i identifiers] [-L lengths] [-n names] [-O order_by] [-p part_numbers] [-P ports] [-r revisions] [-s serial_numbers] [-S severities] [-t types] [-w widths] [-l limit] [-o offset] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Used to query the 'csm_ib_cable' table of the CSM database.");
 	puts("");
@@ -86,11 +86,14 @@ void help(){
 	puts("                         |                              |  The width of the cable - physical state of IB port (Optional Values: IB_1x ,IB_4x, IB_8x, IB_12x");
 	puts("                         |                              | ");
 	puts("  FILTERS:");
-	puts("    csm_ib_cable_query can have 2 optional filters.");
-	puts("    Argument     | Example value | Description  ");                                                 
-	puts("    -------------|---------------|--------------");
-	puts("    -l, --limit  | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
-    puts("    -o, --offset | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    csm_ib_cable_query can have 3 optional filters.");
+	puts("    Argument       | Example value | Description  ");                                                 
+	puts("    ---------------|---------------|--------------");
+	puts("    -l, --limit    | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
+	puts("    -o, --offset   | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    -O, --order_by | a             | (CHAR) SQL 'ORDER BY' numeric value. Default Value: 'a'");
+	puts("                                   | Valid Values: [a] = 'ORDER BY serial_number ASC NULLS LAST'"); 
+	puts("                                   |               [b] = 'ORDER BY serial_number DESC NULLS LAST'");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -121,6 +124,7 @@ struct option longopts[] = {
 	//filters
 	{"limit",          required_argument, 0, 'l'},
 	{"offset",         required_argument, 0, 'o'},
+	{"order_by",       required_argument, 0, 'O'},
 	{0,0,0,0}
 };
 
@@ -153,7 +157,7 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "c:g:hi:l:L:n:o:p:P:r:s:S:t:v:w:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "c:g:hi:l:L:n:o:O:p:P:r:s:S:t:v:w:", longopts, &indexptr)) != -1) {
 		switch(opt){
 			case 'c':
 			{
@@ -211,6 +215,22 @@ int main(int argc, char *argv[])
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
 				break;
+			case 'O':
+			{
+				if(strlen(optarg) == 1 && 
+                    (  optarg[0] == 'a' 
+					|| optarg[0] == 'b'
+					)
+				)
+                {
+					input->order_by = optarg[0];
+				}else{
+					csmutil_logging(error, "Invalid parameter for -O: optarg , encountered: %s", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				break;
+			}
 			case 'p':
 			{
                 csm_optarg_test( "-p, --part_numbers", optarg, USAGE );
@@ -343,6 +363,7 @@ int main(int argc, char *argv[])
 		csmutil_logging(debug, "      names[%i]: %s", i, input->names[i]);
 	}
 	csmutil_logging(debug, "    offset:               %i", input->offset);
+	csmutil_logging(debug, "    order_by:             %c", input->order_by);
 	csmutil_logging(debug, "    part_numbers_count:   %i", input->part_numbers_count);
 	csmutil_logging(debug, "    part_numbers:         %p", input->part_numbers);
 	for(i = 0; i < input->part_numbers_count; i++){
