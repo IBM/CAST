@@ -160,7 +160,7 @@ GetOptions(
     "metadata=s"      => \$CFG{"metadata"},
     "skip=s"          => \$CFG{"skip"},
     "help!"           => \$showhelp
-);
+) or die("Invalid command line arguments\n");
 setDefaults();
 
 if($showhelp)
