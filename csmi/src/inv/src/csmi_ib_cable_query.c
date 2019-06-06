@@ -54,13 +54,11 @@ int csm_ib_cable_query(
     // Create a csm_api_object and sets its csmi cmd and the destroy function
     create_csm_api_object(csm_obj, expected_cmd, csmi_ib_cable_query_destroy);
     
-    if( !input || input->serial_numbers_count < 1 || input->serial_numbers == NULL )
+    if( !input )
     {
-        csmutil_logging(error, "Invalid parameter: 'serial_numbers' and 'serial_numbers_count'"
-            " must specify one or more serial numbers.");
+        csmutil_logging(error, "Invalid parameter: input is NULL.");
         csm_api_object_errcode_set(*csm_obj, CSMERR_INVALID_PARAM);
-        csm_api_object_errmsg_set(*csm_obj,
-            strdup(csm_get_string_from_enum(csmi_cmd_err_t,CSMERR_INVALID_PARAM)));
+        csm_api_object_errmsg_set(*csm_obj, strdup(csm_get_string_from_enum(csmi_cmd_err_t,CSMERR_INVALID_PARAM)));
         
         return CSMERR_INVALID_PARAM;
     }

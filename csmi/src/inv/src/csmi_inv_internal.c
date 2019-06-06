@@ -781,13 +781,62 @@ const csmi_struct_mapping_t map_csm_ib_cable_inventory_collection_output_t= {
     cast_csm_ib_cable_inventory_collection_output_t
 };
 
-const csmi_struct_node_t csm_ib_cable_query_input_tree[7] = {{"offset",offsetof(csm_ib_cable_query_input_t,offset),0,NULL,0x123b4b4c,36},
+const csmi_struct_node_t csm_ib_cable_query_input_tree[56] = {{"serial_numbers_count",offsetof(csm_ib_cable_query_input_t,serial_numbers_count),0,NULL,0x54252ca8,24},
+{"names",offsetof(csm_ib_cable_query_input_t,names),offsetof(csm_ib_cable_query_input_t, names_count),NULL,0xffc9579,5},
+{"identifiers",offsetof(csm_ib_cable_query_input_t,identifiers),offsetof(csm_ib_cable_query_input_t, identifiers_count),NULL,0x89b523fb,5},
+{"guids",offsetof(csm_ib_cable_query_input_t,guids),offsetof(csm_ib_cable_query_input_t, guids_count),NULL,0xf88d061,5},
+{"offset",offsetof(csm_ib_cable_query_input_t,offset),0,NULL,0x123b4b4c,36},
+{"ports_count",offsetof(csm_ib_cable_query_input_t,ports_count),0,NULL,0x6b0e80c5,24},
+{"guids_count",offsetof(csm_ib_cable_query_input_t,guids_count),0,NULL,0xf68e4129,24},
+{"names_count",offsetof(csm_ib_cable_query_input_t,names_count),0,NULL,0x9777841,24},
 {"limit",offsetof(csm_ib_cable_query_input_t,limit),0,NULL,0xfdcc804,36},
-{"serial_numbers_count",offsetof(csm_ib_cable_query_input_t,serial_numbers_count),0,NULL,0x54252ca8,24},
+{"ports",offsetof(csm_ib_cable_query_input_t,ports),offsetof(csm_ib_cable_query_input_t, ports_count),NULL,0x10288afd,5},
+{"comments",offsetof(csm_ib_cable_query_input_t,comments),offsetof(csm_ib_cable_query_input_t, comments_count),NULL,0x3fd8f5cb,5},
+{"lengths_count",offsetof(csm_ib_cable_query_input_t,lengths_count),0,NULL,0x6390dba2,24},
+{"lengths",offsetof(csm_ib_cable_query_input_t,lengths),offsetof(csm_ib_cable_query_input_t, lengths_count),NULL,0x70eb441a,5},
+{"identifiers_count",offsetof(csm_ib_cable_query_input_t,identifiers_count),0,NULL,0xd1f56043,24},
+{"serial_numbers",offsetof(csm_ib_cable_query_input_t,serial_numbers),offsetof(csm_ib_cable_query_input_t, serial_numbers_count),NULL,0xff70c8a0,5},
+{"part_numbers_count",offsetof(csm_ib_cable_query_input_t,part_numbers_count),0,NULL,0x80277df,24},
+{"severities_count",offsetof(csm_ib_cable_query_input_t,severities_count),0,NULL,0xf67dd10,24},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{"serial_numbers",offsetof(csm_ib_cable_query_input_t,serial_numbers),offsetof(csm_ib_cable_query_input_t, serial_numbers_count),NULL,0xff70c8a0,5}}
+{"types",offsetof(csm_ib_cable_query_input_t,types),offsetof(csm_ib_cable_query_input_t, types_count),NULL,0x10765e5a,5},
+{"widths",offsetof(csm_ib_cable_query_input_t,widths),offsetof(csm_ib_cable_query_input_t, widths_count),NULL,0x2519c5b8,5},
+{"severities",offsetof(csm_ib_cable_query_input_t,severities),offsetof(csm_ib_cable_query_input_t, severities_count),NULL,0x52314b08,5},
+{NULL,0,0,NULL,0,0},
+{"revisions_count",offsetof(csm_ib_cable_query_input_t,revisions_count),0,NULL,0x69659eaf,24},
+{NULL,0,0,NULL,0,0},
+{"revisions",offsetof(csm_ib_cable_query_input_t,revisions),offsetof(csm_ib_cable_query_input_t, revisions_count),NULL,0x80220167,5},
+{"part_numbers",offsetof(csm_ib_cable_query_input_t,part_numbers),offsetof(csm_ib_cable_query_input_t, part_numbers_count),NULL,0xb91fb697,5},
+{"types_count",offsetof(csm_ib_cable_query_input_t,types_count),0,NULL,0xe816a5e2,24},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"order_by",offsetof(csm_ib_cable_query_input_t,order_by),0,NULL,0x245553bb,68},
+{"comments_count",offsetof(csm_ib_cable_query_input_t,comments_count),0,NULL,0x2d434e13,24},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{NULL,0,0,NULL,0,0},
+{"widths_count",offsetof(csm_ib_cable_query_input_t,widths_count),0,NULL,0x9d4d9bc0,24}}
 ;
 
 void* cast_csm_ib_cable_query_input_t(void* ptr,size_t index, char isArray) { 
@@ -795,7 +844,7 @@ void* cast_csm_ib_cable_query_input_t(void* ptr,size_t index, char isArray) {
     return ptr_cast && isArray ? ptr_cast[index] : (void*)ptr_cast;
 };
 const csmi_struct_mapping_t map_csm_ib_cable_query_input_t= {
-    7,
+    56,
     csm_ib_cable_query_input_tree,
     cast_csm_ib_cable_query_input_t
 };
