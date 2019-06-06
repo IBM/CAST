@@ -129,7 +129,8 @@ else
         "hosts=s" => \$hostlist,
         "jobid=i" => \$::JOBID,
         @::GETOPS
-    );
+    ) or die("Invalid command line arguments.  Bailing\n");
+    
     if($hostlist ne "")
     {
         @::HOSTLIST_ARRAY = split(/,/, $hostlist);
