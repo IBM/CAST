@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import errno
 import subprocess
@@ -79,7 +80,7 @@ if(int(args.reverse_arg) == 1):
 #     print "python api_statistics.py"
 #     print "python api_statistics.py <Start Date YYYY-MM-DD> <Start Time HH:MM:SS>"
 #     print "python api_statistics.py <Start Date YYYY-MM-DD> <Start Time HH:MM:SS> <End Date YYYY-MM-DD> <End Time HH:MM:SS>"
-print "Search from:  %s to %s" % (str(start_datetime), str(end_datetime))
+print("Search from:  %s to %s" % (str(start_datetime), str(end_datetime)))
 
 
 
@@ -90,19 +91,19 @@ def handle_file(filename):
     if "compute" in filename and ".log" in filename:
         start = time.time()
         compute_CSM_Compute_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
-        print 'Run Time: ' + str(time.time() - start) + '\n'
+        print('Run Time: ' + str(time.time() - start) + '\n')
     elif "aggregator" in filename and ".log" in filename:
         start = time.time()
         compute_CSM_Aggregator_stats(filename,start_datetime, end_datetime, order_by, reverse_order)
-        print 'Run Time: ' + str(time.time() - start) + '\n'
+        print('Run Time: ' + str(time.time() - start) + '\n')
     elif "master" in filename and ".log" in filename:
         start = time.time()
         compute_CSM_Master_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
-        print 'Run Time: ' + str(time.time() - start) + '\n'
+        print('Run Time: ' + str(time.time() - start) + '\n')
     elif "utility" in filename and ".log" in filename:
         start = time.time()
         compute_CSM_Utility_stats(filename,start_datetime,end_datetime, order_by, reverse_order)
-        print 'Run Time: ' + str(time.time() - start) + '\n'
+        print('Run Time: ' + str(time.time() - start) + '\n')
 
 
 
@@ -120,7 +121,7 @@ for subdirectory in subdirs:
             # if 'log.old.5' in filename and 'txt' not in filename:
             	file_list.append(filename)
 
-print file_list
+print(file_list)
 
 #---------- Parallelize with each process handling a different file ----------
 jobs = [ multiprocessing.Process(target=handle_file, args=(i,)) for i in file_list]

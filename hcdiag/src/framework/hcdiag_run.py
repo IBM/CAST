@@ -15,6 +15,7 @@
 # 
 #==============================================================================
 
+from __future__ import print_function
 import sys
 import os
 import argparse
@@ -60,9 +61,9 @@ def subscribe_to_signal():
 def list_available_test_bucket(tconfig, alist) :
    diagtittle= 'Health Check Diagnostics version %s, running on %s %s, %s machine.' \
              %(__version__, os.uname()[0], os.uname()[2], thishost)
-   print diagtittle
+   print(diagtittle)
    tconfig.list(alist)
-   print '\ndone...\n' 
+   print('\ndone...\n') 
    sys.exit(0)
 
 
@@ -133,7 +134,7 @@ if __name__ == "__main__":
 
   mprop =  HCDIAG_PROPERTIES if not args.diagproperties else args.diagproperties  
   if not mconfigt.read_file(mprop, args):
-     print 'Error reading master properties file {0}. Exiting...' .format(mprop)
+     print('Error reading master properties file {0}. Exiting...' .format(mprop))
      sys.exit(1)
 
   mconfig = mconfigt.get_attributes()
@@ -147,26 +148,26 @@ if __name__ == "__main__":
   #-- if it --list option, all other arguments will be ignored, nothing to check
   if args.list:
      if args.target or args.fanout:
-        print me, ': --list requested, all other arguments  will be ignored.'
+        print(me, ': --list requested, all other arguments  will be ignored.')
      list_available_test_bucket(tconfig, args.list)
      sys.exit(0)
 
   #-- arguments validation
   if mgmt_mode: 
      if not args.target :
-        print me, ': error:  --target is required.'
+        print(me, ': error:  --target is required.')
         sys.exit(1)
 
      if args.fanout != None and args.fanout < 1:
-        print me, ': error: argument --fanout/-f: xcat fanout value must be greater then zero.'
+        print(me, ': error: argument --fanout/-f: xcat fanout value must be greater then zero.')
         sys.exit(1)
 
   else: # Node mode
      if mconfig['allocation_id'] == '1':
-        print me, ': error: when running in Node mode, allocation cannot be requested. Use --noallocation option, or pass an existent allocation_id.'
+        print(me, ': error: when running in Node mode, allocation cannot be requested. Use --noallocation option, or pass an existent allocation_id.')
         sys.exit(1)
      if args.fanout != None:
-        print me, ': running in Node mode, --fanout will be innored.'
+        print(me, ': running in Node mode, --fanout will be innored.')
 
 
   usecsm= False
@@ -175,7 +176,7 @@ if __name__ == "__main__":
      csmidir=mconfig['csmi_bindir'] 
      # check if csmi api directory exist
      if not os.path.isdir(csmidir) :
-       print 'Can not find csmi directory {0}. Is csmi installed?' .format(csmidir)
+       print('Can not find csmi directory {0}. Is csmi installed?' .format(csmidir))
        sys.exit(1)
      usecsm= True
 
@@ -192,8 +193,8 @@ if __name__ == "__main__":
   try:
      logger= LogHandler(thismodule, console_level, log_level, True, bds, logf)                                                       
   except IOError as e:
-     print e
-     print 'Error creating the log handlers. Exiting...'
+     print(e)
+     print('Error creating the log handlers. Exiting...')
      sys.exit(1)
 
   
@@ -247,9 +248,9 @@ if __name__ == "__main__":
   
   # create directory for log files... we do it here to avoid empty directory
   try:
-    os.mkdir(logd,0755)
+    os.mkdir(logd,0o755)
   except OSError as e:
-    print e
+    print(e)
     logger.critical('Subdirectory {0} creation failed.' .format(logd))
     csmii.stop_run(1)   
     csmii.delete_allocation()

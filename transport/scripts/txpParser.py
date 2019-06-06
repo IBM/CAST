@@ -1,3 +1,4 @@
+from __future__ import print_function
 #if 0
 #
 #    txpParser.py
@@ -375,7 +376,7 @@ STATIC_STRUCTURE_DATA_5 = ('/**\n',
 def addItems(pResults, pKey, pData):
 	# NOTE:  l_Value is not currently used...
     pResults[pKey] = {}
-    if type(pData) == dict:
+    if isinstance(pData, dict):
         for l_Value, l_Key in pData.items():
             pResults[pKey][l_Key] = l_Value
     else:
@@ -422,17 +423,16 @@ def determineFilesToParse(pFilesToParse):
     else:
         pFilesToParse.append(os.path.normcase(os.path.join('/usr', 'include', 'linux', 'fuse.h')))
 
-    print "%s - The following files will be parsed for data:" % (SCRIPT_NAME)
+    print("%s - The following files will be parsed for data:" % (SCRIPT_NAME))
     for l_File in pFilesToParse:
-        print "%s%s" % (" "*16, l_File)
+        print("%s%s" % (" "*16, l_File))
 
     return l_RC
 
 
 def genAttributeInclude1(pOutfile, pResults):
-    if pResults.has_key("NAMES"):
-        l_Names = pResults["NAMES"].keys()
-        l_Names.sort()
+    if "NAMES" in pResults:
+        l_Names = sorted(pResults["NAMES"].keys())
         pOutfile.append('%s// txp::Attribute::isAttrNameValid()\n' % (' '*8))
         for l_Name in l_Names:
             l_AttrSupported = True
@@ -442,9 +442,8 @@ def genAttributeInclude1(pOutfile, pResults):
                     break
             if l_AttrSupported:
                 pOutfile.append('%scase txp::%s:\n' % (' '*8, clean(l_Name)))
-    if pResults.has_key("STRUCTS"):
-        l_Structs = pResults["STRUCTS"].keys()
-        l_Structs.sort()
+    if "STRUCTS" in pResults:
+        l_Structs = sorted(pResults["STRUCTS"].keys())
         for l_Struct in l_Structs:
             pOutfile.append('%scase txp::%s:\n' % (' '*8, clean(l_Struct)))
     pOutfile.append('%sbreak;\n' % (' '*12))
@@ -453,9 +452,8 @@ def genAttributeInclude1(pOutfile, pResults):
 
 
 def genAttributeInclude2(pOutfile, pResults):
-    if pResults.has_key("NAMES"):
-        l_Names = pResults["NAMES"].keys()
-        l_Names.sort()
+    if "NAMES" in pResults:
+        l_Names = sorted(pResults["NAMES"].keys())
         pOutfile.append('%s// txp::Attribute::attrNameToChar()\n' % (' '*12))
         for l_Name in l_Names:
             l_AttrSupported = True
@@ -467,9 +465,8 @@ def genAttributeInclude2(pOutfile, pResults):
                 pOutfile.append('%scase txp::%s:%s' % (' '*12, clean(l_Name), os.linesep))
                 pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, clean(l_Name)))
                 pOutfile.append('%sbreak;\n' % (' '*16))
-    if pResults.has_key("STRUCTS"):
-        l_Structs = pResults["STRUCTS"].keys()
-        l_Structs.sort()
+    if "STRUCTS" in pResults:
+        l_Structs = sorted(pResults["STRUCTS"].keys())
         for l_Struct in l_Structs:
             pOutfile.append('%scase txp::%s:%s' % (' '*12, clean(l_Struct), os.linesep))
             pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, clean(l_Struct)))
@@ -480,15 +477,13 @@ def genAttributeInclude2(pOutfile, pResults):
 
 def genMsgInclude1(pOutfile, pResults):
     # Used by Id::isMsgIdSupported()
-    if pResults.has_key("FUSE_OPCODE"):
-        l_Ids = pResults["FUSE_OPCODE"].keys()
-        l_Ids.sort()
+    if "FUSE_OPCODE" in pResults:
+        l_Ids = sorted(pResults["FUSE_OPCODE"].keys())
         pOutfile.append('%s// txp::Msg::isSupported(pId)\n' % (' '*8))
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*8, pResults["FUSE_OPCODE"][l_Id]))
-    if pResults.has_key("CORAL_IDS"):
-        l_Ids = pResults["CORAL_IDS"].keys()
-        l_Ids.sort()
+    if "CORAL_IDS" in pResults:
+        l_Ids = sorted(pResults["CORAL_IDS"].keys())
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*8, pResults["CORAL_IDS"][l_Id]))
     pOutfile.append('%sbreak;\n' % (' '*12))
@@ -497,15 +492,13 @@ def genMsgInclude1(pOutfile, pResults):
 
 
 def genMsgInclude2(pOutfile, pResults):
-    if pResults.has_key("FUSE_OPCODE"):
-        l_Ids = pResults["FUSE_OPCODE"].keys()
-        l_Ids.sort()
+    if "FUSE_OPCODE" in pResults:
+        l_Ids = sorted(pResults["FUSE_OPCODE"].keys())
         pOutfile.append('%s// txp::Msg::isValid(pId)\n' % (' '*8))
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*8, pResults["FUSE_OPCODE"][l_Id]))
-    if pResults.has_key("CORAL_IDS"):
-        l_Ids = pResults["CORAL_IDS"].keys()
-        l_Ids.sort()
+    if "CORAL_IDS" in pResults:
+        l_Ids = sorted(pResults["CORAL_IDS"].keys())
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*8, pResults["CORAL_IDS"][l_Id]))
     pOutfile.append('%sbreak;\n' % (' '*12))
@@ -514,24 +507,21 @@ def genMsgInclude2(pOutfile, pResults):
 
 
 def genMsgInclude3(pOutfile, pResults):
-    if pResults.has_key("IDS_NOT_VALID"):
-        l_Ids = pResults["IDS_NOT_VALID"].keys()
-        l_Ids.sort()
+    if "IDS_NOT_VALID" in pResults:
+        l_Ids = sorted(pResults["IDS_NOT_VALID"].keys())
         pOutfile.append('%s// txp::Msg::msgIdToChar()\n' % (' '*12))
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*12, pResults["IDS_NOT_VALID"][l_Id]))
             pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, pResults["IDS_NOT_VALID"][l_Id]))
             pOutfile.append('%sbreak;\n' % (' '*16))
-    if pResults.has_key("FUSE_OPCODE"):
-        l_Ids = pResults["FUSE_OPCODE"].keys()
-        l_Ids.sort()
+    if "FUSE_OPCODE" in pResults:
+        l_Ids = sorted(pResults["FUSE_OPCODE"].keys())
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*12, pResults["FUSE_OPCODE"][l_Id]))
             pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, pResults["FUSE_OPCODE"][l_Id]))
             pOutfile.append('%sbreak;\n' % (' '*16))
-    if pResults.has_key("CORAL_IDS"):
-        l_Ids = pResults["CORAL_IDS"].keys()
-        l_Ids.sort()
+    if "CORAL_IDS" in pResults:
+        l_Ids = sorted(pResults["CORAL_IDS"].keys())
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::%s:\n' % (' '*12, pResults["CORAL_IDS"][l_Id]))
             pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, pResults["CORAL_IDS"][l_Id]))
@@ -541,15 +531,13 @@ def genMsgInclude3(pOutfile, pResults):
 
 
 def genMsgHandlerInclude1(pOutfile, pResults):
-    if pResults.has_key("FUSE_OPCODE"):
-        l_Ids = pResults["FUSE_OPCODE"].keys()
-        l_Ids.sort()
+    if "FUSE_OPCODE" in pResults:
+        l_Ids = sorted(pResults["FUSE_OPCODE"].keys())
         pOutfile.append('%s// MessageHandler::processMessage()\n' % (' '*8))
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::Id::%s:\n' % (' '*8, pResults["FUSE_OPCODE"][l_Id]))
-    if pResults.has_key("CORAL_IDS"):
-        l_Ids = pResults["CORAL_IDS"].keys()
-        l_Ids.sort()
+    if "CORAL_IDS" in pResults:
+        l_Ids = sorted(pResults["CORAL_IDS"].keys())
         for l_Id in l_Ids:
             pOutfile.append('%scase txp::Id::%s:\n' % (' '*8, pResults["CORAL_IDS"][l_Id]))
     pOutfile.append('%sbreak;\n' % (' '*12))
@@ -564,20 +552,20 @@ def preProcessLine(pLine):
     l_End = len(pLine)-1
 
     if DEBUG == 2:
-        print '%s' % ('='*80)
+        print('%s' % ('='*80))
 
     if pLine[l_Start:l_End]:
         if not CommentStarted:
             l_Success = STARTING_SLASH_SLASH_COMMENT.search(pLine)
             if l_Success:
                 if DEBUG == 2:
-                    print 'Starting // found'
+                    print('Starting // found')
                 l_End = 0
             else:
                 l_Success = STARTING_SLASH_STAR_COMMENT.search(pLine)
                 if l_Success:
                     if DEBUG == 2:
-                        print 'Starting /* found'
+                        print('Starting /* found')
                     l_Index = pLine.rfind('*/')
                     if l_Index != -1:
                         # Process anything after the comment
@@ -590,14 +578,14 @@ def preProcessLine(pLine):
                     if l_Index != -1:
                         # Process anything before the comment
                         if DEBUG == 2:
-                            print '/* found at position %d' % (l_Index)
+                            print('/* found at position %d' % (l_Index))
                         l_End = l_Index-1
                         l_Index = pLine.rfind('*/')
                         if l_Index == -1:
                             CommentStarted = True
                         else:
                             if DEBUG == 2:
-                                print '*/ found at position %d' % (l_Index)
+                                print('*/ found at position %d' % (l_Index))
                             # NOTE:  If we find '/*' in the line and
                             #        it does not start the line, we
                             #        assume that there is nothing
@@ -612,14 +600,14 @@ def preProcessLine(pLine):
             l_Index = pLine.rfind('*/')
             if l_Index != -1:
                 if DEBUG == 2:
-                    print '*/ found at position %d' % (l_Index)
+                    print('*/ found at position %d' % (l_Index))
                 l_Start = l_Index+2
                 CommentStarted = False
             else:
                 l_End = 0
 
     if DEBUG == 2:
-        print "l_Start = %d, l_End = %d, CommentStarted = %s, |%s|" % (l_Start, l_End, CommentStarted, pLine[l_Start:l_End])
+        print("l_Start = %d, l_End = %d, CommentStarted = %s, |%s|" % (l_Start, l_End, CommentStarted, pLine[l_Start:l_End]))
 
     return pLine[l_Start:l_End]
 
@@ -645,7 +633,7 @@ def parseFiles(pFilesToParse, pResults):
                             if ID_BEGIN[0][1] >= 0:
                                 if ID_BEGIN[0][1] == 0:
                                     if DEBUG:
-                                        print "%36s -> %5d: %s" % ("End id/struct", l_LineNo, l_OrgLine[:-1])
+                                        print("%36s -> %5d: %s" % ("End id/struct", l_LineNo, l_OrgLine[:-1]))
                                     # Last closing right paren found...  End of this id/struct...
                                     ID_BEGIN[0] = [None, 0]
                                 elif ID_BEGIN[0][1] == 1:
@@ -655,7 +643,7 @@ def parseFiles(pFilesToParse, pResults):
                                         if l_Success:
                                             # Found a struct element for the current Id being processed...
                                             if DEBUG:
-                                                print "%36s -> %5d: %s" % ("Continue struct element", l_LineNo, l_OrgLine[:-1])
+                                                print("%36s -> %5d: %s" % ("Continue struct element", l_LineNo, l_OrgLine[:-1]))
                                                 # pprint.pprint(l_Success.groups())
                                             pResults["STRUCTS"][ID_BEGIN[0][0]]['struct'].append((l_Success.groups()[1], l_Success.groups()[0]))
                                         else:
@@ -663,28 +651,28 @@ def parseFiles(pFilesToParse, pResults):
                                             if l_Success:
                                                 # Found an element for the current Id being processed...
                                                 if DEBUG:
-                                                    print "%36s -> %5d: %s" % ("Continue element", l_LineNo, l_OrgLine[:-1])
+                                                    print("%36s -> %5d: %s" % ("Continue element", l_LineNo, l_OrgLine[:-1]))
                                                     # pprint.pprint(l_Success.groups())
                                                 l_AttrType = l_Success.groups()[0]
                                                 l_AttrName = l_Success.groups()[1]
                                                 pResults["STRUCTS"][ID_BEGIN[0][0]]['struct'].append((l_AttrName, l_AttrType))
                                                 if l_AttrName not in cfg.INVALID_FUSE_NAMES:
-                                                    if pResults["NAMES"].has_key(l_AttrName):
+                                                    if l_AttrName in pResults["NAMES"]:
                                                         pResults["NAMES"][l_AttrName].add(l_AttrType)
                                                     else:
                                                         pResults["NAMES"][l_Success.groups()[1]] = set()
                                                         pResults["NAMES"][l_AttrName].add(l_Success.groups()[0])
                                             else:
                                                 if DEBUG:
-                                                    print "%36s -> %5d: %s" % ("Skip, not an element", l_LineNo, l_OrgLine[:-1])
+                                                    print("%36s -> %5d: %s" % ("Skip, not an element", l_LineNo, l_OrgLine[:-1]))
                                     else:
                                         if DEBUG:
-                                            print "%36s -> %5d: %s" % ("Skip, 2 or more parens on line", l_LineNo, l_OrgLine[:-1])
+                                            print("%36s -> %5d: %s" % ("Skip, 2 or more parens on line", l_LineNo, l_OrgLine[:-1]))
                                 elif ID_BEGIN[0][1] > 1:
                                     if DEBUG:
-                                        print "%36s -> %5d: %s" % ("Skip, greater than 1 open paren", l_LineNo, l_OrgLine[:-1])
+                                        print("%36s -> %5d: %s" % ("Skip, greater than 1 open paren", l_LineNo, l_OrgLine[:-1]))
                                 else:
-                                    print "%s - Error: More right parens found than left when parsing." % (SCRIPT_NAME)
+                                    print("%s - Error: More right parens found than left when parsing." % (SCRIPT_NAME))
                                     l_RC = -6
                                     break
                         else:
@@ -700,20 +688,20 @@ def parseFiles(pFilesToParse, pResults):
                                     if (l_Success.groups()[3]) == '{':
                                         # Ends with a right paren...
                                         if DEBUG:
-                                            print "%36s -> %5d: %s" % ("Begin id/struct", l_LineNo, l_OrgLine[:-1])
+                                            print("%36s -> %5d: %s" % ("Begin id/struct", l_LineNo, l_OrgLine[:-1]))
                                             # pprint.pprint(l_Success.groups())
                                         ID_BEGIN[0][0] = l_StructName
                                         ID_BEGIN[0][1] = l_Line.count('{')
                                     else:
                                         # Ends with a semicolon...
                                         if DEBUG:
-                                            print "%36s -> %5d: %s" % ("Begin/end id/struct", l_LineNo, l_OrgLine[:-1])
+                                            print("%36s -> %5d: %s" % ("Begin/end id/struct", l_LineNo, l_OrgLine[:-1]))
                                             # pprint.pprint(l_Success.groups())
                                         pResults["STRUCTS"][l_StructName]['struct'].append((l_Success.groups()[2], l_Success.groups()[1]))
 
                                 else:
                                     if DEBUG:
-                                        print "%36s -> %5d: %s" % ("Skip, simple typedef", l_LineNo, l_OrgLine[:-1])
+                                        print("%36s -> %5d: %s" % ("Skip, simple typedef", l_LineNo, l_OrgLine[:-1]))
 
                             elif os.path.basename(l_File) == 'fuse.h':
                                 if not FUSE_OPCODE_END[0]:
@@ -733,7 +721,7 @@ def parseFiles(pFilesToParse, pResults):
                                                     break
                                             else:
                                                 if DEBUG:
-                                                    print "%36s -> %5d: %s" % ("Skip, no hit for all parsing (1)", l_LineNo, l_OrgLine[:-1])
+                                                    print("%36s -> %5d: %s" % ("Skip, no hit for all parsing (1)", l_LineNo, l_OrgLine[:-1]))
                                             continue
 
                                         elif not FUSE_KERNEL_MINOR_VERSION[0]:
@@ -749,26 +737,26 @@ def parseFiles(pFilesToParse, pResults):
                                                     break
                                             else:
                                                 if DEBUG:
-                                                    print "%36s -> %5d: %s" % ("Skip, no hit for all parsing (2)", l_LineNo, l_OrgLine[:-1])
+                                                    print("%36s -> %5d: %s" % ("Skip, no hit for all parsing (2)", l_LineNo, l_OrgLine[:-1]))
                                             continue
 
                                         l_Success = FUSE_OPCODE_BEGIN[1].search(l_Line)
                                         if l_Success:
                                             # Found the beginning of the fuse_opcodes... (Third 'group' of items to find...)
                                             if DEBUG:
-                                                print "%36s -> %5d: %s" % ("Beginning of the fuse opcodes...", l_LineNo, l_OrgLine[:-1])
+                                                print("%36s -> %5d: %s" % ("Beginning of the fuse opcodes...", l_LineNo, l_OrgLine[:-1]))
                                             FUSE_OPCODE_BEGIN[0] = True
                                             pResults["FUSE_OPCODE"] = {}
                                         else:
                                             if DEBUG:
-                                                print "%36s -> %5d: %s" % ("Skip, no hit for all parsing (3)", l_LineNo, l_OrgLine[:-1])
+                                                print("%36s -> %5d: %s" % ("Skip, no hit for all parsing (3)", l_LineNo, l_OrgLine[:-1]))
                                     else:
                                         # Currently processing the fuse_opcodes...  Search for another value...
                                         l_Success = FUSE_OPCODE_VALUE[1].search(l_Line)
                                         if l_Success:
                                             # Record this fuse_opcode value...
                                             if DEBUG:
-                                                print "%36s -> %5d: %s" % ("Fuse opcode...", l_LineNo, l_OrgLine[:-1])
+                                                print("%36s -> %5d: %s" % ("Fuse opcode...", l_LineNo, l_OrgLine[:-1]))
                                             pResults["FUSE_OPCODE"][int(l_Success.groups()[1])] = l_Success.groups()[0]
                                         else:
                                             # Failed in finding a new opcode value...  Check for the end of the fuse_opcodes...
@@ -777,37 +765,37 @@ def parseFiles(pFilesToParse, pResults):
                                                 # Reached the end of the fuse_opcodes...
                                                 # Start looking for message Ids... (Fourth group of items to find...)
                                                 if DEBUG:
-                                                    print "%36s -> %5d: %s" % ("End of the fuse opcodes...", l_LineNo, l_OrgLine[:-1])
+                                                    print("%36s -> %5d: %s" % ("End of the fuse opcodes...", l_LineNo, l_OrgLine[:-1]))
                                                 FUSE_OPCODE_END[0] = True
                                             else:
                                                 if DEBUG:
-                                                    print "%36s -> %5d: %s" % ("Skip, no hit for all parsing (4)", l_LineNo, l_OrgLine[:-1])
+                                                    print("%36s -> %5d: %s" % ("Skip, no hit for all parsing (4)", l_LineNo, l_OrgLine[:-1]))
                                 else:
                                     if DEBUG:
-                                        print "%36s -> %5d: %s" % ("Skip, no hit for all parsing (5)", l_LineNo, l_OrgLine[:-1])
+                                        print("%36s -> %5d: %s" % ("Skip, no hit for all parsing (5)", l_LineNo, l_OrgLine[:-1]))
                             else:
                                 if DEBUG:
-                                    print "%36s -> %5d: %s" % ("Skip, no hit for all parsing (6)", l_LineNo, l_OrgLine[:-1])
+                                    print("%36s -> %5d: %s" % ("Skip, no hit for all parsing (6)", l_LineNo, l_OrgLine[:-1]))
                     else:
                         if DEBUG:
-                            print "%36s -> %5d: %s" % ("Skip, preProcessLine()", l_LineNo, l_OrgLine[:-1])
+                            print("%36s -> %5d: %s" % ("Skip, preProcessLine()", l_LineNo, l_OrgLine[:-1]))
 
                 # Finished processing file....  Sanity check...
                 if DEBUG == 2:
-                    print '%s' % ('='*80)
+                    print('%s' % ('='*80))
 
                 if ID_BEGIN[0][0] != None:
-                    print "%s - Error: Parsing of structs for AttributeNames did not end normally." % (SCRIPT_NAME)
+                    print("%s - Error: Parsing of structs for AttributeNames did not end normally." % (SCRIPT_NAME))
                     l_RC = -3
                     break
 
             except Exception as l_Exception:
-                print "ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception)
+                print("ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception))
                 l_RC = -4
                 break
 
         else:
-            print "%s - Error: Input fuse header file not found at %s" % (SCRIPT_NAME, l_File)
+            print("%s - Error: Input fuse header file not found at %s" % (SCRIPT_NAME, l_File))
             l_RC = -5
             break
 
@@ -829,18 +817,16 @@ def generateHeaderFile(pResults):
         for l_Line in STATIC_STRUCTURE_DATA_1:
             fOut.write("%s\n" % (l_Line))
 
-        if pResults.has_key("FUSE_OPCODE"):
-            l_OpCodes = pResults["FUSE_OPCODE"].keys()
-            l_OpCodes.sort()
+        if "FUSE_OPCODE" in pResults:
+            l_OpCodes = sorted(pResults["FUSE_OPCODE"].keys())
             for l_OpCode in l_OpCodes:
                 fOut.write("%s%-20s = txp::BEGINNING_FUSE_RANGE + %4d,\n" % (" "*4, pResults["FUSE_OPCODE"][l_OpCode], l_OpCode))
 
         for l_Line in STATIC_STRUCTURE_DATA_2:
             fOut.write("%s\n" % (l_Line))
 
-        if pResults.has_key("CORAL_IDS"):
-            l_OpCodes = pResults["CORAL_IDS"].keys()
-            l_OpCodes.sort()
+        if "CORAL_IDS" in pResults:
+            l_OpCodes = sorted(pResults["CORAL_IDS"].keys())
             for l_OpCode in l_OpCodes:
                 fOut.write("%s%-20s = txp::BEGINNING_CORAL_RANGE + %4d,\n" % (" "*4, pResults["CORAL_IDS"][l_OpCode], l_OpCode))
 
@@ -863,8 +849,7 @@ def generateHeaderFile(pResults):
                 fOut.write("%s%-22s = %2d,\n" % (" "*4, l_Name, l_Index))
                 l_Index += 1
 
-        l_Structs = pResults["STRUCTS"].keys()
-        l_Structs.sort()
+        l_Structs = sorted(pResults["STRUCTS"].keys())
         l_Index = 16385
         for l_Struct in l_Structs:
             fOut.write("%s%-30s = %5d,\n" % (" "*4, clean(l_Struct), l_Index))
@@ -876,7 +861,7 @@ def generateHeaderFile(pResults):
         fOut.close()
 
     except Exception as l_Exception:
-        print "ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception)
+        print("ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception))
         if fOut:
             fOut.close()
         l_RC = -1
@@ -928,10 +913,10 @@ def generateExecutableIncludes(pResults):
                 fOut.close()
                 fOut = None
 
-                print "%s - File generated -> %s" % (SCRIPT_NAME, l_FileName)
+                print("%s - File generated -> %s" % (SCRIPT_NAME, l_FileName))
 
     except Exception as l_Exception:
-        print "ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception)
+        print("ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception))
         if fOut:
             fOut.close()
         l_RC = -1
@@ -947,7 +932,7 @@ def processFuseVersions(pResults, pReplaceCurrentMetadataFile):
     try:
         if (pResults["FUSE_KERNEL_VERSION"] != None and pResults["FUSE_KERNEL_MINOR_VERSION"] != None):
             l_Current_Fuse_Metadata_Path = os.path.normcase(os.path.join(GitTopLevel, cfg.TRANSPORT_METADATA_PATH))
-            l_Current_Fuse_Metadata_Name = FUSE_METAFILE_PREFIX + '_' + `pResults["FUSE_KERNEL_VERSION"]` + '_' + `pResults["FUSE_KERNEL_MINOR_VERSION"]`
+            l_Current_Fuse_Metadata_Name = FUSE_METAFILE_PREFIX + '_' + repr(pResults["FUSE_KERNEL_VERSION"]) + '_' + repr(pResults["FUSE_KERNEL_MINOR_VERSION"])
             l_Current_Fuse_Metadata_File = os.path.normcase(os.path.join(l_Current_Fuse_Metadata_Path, l_Current_Fuse_Metadata_Name + '.' + FUSE_METAFILE_EXTENSION))
 
             l_ReplaceCurrentMetadataFile = pReplaceCurrentMetadataFile
@@ -959,7 +944,7 @@ def processFuseVersions(pResults, pReplaceCurrentMetadataFile):
                 pickle.dump(pResults, fOut)
                 fOut.close()
                 fOut = None
-                print "%s - SUCCESS: Fuse metadata file %s successfully created or refreshed" % ((SCRIPT_NAME), l_Current_Fuse_Metadata_Name + '.' + FUSE_METAFILE_EXTENSION)
+                print("%s - SUCCESS: Fuse metadata file %s successfully created or refreshed" % ((SCRIPT_NAME), l_Current_Fuse_Metadata_Name + '.' + FUSE_METAFILE_EXTENSION))
 
             # Load the current fuse metadata file
             fOut = open(l_Current_Fuse_Metadata_File, "r")
@@ -974,7 +959,7 @@ def processFuseVersions(pResults, pReplaceCurrentMetadataFile):
             fOut = None
 
     except Exception as l_Exception:
-        print "ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception)
+        print("ERROR - Script %s, line number %s, Exception: %s" % (os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno, l_Exception))
         if fOut:
             fOut.close()
         l_RC = -1
@@ -1016,21 +1001,21 @@ def main():
                     if (l_RC == 0):
                         pass
                     else:
-                        print "%s - Error returned from processFuseVersions().  See prior messages." % (SCRIPT_NAME)
+                        print("%s - Error returned from processFuseVersions().  See prior messages." % (SCRIPT_NAME))
                 else:
-                    print "%s - Error returned from generateExecutableIncludes().  See prior messages." % (SCRIPT_NAME)
+                    print("%s - Error returned from generateExecutableIncludes().  See prior messages." % (SCRIPT_NAME))
             else:
-                print "%s - Error returned from generateHeaderFile().  See prior messages." % (SCRIPT_NAME)
+                print("%s - Error returned from generateHeaderFile().  See prior messages." % (SCRIPT_NAME))
         else:
-            print "%s - Error returned from parseFiles().  See prior messages." % (SCRIPT_NAME)
+            print("%s - Error returned from parseFiles().  See prior messages." % (SCRIPT_NAME))
     else:
-        print "%s - Error returned from determineFilesToParse().  See prior messages." % (SCRIPT_NAME)
+        print("%s - Error returned from determineFilesToParse().  See prior messages." % (SCRIPT_NAME))
 
 
     if l_RC == 0:
-        print "%s - Successfully ended." % (SCRIPT_NAME)
+        print("%s - Successfully ended." % (SCRIPT_NAME))
     else:
-        print "%s - ERROR: transport related includes/code not all successfully generated.  See previous messages." % (SCRIPT_NAME)
+        print("%s - ERROR: transport related includes/code not all successfully generated.  See previous messages." % (SCRIPT_NAME))
 
     return l_RC
 

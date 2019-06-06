@@ -15,6 +15,7 @@
 # 
 #================================================================================
 
+from __future__ import print_function
 import psycopg2
 import argparse
 import sys
@@ -43,7 +44,7 @@ def dump_allocations( db, user, output ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
     except:
-        print "[CRITICAL] Unable to connect to local database."
+        print("[CRITICAL] Unable to connect to local database.")
         logger.info("Unable to connect to local database.")
         return
 
@@ -206,7 +207,7 @@ GROUP BY {0}, {1}
 
     
     except Exception as e:
-        print "[INFO] Exception caught: {0}".format(e)
+        print("[INFO] Exception caught: {0}".format(e))
         traceback.print_exc()
     
     db_conn.commit()

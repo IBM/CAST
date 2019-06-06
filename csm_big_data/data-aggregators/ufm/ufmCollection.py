@@ -218,7 +218,7 @@ def main(args):
     try:
         logstash_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         logstash_socket.connect((logstash, logstash_port))
-    except socket.error, msg:
+    except socket.error as msg:
         sys.exit(1)
     
     payload=''

@@ -101,6 +101,7 @@
         Therefore, if libpath is specified and the normal sandbox configuration file is to be used, the config specification
         can be omitted.
 """
+from __future__ import print_function
 
 import ctypes
 import getopt
@@ -173,9 +174,9 @@ def Coral_InitLibrary(pContribId, pClientVersion, pConfig, pUnixPath):
 #
 
 def usage(code, msg=''):
-    print >> sys.stderr, __doc__
+    print(__doc__, file=sys.stderr)
     if msg:
-        print >> sys.stderr, msg
+        print(msg, file=sys.stderr)
     sys.exit(code)
 
 
@@ -209,11 +210,11 @@ def setDefaults(pEnv):
     pEnv["procedure_args"] = DEFAULT_PROCEDURE_ARGS
     # NOTE: The iteration value can be passed into the main()
     #       routine of this module
-    if (not pEnv.has_key("iteration")):
+    if ("iteration" not in pEnv):
         pEnv["iteration"] = DEFAULT_ITERATION
     # NOTE: The jobid_bump value can be passed into the main()
     #       routine of this module
-    if (not pEnv.has_key("jobid_bump")):
+    if ("jobid_bump" not in pEnv):
         pEnv["jobid_bump"] = DEFAULT_JOBID_BUMP
 
     return
@@ -263,7 +264,7 @@ def processArgs(pEnv, pArgs):
     try:
         l_Opts, l_Args = getopt.getopt(pArgs,"ha:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:1:2:3:4:",["cn_failover=","io_failover=","contrib=","name=","floor=","flags=","group=","handle=","hostname=","jobid=","jobstepid=","libpath=","mount=","mode=","owner=","testpath=","orgsrc=","contribid=","size=","tag=","unixpath=","type=","procedure=","target=","testcase=","config=","procedure_args=","iteration=","jobid_bump=","cancelscope="])
     except getopt.GetoptError as e:
-        print >> sys.stderr, e
+        print(e, file=sys.stderr)
         usage(1, "Invalid arguments passed")
 
     l_ConfigSpecified = False
@@ -271,7 +272,7 @@ def processArgs(pEnv, pArgs):
     for l_Opt, l_Arg in l_Opts:
 #        print l_Opt, l_Arg
         if l_Opt == '-h':
-            print __doc__
+            print(__doc__)
             sys.exit()
         elif l_Opt in ("-a", "--cn_failover"):
             if (l_Arg == "0"):
@@ -383,7 +384,7 @@ def main(pArgs):
 
     # We only print out the shared library information for the main routine...
     if (len(l_Env["procedure_args"]) == 0):
-        print "Shared library:  %s" % (l_Env["LIB"])
+        print("Shared library:  %s" % (l_Env["LIB"]))
 
     l_Contribid = bb.cvar("contribid", l_Env)
 
@@ -393,7 +394,7 @@ def main(pArgs):
 
     if (rc == 0):
         if (l_Env["TESTCASE"] != "None"):
-            if l_Env.has_key("CONFIG") or l_Env.has_key("UNIXPATH"):
+            if "CONFIG" in l_Env or "UNIXPATH" in l_Env:
                 l_Config = ctypes.c_char_p(l_Env.get("CONFIG", NOCONFIG))
                 l_UnixPath = ctypes.c_char_p(l_Env.get("UNIXPATH", NOUNIXPATH))
                 rc = Coral_InitLibrary(l_Contribid, l_API_Version, l_Config, l_UnixPath)
@@ -404,13 +405,13 @@ def main(pArgs):
                 setSysPath(l_Env)
                 l_TestCase = importlib.import_module(l_Env["TESTCASE"])
                 rc = l_TestCase.main(l_Env)
-                print "bbapi_main.main(): rc = %d" % (rc)
+                print("bbapi_main.main(): rc = %d" % (rc))
             else:
-                print "BB_InitLibrary():  rc = %d" % (rc)
+                print("BB_InitLibrary():  rc = %d" % (rc))
 
             BB_TerminateLibrary()
     else:
-        print "BB_GetVersion():  rc = %d" % (rc)
+        print("BB_GetVersion():  rc = %d" % (rc))
 
     return rc
 
@@ -426,6 +427,6 @@ if __name__ == '__main__':
         rc = 0
     else:
         rc = -1
-    print "bbapi_main: rc = %d" % (rc)
+    print("bbapi_main: rc = %d" % (rc))
 
     sys.exit(rc)

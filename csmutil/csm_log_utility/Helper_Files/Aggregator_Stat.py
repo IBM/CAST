@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import errno
 import subprocess
@@ -20,7 +21,7 @@ print_padding = 115
 total_errors = 0
 
 def compute_CSM_Aggregator_stats(filename, start_datetime, end_datetime, order_by, reverse_order):
-    print 'Aggregate: ' + filename
+    print('Aggregate: ' + filename)
     opened_file = Pre_Process(filename) #open(filename, 'r')                   
     dictionary = dict()                 # Dictionary key uses Api operation ID
     Api_Statistics = dict()             # Api_Statistics key uses Api name
@@ -55,21 +56,21 @@ def calculate_time_difference(start_time, end_time, time_format):
     return runtime.total_seconds()
 
 def collision_error(Api_Id, start_api, end_api):
-    print "Error: Api ID collision: " + Api_Id
-    print "Start Api: " + ' '.join(start_api)
-    print "End   Api: " + ' '.join(end_api)
+    print("Error: Api ID collision: " + Api_Id)
+    print("Start Api: " + ' '.join(start_api))
+    print("End   Api: " + ' '.join(end_api))
     global total_errors 
     total_errors += 1
 
 def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
-    print ("Aggregator Log").center(print_padding, '+')
-    print filename.center(print_padding, '-')
+    print(("Aggregator Log").center(print_padding, '+'))
+    print(filename.center(print_padding, '-'))
     file_opened = open(filename, 'r')
     file_lines = file_opened.readlines()
     file_start = file_lines[0].split("csm")[0][5:].strip()
     file_end   = file_lines[-1].split("csm")[0][5:].strip()
     file_time = ("File Start: {0} and File End: {1}".format(file_start, file_end)).center(print_padding, '-')
-    print '{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std")
+    print('{:50s} {:10s}  {:8s}  {:8s}  {:8s}  {:8s}  {:8s}'.format('Api Function', "Frequency", "Mean", "Median", "Min", "Max", "Std"))
     total_calls = 0
 
     # Dictionary to hold all apis after calculating full stats.
@@ -91,13 +92,13 @@ def calculate_statistics(filename, Api_Statistics, order_by, reverse_order):
 
             total_calls = total_calls + len(Api_Statistics[key])
 
-        for key, value in sorted(dic_API_Stats.iteritems(), key=lambda (k,v): (v[order_by],k), reverse = reverse_order):
+        for key, value in sorted(dic_API_Stats.iteritems(), key=lambda k_v: (k_v[1][order_by],k_v[0]), reverse = reverse_order):
             stat_line = '{:50s} {:10d}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}  {:3.6f}'.format(value[0], value[1], value[2], value [3], value [4], value [5], value[6])
-            print stat_line
+            print(stat_line)
             stats = stats + '\n' + stat_line
 
-    print "Total Calls:  " + str(total_calls)
-    print "Total Errors: " + str(total_errors) + '\n'  
+    print("Total Calls:  " + str(total_calls))
+    print("Total Errors: " + str(total_errors) + '\n')  
     return stats + '\n' + "Total Calls:  " + str(total_calls) + '\n' + "Total Errors: " + str(total_errors) + '\n' 
 
 def Pre_Process(filename):

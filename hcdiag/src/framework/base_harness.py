@@ -413,7 +413,7 @@ class BaseHarness(object):
       if not os.path.exists(odir):
          self.logger.debug('Creating output directory for {0}.' .format(test))
          try:
-            os.mkdir(odir, 0755)
+            os.mkdir(odir, 0o755)
             self.logger.debug('Directory {0} created.' .format(odir))
          except OSError as e:
             self.logger.critical('Exception: {0}. Subdirectory {0} creation failed.' .format(e, odir))

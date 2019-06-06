@@ -1,3 +1,4 @@
+from __future__ import print_function
 from datetime import datetime
 
 class Log:
@@ -26,13 +27,13 @@ class Log:
 		self.Data = map(str.strip,(line.split('; '))) 
 
 	def printing(self):
-		print 'Type: 	 ' + self.Type
-		print 'Date:     ' + self.Date
-		print 'Time:     ' + self.Time
-		print 'DateTime: ' + str(self.DateTime)
-		print 'Csm:  	 ' + str(self.Csm)
-		print 'Data: 	 ' + str(self.Data)
-		print ''
+		print('Type: 	 ' + self.Type)
+		print('Date:     ' + self.Date)
+		print('Time:     ' + self.Time)
+		print('DateTime: ' + str(self.DateTime))
+		print('Csm:  	 ' + str(self.Csm))
+		print('Data: 	 ' + str(self.Data))
+		print('')
 
 # compute = '[COMPUTE]2018-05-30 17:26:40.718991     csmapi::info     | [365788516]; csm_allocation_delete start'
 # master = '2018-05-30 16:32:55.067376     csmapi::info     | CSM_CMD_node_resources_query_all[2102082113]; Client Sent; PID: 29752; UID:0; GID:0'

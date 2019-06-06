@@ -31,6 +31,7 @@ int BB_SetThrottleRate(const char* mountpoint, uint64_t rate)
 int BB_SetUsageLimit(const char* mountpoint, BBUsage_t* usage)
 int BB_StartTransfer(BBTransferDef_t* pTransfer, BBTransferHandle_t pHandle)
 """
+from __future__ import print_function
 
 from ctypes import *
 # import json
@@ -288,13 +289,13 @@ def BB_AddFiles(pTransferDef, pSource, pTarget, pFlags=DEFAULT_BBFILEFLAG):
     l_Target = bb.cvar("target", pTarget)
     l_Flags = bb.cvar("flags", pFlags)
 
-    print "%sBB_AddFiles issued to add source file %s and target file %s with flag %s to transfer definition %s" % (os.linesep, pSource, pTarget, BBFILEFLAGS[l_Flags.value], `pTransferDef`)
+    print("%sBB_AddFiles issued to add source file %s and target file %s with flag %s to transfer definition %s" % (os.linesep, pSource, pTarget, BBFILEFLAGS[l_Flags.value], repr(pTransferDef)))
     rc = bb.api.BB_AddFiles(pTransferDef, l_Source, l_Target, l_Flags)
     if (rc):
         raise BB_AddFilesError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Source file %s and target file %s with flag %s added to transfer definition %s" % (pSource, pTarget, BBFILEFLAGS[l_Flags.value], `pTransferDef`)
+    print("Source file %s and target file %s with flag %s added to transfer definition %s" % (pSource, pTarget, BBFILEFLAGS[l_Flags.value], repr(pTransferDef)))
 
     return
 
@@ -302,13 +303,13 @@ def BB_AddKeys(pTransferDef, pKey, pValue):
     l_Key = bb.cvar("key", pKey)
     l_Value = bb.cvar("value", pValue)
 
-    print "%sBB_AddKeys issued to add key %s, value %s to transfer definition %s" % (os.linesep, pKey, pValue, `pTransferDef`)
+    print("%sBB_AddKeys issued to add key %s, value %s to transfer definition %s" % (os.linesep, pKey, pValue, repr(pTransferDef)))
     rc = bb.api.BB_AddKeys(pTransferDef, l_Key, l_Value)
     if (rc):
         raise BB_AddKeysError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Key '%s' with keyvalue '%s' added to transfer definition %s" % (pKey, pValue, `pTransferDef`)
+    print("Key '%s' with keyvalue '%s' added to transfer definition %s" % (pKey, pValue, repr(pTransferDef)))
 
     return
 
@@ -319,7 +320,7 @@ def BB_CancelTransfer(pHandle, pCancelScope=DEFAULT_BBCANCELSCOPE):
     l_Handle = bb.cvar("handle", pHandle)
     l_CancelScope = bb.cvar("cancelscope", pCancelScope)
 
-    print "%sBB_CancelTransfer issued to initiate cancel for handle %s, with cancel scope of %s" % (os.linesep, pHandle, BBCANCELSCOPE[l_CancelScope.value])
+    print("%sBB_CancelTransfer issued to initiate cancel for handle %s, with cancel scope of %s" % (os.linesep, pHandle, BBCANCELSCOPE[l_CancelScope.value]))
     rc = bb.api.BB_CancelTransfer(l_Handle, l_CancelScope)
     if ((rc not in l_NormalRCs) and (rc not in l_ToleratedErrorRCs)):
         dummy = BBError()
@@ -331,36 +332,36 @@ def BB_CancelTransfer(pHandle, pCancelScope=DEFAULT_BBCANCELSCOPE):
         else:
             # NOTE: This could be a 'normal' case where the cancel operation is running simultaneously with a failover operation
             #       to a new bbServer.  Retry the cancel operation...
-            print "Cancel operation with a cancel scope of BBSCOPETRANSFER was issued to the incorrect bbServer due to concurrent failover processing.  Exception was tolerated and cancel operation will not be retried."
+            print("Cancel operation with a cancel scope of BBSCOPETRANSFER was issued to the incorrect bbServer due to concurrent failover processing.  Exception was tolerated and cancel operation will not be retried.")
             rc = -2
 
     bb.printLastErrorDetailsSummary()
     if (rc == 0):
-        print "Cancel initiated for handle %s, with cancel scope of %s" % (pHandle, l_CancelScope.value)
+        print("Cancel initiated for handle %s, with cancel scope of %s" % (pHandle, l_CancelScope.value))
 
     return
 
 def BB_CreateTransferDef():
     l_TransferDef = POINTER(c_uint32)()
 
-    print "%sBB_CreateTransferDef issued" % (os.linesep)
+    print("%sBB_CreateTransferDef issued" % (os.linesep))
     rc = bb.api.BB_CreateTransferDef(byref(l_TransferDef))
     if (rc):
         raise BB_CreateTransferDefError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Transfer definition %s created" % (`l_TransferDef`)
+    print("Transfer definition %s created" % (repr(l_TransferDef)))
 
     return l_TransferDef
 
 def BB_FreeTransferDef(pTransferDef):
-    print "%sBB_FreeTransferDef issued for %s" % (os.linesep, `pTransferDef`)
+    print("%sBB_FreeTransferDef issued for %s" % (os.linesep, repr(pTransferDef)))
     rc = bb.api.BB_FreeTransferDef(pTransferDef)
     if (rc):
         raise BB_FreeTransferDefError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Transfer definition %s freed" % (`pTransferDef`)
+    print("Transfer definition %s freed" % (repr(pTransferDef)))
 
     return
 
@@ -368,14 +369,14 @@ def BB_GetDeviceUsage(pDeviceNum):
     l_DeviceNum = bb.cvar("devicenum", pDeviceNum)
     l_DeviceUsage = create_string_buffer(sizeof(BBDeviceUsage_t))
 
-    print "%sBB_GetDeviceUsage issued for device number %d" % (os.linesep, pDeviceNum)
+    print("%sBB_GetDeviceUsage issued for device number %d" % (os.linesep, pDeviceNum))
     rc = bb.api.BB_GetDeviceUsage(l_DeviceNum, byref(l_DeviceUsage))
     if (rc):
         raise BB_GetDeviceUsageError(rc)
     l_ReturnStruct = BBDeviceUsage_t.from_buffer_copy(l_DeviceUsage)
 
     bb.printLastErrorDetailsSummary()
-    print "Estimated percentage of life used for device number %d is %d%%" % (pDeviceNum, getattr(l_ReturnStruct, "percentage_used"))
+    print("Estimated percentage of life used for device number %d is %d%%" % (pDeviceNum, getattr(l_ReturnStruct, "percentage_used")))
 
     return l_ReturnStruct
 
@@ -386,12 +387,12 @@ def BB_GetThrottleRate(pMountpoint):
     l_NormalRCs = BB_GetThrottleRateError(BBError(Exception())).getNormalRCs()
     l_ToleratedErrorRCs = BB_GetThrottleRateError(BBError(Exception())).getToleratedErrorRCs()
 
-    print "%sBB_GetThrottleRate issued for mountpoint %s" % (os.linesep, pMountpoint)
+    print("%sBB_GetThrottleRate issued for mountpoint %s" % (os.linesep, pMountpoint))
     while (True):
         rc = bb.api.BB_GetThrottleRate(l_Mountpoint, byref(l_Rate))
         if (rc in (l_NormalRCs + l_ToleratedErrorRCs)):
             if (rc in l_ToleratedErrorRCs):
-                print "Retrieving the throttle rate for mountpoint %s cannot be completed at this time.  Operation will be retried again in 10 seconds." % (pMountpoint)
+                print("Retrieving the throttle rate for mountpoint %s cannot be completed at this time.  Operation will be retried again in 10 seconds." % (pMountpoint))
                 time.sleep(10)
             else:
                 break
@@ -399,7 +400,7 @@ def BB_GetThrottleRate(pMountpoint):
             raise BB_GetThrottleRateError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Throttle rate for mountpoint %s is %d bytes/sec" % (pMountpoint, l_Rate.value)
+    print("Throttle rate for mountpoint %s is %d bytes/sec" % (pMountpoint, l_Rate.value))
 
     return l_Rate.value
 
@@ -410,13 +411,13 @@ def BB_GetTransferHandle(pTag, pNumContrib, pContrib):
     l_Contrib = Contrib(*pContrib)
     l_Handle = bb.cvar("handle", 0)
 
-    print "%sBB_GetTransferHandle issued for job (%d,%d), tag %d, numcontrib %d, contrib %s" % (os.linesep, bb.getJobId(), bb.getJobStepId(), pTag, pNumContrib, `pContrib`)
+    print("%sBB_GetTransferHandle issued for job (%d,%d), tag %d, numcontrib %d, contrib %s" % (os.linesep, bb.getJobId(), bb.getJobStepId(), pTag, pNumContrib, repr(pContrib)))
     rc = bb.api.BB_GetTransferHandle(l_Tag, l_NumContrib, l_Contrib, byref(l_Handle))
     if (rc):
         raise BB_GetTransferHandleError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Transfer handle %s obtained, for job (%d,%d), tag %d, numcontrib %d, contrib %s" % (l_Handle.value, bb.getJobId(), bb.getJobStepId(), pTag, pNumContrib, `pContrib`)
+    print("Transfer handle %s obtained, for job (%d,%d), tag %d, numcontrib %d, contrib %s" % (l_Handle.value, bb.getJobId(), bb.getJobStepId(), pTag, pNumContrib, repr(pContrib)))
 
     return l_Handle.value
 
@@ -424,14 +425,14 @@ def BB_GetTransferInfo(pHandle):
     l_Handle = bb.cvar("handle", pHandle)
     l_Info = create_string_buffer(sizeof(BBTransferInfo_t))
 
-    print "%sBB_GetTransferInfo issued for handle %s" % (os.linesep, pHandle)
+    print("%sBB_GetTransferInfo issued for handle %s" % (os.linesep, pHandle))
     rc = bb.api.BB_GetTransferInfo(l_Handle, byref(l_Info))
     if (rc):
         raise BB_GetTransferInfoError(rc)
     l_ReturnStruct = BBTransferInfo_t.from_buffer_copy(l_Info)
 
     bb.printLastErrorDetailsSummary()
-    print "BB_GetTransferInfo completed%s  Handle: %12d -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (os.linesep, l_ReturnStruct.handle, BBSTATUS[l_ReturnStruct.localstatus], BBSTATUS[l_ReturnStruct.status], '{:,}'.format(l_ReturnStruct.localTransferSize), '{:,}'.format(l_ReturnStruct.totalTransferSize))
+    print("BB_GetTransferInfo completed%s  Handle: %12d -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (os.linesep, l_ReturnStruct.handle, BBSTATUS[l_ReturnStruct.localstatus], BBSTATUS[l_ReturnStruct.status], '{:,}'.format(l_ReturnStruct.localTransferSize), '{:,}'.format(l_ReturnStruct.totalTransferSize)))
 
     return l_ReturnStruct
 
@@ -440,7 +441,7 @@ def BB_GetTransferKeys(pHandle, pSize):
     l_Size = bb.cvar("size", pSize)
     l_Buffer = bb.cvar("buffer", pSize)
 
-    print "%sBB_GetTransferKeys issued for handle %s, buffer size %d" % (os.linesep, pHandle, pSize)
+    print("%sBB_GetTransferKeys issued for handle %s, buffer size %d" % (os.linesep, pHandle, pSize))
     rc = bb.api.BB_GetTransferKeys(l_Handle, l_Size, byref(l_Buffer))
     if (rc):
         raise BB_GetTransferKeysError(rc)
@@ -455,7 +456,7 @@ def BB_GetTransferKeys(pHandle, pSize):
         else:
             break
     l_Output = "".join(l_Temp)
-    print "Transfer keys: %s" % (l_Output)
+    print("Transfer keys: %s" % (l_Output))
 
     return l_Output
 
@@ -464,9 +465,9 @@ def BB_GetTransferList(pMatchStatus, pNumHandles):
     l_NumHandles = bb.cvar("numhandles", pNumHandles)
     l_Handles = create_string_buffer(sizeof(c_uint64*pNumHandles))
     l_NumAvailHandles = bb.cvar("numavailhandles", 0)
-    l_MatchStatusStr = BBSTATUS.get(pMatchStatus, `pMatchStatus`)
+    l_MatchStatusStr = BBSTATUS.get(pMatchStatus, repr(pMatchStatus))
 
-    print "%sBB_GetTransferList issued with match status of %s" % (os.linesep, l_MatchStatusStr)
+    print("%sBB_GetTransferList issued with match status of %s" % (os.linesep, l_MatchStatusStr))
     rc = bb.api.BB_GetTransferList(l_MatchStatus, byref(l_NumHandles), byref(l_Handles), byref(l_NumAvailHandles))
     if (rc):
         raise BB_GetTransferListError(rc)
@@ -478,7 +479,7 @@ def BB_GetTransferList(pMatchStatus, pNumHandles):
 #        l_Output.append(l_HandleArray[i])
 
     bb.printLastErrorDetailsSummary()
-    print "BB_GetTransferList completed, %d handles available, %s" % (l_NumAvailHandles.value, l_Output)
+    print("BB_GetTransferList completed, %d handles available, %s" % (l_NumAvailHandles.value, l_Output))
 
     return (l_NumAvailHandles.value, l_Output)
 
@@ -486,17 +487,17 @@ def BB_GetUsage(pMountpoint):
     l_Mountpoint = bb.cvar("mountpoint", pMountpoint)
     l_Usage = create_string_buffer(sizeof(BBUsage_t))
 
-    print "%sBB_GetUsage issued for mountpoint %s" % (os.linesep, pMountpoint)
+    print("%sBB_GetUsage issued for mountpoint %s" % (os.linesep, pMountpoint))
     rc = bb.api.BB_GetUsage(l_Mountpoint, byref(l_Usage))
     if (rc):
         raise BB_GetUsageError(rc)
 
     bb.printLastErrorDetailsSummary()
     l_ReturnStruct = BBUsage_t.from_buffer_copy(l_Usage)
-    print "For mount point %s, the following are the current usage values:" % (pMountpoint)
-    print "    Total bytes read = %d, Total bytes written = %d" % (getattr(l_ReturnStruct, "totalBytesRead"), getattr(l_ReturnStruct, "totalBytesWritten"))
-    print "    Local bytes read = %d, Local bytes written = %d" % (getattr(l_ReturnStruct, "localBytesRead"), getattr(l_ReturnStruct, "localBytesWritten"))
-    print "    Burst bytes read = %d, Burst bytes written = %d" % (getattr(l_ReturnStruct, "burstBytesRead"), getattr(l_ReturnStruct, "burstBytesWritten"))
+    print("For mount point %s, the following are the current usage values:" % (pMountpoint))
+    print("    Total bytes read = %d, Total bytes written = %d" % (getattr(l_ReturnStruct, "totalBytesRead"), getattr(l_ReturnStruct, "totalBytesWritten")))
+    print("    Local bytes read = %d, Local bytes written = %d" % (getattr(l_ReturnStruct, "localBytesRead"), getattr(l_ReturnStruct, "localBytesWritten")))
+    print("    Burst bytes read = %d, Burst bytes written = %d" % (getattr(l_ReturnStruct, "burstBytesRead"), getattr(l_ReturnStruct, "burstBytesWritten")))
 
     return l_ReturnStruct
 
@@ -504,29 +505,29 @@ def BB_SetThrottleRate(pMountpoint, pRate):
     l_Mountpoint = bb.cvar("mountpoint", pMountpoint)
     l_Rate = bb.cvar("rate", pRate)
 
-    print "%sBB_SetThrottleRate issued to set the throttle rate for mountpoint %s to %d bytes/sec" % (os.linesep, pMountpoint, pRate)
+    print("%sBB_SetThrottleRate issued to set the throttle rate for mountpoint %s to %d bytes/sec" % (os.linesep, pMountpoint, pRate))
     rc = bb.api.BB_SetThrottleRate(l_Mountpoint, l_Rate)
     if (rc):
         raise BB_SetThrottleRateError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "Throttle rate for mountpoint %s changed to %d bytes/sec" % (pMountpoint, pRate)
+    print("Throttle rate for mountpoint %s changed to %d bytes/sec" % (pMountpoint, pRate))
 
     return
 
 def BB_SetUsageLimit(pMountpoint, pUsage):
     l_Mountpoint = bb.cvar("mountpoint", pMountpoint)
 
-    print "%sBB_SetUsageLimit issued to set the usage limit for mountpoint %s to %d" % (os.linesep, pMountpoint, pUsage)
+    print("%sBB_SetUsageLimit issued to set the usage limit for mountpoint %s to %d" % (os.linesep, pMountpoint, pUsage))
     rc = bb.api.BB_SetUsage(l_Mountpoint, byref(pUsage))
     if (rc):
         raise BB_SetUsageError(rc)
 
     bb.printLastErrorDetailsSummary()
-    print "For mount point %s, the following usage limits were set:" % (pMountpoint)
-    print "    Total bytes read = %d, Total bytes written = %d" % (getattr(pUsage, "totalBytesRead"), getattr(pUsage, "totalBytesWritten"))
-    print "    Local bytes read = %d, Local bytes written = %d" % (getattr(pUsage, "localBytesRead"), getattr(pUsage, "localBytesWritten"))
-    print "    Burst bytes read = %d, Burst bytes written = %d" % (getattr(pUsage, "burstBytesRead"), getattr(pUsage, "burstBytesWritten"))
+    print("For mount point %s, the following usage limits were set:" % (pMountpoint))
+    print("    Total bytes read = %d, Total bytes written = %d" % (getattr(pUsage, "totalBytesRead"), getattr(pUsage, "totalBytesWritten")))
+    print("    Local bytes read = %d, Local bytes written = %d" % (getattr(pUsage, "localBytesRead"), getattr(pUsage, "localBytesWritten")))
+    print("    Burst bytes read = %d, Burst bytes written = %d" % (getattr(pUsage, "burstBytesRead"), getattr(pUsage, "burstBytesWritten")))
 
     return
 
@@ -536,7 +537,7 @@ def BB_StartTransfer(pTransferDef, pHandle):
 
     l_Handle = bb.cvar("handle", pHandle)
 
-    print "%sBB_StartTransfer issued to start the transfer %s for handle %s" % (os.linesep, `pTransferDef`, pHandle)
+    print("%sBB_StartTransfer issued to start the transfer %s for handle %s" % (os.linesep, repr(pTransferDef), pHandle))
 
     while (True):
         rc = bb.api.BB_StartTransfer(pTransferDef, l_Handle)
@@ -544,10 +545,10 @@ def BB_StartTransfer(pTransferDef, pHandle):
             if (rc in l_ToleratedErrorRCs):
                 dummy = BBError()
                 if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
-                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in 15 seconds." % (`pTransferDef`, pHandle)
+                    print("Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in 15 seconds." % (repr(pTransferDef), pHandle))
                     time.sleep(15)
                 else:
-                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic will resubmit this start transfer operation." % (`pTransferDef`, pHandle)
+                    print("Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic will resubmit this start transfer operation." % (repr(pTransferDef), pHandle))
                     break
             else:
                 break
@@ -556,6 +557,6 @@ def BB_StartTransfer(pTransferDef, pHandle):
 
     bb.printLastErrorDetailsSummary()
     if (rc == 0):
-        print "Transfer %s started for handle %s" % (`pTransferDef`, pHandle)
+        print("Transfer %s started for handle %s" % (repr(pTransferDef), pHandle))
 
     return

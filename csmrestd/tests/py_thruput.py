@@ -19,6 +19,7 @@
 # simple rest api, thruput test..
 # First with http, then with https...
 
+from __future__ import print_function
 import json;
 import httplib;
 import socket;
@@ -57,7 +58,7 @@ while True:
 
 endtime=time.time()
 deltatime = endtime-starttime
-print "num_posts = %d, %d/s\n" % (n,n/deltatime)
+print("num_posts = %d, %d/s\n" % (n,n/deltatime))
 
 
 

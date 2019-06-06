@@ -15,6 +15,7 @@
 """
     Common include to bbapi functions.
 """
+from __future__ import print_function
 
 import ctypes
 import collections
@@ -108,12 +109,12 @@ class bbpprint(pprint.PrettyPrinter):
 
 def cvar(pVar, pValue):
     try:
-        if (type(pValue) == dict):
+        if (isinstance(pValue, dict)):
             return Vars[pVar](pValue[pVar])
         else:
             return Vars[pVar](pValue)
     except:
-        print "Unexpected error when attempting to build a cvar: Type(pVar)=", type(pVar), ", type(pValue)=", type(pValue), ", pVar=", pVar, ", pValue=", pValue, "error=", sys.exc_info()[0]
+        print("Unexpected error when attempting to build a cvar: Type(pVar)=", type(pVar), ", type(pValue)=", type(pValue), ", pVar=", pVar, ", pValue=", pValue, "error=", sys.exc_info()[0])
         return None
 
 def checkMD5SumFile(pMD5SumFile):
@@ -127,10 +128,10 @@ def checkMD5SumFile(pMD5SumFile):
             l_SourceCheckSum, l_SourceFile = l_Result
         else:
             if l_SourceCheckSum == l_Result[0]:
-                print "** SUCCESS ** File %s with checksum of %s matches the checksum for source file %s" % (l_Result[1], l_Result[0], l_SourceFile)
+                print("** SUCCESS ** File %s with checksum of %s matches the checksum for source file %s" % (l_Result[1], l_Result[0], l_SourceFile))
             else:
                 l_RC = -1
-                print "** ERROR ** File %s with checksum of %s mismatches source file %s with checksum of %s" % (l_Result[1], l_Result[0], l_SourceFile, l_SourceCheckSum)
+                print("** ERROR ** File %s with checksum of %s mismatches source file %s with checksum of %s" % (l_Result[1], l_Result[0], l_SourceFile, l_SourceCheckSum))
 
     return l_RC
 
@@ -210,8 +211,8 @@ def getHandles(pStatus=BBSTATUS["BBALL"]):
         l_NumHandles = l_NumAvailHandles
         (l_NumAvailHandles, l_Handles) = BB_GetTransferList(pStatus, l_NumHandles)
 
-    print "getHandles: jobid=%d, jobstepid=%d, contribid=%d, l_NumAvailHandles=%d, l_Handles=%s" % (
-           (getJobId(), getJobStepId(), getContribId(), l_NumAvailHandles, `l_Handles`))
+    print("getHandles: jobid=%d, jobstepid=%d, contribid=%d, l_NumAvailHandles=%d, l_Handles=%s" % (
+           (getJobId(), getJobStepId(), getContribId(), l_NumAvailHandles, repr(l_Handles))))
 
     return l_Handles
 
@@ -327,29 +328,29 @@ def initEnv(pEnv, pMountpoints=None, pDirectories=None):
     return l_RC
 
 def printLastErrorDetailsSummary():
-    print datetime.now().strftime("Current date/time: %Y-%m-%d %H:%M:%S")
+    print(datetime.now().strftime("Current date/time: %Y-%m-%d %H:%M:%S"))
     dummy = BBError()
-    print dummy.getLastErrorDetailsSummary()
+    print(dummy.getLastErrorDetailsSummary())
 
     return
 
 def printStruct(pStruct):
-    print "Start: Print of struct %s" % (pStruct)
+    print("Start: Print of struct %s" % (pStruct))
     for l_FieldName, l_FieldType in pStruct._fields_:
-        print "%s%s = %s" % (len("Start: ")*" ", l_FieldName, getattr(pStruct, l_FieldName))
-    print "  End: Print of struct %s" % (pStruct)
+        print("%s%s = %s" % (len("Start: ")*" ", l_FieldName, getattr(pStruct, l_FieldName)))
+    print("  End: Print of struct %s" % (pStruct))
 
     return
 
 def printEnv(pEnv):
-    print "Start: Print of environment"
+    print("Start: Print of environment")
     bbpprint().pprint(pEnv)
-    print "  End: Print of environment"
+    print("  End: Print of environment")
 
     return
 
 def runCmd(pCmd):
-    print pCmd
+    print(pCmd)
     os.system(pCmd)
 
     return
@@ -359,12 +360,12 @@ def runCmd(pCmd):
 # is 'cheating', as the same connection is being used.  But, it works to test
 # most scenarios...  @DLH
 def setJobId(pValue):
-    Coral_SetVar('jobid', `pValue`)
+    Coral_SetVar('jobid', repr(pValue))
 
     return
 
 def setJobStepId(pValue):
-    Coral_SetVar('jobstepid', `pValue`)
+    Coral_SetVar('jobstepid', repr(pValue))
 
     return
 
@@ -373,7 +374,7 @@ def setJobStepId(pValue):
 # is 'cheating', as the same connection is being used.  But, it works to test
 # most scenarios...  @DLH
 def setContribId(pValue):
-    Coral_SetVar('contribid', `pValue`)
+    Coral_SetVar('contribid', repr(pValue))
 
     return
 
@@ -426,15 +427,15 @@ def waitForCompletion(pEnv, pHandles, pAttempts=DEFAULT_WAIT_FOR_COMPLETION_ATTE
     if (l_Continue):
         if (l_Complete):
             if (len(pHandles) > 1):
-                print
+                print()
 
             for i in xrange(len(l_Status)):
-                print "    *FINAL* Handle: %12s -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (pHandles[i], l_Status[i][0], l_Status[i][1], '{:,}'.format(l_TransferSize[i][0]), '{:,}'.format(l_TransferSize[i][1]))
+                print("    *FINAL* Handle: %12s -> Status (Local:Overall) (%13s:%13s)   Transfer Size in bytes (Local:Total) (%s : %s)" % (pHandles[i], l_Status[i][0], l_Status[i][1], '{:,}'.format(l_TransferSize[i][0]), '{:,}'.format(l_TransferSize[i][1])))
         else:
             l_AllFullSuccess = False
-            print "Exceeded the maximum number of attempts to have all handles reach a status of BBFULLSUCCESS.  %d attempts were made." % (pAttempts)
+            print("Exceeded the maximum number of attempts to have all handles reach a status of BBFULLSUCCESS.  %d attempts were made." % (pAttempts))
     else:
         l_AllFullSuccess = False
-        print "Error occurred while waiting for all handles reach a status of BBFULLSUCCESS."
+        print("Error occurred while waiting for all handles reach a status of BBFULLSUCCESS.")
 
     return l_AllFullSuccess

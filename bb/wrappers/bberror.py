@@ -11,6 +11,7 @@
 #    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 ###################################################
+from __future__ import print_function
 from ctypes import byref
 from datetime import datetime
 
@@ -55,7 +56,7 @@ def BB_GetLastErrorDetails(pBBError=None, pFormat=BBERRORFORMAT["BBERRORJSON"]):
     if (pBBError):
         lastErrorDetails = l_Output
     else:
-        print "BB_GetLastErrorDetails: %s" % (l_Output)
+        print("BB_GetLastErrorDetails: %s" % (l_Output))
 
     return l_Output
 
@@ -85,7 +86,7 @@ class BBError(Exception):
         return "BBError(rc=%d, text=%s, func=%s, normalRCs=%s toleratedErrorRCs=%s, lastErrorDetails=%s)" % (self.rc, self.text, self.func, self.normalRCs, self.toleratedErrorRCs, self.lastErrorDetails)
 
     def __str__(self):
-        return os.linesep + self.func + ": " + self.text + ", rc=" + `self.rc` + os.linesep + self.getLastErrorDetailsSummary()
+        return os.linesep + self.func + ": " + self.text + ", rc=" + repr(self.rc) + os.linesep + self.getLastErrorDetailsSummary()
 
     def getLastErrorDetails(self):
         return json.loads(BB_GetLastErrorDetails(self))
@@ -133,10 +134,10 @@ class BBError(Exception):
             l_Prefix = "Non-tolerated"
             l_Continue = False
 
-        print datetime.now().strftime("Current date/time: %Y-%m-%d %H:%M:%S")
-        print "%s exception from %s, rc=%d" % (l_Prefix, self.func, self.rc)
+        print(datetime.now().strftime("Current date/time: %Y-%m-%d %H:%M:%S"))
+        print("%s exception from %s, rc=%d" % (l_Prefix, self.func, self.rc))
         if (not l_Continue):
-            print "%s" % (`self`)
+            print("%s" % (repr(self)))
 
         return l_Continue
 

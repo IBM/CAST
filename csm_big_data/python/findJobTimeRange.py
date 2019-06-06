@@ -27,6 +27,7 @@ from elasticsearch import exceptions
 import json
 
 import cast_helper as cast
+from functools import reduce
 
 TARGET_ENV='CAST_ELASTIC'
 

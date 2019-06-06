@@ -22,6 +22,7 @@
 # date_modified:    02-14-2019
 #================================================================================
 
+from __future__ import print_function
 import psycopg2
 import argparse
 import json
@@ -51,8 +52,8 @@ line1 = "-----------------------------------------------------------------------
 username = commands.getoutput("whoami")
 
 if not os.geteuid() == 0:
-    print "{0}".format(line1)
-    print "[INFO] Only root can run this script"
+    print("{0}".format(line1))
+    print("[INFO] Only root can run this script")
     sys.exit("{0}".format(line1))
 
 logger = logging.getLogger()
@@ -83,29 +84,29 @@ if "-t" in argumentList and (len(argumentList)) % 2 == 0 or \
     "-u" in argumentList and (len(argumentList)) % 2 == 0 or \
     "--user" in argumentList and (len(argumentList)) % 2 == 0 or \
     "--threads" in argumentList and (len(argumentList)) % 2 == 0:
-    print "{0}".format(line1)
-    print "Welcome to the CSM DB archiving script"
-    print "{0}".format(line1)
-    print "Start Script Time:                                    | {0}".format(a)
-    print "{0}".format(line1)
-    print "Archiving Log Directory:                              | {0}".format(DEFAULT_LOG)
+    print("{0}".format(line1))
+    print("Welcome to the CSM DB archiving script")
+    print("{0}".format(line1))
+    print("Start Script Time:                                    | {0}".format(a))
+    print("{0}".format(line1))
+    print("Archiving Log Directory:                              | {0}".format(DEFAULT_LOG))
     logger.info("Welcome to the CSM DB archiving script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
     logger.info("{0}".format(line1))
 elif len(argumentList) == 0:
-    print "{0}".format(line1)
-    print "Welcome to the CSM DB archiving script"
-    print "{0}".format(line1)
-    print "Start Script Time:                                    | {0}".format(a)
-    print "{0}".format(line1)
-    print "Archiving Log Directory:                              | {0}".format(DEFAULT_LOG)
+    print("{0}".format(line1))
+    print("Welcome to the CSM DB archiving script")
+    print("{0}".format(line1))
+    print("Start Script Time:                                    | {0}".format(a))
+    print("{0}".format(line1))
+    print("Archiving Log Directory:                              | {0}".format(DEFAULT_LOG))
     logger.info("Welcome to the CSM DB archiving script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
     logger.info("{0}".format(line1))
 else:
-    print "{0}".format(line1)
+    print("{0}".format(line1))
 
 TABLES=[ "csm_allocation_history", "csm_allocation_node_history", "csm_allocation_state_history", 
     "csm_config_history", "csm_db_schema_version_history", "csm_diag_result_history", 
@@ -121,7 +122,7 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
     except:
-        print "[CRITICAL] Unable to connect to local database."
+        print("[CRITICAL] Unable to connect to local database.")
         logger.info("Unable to connect to local database.")
         return
 
@@ -174,7 +175,7 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
                 file.write('{{ "type":"db-{0}", "data":{1} }}\n'.format(
                     table_name, json.dumps(dict(zip(colnames, row)), default=str)))
     except Exception as e:
-        print "[INFO] Exception caught: {0}".format(e)
+        print("[INFO] Exception caught: {0}".format(e))
         logger.info("Exception caught: {0}".format(e))
         cursor.execute("DROP TABLE IF EXISTS temp_{0}".format(table_name))
         db_conn.rollback()
@@ -234,13 +235,13 @@ def main(args):
     logging.info("Thread Count:                      | {0}".format(args.threads))
     logging.info("Archiving Data Directory:          | {0}".format(args.target))
     logger.info("{0}".format(line1))
-    print "{0}".format(line1)
-    print "DB Name:                                              | {0}".format(args.db)
-    print "DB User Name:                                         | {0}".format(args.user)
-    print "Script User Name:                                     | {0}".format(username)
-    print "Thread Count:                                         | {0}".format(args.threads)
-    print "Archiving Data Directory:                             | {0}".format(args.target)
-    print "{0}".format(line1)
+    print("{0}".format(line1))
+    print("DB Name:                                              | {0}".format(args.db))
+    print("DB User Name:                                         | {0}".format(args.user))
+    print("Script User Name:                                     | {0}".format(username))
+    print("Thread Count:                                         | {0}".format(args.threads))
+    print("Archiving Data Directory:                             | {0}".format(args.target))
+    print("{0}".format(line1))
     
     pool = ThreadPool(int(args.threads))
 
@@ -249,13 +250,13 @@ def main(args):
     for entry in tmp_list:
         if entry is None:0
         else:
-            print entry
+            print(entry)
     
     for table in RAS_TABLES:
         entry = dump_table( args.db, args.user, table, args.count, args.target, True)
         if entry is None:0
         else:
-            print entry
+            print(entry)
 
     # Process the finishing info. for screen and logging.
     ft = datetime.datetime.now()
@@ -266,12 +267,12 @@ def main(args):
     logger.info("{0}".format(line1))
     logging.info("Finish CSM DB archive script process")
     logger.info("{0}".format(line1))
-    print "{0}".format(line1)
-    print "End Script Time:                                      | {0}".format(ft)
-    print "Total Process Time:                                   | {0}".format(delta2)
-    print "{0}".format(line1)
-    print "Finish CSM DB archive script process"
-    print "{0}".format(line1)
+    print("{0}".format(line1))
+    print("End Script Time:                                      | {0}".format(ft))
+    print("Total Process Time:                                   | {0}".format(delta2))
+    print("{0}".format(line1))
+    print("Finish CSM DB archive script process")
+    print("{0}".format(line1))
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

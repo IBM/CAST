@@ -16,6 +16,7 @@
 """
     Testcases for to bbapi functions.
 """
+from __future__ import print_function
 
 import os
 import sys
@@ -29,11 +30,11 @@ def Resize(pEnv):
     rc = 0
     l_FuncName = sys._getframe().f_code.co_name
 
-    print "   >>>>> Start: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>> Start: %s.%s..." % (__name__, l_FuncName))
 
     l_Owner = pEnv.get("OWNER", None)
     l_Group = pEnv.get("GROUP", None)
-    l_Mode = int(pEnv.get("MODE", 0755))
+    l_Mode = int(pEnv.get("MODE", 0o755))
     l_LVSize = "16M"
 
     l_OrgSrc = "%s" % pEnv["ORGSRC"]
@@ -66,96 +67,96 @@ def Resize(pEnv):
 
             # Relative specifictions to increase size- all successful
 
-            print "%sIncrease by 512 bytes" % (os.linesep)
+            print("%sIncrease by 512 bytes" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "+512B", "BB_NONE")
             bb.runCmd("lsblk")
-            print "%sIncrease by 512 sectors" % (os.linesep)
+            print("%sIncrease by 512 sectors" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "+512S", "BB_NONE")
             bb.runCmd("lsblk")
-            print "%sIncrease by 64K" % (os.linesep)
+            print("%sIncrease by 64K" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "+64K", "BB_NONE")
             bb.runCmd("lsblk")
-            print "%sIncrease by 128M" % (os.linesep)
+            print("%sIncrease by 128M" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "+128M", "BB_NONE")
             bb.runCmd("lsblk")
-            print "%sIncrease by 0.25G" % (os.linesep)
+            print("%sIncrease by 0.25G" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "+0.25G", "BB_NONE")
             bb.runCmd("lsblk")
 
 
             # Absolute specifiction to increase size - successful
 
-            print "%sIncrease to 2G" % (os.linesep)
+            print("%sIncrease to 2G" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "2G", "BB_NONE")
             bb.runCmd("lsblk")
 
 
             # Invalid resize specifications
 
-            print "%sERROR - Invalid mountpoint" % (os.linesep)
+            print("%sERROR - Invalid mountpoint" % (os.linesep))
             try:
                 BB_ResizeMountPoint("JUST/A/BUNCH/OF/JUNK", "2.1G", "BB_NONE")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
-            print "%sERROR - Invalid size" % (os.linesep)
+            print("%sERROR - Invalid size" % (os.linesep))
             try:
                 BB_ResizeMountPoint(l_Mountpoint, "ABC", "BB_NONE")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
-            print "%sERROR - Invalid flags" % (os.linesep)
+            print("%sERROR - Invalid flags" % (os.linesep))
             try:
                 BB_ResizeMountPoint(l_Mountpoint, "2.1G", "MORE_JUNK")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
-            print "%sERROR - Invalid size suffix of 'X'" % (os.linesep)
+            print("%sERROR - Invalid size suffix of 'X'" % (os.linesep))
             try:
                 BB_ResizeMountPoint(l_Mountpoint, "2X", "BB_NONE")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
             # Attempt to decrease size (relative size) and preserve file system
-            print "%sERROR - Cannot decrease size (relative size) and preserve XFS file system" % (os.linesep)
+            print("%sERROR - Cannot decrease size (relative size) and preserve XFS file system" % (os.linesep))
             try:
                 BB_ResizeMountPoint(l_Mountpoint, "-256M", "BB_NONE")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
             # Attempt to decrease size (absolute size) and preserve file system
-            print "%sERROR - Cannot decrease size (absolute size) and preserve XFS file system" % (os.linesep)
+            print("%sERROR - Cannot decrease size (absolute size) and preserve XFS file system" % (os.linesep))
             try:
                 BB_ResizeMountPoint(l_Mountpoint, "1G", "BB_NONE")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
 
             # Successful resize and do not preserve file system
 
             # Decrease size and do not preserve file system
-            print "%sDecrease size by 5M and do not preserve XFS file system" % (os.linesep)
+            print("%sDecrease size by 5M and do not preserve XFS file system" % (os.linesep))
             BB_ResizeMountPoint(l_Mountpoint, "-5M", "BB_DO_NOT_PRESERVE_FS")
             bb.runCmd("lsblk")
             try:
                 bb.runCmd("ls -lar %s" % (l_Mountpoint))
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
 
             # Attempt to access the mountpoint
-            print "%sERROR - Mountpoint no longer mounted" % (os.linesep)
+            print("%sERROR - Mountpoint no longer mounted" % (os.linesep))
             try:
                 BB_ResizeMountPoint(l_Mountpoint, "1G", "BB_NONE")
             except BBError as error:
-                print `error`
+                print(repr(error))
             bb.runCmd("lsblk")
 
             # Cleanup...
@@ -164,9 +165,9 @@ def Resize(pEnv):
 
     except BBError as error:
         rc = error.rc
-        print `error`
+        print(repr(error))
 
-    print "   >>>>>   End: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>>   End: %s.%s..." % (__name__, l_FuncName))
 
     return rc
 
@@ -181,7 +182,7 @@ def main(pEnv):
     for i in xrange(1):
         for l_TestCase in l_TestCases:
             rc = l_TestCase(pEnv)
-            print "Testcase -> %s, rc = %d" % (os.path.splitext(os.path.basename(l_TestCase.__name__))[0], rc)
+            print("Testcase -> %s, rc = %d" % (os.path.splitext(os.path.basename(l_TestCase.__name__))[0], rc))
             if (rc):
                 break
         if (rc):

@@ -31,6 +31,7 @@
 #           0 = first | 1 = second
 #
 
+from __future__ import print_function
 import os
 import sys
 
@@ -44,14 +45,14 @@ else:
 # Get MPI rank
 envar = 'PMIX_RANK'
 if envar not in os.environ:
-    print 'error: environment variable "%s" not found' % (envar)
+    print('error: environment variable "%s" not found' % (envar))
     exit(1)
 rank = int(os.environ[envar])
 
 # Get socket
 envar = 'PINNER_SOCKET'
 if envar not in os.environ:
-    print 'error: environment variable "%s" not found' % (envar)
+    print('error: environment variable "%s" not found' % (envar))
     exit(1)
 socket = int(os.environ[envar])
 
@@ -66,12 +67,12 @@ cpu   = (socket * cps / 2 * smt) + local * smt
 cmd  = 'taskset -c %d ' % (cpu)
 cmd += ' '.join(sys.argv[1:])
 if debug:
-    print 'rank %05d socket %01d ppn %03d local %05d cpu %03d -> %s' % (\
+    print('rank %05d socket %01d ppn %03d local %05d cpu %03d -> %s' % (\
             rank,
             socket,
             ppn,
             local,
             cpu,
-            cmd)
+            cmd))
 os.system(cmd)
 

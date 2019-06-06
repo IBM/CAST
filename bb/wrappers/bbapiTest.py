@@ -19,6 +19,7 @@ int Coral_GetVar(const char* pVariable);
 int Coral_SetVar(const char* pVariable, const char* pValue);
 int Coral_StageOutStart(const char* pMountpoint);
 """
+from __future__ import print_function
 
 from ctypes import *
 # import json
@@ -38,7 +39,7 @@ def Coral_GetVar(pVariable, pPrintValue=PRINT_VALUE):
     l_Variable = bb.cvar("variable", pVariable)
     l_Value = bb.api.Coral_GetVar(l_Variable)
     if pPrintValue:
-        print "===> Variable %s = %d" % (pVariable, l_Value)
+        print("===> Variable %s = %d" % (pVariable, l_Value))
 
     return l_Value
 
@@ -60,16 +61,16 @@ def Coral_SetVar(pVariable, pValue):
         l_Value = bb.api.Coral_SetVar(l_Variable, l_Value)
         l_CurrentValue = Coral_GetVar(pVariable, False)
         if (int(pValue) != l_CurrentValue):
-            print "===> Coral_SetVar Error:  Variable %s could not be set to a value of %s" % (pVariable, pValue)
+            print("===> Coral_SetVar Error:  Variable %s could not be set to a value of %s" % (pVariable, pValue))
     else:
-        print "===> Coral_SetVar Error:  Input value of %s not 0 or a positive value" % (pValue)
+        print("===> Coral_SetVar Error:  Input value of %s not 0 or a positive value" % (pValue))
 
     return
 
 def Coral_StageOutStart(pMountpoint):
     l_Mountpoint = bb.cvar("mountpoint", pMountpoint)
 
-    print "%sCoral_StageOutStart issued for mountpoint %s" % (os.linesep, pMountpoint)
+    print("%sCoral_StageOutStart issued for mountpoint %s" % (os.linesep, pMountpoint))
     rc = bb.api.Coral_StageOutStart(l_Mountpoint)
     if (rc):
         raise Coral_StageOutStartError(rc)

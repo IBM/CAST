@@ -22,6 +22,7 @@
 # date_modified:    02-14-2019
 #================================================================================
 
+from __future__ import print_function
 import psycopg2
 import argparse
 import json
@@ -48,8 +49,8 @@ line1 = "-----------------------------------------------------------------------
 username = commands.getoutput("whoami")
 
 if not os.geteuid() == 0:
-    print "{0}".format(line1)
-    print "[INFO] Only root can run this script"
+    print("{0}".format(line1))
+    print("[INFO] Only root can run this script")
     sys.exit("{0}".format(line1))
 
 logger = logging.getLogger()
@@ -74,19 +75,19 @@ if '-n' in argumentList and '-d' in argumentList or \
     '--count' in argumentList and '--database' in argumentList or \
     '-n' in argumentList and '--database' in argumentList or \
     '--count' in argumentList and '-d' in argumentList:
-    print "{0}".format(line1)
-    print "Welcome to the CSM DB deletion of history table records script"
-    print "{0}".format(line1)
-    print "Start Script Time:                                    | {0}".format(a)
-    print "{0}".format(line1)
-    print "Deletion Log Directory:                               | {0}".format(DEFAULT_LOG)
+    print("{0}".format(line1))
+    print("Welcome to the CSM DB deletion of history table records script")
+    print("{0}".format(line1))
+    print("Start Script Time:                                    | {0}".format(a))
+    print("{0}".format(line1))
+    print("Deletion Log Directory:                               | {0}".format(DEFAULT_LOG))
     logger.info("Welcome to the CSM DB deletion of history table records script")
     logger.info("{0}".format(line1))
     logging.info("Start Script Time:                 | {0}".format(a))
     logger.info("{0}".format(line1))
     logging.info("Deletion Log Directory:            | {0}".format(DEFAULT_LOG))
 else:
-    print "{0}".format(line1) 
+    print("{0}".format(line1)) 
 
 TABLES=[ "csm_allocation_history", "csm_allocation_node_history", "csm_allocation_state_history", 
     "csm_config_history", "csm_db_schema_version_history", "csm_diag_result_history", 
@@ -102,7 +103,7 @@ def dump_table( db, user, table_name, count, is_ras=False ):
     try:
         db_conn= psycopg2.connect("dbname='{0}' user='{1}' host='localhost'".format(db, user))
     except:
-        print "[CRITICAL] Unable to connect to local database."
+        print("[CRITICAL] Unable to connect to local database.")
         logger.info("Unable to connect to local database.")
         return
 
@@ -122,7 +123,7 @@ def dump_table( db, user, table_name, count, is_ras=False ):
     delta = b - a
     
     # Gather the results for printing to screen and logging
-    print "[INFO] Processing Table {0:<29} | User Ct (time(mins)): {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0])
+    print("[INFO] Processing Table {0:<29} | User Ct (time(mins)): {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0]))
     logger.info("Tbl: {0:<29} | User Ct: {1:<10} | Act DB Ct: {2:<10}".format(table_name, count, result[0]))
     
     db_conn.commit()
@@ -160,12 +161,12 @@ def main(args):
     logging.info("Script User Name:                  | {0}".format(username))
     logging.info("Thread Count:                      | {0}".format(args.threads))
     logger.info("{0}".format(line1))
-    print "{0}".format(line1)
-    print "DB Name:                                              | {0}".format(args.db)
-    print "DB User Name:                                         | {0}".format(args.user)
-    print "Script User Name:                                     | {0}".format(username)
-    print "Thread Count:                                         | {0}".format(args.threads)
-    print "{0}".format(line1)
+    print("{0}".format(line1))
+    print("DB Name:                                              | {0}".format(args.db))
+    print("DB User Name:                                         | {0}".format(args.user))
+    print("Script User Name:                                     | {0}".format(username))
+    print("Thread Count:                                         | {0}".format(args.threads))
+    print("{0}".format(line1))
     
     pool = ThreadPool(int(args.threads))
 
@@ -184,12 +185,12 @@ def main(args):
     logger.info("{0}".format(line1))
     logging.info("Finish CSM DB deletion script process")
     logger.info("{0}".format(line1))
-    print "{0}".format(line1)
-    print "End Script Time:                                      | {0}".format(ft)
-    print "Total Process Time:                                   | {0}".format(delta2)
-    print "{0}".format(line1)
-    print "Finish CSM DB deletion script process"
-    print "{0}".format(line1)
+    print("{0}".format(line1))
+    print("End Script Time:                                      | {0}".format(ft))
+    print("Total Process Time:                                   | {0}".format(delta2))
+    print("{0}".format(line1))
+    print("Finish CSM DB deletion script process")
+    print("{0}".format(line1))
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

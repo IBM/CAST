@@ -12,6 +12,7 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 ###################################################
 
+from __future__ import print_function
 import subprocess
 import time
 
@@ -43,15 +44,15 @@ def IssueCmd(pCmd):
             #       They may or may not tolerate the rc, but
             #       we will not signal the BBError exception.
             l_RC = -1
-            print "Failure when attempting to invoke subprocess.check_call() with command of |", pCmd, "|"
+            print("Failure when attempting to invoke subprocess.check_call() with command of |", pCmd, "|")
 
             l_Attempts += 1
             if (l_Attempts > 25):
                 l_RC = error.returncode
-                print "IssueCmd(): Throwing BBError, l_RC=", l_RC
+                print("IssueCmd(): Throwing BBError, l_RC=", l_RC)
                 raise bberror.BBError(rc=l_RC, text=pCmd)
             else:
-                print "Attempting to re-submit the command, attempt number ", l_Attempts
+                print("Attempting to re-submit the command, attempt number ", l_Attempts)
             time.sleep(12)
 
     return l_RC

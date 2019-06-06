@@ -15,6 +15,7 @@
 #
 #================================================================================
 
+from __future__ import print_function
 import sys
 
 #add the python library to the path 
@@ -40,12 +41,12 @@ input.offset=-1
 
 rc,handler,output = inv.node_attributes_update(input)
 
-print rc 
+print(rc) 
 
 if rc == csm.csmi_cmd_err_t.CSMERR_UPDATE_MISMATCH:
-    print output.failure_count
+    print(output.failure_count)
     for i in range(0, output.failure_count):
-        print output.get_failure_node_names(i)
+        print(output.get_failure_node_names(i))
 
 
 csm.api_object_destroy(handler)

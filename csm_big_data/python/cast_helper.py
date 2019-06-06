@@ -30,6 +30,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 from elasticsearch import exceptions
 from datetime import datetime
+from functools import reduce
    
 TARGET_ENV='CAST_ELASTIC'
 

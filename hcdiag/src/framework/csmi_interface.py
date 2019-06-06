@@ -14,6 +14,7 @@
 # 
 #==============================================================================
 
+from __future__ import print_function
 import subprocess
 import os
 from datetime import datetime
@@ -61,23 +62,23 @@ class Result :
   #----------------------------------------------------------------
   def save(self, test, start_time) :
     if not self.has_header:
-       print  >> self.fd, '\n', '='*31, 'Results summary ', '='*31
+       print('\n', '='*31, 'Results summary ', '='*31, file=self.fd)
        self.has_header= True
     
     np= len(self.node_pass)              
     nf= len(self.node_fail)
     if np :
-      print >> self.fd, '\n', start_time[11:19], '='*71, '\n'
-      print >> self.fd, test, 'PASS on', np, 'node(s):\n'  
-      print >> self.fd, ','.join(self.node_pass), '\n'
+      print('\n', start_time[11:19], '='*71, '\n', file=self.fd)
+      print(test, 'PASS on', np, 'node(s):\n', file=self.fd)  
+      print(','.join(self.node_pass), '\n', file=self.fd)
       
 
     if nf :
       if not np: 
-         print >> self.fd, '\n', start_time[11:19], '='*71, '\n'
+         print('\n', start_time[11:19], '='*71, '\n', file=self.fd)
 
-      print >> self.fd, test, 'FAIL on', nf, 'node(s):\n'  
-      print >> self.fd, ','.join(self.node_fail)
+      print(test, 'FAIL on', nf, 'node(s):\n', file=self.fd)  
+      print(','.join(self.node_fail), file=self.fd)
 
     self.fd.flush()
     return 0
@@ -93,12 +94,12 @@ class Result :
   """ print the summary in the console """
   #----------------------------------------------------------------
   def print_result(self) :
-    print >> self.fd, '\n', '='*80
+    print('\n', '='*80, file=self.fd)
     ofile= self.fd.name
     self.fd.close()
     self.fd= open(ofile, 'r')
     text= self.fd.read()
-    print text
+    print(text)
 
 
 #------------------------------------------------------------------- 
@@ -378,15 +379,15 @@ class CsmiInterface(TargetInterface):
       for line in iter(proc.stderr.readline,''):
          line.rstrip('\n')
          if ofile:
-            print >> ofile, line,
+            print(line, end=' ', file=ofile)
          self.logger.error(line)
       
       for line in iter(proc.stdout.readline,''):
          line.rstrip('\n')
          if ofile:
-            print >> ofile, line,
+            print(line, end=' ', file=ofile)
          if ttydisplay:
-            print line,
+            print(line, end=' ')
                                   
       proc.wait()
       return proc.returncode
@@ -407,5 +408,5 @@ class CsmiInterface(TargetInterface):
    def print_results(self):
       if self.result: 
         text= self.result.fd.read()
-        print text
+        print(text)
 

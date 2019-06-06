@@ -14,6 +14,7 @@
 # 
 #===============================================================================*/
 
+from __future__ import print_function
 import sys       
 import os
 
@@ -39,7 +40,7 @@ class DiagProperties(object):
       try:
          return (dict(self.cfgparser.items(section)))
       except ConfigParser.NoSectionError:
-         print 'ERROR: Attributes for ', section, ' not found in the properties file.'
+         print('ERROR: Attributes for ', section, ' not found in the properties file.')
          return None 
 
       return None 
@@ -105,9 +106,9 @@ class MasterProperties(DiagProperties):
       mgmt_mode='no'
       if os.path.isdir(xdir):
          mgmt_mode='yes'
-         print 'INFO: xcat seems to be installed in {0}. Running in Management mode' .format(xdir)
+         print('INFO: xcat seems to be installed in {0}. Running in Management mode' .format(xdir))
       else:
-         print 'INFO: running in Node mode.'
+         print('INFO: running in Node mode.')
       self.cfgparser.set(self.section, 'mgmt_mode', mgmt_mode)
 
 
@@ -346,7 +347,7 @@ class TestProperties(DiagProperties):
       self.cfgparser.read(file)
 
       if (len(self.cfgparser.sections())) == 0:
-         print  'ERROR: Test configuration file ', file, 'not found, or empty.'
+         print('ERROR: Test configuration file ', file, 'not found, or empty.')
          sys.exit(98)
 
       todel=[]   # collect sections that are not valid
@@ -355,7 +356,7 @@ class TestProperties(DiagProperties):
          if section.startswith(self.test_prefix):
             # it is a test, make sure the test has an executable and timeout
             if not self.cfgparser.has_option(section, 'executable'):
-               print 'ERROR: No executable for the test: ', section, 'in the ', file, '. Exiting...'
+               print('ERROR: No executable for the test: ', section, 'in the ', file, '. Exiting...')
                sys.exit(98)
 
             try:
@@ -383,7 +384,7 @@ class TestProperties(DiagProperties):
             try:
                ts=self.get_bucket_tests(section[len(self.bucket_prefix):])
                if ts == None:
-                  print 'ERROR: ', file, ' contains ', section, ' with no tests attribute or it is empty. Exiting...'
+                  print('ERROR: ', file, ' contains ', section, ' with no tests attribute or it is empty. Exiting...')
                   sys.exit(98)
                
                invalidtest=''
@@ -397,21 +398,21 @@ class TestProperties(DiagProperties):
                        sectionadded=True
 
                if invalidtest:
-                  print 'ERROR: ', file, ' contains invalid test: ', invalidtest, ' in ', section, '. Exiting...'
+                  print('ERROR: ', file, ' contains invalid test: ', invalidtest, ' in ', section, '. Exiting...')
                   sys.exit(98)
 
 
             except ConfigParser.NoOptionError:
-               print 'ERROR: No tests defined for this bucket: ', section, ' in the ', file, '. Exiting...'
+               print('ERROR: No tests defined for this bucket: ', section, ' in the ', file, '. Exiting...')
                sys.exit(98)
 
          else:
-            print 'ERROR: Invalid section: ', section, ' in the ', file, '. Exiting...'
+            print('ERROR: Invalid section: ', section, ' in the ', file, '. Exiting...')
             sys.exit(98)
 
 
       for s in todel:
-         print "Info:", s, "ignored, can not run in Node mode."
+         print("Info:", s, "ignored, can not run in Node mode.")
          self.cfgparser.remove_section(s)
        
 
@@ -427,23 +428,23 @@ class TestProperties(DiagProperties):
       if item == 'test' or item == 'all':
         t= self.get_sections('test')    #= returns list
         if not len(t):
-           print 'No tests defined.' 
+           print('No tests defined.') 
            # it is safe to return at this point, even if all is passed
            # if tests are not defined, buckets are not valid...
            return 
                 
-        print '\nAvailable tests: ', len(t)
+        print('\nAvailable tests: ', len(t))
         for test in t:
-           print '%-22s: %s' %(test, self.get_test_attribute(test, 'description'))    
+           print('%-22s: %s' %(test, self.get_test_attribute(test, 'description')))    
 
       if item == 'bucket' or item == 'all':
         b= self.get_sections('bucket')    #= returns list
         if not len(b):
-           print 'No buckets defined.'                         
+           print('No buckets defined.')                         
         else:
-           print '\nAvailable buckets: ', len(b)
+           print('\nAvailable buckets: ', len(b))
            for bucket in b:
-              print '%-16s: %s' %(bucket, self.get_bucket_tests(bucket))
+              print('%-16s: %s' %(bucket, self.get_bucket_tests(bucket)))
 
       if item == 'group' or item == 'all':
         group=dict()
@@ -457,9 +458,9 @@ class TestProperties(DiagProperties):
               group[g].append(test)
 
         if len(group):
-           print '\nAvailable groups: ', len(group)
+           print('\nAvailable groups: ', len(group))
            for g, t in group.iteritems(): 
-              print '%-16s: %s' %(g, t)
+              print('%-16s: %s' %(g, t))
         else:
-           print 'No groups defined.'                         
+           print('No groups defined.')                         
 

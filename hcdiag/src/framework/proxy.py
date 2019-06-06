@@ -13,6 +13,7 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 # 
 #===============================================================================*/
+from __future__ import print_function
 from datetime import datetime, timedelta
 import os
 
@@ -109,12 +110,12 @@ class Proxy:
       return self.type
 
    def dump(self):
-      print "Proxy::node", self.node
-      print "Proxy::rc", self.rc       
-      print "Proxy::fd", self.fd       
-      print "Proxy::sn", self.sn       
-      print "Proxy::type", self.type     
-      print "Proxy::ofile", self.ofile    
-      print "Proxy::hostlist", self.hostlist 
+      print("Proxy::node", self.node)
+      print("Proxy::rc", self.rc)       
+      print("Proxy::fd", self.fd)       
+      print("Proxy::sn", self.sn)       
+      print("Proxy::type", self.type)     
+      print("Proxy::ofile", self.ofile)    
+      print("Proxy::hostlist", self.hostlist) 
 
 # end class

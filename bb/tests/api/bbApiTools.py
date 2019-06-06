@@ -34,7 +34,7 @@ class bbApiTools(object):
            self.jout = json.loads(m)
            print("non-JSON result: '%s'" % (self.jout['version']['minor']))
            return self.jout
-        except ValueError, e:
+        except ValueError as e:
  #          print("non-JSON result: '%s'" % (self._output))
            self.jout = ""
            raise AssertionError("Invalid Jason Element")
@@ -45,7 +45,7 @@ class bbApiTools(object):
            self.jout = json.loads(m)
            print("non-JSON result: '%s'" % (self.jout['version']['minor']))
            return self.jout['version']['minor']
-        except ValueError, e:
+        except ValueError as e:
  #          print("non-JSON result: '%s'" % (self._output))
            self.jout = ""
            raise AssertionError("Invalid Jason Element")
@@ -59,7 +59,7 @@ class bbApiTools(object):
            self.jout['version']['minor'] = value
            print("non-JSON result: '%s'" % (self.jout['version']['minor']))
            self._jsonData = self.jout
-        except ValueError, e:
+        except ValueError as e:
  #          print("non-JSON result: '%s'" % (self._output))
            self.jout = ""
            raise AssertionError("Invalid JSON Element")
@@ -72,7 +72,7 @@ class bbApiTools(object):
            self.jout['gitcommit'] = value
            print("non-JSON result: '%s'" % (self.jout['gitcommit']))
            self._jsonData = self.jout
-        except ValueError, e:
+        except ValueError as e:
  #          print("non-JSON result: '%s'" % (self._output))
            self.jout = ""
            raise AssertionError("Invalid JSON Element")

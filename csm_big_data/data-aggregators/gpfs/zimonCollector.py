@@ -161,7 +161,7 @@ def main(args):
         logstash_socket.connect((logstash, logstashPort))
         logstash_socket.send(payload)
         logstash_socket.close()
-    except socket.error, msg:
+    except socket.error as msg:
         print("Socket had error: %s", msg)
         return 2
     return 0
