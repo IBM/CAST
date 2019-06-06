@@ -1,3 +1,4 @@
+from __future__ import print_function
 #    bbRobotLibrary.py
 #
 #    Copyright IBM Corporation 2015,2016. All Rights Reserved
@@ -130,7 +131,7 @@ class bbRobotLibrary(object):
         self._output = process.communicate()[0].strip()
         try:
             self.jout = json.loads(self._output)
-            print json.dumps(self.jout, indent=4, sort_keys=True)
+            print(json.dumps(self.jout, indent=4, sort_keys=True))
             print("non-JSON result: '%s'" % (self._output))
         except ValueError as e:
             print("non-JSON result: '%s'" % (self._output))

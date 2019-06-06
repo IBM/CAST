@@ -14,6 +14,7 @@
 # 
 #===============================================================================*/
 
+from __future__ import print_function
 import os
 import subprocess
 import time
@@ -358,7 +359,7 @@ class BaseHarness(object):
 
      self.logger.debug('Creating {0} file, with {1} lines.' .format(host_file, len(self.target)))
 
-     for node in self.target: print >> fd, node
+     for node in self.target: print(node, file=fd)
      fd.close()                 
 
      ## we need to copy the host file to the remote nodes
@@ -495,7 +496,7 @@ class BaseHarness(object):
       
             time_manager.remove(node)
             if fdopen:
-             print >> fd, sline
+             print(sline, file=fd)
              fd.flush()
          else:
             self.logger.debug('stderr message "{0}" received from unknown source.' .format(sline))

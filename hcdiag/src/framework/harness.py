@@ -14,6 +14,7 @@
 # 
 #===============================================================================*/
 
+from __future__ import print_function
 import os
 import subprocess
 import time
@@ -188,7 +189,7 @@ class Harness(base_harness.BaseHarness):
                   time_manager.activity(node)
 
                if fdopen:
-                  print >> fd, msg
+                  print(msg, file=fd)
                   fd.flush()
                else:
                   # check if it is a line with the name of the log file (common_fs=yes)
