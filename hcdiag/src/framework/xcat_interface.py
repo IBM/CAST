@@ -91,7 +91,7 @@ class XcatInterface(TargetInterface):
            if node in downlist:
               target[node]= {'fd': None, 'rc' : int(0), 'sn' : None, 'ofile' : None, 'state' : 'down' }
            else:
-              self.logger.ras('hcdiag.fmk.sn_err', 'node=%s' %(node), thisthost)
+              self.logger.ras('hcdiag.fmk.sn_err', 'node=%s' %(node), thishost)
               ret= False
 
       return ret
@@ -146,7 +146,7 @@ class XcatInterface(TargetInterface):
    #------------------------------------------------------------------- 
    def execute(self, cmd):
       self.logger.debug(cmd)
-      proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True )
+      proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True)
       
       value=None
       ret= True
@@ -174,5 +174,3 @@ class XcatInterface(TargetInterface):
       return proc.returncode, value
 
 ### end class
-
-      
