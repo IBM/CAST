@@ -20,6 +20,21 @@ Setup LSF Testcases
       set user stageout2  ${empty}
       Setup CMDLAUNCHER
 
+get jobid
+      [Arguments]  ${result}
+      ${ignore}  ${jobid}=  Run and Return RC and Output  echo '${result.stdout}'|awk -F'<' '/Job/ {print $2}'|awk -F'>' '{print $1}'
+      [Return]  ${jobid}
+
+Is stageout Complete
+      [Arguments]  ${jobid}
+      ${rc}=  Run and Return RC  bread -i122 ${jobid}
+      Should be equal as integers  ${rc}  0
+
+Wait for stageout to complete
+     [Arguments]  ${jobid}
+     Wait Until Keyword Succeeds  ${polltimeout}  1 second  Is stageout Complete  ${jobid}
+
+
 using bscfs
       set test variable  ${application}  "bscfs"
       set environment variable  BSCFS_PFS_PATH  ${PFSDIR}
