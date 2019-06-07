@@ -115,7 +115,7 @@ def convert_timestamp( timestamp ):
                 second=int(second if second else 0) )
             new_timestamp=datetime.strftime(date, "%s000")
 
-        elif timestamp is "now":
+        elif timestamp == "now":
             new_timestamp=datetime.strftime(datetime.now(), "%s000")
 
         elif timestamp.isdigit() :
@@ -221,7 +221,7 @@ def build_timestamp_range( start_time, end_time, field="@timestamp"):
         match_min = 1
         timestamp["lte"] = end_time
     
-    if  match_min is 1:
+    if  match_min == 1:
         target.append( { "range" : { field : timestamp } } )
     else:
         target=None
