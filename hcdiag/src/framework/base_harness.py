@@ -224,7 +224,7 @@ class BaseHarness(object):
                  # don't have any node to run 
                  self.logger.info('stoponerror set and there is not more node to continue. Exiting...')
                  break
-              to_remote[:] = []
+              to_remove[:] = []
            ntest-=1
 
       self.cleanup()
