@@ -118,7 +118,7 @@ def main(args):
         with open('/etc/rsyslog.conf','a') as file:
             syslog_str='''$template logFormat, "%TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %syslogseverity-text% %msg%\n"'
 *.*;cron.none @@{0}:10515;logFormat'''.format(args.logstash_hosts[0])
-            file.write(yslog_str)
+            file.write(syslog_str)
 
 
 if __name__ == '__main__':
