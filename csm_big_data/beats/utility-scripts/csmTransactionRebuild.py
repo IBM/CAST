@@ -113,7 +113,7 @@ GROUP BY {0}
             for row in cursor:
                 data=dict(zip(colnames, row))
                 allocId=data["allocation_id"]
-                if allocId not in allocStates and data["state"] is "running":
+                if allocId not in allocStates and data["state"] == "running":
                     data["running-start-timestamp"]=data["begin_time"]
 
                 data_wrapped={
