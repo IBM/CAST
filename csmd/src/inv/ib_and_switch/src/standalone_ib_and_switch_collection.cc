@@ -29,6 +29,8 @@
 #include "csmutil/include/csmutil_logging.h"
 // Command line macros for ease of use.
 #include "csmi/src/common/include/csmi_internal_macros.h"
+// include to convert Mellanox guid to use CSM standardized guid format
+#include "../../include/inv_ib_guid.h"
 
 /////////////////////////////////////////////////////////
 #include "../include/inv_ib_connector_access.h"
@@ -724,8 +726,14 @@ int main(int argc, char *argv[])
 																							IBinput->inventory[i]->discovery_time  = strdup("NULL");
 																							IBinput->inventory[i]->collection_time = strdup("NULL");
 																							IBinput->inventory[i]->comment         = strdup("comment");
-            temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(7,i); 	IBinput->inventory[i]->guid_s1         = strdup(temp_string.c_str());
-            temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(11,i); 	IBinput->inventory[i]->guid_s2         = strdup(temp_string.c_str());
+			// Convert Mellanox guid to use CSM standardized guid format
+            temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(7,i); 
+            temp_string = standardizeGuid(temp_string);
+            IBinput->inventory[i]->guid_s1         = strdup(temp_string.c_str());
+            temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(11,i); 	
+            temp_string = standardizeGuid(temp_string);
+            IBinput->inventory[i]->guid_s2         = strdup(temp_string.c_str());
+
 			temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(3,i); 	IBinput->inventory[i]->identifier      = strdup(temp_string.c_str());																				
             temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(1,i); 	IBinput->inventory[i]->length          = strdup(temp_string.c_str());
 			temp_string = INV_IB_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(12,i); 	IBinput->inventory[i]->name            = strdup(temp_string.c_str());
@@ -836,7 +844,11 @@ int main(int argc, char *argv[])
                                                                                               SWITCHinput->inventory[i]->switch_data->comment                 = strdup("N/A");
             temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(1,i);  SWITCHinput->inventory[i]->switch_data->description             = strdup(temp_string.c_str());																								 
             temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(2,i);  SWITCHinput->inventory[i]->switch_data->fw_version              = strdup(temp_string.c_str());
-            temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(3,i);  SWITCHinput->inventory[i]->switch_data->gu_id                   = strdup(temp_string.c_str());
+
+            // Convert Mellanox guid to use CSM standardized guid format
+            temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(3,i); 
+            temp_string = standardizeGuid(temp_string); 
+            SWITCHinput->inventory[i]->switch_data->gu_id = strdup(temp_string.c_str());
 			
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(4,i); 
 			if(strcmp(temp_string.c_str(),"true") == 0)
@@ -898,7 +910,7 @@ int main(int argc, char *argv[])
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("status", adjusted_index);          SWITCHinput->inventory[i]->inventory[j]->status           = strdup(temp_string.c_str());
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("hw_version", adjusted_index);      SWITCHinput->inventory[i]->inventory[j]->hw_version       = strdup(temp_string.c_str());
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("name", adjusted_index);            SWITCHinput->inventory[i]->inventory[j]->name             = strdup(temp_string.c_str());
-				                                                                                                         SWITCHinput->inventory[i]->inventory[j]->host_system_guid = strdup(SWITCHinput->inventory[i]->switch_data->switch_name);
+				                                                                                                                      SWITCHinput->inventory[i]->inventory[j]->host_system_guid = strdup(SWITCHinput->inventory[i]->switch_data->gu_id);
 				
 				temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue_module("number_of_chips", adjusted_index); SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->inventory[j]->number_of_chips  = -1.0;
 
@@ -947,7 +959,12 @@ int main(int argc, char *argv[])
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(14,i); SWITCHinput->inventory[i]->switch_data->sm_mode                 = strdup(temp_string.c_str());
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(15,i); SWITCHinput->inventory[i]->switch_data->state                   = strdup(temp_string.c_str());
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(16,i); SWITCHinput->inventory[i]->switch_data->sw_version              = strdup(temp_string.c_str());
-			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(17,i); SWITCHinput->inventory[i]->switch_data->system_guid             = strdup(temp_string.c_str());
+
+			// Convert Mellanox guid to use CSM standardized guid format
+			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(17,i); 
+			temp_string = standardizeGuid(temp_string);
+			SWITCHinput->inventory[i]->switch_data->system_guid = strdup(temp_string.c_str());
+
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(18,i); SWITCHinput->inventory[i]->switch_data->system_name             = strdup(temp_string.c_str());
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(19,i); SWITCHinput->inventory[i]->switch_data->total_alarms            = std::strtol(temp_string.c_str(), &pEnd, 10); if(pEnd == temp_string.c_str()) SWITCHinput->inventory[i]->switch_data->total_alarms  = -1.0; 
 			temp_string = INV_SWITCH_CONNECTOR_ACCESS::GetInstance()->ReturnFieldValue(20,i); SWITCHinput->inventory[i]->switch_data->type                    = strdup(temp_string.c_str());
