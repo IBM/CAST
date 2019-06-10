@@ -1,4 +1,3 @@
-from __future__ import print_function
 #    bbRobotLibrary.py
 #
 #    Copyright IBM Corporation 2015,2016. All Rights Reserved
@@ -11,7 +10,8 @@ from __future__ import print_function
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 
 
-import os
+from __future__ import print_function
+Import os
 import subprocess
 import sys
 import json
