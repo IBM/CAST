@@ -95,6 +95,7 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
 
         // Wait for the canceled extents to be processed
         uint64_t l_Attempts = 1;
+        int l_DelayMsgLogged = 0;
         while (1)
         {
             if (!(extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), 0)))
@@ -106,6 +107,7 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
                              (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
                     LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
                                  << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                    l_DelayMsgLogged = 1;
                 }
 
                 unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
@@ -122,8 +124,15 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
             }
         }
 
+        if (l_DelayMsgLogged)
+        {
+            LOG(bb,info) << ">>>>> RESUME <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                         << ", all canceled extents are now processed.";
+        }
+
         // Decrement the number of concurrent cancel reqeusts
         wrkqmgr.decrementNumberOfConcurrentCancelRequests();
+
     }
 
     // If we are to perform remove operations for target PFS files, do so now...
@@ -334,8 +343,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     bool l_UpdateTransferStatus = false;
-    bool l_LockTransferQueue = false;
     bool l_LocalMetadataLocked = false;
+    bool l_LocalMetadataUnlocked = false;
 
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
@@ -356,21 +365,25 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             //       no extents for this file currently in-flight...  If so, delay for a bit...
             uint32_t i = 0;
             int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
+            int l_DelayMsgLogged = 0;
             while (extentInfo.moreExtentsToTransferForFile((int64_t)pExtentInfo.getHandle(), (int32_t)pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, l_DumpOption))
             {
-                unlockTransferQueue(pLVKey, "removeFromInFlight - Waiting for inflight queue to clear");
+                unlockTransferQueue(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
+                l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
+
                 {
-                    // NOTE: Currently set to send info to console after 3 seconds of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 12)
+                    // NOTE: Currently set to send info to console after 5 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 20)
                     {
                         FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
                                  pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< removeFromInFlight(): Processing last extent, waiting for in-flight queue to clear of extents for handle " << pExtentInfo.getHandle() \
                                      << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " << pExtentInfo.getSourceIndex();
+                        l_DelayMsgLogged = 1;
                     }
                     usleep((useconds_t)250000);
                     // NOTE: Currently set to dump after 3 seconds of not being able to clear, and every 10 seconds thereafter...
-                    if ((i % 40) == 12)
+                    if ((i % 40) == 20)
                     {
                         l_DumpOption = MORE_EXTENTS_TO_TRANSFER_FOR_FILE;
                     }
@@ -379,11 +392,22 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                         l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
                     }
                 }
-                lockTransferQueue(pLVKey, "removeFromInFlight - Waiting for inflight queue to clear");
+
+                if (l_LocalMetadataUnlocked)
+                {
+                    l_LocalMetadataUnlocked = false;
+                    lockLocalMetadata(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
+                }
+                lockTransferQueue(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
+            }
+
+            if (l_DelayMsgLogged)
+            {
+                LOG(bb,info) << ">>>>> RESUME <<<<< removeFromInFlight(): Processing last extent, in-flight queue is now clear of all extents for handle " << pExtentInfo.getHandle() \
+                             << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " << pExtentInfo.getSourceIndex();
             }
 
             unlockTransferQueue(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
-            l_LockTransferQueue = true;
 
             if ((!pExtentInfo.getTransferDef()->stopped()) && (!pExtentInfo.getTransferDef()->canceled()))
             {
@@ -392,6 +416,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                 if (l_IO)
                 {
                     // Perform any necessary syncing of the data for the target file
+                    l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
+
                     try
                     {
                         if (pExtentInfo.getExtent()->flags & BBI_TargetSSD)
@@ -431,6 +457,12 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                         LOG(bb,error) << "removeFromInFlight(): Exception thrown when attempting to sync the data: " << e.what();
                         pExtentInfo.getExtent()->dump("info", "Exception thrown when attempting to sync the data");
                     }
+
+                    if (l_LocalMetadataUnlocked)
+                    {
+                        l_LocalMetadataUnlocked = false;
+                        lockLocalMetadata(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
+                    }
                 }
                 else
                 {
@@ -439,18 +471,30 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             }
             // Update the status for the file in xbbServer data
             l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Last extent for file transfer");
+            lockTransferQueue(pLVKey, "removeFromInFlight - Last extent for file transfer");
 
             ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
             l_UpdateTransferStatus = true;
+        }
+        else
+        {
+            if (!localMetadataIsLocked())
+            {
+                unlockTransferQueue(pLVKey, "removeFromInFlight - Not last extent for file transfer");
+                l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Not last extent for file transfer");
+                lockTransferQueue(pLVKey, "removeFromInFlight - Not last extent for file transfer");
+            }
         }
     }
     else
     {
         // Update the status for the file in xbbServer data
-        unlockTransferQueue(pLVKey, "removeFromInFlight - cp");
-        l_LockTransferQueue = true;
-
-        l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - cp");
+        if (!localMetadataIsLocked())
+        {
+            unlockTransferQueue(pLVKey, "removeFromInFlight - cp");
+            l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - cp");
+            lockTransferQueue(pLVKey, "removeFromInFlight - cp");
+        }
 
         ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
         l_UpdateTransferStatus = true;
@@ -474,14 +518,12 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
 
+    // We have to return with the same lock states as when we entered this code
     if (l_LocalMetadataLocked)
     {
-        unlockLocalMetadata(pLVKey, "removeFromInFlight - After status updates, before return");
-    }
-
-    if (l_LockTransferQueue)
-    {
-        lockTransferQueue(pLVKey, "removeFromInFlight - After status updates, before return");
+        unlockTransferQueue(pLVKey, "removeFromInFlight - After status updates, after removeFromInFlight()");
+        unlockLocalMetadata(pLVKey, "removeFromInFlight - After status updates, after removeFromInFlight()");
+        lockTransferQueue(pLVKey, "removeFromInFlight - On return");
     }
 
     return;
@@ -709,12 +751,8 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::status, (int64_t)l_FileStatus);
     l_Complete->addAttribute(txp::sizetransferred, (int64_t)l_SizeTransferred);
 
-    bool l_LockLocalMetadata = false;
-    if (localMetadataIsLocked())
-    {
-    	l_LockLocalMetadata = true;
-        unlockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
-    }
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "sendTransferCompleteForFileMsg");
+    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "sendTransferCompleteForFileMsg");
 
     // Send the message and wait for reply
 
@@ -729,9 +767,14 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
         assert(strlen(e.what())==0);
     }
 
-    if (l_LockLocalMetadata)
+    if (l_LocalMetadataUnlocked)
     {
     	lockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+    	lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
     }
 
     if (rc)

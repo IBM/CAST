@@ -289,6 +289,21 @@ void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
     return;
 }
 
+int unlockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (localMetadataIsLocked())
+    {
+        unlockLocalMetadata(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
+
 void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -3333,6 +3348,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
                 //       \todo - What to do???  @DLH
                 uint32_t i = 0;
+                int l_DelayMsgLogged = 0;
                 size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                 while (l_CurrentNumberOfInFlightExtents)
                 {
@@ -3347,6 +3363,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
                         l_LV_Info->getExtentInfo()->dumpInFlight("info");
                         l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
+                        l_DelayMsgLogged = 1;
                     }
                     unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
@@ -3356,6 +3373,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
+                }
+
+                if (l_DelayMsgLogged)
+                {
+                     LOG(bb,info) << ">>>>> RESUME <<<<< stageoutEnd(): In-flight queue now clear.";
                 }
 
                 // Now, process the remaining extents for this jobid
