@@ -187,7 +187,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
         switchIds(msg);
 
-        lockTransferQueue((LVKey*)0, "msgin_canceltransfer");
+        lockLocalMetadata((LVKey*)0, "msgin_canceltransfer");
         l_LockHeld = true;
 
         {
@@ -213,7 +213,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 #ifndef __clang_analyzer__  // l_LockHeld is never read, but keep it for debug
                                     l_LockHeld = false;
 #endif
-                                    unlockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
+                                    unlockLocalMetadata((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
                                         int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                         if ((l_SecondsWaiting % 15) == 1)
@@ -227,7 +227,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                         }
                                         usleep((useconds_t)1000000);    // Delay 1 second
                                     }
-                                    lockTransferQueue((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
+                                    lockLocalMetadata((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     l_LockHeld = true;
                                 }
                                 else
@@ -268,7 +268,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         l_LV_Info = metadata.getLV_Info(l_LVKey);
                         if (!l_LV_Info)
                         {
-                            unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
+                            unlockLocalMetadata(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
                             {
                                 int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                 if ((l_SecondsWaiting % 15) == 1)
@@ -282,7 +282,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 }
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
-                            lockTransferQueue(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBLV_Info to be registered");
+                            lockLocalMetadata(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBLV_Info to be registered");
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
@@ -310,7 +310,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     {
                         if (!l_LV_Info->getTagInfo(l_Handle, l_ContribId, l_TagId, l_TagInfo))
                         {
-                            unlockTransferQueue(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
+                            unlockLocalMetadata(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
                             {
                                 int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                 if ((l_SecondsWaiting % 15) == 1)
@@ -324,7 +324,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 }
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
-                            lockTransferQueue(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBTagInfo to be registered");
+                            lockLocalMetadata(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBTagInfo to be registered");
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, l_LV_Info, (BBTagInfo*)0, l_FromJobId, l_ContribId))
@@ -352,7 +352,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
-                            TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+                            LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
                             l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
                         }
                         else
@@ -442,7 +442,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
     }
 
     if (l_LockHeld)
-        unlockTransferQueue(l_LVKey, "msgin_canceltransfer");
+    {
+        unlockLocalMetadata(l_LVKey, "msgin_canceltransfer");
+    }
 
     // Build the response message
     txp::Msg* response;
@@ -523,7 +525,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
         LOG(bb,info) << "msgin_createlogicalvolume: Register LVKey, from hostname " << l_HostName << ", l_LVKey.first= " << l_LVKey.first << ", LV Uuid = " << lv_uuid_str << ", jobid = " << l_JobId;
     }
 
-    lockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
+    lockLocalMetadata(l_LVKeyPtr, "msgin_createlogicalvolume");
 
     try
     {
@@ -553,7 +555,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    unlockTransferQueue(l_LVKeyPtr, "msgin_createlogicalvolume");
+    unlockLocalMetadata(l_LVKeyPtr, "msgin_createlogicalvolume");
 
     // Build the response message
     txp::Msg* response;
@@ -864,7 +866,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
 
         switchIds(msg);
 
-//        lockTransferQueue((LVKey*)0, "msgin_gettransferinfo");
+//        lockLocalMetadata((LVKey*)0, "msgin_gettransferinfo");
 //        l_LockHeld = true;
 
         {
@@ -917,7 +919,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     }
 
 //    if (l_LockHeld)
-//        unlockTransferQueue(l_LVKey, "msgin_gettransferinfo");
+//        unlockLocalMetadata(l_LVKey, "msgin_gettransferinfo");
 
     // Build the response message
     txp::Msg* response;
@@ -1028,7 +1030,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
 
         switchIds(msg);
 
-//        lockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
+//        lockLocalMetadata((LVKey*)0, "msgin_gettransferkeys");
 //        l_LockHeld = true;
 
         {
@@ -1080,7 +1082,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
     }
 
 //    if (l_LockHeld)
-//        unlockTransferQueue((LVKey*)0, "msgin_gettransferkeys");
+//        unlockLocalMetadata((LVKey*)0, "msgin_gettransferkeys");
 
     // Build the response message
     txp::Msg* response;
@@ -1148,7 +1150,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
 
         switchIds(msg);
 
-//        lockTransferQueue((LVKey*)0, "msgin_gettransferlist");
+//        lockLocalMetadata((LVKey*)0, "msgin_gettransferlist");
 //        l_LockHeld = true;
 
         {
@@ -1195,7 +1197,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
     }
 
 //    if (l_LockHeld)
-//        unlockTransferQueue((LVKey*)0, "msgin_gettransferlist");
+//        unlockLocalMetadata((LVKey*)0, "msgin_gettransferlist");
 
     // Build the response message
     txp::Msg* response;
@@ -1254,7 +1256,7 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         string l_HostName;
         activecontroller->gethostname(l_HostName);
 
-        lockTransferQueue((LVKey*)0, "msgin_removejobinfo");
+        lockLocalMetadata((LVKey*)0, "msgin_removejobinfo");
         l_LockHeld = true;
         rc = removeJobInfo(l_HostName, l_JobId);
         if (rc)
@@ -1271,7 +1273,9 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_removejobinfo");
+    {
+        unlockLocalMetadata((LVKey*)0, "msgin_removejobinfo");
+    }
 
     // Build the response message
     txp::Msg* response;
@@ -1352,7 +1356,7 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
         switchIds(msg);
 
         // Process resume message
-        lockTransferQueue((LVKey*)0, "msgin_resume");
+        lockLocalMetadata((LVKey*)0, "msgin_resume");
         l_LockHeld = true;
 
         // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
@@ -1372,7 +1376,9 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
     }
 
     if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_resume");
+    {
+        unlockLocalMetadata((LVKey*)0, "msgin_resume");
+    }
 
     // Build the response message
     txp::Msg* response;
@@ -1433,7 +1439,7 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
         // Process retrievetransfers message
         // NOTE: Not sure we need this lock anymore...
         //       \todo @DLH
-        lockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
+        lockLocalMetadata((LVKey*)0, "msgin_retrievetransfers");
         l_LockHeld = true;
 
         BBTransferDefs l_TransferDefs = BBTransferDefs(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_Flags);
@@ -1497,7 +1503,9 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
     }
 
     if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_retrievetransfers");
+    {
+        unlockLocalMetadata((LVKey*)0, "msgin_retrievetransfers");
+    }
 
     // Build the response message
     txp::Msg* response;
@@ -1673,7 +1681,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         switchIds(msg);
 
-        lockTransferQueue(&l_LVKey, "msgin_starttransfer");
+        lockLocalMetadata(&l_LVKey, "msgin_starttransfer");
         l_LockHeld = true;
         bool l_AllDone = false;
 
@@ -1729,7 +1737,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             rc = wrkqmgr.getWrkQE(&l_LVKey2, l_WrkQE);
                             if (rc || (!l_WrkQE))
                             {
-                                unlockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
+                                unlockLocalMetadata(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
                                 {
                                     int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                     if ((l_SecondsWaiting % 15) == 1)
@@ -1743,7 +1751,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     }
                                     usleep((useconds_t)1000000);    // Delay 1 second
                                 }
-                                lockTransferQueue(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
+                                lockLocalMetadata(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
 
                                 // Check to make sure the job still exists after releasing/re-acquiring the lock
                                 if (!jobStillExists(pConnectionName, &l_LVKey2, (BBLV_Info*)0, (BBTagInfo*)0, l_Job.getJobId(), l_ContribId))
@@ -1759,13 +1767,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         }
                         if (!rc)
                         {
-                            // We drop the lock on the transfer queue here so other threads can process in parallel.
+                            // We drop the lock on the local metadata here so other threads can process in parallel.
                             // We may have some I/O intensive paths later, like acquiring stats for source files,
                             // where dropping the lock now is very beneficial.  Any later non-thread-safe code paths
-                            // will re-acquire/drop the lock on the transfer queue.  Examples of this are insertion
+                            // will re-acquire/drop the lock on the local metadata.  Examples of this are insertion
                             // into the BBTagParts map and adding extents to the work queue.
                             l_LockHeld = false;
-                            unlockTransferQueue(&l_LVKey, "msgin_starttransfer_early");
+                            unlockLocalMetadata(&l_LVKey, "msgin_starttransfer_early");
 
                             Uuid l_lvuuid2 = l_LVKey2.second;
                             l_lvuuid2.copyTo(lv_uuid2_str);
@@ -1965,6 +1973,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                     {
                                         // Restart case...
+                                        lockLocalMetadata(&l_LVKey, "msgin_starttransfer - Restart metadata setup");
+
                                         // First ensure that this transfer definition is marked as stopped in the cross bbServer metadata
                                         int l_Attempts = 1;
                                         bool l_AllDone2 = false;
@@ -2084,11 +2094,11 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                                 BBLV_Metadata::appendAsyncRequestForStopTransfer(l_TransferPtr->getHostName(), (uint64_t)l_Job.getJobId(),
                                                                                                                  (uint64_t)l_Job.getJobStepId(), l_Handle, l_ContribId, (uint64_t)BBSCOPETRANSFER);
                                                             }
-                                                            unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+                                                            unlockLocalMetadata(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
                                                             {
                                                                 usleep((useconds_t)1000000);    // Delay 1 second
                                                             }
-                                                            lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
+                                                            lockLocalMetadata(&l_LVKey, "msgin_starttransfer (restart) - Waiting for transfer definition to be marked as stopped");
                                                         }
 
                                                         // Check to make sure the job still exists after releasing/re-acquiring the lock
@@ -2197,6 +2207,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 }
                                             }
                                         }
+                                        unlockLocalMetadata(&l_LVKey, "msgin_starttransfer - Restart metadata setup");
                                     }
 
                                     if (!rc)
@@ -2216,7 +2227,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         rc = -2;
                                         while (rc && l_Continue--)
                                         {
-                                            rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_ContribArray, l_Handle, DO_NOT_LOCK_TRANSFER_QUEUE);
+                                            rc = getHandle(pConnectionName, l_LVKeyPtr, l_Job, l_Tag, l_NumContrib, l_ContribArray, l_Handle);
                                             switch (rc)
                                             {
                                                 case 0:
@@ -2231,7 +2242,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                     // registration of the necessary LVKey...
                                                     //
                                                     // NOTE: Not sure we can get here anymore...  @DLH
-                                                    unlockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
+                                                    unlockLocalMetadata(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
                                                     {
                                                         int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                                         if ((l_SecondsWaiting % 15) == 1)
@@ -2245,7 +2256,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                         }
                                                         usleep((useconds_t)1000000);    // Delay 1 second
                                                     }
-                                                    lockTransferQueue(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
+                                                    lockLocalMetadata(&l_LVKey, "msgin_starttransfer (restart) - Waiting for LVKey");
                                                 }
                                                 break;
 
@@ -2419,7 +2430,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     if (l_LockHeld)
     {
         l_LockHeld = false;
-        unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
+        unlockLocalMetadata(&l_LVKey, "msgin_starttransfer");
     }
 
     // Build the response message
@@ -2568,7 +2579,7 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
         switchIds(msg);
 
         // Process stop transfers message
-        lockTransferQueue((LVKey*)0, "msgin_stoptransfers");
+        lockLocalMetadata((LVKey*)0, "msgin_stoptransfers");
         l_LockHeld = true;
 
         l_TransferDefs = new BBTransferDefs();
@@ -2594,7 +2605,9 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     }
 
     if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_stoptransfers");
+    {
+        unlockLocalMetadata((LVKey*)0, "msgin_stoptransfers");
+    }
 
     if (l_TransferDefs)
     {
@@ -2654,7 +2667,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
         switchIds(msg);
 
         // Process suspend message
-        lockTransferQueue((LVKey*)0, "msgin_suspend");
+        lockLocalMetadata((LVKey*)0, "msgin_suspend");
         l_LockHeld = true;
 
         // NOTE:  Need to first process all outstanding async requests.  In the restart scenarios, we must make sure
@@ -2674,7 +2687,9 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
     }
 
     if (l_LockHeld)
-        unlockTransferQueue((LVKey*)0, "msgin_suspend");
+    {
+        unlockLocalMetadata((LVKey*)0, "msgin_suspend");
+    }
 
     // Build the response message
     txp::Msg* response;
@@ -2862,6 +2877,7 @@ int bb_main(std::string who)
             LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
         }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
+        l_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
 
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
@@ -2900,7 +2916,7 @@ int bb_main(std::string who)
         }
         Uuid l_HPWrkQE_Uuid = Uuid(l_HPWrkQEUuid_Value);
         HPWrkQE_LVKeyStg = std::make_pair("None", l_HPWrkQE_Uuid);
-        rc = wrkqmgr.addWrkQ(&HPWrkQE_LVKeyStg, (uint64_t)0, 0);
+        rc = wrkqmgr.addWrkQ(&HPWrkQE_LVKeyStg, (BBLV_Info*)0, (uint64_t)0, 0);
         if (!rc)
         {
             wrkqmgr.getWrkQE(HPWrkQE_LVKey, HPWrkQE);

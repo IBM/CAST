@@ -44,6 +44,7 @@ namespace bs  = boost::system;
 #include "BBTransferDef.h"
 #include "bbwrkqmgr.h"
 #include "BBTagID.h"
+#include "BBTagInfo.h"
 #include "BBTagInfoMap.h"
 #include "ContribIdFile.h"
 #include "ExtentInfo.h"
@@ -52,6 +53,12 @@ namespace bs  = boost::system;
 #include "WorkID.h"
 #include "xfer.h"
 #include "tracksyscall.h"
+#include "bbwrkqmgr.h"
+
+
+/*
+ * Static data/members
+ */
 
 // Control elements for wrkqmgr
 pthread_mutex_t lock_transferqueue = PTHREAD_MUTEX_INITIALIZER;
@@ -69,11 +76,218 @@ FL_SetSize(FLXfer, 16384)
 FL_SetName(FLDelay, "Server Delay Flightlog")
 FL_SetSize(FLDelay, 16384)
 
-/*
- * Static data
- */
-static LVKey LVKey_Null = LVKey();
+// Control elements for metadata
+pthread_mutex_t lock_metadata = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t metadataLocked = 0;
 
+LVKey LVKey_Null = LVKey();
+string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
+
+/*
+ *      Burst buffer lock protocol
+ *
+ *  P       <------ Combinations ------>
+ *  R
+ *  I           +--- Requires LM lock
+ *  O           |
+ *  R   L       |       +--- Requires LM lock
+ *  I   O       |       |
+ *  T   C       |       |
+ *  Y   K       V       V
+ *  _________________________________________
+ *
+ *  1  LM   0   0   0   0   1   1   1   1
+ *  2  TQ   0   0   1   1   0   0   1   1
+ *  3  HF   0   1   0   1   0   1   0   1
+ *
+ *          ^   ^   ^   ^   ^   ^   ^   ^
+ *          |   |   |   |   |   |   |   |
+ *          |       |       |   |   |   |
+ *          |   I   |   I   |   |   |   |
+ *              N       N
+ *          V   V   V   V   V   V   V   V
+ *          A   A   A   A   A   A   A   A
+ *          L   L   L   L   L   L   L   L
+ *          I   I   I   I   I   I   I   I
+ *          D   D   D   D   D   D   D   D
+ *
+ *  LM - Local metadata lock -> serializes access to the local metadata
+ *                                (Primarily worker threads, but also transfer threads for async requests)
+ *  TQ - Transfer queue lock -> serializes access to the transfer queue(s)
+ *                                (Primarily transfer threads, but also worker threads to add work and
+ *                                 cancel/stop/remove logical volume requests to remove work)
+ *  HF - Handle file lock    -> serializes access to handle file and underlying contrib files
+ *                                (Both transfer and worker threads)
+ *
+ *  Locks must be acquired in ascending priority order;  Released in descending priority order.
+ *
+ *  If the handle file lock is to be acquired, the local metadata lock must first be acquired.
+ *  The rationale for this is as follows:
+ *    The handle file lock is used to serialize access to the handle file and the underlying
+ *    contrib files.  Locking the local metadata serializes access to the contrib file(s) amonget
+ *    the contributors for a given bbServer; whereas, the handle file lock serializes access
+ *    amonget contributors across bbServers.
+ */
+
+// NOTE: pLVKey is not currently used, but can come in as null.
+void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
+{
+    stringstream errorText;
+
+    if (!localMetadataIsLocked())
+    {
+        // Verify lock protocol
+        if (handleFileLockFd != -1)
+        {
+            FL_Write(FLError, lockPV_LMLock1, "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked",0,0,0,0);
+            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm1)
+#if 0
+            abort();
+#endif
+        }
+        if (wrkqmgr.transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_LMLock2, "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked",0,0,0,0);
+            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm2)
+#if 0
+            abort();
+#endif
+        }
+        pthread_mutex_lock(&lock_metadata);
+        metadataLocked = pthread_self();
+
+        if (strstr(pMethod, "%") == NULL)
+        {
+            if (l_LockDebugLevel == "info")
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,info) << " M_DATA:   LOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,info) << " M_DATA:   LOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+            else
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << " M_DATA:   LOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << " M_DATA:   LOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+        }
+
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, lockMetadata, "lockMetadata.  threadid=%ld",tid,0,0,0);
+    }
+    else
+    {
+        FL_Write(FLError, lockMetadataQERROR, "lockLocalMetadata called when lock already owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << "M_DATA: Request made to lock the metadata by " << pMethod << ", but the lock is already owned.";
+        logBacktrace();
+    }
+
+    return;
+}
+
+int lockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (!localMetadataIsLocked())
+    {
+        lockLocalMetadata(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
+
+bool localMetadataIsLocked()
+{
+    return (metadataLocked == pthread_self());
+}
+
+// NOTE: pLVKey is not currently used, but can come in as null.
+void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
+{
+    stringstream errorText;
+
+    if (localMetadataIsLocked())
+    {
+        // Verify lock protocol
+        if (handleFileLockFd != -1)
+        {
+            FL_Write(FLError, lockPV_LMUnlock1, "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked",0,0,0,0);
+            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm1)
+#if 0
+            abort();
+#endif
+        }
+        if (wrkqmgr.transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_LMUnlock2, "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked",0,0,0,0);
+            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm2)
+#if 0
+            abort();
+#endif
+        }
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, unlockMetadata, "unlockMetadata.  threadid=%ld",tid,0,0,0);
+
+        if (strstr(pMethod, "%") == NULL)
+        {
+            if (l_LockDebugLevel == "info")
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,info) << " M_DATA: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,info) << " M_DATA: UNLOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+            else
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << " M_DATA: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << " M_DATA: UNLOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+        }
+
+        metadataLocked = 0;
+        pthread_mutex_unlock(&lock_metadata);
+    }
+    else
+    {
+        FL_Write(FLError, unlockMetadataQERROR, "unlockLocalMetadata called when lock not owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << "M_DATA: Request made to unlock the metadata by " << pMethod << ", but the lock is not owned.";
+        logBacktrace();
+    }
+
+    return;
+}
 
 void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
@@ -174,6 +388,10 @@ void processAsyncRequest(WorkID& pWorkItem)
                 rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
                 if (rc == 8)
                 {
+                    // Release the transfer queue lock and acquire the local metadata lock
+                    unlockTransferQueue((LVKey*)0, "processAsyncRequest");
+                    lockLocalMetadata((LVKey*)0, "processAsyncRequest");
+
                     if (strstr(l_Cmd, "heartbeat"))
                     {
                         l_LogAsInfo = false;
@@ -279,6 +497,10 @@ void processAsyncRequest(WorkID& pWorkItem)
                     {
                         LOG(bb,error) << "Unknown async request command from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
+
+                    // Release the local metadata lock and acquire the transfer queue lock
+                    unlockLocalMetadata((LVKey*)0, "processAsyncRequest");
+                    lockTransferQueue((LVKey*)0, "processAsyncRequest");
                 }
                 else
                 {
@@ -623,11 +845,11 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                             pLV_Info->getExtentInfo()->dump("info", "contribIdStopped(): Waiting for all extents to be processed");
                         }
                     }
-                    unlockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
+                    unlockLocalMetadata(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
                     {
                         usleep((useconds_t)1000000);
                     }
-                    lockTransferQueue(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
+                    lockLocalMetadata(pLVKey, "contribIdStopped - Waiting to determine if a transfer definition is restartable");
                 }
 
                 // Check to make sure the job still exists after releasing/re-acquiring the lock
@@ -1101,7 +1323,7 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV
 
 void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
 {
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
 
     if (pTransferDef && pLV_Info)
     {
@@ -1110,7 +1332,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
 
         // Sort the extents, moving the extents for the failed file, and all other files
         // for the transfer definition, to the front of the work queue so they are immediately removed...
-        TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+        LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
         pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
     }
     else
@@ -1120,9 +1342,9 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
                       << " because the pointer to the transfer definition or LV info was passed as NULL.";
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataLocked)
     {
-        unlockTransferQueue(pLVKey, "markTransferFailed");
+        unlockLocalMetadata(pLVKey, "markTransferFailed");
     }
 
     return;
@@ -1146,7 +1368,7 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     // It is possible to entry this section of code without the transfer queue locked.
     // If not locked, we lock the transfer queue during the prepareForRestart() logic.
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, l_Text.str().c_str());
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, l_Text.str().c_str());
 
     if (pPass == FIRST_PASS)
     {
@@ -1211,9 +1433,9 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
         l_HandleFile = 0;
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, l_Text.str().c_str());
+        unlockLocalMetadata(pLVKey, l_Text.str().c_str());
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -1308,7 +1530,7 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
 // remove the extent from the vector of extents to transfer for this
 // LVKey.  This is because we have already removed this extent
 // from the LVKey's work queue.
-void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
+void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -1325,207 +1547,213 @@ void transferExtent(WorkID& pWorkItem, ExtentInfo& pExtentInfo)
 //    pWorkItem.dump("info", "transferExtent(): Processing ");
 
     // Process request...
-    BBTagID l_TagId = pWorkItem.getTagId();
-    BBLV_Info* l_LV_Info = metadata.getLV_Info(&l_Key);
-    if (l_LV_Info)
+    bool l_MarkFailed = false;
+    bool l_MarkTransferDefinitionCanceled = false;
+    bool l_LockTransferQueue = false;
+    l_Extent = pExtentInfo.getExtent();
+    l_TagInfo = pExtentInfo.getTagInfo();
+    l_TransferDef = pExtentInfo.getTransferDef();
+    if (l_TagInfo)
     {
-        bool l_MarkFailed = false;
-        bool l_MarkTransferDefinitionCanceled = false;
-        l_Extent = pExtentInfo.extent;
-        l_TransferDef = pExtentInfo.transferDef;
-        l_TagInfo = l_LV_Info->getTagInfo(l_TagId);
-        if (l_TagInfo)
+        try
         {
-            try
+            // Add this extent to the in-flight list...
+            pLV_Info->addToInFlight(l_ConnectionName, &l_Key, pExtentInfo);
+
+            // Remove this extent from the vector of extents to work on...
+            pLV_Info->extentInfo.removeExtent(l_Extent);
+            l_ExtentRemovedFromVectorOfExtents = true;
+
+            // NOTE: The code below determines if an extent will be passed to doTransfer().  If this code
+            //       is modified, the similar code in WRKQE::processBucket() should also be checked.  @DLH
+            // NOTE: We do not have to consider the 'stopped' flag here, as those transfer definitions are
+            //       also always marked as 'canceled'.
+            if (!pLV_Info->stageOutEnded())
             {
-                // Add this extent to the in-flight list...
-                l_LV_Info->addToInFlight(l_ConnectionName, &l_Key, pExtentInfo);
-
-                // Remove this extent from the vector of extents to work on...
-                l_LV_Info->extentInfo.removeExtent(l_Extent);
-                l_ExtentRemovedFromVectorOfExtents = true;
-
-                // NOTE: The code below determines if an extent will be passed to doTransfer().  If this code
-                //       is modified, the similar code in WRKQE::processBucket() should also be checked.  @DLH
-                // NOTE: We do not have to consider the 'stopped' flag here, as those transfer definitions are
-                //       also always marked as 'canceled'.
-                if (!l_LV_Info->stageOutEnded())
+                if (!(pLV_Info->resizeLogicalVolumeDuringStageOut() && pLV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
                 {
-                    if (!(l_LV_Info->resizeLogicalVolumeDuringStageOut() && l_LV_Info->stageOutStarted() && (l_Extent->flags & BBI_TargetSSD)))
+                    if (l_TransferDef->failed()) bberror << bailout;
+                    //  Transfer definition not marked as failed...
+                    if (!l_TagInfo->canceled())
                     {
-                        if (l_TransferDef->failed()) bberror << bailout;
-                        //  Transfer definition not marked as failed...
-                        if (!l_TagInfo->canceled())
+                        //  Handle not marked as canceled...
+                        if (l_TransferDef->canceled()) bberror << bailout;
+                        //  Transfer definition not marked as canceled...
+                        try
                         {
-                            //  Handle not marked as canceled...
-                            if (l_TransferDef->canceled()) bberror << bailout;
-                            //  Transfer definition not marked as canceled...
-                            try
+                            // Perform the transfer of data
+                            int rc = doTransfer(l_Key, pExtentInfo.handle, pExtentInfo.contrib, l_TransferDef, l_Extent);
+                            if (rc)
                             {
-                                // Perform the transfer of data
-                                int rc = doTransfer(l_Key, pExtentInfo.handle, pExtentInfo.contrib, l_TransferDef, l_Extent);
-                                if (rc)
-                                {
-                                    stringstream errorText;
-                                    errorText << "transferExtent(): doTransfer() returned rc " << rc;
-                                    LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.internal.rcDoXfer);
-                                    l_MarkFailed = true;
-                                }
-                            }
-                            catch(ExceptionBailout& e) { }
-                            catch(exception& e)
-                            {
-                                LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.expDoXfer);
+                                stringstream errorText;
+                                errorText << "transferExtent(): doTransfer() returned rc " << rc;
+                                LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.internal.rcDoXfer);
                                 l_MarkFailed = true;
                             }
                         }
-                        else
+                        catch(ExceptionBailout& e) { }
+                        catch(exception& e)
                         {
-                            if (!l_TransferDef->canceled())
-                            {
-                                l_MarkTransferDefinitionCanceled = true;
-                            }
+                            LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.expDoXfer);
+                            l_MarkFailed = true;
                         }
                     }
                     else
                     {
-                        // The job's logical volume is being resized during stageout and stageout has started.
-                        // Therefore, the file system has been torn down and the current transfer operation
-                        // is to transfer data to the SSD.  Since the file system has been torn down and
-                        // the target extent must be for the job's logical volume, there is no need to do
-                        // this transfer any longer.
-                        // NOTE:  \todo Is this a failure or cancel case??? @DLH
-                        LOG(bb,info) << "Stageout started... Skipping transfer to job's logical volume from pfs"
-                                     << std::hex << std::uppercase << setfill('0')
-                                     << " src offset=0x" << setw(8) << l_Extent->start
-                                     << " dst offset=0x" << setw(8) << l_Extent->lba.start
-                                     << " size=0x" << setw(8) << l_Extent->len
-                                     << setfill(' ') << std::nouppercase << std::dec;
+                        if (!l_TransferDef->canceled())
+                        {
+                            l_MarkTransferDefinitionCanceled = true;
+                        }
                     }
                 }
                 else
                 {
-                    // Stageout processing has already ended, so there is no need to do
+                    // The job's logical volume is being resized during stageout and stageout has started.
+                    // Therefore, the file system has been torn down and the current transfer operation
+                    // is to transfer data to the SSD.  Since the file system has been torn down and
+                    // the target extent must be for the job's logical volume, there is no need to do
                     // this transfer any longer.
-                    LOG(bb,info) << "Stageout ended... Skipping transfer from/to job's logical volume"
+                    // NOTE:  \todo Is this a failure or cancel case??? @DLH
+                    LOG(bb,info) << "Stageout started... Skipping transfer to job's logical volume from pfs"
                                  << std::hex << std::uppercase << setfill('0')
                                  << " src offset=0x" << setw(8) << l_Extent->start
                                  << " dst offset=0x" << setw(8) << l_Extent->lba.start
                                  << " size=0x" << setw(8) << l_Extent->len
                                  << setfill(' ') << std::nouppercase << std::dec;
-                    l_MarkFailed = true;
                 }
             }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
+            else
             {
-                LOG(bb,error) << "Exception thrown in transferExtent() when attempting to transfer an extent";
-                LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_1);
+                // Stageout processing has already ended, so there is no need to do
+                // this transfer any longer.
+                LOG(bb,info) << "Stageout ended... Skipping transfer from/to job's logical volume"
+                             << std::hex << std::uppercase << setfill('0')
+                             << " src offset=0x" << setw(8) << l_Extent->start
+                             << " dst offset=0x" << setw(8) << l_Extent->lba.start
+                             << " size=0x" << setw(8) << l_Extent->len
+                             << setfill(' ') << std::nouppercase << std::dec;
                 l_MarkFailed = true;
-            }
-
-            try
-            {
-                if (!l_ExtentRemovedFromVectorOfExtents)
-                {
-#ifndef __clang_analyzer__
-                    l_ExtentRemovedFromVectorOfExtents = true;
-#endif
-                    l_LV_Info->extentInfo.removeExtent(l_Extent);
-                }
-            }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                LOG(bb,error) << "Exception thrown in transferExtent() when attempting to remove an extent from the vector of extents to transfer for an LVKey";
-                LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_2);
-                l_MarkFailed = true;
-            }
-            try
-            {
-                if (l_MarkFailed)
-                {
-                    // Took an error on the transfer...
-                    l_MarkFailed = false;
-                    // Mark the transfer definition and associated handle as failed
-                    markTransferFailed(&l_Key, l_TransferDef, l_LV_Info, pExtentInfo.handle, pExtentInfo.contrib);
-                }
-
-                if (l_MarkTransferDefinitionCanceled)
-                {
-                    // Cancel has been issued for the handle...
-#ifndef __clang_analyzer__
-                    l_MarkTransferDefinitionCanceled = false;
-#endif
-                    // Mark the transfer definition
-                    l_TransferDef->setCanceled(&l_Key, pExtentInfo.handle, pExtentInfo.contrib);
-                    // NOTE: If the handle is marked as stopped, mark the transfer definition as stopped also...
-                    //       The reason the handle might be marked as canceled is because it is stopped.
-                    if (l_TagInfo->stopped())
-                    {
-                        l_TransferDef->setStopped(&l_Key, pExtentInfo.handle, pExtentInfo.contrib);
-                    }
-                }
-            }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                LOG(bb,error) << "Exception thrown in transferExtent() when attempting to mark a transfer definition as failed or cancelled";
-                LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_3);
-            }
-
-            try
-            {
-                // Remove this extent from the in-flight list...
-                l_LV_Info->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo);
-            }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                LOG(bb,error) << "Exception thrown in transferExtent() when attempting to remove an extent from the inflight queue";
-                LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_4);
-            }
-
-            try
-            {
-                // For now, here is where we send progress messages back to bbproxy...
-                // NOTE:  To send a progress message, we must have sorted the extents -and-
-                //        the logical volume is to be resized during stageout
-                // NOTE:  \todo - Need to update this for multiple CN having different LVKeys...  @DLH
-                // NOTE:  \todo - Need to think about this processing WRT 'stopped' processing for a transfer definition...  @DLH
-                size_t l_NumberOfExtents = l_LV_Info->getNumberOfExtents();
-                if (l_LV_Info->resizeLogicalVolumeDuringStageOut() &&
-                    l_LV_Info->stageOutStarted() &&
-                    ((!l_NumberOfExtents) || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
-                {
-                    // NOTE:  getMinimumTrimExtent() returns a pointer to the extent with the LBA value that we can return to bbProxy.
-                    //        Because it might be a pointer to an extent in the in-flight list, send the message here with the transfer queue
-                    //        lock held...
-                    if (sendTransferProgressMsg(l_ConnectionName, &l_Key, l_LV_Info->getJobId(), (uint32_t)l_NumberOfExtents, l_LV_Info->extentInfo.getMinimumTrimExtent()))
-                    {
-                        LOG(bb,warning) << "Error occurred when sending transfer progress message back to bbproxy";
-                    }
-                }
-            }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                LOG(bb,error) << "Exception thrown in transferExtent() when attempting to send a transfer progress message to bbProxy";
-                LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_5);
             }
         }
-        else
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
         {
-            stringstream errorText;
-            errorText << "Exception thrown in transferExtent() when attempting to access the local metadata (taginfo)";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.te_6);
+            LOG(bb,error) << "Exception thrown in transferExtent() when attempting to transfer an extent";
+            LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_1);
+            l_MarkFailed = true;
+        }
+
+        try
+        {
+            if (!l_ExtentRemovedFromVectorOfExtents)
+            {
+#ifndef __clang_analyzer__
+                l_ExtentRemovedFromVectorOfExtents = true;
+#endif
+                pLV_Info->extentInfo.removeExtent(l_Extent);
+            }
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            LOG(bb,error) << "Exception thrown in transferExtent() when attempting to remove an extent from the vector of extents to transfer for an LVKey";
+            LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_2);
+            l_MarkFailed = true;
+        }
+        try
+        {
+            if (l_MarkFailed)
+            {
+                // Took an error on the transfer...
+                unlockTransferQueue(&l_Key, "transferExtent - Before markTransferFailed()");
+                l_LockTransferQueue = true;
+
+                l_MarkFailed = false;
+                // Mark the transfer definition and associated handle as failed
+                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib);
+
+                l_LockTransferQueue = false;
+                lockTransferQueue(&l_Key, "transferExtent - After markTransferFailed()");
+            }
+
+            if (l_MarkTransferDefinitionCanceled)
+            {
+                // Cancel has been issued for the handle...
+                unlockTransferQueue(&l_Key, "transferExtent - Before setCanceled()/stopped()");
+                l_LockTransferQueue = true;
+#ifndef __clang_analyzer__
+                l_MarkTransferDefinitionCanceled = false;
+#endif
+                // Mark the transfer definition
+                l_TransferDef->setCanceled(&l_Key, pExtentInfo.handle, pExtentInfo.contrib);
+                // NOTE: If the handle is marked as stopped, mark the transfer definition as stopped also...
+                //       The reason the handle might be marked as canceled is because it is stopped.
+                if (l_TagInfo->stopped())
+                {
+                    l_TransferDef->setStopped(&l_Key, pExtentInfo.handle, pExtentInfo.contrib);
+                }
+
+                l_LockTransferQueue = false;
+                lockTransferQueue(&l_Key, "transferExtent - After setCanceled()/stopped()");
+            }
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            if (l_LockTransferQueue)
+            {
+                l_LockTransferQueue = false;
+                lockTransferQueue(&l_Key, "transferExtent - Exception handler after setCanceled()/stopped()");
+            }
+            LOG(bb,error) << "Exception thrown in transferExtent() when attempting to mark a transfer definition as failed or cancelled";
+            LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_3);
+        }
+
+        try
+        {
+            // Remove this extent from the in-flight list...
+            pLV_Info->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo);
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            LOG(bb,error) << "Exception thrown in transferExtent() when attempting to remove an extent from the inflight queue";
+            LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_4);
+        }
+
+        try
+        {
+            // For now, here is where we send progress messages back to bbproxy...
+            // NOTE:  To send a progress message, we must have sorted the extents -and-
+            //        the logical volume is to be resized during stageout
+            // NOTE:  \todo - Need to update this for multiple CN having different LVKeys...  @DLH
+            // NOTE:  \todo - Need to think about this processing WRT 'stopped' processing for a transfer definition...  @DLH
+            size_t l_NumberOfExtents = pLV_Info->getNumberOfExtents();
+            if (pLV_Info->resizeLogicalVolumeDuringStageOut() &&
+                pLV_Info->stageOutStarted() &&
+                ((!l_NumberOfExtents) || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
+            {
+                // NOTE:  getMinimumTrimExtent() returns a pointer to the extent with the LBA value that we can return to bbProxy.
+                //        Because it might be a pointer to an extent in the in-flight list, send the message here with the transfer queue
+                //        lock held...
+                if (sendTransferProgressMsg(l_ConnectionName, &l_Key, pLV_Info->getJobId(), (uint32_t)l_NumberOfExtents, pLV_Info->extentInfo.getMinimumTrimExtent()))
+                {
+                    LOG(bb,warning) << "Error occurred when sending transfer progress message back to bbproxy";
+                }
+            }
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            LOG(bb,error) << "Exception thrown in transferExtent() when attempting to send a transfer progress message to bbProxy";
+            LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_5);
         }
     }
     else
     {
         stringstream errorText;
-        errorText << "Exception thrown in transferExtent() when attempting to access the local metadata (taginfo2)";
-        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.te_7);
+        errorText << "Exception thrown in transferExtent() when attempting to access the local metadata (taginfo)";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.te_6);
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -1550,17 +1778,21 @@ void* transferWorker(void* ptr)
     bool l_Repost = false;
     threadLocalTrackSyscallPtr = getSysCallTracker();
 
+    uint64_t l_ConsecutiveSnoozes = 0;
+
     while (1) {
   	    becomeUser(0,0);
-
-        wrkqmgr.wait();
-        lockTransferQueue((LVKey*)0, "%transferWorker - Prep to transfer extent");
 
         l_WrkQ = 0;
         l_WrkQE = 0;
         l_LV_Info = 0;
         l_Extent = 0;
         l_Repost = true;
+
+        wrkqmgr.wait();
+
+        lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
+        wrkqmgr.setIssuingWorkItem(1);
 
         try
         {
@@ -1569,11 +1801,14 @@ void* transferWorker(void* ptr)
             //       look for work on the high priority work queue.
             //       If there is work on the high priority work queue,
             //       the high priority work queue is returned.
-            // NOTE: The findWork() invocation will return suspended work
-            //       queues.
+            // NOTE: The only work items that are of a higher priority
+            //       than work on the high priority work queue is any
+            //       work queue with canceled extents.
             // NOTE: Canceled extents are always moved to the front of the
             //       queue so we only have to check the first extent to see
             //       if we are processing canceled extents for a given work queue.
+            // NOTE: The findWork() invocation will return suspended work
+            //       queues.
             bool l_WorkRemains = true;
             if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
             {
@@ -1588,12 +1823,12 @@ void* transferWorker(void* ptr)
                         {
                             // Workqueue entries exist...
                             l_WorkItem = l_WrkQE->getWrkQ()->front();
-                            l_LV_Info = metadata.getLV_Info(&l_Key);
+                            l_LV_Info = l_WorkItem.getLV_Info();
                             if (l_LV_Info)
                             {
                                 l_TagId = l_WorkItem.getTagId();
                                 l_ExtentInfo = l_LV_Info->getNextExtentInfo();
-                                l_Extent = l_ExtentInfo.extent;
+                                l_Extent = l_ExtentInfo.getExtent();
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
                                 // NOTE: Even if this is for a canceled extent, we still want to process the throttle timer.
@@ -1602,32 +1837,44 @@ void* transferWorker(void* ptr)
                                 wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
                                 if (l_ThreadDelay > 0 && (!l_Extent->isCanceled()))
                                 {
-                                    // Delay specified and not for a canceled extent...
-                                    LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
-                                    if (!wrkqmgr.delayMessageSent())
+                                    wrkqmgr.setIssuingWorkItem(0);
+                                    if (!l_WrkQE->transferThreadIsDelaying)
                                     {
-                                        wrkqmgr.setDelayMessageSent(true);
-                                        FL_Write6(FLDelay, Throttle, "Total delay for %ld usecs, thread delay for %ld usecs, %ld work queues, throttled work queue %p currently has %ld entries. Throttle rate is %ld bytes/sec.",
-                                                  (uint64_t)l_TotalDelay, (uint64_t)l_ThreadDelay, (uint64_t)wrkqmgr.getNumberOfWorkQueues(), (uint64_t)l_WrkQE, (uint64_t)l_WrkQE->getWrkQ()->size(), (uint64_t)l_WrkQE->getRate());
-                                        LOG(bb,debug)  << ">>>>> DELAY <<<<< transferWorker(): For LVKey " << l_Key << " with " << l_WrkQE->getWrkQ()->size() \
-                                                       << " work queue entrie(s) for " << (float)l_TotalDelay/1000000.0 << " seconds.";
-                                        LOG(bb,debug)  << "                                    Throttle rate is " << l_WrkQE->getRate() << " bytes/sec and current bucket value is " << l_WrkQE->getBucket() << ".";
-                                        LOG(bb,debug)  << "                                    " << l_LV_Info->getNumberOfExtents() << " extents are ready to transfer and the current length of extent to transfer is " \
-                                                       << l_Extent->getLength() << " bytes.";
-                                        LOG(bb,debug)  << "                                    Thread delay is " << (float)l_ThreadDelay/1000000.0 << " seconds.";
-                                        if (wrkqmgr.getDumpOnDelay())
+                                        // Delay specified and not for a canceled extent...
+                                        LOG(bb,debug)  << "transferWorker(): l_ThreadDelay = " << l_ThreadDelay << ", l_TotalDelay = " << l_TotalDelay;
+                                        if (!wrkqmgr.delayMessageSent())
                                         {
-                                            wrkqmgr.dump("info", " Work Queue Mgr @ Delay", DUMP_ALWAYS);
+                                            wrkqmgr.setDelayMessageSent(true);
+                                            FL_Write6(FLDelay, Throttle, "Total delay for %ld usecs, thread delay for %ld usecs, %ld work queues, throttled work queue %p currently has %ld entries. Throttle rate is %ld bytes/sec.",
+                                                      (uint64_t)l_TotalDelay, (uint64_t)l_ThreadDelay, (uint64_t)wrkqmgr.getNumberOfWorkQueues(), (uint64_t)l_WrkQE, (uint64_t)l_WrkQE->getWrkQ()->size(), (uint64_t)l_WrkQE->getRate());
+                                            LOG(bb,debug)  << ">>>>> DELAY <<<<< transferWorker(): For LVKey " << l_Key << " with " << l_WrkQE->getWrkQ()->size() \
+                                                           << " work queue entrie(s) for " << (float)l_TotalDelay/1000000.0 << " seconds.";
+                                            LOG(bb,debug)  << "                                    Throttle rate is " << l_WrkQE->getRate() << " bytes/sec and current bucket value is " << l_WrkQE->getBucket() << ".";
+                                            LOG(bb,debug)  << "                                    " << l_LV_Info->getNumberOfExtents() << " extents are ready to transfer and the current length of extent to transfer is " \
+                                                           << l_Extent->getLength() << " bytes.";
+                                            LOG(bb,debug)  << "                                    Thread delay is " << (float)l_ThreadDelay/1000000.0 << " seconds.";
+                                            if (wrkqmgr.getDumpOnDelay())
+                                            {
+                                                wrkqmgr.dump("info", " Work Queue Mgr @ Delay", DUMP_ALWAYS);
+                                            }
                                         }
+                                        l_WrkQE->setTransferThreadIsDelaying(1);
+                                        unlockTransferQueue(&l_Key, "transferWorker - Before throttle delay sending extents");
+                                        {
+                                            usleep((unsigned int)l_ThreadDelay);
+                                        }
+                                        lockTransferQueue(&l_Key, "transferWorker - After throttle delay sending extents");
+                                        l_WrkQE->setTransferThreadIsDelaying(0);
                                     }
-                                    unlockTransferQueue(&l_Key, "%transferWorker - Before throttle delay sending extents");
+                                    else
                                     {
-                                        usleep((unsigned int)l_ThreadDelay);
+                                        // A transfer thread is already delaying the amount of time to
+                                        // allow for the bucket to go non-negative
                                     }
-                                    lockTransferQueue(&l_Key, "%transferWorker - After throttle delay sending extents");
                                 }
                                 else
                                 {
+                                    // Work being assigned from this queue
                                     l_WrkQ = l_WrkQE->getWrkQ();
                                 }
                             }
@@ -1697,8 +1944,7 @@ void* transferWorker(void* ptr)
                         //       successfully processed by transferExtent() or not.
                         l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
                         wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
-
-                        l_Repost = false;
+                        wrkqmgr.setIssuingWorkItem(0);
 
                         // Clear bberror...
                         bberror.clear(l_WorkItem.getConnectionName());
@@ -1707,11 +1953,21 @@ void* transferWorker(void* ptr)
                         {
                             // Perform the transfer
 //                            l_WrkQE->dump("info", " Extent being transferred -> ");
-                            transferExtent(l_WorkItem, l_ExtentInfo);
+                            transferExtent(l_LV_Info, l_WorkItem, l_ExtentInfo);
+                            if (!Throttle_Timer.isSnoozing())
+                            {
+                                int l_NumberOfPosts = 0;
+                                sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
+                                if (l_NumberOfPosts)
+                                {
+                                    l_Repost = false;
+                                }
+                            }
                         }
                         else
                         {
                             // Process the async request
+//                            LOG(bb,info) << "transferWorker: Invoke processAsyncRequest()";
                             processAsyncRequest(l_WorkItem);
                         }
                         wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
@@ -1730,22 +1986,18 @@ void* transferWorker(void* ptr)
                             l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
                             l_WorkRemains = false;
                         }
+                        wrkqmgr.setIssuingWorkItem(0);
                     }
-
                     LOG(bb,debug) << "End: Previous current work item";
-
                 }
-
-                // If needed, repost to the semaphore...
-                if (l_Repost)
+                else
                 {
-                    // NOTE: At least one workqueue entry exists on one workqueue, so repost to the semaphore...
-                    l_Repost = false;
-                    wrkqmgr.post();
+                    wrkqmgr.setIssuingWorkItem(0);
                 }
             }
             else
             {
+                wrkqmgr.setIssuingWorkItem(0);
                 l_WorkRemains = false;
             }
 
@@ -1762,6 +2014,10 @@ void* transferWorker(void* ptr)
                     double l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
                     if (l_Delay > 0)
                     {
+                        if (!(++l_ConsecutiveSnoozes % 40))
+                        {
+                            LOG(bb,debug) << "Snoozing...";
+                        }
                         Throttle_Timer.setSnooze(true);
                         unlockTransferQueue(&l_Key, "%transferWorker - Before snoozing");
                         {
@@ -1774,17 +2030,27 @@ void* transferWorker(void* ptr)
                     }
                     // Check the throttle timer and repost
                     wrkqmgr.checkThrottleTimer();
-                    wrkqmgr.post();
                 }
                 else
                 {
                     // Another thread is already snoozing...
-                    LOG(bb,debug) << "Already snoozing...";
+                    l_Repost = false;
                 }
             }
+            else
+            {
+                l_ConsecutiveSnoozes = 0;
+            }
 
-            unlockTransferQueue(&l_Key, "%transferWorker - After remove extent from in-flight list");
+            // If needed, repost to the semaphore...
+            if (l_Repost)
+            {
+                // NOTE: At least one workqueue entry exists on one workqueue, so repost to the semaphore...
+                l_Repost = false;
+                wrkqmgr.post();
+            }
 
+            unlockTransferQueue(&l_Key, "transferWorker - End work item");
         }
         catch(ExceptionBailout& e)
         {
@@ -1799,9 +2065,9 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            //  NOTE:  unlockTransferQueue() will only unlock the mutex if this thread took an exception
+            //  NOTE:  unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
             //         while it held the mutex.
-            unlockTransferQueue(&l_Key, "transferWorker - Bailout exception handler");
+            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
         }
         catch(exception& e)
         {
@@ -1814,9 +2080,9 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            //  NOTE:  unlockTransferQueue() will only unlock the mutex if this thread took an exception
+            //  NOTE:  unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
             //         while it held the mutex.
-            unlockTransferQueue(&l_Key, "transferWorker - General exception handler");
+            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - General exception handler");
         }
     }
 
@@ -1842,6 +2108,7 @@ void startThreads(void)
     for(x=0; x<numbuffers; x++)
     {
         void* buffer = mmap(NULL, transferBufferSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+        memset(buffer, 0, transferBufferSize);  // force physical page allocation
         returnTransferBuffer(buffer);
     }
 
@@ -1885,20 +2152,25 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
     {
         int l_GeneratedHandle = UNDEFINED_HANDLE;
         BBTagInfo l_NewTagInfo = BBTagInfo(pTagInfoMap, pNumContrib, pContrib, pJob, pTagId.getTag(), l_GeneratedHandle);
-
-        rc = pTagInfoMap->addTagInfo(pLVKey, pJob, pTagId, l_NewTagInfo, l_GeneratedHandle);
+        BBTagInfo* l_NewTagInfoPtr = &l_NewTagInfo;
+        rc = pTagInfoMap->addTagInfo(pLVKey, pJob, pTagId, l_NewTagInfoPtr, l_GeneratedHandle);
         if (!rc)
         {
-            l_TagInfo = pTagInfoMap->getTagInfo(pTagId);
+            // NOTE:  addTagInfo() returns addressability to the newly inserted BBTagInfo object in BBTagInfoMap
+            l_TagInfo = l_NewTagInfoPtr;
             if (pConnectionName.size())
             {
                 LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
                               << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
                               << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
-            } else {
+            }
+            else
+            {
                 LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ")";
             }
-        } else {
+        }
+        else
+        {
             // NOTE: errstate already filled in...
             // This condition overrides any failure detected on bbProxy...
             pMarkFailedFromProxy = 0;
@@ -1906,7 +2178,9 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
             errorText << "queueTagInfo: Failure from addTagInfo(), rc = " << rc;
             LOG_ERROR(errorText);
         }
-    } else {
+    }
+    else
+    {
         bool l_Error = false;
         if ((l_TagInfo->expectContrib).size() == pNumContrib)
         {
@@ -1917,11 +2191,14 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                     l_Error = true;
                 }
             }
-        } else {
+        }
+        else
+        {
             l_Error = true;
         }
 
-        if (l_Error) {
+        if (l_Error)
+        {
             // This condition overrides any failure detected on bbProxy...
             pMarkFailedFromProxy = 0;
 
@@ -2436,11 +2713,10 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     stringstream errorText;
     //std::string pConnectionName=getConnectionName(pConnection); // $$$proto
 
-    size_t l_CurrentNumberOfExtents = 0;
     BBTagID l_TagId(pJob, pTag);
     BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
-    int l_TransferQueueWasLocked = 0;
+    int l_LocalMetadataWasLocked = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
@@ -2500,18 +2776,15 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         rc = queueTagInfo(pConnectionName, pLVKey, l_LV_Info, l_LV_Info->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pStats, pPerformOperation, pMarkFailedFromProxy);
         if (!rc)
         {
-            l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
-
             if (!pMarkFailedFromProxy)
             {
                 if (pTransferDef)
                 {
                     if (pPerformOperation)
                     {
-                        // It is possible to enter this section of code without the transfer queue locked.
-                        // We lock around the merging of the flags and inserting of any extents into the
-                        // work queue.
-                        l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "queueTransfer");
+                        // It is possible to enter this section of code without the local metadata locked.
+                        // We lock around the merging of the flags.
+                        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "queueTransfer");
 
                         // Merge in the flags from the transfer definition to the extent info...
                         l_LV_Info->mergeFlags(pTransferDef->flags);
@@ -2519,6 +2792,12 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                         BBTagInfo* l_TagInfo = l_LV_Info->getTagInfoMap()->getTagInfo(l_TagId);
                         if (l_TagInfo)
                         {
+                            if (l_LocalMetadataWasLocked)
+                            {
+                                l_LocalMetadataWasLocked = 0;
+                                unlockLocalMetadata(pLVKey, "queueTransfer");
+                            }
+
                             l_TransferDef = l_TagInfo->getTransferDef((uint32_t)pContribId);
                             if (l_TransferDef)
                             {
@@ -2528,13 +2807,13 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 //       Therefore, it is that transfer definition that is used when constructing the
                                 //       ExtentInfo() objects.
                                 size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
-                                rc = l_LV_Info->addExtents(pHandle, (uint32_t)pContribId, l_TransferDef, pStats);
+                                rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
                                 if (!rc)
                                 {
-                                    LOG(bb,debug) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
-                                                  << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
-                                                  << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
-                                                  << " extents";
+                                    LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
+                                                 << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
+                                                 << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
+                                                 << " extents";
                                     // If necessary, sort the extents...
                                     rc = l_LV_Info->sortExtents(pLVKey);
                                     if (!rc)
@@ -2549,7 +2828,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                             {
                                                 LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
                                                 // Queue a WorkID object for every extent to the work queue
-                                                WorkID l_WorkId(*pLVKey, l_TagId);
+                                                WorkID l_WorkId(*pLVKey, l_LV_Info, l_TagId);
 #if 0
                                                 // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
                                                 //       for cancel transfer or stop/restart processing
@@ -2561,7 +2840,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
 #endif
                                                 l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                             }
-                                            l_WrkQE->dump("info", "After pushing work onto this queue ");
+                                            l_WrkQE->dump("debug", "After pushing work onto this queue ");
 
                                             // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
                                             if ((l_TransferDef->extents).size())
@@ -2656,23 +2935,21 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         {
             if (pPerformOperation)
             {
-                // NOTE: pHandle was either already set coming into this routine or set by queueTagInfo()...
-                LOG(bb,debug) << "Previously " << l_CurrentNumberOfExtents << ", now " << l_LV_Info->getNumberOfExtents() << " extents queued on workqueue for " << *pLVKey;
-
                 // Post each new extent...
                 WorkID l_WorkId;
                 if (!rc)
                 {
-                    size_t l_NewPosts = l_LV_Info->getNumberOfExtents() - l_CurrentNumberOfExtents;
-                    wrkqmgr.post_multiple(l_NewPosts);
+                    lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+                    wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
+                    unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
                 }
             }
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "queueTransfer");
+        unlockLocalMetadata(pLVKey, "queueTransfer_Exit");
     }
 
     FL_Write(FLXfer, DoQueueTransferCMP, "Finishing queueTransfer  rc=%ld",rc,0,0,0);
@@ -2687,7 +2964,9 @@ void startTransferThreads()
 
     // Post to the semaphore so that the threads start looking
     // for async requests
+    lockTransferQueue((LVKey*)0, "startTransferThreads");
     wrkqmgr.post();
+    unlockTransferQueue((LVKey*)0, "startTransferThreads");
 
     return;
 }
@@ -2717,12 +2996,9 @@ int addLogicalVolume(const std::string& pConnectionName, const string& pHostName
     return rc;
 }
 
-int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, const uint64_t pTag, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle, int pLockTransferQueueOption)
+int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, const uint64_t pTag, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle)
 {
     ENTRY(__FILE__,__FUNCTION__);
-
-    // NOTE: The pLockTransferQueueOption is no longer used.  If the transfer queue needs to be locked,
-    //       it is done in the queueTransfer()/queueTagInfo() paths later.
 
     int rc = 0;
     stringstream errorText;
@@ -2794,7 +3070,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     stringstream errorText;
     int l_Continue = 120;
 
-    lockTransferQueue(pLVKey, "getThrottleRate");
+    lockLocalMetadata(pLVKey, "getThrottleRate");
     bool l_LockHeld = true;
 
     try
@@ -2814,11 +3090,11 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
 #ifndef __clang_analyzer__
                     l_LockHeld = false;
 #endif
-                    unlockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
+                    unlockLocalMetadata(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
                     {
                         usleep((useconds_t)1000000);    // Delay 1 second
                     }
-                    lockTransferQueue(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
+                    lockLocalMetadata(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
                     l_LockHeld = true;
                 }
                 else
@@ -2846,7 +3122,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
 #ifndef __clang_analyzer__
         l_LockHeld = false;
 #endif
-        unlockTransferQueue(pLVKey, "getThrottleRate");
+        unlockLocalMetadata(pLVKey, "getThrottleRate");
     }
 
     if (rc && (!l_Continue))
@@ -2896,7 +3172,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
     int rc = 0;
     BBLV_Info* l_LV_Info = 0;
 
-    lockTransferQueue(pLVKey, "removeLogicalVolume_1");
+    lockLocalMetadata(pLVKey, "removeLogicalVolume_1");
 
     try
     {
@@ -2926,7 +3202,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    unlockTransferQueue(pLVKey, "removeLogicalVolume_1");
+    unlockLocalMetadata(pLVKey, "removeLogicalVolume_1");
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
@@ -2940,7 +3216,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     stringstream errorText;
     int l_Continue = 120;
 
-    lockTransferQueue(pLVKey, "setThrottleRate");
+    lockLocalMetadata(pLVKey, "setThrottleRate");
     bool l_LockHeld = true;
 
     try
@@ -2960,11 +3236,11 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
 #ifndef __clang_analyzer__
                     l_LockHeld = false;
 #endif
-                    unlockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
+                    unlockLocalMetadata(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
                     {
                         usleep((useconds_t)1000000);    // Delay 1 second
                     }
-                    lockTransferQueue(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
+                    lockLocalMetadata(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
                     l_LockHeld = true;
                 }
                 else
@@ -2992,7 +3268,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
 #ifndef __clang_analyzer__
         l_LockHeld = false;
 #endif
-        unlockTransferQueue(pLVKey, "setThrottleRate");
+        unlockLocalMetadata(pLVKey, "setThrottleRate");
     }
 
     if (rc && (!l_Continue))
@@ -3045,6 +3321,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             // ** NOT USED **
 
 //            pinTransferQueueLock(pLVKey, "stageoutEnd");
+            lockTransferQueue((LVKey*)0, "stageoutEnd");
 
             try
             {
@@ -3072,9 +3349,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
                     }
                     unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                    unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     {
                         usleep((useconds_t)250000);
                     }
+                    lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                 }
@@ -3114,7 +3393,6 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         // invoke transferExtent() with onto l_Temp2, those extents will also be processed
                         // in the original order.  This is important because the first/last extent flags
                         // need to be processed in the correct order.
-                        LVKey l_Key;
                         BBLV_Info* l_WorkItemLV_Info;
                         uint64_t l_JobId = l_LV_Info->getJobId();
                         bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
@@ -3122,8 +3400,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
                             l_WorkId = l_Temp.front();
                             l_Temp.pop();
-                            l_Key = l_WorkId.getLVKey();
-                            l_WorkItemLV_Info = metadata.getLV_Info(&l_Key);
+                            l_WorkItemLV_Info = l_WorkId.getLV_Info();
                             if (l_WorkItemLV_Info)
                             {
                                 if (l_WorkItemLV_Info->getJobId() == l_JobId) {
@@ -3145,8 +3422,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             else
                             {
                                 // Not sure how we could get here...  Do not set rc...  Plow ahead...
-                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey \
-                                                << ". " << l_Key << " could not be found in the metadata when reloading the work queue with unrelated work items.";
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey << ". Reload processing.";
                                 l_WorkId.dump("info", "Failure when reloading work queue ");
                             }
                         }
@@ -3174,18 +3450,16 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_process_workitem");
                             l_WorkId = l_Temp2.front();
                             l_Temp2.pop();
-                            l_Key = l_WorkId.getLVKey();
-                            l_WorkItemLV_Info = metadata.getLV_Info(&l_Key);
+                            l_WorkItemLV_Info = l_WorkId.getLV_Info();
                             if (l_WorkItemLV_Info)
                             {
                                 ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
-                                transferExtent(l_WorkId, l_ExtentInfo);
+                                transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo);
                             }
                             else
                             {
                                 // Not sure how we could get here...  Do not set rc...  Plow ahead...
-                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey \
-                                                << ". " << l_Key << " could not be found in the metadata when attempting to process the related work items.";
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey << ". Work item removal processing.";
                                 l_WorkId.dump("info", "Failure when processing work items to remove ");
                             }
                         }
@@ -3225,6 +3499,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 LOG(bb,error) << "stageoutEnd(): Exception thrown: " << e.what();
             }
 
+            unlockTransferQueue((LVKey*)0, "stageoutEnd");
 //            unpinTransferQueueLock(pLVKey, "stageoutEnd");
 
         } else {
@@ -3258,7 +3533,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
     stringstream errorText;
     BBLV_Info* l_LV_Info;
 
-    lockTransferQueue(pLVKey, "stageoutStart");
+    lockLocalMetadata(pLVKey, "stageoutStart");
 
     try
     {
@@ -3319,7 +3594,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    unlockTransferQueue(pLVKey, "stageoutStart");
+    unlockLocalMetadata(pLVKey, "stageoutStart");
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;

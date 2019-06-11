@@ -15,11 +15,11 @@
 #--------------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------------
-#   usage:              ./csm_db_schema_version_upgrade_17_0.sh
+#   usage:              ./csm_db_schema_version_upgrade_18_0.sh
 #   current_version:    01.0
 #   migration_version:  18.0 # <--------example version after the DB upgrade
 #   create:             04-29-2019
-#   last modified:      05-17-2019
+#   last modified:      06-03-2019
 #--------------------------------------------------------------------------------
 
 #set -x
@@ -572,7 +572,7 @@ if [[ $(bc <<< "${version}") < "$migration_db_version" ]]; then
 
     if [[ $(bc <<< "${version}") == 15.0 ]]; then
         echo "[Info    ] These include versions $from_15_0"
-        LogMsg "[Info    ] These include versions $from 15_0"
+        LogMsg "[Info    ] These include versions $from_15_0"
         echo "[Warning ] Do you want to continue [y/n]?:" 
     elif [[ $(bc <<< "${version}") == 15.1 ]]; then
         echo "[Info    ] These include versions $from_15_1"
@@ -792,15 +792,20 @@ THE_END`
     #----------------------------------------------------------------
     
     if [[ $? -ne 0 ]]; then
-         echo "$db_query_2"
-         echo "$db_query_2" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+        echo "[Error   ] Db Message: $db_query_2" | awk '{print $0;}'
+        echo "$db_query_2" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
         echo "[Error   ] Cannot perform the upgrade process to $migration_db_version"
         LogMsg "[Error   ] Cannot perform the upgrade process to $migration_db_version"
         LogMsg "${line2_log}"
         LogMsg "[End     ] Exiting $0 script"
+        LogMsg "${line2_log}"
         echo "${line1_out}"
         exit 0
+        
     else
+         if [[ $db_query_2 = *[!\ ]* ]]; then
+         echo "$db_query_2" |& awk '/^.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Info    ] DB Message: "'"$0}' >>"${logfile}"
+         fi
         echo "[Info    ] ${line4_out}"
         echo "[Info    ] Migration from $required_pre_migration to $migration_db_version [Complete]"
         LogMsg "[Info    ] Migration from $required_pre_migration to $migration_db_version [Complete]"

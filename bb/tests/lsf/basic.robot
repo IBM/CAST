@@ -52,26 +52,30 @@ Stage-out1 script does not exist
 	[Timeout]  1 minute
 	Using SSD  10
 	Set user stageout1  this-script-does-not-exist
-	${result}=  bsub&wait  hostname  0
-        Sleep  20s
-        ${ignore}  ${jobid}=  Run and Return RC and Output  echo '${result.stdout}'|awk -F'<' '/Job/ {print $2}'|awk -F'>' '{print $1}'
-        ${rc2}  ${jobhist}=  Run and Return RC and Output  bread -i123 ${jobid} | tee tmp.${jobid} 
-        ${ignore}  ${c}=  Run and Return RC and Output  grep completed tmp.${jobid}|grep -c "\\-1"
-        Log  JOBHIST: ${jobhist}
-        Should be equal as integers  ${c}  1
+	${result}=  bsub&wait  ${jsrun} hostname  0
+
+	${jobid}=  get jobid  ${result}
+	Wait for stageout to complete  ${jobid}
+	
+	${rc2}  ${jobhist}=  Run and Return RC and Output  bread -i123 ${jobid} | tee tmp.${jobid} 
+	${ignore}  ${c}=  Run and Return RC and Output  grep completed tmp.${jobid}|grep -c "rc 2"
+	Log  JOBHIST: ${jobhist}
+	Should be equal as integers  ${c}  1
 
 Stage-out2 script does not exist
 	[Tags]  lsf
 	[Timeout]  1 minute
 	Using SSD  10
 	Set user stageout2  this-script-does-not-exist
-        ${result}=  bsub&wait  hostname  0
-        Sleep  20s
-        ${ignore}  ${jobid}=  Run and Return RC and Output  echo '${result.stdout}'|awk -F'<' '/Job/ {print $2}'|awk -F'>' '{print $1}'
-        ${rc2}  ${jobhist}=  Run and Return RC and Output  bread -i124 ${jobid} | tee tmp.${jobid} 
-        ${ignore}  ${c}=  Run and Return RC and Output  grep completed tmp.${jobid}|grep -c "\\-1"
-        Log  JOBHIST: ${jobhist}
-        Should be equal as integers  ${c}  1 
+	${result}=  bsub&wait  ${jsrun} hostname  0
+
+	${jobid}=  get jobid  ${result}
+	Wait for stageout to complete  ${jobid}
+
+	${rc2}  ${jobhist}=  Run and Return RC and Output  bread -i124 ${jobid} | tee tmp.${jobid} 
+	${ignore}  ${c}=  Run and Return RC and Output  grep completed tmp.${jobid}|grep -c "rc 2"
+	Log  JOBHIST: ${jobhist}
+	Should be equal as integers  ${c}  1 
 
 Stage-in script is started
 	 [Tags]  lsf
@@ -79,7 +83,7 @@ Stage-in script is started
 	 Using SSD  10
 	 set environment variable  STAGEIN_DONE  ${PFSDIR}/done
 	 Set user stagein  ${WORKDIR}/bb/tests/bin/stagein.pl
-	 bsub&wait  hostname
+	 bsub&wait  ${jsrun} hostname
 	 Sleep   10s
 	 File Should Exist  %{STAGEIN_DONE}
 	 Remove file  %{STAGEIN_DONE}

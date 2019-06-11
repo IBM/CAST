@@ -27,11 +27,15 @@
 class WorkID
 {
   public:
-    WorkID() {}
+    WorkID() :
+        key(LVKey()),
+        id(BBTagID()),
+        lvinfo(0) {}
 
-    WorkID(const LVKey& pKey, const BBTagID& pId) :
+    WorkID(const LVKey& pKey, BBLV_Info* pLVInfo, const BBTagID& pId) :
         key(pKey),
-        id(pId) {}
+        id(pId),
+        lvinfo(pLVInfo) {}
 
     inline void dump(const char* pSev, const char* pPrefix=0)
     {
@@ -85,9 +89,14 @@ class WorkID
         return key;
     }
 
+    inline BBLV_Info* getLV_Info() const {
+        return lvinfo;
+    }
+
   private:
     LVKey           key;
     BBTagID         id;
+    BBLV_Info*      lvinfo;
 };
 
 #endif /* BB_WORKID_H_ */

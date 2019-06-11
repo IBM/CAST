@@ -64,24 +64,28 @@ class WRKQE
         rate(0),
         bucket(0),
         suspended(0),
+        transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
         numberOfWorkItems(0),
-        numberOfWorkItemsProcessed(0) {
+        numberOfWorkItemsProcessed(0),
+        lvinfo(0) {
         init();
     };
 
     /**
      * \brief Constructor
      */
-    WRKQE(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspended) :
+    WRKQE(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspended) :
         lvKey(*pLVKey),
         jobid(pJobId),
         rate(0),
         bucket(0),
         suspended(pSuspended),
+        transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
         numberOfWorkItems(0),
-        numberOfWorkItemsProcessed(0) {
+        numberOfWorkItemsProcessed(0),
+        lvinfo(pLV_Info) {
         init();
     };
 
@@ -110,6 +114,11 @@ class WRKQE
     inline int64_t getJobId()
     {
         return jobid;
+    };
+
+    inline BBLV_Info* getLV_Info()
+    {
+        return lvinfo;
     };
 
     inline LVKey* getLVKey()
@@ -193,12 +202,19 @@ class WRKQE
         return;
     };
 
+    inline void setTransferThreadIsDelaying(const int pValue)
+    {
+        transferThreadIsDelaying = pValue;
+
+        return;
+    };
+
     // Methods
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void dump(const char* pSev, const char* pPrefix);
     void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void loadBucket();
-    double processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo);
+    double processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo);
 
     // Data members
     LVKey               lvKey;
@@ -206,9 +222,11 @@ class WRKQE
     uint64_t            rate;       // bytes/sec
     int64_t             bucket;
     int                 suspended;
+    int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
+    BBLV_Info*          lvinfo;
     queue<WorkID>*      wrkq;
 };
 

@@ -44,7 +44,7 @@ void help(){
 	puts("_____CSM_IB_CABLE_QUERY_CMD_HELP_____");
 	puts("USAGE:");
 	puts("  csm_ib_cable_query ARGUMENTS [OPTIONS]");
-	puts("  csm_ib_cable_query [-s serial_numbers] [-l limit] [-o offset] [-h] [-v verbose_level]");
+	puts("  csm_ib_cable_query [-c comments] [-g guids] [-i identifiers] [-L lengths] [-n names] [-O order_by] [-p part_numbers] [-P ports] [-r revisions] [-s serial_numbers] [-S severities] [-t types] [-w widths] [-l limit] [-o offset] [-h] [-v verbose_level]");
 	puts("");
 	puts("SUMMARY: Used to query the 'csm_ib_cable' table of the CSM database.");
 	puts("");
@@ -53,18 +53,71 @@ void help(){
 	puts("  1  if ERROR.");
 	puts("");
 	puts("ARGUMENTS:");
-	puts("  MANDATORY:");
-	puts("    csm_ib_cable_query has 1 mandatory argument");
-	puts("    Argument             | Example value   | Description  ");                                                 
-	puts("    ---------------------|-----------------|--------------");
-	puts("    -s, --serial_numbers | \"abc123,xyz789\" | (STRING) This is a csv field of serial numbers to query. Filter results to only include records that have a matching serial numbers. The serial number is a unique identification for an ib cable.");
-	puts("                         |                 | ");
+	puts("  OPTIONAL:");
+	puts("    csm_ib_cable_query has 12 optional arguments used to filter query results.");
+	puts("    Argument             | Example value                | Description  ");                                                 
+	puts("    ---------------------|------------------------------|--------------");
+	puts("    -c, --comments       | \"comment,%nick%\"             | (STRING) Filter results of the database query to only include cables containing comments in this csv list.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("    -g, --guids          | \"248a:0703:006d:40f0,        | (STRING) Filter results of the database query to only include cables containing guids in this csv list. ");
+	puts("                         | ec0d:9a03:00d3:05b4\"         | This field will search both 'guid_s1' and 'guid_s2' fields in 'csm_ib_cable' table. ");
+	puts("    -i, --identifiers    | \"QSFP+,Unknown\"              | (STRING) Filter results of the database query to only include cables containing dentifiers in this csv list. ");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("    -L, --lengths        | \"2 m,%3%\"                    | (STRING) Filter results of the database query to only include cables containing lengths in this csv list. ");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("    -n, --names          | \"%248a0703006d40f0_14%\"      | (STRING) Filter results of the database query to only include cables containing names in this csv list.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("                         |                              |  name is the (Id) of link object in UFM. Based on link sorce and destination. ");
+	puts("    -p, --part_numbers   | \"00WT050,%XXYYZZ\"            | (STRING) Filter results of the database query to only include cables containing part_numbers in this csv list.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("    -P, --ports          | \"14,%2%\"                     | (STRING) Filter results of the database query to only include cables containing ports in this csv list.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("                         |                              |  API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table.");
+	puts("    -r, --revisions      | \"A1,B%\"                      | (STRING) Filter results of the database query to only include cables containing revisions in this csv list.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("    -s, --serial_numbers | \"abc123,xyz789\"              | (STRING) This is a csv field of serial numbers to query. Filter results to only include records that have a matching serial numbers. ");
+	puts("                         |                              | The serial number is a unique identification for an ib cable. ");
+	puts("    -S, --severities     | \"Info\"                       | (STRING) Filter results of the database query to only include cables containing severities in this csv list.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("    -t, --types          | \"%VCSEL%\"                    | (STRING) This is a csv field of types to query. Filter results to only include records that have a matching types. ");
+	puts("                         |                              | This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%'");
+	puts("    -w, --widths         | \"IB_4x,%8x%\"                 | (STRING) This is a csv field of widths to query. Filter results to only include records that have a matching widths.");
+	puts("                         |                              |  This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' ");
+	puts("                         |                              |  The width of the cable - physical state of IB port (Optional Values: IB_1x ,IB_4x, IB_8x, IB_12x");
+	puts("                         |                              | ");
 	puts("  FILTERS:");
-	puts("    csm_ib_cable_query can have 2 optional filters.");
-	puts("    Argument     | Example value | Description  ");                                                 
-	puts("    -------------|---------------|--------------");
-	puts("    -l, --limit  | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
-    puts("    -o, --offset | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    csm_ib_cable_query can have 3 optional filters.");
+	puts("    Argument       | Example value | Description  ");                                                 
+	puts("    ---------------|---------------|--------------");
+	puts("    -l, --limit    | 10            | (INTEGER) SQL 'LIMIT' numeric value.");
+	puts("    -o, --offset   | 1             | (INTEGER) SQL 'OFFSET' numeric value.");
+	puts("    -O, --order_by | a             | (CHAR) SQL 'ORDER BY' numeric value. Default Value: 'a'");
+	puts("                                   | Valid Values: [a] = 'ORDER BY serial_number ASC NULLS LAST'"); 
+	puts("                                   |               [A] = 'ORDER BY serial_number DESC NULLS LAST'");
+	puts("                                   |               [b] = 'ORDER BY guid_s1 ASC NULLS LAST'"); 
+	puts("                                   |               [B] = 'ORDER BY guid_s1 DESC NULLS LAST'");
+	puts("                                   |               [c] = 'ORDER BY guid_s2 ASC NULLS LAST'"); 
+	puts("                                   |               [C] = 'ORDER BY guid_s2 DESC NULLS LAST'");
+	puts("                                   |               [d] = 'ORDER BY identifier ASC NULLS LAST'"); 
+	puts("                                   |               [D] = 'ORDER BY identifier DESC NULLS LAST'");
+	puts("                                   |               [e] = 'ORDER BY length ASC NULLS LAST'"); 
+	puts("                                   |               [E] = 'ORDER BY length DESC NULLS LAST'");
+	puts("                                   |               [f] = 'ORDER BY name ASC NULLS LAST'"); 
+	puts("                                   |               [F] = 'ORDER BY name DESC NULLS LAST'");
+	puts("                                   |               [g] = 'ORDER BY part_number ASC NULLS LAST'"); 
+	puts("                                   |               [G] = 'ORDER BY part_number DESC NULLS LAST'");
+	puts("                                   |               [h] = 'ORDER BY port_s1 ASC NULLS LAST'"); 
+	puts("                                   |               [H] = 'ORDER BY port_s1 DESC NULLS LAST'");
+	puts("                                   |               [i] = 'ORDER BY port_s2 ASC NULLS LAST'"); 
+	puts("                                   |               [I] = 'ORDER BY port_s2 DESC NULLS LAST'");
+	puts("                                   |               [j] = 'ORDER BY revision ASC NULLS LAST'"); 
+	puts("                                   |               [J] = 'ORDER BY revision DESC NULLS LAST'");
+	puts("                                   |               [k] = 'ORDER BY severity ASC NULLS LAST'"); 
+	puts("                                   |               [K] = 'ORDER BY severity DESC NULLS LAST'");
+	puts("                                   |               [l] = 'ORDER BY type ASC NULLS LAST'"); 
+	puts("                                   |               [L] = 'ORDER BY type DESC NULLS LAST'");
+	puts("                                   |               [m] = 'ORDER BY width ASC NULLS LAST'"); 
+	puts("                                   |               [M] = 'ORDER BY width DESC NULLS LAST'");
 	puts("");
 	puts("GENERAL OPTIONS:");
 	puts("[-h, --help]                  | Help.");
@@ -80,10 +133,22 @@ struct option longopts[] = {
 	{"help",           no_argument,       0, 'h'},
 	{"verbose",        required_argument, 0, 'v'},
 	//api arguments
+	{"comments",       required_argument, 0, 'c'},
+	{"guids",          required_argument, 0, 'g'},
+	{"identifiers",    required_argument, 0, 'i'},
+	{"lengths",        required_argument, 0, 'L'},
+	{"names",          required_argument, 0, 'n'},
+	{"part_numbers",   required_argument, 0, 'p'},
+	{"ports",          required_argument, 0, 'P'},
+	{"revisions",      required_argument, 0, 'r'},
 	{"serial_numbers", required_argument, 0, 's'},
+	{"severities",     required_argument, 0, 'S'},
+	{"types",          required_argument, 0, 't'},
+	{"widths",         required_argument, 0, 'w'},
 	//filters
 	{"limit",          required_argument, 0, 'l'},
 	{"offset",         required_argument, 0, 'o'},
+	{"order_by",       required_argument, 0, 'O'},
 	{0,0,0,0}
 };
 
@@ -98,7 +163,7 @@ int main(int argc, char *argv[])
 	int return_value = 0;
 	int requiredParameterCounter = 0;
 	int optionalParameterCounter = 0;
-	const int NUMBER_OF_REQUIRED_ARGUMENTS = 1;
+	const int NUMBER_OF_REQUIRED_ARGUMENTS = 0;
 	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
 	int opt;
@@ -116,32 +181,158 @@ int main(int argc, char *argv[])
 	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 	
 	/*check optional args*/
-	while ((opt = getopt_long(argc, argv, "hv:l:o:s:", longopts, &indexptr)) != -1) {
+	while ((opt = getopt_long(argc, argv, "c:g:hi:l:L:n:o:O:p:P:r:s:S:t:v:w:", longopts, &indexptr)) != -1) {
 		switch(opt){
+			case 'c':
+			{
+                csm_optarg_test( "-c, --comments", optarg, USAGE );
+                csm_parse_csv( optarg, input->comments, input->comments_count,
+                            char*, csm_str_to_char, NULL, "-c, --comments", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'g':
+			{
+                csm_optarg_test( "-g, --guids", optarg, USAGE );
+                csm_parse_csv( optarg, input->guids, input->guids_count,
+                            char*, csm_str_to_char, NULL, "-g, --guids", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'h':
                 USAGE();
 				return CSMI_HELP;
-			case 'v':
-				/*Error check to make sure 'verbose' field is valid.*/
-                csm_set_verbosity( optarg, USAGE )
+			case 'i':
+			{
+                csm_optarg_test( "-i, --identifiers", optarg, USAGE );
+                csm_parse_csv( optarg, input->identifiers, input->identifiers_count,
+                            char*, csm_str_to_char, NULL, "-i, --identifiers", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
 				break;
+			}
 			case 'l':
 				csm_optarg_test( "-l, --limit", optarg, USAGE );
                 csm_str_to_int32( input->limit, optarg, arg_check, "-l, --limit", USAGE );
                 break;
+            case 'L':
+			{
+                csm_optarg_test( "-L, --lengths", optarg, USAGE );
+                csm_parse_csv( optarg, input->lengths, input->lengths_count,
+                            char*, csm_str_to_char, NULL, "-L, --lengths", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'n':
+			{
+                csm_optarg_test( "-n, --names", optarg, USAGE );
+                csm_parse_csv( optarg, input->names, input->names_count,
+                            char*, csm_str_to_char, NULL, "-n, --names", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 'o':
                 csm_optarg_test( "-o, --offset", optarg, USAGE );
                 csm_str_to_int32( input->offset, optarg, arg_check, "-o, --offset", USAGE );
 				break;
+			case 'O':
+			{
+				if(strlen(optarg) == 1 && 
+                    (  optarg[0] == 'a' || optarg[0] == 'A' 
+                    || optarg[0] == 'b' || optarg[0] == 'B' 
+                    || optarg[0] == 'c' || optarg[0] == 'C' 
+                    || optarg[0] == 'd' || optarg[0] == 'D' 
+                    || optarg[0] == 'e' || optarg[0] == 'E' 
+                    || optarg[0] == 'f' || optarg[0] == 'F' 
+                    || optarg[0] == 'g' || optarg[0] == 'G' 
+                    || optarg[0] == 'h' || optarg[0] == 'H' 
+                    || optarg[0] == 'i' || optarg[0] == 'I'
+                    || optarg[0] == 'j' || optarg[0] == 'J'
+                    || optarg[0] == 'k' || optarg[0] == 'K' 
+                    || optarg[0] == 'l' || optarg[0] == 'L' 
+                    || optarg[0] == 'm' || optarg[0] == 'M' 
+					)
+				)
+                {
+					input->order_by = optarg[0];
+				}else{
+					csmutil_logging(error, "Invalid parameter for -O: optarg , encountered: %s", optarg);
+                    USAGE();
+					return CSMERR_INVALID_PARAM;
+				}
+				break;
+			}
+			case 'p':
+			{
+                csm_optarg_test( "-p, --part_numbers", optarg, USAGE );
+                csm_parse_csv( optarg, input->part_numbers, input->part_numbers_count,
+                            char*, csm_str_to_char, NULL, "-p, --part_numbers", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'P':
+			{
+                csm_optarg_test( "-P, --ports", optarg, USAGE );
+                csm_parse_csv( optarg, input->ports, input->ports_count,
+                            char*, csm_str_to_char, NULL, "-P, --ports", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'r':
+			{
+                csm_optarg_test( "-r, --revisions", optarg, USAGE );
+                csm_parse_csv( optarg, input->revisions, input->revisions_count,
+                            char*, csm_str_to_char, NULL, "-r, --revisions", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
 			case 's':
 			{
                 csm_optarg_test( "-s, --serial_numbers", optarg, USAGE );
                 csm_parse_csv( optarg, input->serial_numbers, input->serial_numbers_count,
                             char*, csm_str_to_char, NULL, "-s, --serial_numbers", USAGE );
-				/* Increment requiredParameterCounter so later we can check if arguments were correctly set before calling API. */
-				requiredParameterCounter++;
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
 				break;
 			}
+			case 'S':
+			{
+                csm_optarg_test( "-S, --severities", optarg, USAGE );
+                csm_parse_csv( optarg, input->severities, input->severities_count,
+                            char*, csm_str_to_char, NULL, "-S, --severities", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 't':
+			{
+                csm_optarg_test( "-t, --types", optarg, USAGE );
+                csm_parse_csv( optarg, input->types, input->types_count,
+                            char*, csm_str_to_char, NULL, "-t, --types", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'w':
+			{
+                csm_optarg_test( "-w, --widths", optarg, USAGE );
+                csm_parse_csv( optarg, input->widths, input->widths_count,
+                            char*, csm_str_to_char, NULL, "-w, --widths", USAGE );
+				/* Increment optionalParameterCounter so later we can check if arguments were correctly set before calling API. */
+				optionalParameterCounter++;
+				break;
+			}
+			case 'v':
+				/*Error check to make sure 'verbose' field is valid.*/
+                csm_set_verbosity( optarg, USAGE )
+				break;
 			default:
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
                 USAGE();
@@ -180,12 +371,68 @@ int main(int argc, char *argv[])
 	csmutil_logging(debug, "  value of input:         %p", input);
 	csmutil_logging(debug, "  address of input:       %p", &input);
 	csmutil_logging(debug, "  API_PARAMETER_INPUT_TYPE contains the following:");
+	csmutil_logging(debug, "    comments_count:       %i", input->comments_count);
+	csmutil_logging(debug, "    comments:             %p", input->comments);
+	for(i = 0; i < input->comments_count; i++){
+		csmutil_logging(debug, "      comments[%i]: %s", i, input->comments[i]);
+	}
+	csmutil_logging(debug, "    guids_count:          %i", input->guids_count);
+	csmutil_logging(debug, "    guids:                %p", input->guids);
+	for(i = 0; i < input->guids_count; i++){
+		csmutil_logging(debug, "      guids[%i]: %s", i, input->guids[i]);
+	}
+	csmutil_logging(debug, "    identifiers_count:    %i", input->identifiers_count);
+	csmutil_logging(debug, "    identifiers:          %p", input->identifiers);
+	for(i = 0; i < input->identifiers_count; i++){
+		csmutil_logging(debug, "      identifiers[%i]: %s", i, input->identifiers[i]);
+	}
+	csmutil_logging(debug, "    lengths_count:        %i", input->lengths_count);
+	csmutil_logging(debug, "    lengths:              %p", input->lengths);
+	for(i = 0; i < input->lengths_count; i++){
+		csmutil_logging(debug, "      lengths[%i]: %s", i, input->lengths[i]);
+	}
 	csmutil_logging(debug, "    limit:                %i", input->limit);
+	csmutil_logging(debug, "    names_count:          %i", input->names_count);
+	csmutil_logging(debug, "    names:                %p", input->names);
+	for(i = 0; i < input->names_count; i++){
+		csmutil_logging(debug, "      names[%i]: %s", i, input->names[i]);
+	}
 	csmutil_logging(debug, "    offset:               %i", input->offset);
+	csmutil_logging(debug, "    order_by:             %c", input->order_by);
+	csmutil_logging(debug, "    part_numbers_count:   %i", input->part_numbers_count);
+	csmutil_logging(debug, "    part_numbers:         %p", input->part_numbers);
+	for(i = 0; i < input->part_numbers_count; i++){
+		csmutil_logging(debug, "      part_numbers[%i]: %s", i, input->part_numbers[i]);
+	}
+	csmutil_logging(debug, "    ports_count:          %i", input->ports_count);
+	csmutil_logging(debug, "    ports:                %p", input->ports);
+	for(i = 0; i < input->ports_count; i++){
+		csmutil_logging(debug, "      ports[%i]: %s", i, input->ports[i]);
+	}
+	csmutil_logging(debug, "    revisions_count:      %i", input->revisions_count);
+	csmutil_logging(debug, "    revisions:            %p", input->revisions);
+	for(i = 0; i < input->revisions_count; i++){
+		csmutil_logging(debug, "      revisions[%i]: %s", i, input->revisions[i]);
+	}
 	csmutil_logging(debug, "    serial_numbers_count: %i", input->serial_numbers_count);
 	csmutil_logging(debug, "    serial_numbers:       %p", input->serial_numbers);
 	for(i = 0; i < input->serial_numbers_count; i++){
 		csmutil_logging(debug, "      serial_numbers[%i]: %s", i, input->serial_numbers[i]);
+	}
+	csmutil_logging(debug, "    severities_count:     %i", input->severities_count);
+	csmutil_logging(debug, "    severities:           %p", input->severities);
+	for(i = 0; i < input->severities_count; i++){
+		csmutil_logging(debug, "      severities[%i]: %s", i, input->severities[i]);
+	}
+	csmutil_logging(debug, "    types_count:          %i", input->types_count);
+	csmutil_logging(debug, "    types:                %p", input->types);
+	for(i = 0; i < input->types_count; i++){
+		csmutil_logging(debug, "      types[%i]: %s", i, input->types[i]);
+	}
+	csmutil_logging(debug, "    widths_count:         %i", input->widths_count);
+	csmutil_logging(debug, "    widths:               %p", input->widths);
+	for(i = 0; i < input->widths_count; i++){
+		csmutil_logging(debug, "      widths[%i]: %s", i, input->widths[i]);
 	}
 	csmutil_logging(debug, "  value of output:        %p", output);
 	csmutil_logging(debug, "  address of output:      %p", &output);

@@ -129,7 +129,8 @@ else
         "hosts=s" => \$hostlist,
         "jobid=i" => \$::JOBID,
         @::GETOPS
-    );
+    ) or die("Invalid command line arguments.  Bailing\n");
+    
     if($hostlist ne "")
     {
         @::HOSTLIST_ARRAY = split(/,/, $hostlist);
@@ -190,6 +191,13 @@ $::BBPATH="/tmp/bblv_$::JOBUSER\_$::JOBID";
 $::BBPATH = $ENV{"BBPATH"} if($ENV{"BBPATH"} ne "");
 $ENV{"BBPATH"} = $::BBPATH;
 $::BBALL = join(",",0..$#::HOSTLIST_ARRAY);
+
+eval
+{
+    $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
+    $::jsoncfg = $json = decode_json($jsondata);
+    $controller = $json->{"bb"}{"cmd"}{"controller"};
+};
 
 $hl = "";
 if($controller !~ /csm/i)

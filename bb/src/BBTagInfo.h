@@ -82,7 +82,7 @@ class BBTagInfo
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setCanceledForHandle(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
-    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
     int update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleFile, const char* pHandleFileName, const BBJob pJob, BBLV_Info* pLV_Info, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
     int xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle);
 
@@ -95,7 +95,7 @@ class BBTagInfo
     }
 
     inline int allExtentsTransferred(const uint32_t pContribId) {
-        return parts.allExtentsTransferred(pContribId);
+        return parts.allExtentsTransferred(this, pContribId);
     }
 
     inline int canceled() {
@@ -103,7 +103,7 @@ class BBTagInfo
     }
 
     inline int canceled(const uint32_t pContribId) {
-        return parts.canceled(pContribId);
+        return parts.canceled(this, pContribId);
     }
 
     inline void cleanUpAll(const LVKey* pLVKey, const BBTagID& pTagId) {
@@ -121,7 +121,7 @@ class BBTagInfo
     }
 
     inline int failed(const uint32_t pContribId) {
-        return parts.failed(pContribId);
+        return parts.failed(this, pContribId);
     }
 
     inline void genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag) {
@@ -133,7 +133,7 @@ class BBTagInfo
     }
 
     inline BBJob getJob(const uint32_t pContribId) {
-        return parts.getJob(pContribId);
+        return parts.getJob(this, pContribId);
     }
 
     inline size_t getTotalContributors() const {
@@ -142,6 +142,10 @@ class BBTagInfo
 
     inline size_t getTotalLocalReportingContributors() const {
         return parts.getNumberOfParts();
+    }
+
+    inline size_t getNumberOfExpectedContribs() const {
+        return expectContrib.size();
     }
 
     inline size_t getNumberOfTransferDefs() const {
@@ -153,27 +157,31 @@ class BBTagInfo
     }
 
     inline BBSTATUS getStatus(const uint32_t pContribId) {
-        return parts.getStatus(pContribId);
+        return parts.getStatus(this, pContribId);
     }
 
     inline uint64_t getTag(const uint32_t pContribId) {
-        return parts.getTag(pContribId);
+        return parts.getTag(this, pContribId);
     }
 
     inline size_t getTotalTransferSize(const uint32_t pContribId) {
-        return parts.getTotalTransferSize(pContribId);
+        return parts.getTotalTransferSize(this, pContribId);
     }
 
     inline size_t getTotalTransferSize() {
-        return parts.getTotalTransferSize();
+        return parts.getTotalTransferSize(this);
     }
 
     inline BBTransferDef* getTransferDef(const uint32_t pContribId) {
-        return parts.getTransferDef(pContribId);
+        return parts.getTransferDef(this, pContribId);
     }
 
     inline uint64_t getTransferHandle() {
         return transferHandle;
+    }
+
+    inline int localMetadataLockRequired() {
+        return (getNumberOfExpectedContribs() == getNumberOfTransferDefs() ? 0 : 1);
     }
 
     inline void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId) {
@@ -188,15 +196,15 @@ class BBTagInfo
     }
 
     inline int replaceExtentVector(const uint32_t pContribId, BBTransferDef* pTransferDef) {
-        return parts.replaceExtentVector(pContribId, pTransferDef);
+        return parts.replaceExtentVector(this, pContribId, pTransferDef);
     }
 
     inline int setCanceled(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1) {
-        return parts.setCanceled(pLVKey, pHandle, pContribId, pValue);
+        return parts.setCanceled(pLVKey, this, pHandle, pContribId, pValue);
     }
 
     inline int setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1) {
-        return parts.setFailed(pLVKey, pHandle, pContribId, pValue);
+        return parts.setFailed(pLVKey, this, pHandle, pContribId, pValue);
     }
 
     inline void setTransferHandle(const uint64_t pHandle) {

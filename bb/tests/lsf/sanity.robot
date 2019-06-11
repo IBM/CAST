@@ -8,7 +8,7 @@ Suite teardown  Clear LSF jobs
 
 Sanity check LSF+CSM configuration
     [Tags]  lsf
-    [Timeout]  1 minute
+    [Timeout]  5 minute
     bsub&wait  hostname
 
 Sanity check LSF+CSM+JSM configuration
@@ -18,7 +18,7 @@ Sanity check LSF+CSM+JSM configuration
 
 Sanity check LSF+CSM configuration error path
     [Tags]  lsf
-    [Timeout]  1 minute
+    [Timeout]  5 minute
     bsub&wait  badcommandshouldfail  127
 
 Sanity check LSF+CSM+JSM configuration error path

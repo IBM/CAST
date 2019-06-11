@@ -33,7 +33,7 @@ namespace bfs = boost::filesystem;
 //
 
 //
-// BBLV_Metadata - Static members
+// BBLV_Metadata - Static data/members
 //
 
 void BBLV_Metadata::appendAsyncRequestForStopTransfer(const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pCancelScope)
@@ -170,16 +170,16 @@ void BBLV_Metadata::accumulateTotalLocalContributorInfo(const uint64_t pHandle, 
     pTotalContributors = 0;
     pTotalLocalReportingContributors = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::accumulateTotalLocalContributorInfo");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::accumulateTotalLocalContributorInfo");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         it->second.accumulateTotalLocalContributorInfo(pHandle, pTotalContributors, pTotalLocalReportingContributors);
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::accumulateTotalLocalContributorInfo");
+        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::accumulateTotalLocalContributorInfo");
     }
 
     return;
@@ -245,6 +245,8 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
     if (!rc)
     {
         metaDataMap[*pLVKey] = pLV_Info;
+        // NOTE: Return a pointer to the version of LV_Info in metaDataMap
+        BBLV_Info* l_LV_Info = getLV_Info(pLVKey);
         // NOTE: We overload the TOLERATE_ALREADY_EXISTS_OPTION option that is passed in to this method.
         //       This option is only passed in as non-zero if this work queue is being added for a restart case.
         //       Therefore, if non-zero, we indicate on the addWrkQ() invocation to create the work queue as suspended.
@@ -257,8 +259,8 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
         // NOTE: In the restart case, if the work queue already exists (fail over and then back for the same LVKey),
         //       the setSuspended() invocation will set the metadata and the work queue object as suspended.
         int l_SuspendOption = (pTolerateAlreadyExists ? 1 : 0);
-        rc = wrkqmgr.addWrkQ(pLVKey, pJobId, l_SuspendOption);
-        pLV_Info.getExtentInfo()->setSuspended(pLVKey, pLV_Info.getHostName(), pJobId, l_SuspendOption);
+        rc = wrkqmgr.addWrkQ(pLVKey, l_LV_Info, pJobId, l_SuspendOption);
+        pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_SuspendOption);
         if (!rc)
         {
             // NOTE: If necessary, errstate will be filled in by update_xbbServerAddData()
@@ -461,7 +463,7 @@ int BBLV_Metadata::cleanLVKeyOnly(const LVKey* pLVKey) {
 void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
 
     // Ensure stage-out ended for all LVKeys under the job
-    TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+    LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
 
     bool l_Restart = true;
     while (l_Restart)
@@ -483,7 +485,7 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
 }
 
 void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::dump");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::dump");
 
     if (metaDataMap.size()) {
         char l_Temp[LENGTH_UUID_STR] = {'\0'};
@@ -514,16 +516,16 @@ void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::dump");
+        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::dump");
     }
 }
 
 void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
 
     // Ensure stage-out ended for the given LVKey
-    TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+    LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if((it->first) == *pLVKey)
@@ -539,6 +541,8 @@ void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
 // NOTE:  This method returns any LVKey with the input LV Uuid and jobid...
 int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId) {
     int rc = -2;    // LVKey not registered with bbserver
+
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::getAnyLVKeyForUuidAndJobId");
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         if ((pLVKeyIn == NULL || pLVKeyIn->second == (it->first).second) && (pJobId == UNDEFINED_JOBID || pJobId == (it->second).getJobId()))
@@ -550,17 +554,31 @@ int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyI
         }
     }
 
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::getAnyLVKeyForUuidAndJobId");
+    }
+
     return rc;
 }
 
 BBLV_Info* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
+    BBLV_Info* l_TagInfo = (BBLV_Info*)0;
+
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getAnyTagInfo2ForUuid");
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if ((it->first).second == pLVKey->second) {
-            return const_cast <BBLV_Info*> (&(it->second));
+            l_TagInfo = const_cast <BBLV_Info*> (&(it->second));
+            break;
         }
     }
 
-    return (BBLV_Info*)0;
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getAnyTagInfo2ForUuid");
+    }
+
+    return l_TagInfo;
 }
 
 int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {
@@ -580,7 +598,7 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
     bool l_HandleWasAdded = false;
     uint64_t l_JobId = pJob.getJobId();
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(&pLVKey, "BBLV_Metadata::getInfo");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(&pLVKey, "BBLV_Metadata::getInfo");
 
     for (auto it = metaDataMap.begin(); it != metaDataMap.end() && (!rc) && (!l_HandleWasAdded); ++it)
     {
@@ -666,9 +684,9 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(&pLVKey, "BBLV_Metadata::getInfo");
+        unlockLocalMetadata(&pLVKey, "BBLV_Metadata::getInfo");
     }
 
     return rc;
@@ -678,7 +696,7 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
 int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, const uint64_t pJobId, const uint32_t pContribId) {
     int rc = -2;    // LVKey not registered with bbserver
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLVKey_1");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getLVKey_1");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
@@ -693,9 +711,9 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBLV_Metadata::getLVKey_1");
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getLVKey_1");
     }
 
     return rc;
@@ -705,9 +723,9 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, BBTagInfo* &pTagInfo, BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = -2;    // LVKey not registered with bbserver
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLVKey_2");
-
     bool l_ConnectionNameFound = false;
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getLVKey_2");
+
     for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         if ((it->first).first == pConnectionName)
@@ -727,6 +745,11 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
         }
     }
 
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getLVKey_2");
+    }
+
     if (rc == -2)
     {
         stringstream l_JobStr;
@@ -736,18 +759,13 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
                      << ". Connection name was " << (l_ConnectionNameFound ? "" : "not ") << "found in the local cache.";
     }
 
-    if (l_TransferQueueWasLocked)
-    {
-        unlockTransferQueue(pLVKey, "BBLV_Metadata::getLVKey_2");
-    }
-
     return rc;
 }
 
 BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
     BBLV_Info* l_BBLV_Info = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if (it->first == *pLVKey) {
@@ -756,9 +774,9 @@ BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBLV_Metadata::getLV_Info");
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getLV_Info");
     }
 
     return l_BBLV_Info;
@@ -767,15 +785,15 @@ BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
 size_t BBLV_Metadata::getTotalTransferSize(const LVKey& pLVKey) {
     size_t l_Size = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(&pLVKey, "BBLV_Metadata::getTotalTransferSize");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(&pLVKey, "BBLV_Metadata::getTotalTransferSize");
 
     if (metaDataMap.find(pLVKey) != metaDataMap.end()) {
         l_Size = metaDataMap[pLVKey].getTotalTransferSize();
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(&pLVKey, "BBTagInfoMap::getTotalTransferSize");
+        unlockLocalMetadata(&pLVKey, "BBTagInfoMap::getTotalTransferSize");
     }
 
     return l_Size;
@@ -784,7 +802,7 @@ size_t BBLV_Metadata::getTotalTransferSize(const LVKey& pLVKey) {
 int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]) {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getTransferHandle");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getTransferHandle");
 
     if (metaDataMap.find(*pLVKey) != metaDataMap.end()) {
         rc = metaDataMap[*pLVKey].getTransferHandle(pHandle, pLVKey, pJob, pTag, pNumContrib, pContrib);
@@ -792,24 +810,24 @@ int BBLV_Metadata::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, con
         pHandle = UNDEFINED_HANDLE;
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagInfoMap::getTransferHandle");
+        unlockLocalMetadata(pLVKey, "BBTagInfoMap::getTransferHandle");
     }
 
     return rc;
 }
 
 void BBLV_Metadata::getTransferHandles(std::vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus) {
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::getTransferHandles");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::getTransferHandles");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         it->second.getTransferHandles(pHandles, pJob, pMatchStatus, it->second.stageOutStarted());
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::getTransferHandles");
+        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::getTransferHandles");
     }
 
     return;
@@ -819,7 +837,7 @@ int BBLV_Metadata::hasLVKey(const LVKey* pLVKey, const uint64_t pJobId)
 {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::hasLVKey");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::hasLVKey");
 
     for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
@@ -830,9 +848,9 @@ int BBLV_Metadata::hasLVKey(const LVKey* pLVKey, const uint64_t pJobId)
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBLV_Metadata::hasLVKey");
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::hasLVKey");
     }
 
     return rc;
@@ -930,7 +948,7 @@ int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
 {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::retrieveTransfers");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::retrieveTransfers");
 
     if (pTransferDefs.getHostName() != UNDEFINED_HOSTNAME)
     {
@@ -971,9 +989,9 @@ int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
         rc = 1;
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::retrieveTransfers");
+        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::retrieveTransfers");
     }
 
     return rc;
@@ -983,16 +1001,16 @@ void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, co
 {
     int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
         it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
+        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
     }
 
     return;
@@ -1000,7 +1018,7 @@ void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, co
 
 void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
 {
-    TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+    LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
 
     bool l_Restart = true;
     while (l_Restart)
@@ -1008,9 +1026,9 @@ void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
         l_Restart = false;
         for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
-            l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+            l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
             it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle, l_LockWasReleased, pRemoveOption);
-            if (l_LockWasReleased == TRANSFER_QUEUE_LOCK_RELEASED)
+            if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
             {
                 l_Restart = true;
                 break;
@@ -1122,7 +1140,7 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
 int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
-    TRANSFER_QUEUE_RELEASED l_LockWasReleased = TRANSFER_QUEUE_LOCK_NOT_RELEASED;
+    LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
 
     string l_ServerHostName;
     activecontroller->gethostname(l_ServerHostName);
@@ -1214,7 +1232,7 @@ int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostN
                     }
                 }
 
-                if (l_LockWasReleased == TRANSFER_QUEUE_LOCK_RELEASED)
+                if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
                 {
                     l_Restart = true;
                     break;
@@ -1272,7 +1290,7 @@ int BBLV_Metadata::verifyJobIdExists(const std::string& pConnectionName, const L
 {
     int rc = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::verifyJobIdExists");
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::verifyJobIdExists");
 
     for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
@@ -1283,9 +1301,9 @@ int BBLV_Metadata::verifyJobIdExists(const std::string& pConnectionName, const L
         }
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataWasLocked)
     {
-        unlockTransferQueue(pLVKey, "BBLV_Metadata::verifyJobIdExists");
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::verifyJobIdExists");
     }
 
     return rc;

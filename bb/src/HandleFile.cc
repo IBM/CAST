@@ -950,7 +950,16 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         handleFileLockFd = fd;
                         if (pLockFeedback)
                         {
-                            LOG(bb,debug) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd << " locked. Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                            if (l_LockDebugLevel == "info")
+                            {
+                                LOG(bb,info) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
+                                             << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                            }
+                            else
+                            {
+                                LOG(bb,debug) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
+                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                            }
                             *pLockFeedback = HANDLEFILE_WAS_LOCKED;
                         }
                     }
@@ -994,9 +1003,19 @@ int HandleFile::lock(const char* pFilePath)
     int rc = -2;
     int fd = -1;
     stringstream errorText;
-
     char l_LockFile[PATH_MAX] = {'\0'};
     snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
+
+    // Verify lock protocol
+    if (!localMetadataIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFLock, "HandleFile::lock: Attempting to lock a handle file while the metadata lock is not held",0,0,0,0);
+        errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the metadata lock is not held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf)
+#if 0
+        abort();
+#endif
+    }
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
@@ -1051,9 +1070,10 @@ int HandleFile::lock(const char* pFilePath)
         break;
 
         default:
+        {
             // Successful lock...
-            LOG(bb,debug) << "lock(): Handle file " << l_LockFile << " locked, fd " << fd;
-            break;
+        }
+        break;
     }
 
     FL_Write(FLMetaData, HF_Lock_End, "lock HF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
@@ -1284,6 +1304,18 @@ int HandleFile::testForLock(const char* pFilePath)
 
 void HandleFile::unlock(const int pFd)
 {
+    stringstream errorText;
+
+    // Verify lock protocol
+    if (!localMetadataIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFUnlock, "HandleFile::unlock: Attempting to unlock a handle file while the metadata lock is not held",0,0,0,0);
+        errorText << "HandleFile::unlock: Attempting to unlock the handle file with fd " << pFd << " while the metadata lock is not held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf)
+#if 0
+        abort();
+#endif
+    }
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Unlock, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
 
@@ -1304,7 +1336,16 @@ void HandleFile::unlock(const int pFd)
             if (!rc)
             {
                 // Successful unlock...
-                LOG(bb,debug) << "<<<<<<<<<< Handle file fd " << pFd << " unlocked";
+                if (l_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "<<<<<<<<<< Handle file fd " << pFd \
+                                 << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                }
+                else
+                {
+                    LOG(bb,debug) << "<<<<<<<<<< Handle file fd " << pFd \
+                                  << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                }
             }
             else
             {
@@ -1331,6 +1372,8 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_UpdateFile, "update handle file, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleFile");
 
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
@@ -1398,6 +1441,11 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
                  l_FL_Counter, pHandle, rc, 0);
     }
 
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleFile");
+    }
+
     if (l_HandleFileName)
     {
         delete[] l_HandleFileName;
@@ -1416,6 +1464,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
               l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1726,6 +1776,11 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                  l_FL_Counter, pHandle, rc, 0);
     }
 
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleStatus");
+    }
+
     if (l_HandleFileName)
     {
         delete[] l_HandleFileName;
@@ -1755,6 +1810,8 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     int l_catch_count=10;
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
 
     // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
     //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
@@ -1880,6 +1937,11 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
 
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
     }
 
     if (l_HandleFileName)

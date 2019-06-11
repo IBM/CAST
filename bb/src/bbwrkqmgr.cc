@@ -141,7 +141,7 @@ int HeartbeatEntry::serverDeclaredDead(const uint64_t pAllowedNumberOfSeconds)
 void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
 {
     // Build the high priority work item
-    WorkID l_WorkId(*pLVKey, pTagId);
+    WorkID l_WorkId(*pLVKey, (BBLV_Info*)0, pTagId);
 
     // Push the work item onto the HP work queue and post
     l_WorkId.dump("debug", "addHPWorkItem() ");
@@ -151,7 +151,7 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     return;
 }
 
-int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspendIndicator)
+int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspendIndicator)
 {
     int rc = 0;
 
@@ -162,7 +162,7 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSusp
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
     {
-        WRKQE* l_WrkQE = new WRKQE(pLVKey, pJobId, pSuspendIndicator);
+        WRKQE* l_WrkQE = new WRKQE(pLVKey, pLV_Info, pJobId, pSuspendIndicator);
         l_WrkQE->setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueOnRemoveWorkItem", DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM));
         wrkqs.insert(std::pair<LVKey,WRKQE*>(*pLVKey, l_WrkQE));
     }
@@ -1198,9 +1198,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                 if (qe->second->wrkq->size())
                 {
                     // This workqueue has at least one entry.
-                    // Get the LVKey and taginfo2 for this work item...
-                    l_Key = (qe->second->getWrkQ()->front()).getLVKey();
-                    l_LV_Info = metadata.getLV_Info(&l_Key);
+                    l_LV_Info = qe->second->getLV_Info();
                     if (l_LV_Info && ((l_LV_Info->hasCanceledExtents())))
                     {
                         // Next extent to be transferred is canceled...
@@ -1266,28 +1264,51 @@ void WRKQMGR::loadBuckets()
 // NOTE: pLVKey is not currently used, but can come in as null.
 void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
 {
+    stringstream errorText;
+
     if (!transferQueueIsLocked())
     {
-#if 0
-        // Verify lock protocol
-        if (handleFileLockFd != -1)
-        {
-            abort();
-        }
-#endif
+        // NOTE: We must obtain the lock before we verify the lock protocol.
+        //       Otherwise, the issuingWorkItem check will fail...
         pthread_mutex_lock(&lock_transferqueue);
+        transferQueueLocked = pthread_self();
+
+        // Verify lock protocol
+        if (issuingWorkItem)
+        {
+            FL_Write(FLError, lockPV_TQLock, "WRKQMGR::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
+            errorText << "WRKQMGR::lock: Transfer queue lock being obtained while a work item is being issued";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
+#if 0
+            abort();
+#endif
+        }
+
         if (strstr(pMethod, "%") == NULL)
         {
-            if (pLVKey)
+            if (l_LockDebugLevel == "info")
             {
-                LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
+                if (pLVKey)
+                {
+                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
+                }
             }
             else
             {
-                LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
+                }
             }
         }
-        transferQueueLocked = pthread_self();
 
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
         FL_Write(FLMutex, lockTransferQ, "lockTransfer.  threadid=%ld",tid,0,0,0);
@@ -1499,7 +1520,7 @@ void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
         if (!lockPinned)
         {
             lockPinned = 1;
-            if (strstr(pMethod, "%") == NULL)
+            if (l_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -1508,6 +1529,17 @@ void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
                 else
                 {
                     LOG(bb,info) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", unknown LVKey";
+                }
+            }
+            else
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", unknown LVKey";
                 }
             }
         }
@@ -1559,7 +1591,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
         }
         else
         {
-            unlockTransferQueue(pLVKey, "processAllOutstandingHP_Requests");
+            unlockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests");
             {
                 // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
                 if ((i++ % 20) == 10)
@@ -1569,7 +1601,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
                 }
                 usleep((useconds_t)500000);
             }
-            lockTransferQueue(pLVKey, "processAllOutstandingHP_Requests");
+            lockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests");
         }
     }
 
@@ -1591,7 +1623,7 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
     {
         if(pWrkQE)
         {
-            pThreadDelay = pWrkQE->processBucket(pLV_Info, pTagId, pExtentInfo);
+            pThreadDelay = pWrkQE->processBucket(pTagId, pExtentInfo);
             pTotalDelay = (pThreadDelay ? ((double)(throttleTimerPoppedCount-throttleTimerCount-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
         }
     }
@@ -1629,7 +1661,7 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
         }
 
         // Remove the work item from the work queue
-        pWrkQE->removeWorkItem(pWorkItem, VALIDATE_WORK_QUEUE);
+        pWrkQE->removeWorkItem(pWorkItem, DO_NOT_VALIDATE_WORK_QUEUE);
 
         // Update the last processed work queue in the manager
         setLastQueueProcessed(pWrkQE->getLVKey());
@@ -1836,32 +1868,53 @@ int WRKQMGR::startProcessingHP_Request(AsyncRequest& pRequest)
 // NOTE: pLVKey is not currently used, but can come in as null.
 void WRKQMGR::unlock(const LVKey* pLVKey, const char* pMethod)
 {
+    stringstream errorText;
+
     if (transferQueueIsLocked())
     {
-#if 0
-        // Verify lock protocol
-        if (handleFileLockFd != -1)
-        {
-            abort();
-        }
-#endif
         if (!lockPinned)
         {
+            // Verify lock protocol
+            if (issuingWorkItem)
+            {
+                FL_Write(FLError, lockPV_TQUnlock, "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
+                errorText << "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
+#if 0
+                abort();
+#endif
+            }
+
             pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
             FL_Write(FLMutex, unlockTransferQ, "unlockTransfer.  threadid=%ld",tid,0,0,0);
 
-            transferQueueLocked = 0;
             if (strstr(pMethod, "%") == NULL)
             {
-                if (pLVKey)
+                if (l_LockDebugLevel == "info")
                 {
-                    LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                    if (pLVKey)
+                    {
+                        LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                    }
+                    else
+                    {
+                        LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
+                    }
                 }
                 else
                 {
-                    LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
+                    if (pLVKey)
+                    {
+                        LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                    }
+                    else
+                    {
+                        LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
+                    }
                 }
             }
+
+            transferQueueLocked = 0;
             pthread_mutex_unlock(&lock_transferqueue);
         }
         else
@@ -1889,7 +1942,7 @@ void WRKQMGR::unpinLock(const LVKey* pLVKey, const char* pMethod)
         if (lockPinned)
         {
             lockPinned = 0;
-            if (strstr(pMethod, "%") == NULL)
+            if (l_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -1898,6 +1951,17 @@ void WRKQMGR::unpinLock(const LVKey* pLVKey, const char* pMethod)
                 else
                 {
                     LOG(bb,info) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", unknown LVKey";
+                }
+            }
+            else
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", unknown LVKey";
                 }
             }
         }

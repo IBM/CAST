@@ -285,6 +285,7 @@ class WRKQMGR
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
             lockPinned = 0;
+            issuingWorkItem = 0;
             checkForCanceledExtents = 0;
             transferQueueLocked = 0;
         };
@@ -536,6 +537,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setIssuingWorkItem(const int pValue)
+    {
+        issuingWorkItem = pValue;
+
+        return;
+    }
+
     inline void setLastQueueProcessed(LVKey* pLVKey)
     {
         LOG(bb,debug) << "WRKQMGR::setLastQueueProcessed(): lastQueueProcessed changing from = " << lastQueueProcessed << " to " << *pLVKey;
@@ -613,7 +621,7 @@ class WRKQMGR
 
     // Methods
     void addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId);
-    int addWrkQ(const LVKey* pLVKey, const uint64_t pJobId, const int pSuspendIndicator);
+    int addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
@@ -690,6 +698,7 @@ class WRKQMGR
     vector<string>      inflightHP_Requests;
   private:
     int                 lockPinned;
+    volatile int        issuingWorkItem;
     volatile int        checkForCanceledExtents;
     pthread_t           transferQueueLocked;
 };

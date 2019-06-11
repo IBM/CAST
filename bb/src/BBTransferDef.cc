@@ -1479,7 +1479,7 @@ void BBTransferDef::setStopped(const LVKey* pLVKey, const uint64_t pHandle, cons
     return;
 }
 
-int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased)
 {
     int rc = 0;
     stringstream errorText;
@@ -1516,9 +1516,9 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                 if (l_Continue)
                 {
                     // NOTE: The handle file will not have been already locked in this path...
-                    unlockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                    unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                     {
-                        pLockWasReleased = TRANSFER_QUEUE_LOCK_RELEASED;
+                        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
                         int l_SecondsWaiting = l_OriginalDeclareServerDeadCount - l_Continue;
                         if ((l_SecondsWaiting % 15) == 5)
                         {
@@ -1532,7 +1532,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                         }
                         usleep((useconds_t)1000000);    // Delay 1 second
                     }
-                    lockTransferQueue(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                    lockLocalMetadata(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                 }
 
                 // Check to make sure the job still exists after releasing/re-acquiring the lock

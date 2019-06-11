@@ -15,10 +15,10 @@ Setup Testcases
 
 User can cancel file transfers to SSD
     [Tags]  unittest  transfer  tossd  cancel
-     set test variable  ${minsize}   1048576
-     set test variable  ${maxsize}   1048576
-     set test variable  ${minfiles}  32
-     set test variable  ${maxfiles}  32
+     set test variable  ${minsize}   65536
+     set test variable  ${maxsize}   65536
+     set test variable  ${minfiles}  128
+     set test variable  ${maxfiles}  128
      Generate File List  ${PFSDIR}  ${MOUNTPT}  ${MOUNTPT}/filelist
      ${handle}=  Run a file transfer  1  ${MOUNTPT}/filelist
      Cancel file transfer  ${handle}
@@ -32,10 +32,10 @@ User can cancel file transfers to SSD
 
 User can cancel file transfers from SSD
     [Tags]  unittest  transfer  fromssd  cancel
-     set test variable  ${minsize}   1048576
-     set test variable  ${maxsize}   1048576
-     set test variable  ${minfiles}  32
-     set test variable  ${maxfiles}  32
+     set test variable  ${minsize}   65536
+     set test variable  ${maxsize}   65536
+     set test variable  ${minfiles}  128
+     set test variable  ${maxfiles}  128
      Generate File List  ${MOUNTPT}  ${PFSDIR}  ${MOUNTPT}/filelist
      ${handle}=  Run a file transfer  1  ${MOUNTPT}/filelist
      Cancel file transfer  ${handle}

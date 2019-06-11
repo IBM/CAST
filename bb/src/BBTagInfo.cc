@@ -142,7 +142,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
-    int l_TransferQueueWasLocked = lockTransferQueueIfNeeded(pLVKey, "BBTagInfo::addTransferDef");
+    lockLocalMetadata(pLVKey, "BBTagInfo::addTransferDef");
+    int l_LocalMetadataLocked = 1;
 
     // NOTE: The handle file is locked exclusive here to serialize amongst multiple bbServers
     //       adding transfer definitions...
@@ -186,7 +187,7 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                 {
                     // NOTE:  The following checks are required here in case the transfer definition just added
                     //        had no files but completed the criteria being checked...
-                    if ((expectContrib.size() == getNumberOfTransferDefs()) && (!parts.anyStoppedTransferDefinitions()))
+                    if ((expectContrib.size() == getNumberOfTransferDefs()) && (!parts.anyStoppedTransferDefinitions(this)))
                     {
                         setAllContribsReported(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
                     }
@@ -196,7 +197,7 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
 
                         int l_NewStatus = 0;
                         Extent l_Extent = Extent();
-                        ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, pTransferDef);
+                        ExtentInfo l_ExtentInfo = ExtentInfo(pHandle, pContribId, &l_Extent, this, pTransferDef);
                         pLV_Info->updateTransferStatus(pLVKey, l_ExtentInfo, pTagId, pContribId, l_NewStatus, 0);
                         if (l_NewStatus)
                         {
@@ -233,9 +234,10 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
         LOG_ERROR(errorText);
     }
 
-    if (l_TransferQueueWasLocked)
+    if (l_LocalMetadataLocked)
     {
-        unlockTransferQueue(pLVKey, "BBTagInfo::addTransferDef");
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(pLVKey, "BBTagInfo::addTransferDef - Exit");
     }
 
     if (l_HandleFileName)
@@ -273,7 +275,7 @@ void BBTagInfo::bumpTransferHandle(uint64_t& pHandle) {
 
 void BBTagInfo::calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
 {
-    int l_CanceledTransferDefinitions = parts.anyCanceledTransferDefinitions();
+    int l_CanceledTransferDefinitions = parts.anyCanceledTransferDefinitions(this);
     if (canceled() != l_CanceledTransferDefinitions)
     {
         setCanceledForHandle(pLVKey, pJobId, pJobStepId, pHandle, UNDEFINED_CONTRIBID, l_CanceledTransferDefinitions);
@@ -283,7 +285,7 @@ void BBTagInfo::calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const u
 
 void BBTagInfo::calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
 {
-    int l_StoppedTransferDefinitions = parts.anyStoppedTransferDefinitions();
+    int l_StoppedTransferDefinitions = parts.anyStoppedTransferDefinitions(this);
     if (stopped() != l_StoppedTransferDefinitions)
     {
         setStopped(pLVKey, pJobId, pJobStepId, pHandle, UNDEFINED_CONTRIBID, l_StoppedTransferDefinitions);
@@ -509,11 +511,11 @@ int BBTagInfo::prepareForRestart(const std::string& pConnectionName, const LVKey
                                          << ". Waiting for the handle to be marked as stopped. Delay of 1 second before retry. " << l_Continue \
                                          << " seconds remain waiting for the original bbServer to act before an unconditional stop is performed.";
                         }
-                        unlockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
+                        unlockLocalMetadata(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
                         {
                             usleep((useconds_t)1000000);    // Delay 1 second
                         }
-                        lockTransferQueue(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
+                        lockLocalMetadata(pLVKey, "BBTagInfo::prepareForRestart - Waiting for transfer definition to be marked as stopped");
                     }
 
                     // Check to make sure the job still exists after releasing/re-acquiring the lock
@@ -736,7 +738,7 @@ void BBTagInfo::setStopped(const LVKey* pLVKey, const uint64_t pJobId, const uin
     return;
 }
 
-int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased)
+int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased)
 {
     int rc = 0;
 
