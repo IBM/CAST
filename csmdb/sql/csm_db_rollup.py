@@ -27,19 +27,20 @@ from datetime import datetime
 
 DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
 
-def rollupDir (directory):
+def rollupDir (directory, archiveTarget="old"):
     ''' Performs a rollup operation on a directory, designed to condense in to weeks of data. 
     This requires the files provided are in the format `<table>.archive.<date>.json`
 
     directory -- A directory containing a collection of archive files to condense (string).
+    archiveTarget -- A directory to store the rollups in.
     '''
     # If the directory is not present return early.
     if not os.path.exists(directory):
         print("{0} does not exist".format(directory))
         return
     
-    # Create an srchhive directory as needed. 
-    archiveDir="{0}/{1}".format(directory,"old")
+    # Create an archive directory as needed. 
+    archiveDir="{0}/{1}".format(directory,archiveTarget)
     if not os.path.exists(archiveDir): 
         os.makedirs(archiveDir)
 
@@ -56,7 +57,7 @@ def rollupDir (directory):
         try:
             sFile=f.split(".")
             weekStr=datetime.strptime(sFile[2],"%Y-%m-%d").strftime("%Y-%U")
-            aFile="{0}/{1}-{2}.json".format(archiveDir, sFile[0], weekStr)
+            oFile="{0}/{1}-{2}.json".format(archiveDir, sFile[0], weekStr)
         except:
             continue
 
@@ -64,16 +65,15 @@ def rollupDir (directory):
         contents=""
         with open(iFile,'r') as inputFile:
             contents=inputFile.read()
-
             # remove and skip empties. 
             if len(contents) == 0:
-                os.remove(iFile)
+                os.remove(iFile) 
                 continue
 
         # Archive the contents.
         with open(oFile, 'a') as ofile:
             ofile.write(contents)
-            os.remove(oFile)
+            os.remove(iFile) # Remove only if the write was good!
 
 def main(args):
     target = DEFAULT_TARGET

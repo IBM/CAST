@@ -36,6 +36,7 @@ import datetime
 from datetime import date
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
+from csm_db_rollup import  rollupDir
 
 DEFAULT_LOG='''/var/log/ibm/csm/db/csm_db_archive_script.log'''
 DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
@@ -225,6 +226,13 @@ def main(args):
     # Verifies path exists.
     if not os.path.exists(args.target):
         os.makedirs(args.target)
+
+    # Make the temp directory for staging the tables for dumping.
+    # This is used before writing to mitigate potential data loss.
+    temp_dir = "{0}/tmp".format(args.target)
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+ 
     
     # Process the script detail info. for screen and logging.
     logging.info("DB Name:                           | {0}".format(args.db))
@@ -243,7 +251,7 @@ def main(args):
     
     pool = ThreadPool(int(args.threads))
 
-    tmp_list =  pool.map( lambda table: dump_table( args.db, args.user, table, args.count, args.target ), TABLES )
+    tmp_list =  pool.map( lambda table: dump_table( args.db, args.user, table, args.count, temp_dir ), TABLES )
     
     for entry in tmp_list:
         if entry is None:0
@@ -251,10 +259,13 @@ def main(args):
             print entry
     
     for table in RAS_TABLES:
-        entry = dump_table( args.db, args.user, table, args.count, args.target, True)
+        entry = dump_table( args.db, args.user, table, args.count, temp_dir, True)
         if entry is None:0
         else:
-            print entry
+            print entry args.target
+
+    # After the tables are dumped, it's time to merge them into the weekly report.
+    rollupDir(temp_dir,"..")
 
     # Process the finishing info. for screen and logging.
     ft = datetime.datetime.now()
