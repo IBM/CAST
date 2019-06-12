@@ -48,6 +48,19 @@ DEFAULT_THREAD_POOL=10
 # Additional Formatting style
 line1 = "---------------------------------------------------------------------------------------------------------"
 
+def sanitize_string(v):
+    return v.decode('utf-8', 'ignore')
+
+def sanitize_dict(d):
+  for k, v in d.iteritems():
+    if isinstance(v, dict):
+      d[k] = sanitize_dict(v)
+    elif isinstance(v, str):
+      d[k] = sanitize_string(v)
+    else:
+      d[k] = v
+  return d
+
 # username defined
 username = commands.getoutput("whoami")
 
@@ -172,7 +185,8 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
             colnames = [desc[0] for desc in cursor.description]
             for row in cursor:
                 file.write('{{ "type":"db-{0}", "data":{1} }}\n'.format(
-                    table_name, json.dumps(dict(zip(colnames, row)), default=str)))
+                    table_name, json.dumps(sanitize_dict(dict(zip(colnames, row))), 
+                    default=str)))
     except Exception as e:
         print "[INFO] Exception caught: {0}".format(e)
         logger.info("Exception caught: {0}".format(e))
@@ -262,7 +276,7 @@ def main(args):
         entry = dump_table( args.db, args.user, table, args.count, temp_dir, True)
         if entry is None:0
         else:
-            print entry args.target
+            print (entry, args.target)
 
     # After the tables are dumped, it's time to merge them into the weekly report.
     rollupDir(temp_dir,"..")
