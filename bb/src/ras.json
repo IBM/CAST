@@ -308,6 +308,12 @@
 	      "message" : "Lock protocol violation when attempting to lock the transfer queue.",
 	      "description" : "Lock protocol violation when attempting to lock the transfer queue."
 	  },
+	  "lockwqm" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the work queue manager.",
+	      "description" : "Lock protocol violation when attempting to lock the work queue manager."
+	  },
 	  "unlocktq" :
 	  {
 	      "severity" : "WARNING",

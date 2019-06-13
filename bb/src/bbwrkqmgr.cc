@@ -159,6 +159,8 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
+    lockWorkQueueMgr(pLVKey, "addWrkQ");
+
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
     {
@@ -174,6 +176,8 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
         wrkqmgr.dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
+
+    unlockWorkQueueMgr(pLVKey, "addWrkQ");
 
     l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
@@ -290,6 +294,8 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 
 void WRKQMGR::calcThrottleMode()
 {
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "calcThrottleMode");
+
     int l_NewThrottleMode = 0;
     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
     {
@@ -310,6 +316,11 @@ void WRKQMGR::calcThrottleMode()
         }
 
         throttleMode = l_NewThrottleMode;
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "calcThrottleMode");
     }
 
     return;
@@ -532,9 +543,16 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
+                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_debug");
+
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
+                        }
+
+                        if (l_WorkQueueMgrLocked)
+                        {
+                            unlockWorkQueueMgr((LVKey*)0, "dump_debug");
                         }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
@@ -562,9 +580,17 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
+
+                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_info");
+
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
+                        }
+
+                        if (l_WorkQueueMgrLocked)
+                        {
+                            unlockWorkQueueMgr((LVKey*)0, "dump_info");
                         }
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
@@ -591,6 +617,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPrefix)
 {
     char l_Temp[64] = {'\0'};
+
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump");
+
     if (wrkqs.size() == 1)
     {
         strCpy(l_Temp, " queue exists: ", sizeof(l_Temp));
@@ -601,6 +630,11 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
     }
 
     l_WrkQE->dump(pSev, pPrefix);
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "dump");
+    }
 
     return;
 }
@@ -918,10 +952,53 @@ uint64_t WRKQMGR::getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHa
     return l_Count;
 };
 
+size_t WRKQMGR::getNumberOfWorkQueues()
+{
+    size_t l_Size = 0;
+
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+
+    l_Size = wrkqs.size();
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "getNumberOfWorkQueues");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "getNumberOfWorkQueues");
+    }
+
+    return l_Size;
+}
+
+size_t WRKQMGR::getSizeOfAllWorkQueues()
+{
+    size_t l_TotalSize = 0;
+
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getSizeOfAllWorkQueues");
+
+    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+    {
+        l_TotalSize += qe->second->getWrkQ_Size();
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "getSizeOfAllWorkQueues");
+    }
+
+    return l_TotalSize;
+}
+
 int WRKQMGR::getThrottleRate(LVKey* pLVKey, uint64_t& pRate)
 {
     int rc = 0;
     pRate = 0;
+
+    lockWorkQueueMgr(pLVKey, "getThrottleRate");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
@@ -933,6 +1010,8 @@ int WRKQMGR::getThrottleRate(LVKey* pLVKey, uint64_t& pRate)
         // NOTE: This may be tolerated...  Set rc to -2
         rc = -2;
     }
+
+    unlockWorkQueueMgr(pLVKey, "getThrottleRate");
 
     return rc;
 }
@@ -961,6 +1040,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE");
+
     if (pLVKey == NULL || (pLVKey->second).is_null())
     {
 //        verify();
@@ -973,6 +1054,12 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             LVKey l_LVKey;
             WRKQE* l_WrkQE = 0;
 
+            // NOTE: We do not lock each transfer queue as we search for the work queue
+            //       to return below.  The biggest exposure is the call to getWrkQ_Size()
+            //       below to get the current size() of the work queue.  Even if we get
+            //       an 'unpredictable' result from the size() operation due to a concurrent
+            //       update and return an empty work queue, our invoker is tolerant of the
+            //       situation and handles it properly.
             bool l_SelectNext = false;
             bool l_FoundFirstPositiveWorkQueueInMap = false;
             bool l_EarlyExit = false;
@@ -1177,6 +1264,11 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         }
     }
 
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr(pLVKey, "getWrkQE");
+    }
+
     return rc;
 }
 
@@ -1247,15 +1339,21 @@ HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
     return (HeartbeatEntry*)0;
 }
 
-
 void WRKQMGR::loadBuckets()
 {
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "loadBuckets");
+
     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
     {
         if (qe->second != HPWrkQE)
         {
             qe->second->loadBucket();
         }
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "loadBuckets");
     }
 
     return;
@@ -1331,6 +1429,84 @@ void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
     }
 
     return;
+}
+
+// NOTE: pLVKey is not currently used, but can come in as null.
+void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
+{
+    stringstream errorText;
+
+    if (!workQueueMgrIsLocked())
+    {
+#if 1
+        // Verify lock protocol
+        if (transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
+            errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm)
+#if 0
+            abort();
+#endif
+        }
+#endif
+        pthread_mutex_lock(&lock_workQueueMgr);
+        workQueueMgrLocked = pthread_self();
+
+        if (strstr(pMethod, "%") == NULL)
+        {
+            if (l_LockDebugLevel == "info")
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,info) << " WQ_MGR:   LOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,info) << " WQ_MGR:   LOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+            else
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << " WQ_MGR:   LOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << " WQ_MGR:   LOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+        }
+
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, lockWrkQMgr, "lockWorkQueueMgr.  threadid=%ld",tid,0,0,0);
+    }
+    else
+    {
+        FL_Write(FLError, lockWrkQMgrERROR, "lockWorkQueueMgr called when lock already owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << " WQ_MGR: Request made to lock the work queue manager by " << pMethod << ", but the lock is already owned.";
+        logBacktrace();
+    }
+
+    return;
+}
+
+int WRKQMGR::lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (!workQueueMgrIsLocked())
+    {
+        lockWorkQueueMgr(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
 }
 
 void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
@@ -1556,6 +1732,38 @@ void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
     return;
 }
 
+void WRKQMGR::post()
+{
+    int l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post");
+    sem_post(&sem_workqueue);
+    if (l_WorkQueueLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "post");
+    }
+
+    return;
+}
+
+void WRKQMGR::post_multiple(const size_t pCount)
+{
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "post_multiple");
+    lockWorkQueueMgr((LVKey*)0, "post_multiple");
+
+    for (size_t i=0; i<pCount; i++)
+    {
+        WRKQMGR::post();
+    }
+//    verify();
+
+    unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "post_multiple");
+    }
+
+    return;
+}
+
 void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
 {
     // NOTE: We currently hold the lock transfer queue lock.  Therefore, we essentially process all of the
@@ -1612,12 +1820,6 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
 {
     pThreadDelay = 0;
     pTotalDelay = 0;
-
-    // Check to see if the throttle timer has popped.
-    // If so, any new high priority work items are pushed onto the
-    // high priority work queue from the cross bbserver metadata.
-    // If we are in throttle mode, the buckets are also (re)loaded.
-    checkThrottleTimer();
 
     if (inThrottleMode())
     {
@@ -1685,6 +1887,9 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    lockWorkQueueMgr(pLVKey, "rmvWrkQ");
+
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
@@ -1725,6 +1930,12 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+
+    unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueueIfNeeded(pLVKey, "rmvWrkQ");
+    }
 
     return rc;
 }
@@ -1780,6 +1991,8 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
 
     if (pLVKey)
     {
+        lockWorkQueueMgr(pLVKey, "setSuspended");
+
         std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
         if (it != wrkqs.end())
         {
@@ -1803,6 +2016,8 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
         {
             rc = -2;
         }
+
+        unlockWorkQueueMgr(pLVKey, "setSuspended");
     }
     else
     {
@@ -1817,6 +2032,8 @@ int WRKQMGR::setThrottleRate(const LVKey* pLVKey, const uint64_t pRate)
 {
     int rc = 0;
 
+    lockWorkQueueMgr(pLVKey, "setThrottleRate");
+
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
@@ -1827,6 +2044,8 @@ int WRKQMGR::setThrottleRate(const LVKey* pLVKey, const uint64_t pRate)
     {
         rc = -2;
     }
+
+    unlockWorkQueueMgr(pLVKey, "setThrottleRate");
 
     return rc;
 }
@@ -1935,6 +2154,84 @@ void WRKQMGR::unlock(const LVKey* pLVKey, const char* pMethod)
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
+void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
+{
+    stringstream errorText;
+
+    if (workQueueMgrIsLocked())
+    {
+#if 0
+        // Verify lock protocol
+        if (issuingWorkItem)
+        {
+            FL_Write(FLError, lockPV_TQUnlock2, "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
+            errorText << "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
+#if 0
+            abort();
+#endif
+        }
+#endif
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, unlockWrkQMgr, "unlockWorkQueueMgr.  threadid=%ld",tid,0,0,0);
+
+        if (strstr(pMethod, "%") == NULL)
+        {
+            if (l_LockDebugLevel == "info")
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,info) << " WQ_MGR: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,info) << " WQ_MGR: UNLOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+            else
+            {
+                if (pLVKey)
+                {
+                    LOG(bb,debug) << " WQ_MGR: UNLOCK <- " << pMethod << ", " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << " WQ_MGR: UNLOCK <- " << pMethod << ", unknown LVKey";
+                }
+            }
+        }
+
+        workQueueMgrLocked = 0;
+        pthread_mutex_unlock(&lock_workQueueMgr);
+    }
+    else
+    {
+        FL_Write(FLError, unlockWrkQMgrERROR, "unlockWorkQueueMgr called when lock not owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << " WQ_MGR: Request made to unlock the work queue manager by " << pMethod << ", but the lock is not owned.";
+        logBacktrace();
+    }
+
+    return;
+}
+
+int WRKQMGR::unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (workQueueMgrIsLocked())
+    {
+        unlockWorkQueueMgr(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
+
+// NOTE: pLVKey is not currently used, but can come in as null.
 void WRKQMGR::unpinLock(const LVKey* pLVKey, const char* pMethod)
 {
     if(transferQueueIsLocked())
@@ -1987,7 +2284,13 @@ void WRKQMGR::verify()
     int l_TotalExtents = getSizeOfAllWorkQueues();
 
     int l_NumberOfPosts = 0;
+
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::verify");
     sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::verify");
+    }
 
     // NOTE: l_NumberOfPosts+1 because for us to be invoking verify(), the current thread has already been dispatched...
     if (l_NumberOfPosts+1 != l_TotalExtents)
