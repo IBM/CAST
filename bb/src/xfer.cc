@@ -1805,35 +1805,42 @@ void* transferWorker(void* ptr)
         l_Repost = true;
 
         wrkqmgr.wait();
-
-        lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
-
-        // NOTE:  Indicate critical section of code where the transfer queue
-        //        lock CANNOT be released until after we pop off a work item
-        //        from a work queue.
-        wrkqmgr.setIssuingWorkItem(1);
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
 
         try
         {
+            // First, check/process the throttle timer
+            // NOTE: We perform this processing before we attempt to find work. Processing within
+            //       checkThrottleTimer() requires that the transfer queue lock be dropped.
+            //       It cannot be dropped once setIssuingWorkItem(1).
+            wrkqmgr.checkThrottleTimer();
+
             // Find some work to do...
             // NOTE: The findWork() invocation is the only time we will
             //       look for work on the high priority work queue.
             //       If there is work on the high priority work queue,
-            //       the high priority work queue is returned.
-            // NOTE: The only work items that are of a higher priority
-            //       than work on the high priority work queue is any
-            //       work queue with canceled extents.
+            //       the high priority work queue is returned, unless
+            //       there are work queues with canceled extents.
             // NOTE: Canceled extents are always moved to the front of the
             //       queue so we only have to check the first extent to see
             //       if we are processing canceled extents for a given work queue.
             // NOTE: The findWork() invocation will return suspended work
             //       queues.
             bool l_WorkRemains = true;
+
             if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
             {
                 // Work was returned
                 if (l_WrkQE)
                 {
+                    lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
+                    wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
+
+                    // NOTE:  Indicate critical section of code where the transfer queue
+                    //        lock CANNOT be released until after we pop off a work item
+                    //        from a work queue.
+                    wrkqmgr.setIssuingWorkItem(1);
+
                     // Workqueue entry returned
                     if (l_WrkQE->getWrkQ_Size())
                     {
@@ -1898,7 +1905,8 @@ void* transferWorker(void* ptr)
                                     else
                                     {
                                         // A transfer thread is already delaying the amount of time to
-                                        // allow for the bucket to go non-negative
+                                        // allow for the bucket to go non-negative.  Fall through and
+                                        // attempt to find more work.
                                     }
                                 }
                                 else
@@ -1921,8 +1929,8 @@ void* transferWorker(void* ptr)
                     }
                     else
                     {
-                        errorText << "Error occurred in transferExtent() when processing a work queue with no entries";
-                        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_2);
+                        // A work queue with no entries was returned.  Tolerate the situation,
+                        // fall through, attempt to find more work.
                     }
                 }
                 else
@@ -1935,7 +1943,7 @@ void* transferWorker(void* ptr)
                 //         left to transfer -or- the high priority work queue.
                 //
                 //         If l_WrkQ is not set, we either were not handed back a work queue,
-                //         or a work queue with no entries (both unlikely), or we had a throttle delay
+                //         or a work queue with no entries (less likely), or we had a throttle delay
                 //         (very likely).  If this is the case, simply fall out, and attempt to find more work...
                 if (l_WrkQ)
                 {
@@ -1987,7 +1995,11 @@ void* transferWorker(void* ptr)
                             if (!Throttle_Timer.isSnoozing())
                             {
                                 int l_NumberOfPosts = 0;
+                                unlockTransferQueue((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
+                                wrkqmgr.lockWorkQueueMgr((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
                                 sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
+                                wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
+                                lockTransferQueue((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
                                 if (l_NumberOfPosts)
                                 {
                                     l_Repost = false;
@@ -2056,17 +2068,15 @@ void* transferWorker(void* ptr)
                             LOG(bb,debug) << "Snoozing...";
                         }
                         Throttle_Timer.setSnooze(true);
-                        unlockTransferQueue(&l_Key, "%transferWorker - Before snoozing");
+                        wrkqmgr.unlockWorkQueueMgr(&l_Key, "%transferWorker - Before snoozing");
                         {
 //                            FL_Write(FLDelay, Snooze, "Snoozing for %ld usecs waiting for additional work", (uint64_t)l_Delay, 0, 0, 0);
                             LOG(bb,off) << ">>>>> DELAY <<<<< transferWorker(): Snoozing for " << (float)l_Delay/1000000.0 << " seconds waiting for additional work";
                             usleep((unsigned int)l_Delay);
                         }
-                        lockTransferQueue(&l_Key, "%transferWorker - After snoozing");
+                        wrkqmgr.lockWorkQueueMgr(&l_Key, "%transferWorker - After snoozing");
                         Throttle_Timer.setSnooze(false);
                     }
-                    // Check the throttle timer and repost
-                    wrkqmgr.checkThrottleTimer();
                 }
                 else
                 {
@@ -2079,6 +2089,9 @@ void* transferWorker(void* ptr)
                 l_ConsecutiveSnoozes = 0;
             }
 
+            // NOTE: Must unlock the transfer queue prior to any post...
+            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - End work item");
+
             // If needed, repost to the semaphore...
             if (l_Repost)
             {
@@ -2086,8 +2099,7 @@ void* transferWorker(void* ptr)
                 l_Repost = false;
                 wrkqmgr.post();
             }
-
-            unlockTransferQueue(&l_Key, "transferWorker - End work item");
+            wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - End work item");
         }
         catch(ExceptionBailout& e)
         {
@@ -2105,6 +2117,7 @@ void* transferWorker(void* ptr)
             //  NOTE:  unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
             //         while it held the mutex.
             unlockTransferQueueIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
+            wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
         }
         catch(exception& e)
         {
@@ -2120,6 +2133,7 @@ void* transferWorker(void* ptr)
             //  NOTE:  unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
             //         while it held the mutex.
             unlockTransferQueueIfNeeded(&l_Key, "transferWorker - General exception handler");
+            wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - General exception handler");
         }
     }
 
@@ -3001,9 +3015,7 @@ void startTransferThreads()
 
     // Post to the semaphore so that the threads start looking
     // for async requests
-    lockTransferQueue((LVKey*)0, "startTransferThreads");
     wrkqmgr.post();
-    unlockTransferQueue((LVKey*)0, "startTransferThreads");
 
     return;
 }
