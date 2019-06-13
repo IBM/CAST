@@ -221,6 +221,8 @@ void* mainThread(void* ptr)
         rc=set_bb_nvmecliPath(config.get("bb.nvmecliPath", "/usr/sbin/nvme"));
 #ifdef BBSERVER
         rc=set_bb_nvmfConnectPath(config.get("bb.nvmfConnectPath", "/opt/ibm/bb/scripts/nvmfConnect.sh"));
+        extern void findSerials(void);
+        findSerials();
 #endif
         rc = setupNodeController(who);
         if(!rc)
