@@ -1,0 +1,17 @@
+.. _CAST1.6.0:
+
+Release 1.6.0
+=============
+
+:GitHub Tag:
+
+CSM APIs
+########
+
+* The API ``csm_ib_cable_query`` has been updated to take on a search by filtering theme. It will now return all ib cables by default, and filter results based off of additional input the user provides. 
+* UFM guids are now more uniformly represented across CSM. As a result some APIs were updated to 
+  conform to these new standards.
+* Some updates to UFM restAPIs caused CSM APIs to crash inbetween CSM 1.5.0 and CSM 1.6.0. These issues
+  were resolved in CSM 1.5.x patch updates and are included in the main release of CSM 1.6.0.
+* UFM updates required changes to CSM Database tables. As such, some changes to CSM APIs related to these
+  tables needed to be updated and now require CSM DB 18.0 to function correctly. 

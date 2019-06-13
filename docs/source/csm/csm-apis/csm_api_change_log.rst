@@ -4,13 +4,127 @@ Change Log
 .. contents::
    :local:
 
+1.6.0
+-----
+
+The following document has been automatically generated to act as a change log for CSM version 1.6.0.
+
+Enum Types
+~~~~~~~~~~
+
+Struct Types
+~~~~~~~~~~~~
+
+Workload Management
+^^^^^^^^^^^^^^^^^^^
+
+csmi_allocation_t
+#################
+
+**Added 1**
+
+  * csm_bool core_blink
+
+csmi_allocation_mcast_context_t
+###############################
+
+**Added 1**
+
+  * csm_bool core_blink
+
+csmi_allocation_mcast_payload_request_t
+#######################################
+
+**Added 1**
+
+  * csm_bool core_blink
+
+
+Burst Buffer 
+^^^^^^^^^^^^
+
+csm_bb_lv_delete_input_t
+########################
+
+**New Data Type**
+
+  * int64_t allocation_id 
+  * int64_t num_bytes_read 
+  * int64_t num_bytes_written 
+  * char* logical_volume_name 
+  * char* node_name 
+  * int64_t num_reads 
+  * int64_t num_writes
+
+
+Inventory 
+^^^^^^^^^
+
+csmi_switch_inventory_record_t
+##############################
+
+**New Data Type**
+
+  * char* name 
+  * char* host_system_guid 
+  * char* discovery_time 
+  * char* collection_time 
+  * char* comment 
+  * char* description 
+  * char* device_name 
+  * char* device_type 
+  * char* hw_version 
+  * int32_t max_ib_ports 
+  * int32_t module_index 
+  * int32_t number_of_chips 
+  * char* path 
+  * char* serial_number 
+  * char* severity 
+  * char* status 
+  * char* type 
+  * char* fw_version
+
+csm_ib_cable_query_input_t
+##########################
+
+**New Data Type**
+
+  * int32_t limit 
+  * int32_t offset 
+  * uint32_t serial_numbers_count 
+  * char** serial_numbers 
+  * uint32_t comments_count 
+  * char** comments 
+  * uint32_t guids_count 
+  * char** guids 
+  * uint32_t identifiers_count 
+  * char** identifiers 
+  * uint32_t lengths_count 
+  * char** lengths 
+  * uint32_t names_count 
+  * char** names 
+  * uint32_t part_numbers_count 
+  * char** part_numbers 
+  * uint32_t ports_count 
+  * char** ports 
+  * uint32_t revisions_count 
+  * char** revisions 
+  * uint32_t severities_count 
+  * char** severities 
+  * uint32_t types_count 
+  * char** types 
+  * uint32_t widths_count 
+  * char** widths 
+  * char order_by
+
+
 
 1.4.0
 -----
 The following document has been automatically generated to act as a change log for CSM version 1.4.0.
 
 Enum Types
-__________
+~~~~~~~~~~
 
 Workload Management 
 ^^^^^^^^^^^^^^^^^^^
@@ -56,7 +170,7 @@ csmi_node_state_t
 
 
 Struct Types
-____________
+~~~~~~~~~~~~
 
 Workload Management 
 ^^^^^^^^^^^^^^^^^^^
