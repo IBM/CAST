@@ -289,6 +289,21 @@ void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
     return;
 }
 
+int unlockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (localMetadataIsLocked())
+    {
+        unlockLocalMetadata(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
+}
+
 void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1792,6 +1807,10 @@ void* transferWorker(void* ptr)
         wrkqmgr.wait();
 
         lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
+
+        // NOTE:  Indicate critical section of code where the transfer queue
+        //        lock CANNOT be released until after we pop off a work item
+        //        from a work queue.
         wrkqmgr.setIssuingWorkItem(1);
 
         try
@@ -1812,16 +1831,20 @@ void* transferWorker(void* ptr)
             bool l_WorkRemains = true;
             if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
             {
+                // Work was returned
                 if (l_WrkQE)
                 {
-                    // Get the LVKey for this work item...
-                    l_Key = (l_WrkQE->getWrkQ()->front()).getLVKey();
-                    if (l_WrkQE != HPWrkQE)
+                    // Workqueue entry returned
+                    if (l_WrkQE->getWrkQ_Size())
                     {
-                        // An LVKey work queue was returned
-                        if (l_WrkQE->getWrkQ_Size())
+                        // Entries exist on the work queue
+                        if (l_WrkQE != HPWrkQE)
                         {
-                            // Workqueue entries exist...
+                            // A work queue associated with an LVKey was returned
+                            //
+                            // Retrieve the LVKey, WorkID, and BBLV_Info*
+                            // from the next item of work from the returned queue...
+                            l_Key = (l_WrkQE->getWrkQ()->front()).getLVKey();
                             l_WorkItem = l_WrkQE->getWrkQ()->front();
                             l_LV_Info = l_WorkItem.getLV_Info();
                             if (l_LV_Info)
@@ -1837,7 +1860,13 @@ void* transferWorker(void* ptr)
                                 wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
                                 if (l_ThreadDelay > 0 && (!l_Extent->isCanceled()))
                                 {
+                                    // Indicate transfer queue lock can be released.
+                                    // NOTE: Once we delay, we will fall through and find
+                                    //       work again, so we can release the lock as we
+                                    //       won't be popping off any work from the queue
+                                    //       in this path.
                                     wrkqmgr.setIssuingWorkItem(0);
+
                                     if (!l_WrkQE->transferThreadIsDelaying)
                                     {
                                         // Delay specified and not for a canceled extent...
@@ -1886,14 +1915,14 @@ void* transferWorker(void* ptr)
                         }
                         else
                         {
-                            errorText << "Error occurred in transferExtent() when processing a work queue with no entries";
-                            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_2);
+                            // The high priority work queue was returned
+                            l_WrkQ = l_WrkQE->getWrkQ();
                         }
                     }
                     else
                     {
-                        // The high priority work queue was returned
-                        l_WrkQ = l_WrkQE->getWrkQ();
+                        errorText << "Error occurred in transferExtent() when processing a work queue with no entries";
+                        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_2);
                     }
                 }
                 else
@@ -1904,11 +1933,10 @@ void* transferWorker(void* ptr)
 
                 //  NOTE:  When we get here, l_WrkQ addresses a workqueue with one or more extents
                 //         left to transfer -or- the high priority work queue.
+                //
                 //         If l_WrkQ is not set, we either were not handed back a work queue,
                 //         or a work queue with no entries (both unlikely), or we had a throttle delay
-                //         (very likely).
-                //
-                //         Simply, fall out, and find more work...
+                //         (very likely).  If this is the case, simply fall out, and attempt to find more work...
                 if (l_WrkQ)
                 {
                     bool l_ProcessNextWorkItem = true;
@@ -1944,6 +1972,8 @@ void* transferWorker(void* ptr)
                         //       successfully processed by transferExtent() or not.
                         l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
                         wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+
+                        // Indicate transfer queue lock can be released
                         wrkqmgr.setIssuingWorkItem(0);
 
                         // Clear bberror...
@@ -1986,18 +2016,25 @@ void* transferWorker(void* ptr)
                             l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
                             l_WorkRemains = false;
                         }
+
+                        // Indicate transfer queue lock can be released
                         wrkqmgr.setIssuingWorkItem(0);
                     }
                     LOG(bb,debug) << "End: Previous current work item";
                 }
                 else
                 {
+                    // Indicate transfer queue lock can be released
                     wrkqmgr.setIssuingWorkItem(0);
                 }
             }
             else
             {
+                // No work was returned
+                //
+                // Indicate transfer queue lock can be released
                 wrkqmgr.setIssuingWorkItem(0);
+
                 l_WorkRemains = false;
             }
 
@@ -3333,6 +3370,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
                 //       \todo - What to do???  @DLH
                 uint32_t i = 0;
+                int l_DelayMsgLogged = 0;
                 size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                 while (l_CurrentNumberOfInFlightExtents)
                 {
@@ -3347,6 +3385,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
                         l_LV_Info->getExtentInfo()->dumpInFlight("info");
                         l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
+                        l_DelayMsgLogged = 1;
                     }
                     unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
@@ -3356,6 +3395,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                     l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
+                }
+
+                if (l_DelayMsgLogged)
+                {
+                     LOG(bb,info) << ">>>>> RESUME <<<<< stageoutEnd(): In-flight queue now clear.";
                 }
 
                 // Now, process the remaining extents for this jobid

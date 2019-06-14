@@ -114,6 +114,11 @@ extern void switchIdsToMountPoint(txp::Msg* pMsg);
 
 extern void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
 
+// Use this method to unlock the local metadata if it is possible that this thread
+// may not own the lock.  The return value indicates whether the lock needed to
+// be released and was released.
+extern int unlockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod);
+
 // Use this method to unlock the transfer queue if it is known that this thread
 // already owns the lock.
 extern void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod);
@@ -121,6 +126,6 @@ extern void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 // Use this method to unlock the transfer queue if it is possible that this thread
 // may not own the lock.  The return value indicates whether the lock needed to
 // be released and was released.
-//extern int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
+extern int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
 
 #endif /* BB_XFER_H_ */

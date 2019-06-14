@@ -482,9 +482,10 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
             //       be suspended, so no new extents should start processing when we release/re-acquire
             //       the lock below...
             uint32_t i = 0;
+            int l_DelayMsgLogged = 0;
             while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId))
             {
-                unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+                unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for in-flight queue to clear");
                 {
                     pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
                     // NOTE: Currently set to send info to console after 3 seconds of not being able to clear, and every 10 seconds thereafter...
@@ -495,10 +496,17 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
                         LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
                                      << ", contribid " << l_ContribId;
                         pLV_Info->getExtentInfo()->dumpInFlight("info");
+                        l_DelayMsgLogged = 1;
                     }
                     usleep((useconds_t)250000);
                 }
-                lockLocalMetadata(pLVKey, "stopTransfer - Waiting for inflight queue to clear");
+                lockLocalMetadata(pLVKey, "stopTransfer - Waiting for in-flight queue to clear");
+            }
+
+            if (l_DelayMsgLogged)
+            {
+                LOG(bb,info) << ">>>>> RESUME <<<<< stopTransfer(): In-flight queue now clear of extents for handle " << pHandle \
+                             << ", contribid " << l_ContribId;
             }
 
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));

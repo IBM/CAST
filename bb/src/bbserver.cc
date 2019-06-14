@@ -1973,8 +1973,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     if (l_TransferPtr->builtViaRetrieveTransferDefinition())
                                     {
                                         // Restart case...
-                                        lockLocalMetadata(&l_LVKey, "msgin_starttransfer - Restart metadata setup");
-
                                         // First ensure that this transfer definition is marked as stopped in the cross bbServer metadata
                                         int l_Attempts = 1;
                                         bool l_AllDone2 = false;
@@ -2207,7 +2205,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                                 }
                                             }
                                         }
-                                        unlockLocalMetadata(&l_LVKey, "msgin_starttransfer - Restart metadata setup");
                                     }
 
                                     if (!rc)
