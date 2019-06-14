@@ -20,18 +20,16 @@ CAST is comprised of several open source components:
 
 **Burst Buffer**
 
-A cost-effective mechanism that can improve I/O performance for a large class of high-performance 
-computing applications without requirement of intermediary hardware. Burst Buffer provides:
+The Burst Buffer is an I/O data caching technology which can improve I/O performance for a large class of high-performance 
+computing applications without requirement of intermediary hardware. 
+
+Burst Buffer provides:
 
  * A fast storage tier between compute nodes and the traditional parallel file system
  * Overlapping job stage-in and stage-out of data for checkpoint and restart
  * Scratch volumes
  * Extended memory I/O workloads
-
-
-**Function Shipping**
-
-A file I/O forwarding layer for Linux that aims to provide low-jitter access to remote parallel file system while retaining common POSIX semantics.
+ * Usage and SSD endurance monitoring
 
 
 Table of Contents
