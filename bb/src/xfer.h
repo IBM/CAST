@@ -29,6 +29,8 @@ extern pthread_mutex_t lock_metadata;
 
 extern string l_LockDebugLevel;
 
+extern thread_local WRKQE* CurrentWrkQE;
+
 
 /*******************************************************************************
  | Constants
@@ -89,6 +91,8 @@ extern void lockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 // already owns the lock.  The return value indicates whether the lock needed to
 // be obtained and was obtained.
 extern int lockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
+
+extern int transferQueueIsLocked();
 
 extern void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId);
 

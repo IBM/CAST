@@ -452,7 +452,10 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
     addReply(msg, response);
 
+    CurrentWrkQE = (WRKQE*)0;
+
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+
     return;
 }
 #undef DELAY_SECONDS
@@ -817,6 +820,8 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName,response);
     delete response;
+
+    CurrentWrkQE = (WRKQE*)0;
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
@@ -1283,6 +1288,8 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
 
     addReply(msg, response);
 
+    CurrentWrkQE = (WRKQE*)0;
+
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
@@ -1327,6 +1334,8 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
+
+    CurrentWrkQE = (WRKQE*)0;
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
@@ -1595,7 +1604,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     LVKey l_LVKey;
     LVKey l_LVKey2;
-    WRKQE* l_WrkQE = 0;
     BBLV_Info* l_LV_Info = 0;
     BBTagInfo* l_TagInfo = 0;
     BBTagID l_TagId;
@@ -1734,8 +1742,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                         rc = -1;
                         while (rc && l_Continue--)
                         {
-                            rc = wrkqmgr.getWrkQE(&l_LVKey2, l_WrkQE);
-                            if (rc || (!l_WrkQE))
+                            rc = wrkqmgr.getWrkQE(&l_LVKey2, CurrentWrkQE);
+                            if (rc || (!CurrentWrkQE))
                             {
                                 unlockLocalMetadata(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
                                 {
@@ -2508,6 +2516,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     delete response;
 
     // Clean up...
+    CurrentWrkQE = (WRKQE*)0;
     if (l_ContribIdFile)
     {
         delete l_ContribIdFile;
@@ -2631,6 +2640,8 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     // Send the response
     sendMessage(pConnectionName,response);
     delete response;
+
+    CurrentWrkQE = (WRKQE*)0;
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();

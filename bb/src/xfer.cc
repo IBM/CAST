@@ -42,6 +42,7 @@ namespace bs  = boost::system;
 #include "bbserver_flightlog.h"
 #include "BBTagID.h"
 #include "BBTransferDef.h"
+#include "bbwrkqe.h"
 #include "bbwrkqmgr.h"
 #include "BBTagID.h"
 #include "BBTagInfo.h"
@@ -61,7 +62,6 @@ namespace bs  = boost::system;
  */
 
 // Control elements for wrkqmgr
-pthread_mutex_t lock_transferqueue = PTHREAD_MUTEX_INITIALIZER;
 sem_t sem_workqueue;
 size_t  transferBufferSize   = 0;
 pthread_once_t startThreadsControl = PTHREAD_ONCE_INIT;
@@ -76,9 +76,13 @@ FL_SetSize(FLXfer, 16384)
 FL_SetName(FLDelay, "Server Delay Flightlog")
 FL_SetSize(FLDelay, 16384)
 
+FL_SetName(FLWrkQMgr, "WrkQMgr Flightlog")
+FL_SetSize(FLWrkQMgr, 16384)
+
 // Control elements for metadata
 pthread_mutex_t lock_metadata = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t metadataLocked = 0;
+thread_local WRKQE* CurrentWrkQE = 0;
 
 LVKey LVKey_Null = LVKey();
 string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
@@ -88,29 +92,33 @@ string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
  *
  *  P       <------ Combinations ------>
  *  R
- *  I           +--- Requires LM lock
- *  O           |
- *  R   L       |       +--- Requires LM lock
- *  I   O       |       |
- *  T   C       |       |
- *  Y   K       V       V
- *  _________________________________________
+ *  I           +--- Requires LM lock                                       If the work queue manager
+ *  O           |                                                           lock is held, only the
+ *  R   L       |       +--- Requires LM lock                               transfer queue lock can be
+ *  I   O       |       |                                                   acquired/released
+ *  T   C       |       |                       +-------+---+---+---+---+---
+ *  Y   K       V       V                       V       V   V   V   V   V
+ *  _____________________________________________________________________
  *
- *  1  LM   0   0   0   0   1   1   1   1
- *  2  TQ   0   0   1   1   0   0   1   1
- *  3  HF   0   1   0   1   0   1   0   1
+ *  1  QM   0   0   0   0   0   0   0   0   1   1   1   1   1   1   1   1
+ *  2  LM   0   0   0   0   1   1   1   1   0   0   0   0   1   1   1   1
+ *  3  TQ   0   0   1   1   0   0   1   1   0   0   1   1   0   0   1   1
+ *  4  HF   0   1   0   1   0   1   0   1   0   1   0   1   0   1   0   1
  *
- *          ^   ^   ^   ^   ^   ^   ^   ^
- *          |   |   |   |   |   |   |   |
- *          |       |       |   |   |   |
- *          |   I   |   I   |   |   |   |
- *              N       N
- *          V   V   V   V   V   V   V   V
- *          A   A   A   A   A   A   A   A
- *          L   L   L   L   L   L   L   L
- *          I   I   I   I   I   I   I   I
- *          D   D   D   D   D   D   D   D
+ *          ^   ^   ^   ^   ^   ^   ^   ^   ^   ^   ^   ^   ^   ^   ^   ^
+ *          |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+ *          |       |       |   |   |   |   |   |   |   |   |   |   |   |
+ *          |   I   |   I   |   |   |   |   |   I   |   I   I   I   I   I
+ *              N       N                       N       N   N   N   N   N
+ *          V   V   V   V   V   V   V   V   V   V   V   V   V   V   V   V
+ *          A   A   A   A   A   A   A   A   A   A   A   A   A   A   A   A
+ *          L   L   L   L   L   L   L   L   L   L   L   L   L   L   L   L
+ *          I   I   I   I   I   I   I   I   I   I   I   I   I   I   I   I
+ *          D   D   D   D   D   D   D   D   D   D   D   D   D   D   D   D
  *
+ *  QM - Work queue mgr lock -> serializes access to the work queues
+ *                                (Primarily transfer threads, but also worker threads for
+ *                                 create/remove logical volume, remove job information)
  *  LM - Local metadata lock -> serializes access to the local metadata
  *                                (Primarily worker threads, but also transfer threads for async requests)
  *  TQ - Transfer queue lock -> serializes access to the transfer queue(s)
@@ -120,6 +128,9 @@ string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
  *                                (Both transfer and worker threads)
  *
  *  Locks must be acquired in ascending priority order;  Released in descending priority order.
+ *
+ *  When the work queue manager lock is acquired, no other lock can be held.  When the work
+ *    queue manager lock is held, only the transfer queue lock can be acquired/released.
  *
  *  If the handle file lock is to be acquired, the local metadata lock must first be acquired.
  *  The rationale for this is as follows:
@@ -137,20 +148,29 @@ void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
     if (!localMetadataIsLocked())
     {
         // Verify lock protocol
-        if (handleFileLockFd != -1)
+        if (wrkqmgr.workQueueMgrIsLocked())
         {
-            FL_Write(FLError, lockPV_LMLock1, "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked",0,0,0,0);
-            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked";
+            FL_Write(FLError, lockPV_LMLock1, "xfer::lockLocalMetadata: Local metadata lock being obtained while the work queue manager is locked",0,0,0,0);
+            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the work queue manager is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm1)
 #if 0
             abort();
 #endif
         }
-        if (wrkqmgr.transferQueueIsLocked())
+        if (handleFileLockFd != -1)
         {
-            FL_Write(FLError, lockPV_LMLock2, "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked",0,0,0,0);
-            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked";
+            FL_Write(FLError, lockPV_LMLock2, "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked",0,0,0,0);
+            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm2)
+#if 0
+            abort();
+#endif
+        }
+        if (transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_LMLock3, "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked",0,0,0,0);
+            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm3)
 #if 0
             abort();
 #endif
@@ -227,20 +247,29 @@ void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
     if (localMetadataIsLocked())
     {
         // Verify lock protocol
-        if (handleFileLockFd != -1)
+        if (wrkqmgr.workQueueMgrIsLocked())
         {
-            FL_Write(FLError, lockPV_LMUnlock1, "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked",0,0,0,0);
-            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked";
+            FL_Write(FLError, lockPV_LMUnlock1, "xfer::unlockLocalMetadata: Local metadata lock being released while the work queue manager is locked",0,0,0,0);
+            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the work queue manager is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm1)
 #if 0
             abort();
 #endif
         }
-        if (wrkqmgr.transferQueueIsLocked())
+        if (handleFileLockFd != -1)
         {
-            FL_Write(FLError, lockPV_LMUnlock2, "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked",0,0,0,0);
-            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked";
+            FL_Write(FLError, lockPV_LMUnlock2, "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked",0,0,0,0);
+            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm2)
+#if 0
+            abort();
+#endif
+        }
+        if (transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_LMUnlock3, "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked",0,0,0,0);
+            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm3)
 #if 0
             abort();
 #endif
@@ -308,7 +337,21 @@ void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
-    wrkqmgr.lock(pLVKey, pMethod);
+    stringstream errorText;
+
+    if (CurrentWrkQE)
+    {
+        CurrentWrkQE->lock(pLVKey, pMethod);
+    }
+    else
+    {
+        FL_Write(FLError, lockNCWQE, "lockTransferQueue: No current work queue entry",0,0,0,0);
+        errorText << "lockTransferQueue: No current work queue entry";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockncwqe)
+#if 0
+        abort();
+#endif
+    }
 
     EXIT(__FILE__,__FUNCTION__);
     return;
@@ -318,11 +361,16 @@ int lockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
+    stringstream errorText;
+
     int rc = 0;
-    if (!wrkqmgr.transferQueueIsLocked())
+    if (CurrentWrkQE)
     {
-        lockTransferQueue(pLVKey, pMethod);
-        rc = 1;
+        if (!CurrentWrkQE->transferQueueIsLocked())
+        {
+            lockTransferQueue(pLVKey, pMethod);
+            rc = 1;
+        }
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -333,7 +381,21 @@ void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
-    wrkqmgr.unlock(pLVKey, pMethod);
+    stringstream errorText;
+
+    if (CurrentWrkQE)
+    {
+        CurrentWrkQE->unlock(pLVKey, pMethod);
+    }
+    else
+    {
+        FL_Write(FLError, unlockNCWQE, "unlockTransferQueue: No current work queue entry",0,0,0,0);
+        errorText << "unlockTransferQueue: No current work queue entry";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockncwqe)
+#if 0
+        abort();
+#endif
+    }
 
     EXIT(__FILE__,__FUNCTION__);
     return;
@@ -343,32 +405,60 @@ int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
+    stringstream errorText;
+
     int rc = 0;
-    if (wrkqmgr.transferQueueIsLocked())
+    if (CurrentWrkQE)
     {
-        unlockTransferQueue(pLVKey, pMethod);
-        rc = 1;
+        if (CurrentWrkQE->transferQueueIsLocked())
+        {
+            unlockTransferQueue(pLVKey, pMethod);
+            rc = 1;
+        }
     }
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
 
-void pinTransferQueueLock(const LVKey* pLVKey, const char* pMethod)
+int transferQueueIsLocked()
 {
     ENTRY(__FILE__,__FUNCTION__);
 
-    wrkqmgr.pinLock(pLVKey, pMethod);
+    stringstream errorText;
+    int rc = 0;
+
+    if (CurrentWrkQE)
+    {
+        rc = CurrentWrkQE->transferQueueIsLocked();
+    }
 
     EXIT(__FILE__,__FUNCTION__);
-    return;
+    return rc;
 }
 
-void unpinTransferQueueLock(const LVKey* pLVKey, const char* pMethod)
+void issuingWorkItem(const int pValue)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
-    wrkqmgr.unpinLock(pLVKey, pMethod);
+    stringstream errorText;
+
+    if (CurrentWrkQE)
+    {
+        CurrentWrkQE->setIssuingWorkItem(pValue);
+    }
+    else
+    {
+        if (pValue)
+        {
+            FL_Write(FLError, IssueWI_NCWQE, "issuingWorkItem: No current work queue entry",0,0,0,0);
+            errorText << "issuingWorkItem: No current work queue entry";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.isswincwqe)
+#if 0
+            abort();
+#endif
+        }
+    }
 
     EXIT(__FILE__,__FUNCTION__);
     return;
@@ -1579,6 +1669,10 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
             pLV_Info->extentInfo.removeExtent(l_Extent);
             l_ExtentRemovedFromVectorOfExtents = true;
 
+            FL_Write6(FLWrkQMgr, AddInFlight, "Jobid %ld, tag %ld, handle %ld, contribid %ld, source index %ld, extent %p.",
+                      pWorkItem.getJob().getJobId(), (uint64_t)pWorkItem.getTag(), l_TagInfo->getTransferHandle(),
+                      (uint64_t)pExtentInfo.getContrib(), (uint64_t)pExtentInfo.getSourceIndex(), (uint64_t)l_Extent);
+
             // NOTE: The code below determines if an extent will be passed to doTransfer().  If this code
             //       is modified, the similar code in WRKQE::processBucket() should also be checked.  @DLH
             // NOTE: We do not have to consider the 'stopped' flag here, as those transfer definitions are
@@ -1804,6 +1898,8 @@ void* transferWorker(void* ptr)
         l_Extent = 0;
         l_Repost = true;
 
+        CurrentWrkQE = (WRKQE*)0;
+
         wrkqmgr.wait();
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
 
@@ -1812,7 +1908,7 @@ void* transferWorker(void* ptr)
             // First, check/process the throttle timer
             // NOTE: We perform this processing before we attempt to find work. Processing within
             //       checkThrottleTimer() requires that the transfer queue lock be dropped.
-            //       It cannot be dropped once setIssuingWorkItem(1).
+            //       It cannot be dropped once issuingWorkItem(1).
             wrkqmgr.checkThrottleTimer();
 
             // Find some work to do...
@@ -1833,13 +1929,14 @@ void* transferWorker(void* ptr)
                 // Work was returned
                 if (l_WrkQE)
                 {
+                    CurrentWrkQE = l_WrkQE;
                     lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
                     wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
 
                     // NOTE:  Indicate critical section of code where the transfer queue
                     //        lock CANNOT be released until after we pop off a work item
                     //        from a work queue.
-                    wrkqmgr.setIssuingWorkItem(1);
+                    issuingWorkItem(1);
 
                     // Workqueue entry returned
                     if (l_WrkQE->getWrkQ_Size())
@@ -1859,6 +1956,20 @@ void* transferWorker(void* ptr)
                                 l_TagId = l_WorkItem.getTagId();
                                 l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                                 l_Extent = l_ExtentInfo.getExtent();
+
+                                if (!l_WrkQE->getRate())
+                                {
+                                    FL_Write6(FLWrkQMgr, FindNext, "Jobid %ld, jobstepid %ld, tag %ld, work queue %p currently has %ld entries remaining.",
+                                              l_WorkItem.getJob().getJobId(), l_WorkItem.getJob().getJobStepId(), (uint64_t)l_WorkItem.getTag(), (uint64_t)l_WrkQE,
+                                              (uint64_t)l_WrkQE->getWrkQ()->size(), 0);
+                                }
+                                else
+                                {
+                                    FL_Write6(FLWrkQMgr, FindNextThrtld, "Jobid %ld, jobstepid %ld, tag %ld, work queue %p currently has %ld entries remaining. Throttle rate is %ld bytes/sec.",
+                                              l_WorkItem.getJob().getJobId(), l_WorkItem.getJob().getJobStepId(), (uint64_t)l_WorkItem.getTag(), (uint64_t)l_WrkQE,
+                                              (uint64_t)l_WrkQE->getWrkQ()->size(), (uint64_t)l_WrkQE->getRate());
+                                }
+
                                 l_ThreadDelay = 0;  // in micro-seconds
                                 l_TotalDelay = 0;   // in micro-seconds
                                 // NOTE: Even if this is for a canceled extent, we still want to process the throttle timer.
@@ -1872,7 +1983,7 @@ void* transferWorker(void* ptr)
                                     //       work again, so we can release the lock as we
                                     //       won't be popping off any work from the queue
                                     //       in this path.
-                                    wrkqmgr.setIssuingWorkItem(0);
+                                    issuingWorkItem(0);
 
                                     if (!l_WrkQE->transferThreadIsDelaying)
                                     {
@@ -1982,7 +2093,7 @@ void* transferWorker(void* ptr)
                         wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
 
                         // Indicate transfer queue lock can be released
-                        wrkqmgr.setIssuingWorkItem(0);
+                        issuingWorkItem(0);
 
                         // Clear bberror...
                         bberror.clear(l_WorkItem.getConnectionName());
@@ -2030,14 +2141,14 @@ void* transferWorker(void* ptr)
                         }
 
                         // Indicate transfer queue lock can be released
-                        wrkqmgr.setIssuingWorkItem(0);
+                        issuingWorkItem(0);
                     }
                     LOG(bb,debug) << "End: Previous current work item";
                 }
                 else
                 {
                     // Indicate transfer queue lock can be released
-                    wrkqmgr.setIssuingWorkItem(0);
+                    issuingWorkItem(0);
                 }
             }
             else
@@ -2045,7 +2156,7 @@ void* transferWorker(void* ptr)
                 // No work was returned
                 //
                 // Indicate transfer queue lock can be released
-                wrkqmgr.setIssuingWorkItem(0);
+                issuingWorkItem(0);
 
                 l_WorkRemains = false;
             }
@@ -2865,13 +2976,15 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                                  << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
                                                  << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
                                                  << " extents";
-                                    // If necessary, sort the extents...
-                                    rc = l_LV_Info->sortExtents(pLVKey);
-                                    if (!rc)
+                                    WRKQE* l_WrkQE = 0;
+                                    rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                    if ((!rc) && l_WrkQE)
                                     {
-                                        WRKQE* l_WrkQE = 0;
-                                        rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
-                                        if ((!rc) && l_WrkQE)
+                                        // NOTE: CurrentWrkQE must be set before sortExtents()
+                                        CurrentWrkQE = l_WrkQE;
+                                        // If necessary, sort the extents...
+                                        rc = l_LV_Info->sortExtents(pLVKey);
+                                        if (!rc)
                                         {
                                             l_WrkQE->dump("debug", "Before pushing work onto this queue ");
                                             bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
@@ -2901,12 +3014,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         }
                                         else
                                         {
-                                            // Work queue not found....
-                                            rc = -1;
-                                            errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                                      << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
+                                            // Sort failed
+                                            errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
                                             LOG_ERROR_TEXT_RC(errorText, rc);
-                                            wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                         }
 
                                         if (!rc)
@@ -2933,9 +3043,12 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     }
                                     else
                                     {
-                                        // Sort failed
-                                        errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
+                                        // Work queue not found....
+                                        rc = -1;
+                                        errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                                  << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
                                         LOG_ERROR_TEXT_RC(errorText, rc);
+                                        wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                     }
                                 }
                                 else
@@ -3355,75 +3468,62 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
         }
 
         if (!(l_LV_Info->stageOutEnded())) {
-
-            // ** NOT USED **
-            // In an attempt to make this stageoutEnd() processing look 'atomic' to other threads on THIS bbServer,
-            // we pin the transfer queue lock.  This means that the lock will be held throughout the following
-            // processing without the lock being dropped.  This means that we WILL NOT open up any processing
-            // windows for other transfer threads to perform work until this processing is complete.
-            //
-            // \todo - Not sure about this strategy long-term, and it does not solve all of the potential issues
-            //         with concurrent stageout end and remove logical volume(?) issues across bbServers
-            //         (i.e., multiple requests come concurrently from different bbProxies to different bbServers,
-            //          and all processed concurrently).
-            //         But, this is a potential solution for a given bbServer...    @DLH
-            // ** NOT USED **
-
-//            pinTransferQueueLock(pLVKey, "stageoutEnd");
-            lockTransferQueue((LVKey*)0, "stageoutEnd");
-
+            // Stageout end not started
             try
             {
-                // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
-                //        Doing so will ensure that such extents are not actually transferred.
-                l_LV_Info->setStageOutEnded(pLVKey, l_LV_Info->getJobId());
-
-                // Next, wait for all in-flight I/O to complete
-                // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
-                //       \todo - What to do???  @DLH
-                uint32_t i = 0;
-                int l_DelayMsgLogged = 0;
-                size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
-                while (l_CurrentNumberOfInFlightExtents)
+                int rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                if ((!rc2) && l_WrkQE)
                 {
-                    LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << *pLVKey;
-                    // Source file for extent being inspected has NOT been closed.
-                    // Delay a bit for it to clear the in-flight queue and be closed...
-                    // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 12)
+                    CurrentWrkQE = l_WrkQE;
+                    l_WrkQ = l_WrkQE->getWrkQ();
+                    lockTransferQueue((LVKey*)0, "stageoutEnd");
+
+                    // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
+                    //        Doing so will ensure that such extents are not actually transferred.
+                    l_LV_Info->setStageOutEnded(pLVKey, l_LV_Info->getJobId());
+
+                    // Next, wait for all in-flight I/O to complete
+                    // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
+                    //       \todo - What to do???  @DLH
+                    uint32_t i = 0;
+                    int l_DelayMsgLogged = 0;
+                    size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
+                    while (l_CurrentNumberOfInFlightExtents)
                     {
-                        FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
-                                 (uint64_t)l_CurrentNumberOfInFlightExtents, (uint64_t)l_LV_Info->getJobId(), 0, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
-                        l_LV_Info->getExtentInfo()->dumpInFlight("info");
-                        l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
-                        l_DelayMsgLogged = 1;
+                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << *pLVKey;
+                        // Source file for extent being inspected has NOT been closed.
+                        // Delay a bit for it to clear the in-flight queue and be closed...
+                        // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
+                        if ((i++ % 40) == 12)
+                        {
+                            FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
+                                     (uint64_t)l_CurrentNumberOfInFlightExtents, (uint64_t)l_LV_Info->getJobId(), 0, 0);
+                            LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
+                            l_LV_Info->getExtentInfo()->dumpInFlight("info");
+                            l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
+                            l_DelayMsgLogged = 1;
+                        }
+                        unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        {
+                            usleep((useconds_t)250000);
+                        }
+                        lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                     }
-                    unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                    unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+
+                    if (l_DelayMsgLogged)
                     {
-                        usleep((useconds_t)250000);
+                         LOG(bb,info) << ">>>>> RESUME <<<<< stageoutEnd(): In-flight queue now clear.";
                     }
-                    lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                    lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                    l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
-                }
 
-                if (l_DelayMsgLogged)
-                {
-                     LOG(bb,info) << ">>>>> RESUME <<<<< stageoutEnd(): In-flight queue now clear.";
-                }
+                    // Now, process the remaining extents for this jobid
+                    size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
+                    if (l_CurrentNumberOfExtents) {
+                        // Extents still left to be transferred...
+                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
 
-                // Now, process the remaining extents for this jobid
-                size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
-                if (l_CurrentNumberOfExtents) {
-                    // Extents still left to be transferred...
-                    LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
-
-                    int rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
-                    if ((!rc2) && l_WrkQE)
-                    {
-                        l_WrkQ = l_WrkQE->getWrkQ();
                         WorkID l_WorkId;
                         queue<WorkID> l_Temp;
                         queue<WorkID> l_Temp2;
@@ -3520,16 +3620,18 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             }
                         }
                     }
-                    else
-                    {
-                        // Do not set rc...  Plow ahead...
-                        LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << *pLVKey;
-                    }
+                }
+                else
+                {
+                    // Do not set rc...  Plow ahead...
+                    LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << *pLVKey;
                 }
 
                 LOG(bb,debug) << "Stageout: Ended:   " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
 
                 // Remove the work queue
+                // NOTE: Since the work queue will be deleted by rmvWrkQ(),
+                //       the work queue lock is removed by that method.
                 rc = wrkqmgr.rmvWrkQ(pLVKey);
                 if (rc)
                 {
@@ -3554,11 +3656,9 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             {
                 LOG(bb,error) << "stageoutEnd(): Exception thrown: " << e.what();
             }
-
-            unlockTransferQueue((LVKey*)0, "stageoutEnd");
-//            unpinTransferQueueLock(pLVKey, "stageoutEnd");
-
-        } else {
+        }
+        else
+        {
             // Stageout end was already received...
             rc = -2;
             if (!(l_LV_Info->stageOutEndedComplete())) {
@@ -3569,7 +3669,9 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 LOG_INFO_TEXT_RC(errorText, rc);
             }
         }
-    } else {
+    }
+    else
+    {
         // LVKey could not be found in taginfo2...
         rc = -2;
         errorText << "Stageout end was received, but no transfer handles can be found for " << *pLVKey << ". Cleanup of metadata not required.";

@@ -953,12 +953,12 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                             if (l_LockDebugLevel == "info")
                             {
                                 LOG(bb,info) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
-                                             << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                                             << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
                             }
                             else
                             {
                                 LOG(bb,debug) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
-                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
                             }
                             *pLockFeedback = HANDLEFILE_WAS_LOCKED;
                         }
@@ -1007,11 +1007,20 @@ int HandleFile::lock(const char* pFilePath)
     snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
 
     // Verify lock protocol
+    if (wrkqmgr.workQueueMgrIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFLock1, "HandleFile::lock: Attempting to lock a handle file while the work queue manager lock is held",0,0,0,0);
+        errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the work queue manager lock is held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf1)
+#if 0
+        abort();
+#endif
+    }
     if (!localMetadataIsLocked())
     {
-        FL_Write(FLError, lockPV_HFLock, "HandleFile::lock: Attempting to lock a handle file while the metadata lock is not held",0,0,0,0);
+        FL_Write(FLError, lockPV_HFLock2, "HandleFile::lock: Attempting to lock a handle file while the metadata lock is not held",0,0,0,0);
         errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the metadata lock is not held";
-        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf)
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf2)
 #if 0
         abort();
 #endif
@@ -1307,11 +1316,20 @@ void HandleFile::unlock(const int pFd)
     stringstream errorText;
 
     // Verify lock protocol
+    if (wrkqmgr.workQueueMgrIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFUnlock1, "HandleFile::unlock: Attempting to lock a handle file while the work queue manager lock is held",0,0,0,0);
+        errorText << "HandleFile::lock: Attempting to unlock the handle file with fd " << pFd << " while the work queue manager lock is held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf1)
+#if 0
+        abort();
+#endif
+    }
     if (!localMetadataIsLocked())
     {
-        FL_Write(FLError, lockPV_HFUnlock, "HandleFile::unlock: Attempting to unlock a handle file while the metadata lock is not held",0,0,0,0);
+        FL_Write(FLError, lockPV_HFUnlock2, "HandleFile::unlock: Attempting to unlock a handle file while the metadata lock is not held",0,0,0,0);
         errorText << "HandleFile::unlock: Attempting to unlock the handle file with fd " << pFd << " while the metadata lock is not held";
-        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf)
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf2)
 #if 0
         abort();
 #endif
@@ -1339,12 +1357,12 @@ void HandleFile::unlock(const int pFd)
                 if (l_LockDebugLevel == "info")
                 {
                     LOG(bb,info) << "<<<<<<<<<< Handle file fd " << pFd \
-                                 << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                                 << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
                 }
                 else
                 {
                     LOG(bb,debug) << "<<<<<<<<<< Handle file fd " << pFd \
-                                  << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << wrkqmgr.transferQueueIsLocked();
+                                  << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
                 }
             }
             else
