@@ -1980,18 +1980,6 @@ void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
 
     if (workQueueMgrIsLocked())
     {
-#if 0
-        // Verify lock protocol
-        if (issuingWorkItem)
-        {
-            FL_Write(FLError, lockPV_TQUnlock2, "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
-            errorText << "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
-#if 0
-            abort();
-#endif
-        }
-#endif
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
         FL_Write(FLMutex, unlockWrkQMgr, "unlockWorkQueueMgr.  threadid=%ld",tid,0,0,0);
 

@@ -113,6 +113,11 @@ class WRKQE
         return dumpOnRemoveWorkItem;
     };
 
+    inline int getIssuingWorkItem()
+    {
+        return issuingWorkItem;
+    }
+
     inline int64_t getJobId()
     {
         return jobid;
