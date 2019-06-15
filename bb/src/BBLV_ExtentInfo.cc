@@ -547,6 +547,11 @@ void BBLV_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExten
             minTrimAnchorExtent = *l_Extent;
         }
         inflight.erase(l_Key);
+
+        FL_Write6(FLWrkQMgr, RmvInFlight, "Jobid %ld, handle %ld, contribid %ld, source index %ld, extent %p, in-flight depth %ld.",
+                  pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getHandle(), (uint64_t)pExtentInfo.getContrib(),
+                  (uint64_t)pExtentInfo.getSourceIndex(), (uint64_t)pExtentInfo.getExtent(), (uint64_t)inflight.size());
+
         LOG(bb,debug)  << "Remove from inflight: tdef: " << hex << uppercase << setfill('0') \
                        << pExtentInfo.getTransferDef() << ", lba.maxkey: 0x" << pExtentInfo.getExtent()->lba.maxkey \
                        << setfill(' ') << nouppercase << dec \

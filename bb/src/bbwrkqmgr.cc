@@ -13,7 +13,6 @@
 
 #include <boost/filesystem.hpp>
 #include <sys/stat.h>
-#include <sys/syscall.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -1360,78 +1359,6 @@ void WRKQMGR::loadBuckets()
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
-{
-    stringstream errorText;
-
-    if (!transferQueueIsLocked())
-    {
-        // NOTE: We must obtain the lock before we verify the lock protocol.
-        //       Otherwise, the issuingWorkItem check will fail...
-        pthread_mutex_lock(&lock_transferqueue);
-        transferQueueLocked = pthread_self();
-
-        // Verify lock protocol
-        if (issuingWorkItem)
-        {
-            FL_Write(FLError, lockPV_TQLock, "WRKQMGR::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
-            errorText << "WRKQMGR::lock: Transfer queue lock being obtained while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
-#if 0
-            abort();
-#endif
-        }
-
-        if (strstr(pMethod, "%") == NULL)
-        {
-            if (l_LockDebugLevel == "info")
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
-                }
-            }
-            else
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
-                }
-            }
-        }
-
-        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, lockTransferQ, "lockTransfer.  threadid=%ld",tid,0,0,0);
-    }
-    else
-    {
-        if (lockPinned)
-        {
-            // The lock is already owned, but the lock is pinned...  So, all OK...
-            LOG(bb,debug) << "TRNFR_Q: Request made to lock the transfer queue by " << pMethod << ", but the lock is already pinned.";
-        }
-        else
-        {
-            FL_Write(FLError, lockTransferQERROR, "lockTransferQueue called when lock already owned by thread",0,0,0,0);
-            flightlog_Backtrace(__LINE__);
-            // For now, also to the console...
-            LOG(bb,error) << "TRNFR_Q: Request made to lock the transfer queue by " << pMethod << ", but the lock is already owned.";
-            logBacktrace();
-        }
-    }
-
-    return;
-}
-
-// NOTE: pLVKey is not currently used, but can come in as null.
 void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
 {
     stringstream errorText;
@@ -1440,14 +1367,17 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
     {
 #if 1
         // Verify lock protocol
-        if (transferQueueIsLocked())
+        if (CurrentWrkQE)
         {
-            FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
-            errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm)
+            if (CurrentWrkQE->transferQueueIsLocked())
+            {
+                FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
+                errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm)
 #if 0
-            abort();
+                abort();
 #endif
+            }
         }
 #endif
         pthread_mutex_lock(&lock_workQueueMgr);
@@ -1688,50 +1618,6 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
     return l_FilePtr;
 }
 
-// NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
-{
-    if(transferQueueIsLocked())
-    {
-        if (!lockPinned)
-        {
-            lockPinned = 1;
-            if (l_LockDebugLevel == "info")
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", unknown LVKey";
-                }
-            }
-            else
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", unknown LVKey";
-                }
-            }
-        }
-        else
-        {
-            LOG(bb,error) << "TRNFR_Q:   Request made to pin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the pin is already in place.";
-        }
-    }
-    else
-    {
-        LOG(bb,error) << "TRNFR_Q:   Request made to pin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the lock is not held.";
-    }
-
-    return;
-}
-
 void WRKQMGR::post()
 {
     int l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post");
@@ -1887,7 +1773,8 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
     lockWorkQueueMgr(pLVKey, "rmvWrkQ");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
@@ -1932,10 +1819,12 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
-    if (l_TransferQueueUnlocked)
+    if (l_LocalMetadataUnlocked)
     {
-        lockTransferQueueIfNeeded(pLVKey, "rmvWrkQ");
+        lockLocalMetadata(pLVKey, "rmvWrkQ");
     }
+
+    // NOTE: We just deleted the work queue, so no need to re-acquire the work queue lock
 
     return rc;
 }
@@ -2085,75 +1974,6 @@ int WRKQMGR::startProcessingHP_Request(AsyncRequest& pRequest)
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::unlock(const LVKey* pLVKey, const char* pMethod)
-{
-    stringstream errorText;
-
-    if (transferQueueIsLocked())
-    {
-        if (!lockPinned)
-        {
-            // Verify lock protocol
-            if (issuingWorkItem)
-            {
-                FL_Write(FLError, lockPV_TQUnlock, "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
-                errorText << "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
-#if 0
-                abort();
-#endif
-            }
-
-            pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-            FL_Write(FLMutex, unlockTransferQ, "unlockTransfer.  threadid=%ld",tid,0,0,0);
-
-            if (strstr(pMethod, "%") == NULL)
-            {
-                if (l_LockDebugLevel == "info")
-                {
-                    if (pLVKey)
-                    {
-                        LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
-                    }
-                    else
-                    {
-                        LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
-                    }
-                }
-                else
-                {
-                    if (pLVKey)
-                    {
-                        LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
-                    }
-                    else
-                    {
-                        LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
-                    }
-                }
-            }
-
-            transferQueueLocked = 0;
-            pthread_mutex_unlock(&lock_transferqueue);
-        }
-        else
-        {
-            LOG(bb,debug) << "TRNFR_Q: Request made to unlock the transfer queue by " << pMethod << ", but the lock is pinned.";
-        }
-    }
-    else
-    {
-        FL_Write(FLError, unlockTransferQERROR, "unlockTransferQueue called when lock not owned by thread",0,0,0,0);
-        flightlog_Backtrace(__LINE__);
-        // For now, also to the console...
-        LOG(bb,error) << "TRNFR_Q: Request made to unlock the transfer queue by " << pMethod << ", but the lock is not owned.";
-        logBacktrace();
-    }
-
-    return;
-}
-
-// NOTE: pLVKey is not currently used, but can come in as null.
 void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
 {
     stringstream errorText;
@@ -2229,50 +2049,6 @@ int WRKQMGR::unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
-}
-
-// NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::unpinLock(const LVKey* pLVKey, const char* pMethod)
-{
-    if(transferQueueIsLocked())
-    {
-        if (lockPinned)
-        {
-            lockPinned = 0;
-            if (l_LockDebugLevel == "info")
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", unknown LVKey";
-                }
-            }
-            else
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", unknown LVKey";
-                }
-            }
-        }
-        else
-        {
-            LOG(bb,error) << "TRNFR_Q:   Request made to unpin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the pin is not in place.";
-        }
-    }
-    else
-    {
-        LOG(bb,error) << "TRNFR_Q:   Request made to unpin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the lock is not held.";
-    }
-
-    return;
 }
 
 // NOTE: Stageout End processing can 'discard' extents from a work queue.  Therefore, the number of
