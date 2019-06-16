@@ -146,6 +146,7 @@ GetOptions(
     "cn!"             => \$CFG{"bbProxy"},
     "server!"         => \$CFG{"bbServer"},
     "ln!"             => \$CFG{"bbcmd"},
+    "fvt!"            => \$CFG{"fvt"},
     "health!"         => \$CFG{"bbhealth"},
     "shutdown!"       => \$CFG{"shutdown"},
     "envdir=s"        => \$CFG{"envdir"},
@@ -229,6 +230,7 @@ sub setDefaults
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
     &def("bbhealth",         1, 1);
+    &def("fvt",              1, 0);
     &def("shutdown",         1, 0);
     &def("sharednode",       1, 0);
     &def("sslcert",          1, "default");
@@ -363,6 +365,10 @@ sub makeServerConfigFile
     if($CFG{"metadata"} =~ /\S/)
     {
         $json->{"bb"}{"bbserverMetadataPath"} = $CFG{"metadata"};
+    }
+    if($CFG{"fvt"})
+    {
+        $json->{"bb"}{"server0"}{"devzerosize"} = 4294967296;
     }
 }
 

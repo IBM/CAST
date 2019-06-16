@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "bb/include/bbapi.h"
 
@@ -63,13 +64,18 @@ int main(int argc, char** argv)
     int rc;
     int rank, size;
 
-    if(argc < 3)
+    if(argc < 4)
     {
-        printf("testcase <source> <target>\n");
+        printf("testcase <dir> <pfspath> <size>\n");
         exit(-1);
     }
-    char* source = argv[1];
-    char* target = argv[2];
+    int dir         = strtoul(argv[1], NULL, 10);
+    char* pfspath   = argv[2];
+    size_t filesize = strtoul(argv[3], NULL, 10);
+
+    BBTransferInfo_t info;
+    time_t start, stop;
+    int dogenerate = 1;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -82,22 +88,50 @@ int main(int argc, char** argv)
     char sfn[256];
     char tfn[256];
     char cmd[256];
+    const char* bbpath = getenv("BBPATH");
 
-    snprintf(sfn, sizeof(sfn), "%s/rank.%d", source, rank);
-    snprintf(tfn, sizeof(tfn), "%s/rank.%d", target, rank);
+    switch(dir)
+    {
+        case 0: // GPFS -> SSD
+            if(strcmp(pfspath, "/dev/zero") == 0)
+            {
+                snprintf(sfn, sizeof(sfn), "%s", pfspath);
+                dogenerate = 0;
+            }
+            else
+            {
+                snprintf(sfn, sizeof(sfn), "%s/rank.%d", pfspath, rank);
+            }
+            snprintf(tfn, sizeof(tfn), "%s/rank.%d", bbpath, rank);
+            break;
+        case 1:  // SSD -> GPFS
+            snprintf(sfn, sizeof(sfn), "%s/rank.%d", bbpath, rank);
+            if(strcmp(pfspath, "/dev/null") == 0)
+            {
+                snprintf(tfn, sizeof(tfn), "%s", pfspath);
+            }
+            else
+            {
+                snprintf(tfn, sizeof(tfn), "%s/rank.%d", pfspath, rank);
+            }
+            break;
+        default:
+            exit(-1);
+    }
+    
     printf("source file: %s\n", sfn);
     printf("target file: %s\n", tfn);
 
-    snprintf(cmd, sizeof(cmd), "/opt/ibm/bb/tools/randfile --file=%s --size=%ld", sfn, (unsigned long)1024*1024*1024);
-    printf("generate random file: %s\n", cmd);
-    system(cmd);
+    if(dogenerate)
+    {
+        snprintf(cmd, sizeof(cmd), "/opt/ibm/bb/tools/randfile --file=%s --size=%ld", sfn, filesize);
+        printf("generate random file: %s\n", cmd);
+        system(cmd);
+    }
 
     BBTransferDef_t* tdef;
     BBTransferHandle_t thandle;
     uint32_t contriblist = rank;
-    printf("Obtaining transfer handle\n");
-    rc = BB_GetTransferHandle(getpid(), 1, &contriblist, &thandle); /* \todo tag generation uses getpid() - need something better */
-    check(rc);
 
     printf("Creating transfer definition\n");
     rc = BB_CreateTransferDef(&tdef);
@@ -107,10 +141,49 @@ int main(int argc, char** argv)
     rc = BB_AddFiles(tdef, sfn, tfn, 0);
     check(rc);
 
+    printf("Obtaining transfer handle\n");
+    MPI_Barrier(MPI_COMM_WORLD);
+    start = time(NULL);
+    rc = BB_GetTransferHandle(getpid(), 1, &contriblist, &thandle); /* \todo tag generation uses getpid() - need something better */
+    check(rc);
+    MPI_Barrier(MPI_COMM_WORLD);
+    stop = time(NULL);
+    if(rank == 0)
+    {
+        printf("PERF(%d,%s,%ld x %d):  BB_GetTransferHandle took %ld seconds\n", dir, pfspath, filesize, size, stop-start);
+    }
+
     printf("Starting transfer\n");
+    start = time(NULL);
     rc = BB_StartTransfer(tdef, thandle);
     check(rc);
+    MPI_Barrier(MPI_COMM_WORLD);
+    stop = time(NULL);
+    if(rank == 0)
+    {
+        printf("PERF(%d,%s,%ld x %d):  BB_StartTransfer took %ld seconds\n", dir, pfspath, filesize, size, stop-start);
+    }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    start = time(NULL);
+    do
+    {
+        rc = BB_GetTransferInfo(thandle, &info);
+        check(rc);
+        if(info.status != BBFULLSUCCESS)
+        {
+            sleep(1);
+        }
+    }
+    while(info.status != BBFULLSUCCESS);
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    stop = time(NULL);
+    if(rank == 0)
+    {
+        printf("PERF(%d,%s,%ld x %d):  Transfer took %ld seconds (%g MiBps)\n", dir, pfspath, filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
+    }
 
     printf("Terminating BB library\n");
     rc = BB_TerminateLibrary();
