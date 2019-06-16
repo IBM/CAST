@@ -1965,9 +1965,9 @@ void* transferWorker(void* ptr)
                                 }
                                 else
                                 {
-                                    FL_Write6(FLWrkQMgr, FindNextThrtld, "Jobid %ld, jobstepid %ld, tag %ld, work queue %p currently has %ld entries remaining. Throttle rate is %ld bytes/sec.",
-                                              l_WorkItem.getJob().getJobId(), l_WorkItem.getJob().getJobStepId(), (uint64_t)l_WorkItem.getTag(), (uint64_t)l_WrkQE,
-                                              (uint64_t)l_WrkQE->getWrkQ()->size(), (uint64_t)l_WrkQE->getRate());
+                                    FL_Write6(FLWrkQMgr, FindNextThrtld, "Jobid %ld, tag %ld, work queue %p currently has %ld entries remaining. Throttle rate is %ld bytes/sec, bucket value %ld.",
+                                              l_WorkItem.getJob().getJobId(), (uint64_t)l_WorkItem.getTag(), (uint64_t)l_WrkQE,
+                                              (uint64_t)l_WrkQE->getWrkQ()->size(), (uint64_t)l_WrkQE->getRate(), (uint64_t)l_WrkQE->getBucket());
                                 }
 
                                 l_ThreadDelay = 0;  // in micro-seconds

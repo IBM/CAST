@@ -56,6 +56,8 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
     string l_ContribId = "";
     string l_Rate = "";
     string l_Bucket = "";
+    string l_ThrottleWait = "";
+    string l_WorkQueueReturnedWithNegativeBucket = "";
     string l_Suspended = (suspended ? "Y" : "N");
     string l_Output = "Job " + l_JobId + ", Susp " + l_Suspended;
 
@@ -75,6 +77,8 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
                 l_Rate = to_string(rate);
                 l_Bucket = to_string(bucket);
+                l_ThrottleWait = to_string(throttleWait);
+                l_WorkQueueReturnedWithNegativeBucket = to_string(workQueueReturnedWithNegativeBucket);
             }
         }
 
@@ -97,6 +101,14 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         if (l_Bucket.size())
         {
             l_Output += ", Bkt " + l_Bucket;
+        }
+        if (l_ThrottleWait.size())
+        {
+            l_Output += ", TW " + l_ThrottleWait;
+        }
+        if (l_WorkQueueReturnedWithNegativeBucket.size())
+        {
+            l_Output += ", WQRNegB " + l_WorkQueueReturnedWithNegativeBucket;
         }
 
         if (!strcmp(pSev,"debug"))
@@ -125,6 +137,10 @@ void WRKQE::loadBucket()
 {
     dump("debug", "loadBucket(): Before bucket modification: ");
     bucket = (int64_t)(MIN(bucket+rate, rate));
+    if (bucket >= 0)
+    {
+        workQueueReturnedWithNegativeBucket = 0;
+    }
     dump("debug", "loadBucket(): After bucket modification: ");
 
     return;
@@ -233,6 +249,10 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
                                             l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
                                             LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
                                         }
+                                        if (bucket < 0)
+                                        {
+                                            workQueueReturnedWithNegativeBucket = 1;
+                                        }
                                     }
                                 }
                             }
@@ -249,6 +269,7 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
                 bucket = 0;
             }
         }
+        setThrottleWait(0);
     }
 
     if (l_MadeBucketModification)
