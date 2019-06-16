@@ -89,6 +89,10 @@ bbactivate will output the commands that it would run, but it will not modify th
 
 When used in combination with --dryrun, the file system changes will be written to file(s) in the directory specified by --drypath instead of the actual file locations.  
 
+=item B<--fvt>
+
+Artifically changes the configuration for FVT performance tests.  Not recommended for production usage.
+
 =item B<--scriptpath>
 
 Specifies an alternative path for the default configuration file locations.
@@ -131,6 +135,9 @@ The default path is /etc/ibm/esslist
 
 Path to a file containing a customized NVMe over Fabrics JSON template.  The default path is /opt/ibm/bb/scripts/nvmet.json
 
+=item B<--interfacename>
+
+Changes the interfacename used by bbactivate.  bbactivate uses the interface name to configure the NVMe over Fabrics target interface.  The default is ib0.  
 
 =item B<--[no]offload>
 
