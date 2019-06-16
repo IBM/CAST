@@ -67,6 +67,8 @@ class WRKQE
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
         issuingWorkItem(0),
+        throttleWait(0),
+        workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
         lvinfo(0) {
@@ -85,6 +87,8 @@ class WRKQE
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
         issuingWorkItem(0),
+        throttleWait(0),
+        workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
         lvinfo(pLV_Info) {
@@ -206,6 +210,8 @@ class WRKQE
         if (!rate)
         {
             bucket = 0;
+            throttleWait = 0;
+            workQueueReturnedWithNegativeBucket = 0;
         }
 
         return;
@@ -218,6 +224,13 @@ class WRKQE
         return;
     };
 
+    inline void setThrottleWait(const int pValue)
+    {
+        throttleWait = pValue;
+
+        return;
+    }
+
     inline void setTransferThreadIsDelaying(const int pValue)
     {
         transferThreadIsDelaying = pValue;
@@ -228,6 +241,11 @@ class WRKQE
     inline bool transferQueueIsLocked()
     {
         return (transferQueueLocked == pthread_self());
+    }
+
+    inline bool workQueueIsAssignable()
+    {
+        return (workQueueReturnedWithNegativeBucket ? false : throttleWait ? false : true);
     }
 
     // Methods
@@ -248,6 +266,8 @@ class WRKQE
     int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
     volatile int        issuingWorkItem;
+    volatile int        throttleWait;
+    volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
     BBLV_Info*          lvinfo;
