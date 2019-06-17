@@ -2987,6 +2987,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                     {
                                         // NOTE: CurrentWrkQE must be set before sortExtents()
                                         CurrentWrkQE = l_WrkQE;
+                                        lockTransferQueue(pLVKey, "queueTransfer");
+
                                         // If necessary, sort the extents...
                                         rc = l_LV_Info->sortExtents(pLVKey);
                                         if (!rc)
@@ -3023,6 +3025,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                             errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
                                             LOG_ERROR_TEXT_RC(errorText, rc);
                                         }
+
+                                        unlockTransferQueue(pLVKey, "queueTransfer");
 
                                         if (!rc)
                                         {

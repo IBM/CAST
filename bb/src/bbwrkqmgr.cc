@@ -327,6 +327,8 @@ void WRKQMGR::calcThrottleMode()
 
 uint64_t WRKQMGR::checkForNewHPWorkItems()
 {
+    HPWrkQE->lock((LVKey*)0, "checkForNewHPWorkItems");
+
     uint64_t l_CurrentNumber = HPWrkQE->getNumberOfWorkItems();
     uint64_t l_NumberAdded = 0;
 
@@ -387,6 +389,8 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
     {
         LOG(bb,error) << "Error occured when attempting to read the cross bbserver async request file, rc = " << rc;
     }
+
+    HPWrkQE->unlock((LVKey*)0, "checkForNewHPWorkItems");
 
     return l_CurrentNumber + l_NumberAdded;
 }
