@@ -437,6 +437,8 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
 {
     int rc = 0;
     uint32_t l_NumberInFlight = 0;
+    bool l_DumpInFlight = false;
+    bool l_DumpAllExtents = false;
 
     LOG(bb,debug) << "moreExtentsToTransferForFile: pHandle: " << pHandle << ", pContrib: " << pContrib << ", pSourceIndex: " << pSourceIndex << ", pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight;
 
@@ -453,7 +455,7 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
                 if (++l_NumberInFlight > pNumberOfExpectedInFlight)
                 {
                     rc = 1;
-                    break;
+                    l_DumpInFlight = true;
                 }
             }
         }
@@ -467,6 +469,7 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
             if ((pHandle <= 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == e.contrib) && (pSourceIndex == e.getSourceIndex()))
             {
                 rc = 1;
+                l_DumpAllExtents = true;
                 break;
             }
         }
@@ -477,8 +480,14 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
         if (rc == pDumpQueuesOnValue)
         {
             LOG(bb,info) << "moreExtentsToTransferForFile: rc: " << rc << " pHandle: " << pHandle << " pContrib: " << pContrib << " pSourceIndex: " << pSourceIndex << " pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight << " pNumberInFlight: " << l_NumberInFlight;
-            dumpInFlight("info");
-            dumpExtents("info", "moreExtentsToTransferForFile()");
+            if (l_DumpInFlight)
+            {
+                dumpInFlight("info");
+            }
+            if (l_DumpAllExtents)
+            {
+                dumpExtents("info", "moreExtentsToTransferForFile()");
+            }
         }
     }
 
