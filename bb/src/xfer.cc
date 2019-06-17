@@ -2180,13 +2180,11 @@ void* transferWorker(void* ptr)
                         }
                         Throttle_Timer.setSnooze(true);
                         int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(&l_Key, "%transferWorker - Before snoozing");
-                        wrkqmgr.unlockWorkQueueMgr(&l_Key, "%transferWorker - Before snoozing");
                         {
 //                            FL_Write(FLDelay, Snooze, "Snoozing for %ld usecs waiting for additional work", (uint64_t)l_Delay, 0, 0, 0);
                             LOG(bb,off) << ">>>>> DELAY <<<<< transferWorker(): Snoozing for " << (float)l_Delay/1000000.0 << " seconds waiting for additional work";
                             usleep((unsigned int)l_Delay);
                         }
-                        wrkqmgr.lockWorkQueueMgr(&l_Key, "%transferWorker - After snoozing");
                         if (l_TransferQueueUnlocked)
                         {
                             lockTransferQueue(&l_Key, "%transferWorker - After snoozing");
