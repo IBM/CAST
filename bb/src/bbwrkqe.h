@@ -271,7 +271,8 @@ class WRKQE
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
     BBLV_Info*          lvinfo;
-    queue<WorkID>*      wrkq;
+    queue<WorkID>*      wrkq;                   // Access is serialized with the
+                                                // lock_transferqueue lock
     pthread_mutex_t     lock_transferqueue;
     pthread_t           transferQueueLocked;
 };

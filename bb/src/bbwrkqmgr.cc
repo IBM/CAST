@@ -158,7 +158,8 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    lockWorkQueueMgr(pLVKey, "addWrkQ");
+    int l_LocalMetadataUnlockedInd = 0;
+    lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
@@ -176,7 +177,7 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    unlockWorkQueueMgr(pLVKey, "addWrkQ");
+    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
 
     l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
@@ -293,7 +294,8 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 
 void WRKQMGR::calcThrottleMode()
 {
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "calcThrottleMode");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "calcThrottleMode", &l_LocalMetadataUnlockedInd);
 
     int l_NewThrottleMode = 0;
     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
@@ -319,7 +321,7 @@ void WRKQMGR::calcThrottleMode()
 
     if (l_WorkQueueMgrLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "calcThrottleMode");
+        unlockWorkQueueMgr((LVKey*)0, "calcThrottleMode", &l_LocalMetadataUnlockedInd);
     }
 
     return;
@@ -504,6 +506,8 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                 if (l_DumpIt)
                 {
+                    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
+
                     stringstream l_OffsetStr;
                     if (outOfOrderOffsets.size())
                     {
@@ -522,6 +526,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                     }
 
                     int l_CheckForCanceledExtents = checkForCanceledExtents;
+                    int l_LocalMetadataUnlockedInd = 0;
                     if (!strcmp(pSev,"debug"))
                     {
                         LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
@@ -546,7 +551,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_debug");
+                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
 
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
@@ -555,7 +560,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                         if (l_WorkQueueMgrLocked)
                         {
-                            unlockWorkQueueMgr((LVKey*)0, "dump_debug");
+                            unlockWorkQueueMgr((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
                         }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
@@ -584,7 +589,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         }
                         LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
 
-                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_info");
+                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
 
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
@@ -593,10 +598,13 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                         if (l_WorkQueueMgrLocked)
                         {
-                            unlockWorkQueueMgr((LVKey*)0, "dump_info");
+                            unlockWorkQueueMgr((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
                         }
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
+
+                    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
+
                     lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
                     numberOfSkippedDumpRequests = 0;
 
@@ -621,7 +629,8 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
 {
     char l_Temp[64] = {'\0'};
 
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump", &l_LocalMetadataUnlockedInd);
 
     if (wrkqs.size() == 1)
     {
@@ -636,7 +645,7 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
 
     if (l_WorkQueueMgrLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "dump");
+        unlockWorkQueueMgr((LVKey*)0, "dump", &l_LocalMetadataUnlockedInd);
     }
 
     return;
@@ -644,6 +653,8 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
 
 void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
 {
+    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
+
     if (heartbeatData.size())
     {
         int i = 1;
@@ -689,6 +700,8 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
     }
 
     heartbeatDumpCount = 0;
+
+    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
 
     return;
 }
@@ -960,13 +973,14 @@ size_t WRKQMGR::getNumberOfWorkQueues()
     size_t l_Size = 0;
 
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getNumberOfWorkQueues", &l_LocalMetadataUnlockedInd);
 
     l_Size = wrkqs.size();
 
     if (l_WorkQueueMgrLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "getNumberOfWorkQueues");
+        unlockWorkQueueMgr((LVKey*)0, "getNumberOfWorkQueues", &l_LocalMetadataUnlockedInd);
     }
 
     if (l_TransferQueueUnlocked)
@@ -981,7 +995,8 @@ size_t WRKQMGR::getSizeOfAllWorkQueues()
 {
     size_t l_TotalSize = 0;
 
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getSizeOfAllWorkQueues");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getSizeOfAllWorkQueues", &l_LocalMetadataUnlockedInd);
 
     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
     {
@@ -990,7 +1005,7 @@ size_t WRKQMGR::getSizeOfAllWorkQueues()
 
     if (l_WorkQueueMgrLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "getSizeOfAllWorkQueues");
+        unlockWorkQueueMgr((LVKey*)0, "getSizeOfAllWorkQueues", &l_LocalMetadataUnlockedInd);
     }
 
     return l_TotalSize;
@@ -1043,7 +1058,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
 
     if (pLVKey == NULL || (pLVKey->second).is_null())
     {
@@ -1276,7 +1292,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 
     if (l_WorkQueueMgrLocked)
     {
-        unlockWorkQueueMgr(pLVKey, "getWrkQE");
+        unlockWorkQueueMgr(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
     }
 
     return rc;
@@ -1338,6 +1354,8 @@ int WRKQMGR::isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_
 
 HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
 {
+    HPWrkQE->lock((LVKey*)0, "WRKQMGR::getHeartbeatEntry");
+
     for (auto it=heartbeatData.begin(); it!=heartbeatData.end(); ++it)
     {
         if (it->first == pHostName)
@@ -1345,6 +1363,8 @@ HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
             return &(it->second);
         }
     }
+
+    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::getHeartbeatEntry");
 
     return (HeartbeatEntry*)0;
 }
@@ -1370,13 +1390,17 @@ void WRKQMGR::loadBuckets()
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
+void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd)
 {
     stringstream errorText;
 
+    if (pLocalMetadataUnlockedInd)
+    {
+        *pLocalMetadataUnlockedInd = 0;
+    }
+
     if (!workQueueMgrIsLocked())
     {
-#if 1
         // Verify lock protocol
         if (CurrentWrkQE)
         {
@@ -1384,13 +1408,30 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
             {
                 FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm)
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm1)
 #if 0
                 abort();
 #endif
             }
         }
+        if (localMetadataIsLocked())
+        {
+            if (!pLocalMetadataUnlockedInd)
+            {
+                FL_Write(FLError, lockPV_MDLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
+                errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the local metadata lock is held";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
+#if 0
+                abort();
 #endif
+            }
+            else
+            {
+                unlockLocalMetadata(pLVKey, "lockWorkQueueMgr");
+                *pLocalMetadataUnlockedInd = 1;
+            }
+        }
+
         pthread_mutex_lock(&lock_workQueueMgr);
         workQueueMgrLocked = pthread_self();
 
@@ -1435,14 +1476,14 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
     return;
 }
 
-int WRKQMGR::lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod)
+int WRKQMGR::lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
     if (!workQueueMgrIsLocked())
     {
-        lockWorkQueueMgr(pLVKey, pMethod);
+        lockWorkQueueMgr(pLVKey, pMethod, pLocalMetadataUnlockedInd);
         rc = 1;
     }
 
@@ -1631,11 +1672,12 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
 
 void WRKQMGR::post()
 {
-    int l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post", &l_LocalMetadataUnlockedInd);
     sem_post(&sem_workqueue);
     if (l_WorkQueueLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "post");
+        unlockWorkQueueMgr((LVKey*)0, "post", &l_LocalMetadataUnlockedInd);
     }
 
     return;
@@ -1891,7 +1933,8 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
 
     if (pLVKey)
     {
-        lockWorkQueueMgr(pLVKey, "setSuspended");
+        int l_LocalMetadataUnlockedInd = 0;
+        lockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
 
         std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
         if (it != wrkqs.end())
@@ -1917,7 +1960,7 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
             rc = -2;
         }
 
-        unlockWorkQueueMgr(pLVKey, "setSuspended");
+        unlockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
     }
     else
     {
@@ -1985,7 +2028,7 @@ int WRKQMGR::startProcessingHP_Request(AsyncRequest& pRequest)
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
+void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd)
 {
     stringstream errorText;
 
@@ -2022,6 +2065,11 @@ void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod)
 
         workQueueMgrLocked = 0;
         pthread_mutex_unlock(&lock_workQueueMgr);
+
+        if (pLocalMetadataUnlockedInd && *pLocalMetadataUnlockedInd)
+        {
+            lockLocalMetadata(pLVKey, "unlockWorkQueueMgr");
+        }
     }
     else
     {
@@ -2060,11 +2108,12 @@ void WRKQMGR::verify()
 
     int l_NumberOfPosts = 0;
 
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::verify");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::verify", &l_LocalMetadataUnlockedInd);
     sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
     if (l_WorkQueueMgrLocked)
     {
-        unlockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::verify");
+        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::verify", &l_LocalMetadataUnlockedInd);
     }
 
     // NOTE: l_NumberOfPosts+1 because for us to be invoking verify(), the current thread has already been dispatched...
@@ -2081,8 +2130,11 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
 {
     uint64_t l_Count = 0;
 
+    HPWrkQE->lock((LVKey*)0, "WRKQMGR::updateHeartbeatData");
+
     struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
     HeartbeatEntry::getCurrentTime(l_CurrentTime);
+
     map<string, HeartbeatEntry>::iterator it = heartbeatData.find(pHostName);
     if (it != heartbeatData.end())
     {
@@ -2093,6 +2145,8 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
     {
         heartbeatData[pHostName] = HeartbeatEntry(++l_Count, l_CurrentTime, "");
     }
+
+    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::updateHeartbeatData");
 
     return;
 }
