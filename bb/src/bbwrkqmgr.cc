@@ -1063,6 +1063,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
     int l_LocalMetadataUnlockedInd = 0;
     int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
 
@@ -1300,6 +1301,11 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         unlockWorkQueueMgr(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
     }
 
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue(pLVKey, "getWrkQE");
+    }
+
     return rc;
 }
 
@@ -1361,17 +1367,18 @@ HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
 {
     HPWrkQE->lock((LVKey*)0, "WRKQMGR::getHeartbeatEntry");
 
-    for (auto it=heartbeatData.begin(); it!=heartbeatData.end(); ++it)
+    HeartbeatEntry* l_HeartbeatEntry = (HeartbeatEntry*)0;
+    for (auto it=heartbeatData.begin(); it!=heartbeatData.end() && (!l_HeartbeatEntry); ++it)
     {
         if (it->first == pHostName)
         {
-            return &(it->second);
+            l_HeartbeatEntry = &(it->second);
         }
     }
 
     HPWrkQE->unlock((LVKey*)0, "WRKQMGR::getHeartbeatEntry");
 
-    return (HeartbeatEntry*)0;
+    return l_HeartbeatEntry;
 }
 
 void WRKQMGR::loadBuckets()

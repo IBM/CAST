@@ -66,7 +66,6 @@ class WRKQE
         suspended(0),
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
-        issuingWorkItem(0),
         throttleWait(0),
         workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
@@ -86,7 +85,6 @@ class WRKQE
         suspended(pSuspended),
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
-        issuingWorkItem(0),
         throttleWait(0),
         workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
@@ -116,11 +114,6 @@ class WRKQE
     {
         return dumpOnRemoveWorkItem;
     };
-
-    inline int getIssuingWorkItem()
-    {
-        return issuingWorkItem;
-    }
 
     inline int64_t getJobId()
     {
@@ -197,13 +190,6 @@ class WRKQE
         return;
     };
 
-    inline void setIssuingWorkItem(const int pValue)
-    {
-        issuingWorkItem = pValue;
-
-        return;
-    }
-
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
@@ -251,10 +237,12 @@ class WRKQE
     // Methods
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void dump(const char* pSev, const char* pPrefix);
-    void lock(const LVKey* pLVKey, const char* pMethod);
-    void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    int getIssuingWorkItem();
     void loadBucket();
+    void lock(const LVKey* pLVKey, const char* pMethod);
     double processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo);
+    void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    void setIssuingWorkItem(const int pValue);
     void unlock(const LVKey* pLVKey, const char* pMethod);
 
     // Data members
@@ -265,7 +253,6 @@ class WRKQE
     int                 suspended;
     int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
-    volatile int        issuingWorkItem;
     volatile int        throttleWait;
     volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;

@@ -30,6 +30,7 @@ extern pthread_mutex_t lock_metadata;
 extern string l_LockDebugLevel;
 
 extern thread_local WRKQE* CurrentWrkQE;
+extern thread_local int issuingWorkItem;
 
 
 /*******************************************************************************
