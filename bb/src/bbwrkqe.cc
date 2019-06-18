@@ -28,7 +28,7 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 {
     wrkq->push(pWorkItem);
     // NOTE: Unless we are debugging a problem, pValidateQueue always comes in as false.
-    //       Therefore, we never hit the abort() below in production...
+    //       Therefore, we never hit the endOnError() below in production...
     if (pValidateQueue && this != HPWrkQE)
     {
         // NOTE:  This method exists to make sure that the number of work queue entries
@@ -39,7 +39,7 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         {
             LOG(bb,error) << "WRKQE::addWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" \
                           << l_LV_Info->getNumberOfExtents() << ")";
-            abort();
+            endOnError();
         }
     }
 
@@ -169,9 +169,7 @@ void WRKQE::lock(const LVKey* pLVKey, const char* pMethod)
             FL_Write(FLError, lockPV_TQLock, "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
             errorText << "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
 
         if (strstr(pMethod, "%") == NULL)
@@ -292,7 +290,7 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
 void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 {
     // NOTE: Unless we are debugging a problem, pValidateQueue always comes in as false.
-    //       Therefore, we never hit the abort() below in production...
+    //       Therefore, we never hit the endOnError() below in production...
     if (pValidateQueue && this != HPWrkQE)
     {
         // NOTE:  This method exists to make sure that the number of work queue entries
@@ -302,7 +300,7 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
         if (getWrkQ_Size() != getLV_Info()->getNumberOfExtents())
         {
             LOG(bb,error) << "WRKQE::removeWorkItem(): Mismatch between number of elements on work queue (" << getWrkQ_Size() << ") and number of extents in the vector of extents (" << getLV_Info()->getNumberOfExtents() << ") to transfer for " << l_Key;
-            abort();
+            endOnError();
         }
     }
 
@@ -332,9 +330,7 @@ void WRKQE::unlock(const LVKey* pLVKey, const char* pMethod)
             FL_Write(FLError, lockPV_TQUnlock, "WRKQE::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
             errorText << "WRKQE::unlock: Transfer queue lock being released while a work item is being issued";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
 
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry

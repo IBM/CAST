@@ -1421,9 +1421,7 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
                 FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
                 LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm1)
-#if 0
-                abort();
-#endif
+                endOnError();
             }
         }
         if (localMetadataIsLocked())
@@ -1433,9 +1431,7 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
                 FL_Write(FLError, lockPV_MDLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the local metadata lock is held";
                 LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
-#if 0
-                abort();
-#endif
+                endOnError();
             }
             else
             {
