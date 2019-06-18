@@ -66,6 +66,9 @@ class WRKQE
         suspended(0),
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
+        issuingWorkItem(0),
+        throttleWait(0),
+        workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
         lvinfo(0) {
@@ -83,6 +86,9 @@ class WRKQE
         suspended(pSuspended),
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
+        issuingWorkItem(0),
+        throttleWait(0),
+        workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
         lvinfo(pLV_Info) {
@@ -110,6 +116,11 @@ class WRKQE
     {
         return dumpOnRemoveWorkItem;
     };
+
+    inline int getIssuingWorkItem()
+    {
+        return issuingWorkItem;
+    }
 
     inline int64_t getJobId()
     {
@@ -158,6 +169,8 @@ class WRKQE
     inline void init()
     {
         wrkq = new queue<WorkID>;
+        lock_transferqueue = PTHREAD_MUTEX_INITIALIZER;
+        transferQueueLocked = 0;
 
         return;
     };
@@ -184,12 +197,21 @@ class WRKQE
         return;
     };
 
+    inline void setIssuingWorkItem(const int pValue)
+    {
+        issuingWorkItem = pValue;
+
+        return;
+    }
+
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
         if (!rate)
         {
             bucket = 0;
+            throttleWait = 0;
+            workQueueReturnedWithNegativeBucket = 0;
         }
 
         return;
@@ -202,6 +224,13 @@ class WRKQE
         return;
     };
 
+    inline void setThrottleWait(const int pValue)
+    {
+        throttleWait = pValue;
+
+        return;
+    }
+
     inline void setTransferThreadIsDelaying(const int pValue)
     {
         transferThreadIsDelaying = pValue;
@@ -209,12 +238,24 @@ class WRKQE
         return;
     };
 
+    inline bool transferQueueIsLocked()
+    {
+        return (transferQueueLocked == pthread_self());
+    }
+
+    inline bool workQueueIsAssignable()
+    {
+        return (workQueueReturnedWithNegativeBucket ? false : throttleWait ? false : true);
+    }
+
     // Methods
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void dump(const char* pSev, const char* pPrefix);
+    void lock(const LVKey* pLVKey, const char* pMethod);
     void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void loadBucket();
     double processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo);
+    void unlock(const LVKey* pLVKey, const char* pMethod);
 
     // Data members
     LVKey               lvKey;
@@ -224,10 +265,16 @@ class WRKQE
     int                 suspended;
     int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
+    volatile int        issuingWorkItem;
+    volatile int        throttleWait;
+    volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
     BBLV_Info*          lvinfo;
-    queue<WorkID>*      wrkq;
+    queue<WorkID>*      wrkq;                   // Access is serialized with the
+                                                // lock_transferqueue lock
+    pthread_mutex_t     lock_transferqueue;
+    pthread_t           transferQueueLocked;
 };
 
 #endif /* BB_BBWRKQE_H_ */

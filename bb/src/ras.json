@@ -225,7 +225,7 @@
 	  "tw_4" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "An exception bailout wasthrown in transferExtent().",
+	      "message" : "An exception bailout was thrown in transferExtent().",
 	      "description" : "The transfer extent method could not process the transfer extent."
 	  },
 	  "tw_5" :
@@ -266,13 +266,31 @@
 	  },
       "lockprotocol" :
       {
-	  "lockhf" :
+	  "isswincwqe" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "issueWorkItem: No CurrentWrkQE pointer",
+	      "description" : "issueWorkItem: No CurrentWrkQE pointer"
+	  },
+	  "lockhf1" :
 	  {
 	      "severity" : "WARNING",
 	      "message" : "Lock protocol violation when attempting to lock a handle file.",
 	      "description" : "Lock protocol violation when attempting to lock a handle file."
 	  },
-	  "unlockhf" :
+	  "unlockhf1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock a handle file.",
+	      "description" : "Lock protocol violation when attempting to unlock a handle file."
+	  },
+	  "lockhf2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock a handle file.",
+	      "description" : "Lock protocol violation when attempting to lock a handle file."
+	  },
+	  "unlockhf2" :
 	  {
 	      "severity" : "WARNING",
 	      "message" : "Lock protocol violation when attempting to unlock a handle file.",
@@ -302,11 +320,47 @@
 	      "message" : "Lock protocol violation when attempting to lock the local metadata (2).",
 	      "description" : "Lock protocol violation when attempting to lock the local metadata (2)."
 	  },
+	  "locklm3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (3).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (3)."
+	  },
+	  "unlocklm3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (3).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (3)."
+	  },
+	  "lockncwqe" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "lockTransferQueue: No CurrentWrkQE pointer.",
+	      "description" : "lockTransferQueue: No CurrentWrkQE pointer."
+	  },
+	  "unlockncwqe" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "unlockTransferQueue: No CurrentWrkQE pointer.",
+	      "description" : "unlockTransferQueue: No CurrentWrkQE pointer."
+	  },
 	  "locktq" :
 	  {
 	      "severity" : "WARNING",
 	      "message" : "Lock protocol violation when attempting to lock the transfer queue.",
 	      "description" : "Lock protocol violation when attempting to lock the transfer queue."
+	  },
+	  "lockwqm1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the work queue manager (1).",
+	      "description" : "Lock protocol violation when attempting to lock the work queue manager (1)."
+	  },
+	  "lockwqm2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the work queue manager (2).",
+	      "description" : "Lock protocol violation when attempting to lock the work queue manager (2)."
 	  },
 	  "unlocktq" :
 	  {

@@ -284,10 +284,9 @@ class WRKQMGR
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
-            lockPinned = 0;
-            issuingWorkItem = 0;
             checkForCanceledExtents = 0;
-            transferQueueLocked = 0;
+            lock_workQueueMgr = PTHREAD_MUTEX_INITIALIZER;
+            workQueueMgrLocked = 0;
         };
 
     /**
@@ -298,24 +297,6 @@ class WRKQMGR
     // Static data
 
     // Inlined static methods
-
-    inline static void post_multiple(const size_t pCount)
-    {
-        for (size_t i=0; i<pCount; i++)
-        {
-            WRKQMGR::post();
-        }
-//        verify();
-
-        return;
-    }
-
-    inline static void post()
-    {
-        sem_post(&sem_workqueue);
-
-        return;
-    }
 
     inline static void wait()
     {
@@ -378,11 +359,6 @@ class WRKQMGR
         return dumpTimerPoppedCount;
     }
 
-    inline size_t getNumberOfWorkQueues()
-    {
-        return wrkqs.size();
-    }
-
     inline void getOffsetToNextAsyncRequest(int &pSeqNbr, uint64_t &pOffset)
     {
         pSeqNbr = asyncRequestFileSeqNbr;
@@ -414,18 +390,6 @@ class WRKQMGR
     inline string getServerLoggingLevel()
     {
         return loggingLevel;
-    }
-
-    inline size_t getSizeOfAllWorkQueues()
-    {
-        size_t l_TotalSize = 0;
-
-        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
-        {
-            l_TotalSize += qe->second->getWrkQ_Size();
-        }
-
-        return l_TotalSize;
     }
 
     inline int getThrottleTimerCount()
@@ -537,13 +501,6 @@ class WRKQMGR
         return;
     }
 
-    inline void setIssuingWorkItem(const int pValue)
-    {
-        issuingWorkItem = pValue;
-
-        return;
-    }
-
     inline void setLastQueueProcessed(LVKey* pLVKey)
     {
         LOG(bb,debug) << "WRKQMGR::setLastQueueProcessed(): lastQueueProcessed changing from = " << lastQueueProcessed << " to " << *pLVKey;
@@ -614,9 +571,9 @@ class WRKQMGR
         return;
     }
 
-    inline bool transferQueueIsLocked()
+    inline bool workQueueMgrIsLocked()
     {
-        return (transferQueueLocked == pthread_self());
+        return (workQueueMgrLocked == pthread_self());
     }
 
     // Methods
@@ -636,15 +593,19 @@ class WRKQMGR
     int getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest);
     HeartbeatEntry* getHeartbeatEntry(const string& pHostName);
     uint64_t getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
+    size_t getNumberOfWorkQueues();
+    size_t getSizeOfAllWorkQueues();
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
-    void lock(const LVKey* pLVKey, const char* pMethod);
+    void lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
+    int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
-    void pinLock(const LVKey* pLVKey, const char* pMethod);
+    void post();
+    void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
     void processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem);
@@ -656,8 +617,8 @@ class WRKQMGR
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
     void setThrottleTimerPoppedCount(const double pTimerInterval);
     int startProcessingHP_Request(AsyncRequest& pRequest);
-    void unlock(const LVKey* pLVKey, const char* pMethod);
-    void unpinLock(const LVKey* pLVKey, const char* pMethod);
+    void unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
+    int unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod);
     void updateHeartbeatData(const string& pHostName);
     void updateHeartbeatData(const string& pHostName, const string& pServerTimeStamp);
     void verify();
@@ -692,15 +653,18 @@ class WRKQMGR
     LVKey               lastQueueWithEntries;
     string              loggingLevel;
 
-    map<LVKey, WRKQE*>  wrkqs;
-    map<string, HeartbeatEntry> heartbeatData;
-    vector<uint64_t>    outOfOrderOffsets;
-    vector<string>      inflightHP_Requests;
+    map<LVKey, WRKQE*>  wrkqs;                  // Access is serialized with the
+                                                // work queue manager lock
+    map<string, HeartbeatEntry> heartbeatData;  // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
+    vector<uint64_t>    outOfOrderOffsets;      // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
+    vector<string>      inflightHP_Requests;    // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
   private:
-    int                 lockPinned;
-    volatile int        issuingWorkItem;
     volatile int        checkForCanceledExtents;
-    pthread_t           transferQueueLocked;
+    pthread_mutex_t     lock_workQueueMgr;
+    pthread_t           workQueueMgrLocked;
 };
 
 #endif /* BB_BBWRKQMGR_H_ */

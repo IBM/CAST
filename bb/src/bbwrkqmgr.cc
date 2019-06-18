@@ -13,7 +13,6 @@
 
 #include <boost/filesystem.hpp>
 #include <sys/stat.h>
-#include <sys/syscall.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -146,7 +145,12 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     // Push the work item onto the HP work queue and post
     l_WorkId.dump("debug", "addHPWorkItem() ");
     HPWrkQE->addWorkItem(l_WorkId, DO_NOT_VALIDATE_WORK_QUEUE);
+
+    HPWrkQE->unlock(pLVKey, "addHPWorkItem - before post()");
+
     WRKQMGR::post();
+
+    HPWrkQE->lock(pLVKey, "addHPWorkItem - after post()");
 
     return;
 }
@@ -158,6 +162,9 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     stringstream l_Prefix;
     l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+
+    int l_LocalMetadataUnlockedInd = 0;
+    lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
@@ -174,6 +181,8 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
         wrkqmgr.dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
+
+    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
 
     l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
@@ -290,6 +299,9 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 
 void WRKQMGR::calcThrottleMode()
 {
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "calcThrottleMode", &l_LocalMetadataUnlockedInd);
+
     int l_NewThrottleMode = 0;
     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
     {
@@ -312,11 +324,18 @@ void WRKQMGR::calcThrottleMode()
         throttleMode = l_NewThrottleMode;
     }
 
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "calcThrottleMode", &l_LocalMetadataUnlockedInd);
+    }
+
     return;
 }
 
 uint64_t WRKQMGR::checkForNewHPWorkItems()
 {
+    HPWrkQE->lock((LVKey*)0, "checkForNewHPWorkItems");
+
     uint64_t l_CurrentNumber = HPWrkQE->getNumberOfWorkItems();
     uint64_t l_NumberAdded = 0;
 
@@ -377,6 +396,8 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
     {
         LOG(bb,error) << "Error occured when attempting to read the cross bbserver async request file, rc = " << rc;
     }
+
+    HPWrkQE->unlock((LVKey*)0, "checkForNewHPWorkItems");
 
     return l_CurrentNumber + l_NumberAdded;
 }
@@ -490,6 +511,8 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                 if (l_DumpIt)
                 {
+                    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
+
                     stringstream l_OffsetStr;
                     if (outOfOrderOffsets.size())
                     {
@@ -508,6 +531,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                     }
 
                     int l_CheckForCanceledExtents = checkForCanceledExtents;
+                    int l_LocalMetadataUnlockedInd = 0;
                     if (!strcmp(pSev,"debug"))
                     {
                         LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
@@ -532,9 +556,16 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
+                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
+
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
+                        }
+
+                        if (l_WorkQueueMgrLocked)
+                        {
+                            unlockWorkQueueMgr((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
                         }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
@@ -562,12 +593,23 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
+
+                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
+
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
+
+                        if (l_WorkQueueMgrLocked)
+                        {
+                            unlockWorkQueueMgr((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
+                        }
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
+
+                    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
+
                     lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
                     numberOfSkippedDumpRequests = 0;
 
@@ -591,6 +633,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPrefix)
 {
     char l_Temp[64] = {'\0'};
+
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump", &l_LocalMetadataUnlockedInd);
+
     if (wrkqs.size() == 1)
     {
         strCpy(l_Temp, " queue exists: ", sizeof(l_Temp));
@@ -602,11 +648,18 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
 
     l_WrkQE->dump(pSev, pPrefix);
 
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "dump", &l_LocalMetadataUnlockedInd);
+    }
+
     return;
 }
 
 void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
 {
+    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
+
     if (heartbeatData.size())
     {
         int i = 1;
@@ -652,6 +705,8 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
     }
 
     heartbeatDumpCount = 0;
+
+    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
 
     return;
 }
@@ -918,10 +973,55 @@ uint64_t WRKQMGR::getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHa
     return l_Count;
 };
 
+size_t WRKQMGR::getNumberOfWorkQueues()
+{
+    size_t l_Size = 0;
+
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getNumberOfWorkQueues", &l_LocalMetadataUnlockedInd);
+
+    l_Size = wrkqs.size();
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "getNumberOfWorkQueues", &l_LocalMetadataUnlockedInd);
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "getNumberOfWorkQueues");
+    }
+
+    return l_Size;
+}
+
+size_t WRKQMGR::getSizeOfAllWorkQueues()
+{
+    size_t l_TotalSize = 0;
+
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "getSizeOfAllWorkQueues", &l_LocalMetadataUnlockedInd);
+
+    for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
+    {
+        l_TotalSize += qe->second->getWrkQ_Size();
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "getSizeOfAllWorkQueues", &l_LocalMetadataUnlockedInd);
+    }
+
+    return l_TotalSize;
+}
+
 int WRKQMGR::getThrottleRate(LVKey* pLVKey, uint64_t& pRate)
 {
     int rc = 0;
     pRate = 0;
+
+    lockWorkQueueMgr(pLVKey, "getThrottleRate");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
@@ -933,6 +1033,8 @@ int WRKQMGR::getThrottleRate(LVKey* pLVKey, uint64_t& pRate)
         // NOTE: This may be tolerated...  Set rc to -2
         rc = -2;
     }
+
+    unlockWorkQueueMgr(pLVKey, "getThrottleRate");
 
     return rc;
 }
@@ -961,6 +1063,9 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
+
     if (pLVKey == NULL || (pLVKey->second).is_null())
     {
 //        verify();
@@ -973,6 +1078,12 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             LVKey l_LVKey;
             WRKQE* l_WrkQE = 0;
 
+            // NOTE: We do not lock each transfer queue as we search for the work queue
+            //       to return below.  The biggest exposure is the call to getWrkQ_Size()
+            //       below to get the current size() of the work queue.  Even if we get
+            //       an 'unpredictable' result from the size() operation due to a concurrent
+            //       update and return an empty work queue, our invoker is tolerant of the
+            //       situation and handles it properly.
             bool l_SelectNext = false;
             bool l_FoundFirstPositiveWorkQueueInMap = false;
             bool l_EarlyExit = false;
@@ -1022,69 +1133,72 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                     {
                         // This workqueue has at least one entry...
                         int64_t l_CurrentQueueBucketValue = qe->second->getBucket();
-                        if (l_WrkQE)
+                        if (qe->second->workQueueIsAssignable())
                         {
-                            // We already have a workqueue to return.  Only switch to this
-                            // workqueue if the current saved bucket value is not positive
-                            // and this workqueue has a better 'bucket' value.
-                            // NOTE: The 'switch' logic below is generally only for throttled
-                            //       work queues.  Non-throttled work queues are simply
-                            //       round-robined.
-                            // NOTE: If all of the workqueues end up having a negative bucket
-                            //       value, we return the workqueue with the least negative
-                            //       bucket value.  We want to 'delay' the smallest amount
-                            //       of time.
-                            // NOTE: If we end up delaying due to throttling, all threads
-                            //       will be delaying on the same workqueue.  However, when the
-                            //       delay time has expired, all of the threads will again return
-                            //       to this routine to get the 'next' workqueue.
-                            //       Returning to get the 'next' workqueue after a throttle delay
-                            //       prevents a huge I/O spike for an individual workqueue.
-                            if (l_BucketValue <= 0 && l_BucketValue < l_CurrentQueueBucketValue)
+                            if (l_WrkQE)
                             {
+                                // We already have a workqueue to return.  Only switch to this
+                                // workqueue if the current saved bucket value is not positive
+                                // and this workqueue has a better 'bucket' value.
+                                // NOTE: The 'switch' logic below is generally only for throttled
+                                //       work queues.  Non-throttled work queues are simply
+                                //       round-robined.
+                                // NOTE: If all of the workqueues end up having a negative bucket
+                                //       value, we return the workqueue with the least negative
+                                //       bucket value.  We want to 'delay' the smallest amount
+                                //       of time.
+                                // NOTE: If we end up delaying due to throttling, all threads
+                                //       will be delaying on the same workqueue.  However, when the
+                                //       delay time has expired, all of the threads will again return
+                                //       to this routine to get the 'next' workqueue.
+                                //       Returning to get the 'next' workqueue after a throttle delay
+                                //       prevents a huge I/O spike for an individual workqueue.
+                                if (l_BucketValue <= 0 && l_BucketValue < l_CurrentQueueBucketValue)
+                                {
+                                    l_Switch = true;
+                                }
+                            }
+                            else
+                            {
+                                // We don't have a workqueue to return.
+                                // If we can't find a 'next' WRKQE to return,
+                                // we will return this one unless we find a better one...
                                 l_Switch = true;
                             }
-                        }
-                        else
-                        {
-                            // We don't have a workqueue to return.
-                            // If we can't find a 'next' WRKQE to return,
-                            // we will return this one unless we find a better one...
-                            l_Switch = true;
-                        }
 
-                        if (l_Switch)
-                        {
-                            // This is a better workqueue to return if we
-                            // can't find a 'next' WRKQE...
-                            l_LVKey = qe->first;
-                            l_WrkQE = qe->second;
-                            l_BucketValue = l_CurrentQueueBucketValue;
-
-                            if (!l_FoundFirstPositiveWorkQueueInMap)
+                            if (l_Switch)
                             {
-                                if (l_BucketValue >= 0)
-                                {
-                                    if (lastQueueProcessed == lastQueueWithEntries)
-                                    {
-                                        // Return this queue now as it is the next in round robin order
-                                        l_EarlyExit = true;
-//                                        LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, top of map";
-                                    }
-                                }
-                                l_FoundFirstPositiveWorkQueueInMap = true;
-                            }
-                        }
+                                // This is a better workqueue to return if we
+                                // can't find a 'next' WRKQE...
+                                l_LVKey = qe->first;
+                                l_WrkQE = qe->second;
+                                l_BucketValue = l_CurrentQueueBucketValue;
 
-                        // Return this queue now as it is the next in round robin order
-                        if (l_SelectNext && l_CurrentQueueBucketValue >= 0)
-                        {
-                            // Switch to this workqueue and return it...
-                            l_LVKey = qe->first;
-                            l_WrkQE = qe->second;
-                            l_BucketValue = l_CurrentQueueBucketValue;
-                            l_EarlyExit = true;
-//                            LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, next after last returned";
+                                if (!l_FoundFirstPositiveWorkQueueInMap)
+                                {
+                                    if (l_BucketValue >= 0)
+                                    {
+                                        if (lastQueueProcessed == lastQueueWithEntries)
+                                        {
+                                            // Return this queue now as it is the next in round robin order
+                                            l_EarlyExit = true;
+//                                            LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, top of map";
+                                        }
+                                    }
+                                    l_FoundFirstPositiveWorkQueueInMap = true;
+                                }
+                            }
+
+                            // Return this queue now as it is the next in round robin order
+                            if (l_SelectNext && l_CurrentQueueBucketValue >= 0)
+                            {
+                                // Switch to this workqueue and return it...
+                                l_LVKey = qe->first;
+                                l_WrkQE = qe->second;
+                                l_BucketValue = l_CurrentQueueBucketValue;
+                                l_EarlyExit = true;
+//                                LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, next after last returned";
+                            }
                         }
                     }
 
@@ -1102,6 +1216,10 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 // NOTE: We don't update the last queue processed here because our invoker may choose to not take action on our returned
                 //       data.  The last queue processed is updated just before an item of work is removed from a queue.
                 pWrkQE = l_WrkQE;
+                if (pWrkQE->getRate() > 0)
+                {
+                    pWrkQE->setThrottleWait(1);
+                }
                 if ((!l_RecalculateLastQueueWithEntries) && (!l_EarlyExit))
                 {
                     l_RecalculateLastQueueWithEntries = true;
@@ -1177,6 +1295,11 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
         }
     }
 
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
+    }
+
     return rc;
 }
 
@@ -1236,6 +1359,8 @@ int WRKQMGR::isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_
 
 HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
 {
+    HPWrkQE->lock((LVKey*)0, "WRKQMGR::getHeartbeatEntry");
+
     for (auto it=heartbeatData.begin(); it!=heartbeatData.end(); ++it)
     {
         if (it->first == pHostName)
@@ -1244,12 +1369,15 @@ HeartbeatEntry* WRKQMGR::getHeartbeatEntry(const string& pHostName)
         }
     }
 
+    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::getHeartbeatEntry");
+
     return (HeartbeatEntry*)0;
 }
 
-
 void WRKQMGR::loadBuckets()
 {
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "loadBuckets");
+
     for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
     {
         if (qe->second != HPWrkQE)
@@ -1258,31 +1386,59 @@ void WRKQMGR::loadBuckets()
         }
     }
 
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "loadBuckets");
+    }
+
     return;
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
+void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd)
 {
     stringstream errorText;
 
-    if (!transferQueueIsLocked())
+    if (pLocalMetadataUnlockedInd)
     {
-        // NOTE: We must obtain the lock before we verify the lock protocol.
-        //       Otherwise, the issuingWorkItem check will fail...
-        pthread_mutex_lock(&lock_transferqueue);
-        transferQueueLocked = pthread_self();
+        *pLocalMetadataUnlockedInd = 0;
+    }
 
+    if (!workQueueMgrIsLocked())
+    {
         // Verify lock protocol
-        if (issuingWorkItem)
+        if (CurrentWrkQE)
         {
-            FL_Write(FLError, lockPV_TQLock, "WRKQMGR::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
-            errorText << "WRKQMGR::lock: Transfer queue lock being obtained while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
+            if (CurrentWrkQE->transferQueueIsLocked())
+            {
+                FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
+                errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm1)
 #if 0
-            abort();
+                abort();
 #endif
+            }
         }
+        if (localMetadataIsLocked())
+        {
+            if (!pLocalMetadataUnlockedInd)
+            {
+                FL_Write(FLError, lockPV_MDLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
+                errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the local metadata lock is held";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
+#if 0
+                abort();
+#endif
+            }
+            else
+            {
+                unlockLocalMetadata(pLVKey, "lockWorkQueueMgr");
+                *pLocalMetadataUnlockedInd = 1;
+            }
+        }
+
+        pthread_mutex_lock(&lock_workQueueMgr);
+        workQueueMgrLocked = pthread_self();
 
         if (strstr(pMethod, "%") == NULL)
         {
@@ -1290,47 +1446,54 @@ void WRKQMGR::lock(const LVKey* pLVKey, const char* pMethod)
             {
                 if (pLVKey)
                 {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
+                    LOG(bb,info) << " WQ_MGR:   LOCK <- " << pMethod << ", " << *pLVKey;
                 }
                 else
                 {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
+                    LOG(bb,info) << " WQ_MGR:   LOCK <- " << pMethod << ", unknown LVKey";
                 }
             }
             else
             {
                 if (pLVKey)
                 {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", " << *pLVKey;
+                    LOG(bb,debug) << " WQ_MGR:   LOCK <- " << pMethod << ", " << *pLVKey;
                 }
                 else
                 {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", unknown LVKey";
+                    LOG(bb,debug) << " WQ_MGR:   LOCK <- " << pMethod << ", unknown LVKey";
                 }
             }
         }
 
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, lockTransferQ, "lockTransfer.  threadid=%ld",tid,0,0,0);
+        FL_Write(FLMutex, lockWrkQMgr, "lockWorkQueueMgr.  threadid=%ld",tid,0,0,0);
     }
     else
     {
-        if (lockPinned)
-        {
-            // The lock is already owned, but the lock is pinned...  So, all OK...
-            LOG(bb,debug) << "TRNFR_Q: Request made to lock the transfer queue by " << pMethod << ", but the lock is already pinned.";
-        }
-        else
-        {
-            FL_Write(FLError, lockTransferQERROR, "lockTransferQueue called when lock already owned by thread",0,0,0,0);
-            flightlog_Backtrace(__LINE__);
-            // For now, also to the console...
-            LOG(bb,error) << "TRNFR_Q: Request made to lock the transfer queue by " << pMethod << ", but the lock is already owned.";
-            logBacktrace();
-        }
+        FL_Write(FLError, lockWrkQMgrERROR, "lockWorkQueueMgr called when lock already owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << " WQ_MGR: Request made to lock the work queue manager by " << pMethod << ", but the lock is already owned.";
+        logBacktrace();
     }
 
     return;
+}
+
+int WRKQMGR::lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (!workQueueMgrIsLocked())
+    {
+        lockWorkQueueMgr(pLVKey, pMethod, pLocalMetadataUnlockedInd);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
 }
 
 void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
@@ -1512,45 +1675,34 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
     return l_FilePtr;
 }
 
-// NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::pinLock(const LVKey* pLVKey, const char* pMethod)
+void WRKQMGR::post()
 {
-    if(transferQueueIsLocked())
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post", &l_LocalMetadataUnlockedInd);
+    sem_post(&sem_workqueue);
+    if (l_WorkQueueLocked)
     {
-        if (!lockPinned)
-        {
-            lockPinned = 1;
-            if (l_LockDebugLevel == "info")
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", unknown LVKey";
-                }
-            }
-            else
-            {
-                if (pLVKey)
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", " << *pLVKey;
-                }
-                else
-                {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK PINNED <- " << pMethod << ", unknown LVKey";
-                }
-            }
-        }
-        else
-        {
-            LOG(bb,error) << "TRNFR_Q:   Request made to pin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the pin is already in place.";
-        }
+        unlockWorkQueueMgr((LVKey*)0, "post", &l_LocalMetadataUnlockedInd);
     }
-    else
+
+    return;
+}
+
+void WRKQMGR::post_multiple(const size_t pCount)
+{
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "post_multiple");
+    lockWorkQueueMgr((LVKey*)0, "post_multiple");
+
+    for (size_t i=0; i<pCount; i++)
     {
-        LOG(bb,error) << "TRNFR_Q:   Request made to pin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the lock is not held.";
+        WRKQMGR::post();
+    }
+//    verify();
+
+    unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "post_multiple");
     }
 
     return;
@@ -1612,12 +1764,6 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
 {
     pThreadDelay = 0;
     pTotalDelay = 0;
-
-    // Check to see if the throttle timer has popped.
-    // If so, any new high priority work items are pushed onto the
-    // high priority work queue from the cross bbserver metadata.
-    // If we are in throttle mode, the buckets are also (re)loaded.
-    checkThrottleTimer();
 
     if (inThrottleMode())
     {
@@ -1685,6 +1831,10 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
+    unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    lockWorkQueueMgr(pLVKey, "rmvWrkQ");
+
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
@@ -1725,6 +1875,14 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
     wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+
+    unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    if (l_LocalMetadataUnlocked)
+    {
+        lockLocalMetadata(pLVKey, "rmvWrkQ");
+    }
+
+    // NOTE: We just deleted the work queue, so no need to re-acquire the work queue lock
 
     return rc;
 }
@@ -1780,6 +1938,9 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
 
     if (pLVKey)
     {
+        int l_LocalMetadataUnlockedInd = 0;
+        lockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
+
         std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
         if (it != wrkqs.end())
         {
@@ -1803,6 +1964,8 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
         {
             rc = -2;
         }
+
+        unlockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
     }
     else
     {
@@ -1817,6 +1980,8 @@ int WRKQMGR::setThrottleRate(const LVKey* pLVKey, const uint64_t pRate)
 {
     int rc = 0;
 
+    lockWorkQueueMgr(pLVKey, "setThrottleRate");
+
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
@@ -1827,6 +1992,8 @@ int WRKQMGR::setThrottleRate(const LVKey* pLVKey, const uint64_t pRate)
     {
         rc = -2;
     }
+
+    unlockWorkQueueMgr(pLVKey, "setThrottleRate");
 
     return rc;
 }
@@ -1866,116 +2033,74 @@ int WRKQMGR::startProcessingHP_Request(AsyncRequest& pRequest)
 }
 
 // NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::unlock(const LVKey* pLVKey, const char* pMethod)
+void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd)
 {
     stringstream errorText;
 
-    if (transferQueueIsLocked())
+    if (workQueueMgrIsLocked())
     {
-        if (!lockPinned)
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, unlockWrkQMgr, "unlockWorkQueueMgr.  threadid=%ld",tid,0,0,0);
+
+        if (strstr(pMethod, "%") == NULL)
         {
-            // Verify lock protocol
-            if (issuingWorkItem)
-            {
-                FL_Write(FLError, lockPV_TQUnlock, "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
-                errorText << "WRKQMGR::unlock: Transfer queue lock being released while a work item is being issued";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
-#if 0
-                abort();
-#endif
-            }
-
-            pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-            FL_Write(FLMutex, unlockTransferQ, "unlockTransfer.  threadid=%ld",tid,0,0,0);
-
-            if (strstr(pMethod, "%") == NULL)
-            {
-                if (l_LockDebugLevel == "info")
-                {
-                    if (pLVKey)
-                    {
-                        LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
-                    }
-                    else
-                    {
-                        LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
-                    }
-                }
-                else
-                {
-                    if (pLVKey)
-                    {
-                        LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", " << *pLVKey;
-                    }
-                    else
-                    {
-                        LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", unknown LVKey";
-                    }
-                }
-            }
-
-            transferQueueLocked = 0;
-            pthread_mutex_unlock(&lock_transferqueue);
-        }
-        else
-        {
-            LOG(bb,debug) << "TRNFR_Q: Request made to unlock the transfer queue by " << pMethod << ", but the lock is pinned.";
-        }
-    }
-    else
-    {
-        FL_Write(FLError, unlockTransferQERROR, "unlockTransferQueue called when lock not owned by thread",0,0,0,0);
-        flightlog_Backtrace(__LINE__);
-        // For now, also to the console...
-        LOG(bb,error) << "TRNFR_Q: Request made to unlock the transfer queue by " << pMethod << ", but the lock is not owned.";
-        logBacktrace();
-    }
-
-    return;
-}
-
-// NOTE: pLVKey is not currently used, but can come in as null.
-void WRKQMGR::unpinLock(const LVKey* pLVKey, const char* pMethod)
-{
-    if(transferQueueIsLocked())
-    {
-        if (lockPinned)
-        {
-            lockPinned = 0;
             if (l_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", " << *pLVKey;
+                    LOG(bb,info) << " WQ_MGR: UNLOCK <- " << pMethod << ", " << *pLVKey;
                 }
                 else
                 {
-                    LOG(bb,info) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", unknown LVKey";
+                    LOG(bb,info) << " WQ_MGR: UNLOCK <- " << pMethod << ", unknown LVKey";
                 }
             }
             else
             {
                 if (pLVKey)
                 {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", " << *pLVKey;
+                    LOG(bb,debug) << " WQ_MGR: UNLOCK <- " << pMethod << ", " << *pLVKey;
                 }
                 else
                 {
-                    LOG(bb,debug) << "TRNFR_Q:   LOCK UNPINNED <- " << pMethod << ", unknown LVKey";
+                    LOG(bb,debug) << " WQ_MGR: UNLOCK <- " << pMethod << ", unknown LVKey";
                 }
             }
         }
-        else
+
+        workQueueMgrLocked = 0;
+        pthread_mutex_unlock(&lock_workQueueMgr);
+
+        if (pLocalMetadataUnlockedInd && *pLocalMetadataUnlockedInd)
         {
-            LOG(bb,error) << "TRNFR_Q:   Request made to unpin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the pin is not in place.";
+            lockLocalMetadata(pLVKey, "unlockWorkQueueMgr");
         }
     }
     else
     {
-        LOG(bb,error) << "TRNFR_Q:   Request made to unpin the transfer queue lock by " << pMethod << ", " << *pLVKey << ", but the lock is not held.";
+        FL_Write(FLError, unlockWrkQMgrERROR, "unlockWorkQueueMgr called when lock not owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << " WQ_MGR: Request made to unlock the work queue manager by " << pMethod << ", but the lock is not owned.";
+        logBacktrace();
     }
 
     return;
+}
+
+int WRKQMGR::unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    if (workQueueMgrIsLocked())
+    {
+        unlockWorkQueueMgr(pLVKey, pMethod);
+        rc = 1;
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return rc;
 }
 
 // NOTE: Stageout End processing can 'discard' extents from a work queue.  Therefore, the number of
@@ -1987,7 +2112,14 @@ void WRKQMGR::verify()
     int l_TotalExtents = getSizeOfAllWorkQueues();
 
     int l_NumberOfPosts = 0;
+
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::verify", &l_LocalMetadataUnlockedInd);
     sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::verify", &l_LocalMetadataUnlockedInd);
+    }
 
     // NOTE: l_NumberOfPosts+1 because for us to be invoking verify(), the current thread has already been dispatched...
     if (l_NumberOfPosts+1 != l_TotalExtents)
@@ -2003,8 +2135,11 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
 {
     uint64_t l_Count = 0;
 
+    HPWrkQE->lock((LVKey*)0, "WRKQMGR::updateHeartbeatData");
+
     struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
     HeartbeatEntry::getCurrentTime(l_CurrentTime);
+
     map<string, HeartbeatEntry>::iterator it = heartbeatData.find(pHostName);
     if (it != heartbeatData.end())
     {
@@ -2015,6 +2150,8 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
     {
         heartbeatData[pHostName] = HeartbeatEntry(++l_Count, l_CurrentTime, "");
     }
+
+    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::updateHeartbeatData");
 
     return;
 }

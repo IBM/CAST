@@ -11,10 +11,13 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include <sys/syscall.h>
+
 #include "bbinternal.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
 #include "bbwrkqe.h"
+#include "bbserver_flightlog.h"
 #include "Extent.h"
 #include "ExtentInfo.h"
 #include "util.h"
@@ -53,6 +56,8 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
     string l_ContribId = "";
     string l_Rate = "";
     string l_Bucket = "";
+    string l_ThrottleWait = "";
+    string l_WorkQueueReturnedWithNegativeBucket = "";
     string l_Suspended = (suspended ? "Y" : "N");
     string l_Output = "Job " + l_JobId + ", Susp " + l_Suspended;
 
@@ -72,6 +77,8 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
                 l_Rate = to_string(rate);
                 l_Bucket = to_string(bucket);
+                l_ThrottleWait = to_string(throttleWait);
+                l_WorkQueueReturnedWithNegativeBucket = to_string(workQueueReturnedWithNegativeBucket);
             }
         }
 
@@ -94,6 +101,14 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         if (l_Bucket.size())
         {
             l_Output += ", Bkt " + l_Bucket;
+        }
+        if (l_ThrottleWait.size())
+        {
+            l_Output += ", TW " + l_ThrottleWait;
+        }
+        if (l_WorkQueueReturnedWithNegativeBucket.size())
+        {
+            l_Output += ", WQRNegB " + l_WorkQueueReturnedWithNegativeBucket;
         }
 
         if (!strcmp(pSev,"debug"))
@@ -122,7 +137,61 @@ void WRKQE::loadBucket()
 {
     dump("debug", "loadBucket(): Before bucket modification: ");
     bucket = (int64_t)(MIN(bucket+rate, rate));
+    if (bucket >= 0)
+    {
+        workQueueReturnedWithNegativeBucket = 0;
+    }
     dump("debug", "loadBucket(): After bucket modification: ");
+
+    return;
+}
+
+// NOTE: pLVKey is not currently used, but can come in as null.
+void WRKQE::lock(const LVKey* pLVKey, const char* pMethod)
+{
+    stringstream errorText;
+
+    if (!transferQueueIsLocked())
+    {
+        // NOTE: We must obtain the lock before we verify the lock protocol.
+        //       Otherwise, the issuingWorkItem check will fail...
+        pthread_mutex_lock(&lock_transferqueue);
+        transferQueueLocked = pthread_self();
+
+        // Verify lock protocol
+        if (issuingWorkItem)
+        {
+            FL_Write(FLError, lockPV_TQLock, "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
+            errorText << "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
+#if 0
+            abort();
+#endif
+        }
+
+        if (strstr(pMethod, "%") == NULL)
+        {
+            if (l_LockDebugLevel == "info")
+            {
+                LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+            }
+            else
+            {
+                LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+            }
+        }
+
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, lockTransferQ, "lockTransfer.  threadid=%ld",tid,0,0,0);
+    }
+    else
+    {
+        FL_Write(FLError, lockTransferQERROR, "lockTransferQueue called when lock already owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << "TRNFR_Q: Request made to lock the transfer queue by " << pMethod << ", but the lock is already owned.";
+        logBacktrace();
+    }
 
     return;
 }
@@ -180,6 +249,10 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
                                             l_Delay = max((Throttle_TimeInterval-Throttle_Timer.getCurrentElapsedTimeInterval())*1000000,(double)0);
                                             LOG(bb,debug) << "processBucket(): Delay for " << (float)l_Delay/1000000.0 << " seconds";
                                         }
+                                        if (bucket < 0)
+                                        {
+                                            workQueueReturnedWithNegativeBucket = 1;
+                                        }
                                     }
                                 }
                             }
@@ -196,6 +269,7 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
                 bucket = 0;
             }
         }
+        setThrottleWait(0);
     }
 
     if (l_MadeBucketModification)
@@ -232,3 +306,51 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     return;
 };
+
+// NOTE: pLVKey is not currently used, but can come in as null.
+void WRKQE::unlock(const LVKey* pLVKey, const char* pMethod)
+{
+    stringstream errorText;
+
+    if (transferQueueIsLocked())
+    {
+        // Verify lock protocol
+        if (issuingWorkItem)
+        {
+            FL_Write(FLError, lockPV_TQUnlock, "WRKQE::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
+            errorText << "WRKQE::unlock: Transfer queue lock being released while a work item is being issued";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
+#if 0
+            abort();
+#endif
+        }
+
+        pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
+        FL_Write(FLMutex, unlockTransferQ, "unlockTransfer.  threadid=%ld",tid,0,0,0);
+
+        if (strstr(pMethod, "%") == NULL)
+        {
+            if (l_LockDebugLevel == "info")
+            {
+                LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+            }
+            else
+            {
+                LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+            }
+        }
+
+        transferQueueLocked = 0;
+        pthread_mutex_unlock(&lock_transferqueue);
+    }
+    else
+    {
+        FL_Write(FLError, unlockTransferQERROR, "unlockTransferQueue called when lock not owned by thread",0,0,0,0);
+        flightlog_Backtrace(__LINE__);
+        // For now, also to the console...
+        LOG(bb,error) << "TRNFR_Q: Request made to unlock the transfer queue by " << pMethod << ", but the lock is not owned.";
+        logBacktrace();
+    }
+
+    return;
+}
