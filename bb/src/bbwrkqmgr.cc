@@ -145,7 +145,12 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     // Push the work item onto the HP work queue and post
     l_WorkId.dump("debug", "addHPWorkItem() ");
     HPWrkQE->addWorkItem(l_WorkId, DO_NOT_VALIDATE_WORK_QUEUE);
+
+    HPWrkQE->unlock(pLVKey, "addHPWorkItem - before post()");
+
     WRKQMGR::post();
+
+    HPWrkQE->lock(pLVKey, "addHPWorkItem - after post()");
 
     return;
 }
