@@ -48,7 +48,7 @@ static map<string, string>               SerialByDrive;
 static vector<string>                    nvme_devices;
 static map<string, map<string, string> > nvmeDeviceInfo;
 static map<string, string>               KeyByHostname;
-static pthread_once_t  findSerialInit  = PTHREAD_ONCE_INIT;
+
 static pthread_mutex_t findSerialMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int genSerialByDrive()
@@ -384,12 +384,16 @@ void findSerials(void)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
         throw;
     }
+    catch(ExceptionBailout& e) { 
+        throw;
+    }
+    
 }
 
 bool foundDeviceBySerial(const string& serial)
 {
     bool foundIt=0;
-    pthread_once(&findSerialInit, findSerials);
+    
     pthread_mutex_lock(&findSerialMutex);
     try{
       foundIt=(DriveBySerial.find(serial) != DriveBySerial.end());
@@ -469,7 +473,7 @@ int nvmfConnectPath(const string& serial, const string& connectionKey)
 
 string getDeviceBySerial(string serial)
 {
-    pthread_once(&findSerialInit, findSerials);
+    
     
     pthread_mutex_lock(&findSerialMutex);
     try{
@@ -505,7 +509,7 @@ string getDeviceBySerial(string serial)
 
 string getSerialByDevice(string device)
 {
-    pthread_once(&findSerialInit, findSerials);
+    
     
     pthread_mutex_lock(&findSerialMutex);
     try{
@@ -532,7 +536,7 @@ string getSerialByDevice(string device)
 
 vector<string> getDeviceSerials()
 {
-    pthread_once(&findSerialInit, findSerials);
+    
     
     vector<string> lst;
     pthread_mutex_lock(&findSerialMutex);
@@ -554,7 +558,7 @@ vector<string> getDeviceSerials()
 
 int removeDeviceSerial(string serial)
 {
-    pthread_once(&findSerialInit, findSerials);
+     
     
     pthread_mutex_lock(&findSerialMutex);
     try{
@@ -587,7 +591,7 @@ int removeDeviceSerial(string serial)
 
 string getNVMeByIndex(uint32_t index)
 {
-    pthread_once(&findSerialInit, findSerials);
+     
     pthread_mutex_lock(&findSerialMutex);
     try{
         if(nvme_devices.size() <= index)
@@ -613,7 +617,7 @@ string getNVMeByIndex(uint32_t index)
 
 string getNVMeDeviceInfo(string device, string key)
 {
-    pthread_once(&findSerialInit, findSerials);
+     
     
     pthread_mutex_lock(&findSerialMutex);
     try{
@@ -632,7 +636,7 @@ string getNVMeDeviceInfo(string device, string key)
 extern string getRemoteAddrString(const std::string& pConnectionName);
 string getKeyByHostname(string hostname)
 {
-    pthread_once(&findSerialInit, findSerials);
+     
     
     pthread_mutex_lock(&findSerialMutex);
     try
