@@ -276,7 +276,7 @@ def main(args):
         entry = dump_table( args.db, args.user, table, args.count, temp_dir, True)
         if entry is None:0
         else:
-            print (entry, args.target)
+            print entry
 
     # After the tables are dumped, it's time to merge them into the weekly report.
     rollupDir(temp_dir,"..")
