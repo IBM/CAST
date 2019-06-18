@@ -83,6 +83,8 @@ FL_SetSize(FLWrkQMgr, 16384)
 pthread_mutex_t lock_metadata = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t metadataLocked = 0;
 thread_local WRKQE* CurrentWrkQE = 0;
+thread_local int issuingWorkItem = 0;
+
 
 LVKey LVKey_Null = LVKey();
 string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
@@ -437,7 +439,7 @@ int transferQueueIsLocked()
     return rc;
 }
 
-void issuingWorkItem(const int pValue)
+void setWorkItemCriticalSection(const int pValue)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -451,8 +453,8 @@ void issuingWorkItem(const int pValue)
     {
         if (pValue)
         {
-            FL_Write(FLError, IssueWI_NCWQE, "issuingWorkItem: No current work queue entry",0,0,0,0);
-            errorText << "issuingWorkItem: No current work queue entry";
+            FL_Write(FLError, IssueWI_NCWQE, "setWorkItemCriticalSection: No current work queue entry",0,0,0,0);
+            errorText << "setWorkItemCriticalSection: No current work queue entry";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.isswincwqe)
 #if 0
             abort();
@@ -1908,7 +1910,7 @@ void* transferWorker(void* ptr)
             // First, check/process the throttle timer
             // NOTE: We perform this processing before we attempt to find work. Processing within
             //       checkThrottleTimer() requires that the transfer queue lock be dropped.
-            //       It cannot be dropped once issuingWorkItem(1).
+            //       It cannot be dropped once setWorkItemCriticalSection(1).
             wrkqmgr.checkThrottleTimer();
 
             // Find some work to do...
@@ -1936,7 +1938,7 @@ void* transferWorker(void* ptr)
                     // NOTE:  Indicate critical section of code where the transfer queue
                     //        lock CANNOT be released until after we pop off a work item
                     //        from a work queue.
-                    issuingWorkItem(1);
+                    setWorkItemCriticalSection(1);
 
                     // Workqueue entry returned
                     if (l_WrkQE->getWrkQ_Size())
@@ -1983,7 +1985,7 @@ void* transferWorker(void* ptr)
                                     //       work again, so we can release the lock as we
                                     //       won't be popping off any work from the queue
                                     //       in this path.
-                                    issuingWorkItem(0);
+                                    setWorkItemCriticalSection(0);
 
                                     if (!l_WrkQE->transferThreadIsDelaying)
                                     {
@@ -2093,7 +2095,7 @@ void* transferWorker(void* ptr)
                         wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
 
                         // Indicate transfer queue lock can be released
-                        issuingWorkItem(0);
+                        setWorkItemCriticalSection(0);
 
                         // Clear bberror...
                         bberror.clear(l_WorkItem.getConnectionName());
@@ -2141,14 +2143,14 @@ void* transferWorker(void* ptr)
                         }
 
                         // Indicate transfer queue lock can be released
-                        issuingWorkItem(0);
+                        setWorkItemCriticalSection(0);
                     }
                     LOG(bb,debug) << "End: Previous current work item";
                 }
                 else
                 {
                     // Indicate transfer queue lock can be released
-                    issuingWorkItem(0);
+                    setWorkItemCriticalSection(0);
                 }
             }
             else
@@ -2156,7 +2158,7 @@ void* transferWorker(void* ptr)
                 // No work was returned
                 //
                 // Indicate transfer queue lock can be released
-                issuingWorkItem(0);
+                setWorkItemCriticalSection(0);
 
                 l_WorkRemains = false;
             }
