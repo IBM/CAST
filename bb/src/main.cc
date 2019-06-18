@@ -67,6 +67,7 @@ int set_bb_nvmfConnectPath(const string& executable);
 
 extern int bb_exit(std::string who);
 int registerHandlers(); //bb messages handlers
+extern void findSerials(void);
 
 int    main_argc;
 char** main_argv;
@@ -219,11 +220,21 @@ void* mainThread(void* ptr)
         }
 
         rc=set_bb_nvmecliPath(config.get("bb.nvmecliPath", "/usr/sbin/nvme"));
+        if(rc)
+        {
+            LOG(bb,error) << "Unable to initialize nvmecliPath rc=" << rc;
+            throw runtime_error(string("Unable to initialize nvmecliPath"));
+        }
 #ifdef BBSERVER
         rc=set_bb_nvmfConnectPath(config.get("bb.nvmfConnectPath", "/opt/ibm/bb/scripts/nvmfConnect.sh"));
-        extern void findSerials(void);
-        findSerials();
+        if(rc)
+        {
+            LOG(bb,error) << "Unable to initialize nvmfConnectPath rc=" << rc;
+            throw runtime_error(string("Unable to initialize nvmfConnectPath"));
+        }
 #endif
+        findSerials();
+
         rc = setupNodeController(who);
         if(!rc)
         {
