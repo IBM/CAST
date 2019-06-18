@@ -133,6 +133,11 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
     return;
 }
 
+int WRKQE::getIssuingWorkItem()
+{
+    return issuingWorkItem;
+}
+
 void WRKQE::loadBucket()
 {
     dump("debug", "loadBucket(): Before bucket modification: ");
@@ -306,6 +311,13 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     return;
 };
+
+void WRKQE::setIssuingWorkItem(const int pValue)
+{
+    issuingWorkItem = pValue;
+
+    return;
+}
 
 // NOTE: pLVKey is not currently used, but can come in as null.
 void WRKQE::unlock(const LVKey* pLVKey, const char* pMethod)
