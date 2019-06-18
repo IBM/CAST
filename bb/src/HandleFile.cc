@@ -1012,18 +1012,14 @@ int HandleFile::lock(const char* pFilePath)
         FL_Write(FLError, lockPV_HFLock1, "HandleFile::lock: Attempting to lock a handle file while the work queue manager lock is held",0,0,0,0);
         errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the work queue manager lock is held";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf1)
-#if 0
-        abort();
-#endif
+        endOnError();
     }
     if (!localMetadataIsLocked())
     {
         FL_Write(FLError, lockPV_HFLock2, "HandleFile::lock: Attempting to lock a handle file while the metadata lock is not held",0,0,0,0);
         errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the metadata lock is not held";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf2)
-#if 0
-        abort();
-#endif
+        endOnError();
     }
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
@@ -1321,18 +1317,14 @@ void HandleFile::unlock(const int pFd)
         FL_Write(FLError, lockPV_HFUnlock1, "HandleFile::unlock: Attempting to lock a handle file while the work queue manager lock is held",0,0,0,0);
         errorText << "HandleFile::lock: Attempting to unlock the handle file with fd " << pFd << " while the work queue manager lock is held";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf1)
-#if 0
-        abort();
-#endif
+        endOnError();
     }
     if (!localMetadataIsLocked())
     {
         FL_Write(FLError, lockPV_HFUnlock2, "HandleFile::unlock: Attempting to unlock a handle file while the metadata lock is not held",0,0,0,0);
         errorText << "HandleFile::unlock: Attempting to unlock the handle file with fd " << pFd << " while the metadata lock is not held";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf2)
-#if 0
-        abort();
-#endif
+        endOnError();
     }
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Unlock, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);

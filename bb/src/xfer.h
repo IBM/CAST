@@ -65,6 +65,8 @@ extern int cancelTransferForHandle(const string& pHostName, const uint64_t pJobI
 
 extern int doForceStopTransfer(const LVKey* pLVKey, ContribIdFile* pContribIdFile, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
 
+extern void endOnError();
+
 extern int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
 
 extern int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, const uint64_t pTag, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle);
@@ -132,5 +134,7 @@ extern void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 // may not own the lock.  The return value indicates whether the lock needed to
 // be released and was released.
 extern int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
+
+extern void verifyInitLockState();
 
 #endif /* BB_XFER_H_ */

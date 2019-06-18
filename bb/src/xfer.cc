@@ -89,6 +89,16 @@ thread_local int issuingWorkItem = 0;
 LVKey LVKey_Null = LVKey();
 string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
 
+void endOnError()
+{
+    if (config.get(resolveServerConfigKey(process_whoami+".bringup.abortOnCriticalError"), 0))
+    {
+        abort();
+    }
+
+    return;
+}
+
 /*
  *      Burst buffer lock protocol
  *
@@ -155,27 +165,21 @@ void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
             FL_Write(FLError, lockPV_LMLock1, "xfer::lockLocalMetadata: Local metadata lock being obtained while the work queue manager is locked",0,0,0,0);
             errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the work queue manager is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm1)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
         if (handleFileLockFd != -1)
         {
             FL_Write(FLError, lockPV_LMLock2, "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked",0,0,0,0);
             errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while a handle file is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm2)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
         if (transferQueueIsLocked())
         {
             FL_Write(FLError, lockPV_LMLock3, "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked",0,0,0,0);
             errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm3)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
         pthread_mutex_lock(&lock_metadata);
         metadataLocked = pthread_self();
@@ -254,27 +258,21 @@ void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
             FL_Write(FLError, lockPV_LMUnlock1, "xfer::unlockLocalMetadata: Local metadata lock being released while the work queue manager is locked",0,0,0,0);
             errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the work queue manager is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm1)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
         if (handleFileLockFd != -1)
         {
             FL_Write(FLError, lockPV_LMUnlock2, "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked",0,0,0,0);
             errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while a handle file is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm2)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
         if (transferQueueIsLocked())
         {
             FL_Write(FLError, lockPV_LMUnlock3, "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked",0,0,0,0);
             errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the transfer queue is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm3)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
         FL_Write(FLMutex, unlockMetadata, "unlockMetadata.  threadid=%ld",tid,0,0,0);
@@ -350,9 +348,7 @@ void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
         FL_Write(FLError, lockNCWQE, "lockTransferQueue: No current work queue entry",0,0,0,0);
         errorText << "lockTransferQueue: No current work queue entry";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockncwqe)
-#if 0
-        abort();
-#endif
+        endOnError();
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -394,9 +390,7 @@ void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod)
         FL_Write(FLError, unlockNCWQE, "unlockTransferQueue: No current work queue entry",0,0,0,0);
         errorText << "unlockTransferQueue: No current work queue entry";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockncwqe)
-#if 0
-        abort();
-#endif
+        endOnError();
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -456,13 +450,56 @@ void setWorkItemCriticalSection(const int pValue)
             FL_Write(FLError, IssueWI_NCWQE, "setWorkItemCriticalSection: No current work queue entry",0,0,0,0);
             errorText << "setWorkItemCriticalSection: No current work queue entry";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.isswincwqe)
-#if 0
-            abort();
-#endif
+            endOnError();
         }
     }
 
     EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+void verifyInitLockState()
+{
+    stringstream errorText;
+
+    // Verify the thread's lock state
+    // NOTE: The handle file cannot be locked without the
+    //       local metadata being locked, so there
+    //       is no specific check for the handle file.
+    if (wrkqmgr.workQueueMgrIsLocked())
+    {
+        FL_Write(FLError, lockPV_Residual1, "verifyInitLockState: Work queue manager is still locked at the beginning of new work",0,0,0,0);
+        errorText << "verifyInitLockState: Work queue manager is still locked at the beginning of new work";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual1)
+        endOnError();
+    }
+
+    if (localMetadataIsLocked())
+    {
+        FL_Write(FLError, lockPV_Residual2, "WRKQMGR::transferWorker: Local metadata is still locked at the beginning of new work",0,0,0,0);
+        errorText << "verifyInitLockState: Local metadata is still locked at the beginning of new work";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual2)
+        endOnError();
+    }
+
+    if (HPWrkQE->transferQueueIsLocked())
+    {
+        FL_Write(FLError, lockPV_Residual3, "WRKQMGR::transferWorker: HPWrkQE transfer queue is still locked at the beginning of new work",0,0,0,0);
+        errorText << "verifyInitLockState: HPWrkQE transfer queue is still locked at the beginning of new work";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual3)
+        endOnError();
+    }
+
+    if (::transferQueueIsLocked())
+    {
+        FL_Write(FLError, lockPV_Residual4, "WRKQMGR::transferWorker: Transfer queue is still locked at the beginning of new work",0,0,0,0);
+        errorText << "verifyInitLockState: Transfer queue is still locked at the beginning of new work";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual4)
+        endOnError();
+    }
+
+    CurrentWrkQE = (WRKQE*)0;
+
     return;
 }
 
@@ -1900,8 +1937,9 @@ void* transferWorker(void* ptr)
         l_Extent = 0;
         l_Repost = true;
 
-        CurrentWrkQE = (WRKQE*)0;
+        verifyInitLockState();
 
+        // Start new work
         wrkqmgr.wait();
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
 

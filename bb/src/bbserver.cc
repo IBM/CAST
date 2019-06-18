@@ -160,6 +160,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     stringstream errorText;
 
@@ -466,6 +467,7 @@ void msgin_stageout_start(txp::Id id, const std::string& pConnectionName, txp::M
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     try
     {
@@ -505,6 +507,7 @@ void msgin_createlogicalvolume(txp::Id id, const std::string& pConnectionName, t
     stringstream errorText;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     // Demarshall data from the message
     Uuid l_lvuuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
@@ -594,6 +597,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     uint64_t l_Rate = 0;
     try
@@ -655,6 +659,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     stringstream errorText;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     uint64_t l_Handle = UNDEFINED_HANDLE;
     LVKey l_LVKey;
@@ -839,6 +844,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     stringstream errorText;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     uint64_t l_Handle = UNDEFINED_HANDLE;
     uint32_t l_ContribId;
@@ -1015,6 +1021,7 @@ void msgin_gettransferkeys(txp::Id id, const std::string& pConnectionName, txp::
     stringstream errorText;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_Handle = UNDEFINED_HANDLE;
@@ -1127,6 +1134,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
 	stringstream errorText;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     BBJob l_Job;
     BBSTATUS l_MatchStatus;
@@ -1246,6 +1254,7 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     bool l_LockHeld = false;
 
@@ -1301,6 +1310,7 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     try
     {
@@ -1348,6 +1358,7 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     bool l_LockHeld = false;
 
@@ -1420,6 +1431,7 @@ void msgin_retrievetransfers(txp::Id id, const std::string&  pConnectionName, tx
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     string l_MarshalledTransferDefs;
     int l_DataObtainedLocally = 1;
@@ -1552,6 +1564,7 @@ void msgin_setthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     try
     {
@@ -1597,6 +1610,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     stringstream errorText;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     uint64_t l_Handle = UNDEFINED_HANDLE;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
@@ -2558,6 +2572,7 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     string l_Archive;
     BBTransferDefs* l_TransferDefs = 0;
@@ -2658,6 +2673,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
     int rc = 0;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     bool l_LockHeld = false;
 
@@ -2736,6 +2752,7 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
     txp::CharArray nackSerials_attr;
 
     bberror.clear(pConnectionName);
+    verifyInitLockState();
 
     FL_Write(FLServer, Msg_HelloFromProxy, "bbServerLoginHello command received",0,0,0,0);
     time_t l_seconds = time(NULL);
