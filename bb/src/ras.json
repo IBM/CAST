@@ -272,6 +272,30 @@
 	      "message" : "issueWorkItem: No CurrentWrkQE pointer",
 	      "description" : "issueWorkItem: No CurrentWrkQE pointer"
 	  },
+	  "residual1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (1)",
+	      "description" : "verifyInitLockState:  Residual lock (1)"
+	  },
+	  "residual2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (2)",
+	      "description" : "verifyInitLockState:  Residual lock (2)"
+	  },
+	  "residual3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (3)",
+	      "description" : "verifyInitLockState:  Residual lock (3)"
+	  },
+	  "residual4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (4)",
+	      "description" : "verifyInitLockState:  Residual lock (4)"
+	  },
 	  "lockhf1" :
 	  {
 	      "severity" : "WARNING",
