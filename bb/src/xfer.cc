@@ -2180,10 +2180,15 @@ void* transferWorker(void* ptr)
                         }
                         Throttle_Timer.setSnooze(true);
                         int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(&l_Key, "%transferWorker - Before snoozing");
+                        int l_WorkQueueMgrUnlocked = wrkqmgr.unlockWorkQueueMgrIfNeeded((LVKey*)0, "%transferWorker - Before snoozing");
                         {
 //                            FL_Write(FLDelay, Snooze, "Snoozing for %ld usecs waiting for additional work", (uint64_t)l_Delay, 0, 0, 0);
                             LOG(bb,off) << ">>>>> DELAY <<<<< transferWorker(): Snoozing for " << (float)l_Delay/1000000.0 << " seconds waiting for additional work";
                             usleep((unsigned int)l_Delay);
+                        }
+                        if (l_WorkQueueMgrUnlocked)
+                        {
+                            wrkqmgr.lockWorkQueueMgr(&l_Key, "%transferWorker - After snoozing");
                         }
                         if (l_TransferQueueUnlocked)
                         {
@@ -3239,9 +3244,6 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     stringstream errorText;
     int l_Continue = 120;
 
-    lockLocalMetadata(pLVKey, "getThrottleRate");
-    bool l_LockHeld = true;
-
     try
     {
         // NOTE: For failover cases, it is possible for a getThrottleRate() request to be issued to this
@@ -3256,15 +3258,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
                 if (rc == -2)
                 {
                     rc = 0;
-#ifndef __clang_analyzer__
-                    l_LockHeld = false;
-#endif
-                    unlockLocalMetadata(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
-                    {
-                        usleep((useconds_t)1000000);    // Delay 1 second
-                    }
-                    lockLocalMetadata(pLVKey, "getThrottleRate - Waiting for LVKey to be registered");
-                    l_LockHeld = true;
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 else
                 {
@@ -3284,14 +3278,6 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    if (l_LockHeld)
-    {
-#ifndef __clang_analyzer__
-        l_LockHeld = false;
-#endif
-        unlockLocalMetadata(pLVKey, "getThrottleRate");
     }
 
     if (rc && (!l_Continue))
@@ -3385,9 +3371,6 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     stringstream errorText;
     int l_Continue = 120;
 
-    lockLocalMetadata(pLVKey, "setThrottleRate");
-    bool l_LockHeld = true;
-
     try
     {
         // NOTE: For failover cases, it is possible for a setThrottleRate() request to be issued to this
@@ -3402,15 +3385,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
                 if (rc == -2)
                 {
                     rc = 0;
-#ifndef __clang_analyzer__
-                    l_LockHeld = false;
-#endif
-                    unlockLocalMetadata(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
-                    {
-                        usleep((useconds_t)1000000);    // Delay 1 second
-                    }
-                    lockLocalMetadata(pLVKey, "setThrottleRate - Waiting for LVKey to be registered");
-                    l_LockHeld = true;
+                    usleep((useconds_t)1000000);    // Delay 1 second
                 }
                 else
                 {
@@ -3430,14 +3405,6 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    if (l_LockHeld)
-    {
-#ifndef __clang_analyzer__
-        l_LockHeld = false;
-#endif
-        unlockLocalMetadata(pLVKey, "setThrottleRate");
     }
 
     if (rc && (!l_Continue))

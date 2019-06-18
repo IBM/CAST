@@ -600,8 +600,8 @@ class WRKQMGR
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
-    void lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod);
-    int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod);
+    void lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
+    int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
     void post();
@@ -617,7 +617,7 @@ class WRKQMGR
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
     void setThrottleTimerPoppedCount(const double pTimerInterval);
     int startProcessingHP_Request(AsyncRequest& pRequest);
-    void unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod);
+    void unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     int unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod);
     void updateHeartbeatData(const string& pHostName);
     void updateHeartbeatData(const string& pHostName, const string& pServerTimeStamp);
@@ -653,10 +653,14 @@ class WRKQMGR
     LVKey               lastQueueWithEntries;
     string              loggingLevel;
 
-    map<LVKey, WRKQE*>  wrkqs;
-    map<string, HeartbeatEntry> heartbeatData;
-    vector<uint64_t>    outOfOrderOffsets;
-    vector<string>      inflightHP_Requests;
+    map<LVKey, WRKQE*>  wrkqs;                  // Access is serialized with the
+                                                // work queue manager lock
+    map<string, HeartbeatEntry> heartbeatData;  // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
+    vector<uint64_t>    outOfOrderOffsets;      // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
+    vector<string>      inflightHP_Requests;    // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
   private:
     volatile int        checkForCanceledExtents;
     pthread_mutex_t     lock_workQueueMgr;
