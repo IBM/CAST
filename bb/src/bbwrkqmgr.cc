@@ -334,8 +334,6 @@ void WRKQMGR::calcThrottleMode()
 
 uint64_t WRKQMGR::checkForNewHPWorkItems()
 {
-    HPWrkQE->lock((LVKey*)0, "checkForNewHPWorkItems");
-
     uint64_t l_CurrentNumber = HPWrkQE->getNumberOfWorkItems();
     uint64_t l_NumberAdded = 0;
 
@@ -397,13 +395,13 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
         LOG(bb,error) << "Error occured when attempting to read the cross bbserver async request file, rc = " << rc;
     }
 
-    HPWrkQE->unlock((LVKey*)0, "checkForNewHPWorkItems");
-
     return l_CurrentNumber + l_NumberAdded;
 }
 
 void WRKQMGR::checkThrottleTimer()
 {
+    HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
+
     if (Throttle_Timer.popped(Throttle_TimeInterval))
     {
         LOG(bb,off) << "WRKQMGR::checkThrottleTimer(): Popped";
@@ -446,6 +444,8 @@ void WRKQMGR::checkThrottleTimer()
             dumpHeartbeatData("info");
         }
     }
+
+    HPWrkQE->unlock((LVKey*)0, "checkThrottleTimer");
 
     return;
 }
@@ -511,7 +511,12 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                 if (l_DumpIt)
                 {
-                    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
+                    bool l_HP_TransferQueueLocked = false;
+                    if (!HPWrkQE->transferQueueIsLocked())
+                    {
+                        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
+                        l_HP_TransferQueueLocked = true;
+                    }
 
                     stringstream l_OffsetStr;
                     if (outOfOrderOffsets.size())
@@ -608,7 +613,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
 
-                    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
+                    if (l_HP_TransferQueueLocked)
+                    {
+                        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
+                    }
 
                     lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
                     numberOfSkippedDumpRequests = 0;
@@ -658,7 +666,12 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
 
 void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
 {
-    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
+    bool l_HP_TransferQueueLocked = false;
+    if (!HPWrkQE->transferQueueIsLocked())
+    {
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
+        l_HP_TransferQueueLocked = true;
+    }
 
     if (heartbeatData.size())
     {
@@ -706,7 +719,10 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
 
     heartbeatDumpCount = 0;
 
-    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
+    if (l_HP_TransferQueueLocked)
+    {
+        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dumpHeartbeatData");
+    }
 
     return;
 }
@@ -1513,7 +1529,7 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
     //       are also complete. This processing enforces the promise given by the
     //       processAllOutstandingHP_Requests() method.
     // NOTE: The processing below only works if we assume that the number of
-    //       outstanding out of order async requests does not exceed tne number
+    //       outstanding out of order async requests does not exceed the number
     //       of async requests that can be contained within a given async request
     //       file.  Otherwise, we would have a duplicate offset in the outOfOrderOffsets
     //       vector.
@@ -1713,12 +1729,10 @@ void WRKQMGR::post_multiple(const size_t pCount)
 
 void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
 {
-    // NOTE: We currently hold the lock transfer queue lock.  Therefore, we essentially process all of the
-    //       outstanding async requests in FIFO order and even if bbServer is multi-threaded, we serialize
-    //       the processing for each of these requests.  This is true even if the processing for an individual
-    //       request releases and re-acquires the lock as part of its processing.
     uint32_t i = 0;
     bool l_AllDone= false;
+
+    HPWrkQE->lock(pLVKey, "processAllOutstandingHP_Requests");
 
     // First, check for any new appended HP work queue items...
     uint64_t l_NumberToProcess = checkForNewHPWorkItems();
@@ -1746,7 +1760,8 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
         }
         else
         {
-            unlockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests");
+            HPWrkQE->unlock(pLVKey, "processAllOutstandingHP_Requests - in delay");
+            unlockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests - in delay");
             {
                 // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
                 if ((i++ % 20) == 10)
@@ -1756,9 +1771,12 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
                 }
                 usleep((useconds_t)500000);
             }
-            lockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests");
+            lockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests - in delay");
+            HPWrkQE->lock(pLVKey, "processAllOutstandingHP_Requests - in delay");
         }
     }
+
+    HPWrkQE->unlock(pLVKey, "processAllOutstandingHP_Requests");
 
     return;
 }
@@ -2138,7 +2156,12 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
 {
     uint64_t l_Count = 0;
 
-    HPWrkQE->lock((LVKey*)0, "WRKQMGR::updateHeartbeatData");
+    bool l_HP_TransferQueueLocked = false;
+    if (!HPWrkQE->transferQueueIsLocked())
+    {
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::updateHeartbeatData 1");
+        l_HP_TransferQueueLocked = true;
+    }
 
     struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
     HeartbeatEntry::getCurrentTime(l_CurrentTime);
@@ -2154,7 +2177,10 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
         heartbeatData[pHostName] = HeartbeatEntry(++l_Count, l_CurrentTime, "");
     }
 
-    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::updateHeartbeatData");
+    if (l_HP_TransferQueueLocked)
+    {
+        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::updateHeartbeatData 1");
+    }
 
     return;
 }
@@ -2162,6 +2188,13 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName)
 void WRKQMGR::updateHeartbeatData(const string& pHostName, const string& pServerTimeStamp)
 {
     uint64_t l_Count = 0;
+
+    bool l_HP_TransferQueueLocked = false;
+    if (!HPWrkQE->transferQueueIsLocked())
+    {
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::updateHeartbeatData 2");
+        l_HP_TransferQueueLocked = true;
+    }
 
     map<string, HeartbeatEntry>::iterator it = heartbeatData.find(pHostName);
     if (it != heartbeatData.end())
@@ -2174,6 +2207,11 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName, const string& pServer
     HeartbeatEntry l_Entry = HeartbeatEntry(++l_Count, l_CurrentTime, pServerTimeStamp);
 
     heartbeatData[pHostName] = l_Entry;
+
+    if (l_HP_TransferQueueLocked)
+    {
+        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::updateHeartbeatData 2");
+    }
 
     return;
 }

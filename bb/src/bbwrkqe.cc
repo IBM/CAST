@@ -75,10 +75,13 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
-                l_Rate = to_string(rate);
-                l_Bucket = to_string(bucket);
-                l_ThrottleWait = to_string(throttleWait);
-                l_WorkQueueReturnedWithNegativeBucket = to_string(workQueueReturnedWithNegativeBucket);
+                if (rate)
+                {
+                    l_Rate = to_string(rate);
+                    l_Bucket = to_string(bucket);
+                    l_ThrottleWait = to_string(throttleWait);
+                    l_WorkQueueReturnedWithNegativeBucket = to_string(workQueueReturnedWithNegativeBucket);
+                }
             }
         }
 
@@ -94,21 +97,24 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         {
             l_Output += ", Cntb " + l_ContribId;
         }
-        if (l_Rate.size())
+        if (rate)
         {
-            l_Output += ", Rate " + l_Rate;
-        }
-        if (l_Bucket.size())
-        {
-            l_Output += ", Bkt " + l_Bucket;
-        }
-        if (l_ThrottleWait.size())
-        {
-            l_Output += ", TW " + l_ThrottleWait;
-        }
-        if (l_WorkQueueReturnedWithNegativeBucket.size())
-        {
-            l_Output += ", WQRNegB " + l_WorkQueueReturnedWithNegativeBucket;
+            if (l_Rate.size())
+            {
+                l_Output += ", Rate " + l_Rate;
+            }
+            if (l_Bucket.size())
+            {
+                l_Output += ", Bkt " + l_Bucket;
+            }
+            if (l_ThrottleWait.size())
+            {
+                l_Output += ", TW " + l_ThrottleWait;
+            }
+            if (l_WorkQueueReturnedWithNegativeBucket.size())
+            {
+                l_Output += ", WQRNegB " + l_WorkQueueReturnedWithNegativeBucket;
+            }
         }
 
         if (!strcmp(pSev,"debug"))
