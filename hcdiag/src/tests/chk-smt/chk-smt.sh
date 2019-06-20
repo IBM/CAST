@@ -36,8 +36,7 @@ if [ $# -gt 0 ]; then
    fi
 fi
 
-smt=`/usr/sbin/ppc64_cpu --smt -n`;
-smt=`echo $smt | cut -d '=' -f2`
+smt=`/usr/sbin/ppc64_cpu --smt -n| cut -d '=' -f2`
 
 if [ "$smt" == "$SMT" ]; then
    echo "Node SMT=$smt"
