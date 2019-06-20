@@ -91,11 +91,16 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
 
         if (l_NumberOfNewExtentsCanceled)
         {
+            int l_LocalMetadataUnlockedInd = 0;
+            wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before increment of concurrent", &l_LocalMetadataUnlockedInd);
+
             // Indicate that the next findWork() needs to look for canceled extents
             wrkqmgr.setCheckForCanceledExtents(1);
 
             // Increment the number of concurrent cancel reqeusts
             wrkqmgr.incrementNumberOfConcurrentCancelRequests();
+
+            wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after increment of concurrent", &l_LocalMetadataUnlockedInd);
 
             // Wait for the canceled extents to be processed
             uint64_t l_Attempts = 1;
@@ -134,9 +139,12 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
                              << ", all canceled extents are now processed.";
             }
 
-            // Decrement the number of concurrent cancel reqeusts
+            wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before decrement of concurrent", &l_LocalMetadataUnlockedInd);
+
+            // Decrement the number of concurrent cancel requests
             wrkqmgr.decrementNumberOfConcurrentCancelRequests();
 
+            wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after decrement of concurrent", &l_LocalMetadataUnlockedInd);
         }
 
         // If we are to perform remove operations for target PFS files, do so now...

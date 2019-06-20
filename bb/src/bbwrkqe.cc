@@ -178,20 +178,37 @@ void WRKQE::lock(const LVKey* pLVKey, const char* pMethod)
             endOnError();
         }
 
-        if (strstr(pMethod, "%") == NULL)
-        {
-            if (l_LockDebugLevel == "info")
-            {
-                LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
-            }
-            else
-            {
-                LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
-            }
-        }
-
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, lockTransferQ, "lockTransfer.  threadid=%ld",tid,0,0,0);
+        if (HPWrkQE == this)
+        {
+            if (strstr(pMethod, "%") == NULL)
+            {
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "HPTRN_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "HPTRN_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+            }
+            FL_Write(FLMutex, lockHPTransferQ, "lockHPTransferQueue.  threadid=%ld",tid,0,0,0);
+        }
+        else
+        {
+            if (strstr(pMethod, "%") == NULL)
+            {
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+            }
+            FL_Write(FLMutex, lockTransferQ, "lockTransferQueue.  threadid=%ld",tid,0,0,0);
+        }
     }
     else
     {
@@ -340,17 +357,36 @@ void WRKQE::unlock(const LVKey* pLVKey, const char* pMethod)
         }
 
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, unlockTransferQ, "unlockTransfer.  threadid=%ld",tid,0,0,0);
-
-        if (strstr(pMethod, "%") == NULL)
+        if (HPWrkQE == this)
         {
-            if (l_LockDebugLevel == "info")
+            FL_Write(FLMutex, unlockHPTransQ, "unlockHPTransferQueue.  threadid=%ld",tid,0,0,0);
+
+            if (strstr(pMethod, "%") == NULL)
             {
-                LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "HPTRN_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "HPTRN_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
             }
-            else
+        }
+        else
+        {
+            FL_Write(FLMutex, unlockTransferQ, "unlockTransferQueue.  threadid=%ld",tid,0,0,0);
+
+            if (strstr(pMethod, "%") == NULL)
             {
-                LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
             }
         }
 

@@ -85,13 +85,12 @@ static pthread_t metadataLocked = 0;
 thread_local WRKQE* CurrentWrkQE = 0;
 thread_local int issuingWorkItem = 0;
 
-
 LVKey LVKey_Null = LVKey();
-string l_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
+string g_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
 
 void endOnError()
 {
-    if (config.get(resolveServerConfigKey(process_whoami+".bringup.abortOnCriticalError"), 0))
+    if (g_AbortOnCriticalError)
     {
         abort();
     }
@@ -186,7 +185,7 @@ void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
 
         if (strstr(pMethod, "%") == NULL)
         {
-            if (l_LockDebugLevel == "info")
+            if (g_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -211,7 +210,7 @@ void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
         }
 
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, lockMetadata, "lockMetadata.  threadid=%ld",tid,0,0,0);
+        FL_Write(FLMutex, lockMetadata, "lockLocalMetadata.  threadid=%ld",tid,0,0,0);
     }
     else
     {
@@ -275,11 +274,11 @@ void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
             endOnError();
         }
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, unlockMetadata, "unlockMetadata.  threadid=%ld",tid,0,0,0);
+        FL_Write(FLMutex, unlockMetadata, "unlockLocalMetadata.  threadid=%ld",tid,0,0,0);
 
         if (strstr(pMethod, "%") == NULL)
         {
-            if (l_LockDebugLevel == "info")
+            if (g_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -514,6 +513,16 @@ void processAsyncRequest(WorkID& pWorkItem)
 
     if (!rc)
     {
+        unlockTransferQueue((LVKey*)0, "processAsyncRequest - before increment of concurrent");
+        int l_LocalMetadataUnlockedInd = 0;
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "processAsyncRequest - before increment of concurrent", &l_LocalMetadataUnlockedInd);
+
+        // Increment the number of concurrent cancel reqeusts
+        wrkqmgr.incrementNumberOfConcurrentHPRequests();
+
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "processAsyncRequest - after increment of concurrent", &l_LocalMetadataUnlockedInd);
+        lockTransferQueue((LVKey*)0, "processAsyncRequest - after increment of concurrent");
+
         if (!l_Request.sameHostName())
         {
             if (!wrkqmgr.startProcessingHP_Request(l_Request))
@@ -538,10 +547,10 @@ void processAsyncRequest(WorkID& pWorkItem)
 
                     if (strstr(l_Cmd, "heartbeat"))
                     {
-                        l_LogAsInfo = false;
-                        LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                      << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
-                                      << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                        l_LogAsInfo = true;
+                        LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                     << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                     << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
                     else
                     {
@@ -674,8 +683,18 @@ void processAsyncRequest(WorkID& pWorkItem)
         }
         else
         {
-            LOG(bb,debug) << "Skipping async request because it is from this bbServer host: Tag: " << pWorkItem.getTag() << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+            LOG(bb,info) << "Skipping async request because it is from this bbServer host: Offset 0x" << hex << uppercase << setfill('0') \
+                         << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " => " << l_Request.getData();
         }
+
+        unlockTransferQueue((LVKey*)0, "processAsyncRequest - before decrement of concurrent");
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "processAsyncRequest - before decrement of concurrent", &l_LocalMetadataUnlockedInd);
+
+        // Decrement the number of concurrent cancel reqeusts
+        wrkqmgr.decrementNumberOfConcurrentHPRequests();
+
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "processAsyncRequest - after decrement of concurrent", &l_LocalMetadataUnlockedInd);
+        lockTransferQueue((LVKey*)0, "processAsyncRequest - after decrement of concurrent");
     }
     else
     {

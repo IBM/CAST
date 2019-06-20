@@ -27,8 +27,8 @@ extern sem_t sem_workqueue;
 
 extern pthread_mutex_t lock_metadata;
 
-extern string l_LockDebugLevel;
-
+extern string g_LockDebugLevel;
+extern int g_AbortOnCriticalError;
 extern thread_local WRKQE* CurrentWrkQE;
 extern thread_local int issuingWorkItem;
 
