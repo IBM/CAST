@@ -8,7 +8,7 @@ Test Teardown     Failover back to primary
 *** Test Cases ***
 Basic admin failover
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     
     start job
@@ -20,7 +20,7 @@ Basic admin failover
 
 Perform transfer to SSD followed by admin failover 
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Setup]  Setup to SSD
     [Timeout]  10 minutes
         
@@ -34,7 +34,7 @@ Perform transfer to SSD followed by admin failover
 
 Perform transfer from SSD followed by admin failover 
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup from SSD
 
@@ -48,7 +48,7 @@ Perform transfer from SSD followed by admin failover
 
 Perform admin failover followed by transfer to SSD
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup to SSD
     Run as root
@@ -63,7 +63,7 @@ Perform admin failover followed by transfer to SSD
 
 Perform admin failover followed by transfer from SSD
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup from SSD
     Run as root
@@ -79,7 +79,7 @@ Perform admin failover followed by transfer from SSD
 
 Perform admin failover during transfer->SSD
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup to SSD
     
@@ -105,7 +105,7 @@ Perform admin failover during transfer->SSD
 
 Perform 2 admin failovers during transfer->SSD
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup to SSD
     
@@ -130,7 +130,7 @@ Perform 2 admin failovers during transfer->SSD
 
 Perform admin failover during transfer->SSD and another failover during 2nd transfer->SSD
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup to SSD
     
@@ -169,7 +169,7 @@ Perform admin failover during transfer->SSD and another failover during 2nd tran
 
 Perform admin failover during transfer->PFS
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup from SSD
     
@@ -195,7 +195,7 @@ Perform admin failover during transfer->PFS
 
 Perform 2 admin failovers during transfer->PFS
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup from SSD
     
@@ -220,7 +220,7 @@ Perform 2 admin failovers during transfer->PFS
 
 Perform admin failover during transfer->PFS and another failover during 2nd transfer->PFS
     [Documentation]  Attempt to open a connection that is already open.  This should succeed.
-    [Tags]  connect
+    [Tags]  connect  failover
     [Timeout]  10 minutes
     [Setup]  Setup from SSD
     
