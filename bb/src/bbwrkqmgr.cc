@@ -547,6 +547,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         {
                             LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
                         }
+                        if (numberOfConcurrentHPRequests)
+                        {
+                            LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
+                        }
 //                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
@@ -583,6 +587,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         if (l_CheckForCanceledExtents)
                         {
                             LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
+                        if (numberOfConcurrentHPRequests)
+                        {
+                            LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                         }
 //                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
@@ -859,7 +867,9 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
                 //       working on a cancel request before dequeuing that high priority work item.
                 //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
-                if (HPWrkQE->getWrkQ()->size() && getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests())
+                if (HPWrkQE->getWrkQ()->size() &&
+                    getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() &&
+                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
                 {
                     // High priority work exists...  Pass the high priority queue back...
                     pWrkQE = HPWrkQE;
@@ -1461,7 +1471,7 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
 
         if (strstr(pMethod, "%") == NULL)
         {
-            if (l_LockDebugLevel == "info")
+            if (g_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -2065,7 +2075,7 @@ void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* 
 
         if (strstr(pMethod, "%") == NULL)
         {
-            if (l_LockDebugLevel == "info")
+            if (g_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {

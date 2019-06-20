@@ -265,6 +265,8 @@ class WRKQMGR
         numberOfSkippedDumpRequests(0),
         numberOfAllowedConcurrentCancelRequests(0),
         numberOfConcurrentCancelRequests(0),
+        numberOfAllowedConcurrentHPRequests(0),
+        numberOfConcurrentHPRequests(0),
         dumpOnRemoveWorkItemInterval(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL),
         dumpTimerCount(0),
         heartbeatDumpCount(0),
@@ -315,6 +317,13 @@ class WRKQMGR
     inline void decrementNumberOfConcurrentCancelRequests()
     {
         --numberOfConcurrentCancelRequests;
+
+        return;
+    }
+
+    inline void decrementNumberOfConcurrentHPRequests()
+    {
+        --numberOfConcurrentHPRequests;
 
         return;
     }
@@ -377,9 +386,19 @@ class WRKQMGR
         return numberOfAllowedConcurrentCancelRequests;
     }
 
+    inline uint32_t getNumberOfAllowedConcurrentHPRequests()
+    {
+        return numberOfAllowedConcurrentHPRequests;
+    }
+
     inline uint32_t getNumberOfConcurrentCancelRequests()
     {
         return numberOfConcurrentCancelRequests;
+    }
+
+    inline uint32_t getNumberOfConcurrentHPRequests()
+    {
+        return numberOfConcurrentHPRequests;
     }
 
     inline uint64_t getNumberOfWorkQueueItemsProcessed()
@@ -410,6 +429,13 @@ class WRKQMGR
     inline void incrementNumberOfConcurrentCancelRequests()
     {
         ++numberOfConcurrentCancelRequests;
+
+        return;
+    }
+
+    inline void incrementNumberOfConcurrentHPRequests()
+    {
+        ++numberOfConcurrentHPRequests;
 
         return;
     }
@@ -528,6 +554,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setNumberOfAllowedConcurrentHPRequests(const uint32_t pValue)
+    {
+        numberOfAllowedConcurrentHPRequests = pValue;
+
+        return;
+    }
+
     inline void setNumberOfAllowedSkippedDumpRequests(const uint32_t pValue)
     {
         numberOfAllowedSkippedDumpRequests = pValue;
@@ -538,6 +571,13 @@ class WRKQMGR
     inline void setNumberOfConcurrentCancelRequests(const uint32_t pValue)
     {
         numberOfConcurrentCancelRequests = pValue;
+
+        return;
+    }
+
+    inline void setNumberOfConcurrentHPRequests(const uint32_t pValue)
+    {
+        numberOfConcurrentHPRequests = pValue;
 
         return;
     }
@@ -636,7 +676,11 @@ class WRKQMGR
     uint32_t            numberOfAllowedSkippedDumpRequests;
     volatile uint32_t   numberOfSkippedDumpRequests;
     uint32_t            numberOfAllowedConcurrentCancelRequests;
-    volatile uint32_t   numberOfConcurrentCancelRequests;
+    volatile uint32_t   numberOfConcurrentCancelRequests;       // Access is serialized with the
+                                                                // work queue manager lock
+    uint32_t            numberOfAllowedConcurrentHPRequests;
+    volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
+                                                                // work queue manager lock
     uint64_t            dumpOnRemoveWorkItemInterval;
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;

@@ -950,7 +950,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         handleFileLockFd = fd;
                         if (pLockFeedback)
                         {
-                            if (l_LockDebugLevel == "info")
+                            if (g_LockDebugLevel == "info")
                             {
                                 LOG(bb,info) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
@@ -1346,7 +1346,7 @@ void HandleFile::unlock(const int pFd)
             if (!rc)
             {
                 // Successful unlock...
-                if (l_LockDebugLevel == "info")
+                if (g_LockDebugLevel == "info")
                 {
                     LOG(bb,info) << "<<<<<<<<<< Handle file fd " << pFd \
                                  << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
