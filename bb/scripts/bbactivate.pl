@@ -466,12 +466,23 @@ sub makeProxyConfigFile
     delete $json->{"bb"}{"server0"} if(!$CFG{"bbServer"});
 }
 
+sub cacheRandomName
+{
+    my($nqn) = @_;
+    ($key) = $nqn =~ /(.*)#/;
+    $OLDSTATE{$key} = $nqn;
+}
+
 sub genRandomName
 {
+    my($name) = @_;
+    return $OLDSTATE{$name} if(exists $OLDSTATE{$name});
+    
     my $string;
     my @chars = ("a".."z", 0..9);
     $string .= $chars[rand @chars] for 1..16;
-    return $string;
+
+    return $name . "#" . $string;
 }
 
 sub configureNVMeTarget
@@ -518,6 +529,15 @@ sub configureNVMeTarget
             return;
         }
         output("NVMe over Fabrics target has already been configured.  Clearing potentially stale NVMe over Fabrics target configuration");
+
+        my $cleanup = 1;
+        $cleanup    = 0 if($CFG{"skip"} =~ /cleanup/);
+        my ($fh, $tmpname) = tempfile(SUFFIX => ".nvmet.json", UNLINK => $cleanup);
+        safe_cmd("nvmetcli save $tmpname");
+        my $oldnvmetjson = cat($tmpname);
+        $oldjson = decode_json($oldnvmetjson);
+        cacheRandomName($oldjson->{"hosts"}[0]{"nqn"});
+        cacheRandomName($oldjson->{"hosts"}[1]{"nqn"});
         cmd("nvmetcli clear", 1);
     }
 
@@ -539,11 +559,11 @@ sub configureNVMeTarget
     $state = "enabled" if($CFG{"useOffload"});
     output("NVMe over Fabrics target offload is $state");
 
-    $json->{"hosts"}[0]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"servercfg"} . "#" . &genRandomName();
+    $json->{"hosts"}[0]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"servercfg"});
     $json->{"subsystems"}[0]{"allowed_hosts"}[0] = $json->{"hosts"}[0]{"nqn"};
     if($cfgfile->{"bb"}{"proxy"}{"backupcfg"} ne "")
     {
-        $json->{"hosts"}[1]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"backupcfg"} . "#" . &genRandomName();
+        $json->{"hosts"}[1]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"backupcfg"});
         $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
     }
     $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
