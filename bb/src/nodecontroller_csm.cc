@@ -616,9 +616,13 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
             {
                 output.boost::property_tree::ptree::put_child(results[0].front().first, results[0].front().second); // pick first (good) result
             }
-            else
+            else if(cuml_badresult.size() > 0)
             {
                 output.boost::property_tree::ptree::put_child(cuml_rank, cuml_badresult.front().second); // pick first bad result
+            }
+            else
+            {
+                LOG(bb,info) << "bbcmd failure not specific to a node.  rc=" << cuml_rankrc;
             }
         }
     }

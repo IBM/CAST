@@ -68,7 +68,7 @@ sub phase1()
     
     print "Creating mount point $BBPATH\n";
     $result = bbcmd("$TARGET_ALL mkdir --path=$BBPATH");
-    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH") if(bbgetsuccess($resullt) > 0);
+    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH") if(bbgetsuccess($result) > 0);
     failureCleanAndExit("mkdir failed") if(bbgetrc($result) != 0);
     
     print "Changing mount point $BBPATH ownership to $JOBUSER\n";
@@ -81,7 +81,7 @@ sub phase1()
     
     print "Creating logical volume $BBPATH with size $BB_SSD_MIN\n";
     $result = bbcmd("$TARGET_ALL create --mount=$BBPATH --size=$BB_SSD_MIN");
-    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH") if(bbgetsuccess($resullt) > 0);
+    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH") if(bbgetsuccess($result) > 0);
     failureCleanAndExit("create LV failed") if(bbgetrc($result) != 0);
 }
 
