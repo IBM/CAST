@@ -149,6 +149,19 @@ void endOnError()
  *    contrib files.  Locking the local metadata serializes access to the contrib file(s) amonget
  *    the contributors for a given bbServer; whereas, the handle file lock serializes access
  *    amonget contributors across bbServers.
+ *
+ *  Each thread really has to be concerned with two transfer queues.  The first is what is
+ *  referred to as the transfer queue and contains the work items for extent data to be
+ *  transferred.  The second is the high priority transfer queue, or what is referred to
+ *  as the HP transfer queue.  The HP transfer queue is fed work from the async request file.
+ *  The lock for the HP transfer queue serializies everything for work items related to the
+ *  async request file.  It is sometimes necessary for a thread performing the transfer of
+ *  extent data for a file to have to acquire the HP transfer queue lock.  When doing so,
+ *  the transfer queue lock cannot be held when the HP transfer queue lock is obtained or
+ *  released.
+ *
+ *  When the HP transfer queue lock is held, no other lock can be obtained.
+ *
  */
 
 // NOTE: pLVKey is not currently used, but can come in as null.
@@ -178,6 +191,13 @@ void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
             FL_Write(FLError, lockPV_LMLock3, "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked",0,0,0,0);
             errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the transfer queue is locked";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm3)
+            endOnError();
+        }
+        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_LMLock4, "xfer::lockLocalMetadata: Local metadata lock being obtained while the HP transfer queue is locked",0,0,0,0);
+            errorText << "xfer::lockLocalMetadata: Local metadata lock being obtained while the HP transfer queue is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locklm4)
             endOnError();
         }
         pthread_mutex_lock(&lock_metadata);
@@ -273,6 +293,13 @@ void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod)
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm3)
             endOnError();
         }
+        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+        {
+            FL_Write(FLError, lockPV_LMUnlock4, "xfer::unlockLocalMetadata: Local metadata lock being released while the HP transfer queue is locked",0,0,0,0);
+            errorText << "xfer::unlockLocalMetadata: Local metadata lock being released while the HP transfer queue is locked";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocklm4)
+            endOnError();
+        }
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
         FL_Write(FLMutex, unlockMetadata, "unlockLocalMetadata.  threadid=%ld",tid,0,0,0);
 
@@ -340,6 +367,16 @@ void lockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 
     if (CurrentWrkQE)
     {
+        if (HPWrkQE != CurrentWrkQE)
+        {
+            if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+            {
+                FL_Write(FLError, lockPV_HPLock, "lockTransferQueue: Transfer queue lock being obtained while the HP transfer queue is locked",0,0,0,0);
+                errorText << "lockTransferQueue: Transfer queue lock being obtained while the HP transfer queue is locked";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq2)
+                endOnError();
+            }
+        }
         CurrentWrkQE->lock(pLVKey, pMethod);
     }
     else
@@ -382,6 +419,16 @@ void unlockTransferQueue(const LVKey* pLVKey, const char* pMethod)
 
     if (CurrentWrkQE)
     {
+        if (HPWrkQE != CurrentWrkQE)
+        {
+            if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+            {
+                FL_Write(FLError, lockPV_HPUNlock, "unlockTransferQueue: Transfer queue lock being released while the HP transfer queue is locked",0,0,0,0);
+                errorText << "unlockTransferQueue: Transfer queue lock being released while the HP transfer queue is locked";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq2)
+                endOnError();
+            }
+        }
         CurrentWrkQE->unlock(pLVKey, pMethod);
     }
     else
@@ -475,7 +522,7 @@ void verifyInitLockState()
 
     if (localMetadataIsLocked())
     {
-        FL_Write(FLError, lockPV_Residual2, "WRKQMGR::transferWorker: Local metadata is still locked at the beginning of new work",0,0,0,0);
+        FL_Write(FLError, lockPV_Residual2, "verifyInitLockState: Local metadata is still locked at the beginning of new work",0,0,0,0);
         errorText << "verifyInitLockState: Local metadata is still locked at the beginning of new work";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual2)
         endOnError();
@@ -483,7 +530,7 @@ void verifyInitLockState()
 
     if (HPWrkQE->transferQueueIsLocked())
     {
-        FL_Write(FLError, lockPV_Residual3, "WRKQMGR::transferWorker: HPWrkQE transfer queue is still locked at the beginning of new work",0,0,0,0);
+        FL_Write(FLError, lockPV_Residual3, "verifyInitLockState: HPWrkQE transfer queue is still locked at the beginning of new work",0,0,0,0);
         errorText << "verifyInitLockState: HPWrkQE transfer queue is still locked at the beginning of new work";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual3)
         endOnError();
@@ -491,7 +538,7 @@ void verifyInitLockState()
 
     if (::transferQueueIsLocked())
     {
-        FL_Write(FLError, lockPV_Residual4, "WRKQMGR::transferWorker: Transfer queue is still locked at the beginning of new work",0,0,0,0);
+        FL_Write(FLError, lockPV_Residual4, "verifyInitLockState: Transfer queue is still locked at the beginning of new work",0,0,0,0);
         errorText << "verifyInitLockState: Transfer queue is still locked at the beginning of new work";
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual4)
         endOnError();
@@ -513,16 +560,8 @@ void processAsyncRequest(WorkID& pWorkItem)
 
     if (!rc)
     {
-        unlockTransferQueue((LVKey*)0, "processAsyncRequest - before increment of concurrent");
-        int l_LocalMetadataUnlockedInd = 0;
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "processAsyncRequest - before increment of concurrent", &l_LocalMetadataUnlockedInd);
-
         // Increment the number of concurrent cancel reqeusts
         wrkqmgr.incrementNumberOfConcurrentHPRequests();
-
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "processAsyncRequest - after increment of concurrent", &l_LocalMetadataUnlockedInd);
-        lockTransferQueue((LVKey*)0, "processAsyncRequest - after increment of concurrent");
-
         if (!l_Request.sameHostName())
         {
             if (!wrkqmgr.startProcessingHP_Request(l_Request))
@@ -542,15 +581,24 @@ void processAsyncRequest(WorkID& pWorkItem)
                 if (rc == 8)
                 {
                     // Release the transfer queue lock and acquire the local metadata lock
-                    unlockTransferQueue((LVKey*)0, "processAsyncRequest");
-                    lockLocalMetadata((LVKey*)0, "processAsyncRequest");
+                    unlockTransferQueue((LVKey*)0, "processAsyncRequest - Before invoking request handler");
+                    lockLocalMetadata((LVKey*)0, "processAsyncRequest - Before invoking request handler");
 
                     if (strstr(l_Cmd, "heartbeat"))
                     {
-                        l_LogAsInfo = true;
-                        LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                     << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
-                                     << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                        if (config.get(process_whoami+".bringup.logAllAsyncRequestActivity", 0))
+                        {
+                            LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                         << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                         << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                        }
+                        else
+                        {
+                            l_LogAsInfo = false;
+                            LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                                          << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                          << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
+                        }
                     }
                     else
                     {
@@ -652,8 +700,8 @@ void processAsyncRequest(WorkID& pWorkItem)
                     }
 
                     // Release the local metadata lock and acquire the transfer queue lock
-                    unlockLocalMetadata((LVKey*)0, "processAsyncRequest");
-                    lockTransferQueue((LVKey*)0, "processAsyncRequest");
+                    unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
+                    lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
                 }
                 else
                 {
@@ -671,6 +719,7 @@ void processAsyncRequest(WorkID& pWorkItem)
                     LOG(bb,debug) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                   << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
                 }
+
                 wrkqmgr.endProcessingHP_Request(l_Request);
             }
             else
@@ -687,14 +736,8 @@ void processAsyncRequest(WorkID& pWorkItem)
                          << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " => " << l_Request.getData();
         }
 
-        unlockTransferQueue((LVKey*)0, "processAsyncRequest - before decrement of concurrent");
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "processAsyncRequest - before decrement of concurrent", &l_LocalMetadataUnlockedInd);
-
-        // Decrement the number of concurrent cancel reqeusts
+        // Decrement the number of concurrent HP requests
         wrkqmgr.decrementNumberOfConcurrentHPRequests();
-
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "processAsyncRequest - after decrement of concurrent", &l_LocalMetadataUnlockedInd);
-        lockTransferQueue((LVKey*)0, "processAsyncRequest - after decrement of concurrent");
     }
     else
     {
@@ -1990,8 +2033,6 @@ void* transferWorker(void* ptr)
                 {
                     CurrentWrkQE = l_WrkQE;
                     lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
-                    wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
-
                     // NOTE:  Indicate critical section of code where the transfer queue
                     //        lock CANNOT be released until after we pop off a work item
                     //        from a work queue.
@@ -2035,6 +2076,7 @@ void* transferWorker(void* ptr)
                                 //       The throttle timer processing performs work that is broader than just determining
                                 //       if we need to delay.
                                 wrkqmgr.processThrottle(&l_Key, l_WrkQE, l_LV_Info, l_TagId, l_ExtentInfo, l_Extent, l_ThreadDelay, l_TotalDelay);
+
                                 if (l_ThreadDelay > 0 && (!l_Extent->isCanceled()))
                                 {
                                     // Indicate transfer queue lock can be released.
@@ -2064,6 +2106,11 @@ void* transferWorker(void* ptr)
                                                 wrkqmgr.dump("info", " Work Queue Mgr @ Delay", DUMP_ALWAYS);
                                             }
                                         }
+
+                                        // Unlock the work queue manager
+                                        // NOTE: Must hold this lock until after setDelayMessageSent()
+                                        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - Throttle delay");
+
                                         l_WrkQE->setTransferThreadIsDelaying(1);
                                         unlockTransferQueue(&l_Key, "transferWorker - Before throttle delay sending extents");
                                         {
@@ -2154,6 +2201,9 @@ void* transferWorker(void* ptr)
                         // Indicate transfer queue lock can be released
                         setWorkItemCriticalSection(0);
 
+                        // Unlock the work queue manager
+                        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - ProcessNextWorkItem");
+
                         // Clear bberror...
                         bberror.clear(l_WorkItem.getConnectionName());
 
@@ -2165,11 +2215,15 @@ void* transferWorker(void* ptr)
                             if (!Throttle_Timer.isSnoozing())
                             {
                                 int l_NumberOfPosts = 0;
+
                                 unlockTransferQueue((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
                                 wrkqmgr.lockWorkQueueMgr((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
+
                                 sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
+
                                 wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
                                 lockTransferQueue((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
+
                                 if (l_NumberOfPosts)
                                 {
                                     l_Repost = false;
@@ -2277,6 +2331,7 @@ void* transferWorker(void* ptr)
                 l_Repost = false;
                 wrkqmgr.post();
             }
+
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - End work item");
         }
         catch(ExceptionBailout& e)
@@ -2285,6 +2340,11 @@ void* transferWorker(void* ptr)
             errorText << "Exception thrown in transferExtent() to bailout";
             LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_4);
 
+            // NOTE: Must unlock the transfer queue prior to any post...
+            // NOTE: unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
+            //       while it held the mutex.
+            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
+
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
@@ -2292,15 +2352,17 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            //  NOTE:  unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
-            //         while it held the mutex.
-            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
         }
         catch(exception& e)
         {
             LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.tw_5);
 
+            // NOTE: Must unlock the transfer queue prior to any post...
+            // NOTE: unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
+            //       while it held the mutex.
+            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - General exception handler");
+
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
@@ -2308,9 +2370,6 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            //  NOTE:  unlockTransferQueueIfNeeded() will only unlock the mutex if this thread took an exception
-            //         while it held the mutex.
-            unlockTransferQueueIfNeeded(&l_Key, "transferWorker - General exception handler");
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - General exception handler");
         }
     }
@@ -3043,11 +3102,20 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                                  << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
                                                  << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
                                                  << " extents";
+
+                                    // NOTE: CurrentWrkQE must be set before sortExtents()
                                     WRKQE* l_WrkQE = 0;
-                                    rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                    if (!CurrentWrkQE)
+                                    {
+                                        rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                    }
+                                    else
+                                    {
+                                        l_WrkQE = CurrentWrkQE;
+                                    }
+
                                     if ((!rc) && l_WrkQE)
                                     {
-                                        // NOTE: CurrentWrkQE must be set before sortExtents()
                                         CurrentWrkQE = l_WrkQE;
                                         lockTransferQueue(pLVKey, "queueTransfer");
 
@@ -3504,7 +3572,16 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             // Stageout end not started
             try
             {
-                int rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                int rc2 = 0;
+                if (!CurrentWrkQE)
+                {
+                    rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                }
+                else
+                {
+                    l_WrkQE = CurrentWrkQE;
+                }
+
                 if ((!rc2) && l_WrkQE)
                 {
                     CurrentWrkQE = l_WrkQE;

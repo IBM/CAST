@@ -456,8 +456,6 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
     addReply(msg, response);
 
-    CurrentWrkQE = (WRKQE*)0;
-
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
 
     return;
@@ -828,8 +826,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName,response);
     delete response;
-
-    CurrentWrkQE = (WRKQE*)0;
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
@@ -1300,8 +1296,6 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
 
     addReply(msg, response);
 
-    CurrentWrkQE = (WRKQE*)0;
-
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
@@ -1347,8 +1341,6 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
-
-    CurrentWrkQE = (WRKQE*)0;
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
@@ -2533,7 +2525,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     delete response;
 
     // Clean up...
-    CurrentWrkQE = (WRKQE*)0;
     if (l_ContribIdFile)
     {
         delete l_ContribIdFile;
@@ -2658,8 +2649,6 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     // Send the response
     sendMessage(pConnectionName,response);
     delete response;
-
-    CurrentWrkQE = (WRKQE*)0;
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();

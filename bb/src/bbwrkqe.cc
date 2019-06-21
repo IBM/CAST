@@ -172,9 +172,9 @@ void WRKQE::lock(const LVKey* pLVKey, const char* pMethod)
         // Verify lock protocol
         if (issuingWorkItem)
         {
-            FL_Write(FLError, lockPV_TQLock, "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
+            FL_Write(FLError, lockPV_TQLock1, "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
             errorText << "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq1)
             endOnError();
         }
 
@@ -350,9 +350,9 @@ void WRKQE::unlock(const LVKey* pLVKey, const char* pMethod)
         // Verify lock protocol
         if (issuingWorkItem)
         {
-            FL_Write(FLError, lockPV_TQUnlock, "WRKQE::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
+            FL_Write(FLError, lockPV_TQUnlock1, "WRKQE::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
             errorText << "WRKQE::unlock: Transfer queue lock being released while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq1)
             endOnError();
         }
 

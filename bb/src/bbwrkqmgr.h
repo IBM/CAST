@@ -455,24 +455,6 @@ class WRKQMGR
         return;
     };
 
-    inline void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
-    {
-        if (pWrkQE != HPWrkQE)
-        {
-            // Not the high priority work queue.
-            // Simply, increment the number of work items processed.
-            pWrkQE->incrementNumberOfWorkItemsProcessed();
-        }
-        else
-        {
-            // For the high priority work queue, we have to manage
-            // how work items are recorded as being complete.
-            manageWorkItemsProcessed(pWorkItem);
-        }
-
-        return;
-    };
-
     inline int inThrottleMode()
     {
         return throttleMode;
@@ -638,6 +620,7 @@ class WRKQMGR
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
     void lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
@@ -665,6 +648,9 @@ class WRKQMGR
     int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=FULL_MAINTENANCE);
 
     // Data members
+    //
+    // NOTE:  Unless otherwise noted, data member access is serialized
+    //        with the work queue manager lock (lock_workQueueMgr)
     int                 throttleMode;
     volatile int        throttleTimerCount;
     int                 throttleTimerPoppedCount;
@@ -677,28 +663,30 @@ class WRKQMGR
     volatile uint32_t   numberOfSkippedDumpRequests;
     uint32_t            numberOfAllowedConcurrentCancelRequests;
     volatile uint32_t   numberOfConcurrentCancelRequests;       // Access is serialized with the
-                                                                // work queue manager lock
+                                                                // HPWrkQE transfer queue lock
     uint32_t            numberOfAllowedConcurrentHPRequests;
     volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
-                                                                // work queue manager lock
+                                                                // HPWrkQE transfer queue lock
     uint64_t            dumpOnRemoveWorkItemInterval;
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;
-    volatile int64_t    heartbeatTimerCount;
+    volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
-    int64_t             declareServerDeadCount;     // In seconds
+    int64_t             declareServerDeadCount;                 // In seconds
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
-    volatile uint64_t   offsetToNextAsyncRequest;
-    volatile uint64_t   lastOffsetProcessed;
+    volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile uint64_t   lastOffsetProcessed;                    // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     LVKey               lastQueueProcessed;
     LVKey               lastQueueWithEntries;
     string              loggingLevel;
 
-    map<LVKey, WRKQE*>  wrkqs;                  // Access is serialized with the
-                                                // work queue manager lock
+    map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;  // Access is serialized with the
                                                 // HPWrkQE transfer queue lock
     vector<uint64_t>    outOfOrderOffsets;      // Access is serialized with the
