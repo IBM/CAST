@@ -1529,6 +1529,7 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV
 
 void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
 {
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
 
     if (pTransferDef && pLV_Info)
@@ -1551,6 +1552,11 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
     if (l_LocalMetadataLocked)
     {
         unlockLocalMetadata(pLVKey, "markTransferFailed");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue(pLVKey, "markTransferFailed");
     }
 
     return;
