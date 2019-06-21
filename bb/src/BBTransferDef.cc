@@ -1505,8 +1505,13 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
         //       completed the processing performed by the second volley from
         //       bbProxy.  We have to make sure that the extents are first enqueued
         //       so that the stop processing is properly performed.
+        // NOTE: We only wait 1/2 of the normal getDeclareServerDeadCount(), as
+        //       this transfer definition originated on this bbServer.  The
+        //       bbServer attempting to take over will wait the full amount of
+        //       time.  So if possible, we want the original server to process
+        //       first.
         string l_ConnectionName = string();
-        uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId);
+        uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId)/2;
         uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
         while (!rc && l_Continue--)
         {
