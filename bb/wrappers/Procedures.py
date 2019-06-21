@@ -278,12 +278,12 @@ def RestartTransfers(pEnv):
                 if not error.handleError():
                     raise
 
-            bb.flushWaiters(l_ActiveServer)
+#            bb.flushWaiters(l_ActiveServer)
             BB_SetServer("activate", l_NewServer)
 
         # NOTE: Try to let start transfers to complete their second volley
         #       before suspending the connection(s)
-        bb.flushWaiters(l_ActiveServer)
+#        bb.flushWaiters(l_ActiveServer)
         BB_Suspend(l_HostName)
         l_ResumeCN_Host = True
 

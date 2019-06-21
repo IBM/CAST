@@ -246,20 +246,26 @@ class WRKQE
     void unlock(const LVKey* pLVKey, const char* pMethod);
 
     // Data members
+    //
+    // NOTE:  Unless otherwise noted, data member access is serialized
+    //        with the transfer queue lock (lock_transferqueue)
     LVKey               lvKey;
     uint64_t            jobid;
-    uint64_t            rate;       // bytes/sec
-    int64_t             bucket;
+    uint64_t            rate;                       // bytes/sec
+                                                    // Access is serialized with the
+                                                    // work queue manager lock
+    int64_t             bucket;                     // Access is serialized with the
+                                                    // work queue manager lock
     int                 suspended;
     int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
-    volatile int        throttleWait;
+    volatile int        throttleWait;               // Access is serialized with the
+                                                    // work queue manager lock
     volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
     BBLV_Info*          lvinfo;
-    queue<WorkID>*      wrkq;                   // Access is serialized with the
-                                                // lock_transferqueue lock
+    queue<WorkID>*      wrkq;
     pthread_mutex_t     lock_transferqueue;
     pthread_t           transferQueueLocked;
 };

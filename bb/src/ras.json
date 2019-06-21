@@ -329,8 +329,8 @@
 	  "unlocklm1" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "Lock protocol violation when attempting to lock the local metadata (1).",
-	      "description" : "Lock protocol violation when attempting to lock the local metadata (1)."
+	      "message" : "Lock protocol violation when attempting to unlock the local metadata (1).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (1)."
 	  },
 	  "locklm2" :
 	  {
@@ -341,8 +341,8 @@
 	  "unlocklm2" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "Lock protocol violation when attempting to lock the local metadata (2).",
-	      "description" : "Lock protocol violation when attempting to lock the local metadata (2)."
+	      "message" : "Lock protocol violation when attempting to ununlock the local metadata (2).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (2)."
 	  },
 	  "locklm3" :
 	  {
@@ -353,8 +353,20 @@
 	  "unlocklm3" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "Lock protocol violation when attempting to lock the local metadata (3).",
-	      "description" : "Lock protocol violation when attempting to lock the local metadata (3)."
+	      "message" : "Lock protocol violation when attempting to unlock the local metadata (3).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (3)."
+	  },
+	  "locklm4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (4).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (4)."
+	  },
+	  "unlocklm4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the local metadata (4).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (4)."
 	  },
 	  "lockncwqe" :
 	  {
@@ -368,11 +380,29 @@
 	      "message" : "unlockTransferQueue: No CurrentWrkQE pointer.",
 	      "description" : "unlockTransferQueue: No CurrentWrkQE pointer."
 	  },
-	  "locktq" :
+	  "locktq1" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "Lock protocol violation when attempting to lock the transfer queue.",
-	      "description" : "Lock protocol violation when attempting to lock the transfer queue."
+	      "message" : "Lock protocol violation when attempting to lock the transfer queue (1).",
+	      "description" : "Lock protocol violation when attempting to lock the transfer queue (1)."
+	  },
+	  "unlocktq1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the transfer queue (1).",
+	      "description" : "Lock protocol violation when attempting to unlock the transfer queue (1)."
+	  },
+	  "locktq2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the transfer queue (2).",
+	      "description" : "Lock protocol violation when attempting to lock the transfer queue (2)."
+	  },
+	  "unlocktq2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the transfer queue (2).",
+	      "description" : "Lock protocol violation when attempting to unlock the transfer queue (2)."
 	  },
 	  "lockwqm1" :
 	  {
@@ -385,12 +415,6 @@
 	      "severity" : "WARNING",
 	      "message" : "Lock protocol violation when attempting to lock the work queue manager (2).",
 	      "description" : "Lock protocol violation when attempting to lock the work queue manager (2)."
-	  },
-	  "unlocktq" :
-	  {
-	      "severity" : "WARNING",
-	      "message" : "Lock protocol violation when attempting to unlock the transfer queue.",
-	      "description" : "Lock protocol violation when attempting to unlock the transfer queue."
 	  }
       }
       },
