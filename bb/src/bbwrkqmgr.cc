@@ -481,7 +481,13 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     int l_TransferQueueUnlocked = 0;
     int l_LocalMetadataUnlockedInd = 0;
     int l_WorkQueueLocked = 0;
+    int l_HP_WorkQueueUnlocked = 0;
 
+    if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+    {
+        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
+        l_HP_WorkQueueUnlocked = 1;
+    }
     if (!workQueueMgrIsLocked())
     {
         l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before");
@@ -659,6 +665,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     if (l_TransferQueueUnlocked)
     {
         lockTransferQueue((LVKey*)0, "WRKQMGR::dump - after");
+    }
+    if (l_HP_WorkQueueUnlocked)
+    {
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
     }
 
     return;

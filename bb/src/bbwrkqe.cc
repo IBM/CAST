@@ -63,6 +63,12 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
 
     if (wrkq)
     {
+        int l_HP_WorkQueueUnlocked = 0;
+        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+        {
+            HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
+            l_HP_WorkQueueUnlocked = 1;
+        }
         int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - entry");
 
         if (getWrkQ_Size())
@@ -129,6 +135,10 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         if (l_TransferQueueLocked)
         {
             unlockTransferQueue((LVKey*)0, "WRKQE::dump - exit");
+        }
+        if (l_HP_WorkQueueUnlocked)
+        {
+            HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
         }
     }
     else
