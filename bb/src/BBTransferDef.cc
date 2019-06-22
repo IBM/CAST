@@ -522,6 +522,10 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
             (pContribId == UNDEFINED_CONTRIBID || transferdefs[i]->getContribId() == pContribId))
         {
             // Found a transfer definition in the archive where the file transfers should be stopped.
+
+            verifyInitLockState();
+            lockLocalMetadata((LVKey*)0, "BBTransferDefs::stopTransfers");
+
             string l_HostName;
             activecontroller->gethostname(l_HostName);
             rc = metadata.stopTransfer(l_HostName, transferdefs[i]->getHostName(), transferdefs[i]->getJobId(), transferdefs[i]->getJobStepId(), transferdefs[i]->getTransferHandle(), transferdefs[i]->getContribId());
@@ -612,6 +616,8 @@ void BBTransferDefs::stopTransfers(const string& pHostName, const uint64_t pJobI
                 // Clear bberror of any possible tolerated condition
                 bberror.forceClear();
             }
+
+            unlockLocalMetadata((LVKey*)0, "BBTransferDefs::stopTransfers");
         }
         else
         {
