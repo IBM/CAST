@@ -2606,6 +2606,8 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
         //        that all prior restart related requests have first been processed by this bbServer.
         wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
 
+        unlockLocalMetadata((LVKey*)0, "msgin_stoptransfers");
+
         // Process the transfer definitions object for the stop transfers operation
         l_TransferDefs->stopTransfers(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_NumStoppedTransferDefs);
 
