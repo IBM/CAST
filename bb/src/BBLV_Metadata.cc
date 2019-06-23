@@ -1137,7 +1137,7 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
     return rc;
 }
 
-int BBLV_Metadata::stopTransfer(const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
+int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId)
 {
     int rc = 0;
     LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
