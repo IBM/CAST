@@ -998,6 +998,22 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
   	becomeUser(l_Uid, l_Gid);
 
+    if (!rc)
+    {
+        if (config.get(process_whoami+".bringup.logAllAsyncRequestActivity", 0))
+        {
+            LOG(bb,info) << "getAsyncRequest(): Offset 0x" << hex << uppercase << setfill('0') \
+                         << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                         << ", from hostname " << pRequest.getHostName() << " => " << pRequest.getData();
+        }
+        else
+        {
+            LOG(bb,debug) << "getAsyncRequest(): Offset 0x" << hex << uppercase << setfill('0') \
+                          << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                          << ", from hostname " << pRequest.getHostName() << " => " << pRequest.getData();
+        }
+    }
+
     return rc;
 }
 
@@ -1604,7 +1620,16 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                 {
                     l_TargetOffset = 0;
                 }
-                LOG(bb,debug) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
+
+                if (config.get(process_whoami+".bringup.logAllAsyncRequestActivity", 0))
+                {
+                    LOG(bb,info) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
+                }
+                else
+                {
+                    LOG(bb,debug) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
+                }
+
                 for (auto it=outOfOrderOffsets.begin(); it!=outOfOrderOffsets.end(); ++it) {
                     if (*it == l_TargetOffset)
                     {
