@@ -491,7 +491,8 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     if (!workQueueMgrIsLocked())
     {
         l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before");
-        l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "WRKQMGR::dump - before", &l_LocalMetadataUnlockedInd);
+        lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - before", &l_LocalMetadataUnlockedInd);
+        l_WorkQueueLocked = true;
     }
 
     if (pSev == loggingLevel)
@@ -551,7 +552,6 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                     }
 
                     int l_CheckForCanceledExtents = checkForCanceledExtents;
-                    int l_LocalMetadataUnlockedInd = 0;
                     if (!strcmp(pSev,"debug"))
                     {
                         LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
@@ -580,17 +580,12 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
 
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
 
-                        if (l_WorkQueueMgrLocked)
-                        {
-                            unlockWorkQueueMgr((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
-                        }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
                     else if (!strcmp(pSev,"info"))
@@ -622,17 +617,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         }
                         LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
 
-                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
-
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
 
-                        if (l_WorkQueueMgrLocked)
-                        {
-                            unlockWorkQueueMgr((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
-                        }
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
 
