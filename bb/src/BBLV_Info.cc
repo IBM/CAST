@@ -91,11 +91,16 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
 
         if (l_NumberOfNewExtentsCanceled)
         {
+            int l_LocalMetadataUnlockedInd = 0;
+            wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before increment of concurrent", &l_LocalMetadataUnlockedInd);
+
             // Indicate that the next findWork() needs to look for canceled extents
             wrkqmgr.setCheckForCanceledExtents(1);
 
             // Increment the number of concurrent cancel reqeusts
             wrkqmgr.incrementNumberOfConcurrentCancelRequests();
+
+            wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after increment of concurrent", &l_LocalMetadataUnlockedInd);
 
             // Wait for the canceled extents to be processed
             uint64_t l_Attempts = 1;
@@ -134,9 +139,12 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
                              << ", all canceled extents are now processed.";
             }
 
-            // Decrement the number of concurrent cancel reqeusts
+            wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before decrement of concurrent", &l_LocalMetadataUnlockedInd);
+
+            // Decrement the number of concurrent cancel requests
             wrkqmgr.decrementNumberOfConcurrentCancelRequests();
 
+            wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after decrement of concurrent", &l_LocalMetadataUnlockedInd);
         }
 
         // If we are to perform remove operations for target PFS files, do so now...
@@ -382,8 +390,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                 l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
 
                 {
-                    // NOTE: Currently set to send info to console after 5 seconds of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 20)
+                    // NOTE: Currently set to send info to console after 8 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i++ % 40) == 32)
                     {
                         FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
                                  pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);
@@ -392,8 +400,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                         l_DelayMsgLogged = 1;
                     }
                     usleep((useconds_t)250000);
-                    // NOTE: Currently set to dump after 3 seconds of not being able to clear, and every 10 seconds thereafter...
-                    if ((i % 40) == 20)
+                    // NOTE: Currently set to dump after 8 seconds of not being able to clear, and every 10 seconds thereafter...
+                    if ((i % 40) == 32)
                     {
                         l_DumpOption = MORE_EXTENTS_TO_TRANSFER_FOR_FILE;
                     }
@@ -761,11 +769,10 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::status, (int64_t)l_FileStatus);
     l_Complete->addAttribute(txp::sizetransferred, (int64_t)l_SizeTransferred);
 
-    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "sendTransferCompleteForFileMsg");
-    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "sendTransferCompleteForFileMsg");
+    unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
+    unlockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
 
     // Send the message and wait for reply
-
     try
     {
         rc = sendMsgAndWaitForReturnCode(pConnectionName, l_Complete);
@@ -777,15 +784,8 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
         assert(strlen(e.what())==0);
     }
 
-    if (l_LocalMetadataUnlocked)
-    {
-    	lockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
-    }
-
-    if (l_TransferQueueUnlocked)
-    {
-    	lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
-    }
+    lockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
+    lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
 
     if (rc)
     {

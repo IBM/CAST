@@ -265,6 +265,8 @@ class WRKQMGR
         numberOfSkippedDumpRequests(0),
         numberOfAllowedConcurrentCancelRequests(0),
         numberOfConcurrentCancelRequests(0),
+        numberOfAllowedConcurrentHPRequests(0),
+        numberOfConcurrentHPRequests(0),
         dumpOnRemoveWorkItemInterval(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL),
         dumpTimerCount(0),
         heartbeatDumpCount(0),
@@ -315,6 +317,13 @@ class WRKQMGR
     inline void decrementNumberOfConcurrentCancelRequests()
     {
         --numberOfConcurrentCancelRequests;
+
+        return;
+    }
+
+    inline void decrementNumberOfConcurrentHPRequests()
+    {
+        --numberOfConcurrentHPRequests;
 
         return;
     }
@@ -377,9 +386,19 @@ class WRKQMGR
         return numberOfAllowedConcurrentCancelRequests;
     }
 
+    inline uint32_t getNumberOfAllowedConcurrentHPRequests()
+    {
+        return numberOfAllowedConcurrentHPRequests;
+    }
+
     inline uint32_t getNumberOfConcurrentCancelRequests()
     {
         return numberOfConcurrentCancelRequests;
+    }
+
+    inline uint32_t getNumberOfConcurrentHPRequests()
+    {
+        return numberOfConcurrentHPRequests;
     }
 
     inline uint64_t getNumberOfWorkQueueItemsProcessed()
@@ -414,6 +433,13 @@ class WRKQMGR
         return;
     }
 
+    inline void incrementNumberOfConcurrentHPRequests()
+    {
+        ++numberOfConcurrentHPRequests;
+
+        return;
+    }
+
     inline void incrementNumberOfWorkItemsProcessed()
     {
         ++numberOfWorkQueueItemsProcessed;
@@ -425,24 +451,6 @@ class WRKQMGR
     {
         HPWrkQE->incrementNumberOfWorkItemsProcessed();
         lastOffsetProcessed = pOffset;
-
-        return;
-    };
-
-    inline void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
-    {
-        if (pWrkQE != HPWrkQE)
-        {
-            // Not the high priority work queue.
-            // Simply, increment the number of work items processed.
-            pWrkQE->incrementNumberOfWorkItemsProcessed();
-        }
-        else
-        {
-            // For the high priority work queue, we have to manage
-            // how work items are recorded as being complete.
-            manageWorkItemsProcessed(pWorkItem);
-        }
 
         return;
     };
@@ -528,6 +536,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setNumberOfAllowedConcurrentHPRequests(const uint32_t pValue)
+    {
+        numberOfAllowedConcurrentHPRequests = pValue;
+
+        return;
+    }
+
     inline void setNumberOfAllowedSkippedDumpRequests(const uint32_t pValue)
     {
         numberOfAllowedSkippedDumpRequests = pValue;
@@ -538,6 +553,13 @@ class WRKQMGR
     inline void setNumberOfConcurrentCancelRequests(const uint32_t pValue)
     {
         numberOfConcurrentCancelRequests = pValue;
+
+        return;
+    }
+
+    inline void setNumberOfConcurrentHPRequests(const uint32_t pValue)
+    {
+        numberOfConcurrentHPRequests = pValue;
 
         return;
     }
@@ -598,6 +620,7 @@ class WRKQMGR
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
     void lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
@@ -625,6 +648,9 @@ class WRKQMGR
     int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=FULL_MAINTENANCE);
 
     // Data members
+    //
+    // NOTE:  Unless otherwise noted, data member access is serialized
+    //        with the work queue manager lock (lock_workQueueMgr)
     int                 throttleMode;
     volatile int        throttleTimerCount;
     int                 throttleTimerPoppedCount;
@@ -636,25 +662,31 @@ class WRKQMGR
     uint32_t            numberOfAllowedSkippedDumpRequests;
     volatile uint32_t   numberOfSkippedDumpRequests;
     uint32_t            numberOfAllowedConcurrentCancelRequests;
-    volatile uint32_t   numberOfConcurrentCancelRequests;
+    volatile uint32_t   numberOfConcurrentCancelRequests;       // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    uint32_t            numberOfAllowedConcurrentHPRequests;
+    volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     uint64_t            dumpOnRemoveWorkItemInterval;
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;
-    volatile int64_t    heartbeatTimerCount;
+    volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
-    int64_t             declareServerDeadCount;     // In seconds
+    int64_t             declareServerDeadCount;                 // In seconds
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
-    volatile uint64_t   offsetToNextAsyncRequest;
-    volatile uint64_t   lastOffsetProcessed;
+    volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile uint64_t   lastOffsetProcessed;                    // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     LVKey               lastQueueProcessed;
     LVKey               lastQueueWithEntries;
     string              loggingLevel;
 
-    map<LVKey, WRKQE*>  wrkqs;                  // Access is serialized with the
-                                                // work queue manager lock
+    map<LVKey, WRKQE*>  wrkqs;
     map<string, HeartbeatEntry> heartbeatData;  // Access is serialized with the
                                                 // HPWrkQE transfer queue lock
     vector<uint64_t>    outOfOrderOffsets;      // Access is serialized with the

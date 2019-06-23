@@ -76,6 +76,9 @@ WRKQE* HPWrkQE;
 // Metadata counter for flight logging
 AtomicCounter metadataCounter;
 
+// Abort on critical error indicator
+int g_AbortOnCriticalError = DEFAULT_ABORT_ON_CRITICAL_ERROR;
+
 
 //*****************************************************************************
 //  Support routines
@@ -453,8 +456,6 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
     addReply(msg, response);
 
-    CurrentWrkQE = (WRKQE*)0;
-
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
 
     return;
@@ -825,8 +826,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName,response);
     delete response;
-
-    CurrentWrkQE = (WRKQE*)0;
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
@@ -1297,8 +1296,6 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
 
     addReply(msg, response);
 
-    CurrentWrkQE = (WRKQE*)0;
-
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
@@ -1344,8 +1341,6 @@ void msgin_removelogicalvolume(txp::Id id, const std::string& pConnectionName, t
     msg->buildResponseMsg(response);
 
     addReply(msg, response);
-
-    CurrentWrkQE = (WRKQE*)0;
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
@@ -2530,7 +2525,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     delete response;
 
     // Clean up...
-    CurrentWrkQE = (WRKQE*)0;
     if (l_ContribIdFile)
     {
         delete l_ContribIdFile;
@@ -2612,6 +2606,8 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
         //        that all prior restart related requests have first been processed by this bbServer.
         wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
 
+        unlockLocalMetadata((LVKey*)0, "msgin_stoptransfers");
+
         // Process the transfer definitions object for the stop transfers operation
         l_TransferDefs->stopTransfers(l_HostName, l_JobId, l_JobStepId, l_Handle, l_ContribId, l_NumStoppedTransferDefs);
 
@@ -2655,8 +2651,6 @@ void msgin_stoptransfers(txp::Id id, const std::string&  pConnectionName, txp::M
     // Send the response
     sendMessage(pConnectionName,response);
     delete response;
-
-    CurrentWrkQE = (WRKQE*)0;
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
@@ -2892,6 +2886,7 @@ int bb_main(std::string who)
         uint32_t l_NumberOfTransferThreads = (uint32_t)(config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS));
 
         wrkqmgr.setNumberOfAllowedConcurrentCancelRequests(l_NumberOfTransferThreads >= 4 ? l_NumberOfTransferThreads/2 : 1);
+        wrkqmgr.setNumberOfAllowedConcurrentHPRequests(l_NumberOfTransferThreads >= 4 ? l_NumberOfTransferThreads/4 : 1);
         wrkqmgr.setAllowDumpOfWorkQueueMgr(config.get("bb.bbserverAllowDumpOfWorkQueueMgr", DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR));
         wrkqmgr.setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItem", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM));
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
@@ -2902,7 +2897,8 @@ int bb_main(std::string who)
             LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
         }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
-        l_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
+        g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
+        g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
 
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.

@@ -146,11 +146,9 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     l_WorkId.dump("debug", "addHPWorkItem() ");
     HPWrkQE->addWorkItem(l_WorkId, DO_NOT_VALIDATE_WORK_QUEUE);
 
-    HPWrkQE->unlock(pLVKey, "addHPWorkItem - before post()");
-
+    // NOTE: The transfer queue is not locked when this
+    //       method is invoked.
     WRKQMGR::post();
-
-    HPWrkQE->lock(pLVKey, "addHPWorkItem - after post()");
 
     return;
 }
@@ -400,7 +398,7 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
 
 void WRKQMGR::checkThrottleTimer()
 {
-    HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
+    HPWrkQE->lock((LVKey*)0, "%checkThrottleTimer");
 
     if (Throttle_Timer.popped(Throttle_TimeInterval))
     {
@@ -445,7 +443,7 @@ void WRKQMGR::checkThrottleTimer()
         }
     }
 
-    HPWrkQE->unlock((LVKey*)0, "checkThrottleTimer");
+    HPWrkQE->unlock((LVKey*)0, "%checkThrottleTimer");
 
     return;
 }
@@ -479,6 +477,24 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
 void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOption) {
     // NOTE: We early exit based on the logging level because we don't want to 'reset'
     //       dump counters, etc. if the logging facility filters out an entry.
+
+    int l_TransferQueueUnlocked = 0;
+    int l_LocalMetadataUnlockedInd = 0;
+    int l_WorkQueueLocked = 0;
+    int l_HP_WorkQueueUnlocked = 0;
+
+    if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+    {
+        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
+        l_HP_WorkQueueUnlocked = 1;
+    }
+    if (!workQueueMgrIsLocked())
+    {
+        l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before");
+        lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - before", &l_LocalMetadataUnlockedInd);
+        l_WorkQueueLocked = true;
+    }
+
     if (pSev == loggingLevel)
     {
         const char* l_PostfixOverride = " Work Queue Mgr (Not an error - Skip Interval)";
@@ -536,7 +552,6 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                     }
 
                     int l_CheckForCanceledExtents = checkForCanceledExtents;
-                    int l_LocalMetadataUnlockedInd = 0;
                     if (!strcmp(pSev,"debug"))
                     {
                         LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
@@ -546,6 +561,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         if (l_CheckForCanceledExtents)
                         {
                             LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
+                        if (numberOfConcurrentHPRequests)
+                        {
+                            LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                         }
 //                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
@@ -561,17 +580,12 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
                         }
                         LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
 
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
 
-                        if (l_WorkQueueMgrLocked)
-                        {
-                            unlockWorkQueueMgr((LVKey*)0, "dump_debug", &l_LocalMetadataUnlockedInd);
-                        }
                         LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
                     else if (!strcmp(pSev,"info"))
@@ -583,6 +597,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         if (l_CheckForCanceledExtents)
                         {
                             LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                        }
+                        if (numberOfConcurrentHPRequests)
+                        {
+                            LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                         }
 //                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
 //                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
@@ -599,17 +617,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         }
                         LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
 
-                        int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
-
                         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
                         {
                             qe->second->dump(pSev, "          ");
                         }
 
-                        if (l_WorkQueueMgrLocked)
-                        {
-                            unlockWorkQueueMgr((LVKey*)0, "dump_info", &l_LocalMetadataUnlockedInd);
-                        }
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
 
@@ -633,6 +645,19 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                 }
             }
         }
+    }
+
+    if (l_WorkQueueLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - after", &l_LocalMetadataUnlockedInd);
+    }
+    if (l_TransferQueueUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "WRKQMGR::dump - after");
+    }
+    if (l_HP_WorkQueueUnlocked)
+    {
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
     }
 
     return;
@@ -859,7 +884,9 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
                 //       working on a cancel request before dequeuing that high priority work item.
                 //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
-                if (HPWrkQE->getWrkQ()->size() && getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests())
+                if (HPWrkQE->getWrkQ()->size() &&
+                    getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() &&
+                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
                 {
                     // High priority work exists...  Pass the high priority queue back...
                     pWrkQE = HPWrkQE;
@@ -1366,6 +1393,24 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
     return rc;
 }
 
+void WRKQMGR::incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
+{
+    if (pWrkQE != HPWrkQE)
+    {
+        // Not the high priority work queue.
+        // Simply, increment the number of work items processed.
+        pWrkQE->incrementNumberOfWorkItemsProcessed();
+    }
+    else
+    {
+        // For the high priority work queue, we have to manage
+        // how work items are recorded as being complete.
+        manageWorkItemsProcessed(pWorkItem);
+    }
+
+    return;
+};
+
 int WRKQMGR::isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId)
 {
     int rc = 0;
@@ -1434,7 +1479,7 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
         {
             if (CurrentWrkQE->transferQueueIsLocked())
             {
-                FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
+                FL_Write(FLError, lockPV_TQLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
                 LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm1)
                 endOnError();
@@ -1461,7 +1506,7 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
 
         if (strstr(pMethod, "%") == NULL)
         {
-            if (l_LockDebugLevel == "info")
+            if (g_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -1535,6 +1580,7 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
     //       vector.
     //
     // Determine the next offset to be marked as complete
+
     uint64_t l_TargetOffset = lastOffsetProcessed + sizeof(AsyncRequest);
     if (crossingAsyncFileBoundary(l_TargetOffset))
     {
@@ -1696,12 +1742,31 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
 
 void WRKQMGR::post()
 {
+    // NOTE: It is a requirement that the invoker must have first
+    //       unlocked the transfer queue.
+    int l_HP_TransferQueueUnlocked = 0;
     int l_LocalMetadataUnlockedInd = 0;
-    int l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post", &l_LocalMetadataUnlockedInd);
+    int l_WorkQueueLocked = 0;
+
+    if (!workQueueMgrIsLocked())
+    {
+        if (HPWrkQE->transferQueueIsLocked())
+        {
+            HPWrkQE->unlock((LVKey*)0, "post - before");
+            l_HP_TransferQueueUnlocked = 1;
+        }
+        l_WorkQueueLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post - before", &l_LocalMetadataUnlockedInd);
+    }
+
     sem_post(&sem_workqueue);
+
     if (l_WorkQueueLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "post", &l_LocalMetadataUnlockedInd);
+        unlockWorkQueueMgr((LVKey*)0, "post - after", &l_LocalMetadataUnlockedInd);
+    }
+    if (l_HP_TransferQueueUnlocked)
+    {
+        HPWrkQE->lock((LVKey*)0, "post - after");
     }
 
     return;
@@ -2065,7 +2130,7 @@ void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* 
 
         if (strstr(pMethod, "%") == NULL)
         {
-            if (l_LockDebugLevel == "info")
+            if (g_LockDebugLevel == "info")
             {
                 if (pLVKey)
                 {
@@ -2223,6 +2288,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
 
     int l_SeqNbr = 0;
     int l_CurrentSeqNbr = 0;
+    bool l_TransferQueueLocked = false;
 
     pAsyncRequestFileName = new char[PATH_MAX+1];
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
@@ -2376,6 +2442,12 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                     }
 
+                    if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
+                    {
+                        HPWrkQE->lock((LVKey*)0, "verifyAsyncRequestFile - FULL_MAINTENANCE");
+                        l_TransferQueueLocked = true;
+                    }
+
                     // Log where this instance of bbServer will start processing async requests
                     int l_AsyncRequestFileSeqNbr = 0;
                     int64_t l_OffsetToNextAsyncRequest = 0;
@@ -2419,11 +2491,22 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         errorText << "Failure when attempting to open the cross bbserver async request file, rc = " << rc;
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
+
+                    if (l_TransferQueueLocked)
+                    {
+                        HPWrkQE->unlock((LVKey*)0, "verifyAsyncRequestFile - FULL_MAINTENANCE");
+                    }
                 }
                 // Fall through...
 
                 case MINIMAL_MAINTENANCE:
                 {
+                    if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
+                    {
+                        HPWrkQE->lock((LVKey*)0, "verifyAsyncRequestFile - MINIMAL_MAINTENANCE");
+                        l_TransferQueueLocked = true;
+                    }
+
                     bfs::path datastore(l_DataStorePath);
                     if(bfs::is_directory(datastore))
                     {
@@ -2467,6 +2550,11 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                 }
                             }
                         }
+                    }
+
+                    if (l_TransferQueueLocked)
+                    {
+                        HPWrkQE->unlock((LVKey*)0, "verifyAsyncRequestFile - MINIMAL_MAINTENANCE");
                     }
                 }
                 // Fall through...

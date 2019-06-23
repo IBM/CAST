@@ -63,6 +63,12 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
 
     if (wrkq)
     {
+        int l_HP_WorkQueueUnlocked = 0;
+        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+        {
+            HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
+            l_HP_WorkQueueUnlocked = 1;
+        }
         int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - entry");
 
         if (getWrkQ_Size())
@@ -130,6 +136,10 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         {
             unlockTransferQueue((LVKey*)0, "WRKQE::dump - exit");
         }
+        if (l_HP_WorkQueueUnlocked)
+        {
+            HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
+        }
     }
     else
     {
@@ -172,26 +182,43 @@ void WRKQE::lock(const LVKey* pLVKey, const char* pMethod)
         // Verify lock protocol
         if (issuingWorkItem)
         {
-            FL_Write(FLError, lockPV_TQLock, "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
+            FL_Write(FLError, lockPV_TQLock1, "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued",0,0,0,0);
             errorText << "WRKQE::lock: Transfer queue lock being obtained while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq)
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.locktq1)
             endOnError();
         }
 
-        if (strstr(pMethod, "%") == NULL)
-        {
-            if (l_LockDebugLevel == "info")
-            {
-                LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
-            }
-            else
-            {
-                LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
-            }
-        }
-
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, lockTransferQ, "lockTransfer.  threadid=%ld",tid,0,0,0);
+        if (HPWrkQE == this)
+        {
+            if (strstr(pMethod, "%") == NULL)
+            {
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "HPTRN_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "HPTRN_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+            }
+            FL_Write(FLMutex, lockHPTransferQ, "lockHPTransferQueue.  threadid=%ld",tid,0,0,0);
+        }
+        else
+        {
+            if (strstr(pMethod, "%") == NULL)
+            {
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q:   LOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+            }
+            FL_Write(FLMutex, lockTransferQ, "lockTransferQueue.  threadid=%ld",tid,0,0,0);
+        }
     }
     else
     {
@@ -333,24 +360,43 @@ void WRKQE::unlock(const LVKey* pLVKey, const char* pMethod)
         // Verify lock protocol
         if (issuingWorkItem)
         {
-            FL_Write(FLError, lockPV_TQUnlock, "WRKQE::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
+            FL_Write(FLError, lockPV_TQUnlock1, "WRKQE::unlock: Transfer queue lock being released while a work item is being issued",0,0,0,0);
             errorText << "WRKQE::unlock: Transfer queue lock being released while a work item is being issued";
-            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq)
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlocktq1)
             endOnError();
         }
 
         pid_t tid = syscall(SYS_gettid);  // \todo eventually remove this.  incurs syscall for each log entry
-        FL_Write(FLMutex, unlockTransferQ, "unlockTransfer.  threadid=%ld",tid,0,0,0);
-
-        if (strstr(pMethod, "%") == NULL)
+        if (HPWrkQE == this)
         {
-            if (l_LockDebugLevel == "info")
+            FL_Write(FLMutex, unlockHPTransQ, "unlockHPTransferQueue.  threadid=%ld",tid,0,0,0);
+
+            if (strstr(pMethod, "%") == NULL)
             {
-                LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "HPTRN_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "HPTRN_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
             }
-            else
+        }
+        else
+        {
+            FL_Write(FLMutex, unlockTransferQ, "unlockTransferQueue.  threadid=%ld",tid,0,0,0);
+
+            if (strstr(pMethod, "%") == NULL)
             {
-                LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "TRNFR_Q: UNLOCK <- " << pMethod << ", jobid " << jobid << ", " << lvKey;
+                }
             }
         }
 

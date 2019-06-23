@@ -950,15 +950,19 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         handleFileLockFd = fd;
                         if (pLockFeedback)
                         {
-                            if (l_LockDebugLevel == "info")
+                            if (g_LockDebugLevel == "info")
                             {
-                                LOG(bb,info) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
-                                             << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
+                                LOG(bb,info) << " HNDLFL: LOCK <- Handle file " << l_ArchivePathWithName << ", fd " << fd \
+                                             << " locked. Local metadata locked: " << localMetadataIsLocked() << "  TrnsQ Locked: " \
+                                             << (transferQueueIsLocked() ? "true" : "false") \
+                                             << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
                             }
                             else
                             {
-                                LOG(bb,debug) << ">>>>>>>>>> Handle file " << l_ArchivePathWithName << ", fd " << fd \
-                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
+                                LOG(bb,debug) << " HNDLFL: LOCK <- Handle file " << l_ArchivePathWithName << ", fd " << fd \
+                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  TrnsQ Locked: " \
+                                              << (transferQueueIsLocked() ? "true" : "false") \
+                                              << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
                             }
                             *pLockFeedback = HANDLEFILE_WAS_LOCKED;
                         }
@@ -1346,15 +1350,17 @@ void HandleFile::unlock(const int pFd)
             if (!rc)
             {
                 // Successful unlock...
-                if (l_LockDebugLevel == "info")
+                if (g_LockDebugLevel == "info")
                 {
-                    LOG(bb,info) << "<<<<<<<<<< Handle file fd " << pFd \
-                                 << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
+                    LOG(bb,info) << " HNDLFL: UNLOCK <- Handle file fd " << pFd << " unlocked.  Local metadata locked: " \
+                                 << localMetadataIsLocked() << "  TrnsQ Locked: " << (transferQueueIsLocked() ? "true" : "false") \
+                                 << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
                 }
                 else
                 {
-                    LOG(bb,debug) << "<<<<<<<<<< Handle file fd " << pFd \
-                                  << " unlocked.  Local metadata locked: " << localMetadataIsLocked() << "  Transfer queue locked: " << transferQueueIsLocked();
+                    LOG(bb,debug) << " HNDLFL: UNLOCK <- Handle file fd " << pFd << " unlocked.  Local metadata locked: " \
+                                  << localMetadataIsLocked() << "  Transfer queue locked: " << (transferQueueIsLocked() ? "true" : "false") \
+                                  << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
                 }
             }
             else
