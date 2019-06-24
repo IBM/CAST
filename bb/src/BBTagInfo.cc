@@ -746,12 +746,12 @@ int BBTagInfo::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const stri
 
     if (pHandle == transferHandle)
     {
-        rc = parts.stopTransfer(pLVKey, pHostName, pCN_HostName, pLV_Info, pJobId, pJobStepId, transferHandle, pContribId, pLockWasReleased);
+        rc = parts.stopTransfer(pLVKey, pHostName, pCN_HostName, pLV_Info, pJobId, pJobStepId, pHandle, pContribId, pLockWasReleased);
         if (rc == 1)
         {
             int l_Value = 1;
             // Set the stopped indicator in the local metadata...
-            setStopped(pLVKey, pJobId, pJobStepId, transferHandle, pContribId, l_Value);
+            setStopped(pLVKey, pJobId, pJobStepId, pHandle, pContribId, l_Value);
         }
     }
 
