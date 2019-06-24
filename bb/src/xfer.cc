@@ -554,6 +554,8 @@ void processAsyncRequest(WorkID& pWorkItem)
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
+    int l_HP_TransferQueueUnlocked = 0;
+    int l_LocalMetadataLocked = 0;
 
     AsyncRequest l_Request = AsyncRequest();
     rc = wrkqmgr.getAsyncRequest(pWorkItem, l_Request);
@@ -580,29 +582,31 @@ void processAsyncRequest(WorkID& pWorkItem)
                 rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
                 if (rc == 8)
                 {
-                    // Release the transfer queue lock and acquire the local metadata lock
-                    unlockTransferQueue((LVKey*)0, "processAsyncRequest - Before invoking request handler");
-                    lockLocalMetadata((LVKey*)0, "processAsyncRequest - Before invoking request handler");
-
                     if (strstr(l_Cmd, "heartbeat"))
                     {
-                        if (config.get(process_whoami+".bringup.logAllAsyncRequestActivity", 0))
+                        if (g_LogAllAsyncRequestActivity)
                         {
-                            LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                            LOG(bb,info) << "AsyncRequest -> Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                          << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
                                          << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                         }
                         else
                         {
                             l_LogAsInfo = false;
-                            LOG(bb,debug) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                            LOG(bb,debug) << "AsyncRequest -> Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                           << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
                                           << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                         }
                     }
                     else
                     {
-                        LOG(bb,info) << "Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                        // Release the transfer queue lock and acquire the local metadata lock
+                        unlockTransferQueue((LVKey*)0, "processAsyncRequest - Before invoking request handler");
+                        l_HP_TransferQueueUnlocked = 1;
+                        lockLocalMetadata((LVKey*)0, "processAsyncRequest - Before invoking request handler");
+                        l_LocalMetadataLocked = 1;
+
+                        LOG(bb,info) << "AsyncRequest -> Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                      << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
                                      << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
@@ -699,9 +703,14 @@ void processAsyncRequest(WorkID& pWorkItem)
                         LOG(bb,error) << "Unknown async request command from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
 
-                    // Release the local metadata lock and acquire the transfer queue lock
-                    unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
-                    lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
+                    if (l_LocalMetadataLocked)
+                    {
+                        unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
+                    }
+                    if (l_HP_TransferQueueUnlocked)
+                    {
+                        lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
+                    }
                 }
                 else
                 {
@@ -732,7 +741,7 @@ void processAsyncRequest(WorkID& pWorkItem)
         }
         else
         {
-            LOG(bb,info) << "Skipping async request because it is from this bbServer host: Offset 0x" << hex << uppercase << setfill('0') \
+            LOG(bb,info) << "AsyncRequest -> Skipping async request because it is from this bbServer host: Offset 0x" << hex << uppercase << setfill('0') \
                          << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " => " << l_Request.getData();
         }
 
@@ -1996,7 +2005,8 @@ void* transferWorker(void* ptr)
 
     uint64_t l_ConsecutiveSnoozes = 0;
 
-    while (1) {
+    while (1)
+    {
   	    becomeUser(0,0);
 
         l_WrkQ = 0;
@@ -2009,7 +2019,7 @@ void* transferWorker(void* ptr)
 
         // Start new work
         wrkqmgr.wait();
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Find work item");
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Start work item");
 
         try
         {
@@ -2054,8 +2064,8 @@ void* transferWorker(void* ptr)
                             //
                             // Retrieve the LVKey, WorkID, and BBLV_Info*
                             // from the next item of work from the returned queue...
-                            l_Key = (l_WrkQE->getWrkQ()->front()).getLVKey();
                             l_WorkItem = l_WrkQE->getWrkQ()->front();
+                            l_Key = l_WorkItem.getLVKey();
                             l_LV_Info = l_WorkItem.getLV_Info();
                             if (l_LV_Info)
                             {
@@ -2118,11 +2128,11 @@ void* transferWorker(void* ptr)
                                         wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - Throttle delay");
 
                                         l_WrkQE->setTransferThreadIsDelaying(1);
-                                        unlockTransferQueue(&l_Key, "transferWorker - Before throttle delay sending extents");
+                                        unlockTransferQueue(&l_Key, "transferWorker - Before throttle delay");
                                         {
                                             usleep((unsigned int)l_ThreadDelay);
                                         }
-                                        lockTransferQueue(&l_Key, "transferWorker - After throttle delay sending extents");
+                                        lockTransferQueue(&l_Key, "transferWorker - After throttle delay");
                                         l_WrkQE->setTransferThreadIsDelaying(0);
                                     }
                                     else
@@ -2208,7 +2218,7 @@ void* transferWorker(void* ptr)
                         setWorkItemCriticalSection(0);
 
                         // Unlock the work queue manager
-                        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - ProcessNextWorkItem");
+                        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "transferWorker - ProcessWorkItem");
 
                         // Clear bberror...
                         bberror.clear(l_WorkItem.getConnectionName());
@@ -2222,13 +2232,13 @@ void* transferWorker(void* ptr)
                             {
                                 int l_NumberOfPosts = 0;
 
-                                unlockTransferQueue((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
-                                wrkqmgr.lockWorkQueueMgr((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
+                                unlockTransferQueue((LVKey*)0, "Throttle_Timer - before sem_getvalue");
+                                wrkqmgr.lockWorkQueueMgr((LVKey*)0, "Throttle_Timer - before sem_getvalue");
 
                                 sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
 
-                                wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
-                                lockTransferQueue((LVKey*)0, "Throttle_Timer.isSnoozing_sem_getvalue");
+                                wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "Throttle_Timer - after sem_getvalue");
+                                lockTransferQueue((LVKey*)0, "Throttle_Timer -  after sem_getvalue");
 
                                 if (l_NumberOfPosts)
                                 {

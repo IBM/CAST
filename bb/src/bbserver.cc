@@ -77,7 +77,10 @@ WRKQE* HPWrkQE;
 AtomicCounter metadataCounter;
 
 // Abort on critical error indicator
-int g_AbortOnCriticalError = DEFAULT_ABORT_ON_CRITICAL_ERROR;
+bool g_AbortOnCriticalError = DEFAULT_ABORT_ON_CRITICAL_ERROR;
+
+// Log all Async Request Activity Indicator
+bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 
 
 //*****************************************************************************
@@ -2899,6 +2902,7 @@ int bb_main(std::string who)
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
         g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
+        g_LogAllAsyncRequestActivity = config.get(process_whoami+".bringup.logAllAsyncRequestActivity", DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY);
 
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
