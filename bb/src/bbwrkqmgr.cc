@@ -144,11 +144,11 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
 
     if (g_LogAllAsyncRequestActivity)
     {
-        l_WorkId.dump("info", "addHPWorkItem() ");
+        l_WorkId.dump("info", "addHPWorkItem(): ");
     }
     else
     {
-        l_WorkId.dump("debug", "addHPWorkItem() ");
+        l_WorkId.dump("debug", "addHPWorkItem(): ");
     }
 
     // Push the work item onto the HP work queue and post

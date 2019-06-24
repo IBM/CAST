@@ -39,26 +39,30 @@ class WorkID
 
     inline void dump(const char* pSev, const char* pPrefix=0)
     {
+        stringstream l_Details;
+        l_Details << ", jobid " << id.getJobId() << ", jobstepid " << id.getJobStepId() << ", tag 0x" \
+                  << hex << uppercase << setfill('0') << id.getTag() << setfill(' ') << nouppercase << dec << " (" << id.getTag() << ")";
+
         if (!pPrefix)
         {
             if (!strcmp(pSev,"debug"))
             {
-                LOG(bb,debug) << key << ", JobId: " << id.getJobId() << ", JobStepId: " << id.getJobStepId() << ", tag: " << id.getTag();
+                LOG(bb,debug) << key << l_Details.str();
             }
             else if (!strcmp(pSev,"info"))
             {
-                LOG(bb,info) <<  key << ", JobId: " << id.getJobId() << ", JobStepId: " << id.getJobStepId() << ", tag: " << id.getTag();
+                LOG(bb,info) <<  key << l_Details.str();
             }
         }
         else
         {
             if (!strcmp(pSev,"debug"))
             {
-                LOG(bb,debug) << pPrefix << key << ", JobId: " << id.getJobId() << ", JobStepId: " << id.getJobStepId() << ", tag: " << id.getTag();
+                LOG(bb,debug) << pPrefix << key << l_Details.str();
             }
             else if (!strcmp(pSev,"info"))
             {
-                LOG(bb,info) << pPrefix << key << ", JobId: " << id.getJobId() << ", JobStepId: " << id.getJobStepId() << ", tag: " << id.getTag();
+                LOG(bb,info) << pPrefix << key << l_Details.str();
             }
         }
 

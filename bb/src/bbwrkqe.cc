@@ -61,15 +61,24 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
     string l_Suspended = (suspended ? "Y" : "N");
     string l_Output = "Job " + l_JobId + ", Susp " + l_Suspended;
 
+    int l_HP_WorkQueueUnlocked = 0;
+    int l_TransferQueueLocked = 0;
+
     if (wrkq)
     {
-        int l_HP_WorkQueueUnlocked = 0;
         if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
         {
-            HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
-            l_HP_WorkQueueUnlocked = 1;
+            if (HPWrkQE != CurrentWrkQE)
+            {
+                HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before, not CurrentWrkQE");
+                l_HP_WorkQueueUnlocked = 1;
+                l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, not HPWrkQE");
+            }
         }
-        int l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - entry");
+        else
+        {
+            l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
+        }
 
         if (getWrkQ_Size())
         {
