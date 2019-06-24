@@ -959,7 +959,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
     {
         if (!stageOutStarted())
         {
-            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, hostname, jobid, pJobStepId, pHandle, pContribId, pLockWasReleased);
+            rc = tagInfoMap.stopTransfer(pLVKey, this, pHostName, pCN_HostName, jobid, pJobStepId, pHandle, pContribId, pLockWasReleased);
 
             if (rc == 1)
             {
@@ -977,7 +977,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
             // torn down...)  Therefore, the only meaningful thing left to be done is remove job information.
             // Return an error message.
             rc = -1;
-            LOG(bb,error) << "BBLV_Info::stopTransfer(): For hostname " << hostname << ", connection " \
+            LOG(bb,error) << "BBLV_Info::stopTransfer(): For pCN_HostName " << pCN_HostName << ", connection " \
                           << connectionName << ", jobid " << jobid << ", jobidstep " << pJobStepId \
                           << ", handle " << pHandle << ", contribid " << pContribId \
                           << ", the remove logical volume request has been run, or is currently running for " << *pLVKey \
