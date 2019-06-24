@@ -451,6 +451,11 @@ class WRKQMGR
     {
         HPWrkQE->incrementNumberOfWorkItemsProcessed();
         lastOffsetProcessed = pOffset;
+        if (g_LogAllAsyncRequestActivity)
+        {
+            LOG(bb,info) << "AsyncRequest -> incrementNumberOfHP_WorkItemsProcessed(): numberOfWorkQueueItemsProcessed " << HPWrkQE->getNumberOfWorkItemsProcessed() \
+                         << ", lastOffsetProcessed 0x" << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed << setfill(' ') << nouppercase << dec;
+        }
 
         return;
     };

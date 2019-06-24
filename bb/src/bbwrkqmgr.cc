@@ -142,8 +142,16 @@ void WRKQMGR::addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId)
     // Build the high priority work item
     WorkID l_WorkId(*pLVKey, (BBLV_Info*)0, pTagId);
 
+    if (g_LogAllAsyncRequestActivity)
+    {
+        l_WorkId.dump("info", "addHPWorkItem() ");
+    }
+    else
+    {
+        l_WorkId.dump("debug", "addHPWorkItem() ");
+    }
+
     // Push the work item onto the HP work queue and post
-    l_WorkId.dump("debug", "addHPWorkItem() ");
     HPWrkQE->addWorkItem(l_WorkId, DO_NOT_VALIDATE_WORK_QUEUE);
 
     // NOTE: The transfer queue is not locked when this
@@ -280,11 +288,18 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         if (strstr(pRequest.data, "heartbeat"))
         {
-            LOG(bb,debug) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            if (g_LogAllAsyncRequestActivity)
+            {
+                LOG(bb,info) << "AsyncRequest -> appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            }
+            else
+            {
+                LOG(bb,debug) << "AsyncRequest -> appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            }
         }
         else
         {
-            LOG(bb,info) << "appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
+            LOG(bb,info) << "AsyncRequest -> appendAsyncRequest(): Host name " << pRequest.hostname << " => " << pRequest.data;
         }
     }
     else
@@ -398,7 +413,7 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
 
 void WRKQMGR::checkThrottleTimer()
 {
-    HPWrkQE->lock((LVKey*)0, "%checkThrottleTimer");
+    HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
 
     if (Throttle_Timer.popped(Throttle_TimeInterval))
     {
@@ -443,7 +458,7 @@ void WRKQMGR::checkThrottleTimer()
         }
     }
 
-    HPWrkQE->unlock((LVKey*)0, "%checkThrottleTimer");
+    HPWrkQE->unlock((LVKey*)0, "checkThrottleTimer");
 
     return;
 }
@@ -485,13 +500,13 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
     if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
     {
-        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
+        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - start");
         l_HP_WorkQueueUnlocked = 1;
     }
     if (!workQueueMgrIsLocked())
     {
         l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before");
-        lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - before", &l_LocalMetadataUnlockedInd);
+        lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - start", &l_LocalMetadataUnlockedInd);
         l_WorkQueueLocked = true;
     }
 
@@ -649,15 +664,15 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
     if (l_WorkQueueLocked)
     {
-        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - after", &l_LocalMetadataUnlockedInd);
+        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - end", &l_LocalMetadataUnlockedInd);
     }
     if (l_TransferQueueUnlocked)
     {
-        lockTransferQueue((LVKey*)0, "WRKQMGR::dump - after");
+        lockTransferQueue((LVKey*)0, "WRKQMGR::dump - end");
     }
     if (l_HP_WorkQueueUnlocked)
     {
-        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - end");
     }
 
     return;
@@ -1000,15 +1015,15 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
     if (!rc)
     {
-        if (config.get(process_whoami+".bringup.logAllAsyncRequestActivity", 0))
+        if (g_LogAllAsyncRequestActivity)
         {
-            LOG(bb,info) << "getAsyncRequest(): Offset 0x" << hex << uppercase << setfill('0') \
+            LOG(bb,info) << "AsyncRequest -> getAsyncRequest(): Offset 0x" << hex << uppercase << setfill('0') \
                          << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
                          << ", from hostname " << pRequest.getHostName() << " => " << pRequest.getData();
         }
         else
         {
-            LOG(bb,debug) << "getAsyncRequest(): Offset 0x" << hex << uppercase << setfill('0') \
+            LOG(bb,debug) << "AsyncRequest -> getAsyncRequest(): Offset 0x" << hex << uppercase << setfill('0') \
                           << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
                           << ", from hostname " << pRequest.getHostName() << " => " << pRequest.getData();
         }
@@ -1621,13 +1636,13 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                     l_TargetOffset = 0;
                 }
 
-                if (config.get(process_whoami+".bringup.logAllAsyncRequestActivity", 0))
+                if (g_LogAllAsyncRequestActivity)
                 {
-                    LOG(bb,info) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
+                    LOG(bb,info) << "AsyncRequest -> manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
                 }
                 else
                 {
-                    LOG(bb,debug) << "manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
+                    LOG(bb,debug) << "AsyncRequest -> manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
                 }
 
                 for (auto it=outOfOrderOffsets.begin(); it!=outOfOrderOffsets.end(); ++it) {
@@ -1636,9 +1651,14 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                         l_AllDone = false;
                         outOfOrderOffsets.erase(it);
                         incrementNumberOfHP_WorkItemsProcessed(l_TargetOffset);
-                        LOG(bb,info) << "manageWorkItemsProcessed(): Offset 0x" << hex << uppercase << setfill('0') << l_TargetOffset << setfill(' ') << nouppercase << dec << " removed from the outOfOrderOffsets vector";
+                        LOG(bb,info) << "AsyncRequest -> manageWorkItemsProcessed(): Offset 0x" << hex << uppercase << setfill('0') << l_TargetOffset << setfill(' ') << nouppercase << dec << " removed from the outOfOrderOffsets vector";
                         break;
                     }
+                }
+
+                if (l_AllDone && g_LogAllAsyncRequestActivity)
+                {
+                    LOG(bb,info) << "AsyncRequest -> Offset 0x" << hex << uppercase << setfill('0') << l_TargetOffset << setfill(' ') << nouppercase << dec << " not found in the outOfOrderOffsets vector";
                 }
             }
         }
@@ -1647,7 +1667,7 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
     {
         // Work item completed out of order...  Keep it for later processing...
         outOfOrderOffsets.push_back(pWorkItem.getTag());
-        LOG(bb,info) << "manageWorkItemsProcessed(): Offset 0x" << hex << uppercase << setfill('0') << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " pushed onto the outOfOrderOffsets vector";
+        LOG(bb,info) << "AsyncRequest -> manageWorkItemsProcessed(): Offset 0x" << hex << uppercase << setfill('0') << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " pushed onto the outOfOrderOffsets vector";
     }
 
     return;
