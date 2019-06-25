@@ -10,7 +10,7 @@
 		"keepaliveidle"              : 60,
 		"keepalivecount"             : 12,
 		"keepaliveinterval"          :  5,
-        
+
 		"scripts" :
 		{
 			"transfertimeout" : 3600,
@@ -31,7 +31,8 @@
 				"default_sev"  : "info",
 				"rotationSize" : 67108864,
 				"fileLog"      : "/var/log/bbserver@USERSUFFIX@/console_%Y%m%d.%N.log",
-				"archiveLogs"  : "/var/log/bbserver@USERSUFFIX@/oldlogs"
+				"archiveLogs"  : "/var/log/bbserver@USERSUFFIX@/oldlogs",
+				"format"       : "%TimeStamp% %ThreadID% %SubComponent%::%Severity% | %Message%"
 			}
 		},
 		"proxy" :
@@ -48,7 +49,7 @@
 			{
 				"consoleLog"   : @USECONSOLE@,
 				"default_sev"  : "info",
-				"rotationSize" : 67108864,	
+				"rotationSize" : 67108864,
 				"fileLog"      : "/var/log/bbproxy@USERSUFFIX@/console_%Y%m%d.%N.log",
 				"archiveLogs"  : "/var/log/bbproxy@USERSUFFIX@/oldlogs"
 			}
