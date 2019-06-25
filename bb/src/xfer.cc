@@ -720,12 +720,12 @@ void processAsyncRequest(WorkID& pWorkItem)
 
                 if (l_LogAsInfo)
                 {
-                    LOG(bb,info) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                    LOG(bb,info) << "AsyncRequest -> End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
                 }
                 else
                 {
-                    LOG(bb,debug) << "End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
+                    LOG(bb,debug) << "AsyncRequest -> End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                   << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
                 }
 
@@ -3572,6 +3572,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     queue<WorkID>* l_WrkQ = 0;
     WRKQE* l_WrkQE = 0;
     BBLV_Info* l_LV_Info;
+    int l_TransferQueueLocked = 0;
+    int l_LocalMetadataLocked = 1;
 
     l_LV_Info = metadata.getLV_Info(pLVKey);
     if (l_LV_Info)
@@ -3603,6 +3605,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     CurrentWrkQE = l_WrkQE;
                     l_WrkQ = l_WrkQE->getWrkQ();
                     lockTransferQueue((LVKey*)0, "stageoutEnd");
+                    l_TransferQueueLocked = 1;
 
                     // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
                     //        Doing so will ensure that such extents are not actually transferred.
@@ -3629,13 +3632,17 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
                             l_DelayMsgLogged = 1;
                         }
+                        l_TransferQueueLocked = 0;
                         unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        l_LocalMetadataLocked = 0;
                         unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         {
                             usleep((useconds_t)250000);
                         }
                         lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        l_LocalMetadataLocked = 1;
                         lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        l_TransferQueueLocked = 1;
                         l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                     }
 
@@ -3759,6 +3766,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
                 //       the work queue lock is removed by that method.
                 rc = wrkqmgr.rmvWrkQ(pLVKey);
+                l_TransferQueueLocked = 0;
                 if (rc)
                 {
                     // Failure when attempting to remove the work queue for the LVKey value...
@@ -3781,6 +3789,16 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             catch (exception& e)
             {
                 LOG(bb,error) << "stageoutEnd(): Exception thrown: " << e.what();
+                if (l_TransferQueueLocked)
+                {
+                    l_TransferQueueLocked = 0;
+                    unlockTransferQueue(pLVKey, "stageoutEnd - Exception thrown");
+                }
+                if (l_LocalMetadataLocked)
+                {
+                    l_LocalMetadataLocked = 0;
+                    unlockLocalMetadata(pLVKey, "stageoutEnd - Exception thrown");
+                }
             }
         }
         else

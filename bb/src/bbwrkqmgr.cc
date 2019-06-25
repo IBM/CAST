@@ -1842,6 +1842,9 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
     uint32_t i = 0;
     bool l_AllDone= false;
 
+    int l_LocalMetadataUnlockedInd = 0;
+    wrkqmgr.lockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests", &l_LocalMetadataUnlockedInd);
+
     HPWrkQE->lock(pLVKey, "processAllOutstandingHP_Requests");
 
     // First, check for any new appended HP work queue items...
@@ -1871,7 +1874,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
         else
         {
             HPWrkQE->unlock(pLVKey, "processAllOutstandingHP_Requests - in delay");
-            unlockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests - in delay");
+            unlockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests - in delay");
             {
                 // NOTE: Currently set to log after 5 seconds of not being able to process all async requests, and every 10 seconds thereafter...
                 if ((i++ % 20) == 10)
@@ -1881,12 +1884,14 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
                 }
                 usleep((useconds_t)500000);
             }
-            lockLocalMetadata(pLVKey, "processAllOutstandingHP_Requests - in delay");
+            lockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests - in delay");
             HPWrkQE->lock(pLVKey, "processAllOutstandingHP_Requests - in delay");
         }
     }
 
     HPWrkQE->unlock(pLVKey, "processAllOutstandingHP_Requests");
+
+    wrkqmgr.unlockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests", &l_LocalMetadataUnlockedInd);
 
     return;
 }
