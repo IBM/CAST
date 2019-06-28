@@ -985,6 +985,7 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
+        LOG(bb,error) << "SetVar: *** FAILED *** Variable: " << l_Variable;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -2863,6 +2864,13 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         switchIds();
 
         LOG(bb,info) << "msgin_setthrottlerate: mountpoint=" << mountpoint << ", rate=" << rate;
+
+        if (rate > std::numeric_limits<uint64_t>::max())
+        {
+            rc = -1;
+            errorText << "Rate must be specified as " << std::numeric_limits<uint64_t>::max() << " or less. A value of " << rate << "was specified.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
 
         l_MountPoint = realpath(mountpoint, NULL);
 

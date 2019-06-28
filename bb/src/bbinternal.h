@@ -242,6 +242,13 @@ enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION
 };
 typedef enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION;
 
+enum DUMP_ALL_DATA_INDICATOR
+{
+    DO_NOT_DUMP_ALL_DATA    = 0,
+    DUMP_ALL_DATA           = 1
+};
+typedef enum DUMP_ALL_DATA_INDICATOR DUMP_ALL_DATA_INDICATOR;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/
