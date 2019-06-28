@@ -1131,6 +1131,7 @@ int main(int orig_argc, const char** orig_argv)
     {
         // Valid command processing
         command = vm["command"].as<string>();
+//        bberror << err("in.bbcmd", command);
 
         std::string configfile = vm["config"].as<string>();
         if((vm.count("target") == 0) && (vm.count("compute_config") > 0))

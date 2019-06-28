@@ -192,7 +192,12 @@ class WRKQE
 
     inline void setRate(const uint64_t pRate)
     {
-        rate = pRate;
+        // NOTE: For a rate greater than 1, set the rate to one less
+        //       that the specification.  This is because a bucket value
+        //       of zero causes an extent to be sent.  We don't want to
+        //       send double the rate if the rate is set exactly to the
+        //       transfer size of an extent.
+        rate = ((pRate > 1) ? (pRate - 1) : pRate);
         if (!rate)
         {
             bucket = 0;
@@ -236,7 +241,7 @@ class WRKQE
 
     // Methods
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
-    void dump(const char* pSev, const char* pPrefix);
+    void dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd=DO_NOT_DUMP_ALL_DATA);
     int getIssuingWorkItem();
     void loadBucket();
     void lock(const LVKey* pLVKey, const char* pMethod);
