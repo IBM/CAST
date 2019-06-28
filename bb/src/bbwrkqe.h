@@ -190,14 +190,16 @@ class WRKQE
         return;
     };
 
+    inline void setBucket(const int pValue)
+    {
+        bucket = pValue;
+
+        return;
+    };
+
     inline void setRate(const uint64_t pRate)
     {
-        // NOTE: For a rate greater than 1, set the rate to one less
-        //       that the specification.  This is because a bucket value
-        //       of zero causes an extent to be sent.  We don't want to
-        //       send double the rate if the rate is set exactly to the
-        //       transfer size of an extent.
-        rate = ((pRate > 1) ? (pRate - 1) : pRate);
+        rate = pRate;
         if (!rate)
         {
             bucket = 0;
