@@ -165,14 +165,39 @@ int WRKQE::getIssuingWorkItem()
 
 void WRKQE::loadBucket()
 {
-    dump("debug", "loadBucket(): Before bucket modification: ", DUMP_ALL_DATA);
-    int64_t l_Rate = (int64_t)rate;
-    bucket = MIN(bucket+l_Rate, l_Rate);
-    if (bucket >= 0)
+    if (rate)
     {
-        workQueueReturnedWithNegativeBucket = 0;
+        if (getWrkQ_Size())
+        {
+            dump("debug", "loadBucket(): Before bucket modification: ", DUMP_ALL_DATA);
+            int64_t l_Rate = (int64_t)rate;
+
+            // NOTE: If there are extents in the work queue, simply add to the
+            //       bucket value.  If during the last 'bucket cycle' this work
+            //       queue did not schedule any work, let the bucket value grow
+            //       so that, in the long run, we converge on the specified
+            //       rate/sec.
+            // NOTE: If the current bucket value is zero, add (rate-1) so we
+            //       do not send as double the rate if the size of the extents
+            //       is exactly the rate/sec.  (A bucket value of zero has I/O
+            //       scheduled for another extent.)
+//            bucket = MIN(bucket+l_Rate, l_Rate);
+            bucket += (bucket != 0 ? l_Rate : (l_Rate-1));
+
+            if (bucket >= 0)
+            {
+                workQueueReturnedWithNegativeBucket = 0;
+            }
+            dump("debug", "loadBucket(): After bucket modification: ", DUMP_ALL_DATA);
+        }
+        else
+        {
+            // If this work queue currently has no entries,
+            // set the bucket value to zero
+            bucket = 0;
+            workQueueReturnedWithNegativeBucket = 0;
+        }
     }
-    dump("debug", "loadBucket(): After bucket modification: ", DUMP_ALL_DATA);
 
     return;
 }
