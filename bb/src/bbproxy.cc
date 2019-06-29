@@ -214,7 +214,8 @@ void addLogicalVolumeData(const char* pDevName, const char* pMountPoint, Uuid& p
     return;
 }
 
-std::string getDevName4Mount(const std::string& pMountPoint){
+std::string getDevName4Mount(const std::string& pMountPoint)
+{
     std::string l_DevName;
     pthread_mutex_lock(&logicalVolumeDataMutex);
     auto it = mount2dev.find(pMountPoint);
@@ -239,7 +240,6 @@ LV_Data getLogicalVolumeData(std::string& pDevName)
     return l_LV_Data;
 }
 
-
 Uuid  getLogicalVolumeDataUuid(std::string& pDevName){
     Uuid        l_lvuuid;
     pthread_mutex_lock(&logicalVolumeDataMutex);
@@ -262,6 +262,25 @@ void removeLVdata(const std::string pMountPoint)
     return;
 }
 
+int setThrottleRate(const std::string pMountPoint, const uint64_t pRate)
+{
+    int rc = -1;
+
+    pthread_mutex_lock(&logicalVolumeDataMutex);
+    for (auto it = logicalVolumeData.begin(); it != logicalVolumeData.end(); ++it)
+    {
+        if ((it->second).getMountPoint() == pMountPoint)
+        {
+            (it->second).setRate(pRate);
+            rc = 0;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&logicalVolumeDataMutex);
+
+    return rc;
+}
+
 void ResizeLogicalVolumeLock()
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -272,7 +291,6 @@ void ResizeLogicalVolumeLock()
     return;
 }
 
-
 void ResizeLogicalVolumeUnlock()
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -282,7 +300,6 @@ void ResizeLogicalVolumeUnlock()
     EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
     return;
 }
-
 
 int32_t LogicalVolumeNumber::incr()
 {
@@ -299,7 +316,6 @@ int32_t LogicalVolumeNumber::incr()
     EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
     return l_Value;
 }
-
 
 void checkForSuperUserPermission()
 {
@@ -605,6 +621,7 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
     stringstream errorText;
 
     const char* mountpoint;
+    char* l_MountPoint = 0;
     char*       logicalvolume = 0;
     const char* mountsize;
     uint64_t    resizeflags;
@@ -626,10 +643,19 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
 
         LOG(bb,info) << "msgin_resizemountpoint: mountpoint=" << mountpoint << ", mountsize=" << mountsize << ", resizeflags=" << resizeflags;
 
+        l_MountPoint = realpath(mountpoint, NULL);
+
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
         ResizeLogicalVolumeLock();
 
         {
-            rc = resizeLogicalVolume(mountpoint, logicalvolume, mountsize, resizeflags);
+            rc = resizeLogicalVolume(l_MountPoint, logicalvolume, mountsize, resizeflags);
         }
 
         ResizeLogicalVolumeUnlock();
@@ -637,16 +663,22 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
         if (rc)
         {
             // NOTE: resizeLogicalVolume() filled in errstate
-            errorText << "Resize operation for logical volume associated with " << mountpoint << " failed";
+            errorText << "Resize operation for logical volume associated with " << l_MountPoint << " failed";
             LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
-        LOG(bb,info) << "Resize operation for logical volume associated with " << mountpoint << " completed.";
+        LOG(bb,info) << "Resize operation for logical volume associated with " << l_MountPoint << " completed.";
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -664,8 +696,10 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     updateEnv(pConnectionName);
 
     int rc = EINVAL;
+    stringstream errorText;
 
     const char* mountpoint;
+    char* l_MountPoint = 0;
     BBUsage_t   usage;
 
     FL_Write(FLProxy, Msg_GetUsage, "GetUsage command received id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
@@ -680,7 +714,16 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         LOG(bb,info) << "msgin_getusage: mountpoint=" << mountpoint;
 
-        rc = proxy_GetUsage(mountpoint, usage);
+        l_MountPoint = realpath(mountpoint, NULL);
+
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
+        rc = proxy_GetUsage(l_MountPoint, usage);
         if (rc) SET_RC_AND_BAIL(rc);
     }
     catch(ExceptionBailout& e) { }
@@ -688,6 +731,12 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -800,9 +849,11 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
     updateEnv(pConnectionName);
 
     int rc = EINVAL;
+    stringstream errorText;
 
     BBUsage_t usage;
     const char* mountpoint;
+    char* l_MountPoint = 0;
 
     FL_Write(FLProxy, Msg_SetUsageLimit, "SetUsageLimit command received id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
     bberror << err("in.apicall", "BB_SetUsageLimit");
@@ -815,6 +866,14 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
         switchIds();
 
         LOG(bb,info) << "msgin_setusagelimit: mountpoint=" << mountpoint;
+
+        l_MountPoint = realpath(mountpoint, NULL);
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
 
 #define ADDFIELD(name) usage.name = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::name))->getData();
         ADDFIELD(totalBytesRead);
@@ -829,12 +888,12 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         if(usage.totalBytesWritten || usage.totalBytesRead)
         {
-            rc = startMonitoringMount(mountpoint, usage);
+            rc = startMonitoringMount(l_MountPoint, usage);
             if(rc) SET_RC_AND_BAIL(rc);
         }
         else
         {
-            rc = stopMonitoringMount(mountpoint);
+            rc = stopMonitoringMount(l_MountPoint);
             if(rc) SET_RC_AND_BAIL(rc);
         }
     }
@@ -843,6 +902,12 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -999,7 +1064,6 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 }
 
 
-
 //*****************************************************************************
 //  bbapi -> bbProxy - >bbServer requests
 //*****************************************************************************
@@ -1117,6 +1181,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     stringstream errorText;
 
     const char* mountpoint=NULL;
+    char* l_MountPoint = 0;
     const char* mountsize;
     uint64_t    jobid;
     uint64_t    createflags;
@@ -1164,13 +1229,21 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
 
         LOG(bb,info) << "msgin_createlogicalvolume: mountpoint=" << mountpoint << ", mountsize=" << mountsize << ", createflags=" << createflags;
 
+        l_MountPoint = realpath(mountpoint, NULL);
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
         // Validate the size value
         ssize_t lvsize = 0;
         convertLVMSizeToBytes(mountsize, lvsize);
         if(lvsize < MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE)
         {
             rc = -1;
-            errorText << "Requested size of " << mountsize << " is either invalid or too small. The minimum size that can be specified is " << MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE << " bytes. Suffixes of 'B', 'S', 'K', 'M', 'G', and 'T' are honored.";
+            errorText << "Requested size of " << l_MountPoint << " is either invalid or too small. The minimum size that can be specified is " << MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE << " bytes. Suffixes of 'B', 'S', 'K', 'M', 'G', and 'T' are honored.";
             bberror << err("error.lvsize", lvsize);
             LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
@@ -1178,7 +1251,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         // Retrieve the uid/gid of the mount point
         uid_t l_UserId;
         gid_t l_GroupId;
-        rc = getUserAndGroupIds(mountpoint, l_UserId, l_GroupId);
+        rc = getUserAndGroupIds(l_MountPoint, l_UserId, l_GroupId);
         if (rc)
         {
             // NOTE: errstate already filled in...
@@ -1194,9 +1267,9 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             LOG_WARNING_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
-        LOG(bb,info) << "Create: " << mountpoint << ", " << mountsize << ", " << createflags << ", " << l_UserId << ":" << l_GroupId << ", jobid=" << jobid;
+        LOG(bb,info) << "Create: " << l_MountPoint << ", " << mountsize << ", " << createflags << ", " << l_UserId << ":" << l_GroupId << ", jobid=" << jobid;
 
-        rc = createLogicalVolume(l_UserId, l_GroupId, mountpoint, mountsize, createflags);
+        rc = createLogicalVolume(l_UserId, l_GroupId, l_MountPoint, mountsize, createflags);
         if (rc)
         {
             // NOTE: createLogicalVolume() filled in errstate
@@ -1207,7 +1280,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         onErrorRemoveNewLogicalVolume = true;
 
         // Retrieve the logical volume UUID so that it can be registered with bbserver...
-        rc = getLogicalVolumeUUID(mountpoint, l_lvuuid);
+        rc = getLogicalVolumeUUID(l_MountPoint, l_lvuuid);
         if (rc)
         {
             rc = -1;
@@ -1221,7 +1294,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         string l_HostName;
         activecontroller->gethostname(l_HostName);
         bberror << err("out.lvuuid", l_lvuuid_str) << err("in.misc.hostname", l_HostName);
-        LOG(bb,info) << "Created LV Uuid = " << l_lvuuid_str << ", mountpoint = " << mountpoint;
+        LOG(bb,info) << "Created LV Uuid = " << l_lvuuid_str << ", mountpoint = " << l_MountPoint;
         // NOTE:  The char arrays are copied to heap by addAttribute and the storage for
         //        the logical volume uuid and hostname attributes are owned by the
         //        message facility.  Our copies can then go out of scope...
@@ -1269,23 +1342,23 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             // Maintain the logicaVolumeData map
             getLogicalVolumeDevName(l_lvuuid, l_DevName, sizeof(l_DevName));
-            addLogicalVolumeData(l_DevName, mountpoint, l_lvuuid, jobid, l_GroupId, l_UserId);
+            addLogicalVolumeData(l_DevName, l_MountPoint, l_lvuuid, jobid, l_GroupId, l_UserId);
         }
 
         // Notify control system
-        if (!rc) activecontroller->lvcreate(l_lvuuid_str, LVStateMounted, lvsize, mountpoint, "xfs");
+        if (!rc) activecontroller->lvcreate(l_lvuuid_str, LVStateMounted, lvsize, l_MountPoint, "xfs");
 
-        LOG(bb,info) << "Create operation for logical volume completed and mounted at " << mountpoint << ".";
+        LOG(bb,info) << "Create operation for logical volume completed and mounted at " << l_MountPoint << ".";
 
         // Setup usage for this mount point
         errno = 0;
         if (!rc)
         {
-            rc = proxy_regLV4Usage(mountpoint);
+            rc = proxy_regLV4Usage(l_MountPoint);
             if (rc)
             {
                 rc = -1;
-                errorText << "usage registration failed for mountpoint "<< mountpoint;
+                errorText << "usage registration failed for mountpoint "<< l_MountPoint;
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
                 FL_Write(FLBBUsage, USAGEREGFAIL, "usage registration failed for mountpoint errno=%ld create_flags=%lx user=%ld group=%ld",errno,createflags,l_UserId,l_GroupId);
                 SET_RC_RAS_AND_BAIL(rc, bb.admin.failure);
@@ -1323,11 +1396,11 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             if (!rc)
             {
-                LOG(bb,warning) << "msgin_createlogicalvolume: mountpoint=" << mountpoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", number of getUUID() attempts=" << (ATTEMPTS - l_Attempts);
+                LOG(bb,warning) << "msgin_createlogicalvolume: mountpoint=" << l_MountPoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", number of getUUID() attempts=" << (ATTEMPTS - l_Attempts);
             }
             else
             {
-                errorText << "msgin_createlogicalvolume: For mountpoint=" << mountpoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", the uuid was not successfully registered with /dev/disk/by-uuid. rc=" << rc;
+                errorText << "msgin_createlogicalvolume: For mountpoint=" << l_MountPoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", the uuid was not successfully registered with /dev/disk/by-uuid. rc=" << rc;
                 LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
             }
         }
@@ -1335,13 +1408,13 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
 
     if (rc && onErrorRemoveNewLogicalVolume)
     {
-        LOG(bb,info) << "Attempting backout via removeLogicalVolume of mountpoint = " << mountpoint;
+        LOG(bb,info) << "Attempting backout via removeLogicalVolume of mountpoint = " << l_MountPoint;
 
         // De-register the LV Usage...
-        int rc2 = proxy_deregLV4Usage(mountpoint);
+        int rc2 = proxy_deregLV4Usage(l_MountPoint);
         if (rc2)
         {
-            errorText << "Backout of LV usage registration via dereg failed for mountpoint " << mountpoint;
+            errorText << "Backout of LV usage registration via dereg failed for mountpoint " << l_MountPoint;
             LOG_ERROR_TEXT(errorText);
         }
 
@@ -1349,15 +1422,21 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         activecontroller->lvremove(l_lvuuid_str, usage);
 
         // Maintain the logicaVolumeData map
-        removeLVdata(mountpoint);
+        removeLVdata(l_MountPoint);
 
         // Remove the logical volume
-        int rc3 = removeLogicalVolume(mountpoint, l_lvuuid, DO_NOT_FILL_IN_ERRSTATE);
+        int rc3 = removeLogicalVolume(l_MountPoint, l_lvuuid, DO_NOT_FILL_IN_ERRSTATE);
         if (rc3)
         {
-            errorText << "Backout removal of the logical volume associated with " << mountpoint << " failed";
+            errorText << "Backout removal of the logical volume associated with " << l_MountPoint << " failed";
             LOG_ERROR_TEXT(errorText);
         }
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -1866,14 +1945,18 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         l_MountPoint = realpath(mountpoint, NULL);
 
-        if (l_MountPoint) {
+        if (l_MountPoint)
+        {
             rc = getLogicalVolumeUUID(l_MountPoint, l_lvuuid);
-            if (rc) {
+            if (rc)
+            {
                 rc = -1;
                 errorText << "Retrieving the uuid for the logical volume to get the throttle rate for failed, rc=" << rc << ". The mount point may not exist.";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
-        } else {
+        }
+        else
+        {
             rc = -1;
             errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -1930,7 +2013,8 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_MountPoint){
+    if (l_MountPoint)
+    {
         free(l_MountPoint);
         l_MountPoint=NULL;
     }
@@ -2374,7 +2458,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             activecontroller->lvremove(l_lvuuid_str, usage);
 
             // Maintain the logicaVolumeData map
-            removeLVdata(mountpoint);
+            removeLVdata(l_MountPoint);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -2384,13 +2468,10 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
-    if(mountpoint)
+    if(l_MountPoint)
     {
-        rc = proxy_deregLV4Usage(mountpoint);
+        rc = proxy_deregLV4Usage(l_MountPoint);
     }
-
-    txp::Msg* response;
-    msg->buildResponseMsg(response);
 
     if (l_MountPoint)
     {
@@ -2401,6 +2482,9 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     {
         delete[] l_VolumeGroupName;
     }
+
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
 
     addReply(msg, response);
 
@@ -2874,14 +2958,17 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         l_MountPoint = realpath(mountpoint, NULL);
 
-        if (l_MountPoint) {
+        if (l_MountPoint)
+        {
             rc = getLogicalVolumeUUID(l_MountPoint, l_lvuuid);
             if (rc) {
                 rc = -1;
                 errorText << "Retrieving the uuid for the logical volume to to set the throttle rate for failed, rc=" << rc << ". The mount point may not exist.";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
-        } else {
+        }
+        else
+        {
             rc = -1;
             errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -2927,6 +3014,10 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         delete msgserver;
         msgserver=NULL;
 
+        if (!rc)
+        {
+            setThrottleRate(l_MountPoint, rate);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -2935,7 +3026,8 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_MountPoint){
+    if (l_MountPoint)
+    {
         free(l_MountPoint);
         l_MountPoint=NULL;
     }
@@ -2989,7 +3081,8 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
 
         l_MountPoint = realpath(mountpoint, NULL);
 
-        if (l_MountPoint) {
+        if (l_MountPoint)
+        {
             char l_DevName[PATH_MAX] = {'\0'};
             size_t l_DevNameLength = sizeof(l_DevName);
             char l_FileSysType[PATH_MAX] = {'\0'};
@@ -3021,6 +3114,12 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
             }
             free(l_MountPoint);
             l_MountPoint=NULL;
+        }
+        else
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
         txp::Msg::buildMsg(txp::CORAL_STAGEOUT_START, msgserver);
@@ -3070,7 +3169,9 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-    if (l_MountPoint){
+
+    if (l_MountPoint)
+    {
         free(l_MountPoint);
         l_MountPoint=NULL;
     }
@@ -4177,6 +4278,68 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                                 {
                                     delete msgserver;
                                     msgserver = NULL;
+                                }
+
+                                if (!rc)
+                                {
+                                    if (l_LV_Data.rate)
+                                    {
+                                        txp::Msg::buildMsg(txp::BB_SETTHROTTLERATE, msgserver);
+                                        // NOTE:  The char array is copied to heap by addAttribute and the storage for
+                                        //        the logical volume uuid attribute is owned by the message facility.
+                                        //        Our copy can then go out of scope...
+                                        msgserver->addAttribute(txp::uuid, l_lvuuid_str, sizeof(l_lvuuid_str), txp::COPY_TO_HEAP);
+                                        msgserver->addAttribute(txp::rate, l_LV_Data.rate);
+
+                                        // Send the message to bbserver
+                                        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+                                        delete msgserver;
+                                        msgserver=NULL;
+                                        if (rc)
+                                        {
+                                            errorText << "sendMessage to server failed";
+                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                        }
+
+                                        // Wait for the response
+                                        rc = waitReply(reply, msgserver);
+                                        if (rc)
+                                        {
+                                            errorText << "waitReply failure";
+                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                        }
+
+                                        rc = bberror.merge(msgserver);
+                                        switch (rc)
+                                        {
+                                            case 0:
+                                            {
+                                                LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                             << ", the throttle rate was set to " << l_LV_Data.rate;
+                                            }
+                                            break;
+
+                                            default:
+                                            {
+                                                errorText << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                          << ", jobid " << l_LV_Data.jobid << ", setting the throttle rate to " << l_LV_Data.rate \
+                                                          << " failed. See bbServer console log for more information." \
+                                                          << " Continuing to process additional devices...";
+                                                LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+                                            }
+                                        }
+
+                                        if (msgserver)
+                                        {
+                                            delete msgserver;
+                                            msgserver = NULL;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << ", the throttle rate was zero. The trottle rate was not set on the new bbServer.";
+                                    }
                                 }
                             }
                             else
