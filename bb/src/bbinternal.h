@@ -106,7 +106,7 @@ const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;         // in second
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;        // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;           // in seconds
 const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 300;    // in seconds
-const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 16;
+const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 64;
 
 const int CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD = 10;
 const int DO_NOT_DUMP_QUEUES_ON_VALUE = -1;
@@ -144,6 +144,9 @@ const uint32_t UNDEFINED_CONTRIBID = 999999999;
 const uint32_t DEFAULT_CONTRIBID = 0;
 const uint32_t MAX_NUMBER_OF_CONTRIBS = 1*64*1024;
 
+// NOTE: If the BB throttling rate is used to limit the amount of
+//       bandwidth BB consumes, the following default value should be
+//       changed to the default rate/sec value used for BB throttling.
 const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
 const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
 
@@ -241,6 +244,13 @@ enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION
     ALLOW_BUMP_FOR_REPORTING_CONTRIBS        = 1
 };
 typedef enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION;
+
+enum DUMP_ALL_DATA_INDICATOR
+{
+    DO_NOT_DUMP_ALL_DATA    = 0,
+    DUMP_ALL_DATA           = 1
+};
+typedef enum DUMP_ALL_DATA_INDICATOR DUMP_ALL_DATA_INDICATOR;
 
 /*******************************************************************************
  | Macro definitions

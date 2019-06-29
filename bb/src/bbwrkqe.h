@@ -190,6 +190,13 @@ class WRKQE
         return;
     };
 
+    inline void setBucket(const int pValue)
+    {
+        bucket = pValue;
+
+        return;
+    };
+
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
@@ -236,7 +243,7 @@ class WRKQE
 
     // Methods
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
-    void dump(const char* pSev, const char* pPrefix);
+    void dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd=DO_NOT_DUMP_ALL_DATA);
     int getIssuingWorkItem();
     void loadBucket();
     void lock(const LVKey* pLVKey, const char* pMethod);

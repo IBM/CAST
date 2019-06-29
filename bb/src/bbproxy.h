@@ -129,6 +129,7 @@ public:
 	    jobid = UNDEFINED_JOBID;
 	    groupid = (gid_t)-1;
 	    userid = (uid_t)-1;
+	    rate = 0;
 	};
 
     /**
@@ -143,6 +144,7 @@ public:
         jobid = pJobId;
         groupid = pGroupId;
         userid = pUserId;
+        rate = 0;
 	};
 
     /**
@@ -150,12 +152,36 @@ public:
      */
 	virtual ~LV_Data() {};
 
+    // Inlined Methods
+    std::string getMountPoint()
+    {
+        return mountpoint;
+    }
+
+    uint64_t getRate()
+    {
+        return rate;
+    }
+
+    Uuid getUuid()
+    {
+        return lvuuid;
+    }
+
+    void setRate(const uint64_t pValue)
+    {
+        rate = pValue;
+
+        return;
+    }
+
 	// Data members
 	std::string mountpoint;     //! Mount point for logical volume device
 	Uuid        lvuuid;         //! UUID for logical volume
 	uint64_t    jobid;          //! JobId for logical volume
 	gid_t       groupid;        //! GroupId of mountpoint at create logical volume time
 	uid_t       userid;         //! UserId of mountpoint at create logical volume time
+	uint64_t    rate;           //! Current throttle rate
 };
 
 

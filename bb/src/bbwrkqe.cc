@@ -48,7 +48,7 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
     return;
 };
 
-void WRKQE::dump(const char* pSev, const char* pPrefix)
+void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd)
 {
     string l_JobId = to_string(jobid);
     string l_JobStepId = "";
@@ -80,23 +80,23 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
             l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
         }
 
-        if (getWrkQ_Size())
+        if (getWrkQ_Size() || pDataInd == DUMP_ALL_DATA)
         {
             BBLV_Info* l_LV_Info = getLV_Info();
-            if (l_LV_Info)
+            if (getWrkQ_Size() && l_LV_Info)
             {
                 // NOTE: The high priority work queue will not fall into this leg...
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
-                if (rate)
-                {
-                    l_Rate = to_string(rate);
-                    l_Bucket = to_string(bucket);
-                    l_ThrottleWait = to_string(throttleWait);
-                    l_WorkQueueReturnedWithNegativeBucket = to_string(workQueueReturnedWithNegativeBucket);
-                }
+            }
+            if (rate || pDataInd == DUMP_ALL_DATA)
+            {
+                l_Rate = (HPWrkQE != this ? to_string(rate) : "H");
+                l_Bucket = (HPWrkQE != this ? to_string(bucket) : "H");
+                l_ThrottleWait = (HPWrkQE != this ? to_string(throttleWait) : "H");
+                l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
             }
         }
 
@@ -112,7 +112,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix)
         {
             l_Output += ", Cntb " + l_ContribId;
         }
-        if (rate)
+        if (rate || pDataInd == DUMP_ALL_DATA)
         {
             if (l_Rate.size())
             {
@@ -165,13 +165,39 @@ int WRKQE::getIssuingWorkItem()
 
 void WRKQE::loadBucket()
 {
-    dump("debug", "loadBucket(): Before bucket modification: ");
-    bucket = (int64_t)(MIN(bucket+rate, rate));
-    if (bucket >= 0)
+    if (rate)
     {
-        workQueueReturnedWithNegativeBucket = 0;
+        if (getWrkQ_Size())
+        {
+            dump("debug", "loadBucket(): Before bucket modification: ", DUMP_ALL_DATA);
+            int64_t l_Rate = (int64_t)rate;
+
+            // NOTE: If there are extents in the work queue, simply add to the
+            //       bucket value.  If during the last 'bucket cycle' this work
+            //       queue did not schedule any work, let the bucket value grow
+            //       so that, in the long run, we converge on the specified
+            //       rate/sec.
+            // NOTE: If the current bucket value is zero, add (rate-1) so we
+            //       do not send as double the rate if the size of the extents
+            //       is exactly the rate/sec.  (A bucket value of zero has I/O
+            //       scheduled for another extent.)
+//            bucket = MIN(bucket+l_Rate, l_Rate);
+            bucket += (bucket != 0 ? l_Rate : (l_Rate-1));
+
+            if (bucket >= 0)
+            {
+                workQueueReturnedWithNegativeBucket = 0;
+            }
+            dump("debug", "loadBucket(): After bucket modification: ", DUMP_ALL_DATA);
+        }
+        else
+        {
+            // If this work queue currently has no entries,
+            // set the bucket value to zero
+            bucket = 0;
+            workQueueReturnedWithNegativeBucket = 0;
+        }
     }
-    dump("debug", "loadBucket(): After bucket modification: ");
 
     return;
 }
