@@ -226,3 +226,69 @@ LSF transfers from SSD to devnull multi node
 
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+
+LSF throttled transfers to SSD from devzero single node
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  512
+	set environment variable  BBTHROTTLERATE  1073741824
+
+	Set num computes  1
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
+
+LSF throttled transfers to SSD from devzero multi node
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  512
+	set environment variable  BBTHROTTLERATE  1073741824
+
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
+
+LSF throttled transfers from SSD to devnull single node
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  512
+	set environment variable  BBTHROTTLERATE  1073741824
+
+	Set num computes  1
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+
+LSF throttled transfers from SSD to devnull multi node
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  512
+	set environment variable  BBTHROTTLERATE  1073741824
+	
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
