@@ -83,6 +83,14 @@ sub phase1()
     $result = bbcmd("$TARGET_ALL create --mount=$BBPATH --size=$BB_SSD_MIN");
     push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH") if(bbgetsuccess($result) > 0);
     failureCleanAndExit("create LV failed") if(bbgetrc($result) != 0);
+
+    if(exists $::jsoncfg->{"bb"}{"cmd"}{"rate"})
+    {
+        my $rate = $::jsoncfg->{"bb"}{"cmd"}{"rate"};
+        print "Setting logical volume $BBPATH throttle rate to $rate\n";
+        $result = bbcmd("$TARGET_ALL setthrottle --mount=$BBPATH --rate=$rate");
+        failureCleanAndExit("Set LV throttle rate failed") if(bbgetrc($result) != 0);
+    }
 }
 
 sub phase2_failure
@@ -96,6 +104,15 @@ sub phase2
 {
     $rc = &setupUserEnvironment();
     &phase2_failure() if($rc);
+
+    if(exists $ENV{"BBTHROTTLERATE"})
+    {
+        my $rate = $ENV{"BBTHROTTLERATE"};
+        print "Setting logical volume $BBPATH throttle rate to $rate\n";
+        $result = bbcmd("$TARGET_ALL setthrottle --mount=$BBPATH --rate=$rate");
+        &phase2_failure() if(bbgetrc($result) != 0);
+    }
+
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
 
