@@ -9,7 +9,7 @@ Clear LSF jobs
       Run Process  bkill  -q  bbq  0
 
 Setup LSF Testcases
-      Remove environment variable  BB_SSD_MIN  BB_STGIN_USER  BB_STGOUT1_USER  BB_STGOUT2_USER  BSCFS_WORK_PATH
+      Remove environment variable  BB_SSD_MIN  BB_STGIN_USER  BB_STGOUT1_USER  BB_STGOUT2_USER  BSCFS_WORK_PATH  BBTHROTTLERATE
       set test variable  ${application}      "bb"
       set test variable  ${BB_SSD_MIN}       0
       set test variable  ${BB_SSD_MAX}	     0
