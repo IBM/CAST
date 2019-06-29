@@ -25,6 +25,8 @@ require AutoLoader;
              bbgetsuccess
              bpost
              cmd
+             forkcmd
+             waitcmd
              setupUserEnvironment
              bbfail
              bbwaitTransfersComplete
@@ -393,6 +395,41 @@ sub cmd
     print "command rc: $rc\n";
     $ENV{'PATH'} = $oldpath;
     return $rc;
+}
+
+sub waitcmd
+{
+    foreach $pid (@PIDLIST)
+    {
+        waitpid($pid, 0);
+        my $rc = ($? >> 8);
+        $::PIDMETA{$pid}{"rc"} = $rc;
+        print "pid: $pid == $rc\n";
+    }
+    @PIDLIST = ();
+}
+
+sub forkcmd
+{
+    my($cmd, $timeout) = @_;
+    my $pid = fork();
+    if($pid)
+    {
+        push(@PIDLIST, $pid);
+        $::LASTPID = $pid;
+        $::PIDMETA{$pid}{"cmd"} = $cmd;
+        $::PIDMETA{$pid}{"rc"}  = "unk";
+    }
+    else
+    {
+        my $rc = cmd($cmd, $timeout, 0);
+        exit(-1) if($rc);
+        exit(0);
+    }
+    if($#PIDLIST+1 >= 256)
+    {
+        waitcmd();
+    }
 }
 
 
