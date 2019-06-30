@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    bbwrkqmgr.cc
  |
- |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  ï¿½ Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -1996,6 +1996,10 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
                 // Removing a work queue that had a transfer rate.
                 // Re-calculate the indication of throttle mode...
                 calcThrottleMode();
+            }
+            if(CurrentWrkQE == l_WrkQE)
+            {
+                CurrentWrkQE = NULL;
             }
             delete l_WrkQE;
         }
