@@ -3575,7 +3575,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     int l_TransferQueueLocked = 0;
     int l_LocalMetadataLocked = 1;
 
-    l_LV_Info = metadata.getLV_Info(pLVKey);
+    LVKey l_LVKey = *pLVKey;
+    l_LV_Info = metadata.getLV_Info(&l_LVKey);
     if (l_LV_Info)
     {
         // LVKey value found in taginfo2...
@@ -3583,7 +3584,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
         // Check to see if stgout_start has been called...  If not, send warning and continue...
         if (!l_LV_Info->stageOutStarted()) {
             // Stageout start was never received...
-            LOG(bb,debug) << "Stageout end received for " << *pLVKey << " without preceding stageout start.  Continuing...";
+            LOG(bb,debug) << "Stageout end received for " << l_LVKey << " without preceding stageout start.  Continuing...";
         }
 
         if (!(l_LV_Info->stageOutEnded())) {
@@ -3593,7 +3594,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 int rc2 = 0;
                 if (!CurrentWrkQE)
                 {
-                    rc2 = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                    rc2 = wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
                 }
                 else
                 {
@@ -3609,7 +3610,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
 
                     // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
                     //        Doing so will ensure that such extents are not actually transferred.
-                    l_LV_Info->setStageOutEnded(pLVKey, l_LV_Info->getJobId());
+                    l_LV_Info->setStageOutEnded(&l_LVKey, l_LV_Info->getJobId());
 
                     // Next, wait for all in-flight I/O to complete
                     // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
@@ -3619,7 +3620,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                     while (l_CurrentNumberOfInFlightExtents)
                     {
-                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << *pLVKey;
+                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << l_LVKey;
                         // Source file for extent being inspected has NOT been closed.
                         // Delay a bit for it to clear the in-flight queue and be closed...
                         // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
@@ -3633,15 +3634,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_DelayMsgLogged = 1;
                         }
                         l_TransferQueueLocked = 0;
-                        unlockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        unlockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         l_LocalMetadataLocked = 0;
-                        unlockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        unlockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         {
                             usleep((useconds_t)250000);
                         }
-                        lockLocalMetadata(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        lockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         l_LocalMetadataLocked = 1;
-                        lockTransferQueue(pLVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                        lockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         l_TransferQueueLocked = 1;
                         l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                     }
@@ -3655,7 +3656,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
                     if (l_CurrentNumberOfExtents) {
                         // Extents still left to be transferred...
-                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << *pLVKey;
+                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << l_LVKey;
 
                         WorkID l_WorkId;
                         queue<WorkID> l_Temp;
@@ -3665,7 +3666,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         // unload and reload of the workqueue.
                         //
                         // Unload the current workqueue into l_Temp
-                        LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents remaining on workqueue for " << *pLVKey << " before the reload processing";
+                        LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents remaining on workqueue for " << l_LVKey << " before the reload processing";
                         while (l_WrkQE->getWrkQ_Size()) {
                             LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
                             l_WorkId = l_WrkQ->front();
@@ -3711,14 +3712,14 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             else
                             {
                                 // Not sure how we could get here...  Do not set rc...  Plow ahead...
-                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey << ". Reload processing.";
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Reload processing.";
                                 l_WorkId.dump("info", "Failure when reloading work queue ");
                             }
                         }
 
                         // NOTE: We do not adjust the counting semaphore because we cannot re-init it...  We will just leave the
                         //       excess posts there and the worker threads will discard those as no-ops.  @DLH
-                        LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents are now on the workqueue for " << *pLVKey << " after the reload processing";
+                        LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents are now on the workqueue for " << l_LVKey << " after the reload processing";
 
                         // Unload and reload is complete.
                         //
@@ -3748,7 +3749,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             else
                             {
                                 // Not sure how we could get here...  Do not set rc...  Plow ahead...
-                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << *pLVKey << ". Work item removal processing.";
+                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Work item removal processing.";
                                 l_WorkId.dump("info", "Failure when processing work items to remove ");
                             }
                         }
@@ -3757,33 +3758,33 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 else
                 {
                     // Do not set rc...  Plow ahead...
-                    LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << *pLVKey;
+                    LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << l_LVKey;
                 }
 
-                LOG(bb,debug) << "Stageout: Ended:   " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
+                LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
 
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
                 //       the work queue lock is removed by that method.
-                rc = wrkqmgr.rmvWrkQ(pLVKey);
+                rc = wrkqmgr.rmvWrkQ(&l_LVKey);
                 l_TransferQueueLocked = 0;
                 if (rc)
                 {
                     // Failure when attempting to remove the work queue for the LVKey value...
-                    LOG(bb,warning) << "stageoutEnd: Failure occurred when attempting to remove the work queue for " << *pLVKey;
+                    LOG(bb,warning) << "stageoutEnd: Failure occurred when attempting to remove the work queue for " << l_LVKey;
                     rc = 0;
                 }
 
                 // Perform cleanup for the LVKey value
-                l_LV_Info->cleanUpAll(pLVKey);
+                l_LV_Info->cleanUpAll(&l_LVKey);
 
                 if (!pForced) {
                     // Remove taginfo2 that is currently associated with this LVKey value...
-                    LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << *pLVKey << " for jobid = " << l_LV_Info->getJobId();
-                    metadata.cleanLVKeyOnly(pLVKey);
+                    LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
+                    metadata.cleanLVKeyOnly(&l_LVKey);
                 }
 
-                l_LV_Info->setStageOutEndedComplete(pLVKey, l_LV_Info->getJobId());
+                l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
             }
             catch (ExceptionBailout& e) { }
             catch (exception& e)
@@ -3792,12 +3793,12 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 if (l_TransferQueueLocked)
                 {
                     l_TransferQueueLocked = 0;
-                    unlockTransferQueue(pLVKey, "stageoutEnd - Exception thrown");
+                    unlockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
                 }
                 if (l_LocalMetadataLocked)
                 {
                     l_LocalMetadataLocked = 0;
-                    unlockLocalMetadata(pLVKey, "stageoutEnd - Exception thrown");
+                    unlockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
                 }
             }
         }
@@ -3806,10 +3807,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             // Stageout end was already received...
             rc = -2;
             if (!(l_LV_Info->stageOutEndedComplete())) {
-                errorText << "Stageout end was received for " << *pLVKey << ", but stageout end has already been received and is currently being processed";
+                errorText << "Stageout end was received for " << l_LVKey << ", but stageout end has already been received and is currently being processed";
                 LOG_INFO_TEXT_RC(errorText, rc);
             } else {
-                errorText << "Stageout end was received for " << *pLVKey << ", but stageout end has already been received and has finished being processed";
+                errorText << "Stageout end was received for " << l_LVKey << ", but stageout end has already been received and has finished being processed";
                 LOG_INFO_TEXT_RC(errorText, rc);
             }
         }
@@ -3818,7 +3819,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     {
         // LVKey could not be found in taginfo2...
         rc = -2;
-        errorText << "Stageout end was received, but no transfer handles can be found for " << *pLVKey << ". Cleanup of metadata not required.";
+        errorText << "Stageout end was received, but no transfer handles can be found for " << l_LVKey << ". Cleanup of metadata not required.";
         LOG_INFO_TEXT_RC(errorText, rc);
     }
 
