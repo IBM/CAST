@@ -469,12 +469,16 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
     while (l_Restart)
     {
         l_Restart = false;
+        l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
         for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
             if ((it->second).getJobId() == pJobId)
             {
                 (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
-                it = metaDataMap.erase(it);
+                if (l_LockWasReleased == LOCAL_METADATA_LOCK_NOT_RELEASED)
+                {
+                    it = metaDataMap.erase(it);
+                }
                 l_Restart = true;
                 break;
             }
@@ -527,7 +531,7 @@ void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
     // Ensure stage-out ended for the given LVKey
     LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
 
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
         if((it->first) == *pLVKey)
         {
             (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
@@ -1024,9 +1028,9 @@ void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
     while (l_Restart)
     {
         l_Restart = false;
-        for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+        l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
+        for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
-            l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
             it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle, l_LockWasReleased, pRemoveOption);
             if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
             {
@@ -1152,6 +1156,7 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
     while (l_Restart && l_Continue)
     {
         l_Restart = false;
+        l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
         for(auto it = metaDataMap.begin(); ((!rc) && it != metaDataMap.end()); ++it)
         {
             if (l_ServerHostName == l_ServicedByHostname)
