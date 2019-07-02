@@ -23,4 +23,8 @@ primary or backup.  This is an unusual situation.
 
 Enables verbose output
 
+=item B<-raw>
+
+Displays the server name in addition to the type
+
 =back
