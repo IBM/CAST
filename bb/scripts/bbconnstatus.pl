@@ -6,9 +6,11 @@ use Getopt::Long;
 
 sub setDefaults
 {
+    $raw = 0;
     $::DEFAULT_HOSTLIST = "localhost";
     @::GETOPS=(
-        "v!" => \$verbose
+        "v!" => \$verbose,
+        "raw!" => \$raw
 	);
 }
 
@@ -26,15 +28,24 @@ $rb = bbcmd("getserver --connected=backup");
 $ra = bbcmd("getserver --connected=active");
 if((bbgetrc($ra) != 0) || (bbgetrc($rp) != 0) || (bbgetrc($rb) != 0))
 {
-    print "bbProxy_might_be_down\n";
+    if($ra->{"error"}{"func"} =~ /checkForSuperUserPermission/i)
+    {
+        print "Superuser_permission_required_to_query_connection_status\n";
+    }
+    else
+    {
+        print "bbProxy_might_be_down\n";
+    }
 }
 elsif($ra->{"out"}{"serverList"} eq $rp->{"out"}{"serverList"})
 {
-    print "primary\n";
+    my $rawtext = " (" . $ra->{"out"}{"serverList"} . ")" if($raw);
+    print "primary$rawtext\n";
 }
 elsif($ra->{"out"}{"serverList"} eq $rb->{"out"}{"serverList"})
 {
-    print "backup\n";
+    my $rawtext = " (" . $ra->{"out"}{"serverList"} . ")" if($raw);
+    print "backup$rawtext\n";
 }
 elsif($ra->{"out"}{"serverList"} eq "")
 {
