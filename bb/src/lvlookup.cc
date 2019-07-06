@@ -97,7 +97,7 @@ int LVLookup::getLVName(const filehandle& fileh)
 
 
 // For input sizes only, which are base-2 only regardless of capitalization
-// For lvs/vgs utilities, we'd use a different method.  Those tools display uppercase are base-10, lowercase are base-2.  
+// For lvs/vgs utilities, we'd use a different method.  Those tools display uppercase are base-10, lowercase are base-2.
 static map<string, size_t> unitconvert = {{"k",1ULL<<10}, {"m",1ULL<<20}, {"g",1ULL<<30}, {"t",1ULL<<40},
                                           {"K",1ULL<<10}, {"M",1ULL<<20}, {"G",1ULL<<30}, {"T",1ULL<<40},
                                           {"s",     512}, {"S", 512}, {"b", 1}, {"B", 1}};
@@ -186,7 +186,7 @@ int LVLookup::getLVExtents(const string& vg)
             if (rc == 6)
             {
                 bytes = stoul(size);
-                
+
                 tmp.device = device;
                 tmp.pstart = pstart * bytes;
                 tmp.lstart = lstart * bytes;
@@ -201,6 +201,7 @@ int LVLookup::getLVExtents(const string& vg)
                 if (rc)
                 {
                     free(buffer);
+                    fclose(f);
                     FL_Write(FLExtents, statFailed, "getLVExtents: stat command failed with rc=%d", rc, 0, 0, 0);
                     LOG(bb,error) << "getLVExtents: stat command failed with rc=" << rc;
                     return rc;
@@ -216,13 +217,14 @@ int LVLookup::getLVExtents(const string& vg)
                 char realdevpath[PATH_MAX+1];
                 string mydevice;
                 frc = readlink(devpath.c_str(), realdevpath, PATH_MAX);//allow for /0 at PATH_MAX+1
-                if(frc >= 0)
+                if (frc >= 0)
                 {
                     realdevpath[frc] = 0;  // readlink does not NULL terminate!
                     string tmp = realdevpath;
                     mydevice = tmp.substr(tmp.rfind("/")+1);
                 }
-                else {
+                else
+                {
                     stringstream errorText;
                     errorText << __PRETTY_FUNCTION__<<" devpath="<<devpath<<" readlink had errno="<<errno<<" "<<strerror(errno);
                     LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.devpath.readlinkFailed);
@@ -234,9 +236,10 @@ int LVLookup::getLVExtents(const string& vg)
                 {
                     int fscanfrc = fscanf(devf, "%ld", &devstart);
                     fclose(devf);
-                    if(fscanfrc != 1)
+                    if (fscanfrc != 1)
                     {
                         free(buffer);
+                        fclose(f);
                         FL_Write(FLExtents, fstatFailed2, "getLVExtents: fstat command failed with rc=%d", rc, 0, 0, 0);
                         LOG(bb, error) << "getLVExtents: fstat command failed with rc=" << rc;
                         return rc;
@@ -250,7 +253,26 @@ int LVLookup::getLVExtents(const string& vg)
                     mydevice = tmp.substr(tmp.rfind("/")+1);
                 }
                 tmp.pstart += devstart;
-                tmp.serial = getSerialByDevice(string("/dev/") + mydevice);
+
+                try
+                {
+                    tmp.serial = getSerialByDevice(string("/dev/") + mydevice);
+                }
+                catch(runtime_error& e)
+                {
+                    // Error is already logged
+                    free(buffer);
+                    fclose(f);
+                    throw;
+                }
+                catch(exception& e)
+                {
+                    // Error is already logged
+                    free(buffer);
+                    fclose(f);
+                    throw;
+                }
+
                 FL_Write(FLExtents, LogicalVolumeOffset, "Device %ld:%ld has logical volume start at %p", major(statbuf.st_rdev), minor(statbuf.st_rdev), devstart,0);
 
                 LOG(bb,debug) << "name=" << name << " devname=/dev/" << mydevice << " dev=" << tmp.device
@@ -263,7 +285,9 @@ int LVLookup::getLVExtents(const string& vg)
 
                 LVMapping[vg + string("-") + name].push_back(tmp);
                 lineReturned = true;
-            } else {
+            }
+            else
+            {
                 FL_Write(FLExtents, lvsUnexpectedData, "getLVExtents: Unexpected data returned from lvs command", 0, 0, 0, 0);
                 LOG(bb,warning) << "getLVExtents: Unexpected data returned from lvs command: " << buffer;
                 warningSent = true;
@@ -279,16 +303,20 @@ int LVLookup::getLVExtents(const string& vg)
 
         fclose(f);
 
-        if (warningSent) {
+        if (warningSent)
+        {
             LOG(bb,error) << "Warning messages send during the parsing of lvs data for volume group " << vg;
             rc = -1;
         }
-        if (!lineReturned) {
+        if (!lineReturned)
+        {
             FL_Write(FLExtents, LVS_CmdNoData, "lvs command returned no data", 0, 0, 0, 0);
             LOG(bb,error) << "lvs command returned no data for volume group " << vg;
             rc = -1;
         }
-    } else {
+    }
+    else
+    {
         FL_Write(FLExtents, LVS_CmdFailed, "lvs command failed", 0, 0, 0, 0);
         LOG(bb,error) << "lvs command failed for volume group " << vg;
         rc = -1;
