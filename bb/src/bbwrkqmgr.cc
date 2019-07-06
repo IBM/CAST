@@ -167,7 +167,7 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
 
     stringstream l_Prefix;
     l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
-    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+    dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     int l_LocalMetadataUnlockedInd = 0;
     lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
@@ -184,14 +184,14 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
         rc = -1;
         stringstream errorText;
         errorText << " Failure when attempting to add workqueue for " << *pLVKey << " for jobid " << pJobId;
-        wrkqmgr.dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
+        dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
-
     l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
-    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+    dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+
+    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
 
     return rc;
 }
@@ -393,7 +393,7 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
             {
                 // NOTE:  Set the file seqnbr/offset to that of the request file we obtained above,
                 //        as we have now enqueued everything up to this point from that request file.
-                wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
                 LOG(bb,debug) << "checkForNewHPWorkItems(): Found " << l_NumberAdded << " new async requests";
             }
         }
@@ -495,19 +495,19 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
     int l_TransferQueueUnlocked = 0;
     int l_LocalMetadataUnlockedInd = 0;
-    int l_WorkQueueLocked = 0;
-    int l_HP_WorkQueueUnlocked = 0;
+    int l_WorkQueueMgrLocked = 0;
+    int l_HP_TransferQueueUnlocked = 0;
 
     if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
     {
         HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - start");
-        l_HP_WorkQueueUnlocked = 1;
+        l_HP_TransferQueueUnlocked = 1;
     }
     if (!workQueueMgrIsLocked())
     {
         l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before");
         lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - start", &l_LocalMetadataUnlockedInd);
-        l_WorkQueueLocked = true;
+        l_WorkQueueMgrLocked = 1;
     }
 
     if (pSev == loggingLevel)
@@ -540,14 +540,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                     l_DumpIt = true;
                 }
 
-                if (l_DumpIt)
+                if (HPWrkQE && l_DumpIt)
                 {
-                    bool l_HP_TransferQueueLocked = false;
-                    if (!HPWrkQE->transferQueueIsLocked())
-                    {
-                        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
-                        l_HP_TransferQueueLocked = true;
-                    }
+                    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
 
                     stringstream l_OffsetStr;
                     if (outOfOrderOffsets.size())
@@ -640,10 +635,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                         LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
                     }
 
-                    if (l_HP_TransferQueueLocked)
-                    {
-                        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
-                    }
+                    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
 
                     lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
                     numberOfSkippedDumpRequests = 0;
@@ -662,7 +654,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
         }
     }
 
-    if (l_WorkQueueLocked)
+    if (l_WorkQueueMgrLocked)
     {
         unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - end", &l_LocalMetadataUnlockedInd);
     }
@@ -670,7 +662,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     {
         lockTransferQueue((LVKey*)0, "WRKQMGR::dump - end");
     }
-    if (l_HP_WorkQueueUnlocked)
+    if (l_HP_TransferQueueUnlocked)
     {
         HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - end");
     }
@@ -1824,7 +1816,7 @@ void WRKQMGR::post_multiple(const size_t pCount)
 
     for (size_t i=0; i<pCount; i++)
     {
-        WRKQMGR::post();
+        post();
     }
 //    verify();
 
@@ -1843,7 +1835,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
     bool l_AllDone= false;
 
     int l_LocalMetadataUnlockedInd = 0;
-    wrkqmgr.lockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests", &l_LocalMetadataUnlockedInd);
+    lockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests", &l_LocalMetadataUnlockedInd);
 
     HPWrkQE->lock(pLVKey, "processAllOutstandingHP_Requests");
 
@@ -1891,7 +1883,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
 
     HPWrkQE->unlock(pLVKey, "processAllOutstandingHP_Requests");
 
-    wrkqmgr.unlockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests", &l_LocalMetadataUnlockedInd);
+    unlockWorkQueueMgr(pLVKey, "processAllOutstandingHP_Requests", &l_LocalMetadataUnlockedInd);
 
     return;
 }
@@ -1965,7 +1957,7 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 
     stringstream l_Prefix;
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
-    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+    dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
     int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
@@ -2009,12 +2001,12 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
         rc = -1;
         stringstream errorText;
         errorText << " Failure when attempting to remove workqueue for " << *pLVKey;
-        wrkqmgr.dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
+        dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
-    wrkqmgr.dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+    dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
     unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
     if (l_LocalMetadataUnlocked)
@@ -2437,24 +2429,26 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         }
 
                         // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
-                        rc = chown(l_DataStorePath.c_str(), 0, 0);
-                        if (rc)
+                        int rc2 = chown(l_DataStorePath.c_str(), 0, 0);
+                        if (rc2)
                         {
+                            rc = -1;
                             errorText << "chown failed";
                             bberror << err("error.path", l_DataStorePath.c_str());
-                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                         }
 
                         // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
                         // NOTE:  root:root will insert jobid directories into this directory and then ownership
                         //        of those jobid directories will be changed to the uid:gid of the mountpoint.
                         //        The mode of the jobid directories is also changed to be 0700.
-                        rc = chmod(l_DataStorePath.c_str(), 0755);
-                        if (rc)
+                        rc2 = chmod(l_DataStorePath.c_str(), 0755);
+                        if (rc2)
                         {
+                            rc = -1;
                             errorText << "chmod failed";
                             bberror << err("error.path", l_DataStorePath.c_str());
-                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                         }
 
                         // Verify the correct permissions for all individual directories in the
@@ -2478,22 +2472,24 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     }
 
                     // Unconditionally perform a chown to root:root for the async request file.
-                    rc = chown(pAsyncRequestFileName, 0, 0);
-                    if (rc)
+                    int rc2 = chown(pAsyncRequestFileName, 0, 0);
+                    if (rc2)
                     {
+                        rc = -1;
                         errorText << "chown failed";
                         bberror << err("error.path", pAsyncRequestFileName);
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                     }
 
                     // Unconditionally perform a chmod to 0700 for the async request file.
                     // NOTE:  root is the only user of the async request file.
-                    rc = chmod(pAsyncRequestFileName, 0700);
-                    if (rc)
+                    rc2 = chmod(pAsyncRequestFileName, 0700);
+                    if (rc2)
                     {
+                        rc = -1;
                         errorText << "chmod failed";
                         bberror << err("error.path", pAsyncRequestFileName);
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                     }
 
                     if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
@@ -2505,14 +2501,14 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     // Log where this instance of bbServer will start processing async requests
                     int l_AsyncRequestFileSeqNbr = 0;
                     int64_t l_OffsetToNextAsyncRequest = 0;
-                    rc = wrkqmgr.findOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                    rc = findOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
                     if (!rc)
                     {
                         if (l_AsyncRequestFileSeqNbr > 0 && l_OffsetToNextAsyncRequest >= 0)
                         {
                             if (pMaintenanceOption == START_BBSERVER)
                             {
-                                wrkqmgr.setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                                setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
                                 if (l_OffsetToNextAsyncRequest)
                                 {
                                     // Set the last offset processed to one entry less than the next offset set above.

@@ -80,14 +80,15 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 bfs::create_directories(job);
 
                 // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
-                rc = chown(job.string().c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
-                                                 (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
-                if (rc)
+                int rc2 = chown(job.string().c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
+                                (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
+                if (rc2)
                 {
+                    rc = -1;
                     bfs::remove_all(job);
                     errorText << "chown failed for the jobid directory";
                     bberror << err("error.path", job.string());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                 }
 
                 // Switch back to the correct uid:gid
@@ -95,12 +96,13 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
 
                 // Unconditionally perform a chmod to 0770 for the jobid directory.
                 // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
-                rc = chmod(job.c_str(), 0770);
-                if (rc)
+                rc2 = chmod(job.c_str(), 0770);
+                if (rc2)
                 {
+                    rc = -1;
                     errorText << "chmod failed for the jobid directory";
                     bberror << err("error.path", job.c_str());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                 }
             }
         }
@@ -247,24 +249,33 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
         metaDataMap[*pLVKey] = pLV_Info;
         // NOTE: Return a pointer to the version of LV_Info in metaDataMap
         BBLV_Info* l_LV_Info = getLV_Info(pLVKey);
-        // NOTE: We overload the TOLERATE_ALREADY_EXISTS_OPTION option that is passed in to this method.
-        //       This option is only passed in as non-zero if this work queue is being added for a restart case.
-        //       Therefore, if non-zero, we indicate on the addWrkQ() invocation to create the work queue as suspended.
-        // NOTE: In the restart case, we create the work queue as suspended directly, as the setSuspended() invocation
-        //       could fail (not likely) and the local metadata would not get updated.  In the whole scheme of things,
-        //       that is not critical as a resume operation for the host (that is likely coming in the future...)
-        //       should then enable the work queue object.  While any restarted transfer definitions would fail (local
-        //       metadata would indicate the host is not suspended), once officially resumed, any new start transfer
-        //       requests would succeed.
-        // NOTE: In the restart case, if the work queue already exists (fail over and then back for the same LVKey),
-        //       the setSuspended() invocation will set the metadata and the work queue object as suspended.
-        int l_SuspendOption = (pTolerateAlreadyExists ? 1 : 0);
-        rc = wrkqmgr.addWrkQ(pLVKey, l_LV_Info, pJobId, l_SuspendOption);
-        pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_SuspendOption);
-        if (!rc)
+        if (l_LV_Info)
         {
-            // NOTE: If necessary, errstate will be filled in by update_xbbServerAddData()
-            rc = update_xbbServerAddData(pMsg, pJobId);
+            // NOTE: We overload the TOLERATE_ALREADY_EXISTS_OPTION option that is passed in to this method.
+            //       This option is only passed in as non-zero if this work queue is being added for a restart case.
+            //       Therefore, if non-zero, we indicate on the addWrkQ() invocation to create the work queue as suspended.
+            // NOTE: In the restart case, we create the work queue as suspended directly, as the setSuspended() invocation
+            //       could fail (not likely) and the local metadata would not get updated.  In the whole scheme of things,
+            //       that is not critical as a resume operation for the host (that is likely coming in the future...)
+            //       should then enable the work queue object.  While any restarted transfer definitions would fail (local
+            //       metadata would indicate the host is not suspended), once officially resumed, any new start transfer
+            //       requests would succeed.
+            // NOTE: In the restart case, if the work queue already exists (fail over and then back for the same LVKey),
+            //       the setSuspended() invocation will set the metadata and the work queue object as suspended.
+            int l_SuspendOption = (pTolerateAlreadyExists ? 1 : 0);
+            rc = wrkqmgr.addWrkQ(pLVKey, l_LV_Info, pJobId, l_SuspendOption);
+            pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_SuspendOption);
+            if (!rc)
+            {
+                // NOTE: If necessary, errstate will be filled in by update_xbbServerAddData()
+                rc = update_xbbServerAddData(pMsg, pJobId);
+            }
+        }
+        else
+        {
+            rc = -1;
+            errorText << "Could not find the local metadata for " << *pLVKey << ".  Registration failed with bbserver.";
+            LOG_ERROR_TEXT_RC(errorText, rc);
         }
     }
     else if (rc == -2)

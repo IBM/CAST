@@ -344,42 +344,47 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
     {
         for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
-            bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
-            int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
-            if (!rc)
+            if (l_Handle == UNDEFINED_HANDLE)
             {
-                if (l_HandleFile->tag == pTag)
+                bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
+                int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
+                if (!rc)
                 {
-                    // Tags match...  Now, compare the list of contribs...
-                    l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
-
-                    if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                    if (l_HandleFile->tag == pTag)
                     {
-                        l_Handle = stoull(handle.path().filename().string());
+                        // Tags match...  Now, compare the list of contribs...
+                        l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+
+                        if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                        {
+                            l_Handle = stoull(handle.path().filename().string());
+                        }
+                        else
+                        {
+                            LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                        }
+                        delete[] l_ContribArray;
+                        l_ContribArray = 0;
                     }
                     else
                     {
-                        LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                        LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
                     }
-                    delete[] l_ContribArray;
-                    l_ContribArray = 0;
                 }
                 else
                 {
-                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
+                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
                 }
 
-                if (l_Handle) break;
+                if (l_HandleFile)
+                {
+                    delete l_HandleFile;
+                    l_HandleFile = 0;
+                }
             }
             else
             {
-                LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
-            }
-
-            if (l_HandleFile)
-            {
-                delete l_HandleFile;
-                l_HandleFile = 0;
+                break;
             }
         }
     }
@@ -900,13 +905,13 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     // Unconditionally perform a chmod to 0770 for the lvuuid directory.
                     // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    rc = chmod(l_LVUuidPath.c_str(), 0770);
-                    if (rc)
+                    int rc2 = chmod(l_LVUuidPath.c_str(), 0770);
+                    if (rc2)
                     {
-                        stringstream errorText;
+                        rc = -1;
                         errorText << "chmod failed";
                         bberror << err("error.path", l_LVUuidPath.string());
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                     }
 
                     LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());

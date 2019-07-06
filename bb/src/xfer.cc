@@ -3255,13 +3255,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
             if (pPerformOperation)
             {
                 // Post each new extent...
-                WorkID l_WorkId;
-                if (!rc)
-                {
-                    lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
-                    wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
-                    unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
-                }
+                lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+                wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
+                unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
             }
         }
     }
