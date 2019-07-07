@@ -162,14 +162,14 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
     fl.contrib= contrib;
     fl.fileindex = index;
 
-    FileHandleRegistryLock();
+//    FileHandleRegistryLock();
 
     LOG(bb,debug) << "addFilehandle:  fh=" << fh << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index;
     {
         fhregistry[fl] = fh;
     }
 
-    FileHandleRegistryUnlock();
+//    FileHandleRegistryUnlock();
 
     return 0;
 }
@@ -231,7 +231,7 @@ int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t co
     fl.contrib = contrib;
     fl.fileindex = index;
 
-    FileHandleRegistryLock();
+//    FileHandleRegistryLock();
 
     {
         if(fhregistry.find(fl) != fhregistry.end())
@@ -244,7 +244,7 @@ int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t co
         }
     }
 
-    FileHandleRegistryUnlock();
+//    FileHandleRegistryUnlock();
 
     LOG(bb,debug) << "findFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
 
@@ -289,7 +289,7 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
     fl.contrib = contrib;
     fl.fileindex = index;
 
-    FileHandleRegistryLock();
+//    FileHandleRegistryLock();
 
     {
         if(fhregistry.find(fl) != fhregistry.end())
@@ -315,7 +315,7 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
         }
     }
 
-    FileHandleRegistryUnlock();
+//    FileHandleRegistryUnlock();
 
     LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
 
