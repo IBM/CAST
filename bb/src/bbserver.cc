@@ -1706,21 +1706,45 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         bool l_AllDone = false;
 
         {
-            if ((l_PerformOperation) && (!l_TransferPtr->builtViaRetrieveTransferDefinition()))
+            if (l_PerformOperation)
             {
-                // Second volley from bbProxy and not a restart scenario...
-                // First, ensure that this transfer definition is NOT marked as stopped in the cross bbServer metadata...
-                rc = ContribIdFile::isStopped(l_Job, l_Handle, l_ContribId);
-                if (rc == 1)
+                // Second volley from bbProxy...
+
+                // Ensure that this bbServer should still process this transfer definition.
+                // Restart/failover activity could have switched the processing of this
+                // transfer defintion to another bbServer.
+                string l_ServerHostName;
+                activecontroller->gethostname(l_ServerHostName);
+                string l_ServicedByHostname = ContribIdFile::isServicedBy(l_Job, l_Handle, l_ContribId);
+                if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
                 {
                     // This condition overrides any failure detected on bbProxy...
                     l_MarkFailedFromProxy = 0;
 
-                    // rc is already 1 and this will be returned as a -2 back to bbProxy...
+                    rc = -1;
                     errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                              << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
-                              << " This transfer definition can only be submitted via restart transfer definition processing.";
-                    LOG_ERROR_TEXT_AND_BAIL(errorText);
+                              << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently being serviced by " \
+                              << l_ServicedByHostname << ". This bbServer cannot service this transfer definition." \
+                              << " The servicing bbServer changed when this transfer definition was restarted.";
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
+
+                if (!l_TransferPtr->builtViaRetrieveTransferDefinition())
+                {
+                    // Not a restart scenario...
+                    // Ensure that this transfer definition is NOT marked as stopped in the cross bbServer metadata...
+                    rc = ContribIdFile::isStopped(l_Job, l_Handle, l_ContribId);
+                    if (rc == 1)
+                    {
+                        // This condition overrides any failure detected on bbProxy...
+                        l_MarkFailedFromProxy = 0;
+
+                        // rc is already 1 and this will be returned as a -2 back to bbProxy...
+                        errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                                  << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
+                                  << " This transfer definition can only be submitted via restart transfer definition processing.";
+                        LOG_ERROR_TEXT_AND_BAIL(errorText);
+                    }
                 }
             }
 
