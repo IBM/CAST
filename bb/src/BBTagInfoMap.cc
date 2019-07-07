@@ -496,26 +496,26 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
 
                     // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    rc = chmod(jobstepid.c_str(), 0770);
-                    if (rc)
+                    int rc2 = chmod(jobstepid.c_str(), 0770);
+                    if (rc2)
                     {
-                        stringstream errorText;
+                        rc = -1;
                         errorText << "chmod failed";
                         bberror << err("error.path", jobstepid.c_str());
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                     }
                 }
 
                 // Unconditionally perform a chmod to 0770 for the handle directory.
                 // NOTE:  This is done for completeness, as all access is via the grandparent directory (jobid) and access to the files
                 //        contained in this tree is controlled there.
-                rc = chmod(handle.c_str(), 0770);
-                if (rc)
+                int rc2 = chmod(handle.c_str(), 0770);
+                if (rc2)
                 {
-                    stringstream errorText;
+                    rc = -1;
                     errorText << "chmod failed";
                     bberror << err("error.path", handle.c_str());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
                 }
             }
             else

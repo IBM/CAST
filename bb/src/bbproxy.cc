@@ -3660,6 +3660,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
             (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS ||
             (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFSPFS)
         {
+            FileHandleRegistryLock();
+
             try
             {
                 // Remove source file (if open and not in progress for restart transfer)
@@ -3702,6 +3704,11 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                     break;
                 }
             }
+            catch(runtime_error& e)
+            {
+                rc = -1;
+                LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+            }
             catch(exception& e)
             {
                 rc = -1;
@@ -3742,6 +3749,11 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                         }
                     }
                 }
+                catch(runtime_error& e)
+                {
+                    rc = -1;
+                    LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                }
                 catch(exception& e)
                 {
                     rc = -1;
@@ -3759,6 +3771,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                 // Remote copy
                 strCpy(l_SizePhrase, ", remote size copied is ", sizeof(l_SizePhrase));
             }
+
+            FileHandleRegistryUnlock();
         }
     }
     else
