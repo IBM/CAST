@@ -80,15 +80,15 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 bfs::create_directories(job);
 
                 // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
-                int rc2 = chown(job.string().c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
+                int rc = chown(job.string().c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
                                 (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
-                if (rc2)
+                if (rc)
                 {
-                    rc = -1;
+                    int l_Errno = errno;
                     bfs::remove_all(job);
                     errorText << "chown failed for the jobid directory";
                     bberror << err("error.path", job.string());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, l_Errno);
                 }
 
                 // Switch back to the correct uid:gid
@@ -96,14 +96,14 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
 
                 // Unconditionally perform a chmod to 0770 for the jobid directory.
                 // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
-                rc2 = chmod(job.c_str(), 0770);
-                if (rc2)
+                rc = chmod(job.c_str(), 0770);
+                if (rc)
                 {
-                    rc = -1;
                     errorText << "chmod failed for the jobid directory";
                     bberror << err("error.path", job.c_str());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                 }
+                LOG(bb,info) << "xbbServer: JobId " << pJobId << " is being registered";
             }
         }
         else
@@ -111,7 +111,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
             rc = -1;
             errorText << "BBLV_Metadata::update_xbbServerAddData(): Attempt to add invalid jobid of " << UNDEFINED_JOBID << " to the cross bbServer metadata";
             bberror << err("error.jobid", UNDEFINED_JOBID);
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
     }
     catch(ExceptionBailout& e) { }
