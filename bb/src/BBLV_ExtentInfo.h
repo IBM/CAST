@@ -99,6 +99,7 @@ class BBLV_ExtentInfo
     Extent* getAnySourceExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex);
     Extent* getMaxInFlightExtent();
     Extent* getMinimumTrimExtent();
+    size_t getNumberOfTransferDefsWithOutstandingWorkItems();
     int hasCanceledExtents();
     int moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight);
     int moreExtentsToTransferForFile(const int64_t pHandle, const int32_t pContrib, const uint32_t pSourceIndex, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue=DO_NOT_DUMP_QUEUES_ON_VALUE);
