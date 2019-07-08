@@ -245,6 +245,7 @@ class WRKQE
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
     void dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd=DO_NOT_DUMP_ALL_DATA);
     int getIssuingWorkItem();
+    uint64_t getNumberOfInFlightExtents();
     void loadBucket();
     void lock(const LVKey* pLVKey, const char* pMethod);
     double processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo);

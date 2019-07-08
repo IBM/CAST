@@ -163,6 +163,10 @@ class BBLV_Info
         return extentInfo.getNumberOfInFlightExtents();
     }
 
+    inline size_t getNumberOfTransferDefsWithOutstandingWorkItems() {
+        return extentInfo.getNumberOfTransferDefsWithOutstandingWorkItems();
+    }
+
     inline BBTagInfoMap* getTagInfoMap() {
         return &tagInfoMap;
     }

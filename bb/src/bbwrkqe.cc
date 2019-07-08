@@ -51,6 +51,7 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd)
 {
     string l_JobId = to_string(jobid);
+    string l_ActiveTransferDefs = "";
     string l_JobStepId = "";
     string l_Handle = "";
     string l_ContribId = "";
@@ -59,7 +60,12 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
     string l_ThrottleWait = "";
     string l_WorkQueueReturnedWithNegativeBucket = "";
     string l_Suspended = (suspended ? "Y" : "N");
-    string l_Output = "Job " + l_JobId + ", Susp " + l_Suspended;
+    string l_Output = "Job " + l_JobId;
+    string l_Output2 = "";
+    if (suspended || pDataInd == DUMP_ALL_DATA)
+    {
+        l_Output += ", Susp " + l_Suspended;
+    }
 
     int l_HP_WorkQueueUnlocked = 0;
     int l_TransferQueueLocked = 0;
@@ -80,26 +86,30 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
         }
 
-        if (getWrkQ_Size() || pDataInd == DUMP_ALL_DATA)
+        BBLV_Info* l_LV_Info = getLV_Info();
+        if ((this != HPWrkQE) && l_LV_Info)
         {
-            BBLV_Info* l_LV_Info = getLV_Info();
-            if (getWrkQ_Size() && l_LV_Info)
+            l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
+            if (getWrkQ_Size())
             {
-                // NOTE: The high priority work queue will not fall into this leg...
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
-            }
-            if (rate || pDataInd == DUMP_ALL_DATA)
-            {
-                l_Rate = (HPWrkQE != this ? to_string(rate) : "H");
-                l_Bucket = (HPWrkQE != this ? to_string(bucket) : "H");
-                l_ThrottleWait = (HPWrkQE != this ? to_string(throttleWait) : "H");
-                l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
+                if (rate || pDataInd == DUMP_ALL_DATA)
+                {
+                    l_Rate = (HPWrkQE != this ? to_string(rate) : "H");
+                    l_Bucket = (HPWrkQE != this ? to_string(bucket) : "H");
+                    l_ThrottleWait = (HPWrkQE != this ? to_string(throttleWait) : "H");
+                    l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
+                }
             }
         }
 
+        if (l_ActiveTransferDefs.size())
+        {
+            l_Output += ", #ActTDefs " + l_ActiveTransferDefs;
+        }
         if (l_JobStepId.size())
         {
             l_Output += ", Jobstep " + l_JobStepId;
@@ -132,13 +142,18 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             }
         }
 
+        if (this != HPWrkQE)
+        {
+            l_Output2 = ", #InFlt " + to_string(getNumberOfInFlightExtents());
+        }
+
         if (!strcmp(pSev,"debug"))
         {
-            LOG(bb,debug) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << ", CurSize " << getWrkQ_Size();
+            LOG(bb,debug) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << l_Output2 << ", CurSize " << getWrkQ_Size();
         }
         else if (!strcmp(pSev,"info"))
         {
-            LOG(bb,info) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << ", CurSize " << getWrkQ_Size();
+            LOG(bb,info) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << l_Output2 << ", CurSize " << getWrkQ_Size();
         }
 
         if (l_TransferQueueLocked)
@@ -161,6 +176,11 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
 int WRKQE::getIssuingWorkItem()
 {
     return issuingWorkItem;
+}
+
+uint64_t WRKQE::getNumberOfInFlightExtents()
+{
+    return (lvinfo ? lvinfo->getNumberOfInFlightExtents() : 0);
 }
 
 void WRKQE::loadBucket()
