@@ -2429,26 +2429,24 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         }
 
                         // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
-                        int rc2 = chown(l_DataStorePath.c_str(), 0, 0);
-                        if (rc2)
+                        rc = chown(l_DataStorePath.c_str(), 0, 0);
+                        if (rc)
                         {
-                            rc = -1;
                             errorText << "chown failed";
                             bberror << err("error.path", l_DataStorePath.c_str());
-                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                         }
 
                         // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
                         // NOTE:  root:root will insert jobid directories into this directory and then ownership
                         //        of those jobid directories will be changed to the uid:gid of the mountpoint.
                         //        The mode of the jobid directories is also changed to be 0700.
-                        rc2 = chmod(l_DataStorePath.c_str(), 0755);
-                        if (rc2)
+                        rc = chmod(l_DataStorePath.c_str(), 0755);
+                        if (rc)
                         {
-                            rc = -1;
                             errorText << "chmod failed";
                             bberror << err("error.path", l_DataStorePath.c_str());
-                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                         }
 
                         // Verify the correct permissions for all individual directories in the
@@ -2472,24 +2470,22 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     }
 
                     // Unconditionally perform a chown to root:root for the async request file.
-                    int rc2 = chown(pAsyncRequestFileName, 0, 0);
-                    if (rc2)
+                    rc = chown(pAsyncRequestFileName, 0, 0);
+                    if (rc)
                     {
-                        rc = -1;
                         errorText << "chown failed";
                         bberror << err("error.path", pAsyncRequestFileName);
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                     }
 
                     // Unconditionally perform a chmod to 0700 for the async request file.
                     // NOTE:  root is the only user of the async request file.
-                    rc2 = chmod(pAsyncRequestFileName, 0700);
-                    if (rc2)
+                    rc = chmod(pAsyncRequestFileName, 0700);
+                    if (rc)
                     {
-                        rc = -1;
                         errorText << "chmod failed";
                         bberror << err("error.path", pAsyncRequestFileName);
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                     }
 
                     if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
