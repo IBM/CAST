@@ -131,7 +131,7 @@ int csmi_sendrecv_cmd_ext(
 
     csmutil_logging(info, "%s-%d: Recieve Payload len = %d", __FILE__, __LINE__, recvDataLen);
 
-    csmutil_logging(debug, "%s-%d: recvMsgId: %d msgID: %d", __FILE__, __LINE__, recvMsgId, msgId);
+    csmutil_logging(debug, "%s-%d: recvMsgId: %" PRIu64" msgID: %" PRIu64"", __FILE__, __LINE__, recvMsgId, msgId);
 
     if (recvMsgId != msgId) // mismatch message id
     { 
