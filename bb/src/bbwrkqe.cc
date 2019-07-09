@@ -50,6 +50,11 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
 void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd)
 {
+    int l_HP_WorkQueueUnlocked = 0;
+    int l_TransferQueueLocked = 0;
+    size_t l_NumberOfInFlightExtents = 0;
+    BBLV_Info* l_LV_Info = NULL;
+
     string l_JobId = to_string(jobid);
     string l_ActiveTransferDefs = "";
     string l_JobStepId = "";
@@ -62,40 +67,43 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
     string l_Suspended = (suspended ? "Y" : "N");
     string l_Output = "Job " + l_JobId;
     string l_Output2 = "";
-    if (suspended || pDataInd == DUMP_ALL_DATA)
+
+    if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
     {
-        l_Output += ", Susp " + l_Suspended;
+        if (HPWrkQE != CurrentWrkQE)
+        {
+            HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before, not CurrentWrkQE");
+            l_HP_WorkQueueUnlocked = 1;
+            l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, not HPWrkQE");
+        }
+    }
+    else
+    {
+        l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
     }
 
-    int l_HP_WorkQueueUnlocked = 0;
-    int l_TransferQueueLocked = 0;
+    size_t l_NumberOfWorkItems = getNumberOfWorkItems();
+    size_t l_NumberOfWorkItemsProcessed = getNumberOfWorkItemsProcessed();
 
     if (wrkq)
     {
-        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+        size_t l_NumberOfExtents = getWrkQ_Size();
+        // NOTE: We don't have the local metadata locked and can't get it because we must have the
+        //       work queue manager locked.  If we don't have any extents left on the work queue, we
+        //       cannot use l_LV_Info/l_ExtentInfo because those structures could go away at anytime.
+        //       If we have extents left on the work queue, the transfer queue lock protects us.
+        //
+        //       This is unfortunate, as we could have inflight entries without any entries left on
+        //       the work queue and we won't display that information via this dump.
+        if ((this != HPWrkQE) && l_NumberOfExtents)
         {
-            if (HPWrkQE != CurrentWrkQE)
+            l_LV_Info = getLV_Info();
+            if (l_LV_Info)
             {
-                HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before, not CurrentWrkQE");
-                l_HP_WorkQueueUnlocked = 1;
-                l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, not HPWrkQE");
-            }
-        }
-        else
-        {
-            l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
-        }
-
-        size_t l_NumberOfInFlightExtents = ((this != HPWrkQE) ? getNumberOfInFlightExtents() : 0);
-
-        BBLV_Info* l_LV_Info = getLV_Info();
-        if ((this != HPWrkQE) && l_LV_Info)
-        {
-            if (getWrkQ_Size())
-            {
-                l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
-
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
+
+                l_NumberOfInFlightExtents = getNumberOfInFlightExtents();
+                l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
@@ -107,15 +115,12 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
                     l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
                 }
             }
-            else
-            {
-                if (l_NumberOfInFlightExtents)
-                {
-                    l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
-                }
-            }
         }
 
+        if (suspended || pDataInd == DUMP_ALL_DATA)
+        {
+            l_Output += ", Susp " + l_Suspended;
+        }
         if (l_ActiveTransferDefs.size())
         {
             l_Output += ", #ActTDefs " + l_ActiveTransferDefs;
@@ -152,9 +157,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             }
         }
 
-        size_t l_NumberOfWorkItems = getNumberOfWorkItems();
-        size_t l_NumberOfWorkItemsProcessed = getNumberOfWorkItemsProcessed();
-        if (this != HPWrkQE && (l_NumberOfWorkItems != l_NumberOfWorkItemsProcessed))
+        if ((this != HPWrkQE) && l_NumberOfExtents)
         {
             l_Output2 = ", #InFlt " + to_string(l_NumberOfInFlightExtents);
         }
@@ -167,19 +170,19 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
         {
             LOG(bb,info) << pPrefix << lvKey << ", " << l_Output << ", #Items " << l_NumberOfWorkItems << ", #Proc'd " << l_NumberOfWorkItemsProcessed << l_Output2 << ", CurSize " << getWrkQ_Size();
         }
-
-        if (l_TransferQueueLocked)
-        {
-            unlockTransferQueue((LVKey*)0, "WRKQE::dump - exit");
-        }
-        if (l_HP_WorkQueueUnlocked)
-        {
-            HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
-        }
     }
     else
     {
-        LOG(bb,error) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << ", wrkq is NULL";
+        LOG(bb,error) << pPrefix << lvKey << ", " << l_Output << ", #Items " << l_NumberOfWorkItems << ", #Proc'd " << l_NumberOfWorkItemsProcessed << ", wrkq is NULL";
+    }
+
+    if (l_TransferQueueLocked)
+    {
+        unlockTransferQueue((LVKey*)0, "WRKQE::dump - exit");
+    }
+    if (l_HP_WorkQueueUnlocked)
+    {
+        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - after");
     }
 
     return;
