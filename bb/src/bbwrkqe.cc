@@ -86,12 +86,15 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
         }
 
+        size_t l_NumberOfInFlightExtents = ((this != HPWrkQE) ? getNumberOfInFlightExtents() : 0);
+
         BBLV_Info* l_LV_Info = getLV_Info();
         if ((this != HPWrkQE) && l_LV_Info)
         {
-            l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
             if (getWrkQ_Size())
             {
+                l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
+
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
                 l_Handle = to_string(l_ExtentInfo.getHandle());
@@ -102,6 +105,13 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
                     l_Bucket = (HPWrkQE != this ? to_string(bucket) : "H");
                     l_ThrottleWait = (HPWrkQE != this ? to_string(throttleWait) : "H");
                     l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
+                }
+            }
+            else
+            {
+                if (l_NumberOfInFlightExtents)
+                {
+                    l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
                 }
             }
         }
@@ -142,18 +152,20 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             }
         }
 
-        if (this != HPWrkQE)
+        size_t l_NumberOfWorkItems = getNumberOfWorkItems();
+        size_t l_NumberOfWorkItemsProcessed = getNumberOfWorkItemsProcessed();
+        if (this != HPWrkQE && (l_NumberOfWorkItems != l_NumberOfWorkItemsProcessed))
         {
-            l_Output2 = ", #InFlt " + to_string(getNumberOfInFlightExtents());
+            l_Output2 = ", #InFlt " + to_string(l_NumberOfInFlightExtents);
         }
 
         if (!strcmp(pSev,"debug"))
         {
-            LOG(bb,debug) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << l_Output2 << ", CurSize " << getWrkQ_Size();
+            LOG(bb,debug) << pPrefix << lvKey << ", " << l_Output << ", #Items " << l_NumberOfWorkItems << ", #Proc'd " << l_NumberOfWorkItemsProcessed << l_Output2 << ", CurSize " << getWrkQ_Size();
         }
         else if (!strcmp(pSev,"info"))
         {
-            LOG(bb,info) << pPrefix << lvKey << ", " << l_Output << ", #Items " << getNumberOfWorkItems() << ", #Proc'd " << getNumberOfWorkItemsProcessed() << l_Output2 << ", CurSize " << getWrkQ_Size();
+            LOG(bb,info) << pPrefix << lvKey << ", " << l_Output << ", #Items " << l_NumberOfWorkItems << ", #Proc'd " << l_NumberOfWorkItemsProcessed << l_Output2 << ", CurSize " << getWrkQ_Size();
         }
 
         if (l_TransferQueueLocked)
