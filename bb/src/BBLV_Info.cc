@@ -103,34 +103,35 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
             wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after increment of concurrent", &l_LocalMetadataUnlockedInd);
 
             // Wait for the canceled extents to be processed
-            uint64_t l_Attempts = 1;
+            uint32_t i = 0;
+            int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
             int l_DelayMsgLogged = 0;
-            while (1)
+            while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), 0, l_DumpOption))
             {
-                if (!(extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), 0)))
+                unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
                 {
-                    if ((l_Attempts % 15) == 0)
+                    // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                    if ((i++ % 60) == 48)
                     {
-                        // Display this message every 15 seconds...
                         FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
                                  (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
                                      << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
                         l_DelayMsgLogged = 1;
                     }
-
-                    unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                    pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
+                    usleep((useconds_t)250000);
+                    // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                    if ((i % 60) == 48)
                     {
-                        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
-                        usleep((useconds_t)1000000);    // Delay 1 second
+                        l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
                     }
-                    lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
-                    ++l_Attempts;
+                    else
+                    {
+                        l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
+                    }
                 }
-                else
-                {
-                    break;
-                }
+                lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
             }
 
             if (l_DelayMsgLogged)
@@ -403,7 +404,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                     // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
                     if ((i % 60) == 48)
                     {
-                        l_DumpOption = MORE_EXTENTS_TO_TRANSFER_FOR_FILE;
+                        l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
                     }
                     else
                     {

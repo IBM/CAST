@@ -420,10 +420,12 @@ int BBLV_ExtentInfo::hasCanceledExtents()
     return rc;
 }
 
-int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight)
+int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue)
 {
     int rc = 0;
     uint32_t l_NumberInFlight = 0;
+    bool l_DumpInFlight = false;
+    bool l_DumpAllExtents = false;
 
     LOG(bb,debug) << "moreExtentsToTransfer: pHandle: " << pHandle << ", pContrib: " << pContrib << ", pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight;
 
@@ -440,7 +442,7 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
                 if (++l_NumberInFlight > pNumberOfExpectedInFlight)
                 {
                     rc = 1;
-                    break;
+                    l_DumpInFlight = true;
                 }
             }
         }
@@ -454,7 +456,24 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
             if ((pHandle <= 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == e.contrib))
             {
                 rc = 1;
+                l_DumpAllExtents = true;
                 break;
+            }
+        }
+    }
+
+    if (pDumpQueuesOnValue != DO_NOT_DUMP_QUEUES_ON_VALUE)
+    {
+        if (rc == pDumpQueuesOnValue)
+        {
+            LOG(bb,info) << "moreExtentsToTransfer: rc: " << rc << " pHandle: " << pHandle << " pContrib: " << pContrib << " pNumberOfExpectedInFlight: " << pNumberOfExpectedInFlight << " pNumberInFlight: " << l_NumberInFlight;
+            if (l_DumpInFlight)
+            {
+                dumpInFlight("info");
+            }
+            if (l_DumpAllExtents)
+            {
+                dumpExtents("info", "moreExtentsToTransfer()");
             }
         }
     }
@@ -533,9 +552,11 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     return rc;
 }
 
-int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib)
+int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib, int pDumpQueuesOnValue)
 {
     int rc = 0;
+    uint32_t l_NumberInFlight = 0;
+    bool l_DumpInFlight = false;
 
     LOG(bb,debug) << "moreInFlightExtentsForTransferDefinition: pHandle: " << pHandle << ", pContrib: " << pContrib;
 
@@ -549,7 +570,20 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
             if ((pHandle == 0 || pHandle == (it->second).handle) && (pContrib == UNDEFINED_CONTRIBID || (pContrib == (it->second).contrib)))
             {
                 rc = 1;
-                break;
+                ++l_NumberInFlight;
+                l_DumpInFlight = true;
+            }
+        }
+    }
+
+    if (pDumpQueuesOnValue != DO_NOT_DUMP_QUEUES_ON_VALUE)
+    {
+        if (rc == pDumpQueuesOnValue)
+        {
+            LOG(bb,info) << "moreInFlightExtentsForTransferDefinition: rc: " << rc << " pHandle: " << pHandle << " pContrib: " << pContrib << " numberOfExpectedInFlight: 0, pNumberInFlight: " << l_NumberInFlight;
+            if (l_DumpInFlight)
+            {
+                dumpInFlight("info");
             }
         }
     }
