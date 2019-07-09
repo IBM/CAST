@@ -905,13 +905,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     // Unconditionally perform a chmod to 0770 for the lvuuid directory.
                     // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    int rc2 = chmod(l_LVUuidPath.c_str(), 0770);
-                    if (rc2)
+                    rc = chmod(l_LVUuidPath.c_str(), 0770);
+                    if (rc)
                     {
-                        rc = -1;
                         errorText << "chmod failed";
                         bberror << err("error.path", l_LVUuidPath.string());
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc2);
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                     }
 
                     LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());

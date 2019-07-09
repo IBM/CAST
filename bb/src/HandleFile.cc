@@ -1141,7 +1141,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
     snprintf(l_ArchivePathWithName, sizeof(l_ArchivePathWithName), "%s/%lu", l_ArchivePath, pHandle);
-    LOG(bb,debug) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
+    LOG(bb,info) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
     ofstream l_ArchiveFile{l_ArchivePathWithName};
     text_oarchive ha{l_ArchiveFile};
 

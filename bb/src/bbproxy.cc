@@ -2949,10 +2949,10 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         LOG(bb,info) << "msgin_setthrottlerate: mountpoint=" << mountpoint << ", rate=" << rate;
 
-        if (rate > std::numeric_limits<uint64_t>::max())
+        if (rate > (uint64_t)std::numeric_limits<int64_t>::max())
         {
             rc = -1;
-            errorText << "Rate must be specified as " << std::numeric_limits<uint64_t>::max() << " or less. A value of " << rate << "was specified.";
+            errorText << "Rate must be specified as " << std::numeric_limits<int64_t>::max() << " or less. A value of " << rate << " was specified.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 

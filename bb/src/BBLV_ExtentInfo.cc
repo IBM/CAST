@@ -365,6 +365,40 @@ Extent* BBLV_ExtentInfo::getMinimumTrimExtent() {
     return l_Extent;
 }
 
+size_t BBLV_ExtentInfo::getNumberOfTransferDefsWithOutstandingWorkItems()
+{
+    map<BBTransferDef*, uint32_t> l_UniqueTransferDefs;
+
+    for (auto& e : allExtents)
+    {
+        BBTransferDef* l_TransferDef = e.getTransferDef();
+        if (l_UniqueTransferDefs.find(l_TransferDef) == l_UniqueTransferDefs.end())
+        {
+            l_UniqueTransferDefs[l_TransferDef] = 1;
+        }
+        else
+        {
+            l_UniqueTransferDefs[l_TransferDef] += 1;
+        }
+    }
+
+    for (auto it=inflight.begin(); it!=inflight.end(); ++it)
+    {
+        BBTransferDef* l_TransferDef = (it->second).getTransferDef();
+        if (l_UniqueTransferDefs.find(l_TransferDef) == l_UniqueTransferDefs.end())
+        {
+            l_UniqueTransferDefs[l_TransferDef] = 1;
+        }
+        else
+        {
+            l_UniqueTransferDefs[l_TransferDef] += 1;
+        }
+    }
+
+    return l_UniqueTransferDefs.size();
+}
+
+
 int BBLV_ExtentInfo::hasCanceledExtents()
 {
     int rc = 0;
