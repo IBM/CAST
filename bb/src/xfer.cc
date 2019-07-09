@@ -3254,10 +3254,20 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         {
             if (pPerformOperation)
             {
-                // Post each new extent...
-                lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
-                wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
-                unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+                if (l_TransferDef)
+                {
+                    // Post each new extent...
+                    lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+                    wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
+                    unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+                }
+                else
+                {
+                    // Inconsistency with metadata....
+                    rc = -1;
+                    errorText << "queueTransfer(): Pointer to transfer definition found NULL prior to posting new extents to work queue";
+                    LOG_ERROR_TEXT_RC(errorText, rc);
+                }
             }
         }
     }
