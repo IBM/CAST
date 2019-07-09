@@ -482,24 +482,34 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
             //       be suspended, so no new extents should start processing when we release/re-acquire
             //       the lock below...
             uint32_t i = 0;
+            int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
             int l_DelayMsgLogged = 0;
-            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId))
+            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId, l_DumpOption))
             {
                 unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for in-flight queue to clear");
+
                 {
-                    pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
-                    // NOTE: Currently set to send info to console after 3 seconds of not being able to clear, and every 10 seconds thereafter...
-                    if ((i++ % 40) == 12)
+                    // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                    if ((i++ % 60) == 48)
                     {
                         FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
                                  pHandle, l_ContribId, 0, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
                                      << ", contribid " << l_ContribId;
-                        pLV_Info->getExtentInfo()->dumpInFlight("info");
                         l_DelayMsgLogged = 1;
                     }
                     usleep((useconds_t)250000);
+                    // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                    if ((i % 60) == 48)
+                    {
+                        l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
+                    }
+                    else
+                    {
+                        l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
+                    }
                 }
+
                 lockLocalMetadata(pLVKey, "stopTransfer - Waiting for in-flight queue to clear");
             }
 
