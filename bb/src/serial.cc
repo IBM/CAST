@@ -216,33 +216,34 @@ void look4iSCSItargetDevices(){
 void look4NVMFtargetDevices(){
     LOG(bb, debug) << "Searching for NVMe over Fabrics target block devices";
     string cmd;
-    try{    
+    try
+    {    
+        // This is a potential target device for NVMe over Fabrics.
+        // If NVMe over Fabrics target is configured, fabricate a serial number using connectivity info.
+        for(const auto& hostpath : boost::make_iterator_range(bfs::directory_iterator(bfs::path("/sys/kernel/config/nvmet/hosts")), {}))
+        {
+            vector<string> values = buildTokens(hostpath.path().filename().string(), "#");
+            KeyByHostname[values[0]] = hostpath.path().filename().string();
+            const string bbserverConst = "bb.server";
+            string temp = values[0].substr (bbserverConst.length());
+            size_t colonSpot = temp.find (":");
+            temp = temp.substr(0, colonSpot );
+            vector<string> valuesDot = buildTokens(temp, "_");
+            temp = valuesDot[0]
+                    + "." + valuesDot[1]
+                    + "." + valuesDot[2]
+                    + "." + valuesDot[3]
+                    ;
+            KeyByHostname[temp] = hostpath.path().filename().string();
+        }
+
         if (USE_NVMF) // \TODO remove in an updated
-        for(auto device: nvme_devices)
+        for(const auto& device: nvme_devices)
         {
             if (nvmeDeviceInfo[device]["mn"] != "Linux")
             {
-                // This is a potential target device for NVMe over Fabrics.
-                // If NVMe over Fabrics target is configured, fabricate a serial number using connectivity info.
-                for(auto& hostpath : boost::make_iterator_range(bfs::directory_iterator(bfs::path("/sys/kernel/config/nvmet/hosts")), {}))
-                {
-                    vector<string> values = buildTokens(hostpath.path().filename().string(), "#");
-                    KeyByHostname[values[0]] = hostpath.path().filename().string();
-                    const string bbserverConst = "bb.server";
-                    string temp = values[0].substr (bbserverConst.length());
-                    size_t colonSpot = temp.find (":");
-                    temp = temp.substr(0, colonSpot );
-                    vector<string> valuesDot = buildTokens(temp, "_");
-                    temp = valuesDot[0]
-                          + "." + valuesDot[1]
-                          + "." + valuesDot[2]
-                          + "." + valuesDot[3]
-                          ;
-                    KeyByHostname[temp] = hostpath.path().filename().string();
-                }
-
                 cmd = string("grep -l ") + device + string(" /sys/kernel/config/nvmet/ports/*/subsystems/*/namespaces/*/device_path");
-                for(auto line : runCommand(cmd))
+                for(const auto& line : runCommand(cmd))
                 {
                     vector<string> values = buildTokens(line, "/");
 
@@ -251,6 +252,17 @@ void look4NVMFtargetDevices(){
                     string nvmenamespace = values[9];
                     string nvmet_pseudoserial = subsysnqn;
                     vector<string> files = {"addr_trtype"};
+
+                    string deviceprefix = string("");
+                    if(config.get(process_whoami + ".writeport", 0) == stoi(port))
+                    {
+                        deviceprefix = string("W");
+                    }
+                    if(config.get(process_whoami + ".readport", 0) == stoi(port))
+                    {
+                        deviceprefix = string("R");
+                    }
+                    
                     for(unsigned int index = 0; index < files.size(); index++)
                     {
                         cmd = string("/sys/kernel/config/nvmet/ports/") + port + string("/") + files[index];
@@ -270,11 +282,12 @@ void look4NVMFtargetDevices(){
                             nvmet_pseudoserial = nvmet_pseudoserial + "," + line;
                         }
                     }
-                    LOG(bb,info) << "NVMe device " << device << " : port=" << port << "  subsystem=" << subsysnqn << "   namespace=" << nvmenamespace << "   pseudosn=" << nvmet_pseudoserial;
+                    LOG(bb,info) << "NVMe device " << device << " : port=" << port << "  subsystem=" << subsysnqn << "   namespace=" 
+                                 << nvmenamespace << "   pseudosn=" << nvmet_pseudoserial << "  prefix=" << deviceprefix;
 
-                    nvmeDeviceInfo[device]["pseudosn"] = nvmet_pseudoserial;
-                    SerialOrder.push_back(nvmeDeviceInfo[device]["pseudosn"]);
-                    DriveBySerial[nvmeDeviceInfo[device]["pseudosn"]] = device;
+                    nvmeDeviceInfo[deviceprefix + device]["pseudosn"] = nvmet_pseudoserial;
+                    SerialOrder.push_back(nvmeDeviceInfo[deviceprefix + device]["pseudosn"]);
+                    DriveBySerial[nvmeDeviceInfo[deviceprefix + device]["pseudosn"]] = deviceprefix + device;
                 }
             }
         }
@@ -473,8 +486,6 @@ int nvmfConnectPath(const string& serial, const string& connectionKey)
 
 string getDeviceBySerial(string serial)
 {
-    
-    
     pthread_mutex_lock(&findSerialMutex);
     try{
         if(DriveBySerial.find(serial) == DriveBySerial.end())
@@ -507,10 +518,17 @@ string getDeviceBySerial(string serial)
     }
 }
 
-string getSerialByDevice(string device)
+string getSerialByDevice(string device, bool writeToSSD)
 {
-    
-    
+    if(writeToSSD && (config.get(process_whoami + ".writeport", 0) != 0))
+    {
+        device = string("W") + device;
+    }
+    if((!writeToSSD) && (config.get(process_whoami + ".readport", 0) != 0))
+    {
+        device = string("R") + device;
+    }
+
     pthread_mutex_lock(&findSerialMutex);
     try{
         if(SerialByDrive.find(device) == SerialByDrive.end())
@@ -536,8 +554,6 @@ string getSerialByDevice(string device)
 
 vector<string> getDeviceSerials()
 {
-    
-    
     vector<string> lst;
     pthread_mutex_lock(&findSerialMutex);
     try{
@@ -558,8 +574,6 @@ vector<string> getDeviceSerials()
 
 int removeDeviceSerial(string serial)
 {
-     
-    
     pthread_mutex_lock(&findSerialMutex);
     try{
         DriveBySerial.erase(serial);
@@ -591,7 +605,6 @@ int removeDeviceSerial(string serial)
 
 string getNVMeByIndex(uint32_t index)
 {
-     
     pthread_mutex_lock(&findSerialMutex);
     try{
         if(nvme_devices.size() <= index)
@@ -617,8 +630,6 @@ string getNVMeByIndex(uint32_t index)
 
 string getNVMeDeviceInfo(string device, string key)
 {
-     
-    
     pthread_mutex_lock(&findSerialMutex);
     try{
         auto tmp = nvmeDeviceInfo[device][key];
@@ -635,9 +646,7 @@ string getNVMeDeviceInfo(string device, string key)
 
 extern string getRemoteAddrString(const std::string& pConnectionName);
 string getKeyByHostname(string hostname)
-{
-     
-    
+{    
     pthread_mutex_lock(&findSerialMutex);
     try
     {

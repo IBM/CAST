@@ -42,9 +42,11 @@
 			"numRequestThreads"           : 8,
 			"flightlog"                   : "/var/log/bbproxy@USERSUFFIX@",
 			"ssdusagepollrate"            : 60,
-			"use_export_layout"	      : true,
+			"use_export_layout"	          : true,
 			"lvreadahead"                 : 65536,
 			"ras_max_rss_size"            : 2097152,
+			"readport"                    : 0,
+			"writeport"                   : 2,
 			"log" :
 			{
 				"consoleLog"   : @USECONSOLE@,
