@@ -67,7 +67,6 @@ size_t  transferBufferSize   = 0;
 pthread_once_t startThreadsControl = PTHREAD_ONCE_INIT;
 
 string getDeviceBySerial(string serial);
-string getSerialByDevice(string device);
 string getNVMeByIndex(uint32_t index);
 
 FL_SetName(FLXfer, "Transfer Flightlog")

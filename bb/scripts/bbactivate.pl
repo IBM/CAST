@@ -541,8 +541,6 @@ sub configureNVMeTarget
         cmd("nvmetcli clear", 1);
     }
 
-    output("ipaddr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
-
     my $interfacename = $CFG{"interfacename"};
     my $ipaddr = safe_cmd("ip addr show dev $interfacename | grep \"inet \"");
     
@@ -566,9 +564,16 @@ sub configureNVMeTarget
         $json->{"hosts"}[1]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"backupcfg"});
         $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
     }
-    $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
+
+    foreach $port (@{$json->{"ports"}})
+    {
+        $port->{"addr"}{"traddr"} = $myip;
+    }
+
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
+
+    output("My IP addr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
 
     my $jsonoo = JSON->new->allow_nonref->canonical;
     my $out    = $jsonoo->pretty->encode($json);
@@ -581,10 +586,20 @@ sub configureNVMeTarget
 
     if($CFG{"useOffload"})                                                        # workaround
     {
-        cmd("rm -f $configfs/nvmet/ports/1/subsystems/$nqn");
+        foreach $port (@{$json->{"ports"}})
+        {
+            my $portid = $port->{"portid"};
+            cmd("rm -f $configfs/nvmet/ports/$portid/subsystems/$nqn");
+        }
+
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/attr_offload");
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
-        cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/1/subsystems/$nqn");
+
+        foreach $port (@{$json->{"ports"}})
+        {
+            my $portid = $port->{"portid"};
+            cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/$portid/subsystems/$nqn");
+        }
     }
     cmd("chmod o-rwx /sys/kernel/config/nvmet");  # ensure other users cannot read NVMet settings
 }

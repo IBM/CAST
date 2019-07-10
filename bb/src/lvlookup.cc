@@ -33,16 +33,16 @@ int LVLookup::build(const string& pVolumeGroup, const string& pLogicalVolumeName
 {
     setLVName(pVolumeGroup + string("-") + pLogicalVolumeName);
 
-    return getLVExtents(pVolumeGroup);
+    return getLVExtents(pVolumeGroup, false);
 }
 
 
-int LVLookup::build(const filehandle& fh, const string& vg)
+int LVLookup::build(const filehandle& fh, const string& vg, bool writeToSSD)
 {
     int rc = getLVName(fh);
     if (!rc)
     {
-        rc = getLVExtents(vg);
+        rc = getLVExtents(vg, writeToSSD);
     }
     return rc;
 }
@@ -159,7 +159,7 @@ int LVLookup::getData(uint64_t& pFirstByte, size_t& pSize)
     return rc;
 }
 
-int LVLookup::getLVExtents(const string& vg)
+int LVLookup::getLVExtents(const string& vg, bool writeToSSD)
 {
     string cmd = "lvs --noheadings --units b --nosuffix -o lv_name,seg_pe_ranges,seg_start_pe,vg_extent_size " + vg;
     FILE* f;
@@ -256,7 +256,7 @@ int LVLookup::getLVExtents(const string& vg)
 
                 try
                 {
-                    tmp.serial = getSerialByDevice(string("/dev/") + mydevice);
+                    tmp.serial = getSerialByDevice(string("/dev/") + mydevice, writeToSSD);
                 }
                 catch(runtime_error& e)
                 {
