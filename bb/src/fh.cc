@@ -843,7 +843,7 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
     LVLookup lookup;
     try
     {
-        rc = lookup.build(*this, vg);
+        rc = lookup.build(*this, vg, writing);
     }
     catch(exception& e)
     {

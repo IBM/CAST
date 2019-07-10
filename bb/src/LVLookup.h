@@ -36,7 +36,7 @@ class filehandle;
 
 // Implemented in serial.cc
 extern string getDeviceBySerial(string serial);
-extern string getSerialByDevice(string device);
+extern string getSerialByDevice(string device, bool writeToSSD);
 extern string getNVMeByIndex(uint32_t index);
 extern string getNVMeDeviceInfo(string device, string key);
 extern vector<string> getDeviceSerials();
@@ -58,7 +58,7 @@ class LVLookup
 
     int build(const string& pVolumeGroup, const string& pLogicalVolumeName);
 
-    int build(const filehandle& fileh, const string& vg);
+    int build(const filehandle& fileh, const string& vg, bool iswrite);
 
     /**
      \brief Return data pertinent to the logical volume
@@ -75,7 +75,7 @@ class LVLookup
      \param[in] vg Burst buffer volume group
      \return error indicator
      */
-    int getLVExtents(const string& vg);
+    int getLVExtents(const string& vg, bool iswrite);
 
     int translate(Extent& input, vector<Extent>& list);
 

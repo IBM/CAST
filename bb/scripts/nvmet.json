@@ -14,6 +14,20 @@
       "subsystems": [
         "burstbuffer"
       ]
+    },
+    {
+      "addr": {
+        "adrfam": "ipv4", 
+        "traddr": "127.0.0.1", 
+        "treq": "not specified", 
+        "trsvcid": "4421",
+        "trtype": "rdma"
+      }, 
+      "portid": 2,
+      "referrals": [], 
+      "subsystems": [
+        "burstbuffer"
+      ]
     }
   ], 
   "subsystems": [
