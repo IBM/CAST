@@ -1548,7 +1548,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
         // Sort the extents, moving the extents for the failed file, and all other files
         // for the transfer definition, to the front of the work queue so they are immediately removed...
         LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-        pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+        pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
     }
     else
     {

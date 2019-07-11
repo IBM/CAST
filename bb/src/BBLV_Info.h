@@ -73,7 +73,7 @@ class BBLV_Info
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
     int allContribsReported(const uint64_t pHandle, const BBTagID& pTagId);
     int allExtentsTransferred(const BBTagID& pTagId);
-    void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption=DO_NOT_REMOVE_TARGET_PFS_FILES);
+    void cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, uint32_t pNumberOfExpectedInFlight, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption=DO_NOT_REMOVE_TARGET_PFS_FILES);
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     void ensureStageOutEnded(const LVKey* pLVKey, LOCAL_METADATA_RELEASED& pLockWasReleased);
