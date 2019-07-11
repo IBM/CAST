@@ -48,18 +48,18 @@
 	      "message" : "The connection ended.",
 	      "description" : "The connection to the remote ended."
 	  },
-          "nonSSLconnectAttemptFailed" :
-          {
-              "severity" : "WARNING",
-              "message" : "The bbproxy connection attempt to bbserver failed.",
-              "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
-          },
-          "SSLconnectAttemptFailed" :
-          {
-              "severity" : "WARNING",
-              "message" : "The bbproxy connection attempt to bbserver failed.",
-              "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
-          },
+      "nonSSLconnectAttemptFailed" :
+      {
+          "severity" : "WARNING",
+          "message" : "The bbproxy connection attempt to bbserver failed.",
+          "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
+      },
+      "SSLconnectAttemptFailed" :
+      {
+          "severity" : "WARNING",
+          "message" : "The bbproxy connection attempt to bbserver failed.",
+          "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
+      },
 	  "revent" :
 	  {
 	      "severity" : "WARNING",
@@ -251,6 +251,12 @@
 	      "severity" : "WARNING",
 	      "message" : "Method get_xbbServerHandleInfo() had an exception in looking for handle.",
 	      "description" : "Method get_xbbServerHandleInfo() had caught an exception and determined that a handle could not be found."
+	  },
+	  "removeinflight" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Failed when attempting to remove an entry fron an in-flight work queue.",
+	      "description" : "Failed when attempting to remove an entry fron an in-flight work queue."
 	  },
 	  "xferkeys" :
 	  {
