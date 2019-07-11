@@ -3757,6 +3757,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                 LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Work item removal processing.";
                                 l_WorkId.dump("info", "Failure when processing work items to remove ");
                             }
+                            wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkId);
                         }
                     }
                 }
