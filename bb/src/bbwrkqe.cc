@@ -88,13 +88,14 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
     if (wrkq)
     {
         size_t l_NumberOfExtents = getWrkQ_Size();
-        // NOTE: We don't have the local metadata locked and can't get it because we must have the
-        //       work queue manager locked.  If we don't have any extents left on the work queue, we
-        //       cannot use l_LV_Info/l_ExtentInfo because those structures could go away at anytime.
-        //       If we have extents left on the work queue, the transfer queue lock protects us.
+        // NOTE: If we don't have any work items left on the work queue, we do not have an 'easy'
+        //       way to obtain l_LV_Info/l_ExtentInfo because we don't currently have the local
+        //       metadata lock and can't obtain it because we must hold the work queue manager lock.
         //
         //       This is unfortunate, as we could have inflight entries without any entries left on
-        //       the work queue and we won't display that information via this dump.
+        //       the work queue and we won't directly display that information via this dump.
+        //       However, in this case, if you compare the number of work items to the number of
+        //       work items processed, you should be able to infer the number of inflight work items.
         if ((this != HPWrkQE) && l_NumberOfExtents)
         {
             l_LV_Info = getLV_Info();
