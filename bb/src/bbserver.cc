@@ -360,7 +360,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
                             LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
+                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, 0, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -1712,7 +1712,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
                 // Ensure that this bbServer should still process this transfer definition.
                 // Restart/failover activity could have switched the processing of this
-                // transfer defintion to another bbServer.
+                // transfer definition to another bbServer.
                 string l_ServerHostName;
                 activecontroller->gethostname(l_ServerHostName);
                 string l_ServicedByHostname = ContribIdFile::isServicedBy(l_Job, l_Handle, l_ContribId);

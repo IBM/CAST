@@ -75,7 +75,7 @@ int BBLV_Info::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption)
+void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, uint32_t pNumberOfExpectedInFlight, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
@@ -106,7 +106,7 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
             uint32_t i = 0;
             int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
             int l_DelayMsgLogged = 0;
-            while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), 0, l_DumpOption))
+            while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), pNumberOfExpectedInFlight, l_DumpOption))
             {
                 unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
                 {
@@ -927,7 +927,7 @@ void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(pLVKey, &pHandle, &l_ContribId, pLockWasReleased, pRemoveOption);
+        cancelExtents(pLVKey, &pHandle, &l_ContribId, 0, pLockWasReleased, pRemoveOption);
     }
 
     return;
@@ -967,7 +967,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
                 //
                 // Sort the extents, moving the canceled extents to the front of
                 // the work queue so they are immediately removed...
-                cancelExtents(pLVKey, &pHandle, &pContribId, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+                cancelExtents(pLVKey, &pHandle, &pContribId, 0, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
             }
         }
         else
