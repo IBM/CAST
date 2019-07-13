@@ -1545,10 +1545,20 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
         // Mark the transfer definition failed
         pTransferDef->setFailed(pLVKey, pHandle, pContribId);
 
-        // Sort the extents, moving the extents for the failed file, and all other files
-        // for the transfer definition, to the front of the work queue so they are immediately removed...
-        LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-        pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+        if (!(pLV_Info->stageOutEnded()))
+        {
+            // Stageout ended has not yet started for this LVKey...
+            // NOTE: If 'Stageout ended' has been started for this LVKey,
+            //       stageoutEnd() processing is already invoking transferExtent()
+            //       for each of the remaining extents to clean them up and there is
+            //       no need to sort and further process the extents to get them off
+            //       the work queue.
+            //
+            // Sort the extents, moving the extents for the failed file, and all other files
+            // for the transfer definition, to the front of the work queue so they are immediately removed...
+            LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
+            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+        }
     }
     else
     {
