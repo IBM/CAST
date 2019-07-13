@@ -1540,21 +1540,31 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
 
-    if (pTransferDef && pLV_Info)
+    if (pTransferDef)
     {
         // Mark the transfer definition failed
         pTransferDef->setFailed(pLVKey, pHandle, pContribId);
 
-        // Sort the extents, moving the extents for the failed file, and all other files
-        // for the transfer definition, to the front of the work queue so they are immediately removed...
-        LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-        pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+        if (pLV_Info && (!(pLV_Info->stageOutEnded())))
+        {
+            // Stageout ended has not yet started for this LVKey...
+            // NOTE: If 'Stageout ended' has been started for this LVKey,
+            //       stageoutEnd() processing is already invoking transferExtent()
+            //       for each of the remaining extents to clean them up and there is
+            //       no need to sort and further process the extents to get them off
+            //       the work queue.
+            //
+            // Sort the extents, moving the extents for the failed file, and all other files
+            // for the transfer definition, to the front of the work queue so they are immediately removed...
+            LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
+            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+        }
     }
     else
     {
-        LOG(bb,error) << "Could not mark the handle as failed at (3) for " << *pLVKey \
+        LOG(bb,error) << "Could not mark the transfer definition as failed at for " << *pLVKey \
                       << ", handle " << pHandle << ", contribid " << pContribId \
-                      << " because the pointer to the transfer definition or LV info was passed as NULL.";
+                      << " because the pointer to the transfer definition was passed as NULL.";
     }
 
     if (l_LocalMetadataLocked)
@@ -3757,6 +3767,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                 LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Work item removal processing.";
                                 l_WorkId.dump("info", "Failure when processing work items to remove ");
                             }
+                            wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkId);
                         }
                     }
                 }

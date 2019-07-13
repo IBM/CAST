@@ -75,7 +75,7 @@ int BBLV_Info::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption)
+void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, uint32_t pNumberOfExpectedInFlight, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
@@ -106,7 +106,7 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
             uint32_t i = 0;
             int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
             int l_DelayMsgLogged = 0;
-            while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), 0, l_DumpOption))
+            while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), pNumberOfExpectedInFlight, l_DumpOption))
             {
                 unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
                 {
@@ -225,21 +225,20 @@ void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, LOCAL_METADATA_RELEASED
     }
     else
     {
-        uint32_t i = 0;
-        while (!stageOutEndedComplete())
+        if (!stageOutEndedComplete())
         {
+            // NOTE: Once we let go of the lock, we have to return and re-iterate
+            //       through the map of local metadata
+            FL_Write(FLDelay, StageOutEnd, "Waiting for stageout end processing to complete for jobid %ld.",
+                     jobid, 0, 0, 0);
+            LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey << ", jobid " << jobid;
+            pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
+
             unlockLocalMetadata(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
             {
-                pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
-                if (!(i++ % 30))
-                {
-                    FL_Write(FLDelay, StageOutEnd, "Waiting for stageout end processing to complete for jobid %ld.",
-                             (uint64_t)jobid, 0, 0, 0);
-                    LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey << ", jobid " << jobid;
-                }
-                usleep((useconds_t)2000000);
-           }
-           lockLocalMetadata(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
+                usleep((useconds_t)3000000);
+            }
+            lockLocalMetadata(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
         }
     }
 
@@ -928,7 +927,7 @@ void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(pLVKey, &pHandle, &l_ContribId, pLockWasReleased, pRemoveOption);
+        cancelExtents(pLVKey, &pHandle, &l_ContribId, 0, pLockWasReleased, pRemoveOption);
     }
 
     return;
@@ -968,7 +967,7 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
                 //
                 // Sort the extents, moving the canceled extents to the front of
                 // the work queue so they are immediately removed...
-                cancelExtents(pLVKey, &pHandle, &pContribId, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+                cancelExtents(pLVKey, &pHandle, &pContribId, 0, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
             }
         }
         else

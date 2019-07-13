@@ -625,7 +625,7 @@ void BBLV_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExten
         }
         inflight.erase(l_Key);
 
-        FL_Write6(FLWrkQMgr, RmvInFlight, "Jobid %ld, handle %ld, contribid %ld, source index %ld, extent %p, in-flight depth %ld.",
+        FL_Write6(FLWrkQMgr, RmvInFlight, "Jobid %ld, handle %ld, contribid %ld, source index %ld, extent %p, current in-flight depth %ld.",
                   pExtentInfo.getTransferDef()->getJobId(), pExtentInfo.getHandle(), (uint64_t)pExtentInfo.getContrib(),
                   (uint64_t)pExtentInfo.getSourceIndex(), (uint64_t)pExtentInfo.getExtent(), (uint64_t)inflight.size());
 
@@ -634,6 +634,16 @@ void BBLV_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExten
                        << setfill(' ') << nouppercase << dec \
                        << ", handle: " << pExtentInfo.getHandle() << ", contribid: " << pExtentInfo.getContrib() \
                        << ", srcidx: " << pExtentInfo.getSourceIndex() << ", " << inflight.size() << " extent(s) inflight";
+    }
+    else
+    {
+        // Should never be the case...
+        stringstream errorText;
+        errorText << "removeFromInFlight(): Failed when attempting to remove in-flight entry for jobid " << pExtentInfo.getTransferDef()->getJobId() \
+                  << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib() << ", source index " << pExtentInfo.getSourceIndex() \
+                  << ", extent 0x" << pExtentInfo.getExtent() << ", current in-flight depth " << (uint64_t)inflight.size();
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.removeinflight);
+//        abort();
     }
 
 //    dumpInFlight("info");
