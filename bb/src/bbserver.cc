@@ -1724,8 +1724,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                     rc = -1;
                     errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
                               << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently being serviced by " \
-                              << l_ServicedByHostname << ". This bbServer cannot service this transfer definition." \
-                              << " The servicing bbServer changed when this transfer definition was restarted.";
+                              << l_ServicedByHostname << ". This bbServer cannot service this transfer definition.";
                     LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
 
