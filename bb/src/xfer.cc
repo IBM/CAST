@@ -1540,12 +1540,12 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
 
-    if (pTransferDef && pLV_Info)
+    if (pTransferDef)
     {
         // Mark the transfer definition failed
         pTransferDef->setFailed(pLVKey, pHandle, pContribId);
 
-        if (!(pLV_Info->stageOutEnded()))
+        if (pLV_Info && (!(pLV_Info->stageOutEnded())))
         {
             // Stageout ended has not yet started for this LVKey...
             // NOTE: If 'Stageout ended' has been started for this LVKey,
@@ -1562,9 +1562,9 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
     }
     else
     {
-        LOG(bb,error) << "Could not mark the handle as failed at (3) for " << *pLVKey \
+        LOG(bb,error) << "Could not mark the transfer definition as failed at for " << *pLVKey \
                       << ", handle " << pHandle << ", contribid " << pContribId \
-                      << " because the pointer to the transfer definition or LV info was passed as NULL.";
+                      << " because the pointer to the transfer definition was passed as NULL.";
     }
 
     if (l_LocalMetadataLocked)
