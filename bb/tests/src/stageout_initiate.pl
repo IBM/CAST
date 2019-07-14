@@ -17,6 +17,6 @@ use lib '/opt/ibm/bb/scripts';
 use bbtools;
 
 print "copy\n";
-bbcmd("$TARGET_ALL copy --tag=1 --contrib=$BBALL --filelist=$ENV{STAGEOUT_FILELIST}");
+bbcmd("$TARGET_ALL_NOBCAST copy --tag=1 --contrib=$BBALL --filelist=$ENV{STAGEOUT_FILELIST}");
 
 print "exit\n";
