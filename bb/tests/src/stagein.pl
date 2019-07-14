@@ -21,7 +21,7 @@ $myprefix = "STAGEIN";
 if(exists $ENV{$myprefix . "_FILELIST"})
 {
     $tdef = $ENV{$myprefix . "_FILELIST"};
-    bbcmd("$TARGET_ALL copy --tag=1 --contrib=$BBALL --filelist=$tdef");
+    bbcmd("$TARGET_ALL_NOBCAST copy --tag=1 --contrib=$BBALL --filelist=$tdef");
 }
 
 if(exists $ENV{$myprefix . "_DONE"})

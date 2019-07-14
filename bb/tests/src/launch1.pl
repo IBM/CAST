@@ -23,6 +23,6 @@ print "md5sum\n";
 system("jsrun -r 1 -h $ENV{BBPATH} /u/tgooding/bluecoral/bb/tests/src/md5sum_cwd.sh > $ENV{STAGEOUT_MD5SUM}");
 
 print "copy\n";
-bbcmd("$TARGET_ALL copy --tag=1 --contrib=$BBALL --filelist=$ENV{STAGEOUT_FILELIST}");
+bbcmd("$TARGET_ALL_NOBCAST copy --tag=1 --contrib=$BBALL --filelist=$ENV{STAGEOUT_FILELIST}");
 
 print "exit\n";
