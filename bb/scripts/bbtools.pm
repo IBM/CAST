@@ -208,6 +208,7 @@ if($controller !~ /csm/i)
 }
 $::TARGET_NODE0 = "--jobstepid=1$hl --target=0";
 $::TARGET_ALL   = "--jobstepid=1$hl --target=0- --bcast";
+$::TARGET_ALL_NOBCAST   = "--jobstepid=1$hl --target=0-";
 $::TARGET_QUERY = "--jobstepid=0$hl --target=0";
 
 if(exists $ENV{"BSCFS_MNT_PATH"})
