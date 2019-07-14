@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     size_t filesize = strtoul(argv[3], NULL, 10);
 
     BBTransferInfo_t info;
-    time_t start, stop;
+    double start, stop;
     int dogenerate = 1;
 
     MPI_Init(&argc, &argv);
@@ -143,29 +143,29 @@ int main(int argc, char** argv)
 
     printf("Obtaining transfer handle\n");
     MPI_Barrier(MPI_COMM_WORLD);
-    start = time(NULL);
+    start = MPI_Wtime();
     rc = BB_GetTransferHandle(getpid(), 1, &contriblist, &thandle); /* \todo tag generation uses getpid() - need something better */
     check(rc);
     MPI_Barrier(MPI_COMM_WORLD);
-    stop = time(NULL);
+    stop = MPI_Wtime();
     if(rank == 0)
     {
-        printf("PERF(%d,%s,%ld x %d):  BB_GetTransferHandle took %ld seconds\n", dir, pfspath, filesize, size, stop-start);
+        printf("PERF(%d,%s,%ld x %d):  BB_GetTransferHandle took %g seconds\n", dir, pfspath, filesize, size, stop-start);
     }
 
     printf("Starting transfer\n");
-    start = time(NULL);
+    start = MPI_Wtime();
     rc = BB_StartTransfer(tdef, thandle);
     check(rc);
     MPI_Barrier(MPI_COMM_WORLD);
-    stop = time(NULL);
+    stop = MPI_Wtime();
     if(rank == 0)
     {
-        printf("PERF(%d,%s,%ld x %d):  BB_StartTransfer took %ld seconds\n", dir, pfspath, filesize, size, stop-start);
+        printf("PERF(%d,%s,%ld x %d):  BB_StartTransfer took %g seconds\n", dir, pfspath, filesize, size, stop-start);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
-    start = time(NULL);
+    start = MPI_Wtime();
     do
     {
         rc = BB_GetTransferInfo(thandle, &info);
@@ -179,10 +179,10 @@ int main(int argc, char** argv)
     
     MPI_Barrier(MPI_COMM_WORLD);
 
-    stop = time(NULL);
+    stop = MPI_Wtime();
     if(rank == 0)
     {
-        printf("PERF(%d,%s,%ld x %d):  Transfer took %ld seconds (%g MiBps)\n", dir, pfspath, filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
+        printf("PERF(%d,%s,%ld x %d):  Transfer took %g seconds (%g MiBps)\n", dir, pfspath, filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
     }
 
     printf("Terminating BB library\n");
