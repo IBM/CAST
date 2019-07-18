@@ -86,6 +86,10 @@ extern AtomicCounter metadataCounter;
 void setSsdWriteDirect(unsigned int pValue);
 #endif
 
+#if BBPROXY | BBSERVER
+extern uint64_t g_TimeBaseScale;
+#endif
+
 /*******************************************************************************
  | External methods
  *******************************************************************************/

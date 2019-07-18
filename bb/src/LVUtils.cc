@@ -2025,6 +2025,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
         {
             pStats.push_back(0);
             transfer->sizeTransferred.push_back(0);
+            transfer->readOperations.push_back(make_pair(0,0));
+            transfer->writeOperations.push_back(make_pair(0,0));
         }
     }
 
@@ -2372,7 +2374,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     case BBFILE_SUCCESS:
                                         e.len = srcfile_ptr->getsize();
                                         LOG(bb,info) << "Local copy complete for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                        << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len;
+                                        << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len << " bytes";
                                         break;
 
                                     case BBFILE_FAILED:

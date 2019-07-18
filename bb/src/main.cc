@@ -85,6 +85,46 @@ int signalPipe[2];
     SETSIGNAL(SIGILL);     \
     SETSIGNAL(SIGABRT);
 
+#if BBPROXY | BBSERVER
+uint64_t g_TimeBaseScale;
+
+uint64_t determineTimeBaseScale()
+{
+	uint64_t timebaseScale = 1;
+
+#ifdef __linux__
+	FILE* f;
+	char* ptr;
+	char line[256];
+	f = fopen("/proc/cpuinfo", "r");
+	while(!feof(f))
+	{
+	    char* str = fgets(line, sizeof(line), f);
+	    if(str == NULL)
+  	        break;
+
+	    if((ptr = strstr(line, "cpu MHz")) != 0)  // x86
+	    {
+		    ptr = strchr(ptr, ':');
+		    ptr += 2;
+		    sscanf(ptr, "%ld", &timebaseScale);
+		    timebaseScale *= 1000000;
+	    }
+	    if((ptr = strstr(line, "timebase")) != 0) // powerpc
+	    {
+		    ptr = strchr(ptr, ':');
+		    ptr += 2;
+		    sscanf(ptr, "%ld", &timebaseScale);
+	    }
+	}
+	fclose(f);
+#endif
+
+    return timebaseScale;
+}
+
+#endif
+
 void flightlog_Backtrace(uint64_t key)
 {
     int x;
@@ -155,10 +195,10 @@ void* mainThread(void* ptr)
 #endif
     try
     {
-        #define SETRASIDS 1 
+        #define SETRASIDS 1
         #include "bbras.h"
         #undef SETRASIDS
-        
+
         if (getuid())
         {
 
@@ -367,6 +407,10 @@ int main(int argc, char** argv)
     sigaddset(&sigmask, SIGILL);
     sigaddset(&sigmask, SIGABRT);
     pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+
+#if BBPROXY | BBSERVER
+    g_TimeBaseScale = determineTimeBaseScale();
+#endif
 
     // Keep main thread from exiting and tearing down the process
     sem_wait(&block_until_exit_request);
