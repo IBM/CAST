@@ -55,8 +55,8 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
                         SET_FLAG_VAR(l_NewFlags, l_Flags, pFlags, pValue);
                         if (l_Flags != l_NewFlags)
                         {
-                            LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << handle.path().filename() << ":";
-                            LOG(bb,info) << "           LVUuid flags changing from 0x" << hex << uppercase << setfill('0') << l_Flags << " to 0x" << l_NewFlags <<nouppercase << dec << ".";
+                            LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << handle.path().filename() << ":";
+                            LOG(bb,debug) << "           LVUuid flags changing from 0x" << hex << uppercase << setfill('0') << l_Flags << " to 0x" << l_NewFlags <<nouppercase << dec << ".";
                         }
                         l_LVUuidFile.flags = l_NewFlags;
 
