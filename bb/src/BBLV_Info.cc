@@ -622,8 +622,12 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
 
-    LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId << ":";
-    LOG(bb,info) << "           " << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr;
+    // Calculate the total processing time for this transfer definition
+    pTransferDef->calcProcessingTime(pTransferDef->processingTime);
+
+    LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId << ", " \
+                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr \
+                 << ", total processing time " << (double)pTransferDef->processingTime/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.
@@ -632,6 +636,7 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     l_Complete->addAttribute(txp::handle, pHandle);
     l_Complete->addAttribute(txp::contribid, pContribId);
     l_Complete->addAttribute(txp::status, (int64_t)l_Status);
+    l_Complete->addAttribute(txp::totalProcessingTime, pTransferDef->processingTime);
 
     //    std::string pConnectionName=getConnectionName(pConnection); // $$$mea
     try{
@@ -758,7 +763,7 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
                  << pTransferDef->readOperations[pExtentInfo.getSourceIndex()].first << "/" \
                  << (double)pTransferDef->readOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale \
                  << " seconds, write count/cumulative time " << pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].first << "/" \
-                 << (double)pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale << " seconds.";
+                 << (double)pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.
@@ -863,8 +868,8 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
         char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
         lv_uuid.copyTo(lv_uuid_str);
 
-        LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for handle " << pHandle << ":";
-        LOG(bb,info) << "           " << *pLVKey << ", status " << l_StatusStr;
+        LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for handle " << pHandle \
+                     << ", " << *pLVKey << ", status " << l_StatusStr;
 
         // NOTE:  The char array is copied to heap by addAttribute and the storage for
         //        the logical volume uuid attribute is owned by the message facility.

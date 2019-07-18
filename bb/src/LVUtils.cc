@@ -2351,8 +2351,11 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             {
                                 BBFILESTATUS l_FileStatus = BBFILE_SUCCESS;
 
+                                uint64_t l_Time;
+                                BB_GetTime(l_Time);
                                 bs::error_code err;
                                 bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), bfs::copy_option::overwrite_if_exists, err);
+                                BB_GetTimeDifference(l_Time);
                                 if (err.value())
                                 {
                                     l_FileStatus = BBFILE_FAILED;
@@ -2374,7 +2377,8 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     case BBFILE_SUCCESS:
                                         e.len = srcfile_ptr->getsize();
                                         LOG(bb,info) << "Local copy complete for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                        << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len << " bytes";
+                                        << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len << " bytes" \
+                                        << ", copy time " << (double)l_Time/(double)g_TimeBaseScale << " seconds";;
                                         break;
 
                                     case BBFILE_FAILED:

@@ -528,6 +528,36 @@ inline int check_match_status(const char* pMatchStatus) {
     return rc;
 }
 
+#ifdef __powerpc64__
+#define  SPRN_TBRO                (0x10C)          // Time Base 64-bit, User Read-only
+#endif
+
+inline void BB_GetTime(uint64_t& pTime)
+{
+
+#ifdef __powerpc64__
+    asm ("mfspr %0,%1;"
+         : "=&r" (pTime) : "i" (SPRN_TBRO));
+#elif __x86_64__
+    unsigned hi, lo;
+    __asm__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    pTime = ((uint64_t)hi << 32ull) | lo;
+#else
+#error not supported
+#endif
+
+    return;
+}
+
+inline void BB_GetTimeDifference(uint64_t& pTime)
+{
+    uint64_t l_EndTime;
+    BB_GetTime(l_EndTime);
+
+    pTime = l_EndTime - pTime;
+
+    return;
+}
 
 /*******************************************************************************
  | External helper methods
@@ -535,5 +565,7 @@ inline int check_match_status(const char* pMatchStatus) {
 extern BBSTATUS getBBStatusFromStr(const char* pStatusStr);
 extern void getStrFromBBStatus(BBSTATUS pValue, char* pBuffer, const size_t pSize);
 extern void getStrFromTransferType(const uint64_t pFlags, char* pBuffer, const size_t pSize);
+extern void BB_GetTime(uint64_t& pTime);
+extern void BB_GetTimeDifference(uint64_t& pTime);
 
 #endif /* BB_BBINERNAL_H_ */

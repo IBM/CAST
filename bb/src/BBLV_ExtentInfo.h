@@ -44,12 +44,14 @@ class BBLV_ExtentInfo
     BBLV_ExtentInfo() :
         flags(0) {
 //        allExtents.reserve(4096);
+        BB_GetTime(processingTime);
     }
 
     BBLV_ExtentInfo(const BBLV_ExtentInfo& src) {
         flags = src.flags;
         allExtents = src.allExtents;
         inflight = src.inflight;
+        BB_GetTime(processingTime);
     }
 
     // Compare operators for sorting extents
@@ -130,6 +132,12 @@ class BBLV_ExtentInfo
         RETURN_FLAG(BBTD_BSCFS_In_Request);
     }
 
+    inline void calcProcessingTime(uint64_t& pTime) {
+        BB_GetTimeDifference(pTime);
+
+        return;
+    }
+
     inline size_t getNumberOfExtents() const {
         return allExtents.size();
     }
@@ -196,10 +204,11 @@ class BBLV_ExtentInfo
                                                     ///< ExtentInfo in the original BBTransferDef is
                                                     ///< removed once a thread has dequeued the work
                                                     ///< entry to perform the copy.
-    Extent minTrimAnchorExtent;                     ///< Extent that we can trim the LV back to during
+    Extent              minTrimAnchorExtent;        ///< Extent that we can trim the LV back to during
                                                     ///< stage out.  Note, that the inflight extents
                                                     ///< must be taken into account when using this
                                                     ///< value (extent) to report status back to bbproxy.
+    uint64_t            processingTime;             ///< Processing time from creation to final status for LVKey
     map<InFlightKey, ExtentInfo> inflight;          ///< Map of in-flight extents
 };
 

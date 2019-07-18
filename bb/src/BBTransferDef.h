@@ -130,40 +130,6 @@ const uint32_t ARCHIVE_TRANSFERDEF_VERSION = 1;
 typedef std::pair<uint64_t, uint64_t> IO_Stats;     // First is the count; second is accumulated time
 
 /*******************************************************************************
- | Helper routines
- *******************************************************************************/
-#ifdef __powerpc64__
-#define  SPRN_TBRO                (0x10C)          // Time Base 64-bit, User Read-only
-#endif
-
-inline void getTime(uint64_t& pTime)
-{
-
-#ifdef __powerpc64__
-    asm ("mfspr %0,%1;"
-         : "=&r" (pTime) : "i" (SPRN_TBRO));
-#elif __x86_64__
-    unsigned hi, lo;
-    __asm__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    pTime = ((uint64_t)hi << 32ull) | lo;
-#else
-#error not supported
-#endif
-
-    return;
-}
-
-inline void getTimeDifference(uint64_t& pTime)
-{
-    uint64_t l_EndTime;
-    getTime(l_EndTime);
-
-    pTime = l_EndTime - pTime;
-
-    return;
-}
-
-/*******************************************************************************
  | Classes
  *******************************************************************************/
 
@@ -318,6 +284,7 @@ class BBTransferDef
         pArchive & sizeTransferred;
         pArchive & readOperations;
         pArchive & writeOperations;
+        pArchive & processingTime;
 
         return;
     }
@@ -342,6 +309,7 @@ class BBTransferDef
             sizeTransferred = vector<size_t>();
             readOperations = vector<IO_Stats>();
             writeOperations = vector<IO_Stats>();
+            BB_GetTime(processingTime);
         }
 
     BBTransferDef(const BBTransferDef& src) :
@@ -363,6 +331,7 @@ class BBTransferDef
         sizeTransferred = src.sizeTransferred;
         readOperations = src.readOperations;
         writeOperations = src.writeOperations;
+        BB_GetTime(processingTime);
     }
 
     ~BBTransferDef();
@@ -441,6 +410,12 @@ class BBTransferDef
 
     inline int builtViaRetrieveTransferDefinition() {
         RETURN_FLAG(BBTD_Built_Via_Retrieve_Transfer_Definition);
+    }
+
+    inline void calcProcessingTime(uint64_t& pTime) {
+        BB_GetTimeDifference(pTime);
+
+        return;
     }
 
     inline int canceled() {
@@ -550,26 +525,26 @@ class BBTransferDef
     }
 
     inline void preProcessRead(uint64_t& pTime) {
-        getTime(pTime);
+        BB_GetTime(pTime);
 
         return;
     }
 
     inline void preProcessWrite(uint64_t& pTime) {
-        getTime(pTime);
+        BB_GetTime(pTime);
 
         return;
     }
 
     inline void postProcessRead(const uint64_t pSourceIndex, uint64_t& pTime) {
-        getTimeDifference(pTime);
+        BB_GetTimeDifference(pTime);
         incrementReadTime(pSourceIndex, pTime);
 
         return;
     }
 
     inline void postProcessWrite(const uint64_t pSourceIndex, uint64_t& pTime) {
-        getTimeDifference(pTime);
+        BB_GetTimeDifference(pTime);
         incrementWriteTime(pSourceIndex, pTime);
 
         return;
@@ -683,6 +658,7 @@ class BBTransferDef
                                                 ///< Only maintained on bbServer, in real time for source file indices.
     vector<IO_Stats>        writeOperations;    ///< Vector of write operation data.
                                                 ///< Only maintained on bbServer, in real time for source file indices.
+    uint64_t                processingTime;     ///< Processing time from creation to final status
 #if BBAPI
     map<string,string>      tgt_src_whole_file; ///< for whole copy of target to source, watch for unique source
     int checkOneCPSourceToDest(const std::string& src, const std::string& tgt){
