@@ -22,4 +22,8 @@ if needed.
 
 Drain will move any bbProxy that is currently using the specified 'server' to switch away onto its backup (or return to primary, if backup is already active)
 
+=item B<-v>
+
+Enables verbose output
+
 =back

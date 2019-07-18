@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_daemon_network_manager.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -158,7 +158,9 @@ void NetworkManagerMain( csm::daemon::EventManagerNetwork *aMgr )
     {
       // if we were idle during jitter window open, then just wait for interrupt (jitter window closing)
       // and let the beginning of the next loop go to wait for green light condition (next jitter window open)
-      retry->AgainOrWait( aMgr->GetRunMode() == csm::daemon::RUN_MODE::READY_RUNNING_JOB );
+      try { retry->AgainOrWait( aMgr->GetRunMode() == csm::daemon::RUN_MODE::READY_RUNNING_JOB ); }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); break; }
+
       if( ! aMgr->GetThreadKeepRunning() )
         break;
     }

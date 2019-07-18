@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_ctrl_cmd.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -62,7 +62,10 @@ int client_test(const CtrlCmdOption& i_option)
   else
   {
     std::cout << "\n\n### RESPONSE FROM THE LOCAL DAEMON ###\n";
-    std::cout << std::string(recvData, recvDataLen);
+    if( recvData )
+      std::cout << std::string(recvData, recvDataLen);
+    else
+      std::cout << "Error response could not be determined";
     std::cout << "#######################################\n";
     if (recvData) free(recvData);
 

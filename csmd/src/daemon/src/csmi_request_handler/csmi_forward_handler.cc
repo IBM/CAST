@@ -2,7 +2,7 @@
    
     csmd/src/daemon/src/csmi_request_handler/csmi_forward_handler.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -75,6 +75,12 @@ void CSMI_FORWARD_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std::v
             << csmi_cmds_to_str( msg.GetCommandType() );
         unsigned buflen = 0;
         char *buf = csmi_err_pack(CSMERR_SENDRCV_ERROR, "Invalid message received", &buflen);
+
+        if( buf == nullptr )
+        {
+          LOG( csmd, warning ) << "CSMI_FORWARD_HANDLER: failed to pack error msg. Dropping msg. Will cause timeouts.";
+          return;
+        }
 
         // now get the message in the original request
         msg = GetNetworkMessage(*(ctx->GetReqEvent()));

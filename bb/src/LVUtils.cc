@@ -53,6 +53,7 @@ namespace bs  = boost::system;
 #include "logging.h"
 #include "LVExtent.h"
 #include "LVLookup.h"
+#include "LVUtils.h"
 #include "Msg.h"
 #include "usage.h"
 #include "nodecontroller.h"
@@ -269,11 +270,37 @@ int doInitializeFileSystem(const char* pVolumeGroupName, const char* pDevName, c
                     }
                 }
 
+                if (config.get(process_whoami+".genUuidOnCreateLogicalVolume", DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME))
+                {
+                    // Now, generate a Uuid and assign it to the device for the logical volume.
+                    // NOTE: We assign a Uuid so that we can verify that it is properly set in the
+                    //       linux metadata (i.e., /dev/disk/by-uuid) before returning to the user.
+                    // NOTE: If we don't generate our own Uuid, one is assigned by mkfs.xfs above.
+                    //       However, we have experienced that this assignment is asynchronous to
+                    //       our completion of the create logical volume command.  Whereas, if we
+                    //       assign our own, we don't return to the user until the linux metadata
+                    //       reflects that known Uuid assignment.
+                    string l_UuidStr;
+                    snprintf(l_Cmd, sizeof(l_Cmd), "uuidgen --random");
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                        l_UuidStr = l_Line;
+                        break;
+                    }
+
+                    snprintf(l_Cmd, sizeof(l_Cmd), "xfs_admin -U %s %s", l_UuidStr.c_str(), l_DevName);
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                    }
+                }
+
                 if (l_DevName) {
                     delete[] l_DevName;
                 }
             }
-                break;
+            break;
 
             case BBEXT4:
             {
@@ -283,27 +310,54 @@ int doInitializeFileSystem(const char* pVolumeGroupName, const char* pDevName, c
                 char l_Cmd[1024] = {'\0'};
                 snprintf(l_Cmd, sizeof(l_Cmd), "mkfs.ext4 -F %s 2>&1;", l_DevName);
 
-                for (auto& l_Line : runCommand(l_Cmd)) {
+                for (auto& l_Line : runCommand(l_Cmd))
+                {
                     vector<std::string> l_Error = {ERROR_PREFIX};
-                    if (!fuzzyMatch(l_Line, l_Error)) {
+                    if (!fuzzyMatch(l_Line, l_Error))
+                    {
                         LOG(bb,info) << l_Line;
 
                         // This output indicates success...
                         vector<std::string> l_Output = {"Writing superblocks and filesystem accounting information:", "done"};
-                        if (fuzzyMatch(l_Line, l_Output)) {
+                        if (fuzzyMatch(l_Line, l_Output))
+                        {
                             rc = 0;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         LOG(bb,error) << l_Line;
                         break;
                     }
                 }
+#if 0
+                // See above...  Not sure we need to assign Uuid for EXT4
+                if (config.get(process_whoami+".genUuidOnCreateLogicalVolume", DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME))
+                {
+                    Uuid l_Uuid;
+                    string l_UuidStr;
+                    snprintf(l_Cmd, sizeof(l_Cmd), "uuidgen --random");
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                        l_UuidStr = l_Line;
+                        l_Uuid.copyFrom(l_UuidStr.c_str());
+                        break;
+                    }
 
-                if (l_DevName) {
+                    snprintf(l_Cmd, sizeof(l_Cmd), "tune2fs -U %s %s", l_UuidStr.c_str(), l_DevName);
+                    for (auto& l_Line : runCommand(l_Cmd))
+                    {
+                        LOG(bb,info) << l_Line;
+                    }
+                }
+#endif
+                if (l_DevName)
+                {
                     delete[] l_DevName;
                 }
             }
-                break;
+            break;
 
             case BBFSCUSTOM1:
             case BBFSCUSTOM2:
@@ -410,11 +464,13 @@ int doRemoveLogicalVolume(const char* pVolumeGroupName, const char* pDevName) {
 
     // NOTE: If the logical volume is not removed (i.e., rc is not set to zero below), we delay
     //       for 3 seconds and retry.  For this error, we will attempt the remove operation
-    //       for 1 minute before we return.
+    //       for 18 seconds before we return.  However, in the normal runtime path attempting to remove
+    //       a given logical volume, this routine can be invoked up to 10 times.  That amounts to a
+    //       total of 180 seconds, or 3 minutes spent attempting to remove the logical volume.
     //  NOTE: Cannot search for "Failed to find logical volume" as the output is preceded by null characters
     //        and runCommand will not return those output strings.  In that case, rc is set to -2 as
     //        not being able to remove a logical volume, for any reason, may be tolerable by our invoker.
-    int l_Continue = 20;
+    int l_Continue = 6;
     while (l_Continue--)
     {
         for (auto& l_Line : runCommand(l_Cmd))
@@ -610,6 +666,7 @@ int doResizeLogicalVolume(const char* pVolumeGroupName, const char* pDevName, co
 
 int lsofRunCmd( const char* pDirectory)
 {
+
     ENTRY(__FILE__,__FUNCTION__);
     int rc = 0;
 
@@ -622,19 +679,41 @@ int lsofRunCmd( const char* pDirectory)
     return rc;
 }
 
-int doUnmount(const char* pDevName, const char* pMountPoint) {
+int doUnmount(const char* pDevName, const char* pMountPoint, const UMOUNT_ERROR_OPTION pErrorOption) {
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = umount(pMountPoint);
-    if (rc) {
-        stringstream errorText;
-        errorText<<"umount of mountpoint="<<pMountPoint<<" had errno="<<errno<<"("<<strerror(errno)<<")";
-        bberror << err("error.pathname", pMountPoint);
-        if (errno==EBUSY){
-            lsofRunCmd(pMountPoint);
+    if (rc)
+    {
+        if (pErrorOption == NO_ERROR_REPORTING)
+        {
+            // NOTE: Perform no error reporting.  This operation will be
+            //       reattempted by our invoker.
+            // NOTE: Only for EINVAL do we want to return a rc of zero.
+            //       Otherwise, return the rc from umount().
+            if (errno == EINVAL)
+            {
+                // NOTE:  This is possible when we are attempting to remove a logical volume.
+                //        We loop for 'N' times and we may try to umount a path that has already
+                //        been successfully unmounted.  Just swallow the error...
+                rc = 0;
+            }
         }
-        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        else
+        {
+            // NORMAL error path
+            stringstream errorText;
+            errorText << "umount of mountpoint=" << pMountPoint << " had errno=" \
+                      << errno << "(" << strerror(errno) << ")";
+            bberror << err("error.pathname", pMountPoint);
+            if (errno == EBUSY)
+            {
+                lsofRunCmd(pMountPoint);
+            }
+            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        }
     }
+
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
@@ -797,38 +876,54 @@ int isMounted(const char* pMountPoint, char* pDevName, const size_t pDevNameLeng
 
         if (l_MountPoint) {
             l_File = setmntent(MOUNTS_DIRECTORY, "r");
-            if (l_File) {
-                while ((l_Entry = getmntent(l_File)) != NULL && !rc) {
+            if (l_File)
+            {
+                l_Entry = getmntent(l_File);
+                while (l_Entry != NULL && (!rc))
+                {
                     LOOP_COUNT(__FILE__,__FUNCTION__,"mounts_processed");
+                    LOG(bb,debug) << "isMounted(): pMountPoint=" << pMountPoint << ", l_Entry->mnt_dir=" << l_Entry->mnt_dir;
                     if (strncmp(l_MountPoint, l_Entry->mnt_dir, strlen(l_MountPoint)) == 0 &&
-                        strlen(l_MountPoint) == strlen(l_Entry->mnt_dir)) {
+                        strlen(l_MountPoint) == strlen(l_Entry->mnt_dir))
+                    {
                         rc = 1;
-                        if (strstr(l_Entry->mnt_fsname, "mapper")) {
-                            // Get volume group name and length
-                            size_t l_VolumeGroupNameLen = config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).length();
-                            char* l_VolumeGroupName = new char[l_VolumeGroupNameLen+1];
-                            strncpy(l_VolumeGroupName, config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).c_str(), l_VolumeGroupNameLen);
-                            l_VolumeGroupName[l_VolumeGroupNameLen] = 0;
+                        // Get volume group name and length
+                        size_t l_VolumeGroupNameLen = config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).length();
+                        char* l_VolumeGroupName = new char[l_VolumeGroupNameLen+1];
+                        strncpy(l_VolumeGroupName, config.get(process_whoami + ".volumegroup", DEFAULT_VOLUME_GROUP_NAME).c_str(), l_VolumeGroupNameLen);
+                        l_VolumeGroupName[l_VolumeGroupNameLen] = 0;
 
-                            // Find the volume group name in the file system name
-                            char* l_Index = strstr(l_Entry->mnt_fsname, l_VolumeGroupName);
-                            if (l_Index) {
+                        // Find the volume group name in the file system name
+                        char* l_Index = strstr(l_Entry->mnt_fsname, l_VolumeGroupName);
+                        if (l_Index)
+                        {
+                            char* l_PriorToDevName = l_Index + l_VolumeGroupNameLen;
+                            //NOTE: We have to be prepared to handle a mnt_fsname format of either
+                            //      /dev/mapper/'vg'-'devname' *or* /dev/'vg'/'devname'
+                            if (*l_PriorToDevName == '/' || *l_PriorToDevName == '-')
+                            {
                                 // NOTE:  Only return the VG_# value, where VG is the volume group name and # is the logical volume number
-                                size_t l_DevNameLength = strlen(l_Entry->mnt_fsname)-(l_Index-l_Entry->mnt_fsname)-l_VolumeGroupNameLen-1;
-                                if (pDevName && l_DevNameLength < pDevNameLength) {
-                                    strncpy(pDevName, l_Index+l_VolumeGroupNameLen+1, l_DevNameLength);
+                                size_t l_DevNameLength = strlen(l_Entry->mnt_fsname) - ((l_PriorToDevName+1)-l_Entry->mnt_fsname);
+                                if (pDevName && l_DevNameLength < pDevNameLength)
+                                {
+                                    strncpy(pDevName, l_PriorToDevName+1, l_DevNameLength);
                                     pDevName[l_DevNameLength] = 0;
+                                    LOG(bb,debug) << "isMounted(): pMountPoint=" << pMountPoint << ", pDevName=" << pDevName << ", length=" << l_DevNameLength << ", rc=" << rc;
                                 }
                             }
-
-                            // Return the file system type
-                            if (pFileSysType && strlen(l_Entry->mnt_type) < pFileSysTypeLength) {
-                                strncpy(pFileSysType, l_Entry->mnt_type, strlen(l_Entry->mnt_type));
-                                pFileSysType[strlen(l_Entry->mnt_type)] = 0;
-                            }
-
-                            delete[] l_VolumeGroupName;
                         }
+
+                        // Return the file system type
+                        if (pFileSysType && strlen(l_Entry->mnt_type) < pFileSysTypeLength) {
+                            strncpy(pFileSysType, l_Entry->mnt_type, strlen(l_Entry->mnt_type));
+                            pFileSysType[strlen(l_Entry->mnt_type)] = 0;
+                        }
+
+                        delete[] l_VolumeGroupName;
+                    }
+                    else
+                    {
+                        l_Entry = getmntent(l_File);
                     }
                 }
                 endmntent(l_File);
@@ -1018,7 +1113,7 @@ int createLogicalVolume(const uid_t pOwner, const gid_t pGroup, const char* pMou
                                             }
                                             if (rc) {
                                                 // Undo the previous mount operation...
-                                                rc2 = doUnmount(l_DevName, l_MountPoint);
+                                                rc2 = doUnmount(l_DevName, l_MountPoint, NORMAL_ERROR_REPORTING);
                                                 if (rc2) {
                                                     LOG(bb,error) << "Could not change ownership of the mountpoint " << l_MountPoint << " back to it's original owner after a failure, rc=" << rc2;
                                                 }
@@ -1582,7 +1677,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
                     l_ResizeFileSystemWithLogicalVolume = (((BBRESIZEFLAGS)pFlags == BB_DO_NOT_PRESERVE_FS) || (strncmp(l_FileSysType, "xfs", l_FileSysTypeLength) == 0) || pLogicalVolume) ? false : true;
                     if ((l_PerformUnmount) || (l_NewSize < l_CurrentSize)) {
                         if (!pLogicalVolume) {
-                            rc = doUnmount(l_DevName, l_MountPoint);
+                            rc = doUnmount(l_DevName, l_MountPoint, NORMAL_ERROR_REPORTING);
                             if (!rc) {
                                 // NOTE:  If the file system is being shrunk and is not to be preserved, then we
                                 //        do NOT remount the device to the mount point.  Otherwise, we attempt to remount.
@@ -1703,7 +1798,7 @@ int resizeLogicalVolume(const char* pMountPoint, char* &pLogicalVolume, const ch
     return rc;
 }
 
-
+#define ATTEMPTS 10
 int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_ERRSTATE pOnErrorFillInErrState) {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -1727,30 +1822,72 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
         rc = isMounted(l_MountPoint, l_DevName, l_DevNameLength, l_FileSysType, l_FileSysTypeLength);
         if (rc == 1) {
             if (strncmp(l_DevName, l_VolumeGroupName, l_VolumeGroupNameLen) == 0) {
-                rc = doUnmount(l_DevName, l_MountPoint);
-                if (!rc) {
-                    rc = doChangeLogicalVolume(l_VolumeGroupName, l_DevName, "--activate n");
-                    if (!rc) {
-                        rc = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
-                        if (rc) {
-                            errorText << "Logical volume name of " << l_DevName << " could not be removed from volume group " << l_VolumeGroupName;
+                int l_Count = ATTEMPTS;
+                while (rc && l_Count--)
+                {
+                    LOG(bb,info) << ">>>>> removeLogicalVolume(): Attempt number " << ATTEMPTS-l_Count << ", rc=" << rc << " <<<<<";
+                    rc = doUnmount(l_DevName, l_MountPoint, (l_Count ? NO_ERROR_REPORTING : NORMAL_ERROR_REPORTING));
+                    if (!rc)
+                    {
+                        rc = doChangeLogicalVolume(l_VolumeGroupName, l_DevName, "--activate n");
+                        if (!rc)
+                        {
+                            rc = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
+                            if (rc)
+                            {
+                                if (l_Count)
+                                {
+                                    // NOTE:  Retries were already attempted with delay by doRemoveLogicalVolume(),
+                                    //        so do not delay here...
+                                    LOG(bb,warning) << "Logical volume name of " << l_DevName << " could not be removed from volume group " \
+                                                    << l_VolumeGroupName << ". Another attempt will be made...";
+                                }
+                                else
+                                {
+                                    errorText << "Logical volume name of " << l_DevName << " could not be removed from volume group " \
+                                              << l_VolumeGroupName << ". No additional attempts will be made to perform the remove logical volume.";
+                                    LOG(bb,error) << errorText.str();
+                                    {
+                                        if (pOnErrorFillInErrState)
+                                        {
+                                            bberror << err("error.text", errorText.str()) << errloc(rc);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // NOTE:  Never have seen this hit...
+                            if (!l_Count)
+                            {
+                                errorText << "Could not deactivate logical volume " << l_DevName;
+                                LOG(bb,error) << errorText.str();
+                                if(pOnErrorFillInErrState)
+                                {
+                                    bberror << err("error.text", errorText.str()) << errloc(rc);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (l_Count)
+                        {
+                            LOG(bb,warning) << "Could not unmount " << l_MountPoint << " from " << l_DevName \
+                                            << " Another attempt will be made in 20 seconds...";
+                            usleep(20000000);
+                        }
+                        else
+                        {
+                            errorText << "Could not unmount " << l_MountPoint << " from " << l_DevName \
+                                      << " No additional attempts will be made to perform the umount.";
                             LOG(bb,error) << errorText.str();
-                            if (pOnErrorFillInErrState) {
+                            if (pOnErrorFillInErrState)
+                            {
                                 bberror << err("error.text", errorText.str()) << errloc(rc);
                             }
                         }
-                    } else {
-                        errorText << "Could not deactivate logical volume " << l_DevName;
-                        LOG(bb,error) << errorText.str();
-                        if(pOnErrorFillInErrState) {
-                            bberror << err("error.text", errorText.str()) << errloc(rc);
-                        }
-                    }
-                } else {
-                    errorText << "Could not unmount " << l_MountPoint << " from " << l_DevName;
-                    LOG(bb,error) << errorText.str();
-                    if (pOnErrorFillInErrState) {
-                        bberror << err("error.text", errorText.str()) << errloc(rc);
                     }
                 }
             } else {
@@ -1764,7 +1901,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
         } else {
             if (rc == 0) {
                 getLogicalVolumeDevName(pLVUuid, l_DevName, sizeof(l_DevName));
-                rc = doRemoveLogicalVolume(l_VolumeGroupName, l_DevName);
+                rc = doRemoveLogicalVolume(0, l_DevName);
                 if (rc) {
                     errorText << "Logical volume name of " << l_DevName << " could not be removed from volume group " << l_VolumeGroupName;
                     LOG(bb,error) << errorText.str();
@@ -1802,6 +1939,7 @@ int removeLogicalVolume(const char* pMountPoint, Uuid pLVUuid, ON_ERROR_FILL_IN_
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+#undef ATTEMPTS
 
 
 int processContrib(const uint64_t pNumContrib, uint32_t pContrib[])
@@ -1866,6 +2004,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
     bool l_SimulateStageOut = false;
     bool l_SimulateFileStageIn = false;
     bool l_SimulateFileStageOut = false;
+    bool l_FileHandleRegistryMutexLocked = false;
     bool l_AllowLocalCopy = true;
     bool l_SkipFile = false;
     bool l_SavedAllowLocalCopy;
@@ -1913,606 +2052,644 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
             l_TargetFileIsLocal = isLocalFile(transfer->files[e.targetindex]);
             l_BothLocal = (l_SourceFileIsLocal && l_TargetFileIsLocal) ? true : false;
 
-            if (!pPerformOperation)
-            {
-                LOG(bb,info) << "srcfile: " << "index=" << e.sourceindex << ", isLocal=" << l_SourceFileIsLocal;
-                LOG(bb,info) << "dstfile: " << "index=" << e.targetindex << ", isLocal=" << l_TargetFileIsLocal;
+            // Lock the file handle registry
+            // NOTE: This is because we can have a thread processing this transfer definition
+            //       as part of the original start transfer request and another thread that is
+            //       processing this transfer definition on behalf of restart processing.
+            FileHandleRegistryLock();
+            l_FileHandleRegistryMutexLocked = true;
 
-                if (l_SourceFileIsLocal || l_SimulateFileStageOut)
+            try
+            {
+                if (!pPerformOperation)
                 {
-                    // Local cp or stageout processing...
-                    if (transfer->builtViaRetrieveTransferDefinition())
+                    LOG(bb,info) << "srcfile: " << "index=" << e.sourceindex << ", isLocal=" << l_SourceFileIsLocal;
+                    LOG(bb,info) << "dstfile: " << "index=" << e.targetindex << ", isLocal=" << l_TargetFileIsLocal;
+
+                    if (l_SourceFileIsLocal || l_SimulateFileStageOut)
                     {
-                        // NOTE:  For restart, we have to close the original/first
-                        //        instance of the open for the source file...
-                        filehandle* fh;
-                        // Remove the source file (if open)
-                        if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
+                        // Local cp or stageout processing...
+                        if (transfer->builtViaRetrieveTransferDefinition())
                         {
-                            LOG(bb,info) << "Releasing source filehandle '" << transfer->files[e.sourceindex] << "' before restart";
-                            rc = fh->release(BBFILE_STOPPED);
-                            delete fh;
-                            fh = NULL;
-                            if (rc)
+                            // NOTE:  For restart, we have to close the original/first
+                            //        instance of the open for the source file...
+                            filehandle* fh;
+                            // Remove the source file (if open)
+                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
                             {
-                                LOG(bb,error) << "Releasing the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc " << rc;
-                                rc = -1;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            rc = 0;
-                            LOG(bb,info) << "Could not find prior source filehandle for '" << transfer->files[e.sourceindex] << "' before restart";
-                        }
-                        if (!rc)
-                        {
-                            // Now, just to make sure, attempt to find a filehandle for the source file...
-                            rc = findFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
-                            if (rc == -1)
-                            {
-                                // As expected, not found...
-                                rc = 0;
+                                LOG(bb,info) << "Releasing source filehandle '" << transfer->files[e.sourceindex] << "' before restart";
+                                rc = fh->release(BBFILE_STOPPED);
+                                delete fh;
+                                fh = NULL;
+                                if (rc)
+                                {
+                                    LOG(bb,error) << "Releasing the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc " << rc;
+                                    rc = -1;
+                                    break;
+                                }
                             }
                             else
                             {
-                                // Should never be the case...
-                                LOG(bb,error) << "Checking for the removal of the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc " << rc;
+                                rc = 0;
+                                LOG(bb,info) << "Could not find prior source filehandle for '" << transfer->files[e.sourceindex] << "' before restart";
+                            }
+                            if (!rc)
+                            {
+                                // Now, just to make sure, attempt to find a filehandle for the source file...
+                                rc = findFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
+                                if (rc == -1)
+                                {
+                                    // As expected, not found...
+                                    rc = 0;
+                                }
+                                else
+                                {
+                                    // Should never be the case...
+                                    LOG(bb,error) << "Checking for the removal of the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc " << rc;
+                                    rc = -1;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!rc)
+                        {
+                            // Open the source file...
+                            srcfile_ptr = new filehandle(transfer->files[e.sourceindex], O_RDONLY, 0);
+                            if (srcfile_ptr->getfd() < 0)
+                            {
                                 rc = -1;
+                                LOG(bb,error) << "Creating the filehandle for srcfile: " << transfer->files[e.sourceindex] << " failed.";
+
+                                delete srcfile_ptr;
                                 break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Create a filehandle for the source file to house the stats...
+                        srcfile_ptr = new filehandle(transfer->files[e.sourceindex]);
+                    }
+
+                    if ((!rc) && (l_TargetFileIsLocal && (!l_SimulateFileStageOut)))
+                    {
+                        // Stagein processing
+                        if (transfer->builtViaRetrieveTransferDefinition())
+                        {
+                            // NOTE:  For restart, we have to close the original/first
+                            //        instance of the open for the target file...
+                            filehandle* fh;
+                            // Remove the target file (if open)
+                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
+                            {
+                                LOG(bb,info) << "Releasing target filehandle '" << transfer->files[e.targetindex] << "' before restart";
+                                rc = fh->release(BBFILE_STOPPED);
+                                delete fh;
+                                fh = NULL;
+                                if (rc)
+                                {
+                                    LOG(bb,error) << "Releasing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed, rc " << rc;
+                                    rc = -1;
+
+                                    delete srcfile_ptr;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                rc = 0;
+                                LOG(bb,info) << "Could not find prior target filehandle for '" << transfer->files[e.targetindex] << "' before restart";
+                            }
+
+                            if (!rc)
+                            {
+                                // Now, just to make sure, attempt to find a filehandle for the target file...
+                                rc = findFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                if (rc == -1)
+                                {
+                                    // As expected, not found...
+                                    rc = 0;
+                                }
+                                else
+                                {
+                                    // Should never be the case...
+                                    LOG(bb,error) << "Checking for the removal of the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc " << rc;
+                                    rc = -1;
+
+                                    delete srcfile_ptr;
+                                    break;
+                                }
                             }
                         }
                     }
 
                     if (!rc)
                     {
-                        // Open the source file...
-                        srcfile_ptr = new filehandle(transfer->files[e.sourceindex], O_RDONLY, 0);
-                        if (srcfile_ptr->getfd() < 0)
+                        if (transfer->builtViaRetrieveTransferDefinition())
                         {
-                            rc = -1;
-                            LOG(bb,error) << "Creating the filehandle for srcfile: " << transfer->files[e.sourceindex] << " failed.";
+                            // Protect this newly opened file handle for restart from being removed/closed
+                            // by an asynchronous final close/status message received from the 'old' bbServer.
+                            // The 'original' file handle was already closed above as part of the restart
+                            // transfer processing.
+                            srcfile_ptr->setRestartInProgress();
+                        }
+                        addFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
 
-                            delete srcfile_ptr;
-                            break;
+                        if (l_SourceFileIsLocal && (!l_SimulateFileStageIn))
+                        {
+                            // Local cp or stageout processing...
+                            // If not already done, get stats for the local source file on the SSD...
+                            if (pStats[e.sourceindex] == 0)
+                            {
+                                pStats[e.sourceindex] = new(struct stat);
+                                srcfile_ptr->getstats(*pStats[e.sourceindex]);
+                            }
                         }
                     }
                 }
                 else
                 {
-                    // Create a filehandle for the source file to house the stats...
-                    srcfile_ptr = new filehandle(transfer->files[e.sourceindex]);
-                }
-
-                if ((!rc) && (l_TargetFileIsLocal && (!l_SimulateFileStageOut)))
-                {
-                    // Stagein processing
+                    // NOTE: Not sure if we need the if block below.  Only if
+                    //       sourcefile indices do not exist in the extent list...
                     if (transfer->builtViaRetrieveTransferDefinition())
                     {
-                        // NOTE:  For restart, we have to close the original/first
-                        //        instance of the open for the target file...
-                        filehandle* fh;
-                        // Remove the target file (if open)
-                        if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
+                        // Indicate that bbproxy will skip all source/target file pairs from
+                        // the last pair processed up through the current source/target file pair...
+                        // NOTE: We have a dependency that bbServer will always insert extents into
+                        //       the extent vector in ascending sourcefile index order...
+                        while (l_NextSourceIndexToProcess < e.sourceindex)
                         {
-                            LOG(bb,info) << "Releasing target filehandle '" << transfer->files[e.targetindex] << "' before restart";
-                            rc = fh->release(BBFILE_STOPPED);
-                            delete fh;
-                            fh = NULL;
-                            if (rc)
-                            {
-                                LOG(bb,error) << "Releasing the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed, rc " << rc;
-                                rc = -1;
+                            LOG(bb,info) << "bbProxy will not restart the transfer for the source file associated with jobid " \
+                                         << pJobId << ", handle " << pHandle << ", contrib " << pContribId \
+                                         << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
+                            l_NextSourceIndexToProcess += 2;
+                        }
+                    }
 
-                                delete srcfile_ptr;
-                                break;
+                    // First, determine if bbServer has indicated to not perform a copy/transfer
+                    // operation for the source/target file pair.  If this is a rebuilt transfer
+                    // definition from bbServer metadata, restart should not perform the copy/transfer
+                    // if the file was not 'stopped'.
+                    if (!(pStats[e.sourceindex]->st_dev == DO_NOT_TRANSFER_FILE &&
+                          pStats[e.sourceindex]->st_ino == DO_NOT_TRANSFER_FILE))
+                    {
+                        // We are to transfer this file...
+
+                        // Look for the filehandle to the source file...
+                        // NOTE:  Even if we didn't perform an open for the source file,
+                        //        a filehandle was created during the first pass to house the stats...
+                        rc = findFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
+                        if (rc == 0)
+                        {
+                            // We have a filehandle to the source file...  If stagein or remote cp, copy the stats
+                            // passed back from bbserver into the filehandle for the source file.
+                            if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFSPFS) || l_SimulateFileStageIn)
+                            {
+                                srcfile_ptr->updateStats(pStats[e.sourceindex]);
+                            }
+
+                            if (l_TargetFileIsLocal && (!l_SimulateFileStageOut))
+                            {
+                                // Now, attempt to find a filehandle for the target file...
+                                rc = findFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                if (rc == -1)
+                                {
+                                    rc = 0;
+                                    if(e.flags & BBRecursive)
+                                    {
+                                        bfs::create_directories(bfs::path(transfer->files[e.targetindex]).parent_path());
+                                    }
+
+                                    // Open the target file...
+                                    int l_OpenFlags = (l_TargetFileIsLocal ? O_CREAT | O_TRUNC | O_WRONLY : O_RDONLY);
+                                    dstfile_ptr = new filehandle(transfer->files[e.targetindex], l_OpenFlags, srcfile_ptr->getmode());
+                                    if (dstfile_ptr->getfd() >= 0)
+                                    {
+                                        addFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                    }
+                                    else
+                                    {
+                                        rc = -1;
+                                        LOG(bb,error) << "Creating the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+
+                                        // No longer need to protect this file handle from being removed by
+                                        // an asynchronous final close/status message received from an 'old'
+                                        // bbServer
+                                        srcfile_ptr->setRestartInProgress(false);
+
+                                        delete dstfile_ptr;
+                                        dstfile_ptr = 0;
+
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    // Must be a local cp...
+                                    l_SkipFile = true;
+                                }
                             }
                         }
                         else
                         {
-                            rc = 0;
-                            LOG(bb,info) << "Could not find prior target filehandle for '" << transfer->files[e.targetindex] << "' before restart";
-                        }
-
-                        if (!rc)
-                        {
-                            // Now, just to make sure, attempt to find a filehandle for the target file...
-                            rc = findFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
-                            if (rc == -1)
-                            {
-                                // As expected, not found...
-                                rc = 0;
-                            }
-                            else
-                            {
-                                // Should never be the case...
-                                LOG(bb,error) << "Checking for the removal of the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc " << rc;
-                                rc = -1;
-
-                                delete srcfile_ptr;
-                                break;
-                            }
+                            rc = -1;
+                            LOG(bb,error) << "Cannot find source filehandle for jobid " << pJobId << ", handle " << pHandle << ", contribid " << pContribId << ", source index " << e.sourceindex;
+                            break;
                         }
                     }
+                    else
+                    {
+                        l_SkipFile = true;
+                    }
+
+                    if (transfer->builtViaRetrieveTransferDefinition())
+                    {
+                        if (srcfile_ptr)
+                        {
+                            // No longer need to protect this file handle from being removed by
+                            // an asynchronous final close/status message received from an 'old'
+                            // bbServer
+                            srcfile_ptr->setRestartInProgress(false);
+                        }
+
+                        char l_TransferType[64] = {'\0'};
+                        if (!l_SkipFile)
+                        {
+                            getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
+                            LOG(bb,info) << "bbProxy will restart the transfer for the source file associated with jobid " \
+                                         << pJobId << ", handle " << pHandle << ", contrib " << pContribId \
+                                         << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
+                        }
+                        else
+                        {
+                            getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
+                            LOG(bb,info) << "bbProxy will not restart the transfer for the source file associated with jobid " \
+                                         << pJobId << ", handle " << pHandle << ", contrib " << pContribId \
+                                         << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
+                        }
+                    }
+                    l_NextSourceIndexToProcess = e.sourceindex + 2;
                 }
 
                 if (!rc)
                 {
-                    if (transfer->builtViaRetrieveTransferDefinition())
-                    {
-                        // Protect this newly opened file handle for restart from being removed/closed
-                        // by an asynchronous final close/status message received from the 'old' bbServer.
-                        // The 'original' file handle was already closed above as part of the restart
-                        // transfer processing.
-                        srcfile_ptr->setRestartInProgress();
-                    }
-                    addFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
-
-                    if (l_SourceFileIsLocal && (!l_SimulateFileStageIn))
-                    {
-                        // Local cp or stageout processing...
-                        // If not already done, get stats for the local source file on the SSD...
-                        if (pStats[e.sourceindex] == 0)
-                        {
-                            pStats[e.sourceindex] = new(struct stat);
-                            srcfile_ptr->getstats(*pStats[e.sourceindex]);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // NOTE: Not sure if we need the if block below.  Only if
-                //       sourcefile indices do not exist in the extent list...
-                if (transfer->builtViaRetrieveTransferDefinition())
-                {
-                    // Indicate that bbproxy will skip all source/target file pairs from
-                    // the last pair processed up through the current source/target file pair...
-                    // NOTE: We have a dependency that bbServer will always insert extents into
-                    //       the extent vector in ascending sourcefile index order...
-                    while (l_NextSourceIndexToProcess < e.sourceindex)
-                    {
-                        LOG(bb,info) << "bbProxy will not restart the transfer for the source file associated with jobid " \
-                                     << pJobId << ", handle " << pHandle << ", contrib " << pContribId \
-                                     << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
-                        l_NextSourceIndexToProcess += 2;
-                    }
-                }
-
-                // First, determine if bbServer has indicated to not perform a copy/transfer
-                // operation for the source/target file pair.  If this is a rebuilt transfer
-                // definition from bbServer metadata, restart should not perform the copy/transfer
-                // if the file was not 'stopped'.
-                if (!(pStats[e.sourceindex]->st_dev == DO_NOT_TRANSFER_FILE &&
-                      pStats[e.sourceindex]->st_ino == DO_NOT_TRANSFER_FILE))
-                {
-                    // We are to transfer this file...
-                    //
-                    // Next, look for the filehandle to the source file...
-                    // NOTE:  Even if we didn't perform an open for the source file,
-                    //        a filehandle was created during the first pass to house the stats...
-                    rc = findFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
-                    if (rc == 0)
-                    {
-                        // We have a filehandle to the source file...  If stagein, copy the stats
-                        // passed back from bbserver into the filehandle for the source file.
-                        if ((e.flags & BBI_TargetSSD) || l_SimulateFileStageIn)
-                        {
-                            srcfile_ptr->updateStats(pStats[e.sourceindex]);
-                        }
-
-                        if (l_TargetFileIsLocal && (!l_SimulateFileStageOut))
-                        {
-                            // Now, attempt to find a filehandle for the target file...
-                            rc = findFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
-                            if (rc == -1)
-                            {
-                                rc = 0;
-                                if(e.flags & BBRecursive)
-                                {
-                                    bfs::create_directories(bfs::path(transfer->files[e.targetindex]).parent_path());
-                                }
-
-                                int l_OpenFlags = (l_TargetFileIsLocal ? O_CREAT | O_TRUNC | O_WRONLY : O_RDONLY);
-                                // Open the target file...
-                                dstfile_ptr = new filehandle(transfer->files[e.targetindex], l_OpenFlags, srcfile_ptr->getmode());
-                                if (dstfile_ptr->getfd() >= 0)
-                                {
-                                    addFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
-                                }
-                                else
-                                {
-                                    rc = -1;
-                                    LOG(bb,error) << "Creating the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
-
-                                    // No longer need to protect this file handle from being removed by
-                                    // an asynchronous final close/status message received from an 'old'
-                                    // bbServer
-                                    srcfile_ptr->setRestartInProgress(false);
-
-                                    delete dstfile_ptr;
-                                    dstfile_ptr = 0;
-
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                // Must be a local cp...
-                                l_SkipFile = true;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        rc = -1;
-                        LOG(bb,error) << "Cannot find source filehandle for jobid " << pJobId << ", handle " << pHandle << ", contribid " << pContribId << ", source index " << e.sourceindex;
-                        break;
-                    }
-                }
-                else
-                {
-                    l_SkipFile = true;
-                }
-
-                if (transfer->builtViaRetrieveTransferDefinition())
-                {
-                    if (srcfile_ptr)
-                    {
-                        // No longer need to protect this file handle from being removed by
-                        // an asynchronous final close/status message received from an 'old'
-                        // bbServer
-                        srcfile_ptr->setRestartInProgress(false);
-                    }
-
-                    char l_TransferType[64] = {'\0'};
                     if (!l_SkipFile)
                     {
-                        getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
-                        LOG(bb,info) << "bbProxy will restart the transfer for the source file associated with jobid " \
-                                     << pJobId << ", handle " << pHandle << ", contrib " << pContribId \
-                                     << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
-                    }
-                    else
-                    {
-                        getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
-                        LOG(bb,info) << "bbProxy will not restart the transfer for the source file associated with jobid " \
-                                     << pJobId << ", handle " << pHandle << ", contrib " << pContribId \
-                                     << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
-                    }
-                }
-                l_NextSourceIndexToProcess = e.sourceindex + 2;
-            }
+                        e.flags = transfer->mergeFileFlags(e.flags);
+                        e.handle = pHandle;
+                        e.contribid = pContribId;
 
-            if (!rc)
-            {
-                if (!l_SkipFile)
-                {
-                    e.flags = transfer->mergeFileFlags(e.flags);
-                    e.handle = pHandle;
-                    e.contribid = pContribId;
-
-                    if (l_BothLocal && l_AllowLocalCopy)
-                    {
-                        e.flags |= BBI_TargetSSDSSD;
-
-                        // Local cp processing...
-                        if (pPerformOperation)
+                        if (l_BothLocal && l_AllowLocalCopy)
                         {
-                            BBFILESTATUS l_FileStatus = BBFILE_SUCCESS;
+                            e.flags |= BBI_TargetSSDSSD;
 
-                            bs::error_code err;
-                            bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), bfs::copy_option::overwrite_if_exists, err);
-                            if (err.value())
-                            {
-                                l_FileStatus = BBFILE_FAILED;
-                            }
-
-                            // bbServer needs this extent so that it can send the appropriate completion messages back
-                            // to bbProxy and update status for the transfer definition, LVKey, and handle.
-                            // Note that this dummy extent will be marked to actually transfer no data.
-                            // Also note that the length of the local copy is still filled into the extent
-                            // object for status purposes and updating the SSD usage information.
-                            e.setCP_Tansfer();
-                            e.len = 0;
-
-                            e.flags |= BBI_First_Extent;
-                            e.flags |= BBI_Last_Extent;
-
-                            switch(l_FileStatus) {
-                                case BBFILE_SUCCESS:
-                                    e.len = srcfile_ptr->getsize();
-                                    LOG(bb,info) << "Local copy complete for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                    << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len;
-                                    break;
-
-                                case BBFILE_FAILED:
-                                    e.flags |= BBTD_Failed;
-                                    LOG(bb,info) << "Local copy failed for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
-                                    << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex;
-                                    break;
-
-                                case BBFILE_CANCELED:
-                                case BBFILE_STOPPED:
-                                default:
-                                    // Not possible...
-                                    break;
-                            }
-
-                            newlist.push_back(e);
-
-                            // Cleanup the file handles...
-                            filehandle* fh = 0;
-                            rc = removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex);
-                            if (rc == 0)
-                            {
-                                LOG(bb,info) << "Releasing filehandle " << transfer->files[e.sourceindex];
-                                rc = fh->release(l_FileStatus);
-                                if (rc)
-                                {
-                                    LOG(bb,error) << "Releasing the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc" << rc;
-                                }
-                                delete fh;
-                                fh = 0;
-                            }
-                            rc = removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex);
-                            if (rc == 0)
-                            {
-                                LOG(bb,info) << "Releasing filehandle " << transfer->files[e.targetindex];
-                                rc = fh->release(l_FileStatus);
-                                if (rc)
-                                {
-                                    LOG(bb,error) << "Releasing the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc" << rc;
-                                }
-                                delete fh;
-                                fh = 0;
-                            }
-                            rc = 0;
-                        }
-                    }
-                    else if((l_SourceFileIsLocal && (!l_TargetFileIsLocal)) ||
-                            (l_BothLocal && (l_SimulateStageOut || l_SimulateFileStageOut)))
-                    {
-                        // Stageout processing...
-                        transfer->setAll_CN_CP_TransfersInDefinition(0);
-                        transfer->setNoStageinOrStageoutTransfersInDefinition(0);
-
-                        e.flags |= BBI_TargetPFS;
-                        rc = getLogicalVolumeUUID(transfer->files[e.sourceindex], l_current_lvuuid);
-                        if (!rc) {
-                            if (l_lvuuid.is_null()) {
-                                // NOTE:  We get the lvuuid from the first extent transfer local source/target file.
-                                //        Long term, we probably need to verify that the lvuuid we found is indeed for
-                                //        the LV for this job...
-                                // \todo - @DLH
-                                l_lvuuid = l_current_lvuuid;
-                            } else {
-                                if (l_lvuuid == l_current_lvuuid) {
-                                    l_Flags |= BBI_TargetPFS;
-                                } else {
-                                    rc = -1;
-                                    errorText << "All files in the transfer request being transferred from SSD -> PFS must reside on the same burst buffer logical volume";
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
-                                    break;
-                                }
-                            }
-
+                            // Local cp processing...
                             if (pPerformOperation)
                             {
-                                rc = srcfile_ptr->protect(0, srcfile_ptr->getsize(), false, e, newlist);
-                                if (!rc) {
-                                    e.lba.maxkey = e.lba.start+e.len;
-                                    if (e.isBSCFS_Extent()) {
-                                        transfer->setBSCFS_InRequest();
-                                    }
-                                } else {
-                                    errorText << "Could not build extents for sourceindex " << e.sourceindex;
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
-                                    break;
-                                }
-                            }
-                        } else {
-                            errorText << "Could not determine the uuid for the logical volume associated with sourceindex " << e.sourceindex << ". The mountpoint may not exist.";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
-                            break;
-                        }
-                    }
-                    else if(l_TargetFileIsLocal)
-                    {
-                        // Stagein processing...
-                        transfer->setAll_CN_CP_TransfersInDefinition(0);
-                        transfer->setNoStageinOrStageoutTransfersInDefinition(0);
+                                BBFILESTATUS l_FileStatus = BBFILE_SUCCESS;
 
-                        e.flags |= BBI_TargetSSD;
-                        rc = getLogicalVolumeUUIDForPath(transfer->files[e.targetindex], l_current_lvuuid);
-                        if (!rc)
-                        {
-                            if (l_lvuuid.is_null())
-                            {
-                                // NOTE:  We get the lvuuid from the first extent transfer local source/target file.
-                                //        Long term, we probably need to verify that the lvuuid we found is indeed for
-                                //        the LV for this job...
-                                // \todo - @DLH
-                                l_lvuuid = l_current_lvuuid;
-                            }
-                            else
-                            {
-                                if (l_lvuuid == l_current_lvuuid)
+                                bs::error_code err;
+                                bfs::copy_file(bfs::path(srcfile_ptr->getfn()), bfs::path(dstfile_ptr->getfn()), bfs::copy_option::overwrite_if_exists, err);
+                                if (err.value())
                                 {
-                                    l_Flags |= BBI_TargetSSD;
+                                    l_FileStatus = BBFILE_FAILED;
+                                }
+
+                                // bbServer needs this extent so that it can send the appropriate completion messages back
+                                // to bbProxy and update status for the transfer definition, LVKey, and handle.
+                                // NOTE: This dummy extent will be marked to actually transfer no data.
+                                // NOTE: The length of the local copy is still filled into the extent
+                                //       object for status purposes.
+                                // NOTE: SSD usage information is NOT updated for a local cp.
+                                e.setCP_Tansfer();
+                                e.len = 0;
+
+                                e.flags |= BBI_First_Extent;
+                                e.flags |= BBI_Last_Extent;
+
+                                switch(l_FileStatus) {
+                                    case BBFILE_SUCCESS:
+                                        e.len = srcfile_ptr->getsize();
+                                        LOG(bb,info) << "Local copy complete for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
+                                        << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len;
+                                        break;
+
+                                    case BBFILE_FAILED:
+                                        e.flags |= BBTD_Failed;
+                                        LOG(bb,info) << "Local copy failed for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
+                                        << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex;
+                                        break;
+
+                                    case BBFILE_CANCELED:
+                                    case BBFILE_STOPPED:
+                                    default:
+                                        // Not possible...
+                                        break;
+                                }
+
+                                newlist.push_back(e);
+
+                                // Cleanup the file handles...
+                                filehandle* fh = 0;
+                                rc = removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex);
+                                if (rc == 0)
+                                {
+                                    LOG(bb,info) << "Releasing filehandle " << transfer->files[e.sourceindex];
+                                    rc = fh->release(l_FileStatus);
+                                    if (rc)
+                                    {
+                                        LOG(bb,error) << "Releasing the filehandle for srcfile " << transfer->files[e.sourceindex] << " failed, rc" << rc;
+                                    }
+                                    delete fh;
+                                    fh = 0;
+                                }
+                                rc = removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex);
+                                if (rc == 0)
+                                {
+                                    LOG(bb,info) << "Releasing filehandle " << transfer->files[e.targetindex];
+                                    rc = fh->release(l_FileStatus);
+                                    if (rc)
+                                    {
+                                        LOG(bb,error) << "Releasing the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc" << rc;
+                                    }
+                                    delete fh;
+                                    fh = 0;
+                                }
+                                rc = 0;
+                            }
+                        }
+                        else if((l_SourceFileIsLocal && (!l_TargetFileIsLocal)) ||
+                                (l_BothLocal && (l_SimulateStageOut || l_SimulateFileStageOut)))
+                        {
+                            // Stageout processing...
+                            transfer->setAll_CN_CP_TransfersInDefinition(0);
+                            transfer->setNoStageinOrStageoutTransfersInDefinition(0);
+
+                            e.flags |= BBI_TargetPFS;
+                            rc = getLogicalVolumeUUID(transfer->files[e.sourceindex], l_current_lvuuid);
+                            if (!rc) {
+                                if (l_lvuuid.is_null()) {
+                                    // NOTE:  We get the lvuuid from the first extent transfer local source file.
+                                    //        bbServer processing ensures that the LVUuid passed matches the LVUuid
+                                    //        associated with the handle/contribid.
+                                    l_lvuuid = l_current_lvuuid;
+                                } else {
+                                    if (l_lvuuid == l_current_lvuuid) {
+                                        l_Flags |= BBI_TargetPFS;
+                                    } else {
+                                        rc = -1;
+                                        errorText << "All files in the transfer request being transferred from SSD -> PFS must reside on the same burst buffer logical volume";
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
+                                        break;
+                                    }
+                                }
+
+                                if (pPerformOperation)
+                                {
+                                    rc = srcfile_ptr->protect(0, srcfile_ptr->getsize(), false, e, newlist);
+                                    if (!rc) {
+                                        e.lba.maxkey = e.lba.start+e.len;
+                                        if (e.isBSCFS_Extent()) {
+                                            transfer->setBSCFS_InRequest();
+                                        }
+                                    } else {
+                                        errorText << "Could not build extents for sourceindex " << e.sourceindex;
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
+                                        break;
+                                    }
+                                }
+                            } else {
+                                errorText << "Could not determine the uuid for the logical volume associated with sourceindex " << e.sourceindex << ". The mountpoint may not exist.";
+                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                break;
+                            }
+                        }
+                        else if(l_TargetFileIsLocal)
+                        {
+                            // Stagein processing...
+                            transfer->setAll_CN_CP_TransfersInDefinition(0);
+                            transfer->setNoStageinOrStageoutTransfersInDefinition(0);
+
+                            e.flags |= BBI_TargetSSD;
+                            rc = getLogicalVolumeUUIDForPath(transfer->files[e.targetindex], l_current_lvuuid);
+                            if (!rc)
+                            {
+                                if (l_lvuuid.is_null())
+                                {
+                                    // NOTE:  We get the lvuuid from the first extent transfer local target file.
+                                    //        bbServer processing ensures that the LVUuid passed matches the LVUuid
+                                    //        associated with the handle/contribid.
+                                    l_lvuuid = l_current_lvuuid;
                                 }
                                 else
                                 {
-                                    rc = -1;
-                                    errorText << "All files in the transfer request being transferred from PFS -> SSD must reside on the same burst buffer logical volume";
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
-                                    break;
-                                }
-                            }
-
-                            if (!rc)
-                            {
-                                if (pPerformOperation)
-                                {
-                                    if (transfer->builtViaRetrieveTransferDefinition())
+                                    if (l_lvuuid == l_current_lvuuid)
                                     {
-                                        // NOTE:  For restart, we have to close and re-open the
-                                        //        target file so that finalize will run to allow
-                                        //        a truncate and resize...
+                                        l_Flags |= BBI_TargetSSD;
+                                    }
+                                    else
+                                    {
+                                        rc = -1;
+                                        errorText << "All files in the transfer request being transferred from PFS -> SSD must reside on the same burst buffer logical volume";
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
+                                        break;
+                                    }
+                                }
 
-                                        filehandle* fh;
-                                        // Remove the target file (if open)
-                                        if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
+                                if (!rc)
+                                {
+                                    if (pPerformOperation)
+                                    {
+                                        if (transfer->builtViaRetrieveTransferDefinition())
                                         {
-                                            LOG(bb,info) << "Releasing target filehandle '" << transfer->files[e.targetindex] << "' before restart";
-                                            rc = fh->release(BBFILE_STOPPED);
-                                            delete fh;
-                                            fh = NULL;
-                                            if (rc)
+                                            // NOTE:  For restart, we have to close and re-open the
+                                            //        target file so that finalize will run to allow
+                                            //        a truncate and resize...
+
+                                            filehandle* fh;
+                                            // Remove the target file (if open)
+                                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
                                             {
-                                                LOG(bb,error) << "Releasing the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc " << rc;
-                                                rc = -1;
-                                                break;
+                                                LOG(bb,info) << "Releasing target filehandle '" << transfer->files[e.targetindex] << "' before restart";
+                                                rc = fh->release(BBFILE_STOPPED);
+                                                delete fh;
+                                                fh = NULL;
+                                                if (rc)
+                                                {
+                                                    LOG(bb,error) << "Releasing the filehandle for dstfile " << transfer->files[e.targetindex] << " failed, rc " << rc;
+                                                    rc = -1;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (!rc)
+                                            {
+                                                // Now, just to make sure, attempt to find a filehandle for the target file...
+                                                rc = findFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                                if (rc == -1)
+                                                {
+                                                    // As expected, not found...
+                                                    rc = 0;
+                                                    if (e.flags & BBRecursive)
+                                                    {
+                                                        bfs::create_directories(bfs::path(transfer->files[e.targetindex]).parent_path());
+                                                    }
+
+                                                    int l_OpenFlags = (O_CREAT | O_TRUNC | O_WRONLY);
+                                                    // Open the target file...
+                                                    dstfile_ptr = new filehandle(transfer->files[e.targetindex], l_OpenFlags, srcfile_ptr->getmode());
+                                                    if (dstfile_ptr->getfd() >= 0)
+                                                    {
+                                                        addFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                                    }
+                                                    else
+                                                    {
+                                                        rc = -1;
+                                                        LOG(bb,error) << "Creating the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+                                                        break;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    // Should never be the case...
+                                                    rc = -1;
+                                                    LOG(bb,error) << "Finding the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+                                                    break;
+                                                }
                                             }
                                         }
 
                                         if (!rc)
                                         {
-                                            // Now, just to make sure, attempt to find a filehandle for the target file...
-                                            rc = findFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
-                                            if (rc == -1)
+                                            dstfile_ptr->setsize(srcfile_ptr->getsize());
+                                            rc = dstfile_ptr->protect(0, srcfile_ptr->getsize(), true, e, newlist);
+                                            if(!rc)
                                             {
-                                                // As expected, not found...
-                                                rc = 0;
-                                                if (e.flags & BBRecursive)
+                                                e.lba.maxkey = e.lba.start+e.len;
+                                                if (e.isBSCFS_Extent())
                                                 {
-                                                    bfs::create_directories(bfs::path(transfer->files[e.targetindex]).parent_path());
-                                                }
-
-                                                int l_OpenFlags = (O_CREAT | O_TRUNC | O_WRONLY);
-                                                // Open the target file...
-                                                dstfile_ptr = new filehandle(transfer->files[e.targetindex], l_OpenFlags, srcfile_ptr->getmode());
-                                                if (dstfile_ptr->getfd() >= 0)
-                                                {
-                                                    addFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
-                                                }
-                                                else
-                                                {
-                                                    rc = -1;
-                                                    LOG(bb,error) << "Creating the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
-                                                    break;
+                                                    transfer->setBSCFS_InRequest();
                                                 }
                                             }
                                             else
                                             {
-                                                // Should never be the case...
-                                                rc = -1;
-                                                LOG(bb,error) << "Finding the filehandle for dstfile: " << transfer->files[e.targetindex] << " failed.";
+                                                errorText << "Could not build extents for targetindex " << e.targetindex;
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                                 break;
                                             }
                                         }
                                     }
-
-                                    if (!rc)
-                                    {
-                                        dstfile_ptr->setsize(srcfile_ptr->getsize());
-                                        rc = dstfile_ptr->protect(0, srcfile_ptr->getsize(), true, e, newlist);
-                                        if(!rc)
-                                        {
-                                            e.lba.maxkey = e.lba.start+e.len;
-                                            if (e.isBSCFS_Extent())
-                                            {
-                                                transfer->setBSCFS_InRequest();
-                                            }
-                                        }
-                                        else
-                                        {
-                                            errorText << "Could not build extents for targetindex " << e.targetindex;
-                                            LOG_ERROR_TEXT_RC(errorText, rc);
-                                            break;
-                                        }
-                                    }
                                 }
+                            }
+                            else
+                            {
+                                errorText << "Could not determine the uuid for the logical volume associated with targetindex " << e.targetindex << ". The mountpoint may not exist.";
+                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                break;
                             }
                         }
                         else
                         {
-                            errorText << "Could not determine the uuid for the logical volume associated with targetindex " << e.targetindex << ". The mountpoint may not exist.";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
-                            break;
+                            // Remote->remote copy processing...
+                            transfer->setAll_CN_CP_TransfersInDefinition(0);
+
+                            // bbServer needs this extent so that it can send the appropriate completion messages back
+                            // to bbProxy and update status for the transfer definition, LVKey, and handle.
+                            // NOTE: This dummy extent will be marked to actually transfer no data.
+                            // NOTE: The length of the remote copy is still filled into the extent
+                            //       object for status purposes.
+                            e.flags |= BBI_TargetPFSPFS;
+
+                            if (pPerformOperation)
+                            {
+                                e.setCP_Tansfer();
+                                e.len = srcfile_ptr->getsize();
+
+                                e.flags |= BBI_First_Extent;
+                                e.flags |= BBI_Last_Extent;
+
+                                LOG(bb,info) << "Files reside on PFS, copy performed on PFS";
+
+                                newlist.push_back(e);
+                            }
                         }
                     }
                     else
                     {
-                        // Remote->remote copy processing...
-                        transfer->setAll_CN_CP_TransfersInDefinition(0);
-                        e.flags |= BBI_TargetPFSPFS;
+                        // File being skipped...  Perform closes...
 
-                        if (pPerformOperation)
+                        if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFS))
                         {
-                            e.setCP_Tansfer();
-                            e.len = srcfile_ptr->getsize();
-
-                            e.flags |= BBI_First_Extent;
-                            e.flags |= BBI_Last_Extent;
-
-                            LOG(bb,info) << "Files reside on PFS, copy performed on PFS";
-
-                            newlist.push_back(e);
-                        }
-                    }
-                }
-                else
-                {
-                    // File being skipped...  Perform closes...
-
-                    if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFS))
-                    {
-                        try
-                        {
-                            filehandle* fh;
-                            // Remove both source and target files (if open)
-                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
+                            try
                             {
-                                LOG(bb,info) << "Releasing filehandle " << fh->getfn();
-                                rc = fh->release(BBFILE_NOT_TRANSFERRED);
-                                delete fh;
-                                fh=NULL;
-                                if (rc)
+                                filehandle* fh;
+                                // Remove both source and target files (if open)
+                                if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.sourceindex))
                                 {
-                                    LOG(bb,error) << "Releasing the filehandle for srcfile (for skipped file) " << transfer->files[e.sourceindex] << " failed, rc " << rc;
-                                    rc = -1;
-                                    break;
+                                    LOG(bb,info) << "Releasing filehandle " << fh->getfn();
+                                    rc = fh->release(BBFILE_NOT_TRANSFERRED);
+                                    delete fh;
+                                    fh=NULL;
+                                    if (rc)
+                                    {
+                                        LOG(bb,error) << "Releasing the filehandle for srcfile (for skipped file) " << transfer->files[e.sourceindex] << " failed, rc " << rc;
+                                        rc = -1;
+                                        break;
+                                    }
+                                }
+
+                                if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
+                                {
+                                    LOG(bb,info) << "Releasing filehandle " << fh->getfn();
+                                    rc = fh->release(BBFILE_NOT_TRANSFERRED);
+                                    delete fh;
+                                    fh = NULL;
+                                    if (rc)
+                                    {
+                                        LOG(bb,error) << "Releasing the filehandle for tgtfile (for skipped file) " << transfer->files[e.targetindex] << " failed, rc " << rc;
+                                        rc = -1;
+                                        break;
+                                    }
                                 }
                             }
-
-                            if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.targetindex))
+                            catch(exception& e)
                             {
-                                LOG(bb,info) << "Releasing filehandle " << fh->getfn();
-                                rc = fh->release(BBFILE_NOT_TRANSFERRED);
-                                delete fh;
-                                fh = NULL;
-                                if (rc)
-                                {
-                                    LOG(bb,error) << "Releasing the filehandle for tgtfile (for skipped file) " << transfer->files[e.targetindex] << " failed, rc " << rc;
-                                    rc = -1;
-                                    break;
-                                }
+                                LOG(bb,warning) << "Exception thrown when processing transfer complete for file: " << e.what();
                             }
                         }
-                        catch(exception& e)
-                        {
-                            LOG(bb,warning) << "Exception thrown when processing transfer complete for file: " << e.what();
-                        }
+
+                        LOG(bb,info) << "Transfer of source file " << transfer->files[e.sourceindex] << " to " << transfer->files[e.targetindex] << " is not being restarted because" \
+                                     << " the source file was not in a stopped state. It may not have been in a stopped state because the transfer of all extents" \
+                                     << " had already completed. See previous messages.";
                     }
 
-                    LOG(bb,info) << "Transfer of source file " << transfer->files[e.sourceindex] << " to " << transfer->files[e.targetindex] << " is not being restarted because" \
-                                 << " the source file was not in a stopped state. It may not have been in a stopped state because the transfer of all extents" \
-                                 << " had already completed. See previous messages.";
+                    l_AllowLocalCopy = l_SavedAllowLocalCopy;
                 }
-
-                l_AllowLocalCopy = l_SavedAllowLocalCopy;
             }
+            catch(runtime_error& e)
+            {
+                rc = -1;
+                LOG(bb,error) << "Exception caught "<<__func__<<"@"<<__FILE__<<":"<<__LINE__<<" what="<<e.what();
+                break;
+            }
+            catch(exception& e)
+            {
+                rc = -1;
+                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                break;
+            }
+
+            // Unlock the file handle registry
+            l_FileHandleRegistryMutexLocked = false;
+            FileHandleRegistryUnlock();
+        }
+
+        // If necessary, unlock the file handle registry
+        if (l_FileHandleRegistryMutexLocked)
+        {
+            l_FileHandleRegistryMutexLocked = false;
+            FileHandleRegistryUnlock();
         }
 
         if (!rc)
@@ -2740,6 +2917,8 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
             LOG(bb, error) << "Failure occurred during StartTransfer.  Removing any opened files for jobid=" << pJobId << "  handle=" << pHandle << "  contrib=" << pContribId;
         }
 
+        FileHandleRegistryLock();
+
         for(unsigned int index=0; index<transfer->files.size(); index++)
         {
             LOOP_COUNT(__FILE__,__FUNCTION__,"released_handles");
@@ -2758,6 +2937,9 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
                 fh = NULL;
             }
         }
+
+        FileHandleRegistryUnlock();
+
     }
 
     if (msgserver)

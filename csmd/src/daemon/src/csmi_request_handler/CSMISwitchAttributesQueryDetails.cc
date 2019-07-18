@@ -138,7 +138,7 @@ void CSMISwitchAttributesQueryDetails::CreateOutputStruct(
         LOG(csmapi, trace) << STATE_NAME ":CreateOutputStruct: Enter";
 
 		// Error check
-        if(fields->nfields != 42 )
+        if(fields->nfields != 45 )
         {
             *output = nullptr;
             return;
@@ -214,6 +214,7 @@ void CSMISwitchAttributesQueryDetails::CreateOutputStruct(
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->description, strdup("N/A"), strdup);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->device_name, strdup("N/A"), strdup);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->device_type, strdup("N/A"), strdup);	   d++;
+			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->hw_version, strdup("N/A"), strdup);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->max_ib_ports, -1, csm_to_int32);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->module_index, -1, csm_to_int32);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->number_of_chips, -1, csm_to_int32);  d++;
@@ -221,6 +222,8 @@ void CSMISwitchAttributesQueryDetails::CreateOutputStruct(
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->serial_number, strdup("N/A"), strdup);	   d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->severity, strdup("N/A"), strdup);	       d++;
 			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->status, strdup("N/A"), strdup);           d++;
+			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->type, strdup("N/A"), strdup);	           d++;
+			csm_parse_psql_array_to_struct( fields->data[d], o->inventory, o->inventory_count, ->fw_version, strdup("N/A"), strdup);       d++;
         }
 		
         *output = o;

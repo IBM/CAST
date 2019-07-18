@@ -1,8 +1,10 @@
 #%preun 
-echo "Removing Cast Visulizer from kibana plugins."
 
-if [ "$1" = "0" ]; then
+if [ $1 = 0 ]; then
+    echo "Removing Cast Visulizer from kibana plugins."
     /usr/share/kibana/bin/kibana-plugin remove cast_visualizer
+    echo "Cast Visulizer removed from kibana plugins."
+fi
 
-echo "Cast Visulizer removed from kibana plugins."
+
 

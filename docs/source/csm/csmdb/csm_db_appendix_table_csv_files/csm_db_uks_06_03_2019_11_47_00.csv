@@ -1,0 +1,7 @@
+Index Name,Table Name,Index on,Column Names
+uk_csm_allocation_node_b,csm_allocation_node,uniqueness on,"allocation_id, node_name"
+uk_csm_ssd_a,csm_ssd,uniqueness on,"serial_number, node_name"
+uk_csm_step_a,csm_step,uniqueness on,"allocation_id, step_id"
+uk_csm_step_node_a,csm_step_node,uniqueness on,"node_name, step_id, allocation_id"
+uk_csm_switch_gu_id_a,csm_switch,uniqueness on,gu_id
+uk_csm_vg_ssd_a,csm_vg_ssd,uniqueness on,"vg_name, node_name, serial_number"

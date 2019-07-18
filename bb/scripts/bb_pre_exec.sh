@@ -25,6 +25,7 @@ echo "Job $LSF_STAGE_JOBID: $( date ) stage-in process script $( basename $BASH_
 LSF_STAGE_STORAGE_MINSIZE="${LSF_STAGE_STORAGE_MINSIZE}G" #append unit
 export LSF_STAGE_STORAGE_MINSIZE
 export PATH_PRESERVE=$PATH
+export BB_ERR_FILE="/tmp/"`cat /dev/urandom | tr -cd 'a-zA-Z0-9' | head -c 32`
 
 $FLOOR/bb/scripts/stagein_admin.pl 1 | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stagein.log
 su $LSF_STAGE_USER -p -c "$FLOOR/bb/scripts/stagein_admin.pl 2" | perl -ne 'printf("Job %4d: $_", $ENV{"LSF_STAGE_JOBID"});' &>> /var/log/bb_stagein.log

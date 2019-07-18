@@ -39,7 +39,7 @@ using namespace std;
 txp::Log bbapi2_log(txp::Log::DEFAULT_LOG_DESTINATION, txp::Log::DEFAULT_OPEN_LOGSTATE, txp::Log::DEBUG_LOGLEVEL);
 #endif
 
-uint64_t BBJOBID = 0;
+uint64_t BBJOBID = UNDEFINED_JOBID;
 
 /*******************************************************************************
  | Helper routines
@@ -59,10 +59,10 @@ static int bbapi_SetVariable(const string& pVariable, const string& pValue)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -98,8 +98,6 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
 
     try
     {
-        std::string l_clientVersion = clientVersion;
-        rc=versionCheck(l_clientVersion);
 
         if (unixpath && strlen(unixpath))
         {
@@ -124,6 +122,9 @@ int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* u
             bberror << err("error.flightlogPath", config.get(who + ".flightlog", NO_CONFIG_VALUE));
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
+
+        std::string l_clientVersion = clientVersion;
+        rc=versionCheck(l_clientVersion);
 
         char myjobid[256];
 
@@ -329,10 +330,10 @@ int Coral_GetVar(const char* pVariable)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
 
@@ -374,10 +375,10 @@ int Coral_SetVar(const char* pVariable, const char* pValue)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;
@@ -416,7 +417,7 @@ int Coral_StageOutStart(const char* pMountpoint)
         if(rc) bberror << errloc(rc) <<bailout;
 
         rc = waitReply(reply, msg);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = bberror.merge(msg);
         delete msg;

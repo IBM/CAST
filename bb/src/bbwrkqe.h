@@ -64,24 +64,32 @@ class WRKQE
         rate(0),
         bucket(0),
         suspended(0),
+        transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
+        throttleWait(0),
+        workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
-        numberOfWorkItemsProcessed(0) {
+        numberOfWorkItemsProcessed(0),
+        lvinfo(0) {
         init();
     };
 
     /**
      * \brief Constructor
      */
-    WRKQE(const LVKey* pLVKey, const uint64_t pJobId) :
+    WRKQE(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspended) :
         lvKey(*pLVKey),
         jobid(pJobId),
         rate(0),
         bucket(0),
-        suspended(0),
+        suspended(pSuspended),
+        transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
+        throttleWait(0),
+        workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
-        numberOfWorkItemsProcessed(0) {
+        numberOfWorkItemsProcessed(0),
+        lvinfo(pLV_Info) {
         init();
     };
 
@@ -110,6 +118,11 @@ class WRKQE
     inline int64_t getJobId()
     {
         return jobid;
+    };
+
+    inline BBLV_Info* getLV_Info()
+    {
+        return lvinfo;
     };
 
     inline LVKey* getLVKey()
@@ -149,6 +162,8 @@ class WRKQE
     inline void init()
     {
         wrkq = new queue<WorkID>;
+        lock_transferqueue = PTHREAD_MUTEX_INITIALIZER;
+        transferQueueLocked = 0;
 
         return;
     };
@@ -175,9 +190,22 @@ class WRKQE
         return;
     };
 
+    inline void setBucket(const int pValue)
+    {
+        bucket = pValue;
+
+        return;
+    };
+
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
+        if (!rate)
+        {
+            bucket = 0;
+            throttleWait = 0;
+            workQueueReturnedWithNegativeBucket = 0;
+        }
 
         return;
     };
@@ -189,23 +217,65 @@ class WRKQE
         return;
     };
 
+    inline void setThrottleWait(const int pValue)
+    {
+        throttleWait = pValue;
+
+        return;
+    }
+
+    inline void setTransferThreadIsDelaying(const int pValue)
+    {
+        transferThreadIsDelaying = pValue;
+
+        return;
+    };
+
+    inline bool transferQueueIsLocked()
+    {
+        return (transferQueueLocked == pthread_self());
+    }
+
+    inline bool workQueueIsAssignable()
+    {
+        return (workQueueReturnedWithNegativeBucket ? false : throttleWait ? false : true);
+    }
+
     // Methods
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
-    void dump(const char* pSev, const char* pPrefix);
-    void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    void dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd=DO_NOT_DUMP_ALL_DATA);
+    int getIssuingWorkItem();
+    uint64_t getNumberOfInFlightExtents();
     void loadBucket();
-    double processBucket(BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo);
+    void lock(const LVKey* pLVKey, const char* pMethod);
+    double processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo);
+    void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    void setIssuingWorkItem(const int pValue);
+    void unlock(const LVKey* pLVKey, const char* pMethod);
 
     // Data members
+    //
+    // NOTE:  Unless otherwise noted, data member access is serialized
+    //        with the transfer queue lock (lock_transferqueue)
     LVKey               lvKey;
     uint64_t            jobid;
-    uint64_t            rate;       // bytes/sec
-    int64_t             bucket;
+    uint64_t            rate;                       // bytes/sec
+                                                    // Access is serialized with the
+                                                    // work queue manager lock
+    int64_t             bucket;                     // Access is serialized with the
+                                                    // work queue manager lock
     int                 suspended;
+    int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
+    volatile int        throttleWait;               // Access is serialized with the
+                                                    // work queue manager lock
+    volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
+    BBLV_Info*          lvinfo;
     queue<WorkID>*      wrkq;
+    pthread_mutex_t     lock_transferqueue;
+    pthread_t           transferQueueLocked;
 };
 
 #endif /* BB_BBWRKQE_H_ */

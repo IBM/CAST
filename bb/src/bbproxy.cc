@@ -214,7 +214,8 @@ void addLogicalVolumeData(const char* pDevName, const char* pMountPoint, Uuid& p
     return;
 }
 
-std::string getDevName4Mount(const std::string& pMountPoint){
+std::string getDevName4Mount(const std::string& pMountPoint)
+{
     std::string l_DevName;
     pthread_mutex_lock(&logicalVolumeDataMutex);
     auto it = mount2dev.find(pMountPoint);
@@ -239,7 +240,6 @@ LV_Data getLogicalVolumeData(std::string& pDevName)
     return l_LV_Data;
 }
 
-
 Uuid  getLogicalVolumeDataUuid(std::string& pDevName){
     Uuid        l_lvuuid;
     pthread_mutex_lock(&logicalVolumeDataMutex);
@@ -262,6 +262,25 @@ void removeLVdata(const std::string pMountPoint)
     return;
 }
 
+int setThrottleRate(const std::string pMountPoint, const uint64_t pRate)
+{
+    int rc = -1;
+
+    pthread_mutex_lock(&logicalVolumeDataMutex);
+    for (auto it = logicalVolumeData.begin(); it != logicalVolumeData.end(); ++it)
+    {
+        if ((it->second).getMountPoint() == pMountPoint)
+        {
+            (it->second).setRate(pRate);
+            rc = 0;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&logicalVolumeDataMutex);
+
+    return rc;
+}
+
 void ResizeLogicalVolumeLock()
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -272,7 +291,6 @@ void ResizeLogicalVolumeLock()
     return;
 }
 
-
 void ResizeLogicalVolumeUnlock()
 {
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
@@ -282,7 +300,6 @@ void ResizeLogicalVolumeUnlock()
     EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
     return;
 }
-
 
 int32_t LogicalVolumeNumber::incr()
 {
@@ -299,7 +316,6 @@ int32_t LogicalVolumeNumber::incr()
     EXIT_NO_CLOCK(__FILE__,__FUNCTION__);
     return l_Value;
 }
-
 
 void checkForSuperUserPermission()
 {
@@ -388,14 +404,14 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         if (rc)
         {
             errorText << "mkdir failed";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, errno, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -471,17 +487,21 @@ void msgin_removedirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
             rc = -1;
             errorText << "bfs::remove_all failed";
             bberror << err("error.value", l_ErrorCode.value()) << err("error.message", l_ErrorCode.message());
-            if (EBUSY==l_ErrorCode.value()) {
-                lsofRunCmd(pathname);
+            if (EBUSY==l_ErrorCode.value())
+            {
+                if (config.get(process_whoami+".bringup.lsofOnRemoveDirectoryEBUSY", 1))
+                {
+                    lsofRunCmd(pathname);
+                }
             }
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -521,12 +541,17 @@ void msgin_changeowner(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         // NOTE:  If doChangeOwner() fails, it fills in errstate...
         rc = doChangeOwner(pathname, newowner, newgroup);
+
+        if (rc)
+        {
+            SET_RC_AND_RAS(rc, bb.admin.failure);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -562,20 +587,20 @@ void msgin_changemode(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Switch to the uid/gid of requester.
         switchIds();
 
-        LOG(bb,info) << "msgin_changemode: pathname=" << pathname << ", newmode=" << newmode;
+        LOG(bb,info) << "msgin_changemode: pathname=" << pathname << ", newmode=0" << oct << newmode << dec;
 
         rc = chmod(pathname, newmode);
         if (rc)
         {
             errorText << "chmod failed";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, errno, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -596,6 +621,7 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
     stringstream errorText;
 
     const char* mountpoint;
+    char* l_MountPoint = 0;
     char*       logicalvolume = 0;
     const char* mountsize;
     uint64_t    resizeflags;
@@ -617,10 +643,19 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
 
         LOG(bb,info) << "msgin_resizemountpoint: mountpoint=" << mountpoint << ", mountsize=" << mountsize << ", resizeflags=" << resizeflags;
 
+        l_MountPoint = realpath(mountpoint, NULL);
+
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
         ResizeLogicalVolumeLock();
 
         {
-            rc = resizeLogicalVolume(mountpoint, logicalvolume, mountsize, resizeflags);
+            rc = resizeLogicalVolume(l_MountPoint, logicalvolume, mountsize, resizeflags);
         }
 
         ResizeLogicalVolumeUnlock();
@@ -628,16 +663,22 @@ void msgin_resizemountpoint(txp::Id id, const string& pConnectionName, txp::Msg*
         if (rc)
         {
             // NOTE: resizeLogicalVolume() filled in errstate
-            errorText << "Resize operation for logical volume associated with " << mountpoint << " failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            errorText << "Resize operation for logical volume associated with " << l_MountPoint << " failed";
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
-        LOG(bb,info) << "Resize operation for logical volume associated with " << mountpoint << " completed.";
+        LOG(bb,info) << "Resize operation for logical volume associated with " << l_MountPoint << " completed.";
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -655,8 +696,10 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     updateEnv(pConnectionName);
 
     int rc = EINVAL;
+    stringstream errorText;
 
     const char* mountpoint;
+    char* l_MountPoint = 0;
     BBUsage_t   usage;
 
     FL_Write(FLProxy, Msg_GetUsage, "GetUsage command received id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
@@ -671,14 +714,29 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         LOG(bb,info) << "msgin_getusage: mountpoint=" << mountpoint;
 
-        rc = proxy_GetUsage(mountpoint, usage);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        l_MountPoint = realpath(mountpoint, NULL);
+
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
+        rc = proxy_GetUsage(l_MountPoint, usage);
+        if (rc) SET_RC_AND_BAIL(rc);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -703,7 +761,7 @@ void msgin_getusage(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 #undef ADDFIELD
     LOG(bb,info) << "Get usage.name totalBytesRead="<<usage.totalBytesRead<<" totalBytesWritten="<<usage.totalBytesWritten<<" localBytesRead="<< usage.localBytesRead<<" localBytesWritten="<<usage.localBytesWritten<<" burstBytesRead="<<usage.burstBytesRead<<" burstBytesWritten="<<usage.burstBytesWritten;
 
-    sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName, response);
     delete response;
     response=NULL;
 
@@ -738,7 +796,7 @@ void msgin_getdeviceusage(txp::Id id, const string& pConnectionName, txp::Msg* m
         LOG(bb,info) << "msgin_getdeviceusage: devicenum=" << devicenum;
 
         rc = proxy_GetDeviceUsage(devicenum, usage);
-        if (rc) LOG_RC_AND_BAIL(rc);
+        if (rc) SET_RC_AND_BAIL(rc);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -773,7 +831,7 @@ void msgin_getdeviceusage(txp::Id id, const string& pConnectionName, txp::Msg* m
     usageattr(num_err_log_entries);
 #undef usageattr
 
-    sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName, response);
     delete response;
     response=NULL;
 
@@ -791,9 +849,11 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
     updateEnv(pConnectionName);
 
     int rc = EINVAL;
+    stringstream errorText;
 
     BBUsage_t usage;
     const char* mountpoint;
+    char* l_MountPoint = 0;
 
     FL_Write(FLProxy, Msg_SetUsageLimit, "SetUsageLimit command received id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
     bberror << err("in.apicall", "BB_SetUsageLimit");
@@ -806,6 +866,14 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
         switchIds();
 
         LOG(bb,info) << "msgin_setusagelimit: mountpoint=" << mountpoint;
+
+        l_MountPoint = realpath(mountpoint, NULL);
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
 
 #define ADDFIELD(name) usage.name = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::name))->getData();
         ADDFIELD(totalBytesRead);
@@ -820,13 +888,13 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         if(usage.totalBytesWritten || usage.totalBytesRead)
         {
-            rc = startMonitoringMount(mountpoint, usage);
-            if(rc) LOG_RC_AND_BAIL(rc);
+            rc = startMonitoringMount(l_MountPoint, usage);
+            if(rc) SET_RC_AND_BAIL(rc);
         }
         else
         {
-            rc = stopMonitoringMount(mountpoint);
-            if(rc) LOG_RC_AND_BAIL(rc);
+            rc = stopMonitoringMount(l_MountPoint);
+            if(rc) SET_RC_AND_BAIL(rc);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -834,6 +902,12 @@ void msgin_setusagelimit(txp::Id id, const string& pConnectionName, txp::Msg* ms
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -910,7 +984,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     addBBErrorToMsg(response);
     response->addAttribute(txp::value64, l_Value);
 
-    sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName, response);
     delete response;
     response=NULL;
 
@@ -976,6 +1050,7 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
+        LOG(bb,error) << "SetVar: *** FAILED *** Variable: " << l_Variable;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -987,7 +1062,6 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
-
 
 
 //*****************************************************************************
@@ -1002,7 +1076,7 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
     int rc;
     stringstream errorText;
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
@@ -1096,6 +1170,8 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
     return;
 }
 
+#define ATTEMPTS 300
+#define LOG_WARNING_CLIP_VALUE 1
 void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1105,11 +1181,13 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     stringstream errorText;
 
     const char* mountpoint=NULL;
+    char* l_MountPoint = 0;
     const char* mountsize;
     uint64_t    jobid;
     uint64_t    createflags;
     Uuid        l_lvuuid;
     char        l_lvuuid_str[LENGTH_UUID_STR] = {'\0'};
+    char l_DevName[1024] = {'\0'};
     BBUsage_t   usage;
 
     bool onErrorRemoveNewLogicalVolume = false;
@@ -1137,7 +1215,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             stringstream errorText;
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Insert input values into errstate...
@@ -1151,27 +1229,34 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
 
         LOG(bb,info) << "msgin_createlogicalvolume: mountpoint=" << mountpoint << ", mountsize=" << mountsize << ", createflags=" << createflags;
 
+        l_MountPoint = realpath(mountpoint, NULL);
+        if (!l_MountPoint)
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
         // Validate the size value
         ssize_t lvsize = 0;
         convertLVMSizeToBytes(mountsize, lvsize);
         if(lvsize < MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE)
         {
             rc = -1;
-            errorText << "Requested size of " << mountsize << " is either invalid or too small. The minimum size that can be specified is " << MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE << " bytes. Suffixes of 'B', 'S', 'K', 'M', 'G', and 'T' are honored.";
+            errorText << "Requested size of " << l_MountPoint << " is either invalid or too small. The minimum size that can be specified is " << MINIMUM_LOGICAL_VOLUME_NUMBER_OF_SECTORS*SECTOR_SIZE << " bytes. Suffixes of 'B', 'S', 'K', 'M', 'G', and 'T' are honored.";
             bberror << err("error.lvsize", lvsize);
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Retrieve the uid/gid of the mount point
         uid_t l_UserId;
         gid_t l_GroupId;
-        rc = getUserAndGroupIds(mountpoint, l_UserId, l_GroupId);
+        rc = getUserAndGroupIds(l_MountPoint, l_UserId, l_GroupId);
         if (rc)
         {
             // NOTE: errstate already filled in...
             errorText << "Could not retrieve the userid and groupid for the mountpoint";
-            bberror << err("error.jobid",jobid);
-            LOG_ERROR_AND_BAIL(errorText);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
@@ -1179,28 +1264,28 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             // A retry could be attempted in this suspended scenario.  Return -2.
             rc = -2;
             errorText << "Connection to the active server is suspended. Attempt to retry the create logical volume request when the connection is not suspended.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_WARNING_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
-        LOG(bb,info) << "Create: " << mountpoint << ", " << mountsize << ", " << createflags << ", " << l_UserId << ":" << l_GroupId << ", jobid=" << jobid;
+        LOG(bb,info) << "Create: " << l_MountPoint << ", " << mountsize << ", " << createflags << ", " << l_UserId << ":" << l_GroupId << ", jobid=" << jobid;
 
-        rc = createLogicalVolume(l_UserId, l_GroupId, mountpoint, mountsize, createflags);
+        rc = createLogicalVolume(l_UserId, l_GroupId, l_MountPoint, mountsize, createflags);
         if (rc)
         {
             // NOTE: createLogicalVolume() filled in errstate
-            BAIL;
+            LOG_RAS_AND_BAIL(bb.admin.failure);
         }
 
         // Any error from this point forward must remove the newly created logical volume...
         onErrorRemoveNewLogicalVolume = true;
 
         // Retrieve the logical volume UUID so that it can be registered with bbserver...
-        rc = getLogicalVolumeUUID(mountpoint, l_lvuuid);
+        rc = getLogicalVolumeUUID(l_MountPoint, l_lvuuid);
         if (rc)
         {
             rc = -1;
             errorText << "Retrieving the uuid for the newly created logical volume failed, rc=" << rc << ". The mount point may no longer have a mounted file system or the directory for the mount point may not exist.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Build the message to send to bbserver
@@ -1209,7 +1294,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         string l_HostName;
         activecontroller->gethostname(l_HostName);
         bberror << err("out.lvuuid", l_lvuuid_str) << err("in.misc.hostname", l_HostName);
-        LOG(bb,info) << "Created LV Uuid = " << l_lvuuid_str << ", mountpoint = " << mountpoint;
+        LOG(bb,info) << "Created LV Uuid = " << l_lvuuid_str << ", mountpoint = " << l_MountPoint;
         // NOTE:  The char arrays are copied to heap by addAttribute and the storage for
         //        the logical volume uuid and hostname attributes are owned by the
         //        message facility.  Our copies can then go out of scope...
@@ -1221,13 +1306,13 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         msgserver->addAttribute(txp::option, (uint32_t)0);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver = NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -1235,14 +1320,14 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -1253,30 +1338,30 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         delete msgserver;
         msgserver=NULL;
 
-        if (!rc){
+        if (!rc)
+        {
             // Maintain the logicaVolumeData map
-            char l_DevName[1024] = {'\0'};
             getLogicalVolumeDevName(l_lvuuid, l_DevName, sizeof(l_DevName));
-            addLogicalVolumeData(l_DevName, mountpoint, l_lvuuid, jobid, l_GroupId, l_UserId);
+            addLogicalVolumeData(l_DevName, l_MountPoint, l_lvuuid, jobid, l_GroupId, l_UserId);
         }
 
         // Notify control system
-        if (!rc) activecontroller->lvcreate(l_lvuuid_str, LVStateMounted, lvsize, mountpoint, "xfs");
+        if (!rc) activecontroller->lvcreate(l_lvuuid_str, LVStateMounted, lvsize, l_MountPoint, "xfs");
 
-        LOG(bb,info) << "Create operation for logical volume completed and mounted at " << mountpoint << ".";
+        LOG(bb,info) << "Create operation for logical volume completed and mounted at " << l_MountPoint << ".";
 
         // Setup usage for this mount point
         errno = 0;
         if (!rc)
         {
-            rc = proxy_regLV4Usage(mountpoint);
+            rc = proxy_regLV4Usage(l_MountPoint);
             if (rc)
             {
                 rc = -1;
-                errorText << "usage registration failed for mountpoint "<< mountpoint;
+                errorText << "usage registration failed for mountpoint "<< l_MountPoint;
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
                 FL_Write(FLBBUsage, USAGEREGFAIL, "usage registration failed for mountpoint errno=%ld create_flags=%lx user=%ld group=%ld",errno,createflags,l_UserId,l_GroupId);
-                LOG_RC_AND_BAIL(rc);
+                SET_RC_RAS_AND_BAIL(rc, bb.admin.failure);
             }
         }
     }
@@ -1284,18 +1369,52 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    if (!rc)
+    {
+        // NOTE: Not sure why, but we have had issues at start transfer time where the /dev/disk/by-uuid directory
+        //       does not appear to be immediately updated with the correct uuid for the device name associated with
+        //       this logical volume.  Before returning, wait until we can find the correct uuid for the device name
+        //       of this newly created logical volume.
+        rc = -1;
+        int l_Attempts = ATTEMPTS;
+        while (rc && --l_Attempts)
+        {
+            Uuid l_Uuid = Uuid();
+            if (!getUUID(l_DevName, l_Uuid))
+            {
+                rc = (l_Uuid == l_lvuuid ? 0 : -1);
+                if (rc)
+                {
+                    usleep((useconds_t)100000);    // Delay 100 milliseconds
+                }
+            }
+        }
+        if ((ATTEMPTS - l_Attempts) > LOG_WARNING_CLIP_VALUE)
+        {
+            if (!rc)
+            {
+                LOG(bb,warning) << "msgin_createlogicalvolume: mountpoint=" << l_MountPoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", number of getUUID() attempts=" << (ATTEMPTS - l_Attempts);
+            }
+            else
+            {
+                errorText << "msgin_createlogicalvolume: For mountpoint=" << l_MountPoint << ", devname=" << l_DevName << ", LVUuid=" << l_lvuuid_str << ", the uuid was not successfully registered with /dev/disk/by-uuid. rc=" << rc;
+                LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+            }
+        }
     }
 
     if (rc && onErrorRemoveNewLogicalVolume)
     {
-        LOG(bb,info) << "Attempting backout via removeLogicalVolume of mountpoint = " << mountpoint;
+        LOG(bb,info) << "Attempting backout via removeLogicalVolume of mountpoint = " << l_MountPoint;
 
         // De-register the LV Usage...
-        int rc2 = proxy_deregLV4Usage(mountpoint);
+        int rc2 = proxy_deregLV4Usage(l_MountPoint);
         if (rc2)
         {
-            errorText << "Backout of LV usage registration via dereg failed for mountpoint " << mountpoint;
+            errorText << "Backout of LV usage registration via dereg failed for mountpoint " << l_MountPoint;
             LOG_ERROR_TEXT(errorText);
         }
 
@@ -1303,15 +1422,21 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         activecontroller->lvremove(l_lvuuid_str, usage);
 
         // Maintain the logicaVolumeData map
-        removeLVdata(mountpoint);
+        removeLVdata(l_MountPoint);
 
         // Remove the logical volume
-        int rc3 = removeLogicalVolume(mountpoint, l_lvuuid, DO_NOT_FILL_IN_ERRSTATE);
+        int rc3 = removeLogicalVolume(l_MountPoint, l_lvuuid, DO_NOT_FILL_IN_ERRSTATE);
         if (rc3)
         {
-            errorText << "Backout removal of the logical volume associated with " << mountpoint << " failed";
+            errorText << "Backout removal of the logical volume associated with " << l_MountPoint << " failed";
             LOG_ERROR_TEXT(errorText);
         }
+    }
+
+    if (l_MountPoint)
+    {
+        free(l_MountPoint);
+        l_MountPoint=NULL;
     }
 
     txp::Msg* response;
@@ -1322,6 +1447,8 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
 }
+#undef LOG_WARNING_CLIP_VALUE
+#undef ATTEMPTS
 
 void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
@@ -1331,7 +1458,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
     int rc = 0;
     stringstream errorText;
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
     uint64_t l_Tag = 0;
@@ -1427,7 +1554,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
         msgserver->addAttribute(txp::contrib, (const char*)l_Contrib, sizeof(uint32_t) * l_NumContrib);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -1515,7 +1642,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
 
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_Tag = 0;
     uint64_t l_NumContrib = 0;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
@@ -1539,75 +1666,84 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
         l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
         bberror << err("in.parms.handle", l_Handle);
 
-        // Switch to the uid/gid of requester.
-        switchIds();
-
-        // Resolve the contribid value
-        l_ContribId = getContribId(bbconnectionName);
-
-        LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
-
-        // Build the message to send to bbserver
-        txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
-        msgserver->addAttribute(txp::handle, l_Handle);
-        msgserver->addAttribute(txp::contribid, l_ContribId);
-
-        // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
-        delete msgserver;
-        msgserver = NULL;
-        if (rc)
+        if (l_Handle)
         {
-            errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-        }
+            // Switch to the uid/gid of requester.
+            switchIds();
 
-        // Wait for the response
-        rc = waitReply(reply, msgserver);
-        if (rc)
-        {
-            errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-        }
+            // Resolve the contribid value
+            l_ContribId = getContribId(bbconnectionName);
 
-        if (!msgserver)
+            LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
+
+            // Build the message to send to bbserver
+            txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
+            msgserver->addAttribute(txp::handle, l_Handle);
+            msgserver->addAttribute(txp::contribid, l_ContribId);
+
+            // Send the message to bbserver
+            rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+            delete msgserver;
+            msgserver = NULL;
+            if (rc)
+            {
+                errorText << "sendMessage to server failed";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+
+            // Wait for the response
+            rc = waitReply(reply, msgserver);
+            if (rc)
+            {
+                errorText << "waitReply failure";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+
+            if (!msgserver)
+            {
+                rc = -1;
+                errorText << "waitReply failure - null message returned";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+
+            rc = bberror.merge(msgserver);
+
+            // Process response data
+            // NOTE: If there is a failure indicated by a non-zero return code, the only fields that are returned
+            //       are handle, contribid, status and local status.  In that case, the status values will be BBNONE.
+            if (!rc)
+            {
+                l_JobId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobid))->getData();
+                l_JobStepId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobstepid))->getData();
+                l_Tag = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::tag))->getData();
+                l_NumContrib = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numcontrib))->getData();
+                l_Contrib = (uint32_t*)msgserver->retrieveAttrs()->at(txp::contrib)->getDataPtr();
+                l_NumReportingContribs = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numreportingcontribs))->getData();
+                l_TotalTransferKeyLength = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferKeyLength))->getData();
+                l_TotalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferSize))->getData();
+                l_LocalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localTransferSize))->getData();
+            }
+
+            l_Status = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::status))->getData();
+            l_LocalStatus = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localstatus))->getData();
+
+            delete msgserver;
+            msgserver = NULL;
+
+            char l_LocalStatusStr[64] = {'\0'};
+            char l_StatusStr[64] = {'\0'};
+            getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
+            getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
+            LOG(bb,info) << "msgin_gettransferinfo: handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
+            bberror << err("out.localstatus", l_LocalStatusStr) << err("out.status", l_StatusStr) \
+                    << err("out.localTransferSize", l_LocalTransferSize) << err("out.totalTransferSize", l_TotalTransferSize);
+        }
+        else
         {
             rc = -1;
-            errorText << "waitReply failure - null message returned";
+            errorText << "Invalid handle value " << l_Handle << "passed";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-
-        rc = bberror.merge(msgserver);
-
-        // Process response data
-        // NOTE: If there is a failure indicated by a non-zero return code, the only fields that are returned
-        //       are handle, contribid, status and local status.  In that case, the status values will be BBNONE.
-        if (!rc)
-        {
-            l_JobId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobid))->getData();
-            l_JobStepId = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::jobstepid))->getData();
-            l_Tag = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::tag))->getData();
-            l_NumContrib = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numcontrib))->getData();
-            l_Contrib = (uint32_t*)msgserver->retrieveAttrs()->at(txp::contrib)->getDataPtr();
-            l_NumReportingContribs = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::numreportingcontribs))->getData();
-            l_TotalTransferKeyLength = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferKeyLength))->getData();
-            l_TotalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::totalTransferSize))->getData();
-            l_LocalTransferSize = ((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localTransferSize))->getData();
-        }
-
-        l_Status = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::status))->getData();
-        l_LocalStatus = (BBSTATUS)((txp::Attr_uint64*)msgserver->retrieveAttrs()->at(txp::localstatus))->getData();
-
-        delete msgserver;
-        msgserver = NULL;
-
-        char l_LocalStatusStr[64] = {'\0'};
-        char l_StatusStr[64] = {'\0'};
-        getStrFromBBStatus(l_LocalStatus, l_LocalStatusStr, sizeof(l_LocalStatusStr));
-        getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
-        LOG(bb,info) << "msgin_gettransferinfo: handle " << l_Handle << ", contribid " << l_ContribId << " returning local status = " << l_LocalStatusStr << ", overall status = " << l_StatusStr << ", rc = " << rc;
-        bberror << err("out.localstatus", l_LocalStatusStr) << err("out.status", l_StatusStr) \
-                << err("out.localTransferSize", l_LocalTransferSize) << err("out.totalTransferSize", l_TotalTransferSize);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -1662,7 +1798,7 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
     int rc = 0;
     stringstream errorText;
 
-    uint64_t l_Handle = 0;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint32_t l_ContribId = UNDEFINED_CONTRIBID;
     uint64_t l_BufferSize = 0;
@@ -1705,7 +1841,7 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::handle, l_Handle);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver = NULL;
         if (rc)
@@ -1809,14 +1945,18 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         l_MountPoint = realpath(mountpoint, NULL);
 
-        if (l_MountPoint) {
+        if (l_MountPoint)
+        {
             rc = getLogicalVolumeUUID(l_MountPoint, l_lvuuid);
-            if (rc) {
+            if (rc)
+            {
                 rc = -1;
                 errorText << "Retrieving the uuid for the logical volume to get the throttle rate for failed, rc=" << rc << ". The mount point may not exist.";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
-        } else {
+        }
+        else
+        {
             rc = -1;
             errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -1832,7 +1972,7 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::uuid, l_lvuuid_str, sizeof(l_lvuuid_str), txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -1873,7 +2013,8 @@ void msgin_getthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_MountPoint){
+    if (l_MountPoint)
+    {
         free(l_MountPoint);
         l_MountPoint=NULL;
     }
@@ -1969,7 +2110,7 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
 #endif
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -2090,7 +2231,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         LOG(bb,info) << "msgin_removejobinfo: jobid=" << l_JobId;
@@ -2100,13 +2241,13 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         msgserver->addAttribute(txp::jobid, l_JobId);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -2114,14 +2255,14 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -2129,12 +2270,16 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         delete(msgserver);
         msgserver=NULL;
 
+        if (rc != -2)
+        {
+            SET_RC_AND_RAS(rc, bb.admin.failure);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -2187,7 +2332,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Switch to the uid/gid of requester.
@@ -2229,10 +2374,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         {
             rc = -2;
             errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
-            LOG(bb,info) << errorText.str();
-            bberror << err("error.text", errorText.str()) << errloc(rc) << bailout;
+            LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
         }
-
 
         if (!l_lvuuid.is_null())
         {
@@ -2247,7 +2390,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             msgserver->addAttribute(txp::contribid, contribid);
 
             // Send the message to bbserver
-            rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+            rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
             delete msgserver;
             msgserver=NULL;
             if (rc)
@@ -2255,7 +2398,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 errorText << "sendMessage to server failed";
                 LOG_ERROR_TEXT(errorText);
             }
-            else {
+            else
+            {
                 // Wait for the response
                 rc = waitReply(reply, msgserver);
                 if (rc)
@@ -2285,6 +2429,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 }
             }
 
+            // NOTE: Even if any of the processing performed on bbServer for this remove operation failed above,
+            //       we logged it and we now continue to perform the remove on the CN.  We are in plow-ahead mode...
             proxy_GetUsage(l_MountPoint, usage);
 
             if (!isMountedRc )
@@ -2294,7 +2440,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 {
                     errorText << "Attempt to remove logical volume " << theDevName << " that was once associated with " << l_MountPoint \
                               << " was not successful.  The logical volume may no longer exist.";
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
             }
             else
@@ -2303,8 +2449,8 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
                 if (rc)
                 {
                     // NOTE: removeLogicalVolume() filled in bberror
-                    bberror<<err("err.isMountedRc",isMountedRc);
-                    LOG_RC_AND_BAIL(rc);
+                    bberror<<err("err.isMountedRc", isMountedRc);
+                    SET_RC_RAS_AND_BAIL(rc, bb.admin.failure);
                 }
             }
 
@@ -2312,23 +2458,20 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
             activecontroller->lvremove(l_lvuuid_str, usage);
 
             // Maintain the logicaVolumeData map
-            removeLVdata(mountpoint);
+            removeLVdata(l_MountPoint);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
-    if(mountpoint)
+    if(l_MountPoint)
     {
-        rc = proxy_deregLV4Usage(mountpoint);
+        rc = proxy_deregLV4Usage(l_MountPoint);
     }
-
-    txp::Msg* response;
-    msg->buildResponseMsg(response);
 
     if (l_MountPoint)
     {
@@ -2339,6 +2482,9 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
     {
         delete[] l_VolumeGroupName;
     }
+
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
 
     addReply(msg, response);
 
@@ -2388,7 +2534,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         activecontroller->gethostname(l_HostName);
@@ -2420,12 +2566,12 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
 
         LOG(bb,info) << "msgin_restarttransfers: hostname=" << l_HostNamePrt1 << ", jobid=" << jobid << ", jobstepid=" << jobstepid << ", handle=" << handle << ", contribid=" << contribid;
 
-        if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
+        if (getSuspendState(DEFAULT_SERVER_ALIAS) != SUSPENDED)
         {
-            // A retry could be attempted in this suspended scenario.  Return -2.
-            rc = -2;
-            errorText << "Connection to the active server is suspended. Attempt to retry the restart transfers request when the connection is not suspended.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            // Restart transfers must be performed against a suspended connection
+            rc = -1;
+            errorText << "Connection to the active server is not suspended. Attempt to retry the restart transfers request when the connection is suspended.";
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         l_TransferDefs = new BBTransferDefs();
@@ -2440,7 +2586,7 @@ void msgin_restarttransfers(txp::Id id, const string& pConnectionName, txp::Msg*
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     if (l_TransferDefs)
@@ -2545,13 +2691,13 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         msgserver->addAttribute(txp::hostname, hostname.c_str(), hostname.size()+1, txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -2559,14 +2705,14 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -2574,13 +2720,12 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
         delete msgserver;
         msgserver = NULL;
-
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     if (rc == 0 || rc == -2)
@@ -2591,6 +2736,7 @@ void msgin_resume(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     {
         // On any error, restore the on-entry suspend state
         updateSuspendMap(DEFAULT_SERVER_ALIAS, l_EntrySuspendState);
+        SET_RC_AND_RAS(rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -2645,7 +2791,7 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         activecontroller->gethostname(l_HostName);
@@ -2690,13 +2836,13 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         msgserver->addAttribute(txp::hostname, hostname.c_str(), hostname.size()+1, txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -2704,14 +2850,14 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -2727,6 +2873,11 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
                          << ", l_NumBytesAvailable = " << l_NumBytesAvailable;
             LOG(bb,debug) << "l_TransferDefs = |" << l_TransferDefs << "|";
         }
+        else
+        {
+            errorText << "Failure occurred on bbServer for the retrieve transfers request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+        }
         delete(msgserver);
         msgserver=NULL;
 
@@ -2735,7 +2886,7 @@ void msgin_retrievetransfers(txp::Id id, const string& pConnectionName, txp::Msg
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -2798,16 +2949,26 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
 
         LOG(bb,info) << "msgin_setthrottlerate: mountpoint=" << mountpoint << ", rate=" << rate;
 
+        if (rate > (uint64_t)std::numeric_limits<int64_t>::max())
+        {
+            rc = -1;
+            errorText << "Rate must be specified as " << std::numeric_limits<int64_t>::max() << " or less. A value of " << rate << " was specified.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
         l_MountPoint = realpath(mountpoint, NULL);
 
-        if (l_MountPoint) {
+        if (l_MountPoint)
+        {
             rc = getLogicalVolumeUUID(l_MountPoint, l_lvuuid);
             if (rc) {
                 rc = -1;
                 errorText << "Retrieving the uuid for the logical volume to to set the throttle rate for failed, rc=" << rc << ". The mount point may not exist.";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
-        } else {
+        }
+        else
+        {
             rc = -1;
             errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
@@ -2824,7 +2985,7 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         msgserver->addAttribute(txp::rate, rate);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -2853,6 +3014,10 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         delete msgserver;
         msgserver=NULL;
 
+        if (!rc)
+        {
+            setThrottleRate(l_MountPoint, rate);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -2861,7 +3026,8 @@ void msgin_setthrottlerate(txp::Id id, const string& pConnectionName, txp::Msg* 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_MountPoint){
+    if (l_MountPoint)
+    {
         free(l_MountPoint);
         l_MountPoint=NULL;
     }
@@ -2915,7 +3081,8 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
 
         l_MountPoint = realpath(mountpoint, NULL);
 
-        if (l_MountPoint) {
+        if (l_MountPoint)
+        {
             char l_DevName[PATH_MAX] = {'\0'};
             size_t l_DevNameLength = sizeof(l_DevName);
             char l_FileSysType[PATH_MAX] = {'\0'};
@@ -2948,6 +3115,12 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
             free(l_MountPoint);
             l_MountPoint=NULL;
         }
+        else
+        {
+            rc = -1;
+            errorText << "Could not determine an absolute path for " << mountpoint << ".  The mountpoint directory may not exist.";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
 
         txp::Msg::buildMsg(txp::CORAL_STAGEOUT_START, msgserver);
 
@@ -2960,7 +3133,7 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
         msgserver->addAttribute(txp::uuid, l_lvuuid_str, sizeof(l_lvuuid_str), txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
@@ -2996,7 +3169,9 @@ void msgin_stageout_start(txp::Id id, const string& pConnectionName, txp::Msg* m
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-    if (l_MountPoint){
+
+    if (l_MountPoint)
+    {
         free(l_MountPoint);
         l_MountPoint=NULL;
     }
@@ -3030,7 +3205,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
     uint64_t  l_JobId = UNDEFINED_JOBID;
     uint64_t  l_JobStepId = UNDEFINED_JOBSTEPID;
-    uint64_t  l_Handle = 0;
+    uint64_t  l_Handle = UNDEFINED_HANDLE;
     uint32_t  l_ContribId = 0;
     BBTransferDef l_Transfer;
 
@@ -3079,12 +3254,15 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         LOG(bb,info) << "msgin_starttransfer: jobid=" << l_JobId << ", jobstepid=" << l_JobStepId << ", handle=" << l_Handle << ", contribid=" << l_ContribId;
 
-        if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
+        if (!l_Transfer.builtViaRetrieveTransferDefinition())
         {
-            // A retry could be attempted in this suspended scenario.  Return -2.
-            rc = -2;
-            errorText << "Connection to the active server is suspended. Attempt to retry the start transfer request when the connection is not suspended.";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            if (getSuspendState(DEFAULT_SERVER_ALIAS) == SUSPENDED)
+            {
+                // A retry could be attempted in this suspended scenario.  Return -2.
+                rc = -2;
+                errorText << "Connection to the active server is suspended. Attempt to retry the start transfer request when the connection is not suspended.";
+                LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+            }
         }
 
         if (startTransfer(&l_Transfer, l_JobId, l_JobStepId, l_Handle, l_ContribId))
@@ -3150,7 +3328,7 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         {
             rc = ENOTCONN;
             errorText << "NULL connection name";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         activecontroller->gethostname(l_HostName);
@@ -3195,13 +3373,13 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         msgserver->addAttribute(txp::transferdefs, (const char*)msg->retrieveAttrs()->at(txp::transferdefs)->getDataPtr(), (uint64_t)(msg->retrieveAttrs()->at(txp::transferdefs)->getDataLength()), txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -3209,14 +3387,14 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
@@ -3224,6 +3402,11 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         if (!rc)
         {
             l_NumStoppedTransferDefs = ((txp::Attr_uint32*)msgserver->retrieveAttrs()->at(txp::numTransferDefs))->getData();
+        }
+        else
+        {
+            errorText << "Failure occurred on bbServer for the stop transfers request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
         }
         delete(msgserver);
         msgserver=NULL;
@@ -3233,7 +3416,7 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3250,14 +3433,9 @@ void msgin_stoptransfers(txp::Id id, const string& pConnectionName, txp::Msg* ms
         response->addAttribute(txp::numTransferDefs, l_NumStoppedTransferDefs);
     }
 
-    rc=sendMessage(pConnectionName,response);
+    sendMessage(pConnectionName,response);
     delete response;
     response=NULL;
-    if (rc)
-    {
-        errorText << "sendMessage to server failed";
-        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-    }
 
 #ifdef PROF_TIMING
     std::chrono::high_resolution_clock::time_point time_stop = std::chrono::high_resolution_clock::now();
@@ -3307,7 +3485,6 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Insert input/dft values into errstate...
         bberror << err("in.parms.hostname", l_HostNamePrt1) << err("in.dft.hostname", l_HostNamePrt2);
 
-
         // Switch to the uid/gid of requester.
         switchIds();
 
@@ -3324,13 +3501,13 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         msgserver->addAttribute(txp::hostname, hostname.c_str(), hostname.size()+1, txp::COPY_TO_HEAP);
 
         // Send the message to bbserver
-        rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
         delete msgserver;
         msgserver=NULL;
         if (rc)
         {
             errorText << "sendMessage to server failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Wait for the response
@@ -3338,18 +3515,20 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc)
         {
             errorText << "waitReply failure";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         if (!msgserver)
         {
             rc = -1;
             errorText << "waitReply failure - null message returned";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         // Process response data
         rc = bberror.merge(msgserver);
+        delete msgserver;
+        msgserver = NULL;
 
         if (rc == 0 || rc == -2)
         {
@@ -3359,16 +3538,17 @@ void msgin_suspend(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                 LOG(bb,info) << "Connection from the CN hostname " << l_HostNamePrt2 << " is now marked as suspended to the active bbServer";
             }
         }
-
-        delete msgserver;
-        msgserver = NULL;
-
+        else
+        {
+            errorText << "Failure occurred on bbServer for the suspend request";
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3469,6 +3649,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     char l_TransferType[64] = {'\0'};
     getStrFromTransferType(((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData(), l_TransferType, sizeof(l_TransferType));
     uint64_t l_SizeTransferred = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::sizetransferred))->getData();
+    char l_SizePhrase[64] = {'\0'};
 
     // NOTE: No processing to perform for a local cp transfer...
     if (!((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSDSSD))
@@ -3479,6 +3660,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
             (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS ||
             (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFSPFS)
         {
+            FileHandleRegistryLock();
+
             try
             {
                 // Remove source file (if open and not in progress for restart transfer)
@@ -3521,6 +3704,11 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                     break;
                 }
             }
+            catch(runtime_error& e)
+            {
+                rc = -1;
+                LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+            }
             catch(exception& e)
             {
                 rc = -1;
@@ -3536,6 +3724,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
             if ((((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetSSD ||
                 (((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData()) & BBI_TargetPFS)
             {
+                strCpy(l_SizePhrase, ", size transferred is ", sizeof(l_SizePhrase));
                 try
                 {
                     // Remove target file (if open)
@@ -3560,6 +3749,11 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                         }
                     }
                 }
+                catch(runtime_error& e)
+                {
+                    rc = -1;
+                    LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                }
                 catch(exception& e)
                 {
                     rc = -1;
@@ -3572,7 +3766,19 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                     fh = NULL;
                 }
             }
+            else
+            {
+                // Remote copy
+                strCpy(l_SizePhrase, ", remote size copied is ", sizeof(l_SizePhrase));
+            }
+
+            FileHandleRegistryUnlock();
         }
+    }
+    else
+    {
+        // Local copy
+        strCpy(l_SizePhrase, ", local size copied is ", sizeof(l_SizePhrase));
     }
 
     // Build the response message
@@ -3621,7 +3827,7 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for source file " << l_SourceFile << ", LV device " << l_DevName \
                  << ", jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", sourceindex " << l_SourceIndex \
                  << ", file status " << l_FileStatusStr << ", transfer type " << l_TransferType \
-                 << ", size transferred " << l_SizeTransferred;
+                 << l_SizePhrase << l_SizeTransferred;
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
 
@@ -3818,6 +4024,12 @@ void msgin_transfer_progress(txp::Id id, const string& pConnectionName, txp::Msg
     return;
 }
 
+
+
+//*****************************************************************************
+//  bbapi -> bbProxy - >bbServer requests (Server specific related operations)
+//*****************************************************************************
+
 void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -3850,7 +4062,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
         if (rc) {
             stringstream errorText;
             errorText << "The getbyservername request failed";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
         LOG(bb,info)<<"msgin_getserverbyname: l_query="<<l_query<<" serverName="<<serverName<<" waitforreplycount="<<count;
     }
@@ -3859,7 +4071,7 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
     {
         LOG(bb,always)<<"msgin_getserver: exception caught";
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3871,9 +4083,6 @@ void msgin_getserverbyname(txp::Id id, const string& pConnectionName, txp::Msg* 
     }
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
 }
 
@@ -3921,7 +4130,7 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                 if (rc) {
                     stringstream errorText;
                     errorText << "The getserver request failed for an invalid option="<<l_query;
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
                 break;
         }
@@ -3932,7 +4141,7 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     {
         LOG(bb,always)<<"msgin_getserver: exception caught";
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -3946,9 +4155,6 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     }
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
 }
 
@@ -3993,7 +4199,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             if (nowActive!=serverName)
             {
                 rc = makeActivebbserver(serverName);
-                bberror << err("inbbproxy.activeServerAfterActivate",connectionNameFromAlias());
+                bberror << err("inbbproxy.activeServerAfterActivate", connectionNameFromAlias());
                 if (!rc)
                 {
                     // Now register the known Burst Buffer logical volumes to the new bbServer.
@@ -4011,6 +4217,8 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                     //        using that 'registered' logical volume, just as if the 'real' create
                     //        logical volume were performed on the CN when the new bbServer was
                     //        already servicing the CN.
+                    LOG(bb,info) << "msgin_setserver(): " << l_DevNames.size() << " existing logical volume(s) found." \
+                                 << " An attempt to register each to the new server " << serverName << " will be attempted.";
                     for (size_t i=0; i<l_DevNames.size(); ++i)
                     {
                         Uuid l_lvuuid;
@@ -4037,32 +4245,115 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                                 msgserver->addAttribute(txp::option, (uint32_t)1);
 
                                 // Send the message to bbserver
-                                rc=sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+                                rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
                                 delete msgserver;
                                 msgserver = NULL;
                                 if (rc)
                                 {
                                     errorText << "sendMessage to server failed";
-                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                                 }
 
                                 // Wait for the response
                                 rc = waitReply(reply, msgserver);
-                                if (!rc)
-                                {
-                                    LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
-                                                 << " was registered to the new server for jobid " << l_LV_Data.jobid;
-                                }
-                                else
+                                if (rc)
                                 {
                                     errorText << "waitReply failure when processing device " << l_DevNames[i];
-                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText,rc);
+                                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
+                                }
+
+                                rc = bberror.merge(msgserver);
+                                switch (rc)
+                                {
+                                    case 0:
+                                    {
+                                        LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << " was registered to the new server for jobid " << l_LV_Data.jobid;
+                                    }
+                                    break;
+
+                                    case -2:
+                                    {
+                                        LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << ", registration was not necessary for jobid " << l_LV_Data.jobid << ". See bbServer console log for more information.";
+                                    }
+                                    break;
+
+                                    default:
+                                    {
+                                        errorText << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                  << ", registration failed for jobid " << l_LV_Data.jobid << ". See bbServer console log for more information." \
+                                                  << " Continuing to process additional devices...";
+                                        LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+                                    }
                                 }
 
                                 if (msgserver)
                                 {
                                     delete msgserver;
                                     msgserver = NULL;
+                                }
+
+                                if (!rc)
+                                {
+                                    if (l_LV_Data.rate)
+                                    {
+                                        txp::Msg::buildMsg(txp::BB_SETTHROTTLERATE, msgserver);
+                                        // NOTE:  The char array is copied to heap by addAttribute and the storage for
+                                        //        the logical volume uuid attribute is owned by the message facility.
+                                        //        Our copy can then go out of scope...
+                                        msgserver->addAttribute(txp::uuid, l_lvuuid_str, sizeof(l_lvuuid_str), txp::COPY_TO_HEAP);
+                                        msgserver->addAttribute(txp::rate, l_LV_Data.rate);
+
+                                        // Send the message to bbserver
+                                        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+                                        delete msgserver;
+                                        msgserver=NULL;
+                                        if (rc)
+                                        {
+                                            errorText << "sendMessage to server failed";
+                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                        }
+
+                                        // Wait for the response
+                                        rc = waitReply(reply, msgserver);
+                                        if (rc)
+                                        {
+                                            errorText << "waitReply failure";
+                                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                        }
+
+                                        rc = bberror.merge(msgserver);
+                                        switch (rc)
+                                        {
+                                            case 0:
+                                            {
+                                                LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                             << ", the throttle rate was set to " << l_LV_Data.rate;
+                                            }
+                                            break;
+
+                                            default:
+                                            {
+                                                errorText << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                          << ", jobid " << l_LV_Data.jobid << ", setting the throttle rate to " << l_LV_Data.rate \
+                                                          << " failed. See bbServer console log for more information." \
+                                                          << " Continuing to process additional devices...";
+                                                LOG_ERROR_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
+                                            }
+                                        }
+
+                                        if (msgserver)
+                                        {
+                                            delete msgserver;
+                                            msgserver = NULL;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        LOG(bb,info) << "msgin_setserver(): For device " << l_DevNames[i] << ", LVUuid " << l_lvuuid_str \
+                                                     << ", the throttle rate was zero. The trottle rate was not set on the new bbServer.";
+                                    }
                                 }
                             }
                             else
@@ -4076,30 +4367,31 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                         }
                         else
                         {
-                            rc = 0;
-                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] \
+                            errorText << "Could not determine the uuid of the logical volume associated with device " << l_DevNames[i] << ", rc " << rc \
                                       << ". The logical volume associated with this device will not be registered to the new bbServer." \
                                       << ". Processing continues for additional burst buffers logical volumes.";
-                            LOG_ERROR_TEXT(errorText);
+                            LOG_WARNING_TEXT_RC_AND_RAS(errorText, rc, bb.admin.failure);
                         }
+
+                        // Clear bberror for any 'tolerated' exceptions
+                        bberror.forceClear();
+                        rc = 0;
                     }
                 }
                 else
                 {
-                    stringstream errorText;
                     errorText << "The setserver request activate failed for serverName="<<serverName;
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
                 }
             }
         }
         else if (actionName=="offline")
         {
-            rc =takeActivebbserverOffline(serverName);
+            rc = takeActivebbserverOffline(serverName);
             if (rc)
             {
-                stringstream errorText;
                 errorText << "The setserver request offline failed for serverName="<<serverName;
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
         }
         else
@@ -4107,9 +4399,8 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=EINVAL;
             if (rc)
             {
-                stringstream errorText;
                 errorText << "The setserver request failed for an invalid action="<<actionName;
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
         }
     }
@@ -4117,7 +4408,7 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -4126,9 +4417,6 @@ void msgin_setserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     addReply(msg, response);
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
-    return;
-
-    EXIT(__FILE__,__FUNCTION__);
     return;
 }
 
@@ -4151,7 +4439,7 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=-1;
             stringstream errorText;
             errorText << "Root user or primary group required";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         string serverName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
@@ -4171,14 +4459,14 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         if (rc) {
             stringstream errorText;
             errorText << "The open request failed for the bbserver serverName="<<serverName;
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -4188,12 +4476,9 @@ void msgin_openserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
-
-    EXIT(__FILE__,__FUNCTION__);
-    return;
     }
 
-#define DELAY_SECONDS 120
+// #define DELAY_SECONDS 120
 void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -4212,7 +4497,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=-1;
             stringstream errorText;
             errorText << "Root user or primary group required";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
 
         string serverName = (const char*)msg->retrieveAttrs()->at(txp::hostname)->getDataPtr();
@@ -4234,10 +4519,15 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
             rc=EBUSY;
             stringstream errorText;
             errorText << "The bbserver is active for serverName="<<serverName;
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
         }
         else
         {
+#if 0
+        //  NOTE: We no longer delay prior to closing a non-active connection.  The restart logic now
+        //        requires that the restart of transfer definitions if performed before the resume for
+        //        the hostname.  All I/O activity for any files being serviced by the 'old server'
+        //        will be complete by the time the close is issued.
             //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all file closes are
             //         first processed from the 'old' server.  In the case of cancel/stop, we want to process
             //         all closes for those transfer definitions before the connection is closed.  Otherwise,
@@ -4267,13 +4557,13 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
                     usleep((useconds_t)1000000);    // Delay 1 second
                 }
             }
-
+#endif
             rc = closeConnectionFD(serverName);
             if (rc)
             {
                 stringstream errorText;
                 errorText << "The close request failed for the bbserver serverName="<<serverName;
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
             }
         }
 
@@ -4282,7 +4572,7 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
     }
 
     txp::Msg* response;
@@ -4292,10 +4582,11 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
     return;
-
-    EXIT(__FILE__,__FUNCTION__);
-    return;
 }
+// #undef DELAY_SECONDS
+
+
+
 //*****************************************************************************
 //  Main routines
 //*****************************************************************************
@@ -4465,7 +4756,7 @@ int doAuthenticate(const string& name){
     msg->addAttribute(txp::version, BBAPI_CLIENTVERSIONSTR, strlen(BBAPI_CLIENTVERSIONSTR)+1);
 
     // Send the message to bbserver
-    rc=sendMessage(name, msg, resp);
+    rc = sendMessage(name, msg, resp);
     delete msg;
     msg=NULL;
     if (rc)
@@ -4483,7 +4774,7 @@ int doAuthenticate(const string& name){
         << ", process_whoami=" << process_whoami.c_str() << ", process_instance=" << process_instance.c_str() \
         << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() << ", rc=" << rc;
         LOG_ERROR_TEXT_ERRNO(errorText, EINVAL);
-        LOG_RC_AND_RAS(rc, bb.net.authfailed);
+        SET_RC_AND_RAS(rc, bb.net.authfailed);
     }
 
     delete msg;

@@ -82,7 +82,7 @@ check_return_exit $? 0 "Test Case 1: Check Master status"
 sleep 5
 # Test Case 2: Check Compute is not active
 xdsh ${SINGLE_COMPUTE} "systemctl is-active csmd-compute" > ${TEMP_LOG} 2>&1
-check_return_exit $? 1 "Test Case 2: Check Compute is not active"
+check_return_flag_nz $? 1 "Test Case 2: Check Compute is not active"
 
 # Test Case 3: Check Compute log for VERSION MISTMATCH
 sleep 10

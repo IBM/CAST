@@ -16,9 +16,9 @@
 
 #--------------------------------------------------------------------------------
 #   usage:              Backup CSM DB related data, tables, triggers, functions, etc.
-#   current_version:    1.3
+#   current_version:    1.5
 #   created:            03-26-2018
-#   last modified:      02-15-2019
+#   last modified:      04-04-2019
 #--------------------------------------------------------------------------------
 
 #----------------------------------------------------------------
@@ -43,16 +43,19 @@ now=$(date '+%Y-%m-%d.%H.%M.%S.%N')
 
 script_name="csm_db_backup_script_v1.sh"
 
-line1_out="------------------------------------------------------------------------------------------------------------------------"
-line2_log="------------------------------------------------------------------------------------"
-line3_log="-------------------------------------------------------------------------------------------------------------------"
-line4_out="-------------------------------------------------------------------------------------------------------------"
+#---------------------------------------
+# Output formatter
+#---------------------------------------
+line1_out=$(printf "%0.s-" {1..120})
+line2_log=$(printf "%0.s-" {1..84})
+line3_log=$(printf "%0.s-" {1..115})
+line4_out=$(printf "%0.s-" {1..109})
 
 res1=$(date +%s.%N)
 
-#-------------------------------------------------------------------------------
+#---------------------------------------
 # Current user connected
-#-------------------------------------------------------------------------------
+#---------------------------------------
 
 current_user=`id -u -n`
 db_username="postgres"
@@ -188,25 +191,41 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
     LogMsg "[Start   ] Welcome to CSM datatbase backup process:"
     LogMsg "${line2_log}"
 
+#----------------------------------------------------------------
+# Check the status of the PostgreSQl server
+#----------------------------------------------------------------
+
+systemctl status postgresql > /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "[Info    ] Log Directory: $logfile"
+    echo "[Error   ] The PostgreSQL server: Is currently inactive and needs to be started"
+    echo "[Info    ] If there is an issue please run: systemctl status postgresql for more info."
+    LogMsg "[Error   ] The PostgreSQL server: Is currently inactive and needs to be started"
+    LogMsg "[Info    ] If there is an issue please run: systemctl status postgresql for more info."
+    LogMsg "${line2_log}"
+    LogMsg "[End     ] Exiting csm_db_backup_script_v1.sh script"
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
+    exit 0
+fi
+
 #-------------------------------------------------
 # Check if postgresql exists already and root user
 #-------------------------------------------------
-string1="$now1 ($current_user) [Info    ] DB Users:"
-    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
-        if [ $? -ne 0 ]; then
-            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-            \set ON_ERROR_STOP true
-            select string_agg(usename,' | ') from pg_user;
-EOF`
-            echo "$string1 $db_user_query" | sed "s/.\{40\}|/&\n$string1 /g" >> $logfile
-            echo "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
-            LogMsg "[Error   ] Postgresql may not be configured correctly. Please check configuration settings."
-            LogMsg "${line2_log}"
-            LogMsg "[End     ] Exiting csm_db_backup_script_v1.s script"
-            echo "${line1_out}"
-            echo "${line3_log}" >> $logfile
-            exit 0
-        fi
+root_query=`psql -qtA $db_username -c "SELECT usename FROM pg_catalog.pg_user where usename = 'root';" 2>&1`
+    if [ $? -ne 0 ]; then
+        echo "[Info    ] Log directory: $logdir/$logname"
+        echo "[Error   ] $root_query"
+        echo "$root_query" |& awk '/^psql:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+        echo "[Info    ] Postgresql may not be configured correctly. Please check configuration settings."
+        LogMsg "[Info    ] Postgresql may not be configured correctly. Please check configuration settings."
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting csm_db_backup_script_v1.sh script"
+        echo "${line1_out}"
+        echo "${line3_log}" >> $logfile
+        exit 0
+    fi
 
 #-------------------------------------------------
 # Check if postgresql exists already and DB name
@@ -279,8 +298,23 @@ EOF`
 # Query the DB for the schema version (used in backup file name)
 #----------------------------------------------------------------
 
-s_ver=`psql -U $db_username -d $dbname -t -c "SELECT version from csm_db_schema_version;"`
-trim=$(echo "$s_ver" | sed 's/^ //')
+s_ver=`psql -U $db_username -d $dbname -qt -c "SELECT version from csm_db_schema_version;" 2>&1`
+
+    #------ Check return code ------#
+    if [ $? -eq 0  ]; then
+        trim=$(echo "$s_ver" | sed 's/^ //')
+    else    
+        echo "[Info    ] Log directory: $logdir/$logname"
+        echo "[Error   ] Database schema version query failed for $dbname"
+        LogMsg "[Error   ] Database schema version query failed for $dbname"
+        echo "[Error   ] Db Message: $s_ver" | awk '{print $0; exit}'
+        echo "$s_ver" | awk '{print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0; exit}' >>"${logfile}"
+        echo "${line1_out}"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $script_name script"
+        echo "${line3_log}" >> $logfile
+        exit 1
+    fi
 
 #----------------------------------------------------------------
 # Query the DB for the connection count
@@ -315,10 +349,7 @@ if [ $conn_count == "0" ]; then
 
     [ "${data_dir: -1}" != "/" ] && data_dir="${data_dir}/"
         
-    #-----------------------------------
-    # Check to see if 'pv' is installed
-    #-----------------------------------
-
+    #------ Check to see if 'pv' is installed ------#
     FILE="/usr/bin/pv" 2>&1
         if [ -f $FILE ]; then
             pg_dump -U $db_username -Fc $dbname | pv -w 80 -F '[Info    ] Script Stats:                |  [%b] [%t] %r %a %e' > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
@@ -366,9 +397,7 @@ ds=$(echo "$dt3-60*$dm" | bc)
     printf "[Info    ] Timing:                      |  %d:%02d:%02d:%02.4f\n" $dd $dh $dm $ds
     LogMsg "[Info    ] Timing:                      | $dd:$dh:$dm:0$ds"
 
-    #-----------------------------------------
-    # Logging info based on connection status
-    #-----------------------------------------
+    #------ Logging info based on connection status ------#
     if [ $conn_count == "0"  ]; then
         echo "${line1_out}"
         echo "[End     ] Backup process complete"

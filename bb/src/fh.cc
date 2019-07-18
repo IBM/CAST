@@ -162,14 +162,14 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
     fl.contrib= contrib;
     fl.fileindex = index;
 
-    FileHandleRegistryLock();
+//    FileHandleRegistryLock();
 
     LOG(bb,debug) << "addFilehandle:  fh=" << fh << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index;
     {
         fhregistry[fl] = fh;
     }
 
-    FileHandleRegistryUnlock();
+//    FileHandleRegistryUnlock();
 
     return 0;
 }
@@ -231,7 +231,7 @@ int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t co
     fl.contrib = contrib;
     fl.fileindex = index;
 
-    FileHandleRegistryLock();
+//    FileHandleRegistryLock();
 
     {
         if(fhregistry.find(fl) != fhregistry.end())
@@ -244,7 +244,7 @@ int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t co
         }
     }
 
-    FileHandleRegistryUnlock();
+//    FileHandleRegistryUnlock();
 
     LOG(bb,debug) << "findFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
 
@@ -289,7 +289,7 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
     fl.contrib = contrib;
     fl.fileindex = index;
 
-    FileHandleRegistryLock();
+//    FileHandleRegistryLock();
 
     {
         if(fhregistry.find(fl) != fhregistry.end())
@@ -315,7 +315,7 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
         }
     }
 
-    FileHandleRegistryUnlock();
+//    FileHandleRegistryUnlock();
 
     LOG(bb,debug) << "removeFilehandle: fh=" << fh << " jobid=" << jobid << " handle=" << handle << " contribid=" << contrib << " index=" << index << " rc=" << rc;
 
@@ -550,7 +550,10 @@ protected:
     }
 
 public:
-    extentLookup_fiemap(const filehandle* fileh) : extentLookup(fileh) { };
+    extentLookup_fiemap(const filehandle* fileh) :
+        extentLookup(fileh),
+        numextents(0),
+        extents(NULL) { };
     virtual ~extentLookup_fiemap() { free(extents); };
 
     virtual int size(unsigned& numentries)
@@ -798,7 +801,11 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
             char buffer[1024];
             size_t remainder = len;
             memset(buffer,0,sizeof(buffer));
-            lseek(fd, start, SEEK_SET);
+            rc = lseek(fd, start, SEEK_SET);
+            if (rc)
+            {
+                throw runtime_error(string("lseek failed.  errno=") + to_string(errno));
+            }
             while(remainder > 0)
             {
                 rc = write(fd, buffer, MIN(sizeof(buffer), remainder));
@@ -836,7 +843,7 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
     LVLookup lookup;
     try
     {
-        rc = lookup.build(*this, vg);
+        rc = lookup.build(*this, vg, writing);
     }
     catch(exception& e)
     {

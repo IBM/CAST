@@ -18,6 +18,8 @@
 #include <map>
 #include <utility>
 
+#include "time.h"
+
 #include "bbinternal.h"
 #include "BBTagID.h"
 #include "bbwrkqe.h"
@@ -48,8 +50,8 @@ const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wr
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
 const int DEFAULT_RETRY_VALUE = 10;         // Default, retry value for fread, fwrite, fseek, and ftell
-const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 12;    // Default, if no activity, dump every hour
-const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 300.0;    // In seconds, default is to dump wrkqmgr every 5 minutes
+const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 60;    // Default, if no activity, dump every hour
+const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 60.0;    // In seconds, default is to dump wrkqmgr every minute
 
 const uint64_t DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL = 1000;
 const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
@@ -190,18 +192,20 @@ class HeartbeatEntry
 {
   public:
     HeartbeatEntry() :
-        count(0),
-        currentTime(""),
-        serverCurrentTime("") {
+        count(0)
+    {
+        currentTime = timeval {.tv_sec=0, .tv_usec=0};
+        serverCurrentTime = "";
     }
 
-    HeartbeatEntry(const uint64_t pCount, const string& pCurrentTime, const string& pServerCurrentTime) :
+    HeartbeatEntry(const uint64_t pCount, const struct timeval& pCurrentTime, const string& pServerCurrentTime) :
         count(pCount),
         currentTime(pCurrentTime),
         serverCurrentTime(pServerCurrentTime) {
     }
 
-    static string getHeartbeatCurrentTime();
+    static void getCurrentTime(struct timeval& pTime);
+    static string getHeartbeatCurrentTimeStr();
 
     inline uint64_t getCount()
     {
@@ -213,7 +217,7 @@ class HeartbeatEntry
         return serverCurrentTime;
     }
 
-    inline string getTime()
+    inline struct timeval getTime()
     {
         return currentTime;
     }
@@ -227,9 +231,11 @@ class HeartbeatEntry
 
     ~HeartbeatEntry() {};
 
+    int serverDeclaredDead(const uint64_t pAllowedNumberOfSeconds);
+
     uint64_t count;             // Incremented when ANY command is received
                                 // from a given bbServer.
-    string currentTime;         // Timestamp of when ANY command was last received
+    struct timeval currentTime; // Timestamp of when ANY command was last received
                                 // from a given bbServer.
     string serverCurrentTime;   // Timestamp provided by the reporting bbServer.
                                 // Only updated when a real heartbeat command
@@ -257,6 +263,10 @@ class WRKQMGR
         asyncRequestFileSeqNbr(0),
         numberOfAllowedSkippedDumpRequests(DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS),
         numberOfSkippedDumpRequests(0),
+        numberOfAllowedConcurrentCancelRequests(0),
+        numberOfConcurrentCancelRequests(0),
+        numberOfAllowedConcurrentHPRequests(0),
+        numberOfConcurrentHPRequests(0),
         dumpOnRemoveWorkItemInterval(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL),
         dumpTimerCount(0),
         heartbeatDumpCount(0),
@@ -276,9 +286,9 @@ class WRKQMGR
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
-            lockPinned = 0;
             checkForCanceledExtents = 0;
-            transferQueueLocked = 0;
+            lock_workQueueMgr = PTHREAD_MUTEX_INITIALIZER;
+            workQueueMgrLocked = 0;
         };
 
     /**
@@ -289,24 +299,6 @@ class WRKQMGR
     // Static data
 
     // Inlined static methods
-
-    inline static void post_multiple(const size_t pCount)
-    {
-        for (size_t i=0; i<pCount; i++)
-        {
-            WRKQMGR::post();
-        }
-//        verify();
-
-        return;
-    }
-
-    inline static void post()
-    {
-        sem_post(&sem_workqueue);
-
-        return;
-    }
 
     inline static void wait()
     {
@@ -320,6 +312,20 @@ class WRKQMGR
     inline int crossingAsyncFileBoundary(const uint64_t pOffset)
     {
         return (pOffset < MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 0 : 1);
+    }
+
+    inline void decrementNumberOfConcurrentCancelRequests()
+    {
+        --numberOfConcurrentCancelRequests;
+
+        return;
+    }
+
+    inline void decrementNumberOfConcurrentHPRequests()
+    {
+        --numberOfConcurrentHPRequests;
+
+        return;
     }
 
     inline int delayMessageSent()
@@ -362,11 +368,6 @@ class WRKQMGR
         return dumpTimerPoppedCount;
     }
 
-    inline size_t getNumberOfWorkQueues()
-    {
-        return wrkqs.size();
-    }
-
     inline void getOffsetToNextAsyncRequest(int &pSeqNbr, uint64_t &pOffset)
     {
         pSeqNbr = asyncRequestFileSeqNbr;
@@ -380,6 +381,26 @@ class WRKQMGR
         return lastDumpedNumberOfWorkQueueItemsProcessed;
     }
 
+    inline uint32_t getNumberOfAllowedConcurrentCancelRequests()
+    {
+        return numberOfAllowedConcurrentCancelRequests;
+    }
+
+    inline uint32_t getNumberOfAllowedConcurrentHPRequests()
+    {
+        return numberOfAllowedConcurrentHPRequests;
+    }
+
+    inline uint32_t getNumberOfConcurrentCancelRequests()
+    {
+        return numberOfConcurrentCancelRequests;
+    }
+
+    inline uint32_t getNumberOfConcurrentHPRequests()
+    {
+        return numberOfConcurrentHPRequests;
+    }
+
     inline uint64_t getNumberOfWorkQueueItemsProcessed()
     {
         return numberOfWorkQueueItemsProcessed;
@@ -388,18 +409,6 @@ class WRKQMGR
     inline string getServerLoggingLevel()
     {
         return loggingLevel;
-    }
-
-    inline size_t getSizeOfAllWorkQueues()
-    {
-        size_t l_TotalSize = 0;
-
-        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); qe++)
-        {
-            l_TotalSize += qe->second->getWrkQ_Size();
-        }
-
-        return l_TotalSize;
     }
 
     inline int getThrottleTimerCount()
@@ -417,6 +426,20 @@ class WRKQMGR
         return (HPWrkQE->getWrkQ_Size() == 0 ? 1 : 0);
     }
 
+    inline void incrementNumberOfConcurrentCancelRequests()
+    {
+        ++numberOfConcurrentCancelRequests;
+
+        return;
+    }
+
+    inline void incrementNumberOfConcurrentHPRequests()
+    {
+        ++numberOfConcurrentHPRequests;
+
+        return;
+    }
+
     inline void incrementNumberOfWorkItemsProcessed()
     {
         ++numberOfWorkQueueItemsProcessed;
@@ -428,23 +451,10 @@ class WRKQMGR
     {
         HPWrkQE->incrementNumberOfWorkItemsProcessed();
         lastOffsetProcessed = pOffset;
-
-        return;
-    };
-
-    inline void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
-    {
-        if (pWrkQE != HPWrkQE)
+        if (g_LogAllAsyncRequestActivity)
         {
-            // Not the high priority work queue.
-            // Simply, increment the number of work items processed.
-            pWrkQE->incrementNumberOfWorkItemsProcessed();
-        }
-        else
-        {
-            // For the high priority work queue, we have to manage
-            // how work items are recorded as being complete.
-            manageWorkItemsProcessed(pWorkItem);
+            LOG(bb,info) << "AsyncRequest -> incrementNumberOfHP_WorkItemsProcessed(): numberOfWorkQueueItemsProcessed " << HPWrkQE->getNumberOfWorkItemsProcessed() \
+                         << ", lastOffsetProcessed 0x" << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed << setfill(' ') << nouppercase << dec;
         }
 
         return;
@@ -512,7 +522,6 @@ class WRKQMGR
         return;
     }
 
-
     inline void setLastQueueWithEntries(LVKey pLVKey)
     {
         if (lastQueueWithEntries != pLVKey)
@@ -525,9 +534,37 @@ class WRKQMGR
         return;
     }
 
+    inline void setNumberOfAllowedConcurrentCancelRequests(const uint32_t pValue)
+    {
+        numberOfAllowedConcurrentCancelRequests = pValue;
+
+        return;
+    }
+
+    inline void setNumberOfAllowedConcurrentHPRequests(const uint32_t pValue)
+    {
+        numberOfAllowedConcurrentHPRequests = pValue;
+
+        return;
+    }
+
     inline void setNumberOfAllowedSkippedDumpRequests(const uint32_t pValue)
     {
         numberOfAllowedSkippedDumpRequests = pValue;
+
+        return;
+    }
+
+    inline void setNumberOfConcurrentCancelRequests(const uint32_t pValue)
+    {
+        numberOfConcurrentCancelRequests = pValue;
+
+        return;
+    }
+
+    inline void setNumberOfConcurrentHPRequests(const uint32_t pValue)
+    {
+        numberOfConcurrentHPRequests = pValue;
 
         return;
     }
@@ -561,14 +598,14 @@ class WRKQMGR
         return;
     }
 
-    inline bool transferQueueIsLocked()
+    inline bool workQueueMgrIsLocked()
     {
-        return (transferQueueLocked == pthread_self());
+        return (workQueueMgrLocked == pthread_self());
     }
 
     // Methods
     void addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId);
-    int addWrkQ(const LVKey* pLVKey, const uint64_t pJobId);
+    int addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
@@ -576,20 +613,29 @@ class WRKQMGR
     int createAsyncRequestFile(const char* pAsyncRequestFileName);
     void dump(const char* pSev, const char* pPrefix, DUMP_OPTION pOption=DUMP_ALWAYS);
     void dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPostfix);
+    void endProcessingHP_Request(AsyncRequest& pRequest);
     int findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset);
     void dumpHeartbeatData(const char* pSev, const char* pPrefix=0);
     int findWork(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest);
+    HeartbeatEntry* getHeartbeatEntry(const string& pHostName);
+    uint64_t getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
+    size_t getNumberOfWorkQueues();
+    size_t getSizeOfAllWorkQueues();
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem);
+    int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
-    void lock(const LVKey* pLVKey, const char* pMethod);
+    void lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
+    int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
-    void pinLock(const LVKey* pLVKey, const char* pMethod);
+    void post();
+    void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
-    void processThrottle(LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
+    void processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem);
     int rmvWrkQ(const LVKey* pLVKey);
     void setDumpTimerPoppedCount(const double pTimerInterval);
@@ -598,14 +644,18 @@ class WRKQMGR
     int setSuspended(const LVKey* pLVKey, const int pValue);
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
     void setThrottleTimerPoppedCount(const double pTimerInterval);
-    void unlock(const LVKey* pLVKey, const char* pMethod);
-    void unpinLock(const LVKey* pLVKey, const char* pMethod);
+    int startProcessingHP_Request(AsyncRequest& pRequest);
+    void unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
+    int unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod);
     void updateHeartbeatData(const string& pHostName);
     void updateHeartbeatData(const string& pHostName, const string& pServerTimeStamp);
     void verify();
     int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=FULL_MAINTENANCE);
 
     // Data members
+    //
+    // NOTE:  Unless otherwise noted, data member access is serialized
+    //        with the work queue manager lock (lock_workQueueMgr)
     int                 throttleMode;
     volatile int        throttleTimerCount;
     int                 throttleTimerPoppedCount;
@@ -616,29 +666,42 @@ class WRKQMGR
     volatile int        asyncRequestFileSeqNbr;
     uint32_t            numberOfAllowedSkippedDumpRequests;
     volatile uint32_t   numberOfSkippedDumpRequests;
+    uint32_t            numberOfAllowedConcurrentCancelRequests;
+    volatile uint32_t   numberOfConcurrentCancelRequests;       // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    uint32_t            numberOfAllowedConcurrentHPRequests;
+    volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     uint64_t            dumpOnRemoveWorkItemInterval;
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;
-    volatile int64_t    heartbeatTimerCount;
+    volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
-    int64_t             declareServerDeadCount;     // In seconds
+    int64_t             declareServerDeadCount;                 // In seconds
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
-    volatile uint64_t   offsetToNextAsyncRequest;
-    volatile uint64_t   lastOffsetProcessed;
+    volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile uint64_t   lastOffsetProcessed;                    // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     LVKey               lastQueueProcessed;
     LVKey               lastQueueWithEntries;
     string              loggingLevel;
 
     map<LVKey, WRKQE*>  wrkqs;
-    map<string, HeartbeatEntry> heartbeatData;
-    vector<uint64_t>    outOfOrderOffsets;
+    map<string, HeartbeatEntry> heartbeatData;  // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
+    vector<uint64_t>    outOfOrderOffsets;      // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
+    vector<string>      inflightHP_Requests;    // Access is serialized with the
+                                                // HPWrkQE transfer queue lock
   private:
-    int                 lockPinned;
     volatile int        checkForCanceledExtents;
-    pthread_t           transferQueueLocked;
+    pthread_mutex_t     lock_workQueueMgr;
+    pthread_t           workQueueMgrLocked;
 };
 
 #endif /* BB_BBWRKQMGR_H_ */

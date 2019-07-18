@@ -42,11 +42,9 @@ exit(0) if($::BB_SSD_MIN eq "");
 
 @STGOUT1 = ();
 push(@STGOUT1, $BB_STGOUT1_SCRIPT) if($BB_STGOUT1_SCRIPT ne "");
-push(@STGOUT1, "$bbtools::FLOOR/bb/scripts/stageout_user_phase1_bscfs.pl") if($ENV{"LSB_SUB_ADDITIONAL"} =~ /bscfs/);
 
 @STGOUT2 = ();
 push(@STGOUT2, $BB_STGOUT2_SCRIPT) if($BB_STGOUT2_SCRIPT ne "");
-push(@STGOUT2, "$bbtools::FLOOR/bb/scripts/stageout_user_phase2_bscfs.pl") if($ENV{"LSB_SUB_ADDITIONAL"} =~ /bscfs/);
 
 $exitstatus = 0;
 
@@ -65,6 +63,8 @@ sub phase1
 
     $BADEXITRC = $BADNONRECOVEXITRC;
     &setupUserEnvironment();
+    push(@STGOUT1, "$bbtools::FLOOR/bb/scripts/stageout_user_phase1_bscfs.pl") if(exists $ENV{"BSCFS_MNT_PATH"});
+
     foreach $bbscript (@STGOUT1)
     {
         bpost("BB: Calling the user stage-out phase1 script: $bbscript");
@@ -75,7 +75,11 @@ sub phase1
 
 sub phase2
 {
-    &bbwaitTransfersComplete();
+    $result = &bbwaitTransfersComplete();
+    if($result->{"rc"})
+        {   $rc=$result->{"rc"};
+            bpost("BB: Stage-out phase2 waitTransfersComplete() completed with rc $rc.", $::BPOSTMBOX + 1, $::LASTOUTPUT);
+        }
 }
 
 sub phase3
@@ -85,7 +89,8 @@ sub phase3
 
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageout2timeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageout2timeout"});
-
+    push(@STGOUT2, "$bbtools::FLOOR/bb/scripts/stageout_user_phase2_bscfs.pl") if(exists $ENV{"BSCFS_MNT_PATH"});
+    
     foreach $bbscript (@STGOUT2)
     {
         bpost("BB: Calling the user stage-out phase2 script: $bbscript");
@@ -104,14 +109,6 @@ sub phase4
         "  Stagein Status=" . $ENV{"LSF_STAGE_IN_STATUS"} . 
         "  JobExit=" . $ENV{"LSB_JOBEXIT_STAT"} . 
         "  Stage Status=" . $ENV{"LSF_STAGE_JOB_STATUS"});
-
-    if(($jobstatus =~ /DONE/) ||
-       ($jobstatus =~ /EXIT/))
-    {
-    	my $bbenvfile = getBBENVName();
-        bpost("BB: Removing envfile $bbenvfile.  Status=$jobstatus. Allocation ID=" . $ENV{"CSM_ALLOCATION_ID"});
-        unlink($bbenvfile);
-    }
     
     bpost("BB: Removing logical volume $BBPATH and metadata");
     

@@ -82,6 +82,9 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
                 else
                 {
                     rc = -2;
+                    stringstream errorText;
+                    errorText << "Not enough room in the buffer";
+                    SET_ERROR_TEXT_RC(errorText, rc);
                 }
             }
         }
@@ -207,8 +210,8 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                             if (handle.path().filename().string() == to_string(pHandle))
                             {
                                 rc = 0;
-                                pJobId = stoul(job.filename().string());
-                                pJobStepId = stoul(jobstep.path().filename().string());
+                                pJobId = stoull(job.filename().string());
+                                pJobStepId = stoull(jobstep.path().filename().string());
                                 break;
                             }
                         }
@@ -266,7 +269,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
 
-    pHandle = 0;
+    pHandle = UNDEFINED_HANDLE;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_GetHandle, "get handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
@@ -311,7 +314,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                                             if (!BBTagInfo::compareContrib(l_NumOfContribsInArray, l_ContribArray, pContrib))
                                             {
                                                 rc = 1;
-                                                pHandle = stoul(handle.path().filename().string());
+                                                pHandle = stoull(handle.path().filename().string());
                                             }
 
                                             delete[] l_ContribArray;
@@ -379,8 +382,8 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     int rc = 0;
     stringstream errorText;
 
-    pJobId = 0;
-    pJobStepId = 0;
+    pJobId = UNDEFINED_JOBID;
+    pJobStepId = UNDEFINED_JOBSTEPID;
     pNumberOfReportingContribs = 0;
     pHandleFile = 0;
     pContribIdFile = 0;
@@ -755,13 +758,11 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
     pHandleFile = NULL;
     HandleFile* l_HandleFile = new HandleFile();
 
-    struct timeval l_StartTime, l_StopTime;
+    struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
     bool l_AllDone = false;
     int l_Attempts = 0;
     int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
-
-    l_StartTime.tv_sec = 0; // resolve gcc optimizer complaint
 
     while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_HANDLEFILE_LOADTIME))
     {
@@ -770,6 +771,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFile
         ++l_Attempts;
         try
         {
+            LOG(bb,debug) << "Reading:" << pHandleFileName;
             ifstream l_ArchiveFile{pHandleFileName};
             text_iarchive l_Archive{l_ArchiveFile};
             l_Archive >> *l_HandleFile;
@@ -948,6 +950,20 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
                         handleFileLockFd = fd;
                         if (pLockFeedback)
                         {
+                            if (g_LockDebugLevel == "info")
+                            {
+                                LOG(bb,info) << " HNDLFL: LOCK <- Handle file " << l_ArchivePathWithName << ", fd " << fd \
+                                             << " locked. Local metadata locked: " << localMetadataIsLocked() << "  TrnsQ Locked: " \
+                                             << (transferQueueIsLocked() ? "true" : "false") \
+                                             << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
+                            }
+                            else
+                            {
+                                LOG(bb,debug) << " HNDLFL: LOCK <- Handle file " << l_ArchivePathWithName << ", fd " << fd \
+                                              << " locked. Local metadata locked: " << localMetadataIsLocked() << "  TrnsQ Locked: " \
+                                              << (transferQueueIsLocked() ? "true" : "false") \
+                                              << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
+                            }
                             *pLockFeedback = HANDLEFILE_WAS_LOCKED;
                         }
                     }
@@ -991,9 +1007,24 @@ int HandleFile::lock(const char* pFilePath)
     int rc = -2;
     int fd = -1;
     stringstream errorText;
-
     char l_LockFile[PATH_MAX] = {'\0'};
     snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
+
+    // Verify lock protocol
+    if (wrkqmgr.workQueueMgrIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFLock1, "HandleFile::lock: Attempting to lock a handle file while the work queue manager lock is held",0,0,0,0);
+        errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the work queue manager lock is held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf1)
+        endOnError();
+    }
+    if (!localMetadataIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFLock2, "HandleFile::lock: Attempting to lock a handle file while the metadata lock is not held",0,0,0,0);
+        errorText << "HandleFile::lock: Attempting to lock the handle file at " << l_LockFile << " while the metadata lock is not held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockhf2)
+        endOnError();
+    }
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
@@ -1048,9 +1079,10 @@ int HandleFile::lock(const char* pFilePath)
         break;
 
         default:
+        {
             // Successful lock...
-            LOG(bb,debug) << "lock(): Handle file " << l_LockFile << " locked, fd " << fd;
-            break;
+        }
+        break;
     }
 
     FL_Write(FLMetaData, HF_Lock_End, "lock HF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
@@ -1076,7 +1108,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         {
             if (BBSTATUS_AND(pMatchStatus, l_HandleFile->status) != BBNONE)
             {
-                pHandles.push_back(stoul(handle.path().filename().string()));
+                pHandles.push_back(stoull(handle.path().filename().string()));
             }
         }
 
@@ -1109,7 +1141,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
     snprintf(l_ArchivePathWithName, sizeof(l_ArchivePathWithName), "%s/%lu", l_ArchivePath, pHandle);
-    LOG(bb,debug) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
+    LOG(bb,info) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
     ofstream l_ArchiveFile{l_ArchivePathWithName};
     text_oarchive ha{l_ArchiveFile};
 
@@ -1169,7 +1201,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
-    LOG(bb,debug) << "saveHandleFile (passed): l_ArchiveName=" << l_ArchiveName;
+    LOG(bb,debug) << "saveHandleFile (existing):" << l_ArchiveName;
     ofstream l_ArchiveFile{l_ArchiveName};
     text_oarchive l_Archive{l_ArchiveFile};
 
@@ -1253,6 +1285,7 @@ int HandleFile::testForLock(const char* pFilePath)
 
         case -2:
         {
+            rc = -1;
             bberror << err("out.handlefilelocked", "Could not open");
             errorText << "Could not open handle file " << l_LockFile << " to test for file lock, errno=" << errno << ":" << strerror(errno);
             LOG_ERROR_TEXT_ERRNO(errorText, errno);
@@ -1280,6 +1313,23 @@ int HandleFile::testForLock(const char* pFilePath)
 
 void HandleFile::unlock(const int pFd)
 {
+    stringstream errorText;
+
+    // Verify lock protocol
+    if (wrkqmgr.workQueueMgrIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFUnlock1, "HandleFile::unlock: Attempting to lock a handle file while the work queue manager lock is held",0,0,0,0);
+        errorText << "HandleFile::lock: Attempting to unlock the handle file with fd " << pFd << " while the work queue manager lock is held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf1)
+        endOnError();
+    }
+    if (!localMetadataIsLocked())
+    {
+        FL_Write(FLError, lockPV_HFUnlock2, "HandleFile::unlock: Attempting to unlock a handle file while the metadata lock is not held",0,0,0,0);
+        errorText << "HandleFile::unlock: Attempting to unlock the handle file with fd " << pFd << " while the metadata lock is not held";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.unlockhf2)
+        endOnError();
+    }
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Unlock, "unlock HF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
 
@@ -1300,7 +1350,18 @@ void HandleFile::unlock(const int pFd)
             if (!rc)
             {
                 // Successful unlock...
-                LOG(bb,debug) << "unlock(): Handle file fd " << pFd << " unlocked";
+                if (g_LockDebugLevel == "info")
+                {
+                    LOG(bb,info) << " HNDLFL: UNLOCK <- Handle file fd " << pFd << " unlocked.  Local metadata locked: " \
+                                 << localMetadataIsLocked() << "  TrnsQ Locked: " << (transferQueueIsLocked() ? "true" : "false") \
+                                 << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
+                }
+                else
+                {
+                    LOG(bb,debug) << " HNDLFL: UNLOCK <- Handle file fd " << pFd << " unlocked.  Local metadata locked: " \
+                                  << localMetadataIsLocked() << "  Transfer queue locked: " << (transferQueueIsLocked() ? "true" : "false") \
+                                  << "  HPTrnsQ Locked: " << (HPWrkQE->transferQueueIsLocked() ? "true" : "false");
+                }
             }
             else
             {
@@ -1318,7 +1379,7 @@ void HandleFile::unlock(const int pFd)
     return;
 }
 
-int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue)
+int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue)
 {
     int rc = 0;
     stringstream errorText;
@@ -1327,6 +1388,8 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_UpdateFile, "update handle file, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleFile");
 
     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
     //       be updating simultaneously
@@ -1361,10 +1424,16 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
         if (!rc)
         {
-            // Update the handle status
-            // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
-            //        Performing the full scan will re-calculate the attribute value across all bbServers.
-            rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN));
+            // Only update the handle file status if the status could change
+            if ((!pValue) || pFlags & BB_UpdateHandleStatusMask2 || l_NewFlags & BB_UpdateHandleStatusMask3)
+            {
+                // Update the handle status
+                // NOTE:  If turning an attribute off, perform a FULL_SCAN when updating the handle status.
+                //        Performing the full scan will re-calculate the attribute value across all bbServers.
+                // NOTE:  We can unconditionally indicate that the number of contribs bump value is zero.
+                //        We never update the 'extents_enqueued' flag via this update_xbbServerHandleFile() interface.
+                rc = update_xbbServerHandleStatus(pLVKey, pJobId, pJobStepId, pHandle, pContribId, 0, 0, ((!pValue) ? FULL_SCAN : NORMAL_SCAN));
+            }
         }
     }
     else
@@ -1372,13 +1441,6 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
         errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", jobstepid " << pJobStepId  << ", handle " << pHandle;
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
-
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
 
     if (l_HandleFile)
     {
@@ -1395,10 +1457,21 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
                  l_FL_Counter, pHandle, rc, 0);
     }
 
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleFile");
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
+    }
+
     return rc;
 }
 
-int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption)
+int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int32_t pNumOfContribsBump, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption)
 {
     int rc = 0;
     stringstream errorText;
@@ -1407,6 +1480,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
               l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
 
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
@@ -1459,7 +1534,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             // and other status indications...
             uint64_t l_AllFilesClosed = 1;           // Optimistic coding...
             uint64_t l_AllExtentsTransferred = 1;    // Optimistic coding...
-            uint64_t l_NumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
+            uint64_t l_OrigNumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
             bool l_CanceledDefinitions = false;
             bool l_FailedDefinitions = false;
             bool l_StoppedDefinitions = false;
@@ -1507,10 +1582,6 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
                         }
                     }
-                    if (l_ExitEarly)
-                    {
-                        break;
-                    }
                 }
                 else
                 {
@@ -1530,7 +1601,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 }
             }
 
-            if (l_ScanOption == FULL_SCAN)
+            if (!l_ExitEarly)
             {
                 // Reset the appropriate attribute flags
                 l_HandleFile->flags &= BB_ResetHandleFileAttributesFlagsMask;
@@ -1540,22 +1611,20 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 {
                     l_HandleFile->flags |= BBTD_All_Extents_Transferred;
                 }
-                if (l_CanceledDefinitions)
+                if (l_AllFilesClosed)
                 {
-                    l_HandleFile->flags |= BBTD_Canceled;
-                }
-                if (l_FailedDefinitions)
-                {
-                    l_HandleFile->flags |= BBTD_Failed;
+                    l_HandleFile->flags |= BBTD_All_Files_Closed;
                 }
                 if (l_StoppedDefinitions)
                 {
                     l_HandleFile->flags |= BBTD_Stopped;
                 }
-                if (l_AllFilesClosed)
-                {
-                    l_HandleFile->flags |= BBTD_All_Files_Closed;
-                }
+            }
+
+            if (pNumOfContribsBump)
+            {
+                l_HandleFile->numReportingContribs += pNumOfContribsBump;
+                l_HandleFile->reportingContribs.push_back(pContribId);
             }
 
             if (!rc)
@@ -1571,7 +1640,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 //       state directly by the code setting an individual transfer definition as STOPPED.
                 if (!l_StoppedDefinitions)
                 {
-                    if (l_NumberOfHandleReportingContribs == l_HandleFile->numContrib)
+                    if (l_HandleFile->numReportingContribs == l_HandleFile->numContrib)
                     {
                         // All contributors have reported...
                         l_HandleFile->flags |= BBTI_All_Contribs_Reported;
@@ -1590,12 +1659,10 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             //       for the last extent.  It is turned on here as this is the only
                             //       place where we determine when all extents have been processed
                             //       across ALL bbServers associated with this handle.
-                            l_HandleFile->flags |= BBTD_All_Extents_Transferred;
                             if (l_AllFilesClosed)
                             {
                                 // All files have been marked as closed (but maybe not successfully,
                                 // but then those files are marked as BBFAILED...)
-                                l_HandleFile->flags |= BBTD_All_Files_Closed;
                                 if (!l_FailedDefinitions)
                                 {
                                     if (!l_CanceledDefinitions)
@@ -1625,7 +1692,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                     else
                     {
                         // Not all contributors have reported
-                        if (!l_NumberOfHandleReportingContribs)
+                        if (!l_HandleFile->numReportingContribs)
                         {
                             l_HandleFile->status = BBNOTSTARTED;
                         }
@@ -1647,9 +1714,21 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->totalTransferSize = (uint64_t)l_Size;
 
                 uint64_t l_EndingStatus = l_HandleFile->status;
-                if ( !(l_StartingTotalTransferSize == l_HandleFile->totalTransferSize && l_StartingFlags == l_HandleFile->flags && l_StartingStatus == l_EndingStatus) )
+                if ( !(pNumOfContribsBump == 0 && l_StartingTotalTransferSize == l_HandleFile->totalTransferSize && l_StartingFlags == l_HandleFile->flags && l_StartingStatus == l_EndingStatus) )
                 {
                     LOG(bb,info) << "xbbServer: For jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ":";
+                    if (pNumOfContribsBump)
+                    {
+                        if (l_OrigNumberOfHandleReportingContribs < l_HandleFile->numReportingContribs)
+                        {
+                            LOG(bb,info) << "           Number of reporting contributors increasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
+                        }
+                        else
+                        {
+                            LOG(bb,info) << "           Number of reporting contributors decreasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
+                        }
+                    }
+
                     if (l_StartingTotalTransferSize != l_HandleFile->totalTransferSize)
                     {
                         if (l_StartingTotalTransferSize < l_HandleFile->totalTransferSize)
@@ -1698,13 +1777,6 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
-
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
@@ -1718,6 +1790,17 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     {
         FL_Write(FLMetaData, HF_UpdateStatus_ErrEnd, "update handle status, counter=%ld, handle=%ld, rc=%ld",
                  l_FL_Counter, pHandle, rc, 0);
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleStatus");
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
     }
 
     return rc;
@@ -1743,6 +1826,8 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     int l_catch_count=10;
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
+
+    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
 
     // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
     //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
@@ -1862,18 +1947,23 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
         // bberror has already been filled in
     }
 
-    if (l_HandleFileName)
-    {
-        delete[] l_HandleFileName;
-        l_HandleFileName = 0;
-    }
-
     if (l_HandleFile)
     {
         l_HandleFile->close(l_LockFeedback);
 
         delete l_HandleFile;
         l_HandleFile = 0;
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
+    }
+
+    if (l_HandleFileName)
+    {
+        delete[] l_HandleFileName;
+        l_HandleFileName = 0;
     }
 
     FL_Write6(FLMetaData, HF_UpdateTransferKeys_End, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld, attempts=%ld, rc=%ld",

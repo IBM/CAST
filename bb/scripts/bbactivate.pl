@@ -140,11 +140,13 @@ GetOptions(
     "configtempl=s"   => \$CFG{"configtempl"},
     "nvmetempl=s"     => \$CFG{"nvmetempl"},
     "outputconfig=s"  => \$CFG{"outputconfig"},
+    "interfacename=s" => \$CFG{"interfacename"},
     "offload!"        => \$CFG{"useOffload"},
     "csm!"            => \$CFG{"useCSM"},
     "cn!"             => \$CFG{"bbProxy"},
     "server!"         => \$CFG{"bbServer"},
     "ln!"             => \$CFG{"bbcmd"},
+    "fvt!"            => \$CFG{"fvt"},
     "health!"         => \$CFG{"bbhealth"},
     "shutdown!"       => \$CFG{"shutdown"},
     "envdir=s"        => \$CFG{"envdir"},
@@ -152,13 +154,14 @@ GetOptions(
     "bscfswork=s"     => \$CFG{"bscfswork"},
     "sslcert=s"       => \$CFG{"sslcert"},
     "sslpriv=s"       => \$CFG{"sslpriv"},
+    "sharednode!"     => \$CFG{"sharednode"},
     "dryrun!"         => \$CFG{"dryrun"},
     "drypath=s"       => \$CFG{"drypath"},
     "scriptpath=s"    => \$SCRIPTPATH,
     "metadata=s"      => \$CFG{"metadata"},
     "skip=s"          => \$CFG{"skip"},
     "help!"           => \$showhelp
-);
+) or die("Invalid command line arguments\n");
 setDefaults();
 
 if($showhelp)
@@ -174,6 +177,7 @@ if(! isRoot())
     exit(99);
 }
 
+$ENV{"LVM_SUPPRESS_FD_WARNINGS"} = 1;
 getNodeName();
 
 if($CFG{"shutdown"})
@@ -187,6 +191,7 @@ makeConfigFile() if($CFG{"skip"} !~ /config/i);
 if($CFG{"bbServer"})
 {
     filterLVM()   if($CFG{"skip"} !~ /lvm/i);
+    clearNVMf()   if($CFG{"sharednode"} == 0);
     startServer() if($CFG{"skip"} !~ /start/i);
 }
 if($CFG{"bbcmd"})
@@ -216,6 +221,7 @@ sub setDefaults
     &def("nodelist",         1, "/etc/ibm/nodelist");
     &def("esslist",          1, "/etc/ibm/esslist");
     &def("outputconfig",     1, "/etc/ibm/bb.cfg");
+    &def("interfacename",    1, "ib0");
     &def("dryrun",           1, 0);
     &def("drypath",          1, "&STDOUT");
     &def("useOffload",       1, 0);
@@ -224,7 +230,9 @@ sub setDefaults
     &def("bbServer",         1, 0);
     &def("bbcmd",            1, 0);
     &def("bbhealth",         1, 1);
+    &def("fvt",              1, 0);
     &def("shutdown",         1, 0);
+    &def("sharednode",       1, 0);
     &def("sslcert",          1, "default");
     &def("sslpriv",          1, "default");
     &def("metadata",         1, "");
@@ -358,6 +366,10 @@ sub makeServerConfigFile
     {
         $json->{"bb"}{"bbserverMetadataPath"} = $CFG{"metadata"};
     }
+    if($CFG{"fvt"})
+    {
+        $json->{"bb"}{"server0"}{"devzerosize"} = 4294967296;
+    }
 }
 
 sub makeProxyConfigFile
@@ -454,12 +466,23 @@ sub makeProxyConfigFile
     delete $json->{"bb"}{"server0"} if(!$CFG{"bbServer"});
 }
 
+sub cacheRandomName
+{
+    my($nqn) = @_;
+    ($key) = $nqn =~ /(.*)#/;
+    $OLDSTATE{$key} = $nqn;
+}
+
 sub genRandomName
 {
+    my($name) = @_;
+    return $OLDSTATE{$name} if(exists $OLDSTATE{$name});
+    
     my $string;
     my @chars = ("a".."z", 0..9);
     $string .= $chars[rand @chars] for 1..16;
-    return $string;
+
+    return $name . "#" . $string;
 }
 
 sub configureNVMeTarget
@@ -500,13 +523,27 @@ sub configureNVMeTarget
     my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
     if($enabled =~ /1/)
     {
-        output("NVMe erer Fabrics target has already been configured");
-        return;
+        if($CFG{"sharednode"})
+        {
+            output("NVMe over Fabrics target has already been configured and the node is shared.  Skipping NVMe over Fabrics setup");
+            return;
+        }
+        output("NVMe over Fabrics target has already been configured.  Clearing potentially stale NVMe over Fabrics target configuration");
+
+        my $cleanup = 1;
+        $cleanup    = 0 if($CFG{"skip"} =~ /cleanup/);
+        my ($fh, $tmpname) = tempfile(SUFFIX => ".nvmet.json", UNLINK => $cleanup);
+        safe_cmd("nvmetcli save $tmpname");
+        my $oldnvmetjson = cat($tmpname);
+        $oldjson = decode_json($oldnvmetjson);
+        cacheRandomName($oldjson->{"hosts"}[0]{"nqn"});
+        cacheRandomName($oldjson->{"hosts"}[1]{"nqn"});
+        cmd("nvmetcli clear", 1);
     }
 
-    output("ipaddr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
-
-    my $ipaddr = safe_cmd("ip addr show dev ib0 | grep \"inet \"");
+    my $interfacename = $CFG{"interfacename"};
+    my $ipaddr = safe_cmd("ip addr show dev $interfacename | grep \"inet \"");
+    
     ($myip) = $ipaddr =~ /inet\s+(\S+?)\//;
 
     output("myip: $myip");
@@ -520,14 +557,23 @@ sub configureNVMeTarget
     $state = "enabled" if($CFG{"useOffload"});
     output("NVMe over Fabrics target offload is $state");
 
-    $json->{"hosts"}[0]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"servercfg"} . "#" . &genRandomName();
-    $json->{"hosts"}[1]{"nqn"} = $cfgfile->{"bb"}{"proxy"}{"backupcfg"} . "#" . &genRandomName();
+    $json->{"hosts"}[0]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"servercfg"});
     $json->{"subsystems"}[0]{"allowed_hosts"}[0] = $json->{"hosts"}[0]{"nqn"};
-    $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
+    if($cfgfile->{"bb"}{"proxy"}{"backupcfg"} ne "")
+    {
+        $json->{"hosts"}[1]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"backupcfg"});
+        $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
+    }
 
-    $json->{"ports"}[0]{"addr"}{"traddr"}               = $myip;
+    foreach $port (@{$json->{"ports"}})
+    {
+        $port->{"addr"}{"traddr"} = $myip;
+    }
+
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
     $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
+
+    output("My IP addr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
 
     my $jsonoo = JSON->new->allow_nonref->canonical;
     my $out    = $jsonoo->pretty->encode($json);
@@ -540,10 +586,20 @@ sub configureNVMeTarget
 
     if($CFG{"useOffload"})                                                        # workaround
     {
-        cmd("rm -f $configfs/nvmet/ports/1/subsystems/$nqn");
+        foreach $port (@{$json->{"ports"}})
+        {
+            my $portid = $port->{"portid"};
+            cmd("rm -f $configfs/nvmet/ports/$portid/subsystems/$nqn");
+        }
+
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/attr_offload");
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
-        cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/1/subsystems/$nqn");
+
+        foreach $port (@{$json->{"ports"}})
+        {
+            my $portid = $port->{"portid"};
+            cmd("ln -s $configfs/nvmet/subsystems/$nqn $configfs/nvmet/ports/$portid/subsystems/$nqn");
+        }
     }
     cmd("chmod o-rwx /sys/kernel/config/nvmet");  # ensure other users cannot read NVMet settings
 }
@@ -583,13 +639,19 @@ sub configureVolumeGroup
                 }
                 my $ismounted = safe_cmd("grep '$dmpath ' /proc/mounts", 1);
                 output("Mounted $vgname-$lvname at: $ismounted");
-                if($ismounted !~ /\S/)
+                if(($ismounted !~ /\S/) && ($lvname =~ /bb_/))
                 {
                     cmd("lvremove -f /dev/$vgname/$lvname");
                 }
             }
         }
     }
+}
+
+sub clearNVMf
+{
+    setprefix("Clearing NVMf connections: ");
+    cmd("nvme disconnect -n burstbuffer", 1);
 }
 
 sub startServer

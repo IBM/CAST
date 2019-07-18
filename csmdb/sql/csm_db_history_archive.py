@@ -36,6 +36,7 @@ import datetime
 from datetime import date
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
+from csm_db_rollup import  rollupDir
 
 DEFAULT_LOG='''/var/log/ibm/csm/db/csm_db_archive_script.log'''
 DEFAULT_TARGET='''/var/log/ibm/csm/archive'''
@@ -46,6 +47,19 @@ DEFAULT_THREAD_POOL=10
 
 # Additional Formatting style
 line1 = "---------------------------------------------------------------------------------------------------------"
+
+def sanitize_string(v):
+    return v.decode('utf-8', 'ignore')
+
+def sanitize_dict(d):
+  for k, v in d.iteritems():
+    if isinstance(v, dict):
+      d[k] = sanitize_dict(v)
+    elif isinstance(v, str):
+      d[k] = sanitize_string(v)
+    else:
+      d[k] = v
+  return d
 
 # username defined
 username = commands.getoutput("whoami")
@@ -168,11 +182,11 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     # Append the logs to the file.
     try:
         with open(file_name, 'a') as file:
-
             colnames = [desc[0] for desc in cursor.description]
             for row in cursor:
                 file.write('{{ "type":"db-{0}", "data":{1} }}\n'.format(
-                    table_name, json.dumps(dict(zip(colnames, row)), default=str)))
+                    table_name, json.dumps(sanitize_dict(dict(zip(colnames, row))), 
+                    default=str)))
     except Exception as e:
         print "[INFO] Exception caught: {0}".format(e)
         logger.info("Exception caught: {0}".format(e))
@@ -226,6 +240,13 @@ def main(args):
     # Verifies path exists.
     if not os.path.exists(args.target):
         os.makedirs(args.target)
+
+    # Make the temp directory for staging the tables for dumping.
+    # This is used before writing to mitigate potential data loss.
+    temp_dir = "{0}/tmp".format(args.target)
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+ 
     
     # Process the script detail info. for screen and logging.
     logging.info("DB Name:                           | {0}".format(args.db))
@@ -244,7 +265,7 @@ def main(args):
     
     pool = ThreadPool(int(args.threads))
 
-    tmp_list =  pool.map( lambda table: dump_table( args.db, args.user, table, args.count, args.target ), TABLES )
+    tmp_list =  pool.map( lambda table: dump_table( args.db, args.user, table, args.count, temp_dir ), TABLES )
     
     for entry in tmp_list:
         if entry is None:0
@@ -252,10 +273,13 @@ def main(args):
             print entry
     
     for table in RAS_TABLES:
-        entry = dump_table( args.db, args.user, table, args.count, args.target, True)
+        entry = dump_table( args.db, args.user, table, args.count, temp_dir, True)
         if entry is None:0
         else:
             print entry
+
+    # After the tables are dumped, it's time to merge them into the weekly report.
+    rollupDir(temp_dir,"..")
 
     # Process the finishing info. for screen and logging.
     ft = datetime.datetime.now()

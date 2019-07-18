@@ -91,7 +91,7 @@ class BBLV_ExtentInfo
     // Static methods
 
     // Non-static methods
-    int addExtents(const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* pTransferDef, vector<struct stat*>* pStats);
+    int addExtents(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo, BBTransferDef* pTransferDef, vector<struct stat*>* pStats);
     void addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo);
     void dump(const char* pSev, const char* pPrefix=0) const;
     void dumpExtents(const char* pSev, const char* pPrefix=0) const;
@@ -99,9 +99,11 @@ class BBLV_ExtentInfo
     Extent* getAnySourceExtent(const uint64_t pHandle, const uint32_t pContribId, const uint32_t pSourceIndex);
     Extent* getMaxInFlightExtent();
     Extent* getMinimumTrimExtent();
-    int moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight);
+    size_t getNumberOfTransferDefsWithOutstandingWorkItems();
+    int hasCanceledExtents();
+    int moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue=DO_NOT_DUMP_QUEUES_ON_VALUE);
     int moreExtentsToTransferForFile(const int64_t pHandle, const int32_t pContrib, const uint32_t pSourceIndex, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue=DO_NOT_DUMP_QUEUES_ON_VALUE);
-    int moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib);
+    int moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib, int pDumpQueuesOnValue=DO_NOT_DUMP_QUEUES_ON_VALUE);
     void removeExtent(const Extent* pExtent);
     void removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExtentInfo);
     void sendAllTransfersCompleteMsg(const string& pConnectionName, const LVKey* pLVKey);

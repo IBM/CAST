@@ -76,8 +76,8 @@ int BBIO_Regular::fstat(uint32_t pFileIndex, struct stat* pStats)
         LOG(bb,debug) << "BBIO_Regular(): fstat for " << fh->getfn() << ", file index " << pFileIndex;
         rc = fh->getstats(*pStats);
         FL_Write(FLXfer, BBIORegFstat, "pFileIndex=%ld fd=%ld rc=%ld errno=%ld",pFileIndex,fh->getfd(),rc,errno);
-        LOG(bb,info) << "BBIO_Regular::fstat(): " << fh->getfn() << ": st_dev=" << pStats->st_dev << ", st_mode=0" << std::oct << pStats->st_mode << std::dec \
-                     << ", st_size=" << pStats->st_size << ", errno=" << errno << ", rc=" << rc;
+        LOG(bb,debug) << "BBIO_Regular::fstat(): " << fh->getfn() << ": st_dev=" << pStats->st_dev << ", st_mode=0" << std::oct << pStats->st_mode << std::dec \
+                      << ", st_size=" << pStats->st_size << ", errno=" << errno << ", rc=" << rc;
     }
     else
     {
@@ -273,7 +273,7 @@ ssize_t BBIO_Regular::pread(uint32_t pFileIndex, char* pBuffer, size_t pMaxBytes
             errorText << "BBIO_Regular::pread: Read from PFS file failed, file index " << pFileIndex << ", max bytes to read " << pMaxBytesToRead << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
             LOG_ERROR_TEXT_ERRNO(errorText, errno);
-            LOG_RC_AND_RAS(bytesRead, bb.sc.pread.pfs);
+            SET_RC_AND_RAS(bytesRead, bb.sc.pread.pfs);
         }
     }
     else
@@ -282,7 +282,7 @@ ssize_t BBIO_Regular::pread(uint32_t pFileIndex, char* pBuffer, size_t pMaxBytes
         errorText << "BBIO_Regular::pread: Read from PFS file failed, file index " << pFileIndex << ", max bytes to read " << pMaxBytesToRead << ", offset " << pOffset << ", no file handle";
         bberror << err("error.fileindex", pFileIndex);
         LOG_ERROR_TEXT_ERRNO(errorText, errno);
-        LOG_RC_AND_RAS(bytesRead, bb.sc.pread.bbio);
+        SET_RC_AND_RAS(bytesRead, bb.sc.pread.bbio);
     }
 
     return bytesRead;
@@ -306,7 +306,7 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
             errorText << "BBIO_Regular::pwrite: Write to PFS file failed, file index " << pFileIndex << ", max bytes to write " << pMaxBytesToWrite << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
             LOG_ERROR_TEXT_ERRNO(errorText, errno);
-            LOG_RC_AND_RAS(bytesWritten, bb.sc.pwrite.pfs);
+            SET_RC_AND_RAS(bytesWritten, bb.sc.pwrite.pfs);
         }
     }
     else
@@ -315,7 +315,7 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
         errorText << "BBIO_Regular::pwrite: Write to PFS file failed, file index " << pFileIndex << ", max bytes to write " << pMaxBytesToWrite << ", offset " << pOffset << ", no file handle";
         bberror << err("error.fileindex", pFileIndex);
         LOG_ERROR_TEXT_ERRNO(errorText, errno);
-        LOG_RC_AND_RAS(bytesWritten, bb.sc.pwrite.bbio);
+        SET_RC_AND_RAS(bytesWritten, bb.sc.pwrite.bbio);
     }
 
     return bytesWritten;

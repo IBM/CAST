@@ -42,9 +42,10 @@ $::BPOSTMBOX = 120;
 exit(0) if($::BB_SSD_MIN eq "");
 
 my @cleanup = ();
-sub failureCleanAndExit()
+sub failureCleanAndExit
 {
-    bpost("BB stage-in failure detected, cleaning up");
+    my ($reason) = @_;
+    bpost("BB stage-in failure detected: $reason");
     foreach $cmd (reverse @cleanup)
     {
         print("BB stage-in failure cleanup: $cmd\n");
@@ -55,7 +56,6 @@ sub failureCleanAndExit()
 }
 
 @STGIN = ();
-push(@STGIN, "$bbtools::FLOOR/bb/scripts/stagein_user_bscfs.pl") if($ENV{"LSB_SUB_ADDITIONAL"} =~ /bscfs/);
 push(@STGIN, $BB_STGIN_SCRIPT) if($BB_STGIN_SCRIPT ne "");
 
 phase1() if($ARGV[0] == 1);
@@ -68,53 +68,68 @@ sub phase1()
     
     print "Creating mount point $BBPATH\n";
     $result = bbcmd("$TARGET_ALL mkdir --path=$BBPATH");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
-    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
+    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH") if(bbgetsuccess($result) > 0);
+    failureCleanAndExit("mkdir failed") if(bbgetrc($result) != 0);
     
     print "Changing mount point $BBPATH ownership to $JOBUSER\n";
     $result = bbcmd("$TARGET_ALL chown --path=$BBPATH --user=$JOBUSER --group=$JOBGROUP");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    failureCleanAndExit("chown failed") if(bbgetrc($result) != 0);
     
     print "Changing mode for mount point $BBPATH\n";
     $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    failureCleanAndExit("chmod failed") if(bbgetrc($result) != 0);
     
     print "Creating logical volume $BBPATH with size $BB_SSD_MIN\n";
     $result = bbcmd("$TARGET_ALL create --mount=$BBPATH --size=$BB_SSD_MIN");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
-    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
-    
-    print "Changing logical volume $BBPATH ownership to $JOBUSER\n";
-    $result = bbcmd("$TARGET_ALL chown --path=$BBPATH --user=$JOBUSER --group=$JOBGROUP");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
-    
-    print "Changing mode for logical volume $BBPATH\n";
-    $result = bbcmd("$TARGET_ALL chmod --path=$BBPATH --mode=0750");
-    failureCleanAndExit() if(bbgetrc($result) != 0);
+    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH") if(bbgetsuccess($result) > 0);
+    failureCleanAndExit("create LV failed") if(bbgetrc($result) != 0);
+
+    if(exists $::jsoncfg->{"bb"}{"cmd"}{"rate"})
+    {
+        my $rate = $::jsoncfg->{"bb"}{"cmd"}{"rate"};
+        print "Setting logical volume $BBPATH throttle rate to $rate\n";
+        $result = bbcmd("$TARGET_ALL setthrottle --mount=$BBPATH --rate=$rate");
+        failureCleanAndExit("Set LV throttle rate failed") if(bbgetrc($result) != 0);
+    }
+}
+
+sub phase2_failure
+{
+    open(FH,'>',$ENV{"BB_ERR_FILE"});
+    close(FH);
+    exit(0);
 }
 
 sub phase2
 {
-    $BADEXITRC = $BADNONRECOVEXITRC;
-    &setupUserEnvironment();
+    $rc = &setupUserEnvironment();
+    &phase2_failure() if($rc);
 
-    push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
-    push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
-    
+    if(exists $ENV{"BBTHROTTLERATE"})
+    {
+        my $rate = $ENV{"BBTHROTTLERATE"};
+        print "Setting logical volume $BBPATH throttle rate to $rate\n";
+        $result = bbcmd("$TARGET_ALL setthrottle --mount=$BBPATH --rate=$rate");
+        &phase2_failure() if(bbgetrc($result) != 0);
+    }
+
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageintimeout"});
+
+    unshift(@STGIN, "$bbtools::FLOOR/bb/scripts/stagein_user_bscfs.pl") if(exists $ENV{"BSCFS_MNT_PATH"});
 
     foreach $bbscript (@STGIN)
     {
         bpost("BB: Calling user stage-in script: $bbscript");
-        $rc = cmd("$bbscript 2>&1", $timeout, 1);
-        bpost("BB: User stage-in script exited with $rc", $::BPOSTMBOX + 1, $::LASTOUTPUT);
-        failureCleanAndExit() if($rc != 0);
+        $scriptrc = cmd("$bbscript 2>&1", $timeout, 1);
+        bpost("BB: User stage-in script exited with $scriptrc ", $::BPOSTMBOX + 1, $::LASTOUTPUT);
+        &phase2_failure() if($scriptrc != 0);
     }
 }
 
 sub phase3
-{    
+{
+    push(@cleanup, "$TARGET_NODE0 removejobinfo");
     push(@cleanup, "$TARGET_ALL rmdir --path=$BBPATH");
     push(@cleanup, "$TARGET_ALL remove --mount=$BBPATH");
     
@@ -130,9 +145,22 @@ sub phase3
             # Handles that haven't successfully started as user script errors.  
             # Failed or stuck-in-progress are potentially recoverable.
             $result    = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBNOTSTARTED");
-            $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
-            $BADEXITRC = $BADNONRECOVEXITRC if($numfailed > 0);
-            &failureCleanAndExit();
+            $numnotstarted = $result->{"0"}{"out"}{"numavailhandles"};
+            if($numnotstarted == $numfailed)
+            {
+                $BADEXITRC = $BADNONRECOVEXITRC;
+                &failureCleanAndExit("User script exited without starting a transfer on $numnotstarted handle(s)");
+            }
+            else
+            {
+                &failureCleanAndExit("$numfailed handles did not complete normally");
+            }
+        }
+        if( -e $ENV{"BB_ERR_FILE"})
+        {  
+            unlink $ENV{"BB_ERR_FILE"};
+            $BADEXITRC = $BADNONRECOVEXITRC;
+            &failureCleanAndExit("User script failed");
         }
     }
     else

@@ -226,9 +226,11 @@ struct csmi_allocation_t {
     char** compute_nodes; /**< List of nodes that participated in the allocation, size stored in @ref num_nodes. */
     csmi_allocation_history_t* history; /**< The history component of the allocation, if the allocation is active this will be **NULL**. */
     int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
+    csm_bool core_blink; /**< Flag for blinking allocation cores. */
     uint32_t num_allocations; /**< Number of allocations found. */
     csmi_allocation_t** allocations; /**< Active allocations found. */
-};
+} csmi_allocation_t;
+
 /**
  * @brief Defines the accounting values for a compute node.
  */

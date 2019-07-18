@@ -47,6 +47,7 @@ namespace bfs = boost::filesystem;
  *******************************************************************************/
 const uint32_t ARCHIVE_CONTRIBID_VERSION_1 = 1;
 const uint32_t ARCHIVE_CONTRIBID_VERSION_2 = 2;
+const uint32_t ARCHIVE_CONTRIBID_VERSION_3 = 3;
 
 
 /*******************************************************************************
@@ -135,6 +136,12 @@ public:
         pArchive & files;
         switch (objectVersion)
         {
+            case ARCHIVE_CONTRIBID_VERSION_3:
+            {
+                pArchive & newhostname;
+            }
+            // Intentionally falling through
+
             case ARCHIVE_CONTRIBID_VERSION_2:
             {
                 pArchive & hostname;
@@ -154,7 +161,7 @@ public:
 
     ContribIdFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_CONTRIBID_VERSION_2),
+        objectVersion(ARCHIVE_CONTRIBID_VERSION_3),
         uid(0),
         gid(0),
         tag(0),
@@ -163,11 +170,12 @@ public:
     {
         files = vector<FileData>();
         hostname = UNDEFINED_HOSTNAME;
+        newhostname = UNDEFINED_HOSTNAME;
     };
 
     ContribIdFile (BBTransferDef* pTransferDef) :
         serializeVersion(0),
-        objectVersion(ARCHIVE_CONTRIBID_VERSION_2) {
+        objectVersion(ARCHIVE_CONTRIBID_VERSION_3) {
         tag = pTransferDef->getTag();
         flags = 0;
         totalTransferSize = 0;
@@ -175,14 +183,19 @@ public:
         gid = pTransferDef->getGroupId();
         createFileData(files, pTransferDef);
         activecontroller->gethostname(hostname);
+        newhostname = UNDEFINED_HOSTNAME;
     };
 
     static int allExtentsTransferredButThisContribId(const uint64_t pHandle, const BBTagID& pTagId, const uint32_t pContribId);
     static int isStopped(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId);
+    static string isServicedBy(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid=0);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey* pLVKey, const bfs::path& pHandleFilePath, const uint32_t pContribId);
     static int loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& pNumHandleContribs, uint64_t& pNumLVUuidContribs, const bfs::path& pHandleFilePath, const uint32_t pContribId);
-    static int update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue=1);
+    static string toBeServicedBy(const BBJob pJob, const uint64_t pHandle, const uint32_t pContribId);
+    static int update_xbbServerContribIdFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId,
+                                             const ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION pAllowBumpOfReportingContribs, const HANDLEFILE_LOCK_OPTION pLockOption, const uint64_t pFlags, const int pValue=1);
+    static int update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerContribIdFileResetForRestart(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, ExtentInfo& pExtentInfo, const uint64_t pFlags, const int pValue=1);
     static int update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef* pTransferDef, uint64_t pHandle, uint32_t pContribId, Extent* pExtent, const uint64_t pFlags, const int pValue=1);
@@ -297,7 +310,8 @@ public:
 //               << ", oVrsn=" << objectVersion
         l_Line << hex << uppercase << " flags=0x" << flags << nouppercase << dec \
                << ", uid=" << uid << ", gid=" << gid \
-               << ", servicing hostname=" << hostname \
+               << ", current servicing hostname=" << hostname \
+               << ", new servicing hostname=" << newhostname \
                << ", totalTransferSize=" << totalTransferSize;
         if (files.size())
         {
@@ -381,7 +395,8 @@ public:
     uint64_t            flags;
     uint64_t            totalTransferSize;
     vector<FileData>    files;
-    string              hostname;   // Added for ARCHIVE_CONTRIBID_VERSION_2
+    string              hostname;       // Added for ARCHIVE_CONTRIBID_VERSION_2
+    string              newhostname;    // Added for ARCHIVE_CONTRIBID_VERSION_3
 };
 
 #endif /* BB_CONTRIBIDFILE_H_ */

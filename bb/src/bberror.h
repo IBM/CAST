@@ -158,6 +158,11 @@
     bberror << RAS(RASID); \
 }
 
+#define LOG_ERROR_TEXT_RAS_AND_BAIL(TEXT,RASID) { \
+    LOG(bb,error) << TEXT.str(); \
+    bberror << RAS(RASID) << bailout; \
+}
+
 #define LOG_ERROR_TEXT_ERRNO(TEXT,ERRNO) { \
     LOG(bb,error) << TEXT.str(); \
     bberror << err("error.errno", ERRNO) << err("error.strerror", strerror(ERRNO)); \
@@ -176,6 +181,12 @@
     bberror << err("error.text", TEXT.str()) << errloc(ERRNO) << RAS(RASID); \
 }
 
+#define LOG_ERROR_TEXT_ERRNO_RAS_AND_BAIL(TEXT,ERRNO,RASID) { \
+    LOG(bb,error) << TEXT.str(); \
+    bberror << err("error.errno", ERRNO) << err("error.strerror", strerror(ERRNO)); \
+    bberror << err("error.text", TEXT.str()) << errloc(ERRNO) << RAS(RASID) << bailout; \
+}
+
 #define LOG_ERROR_TEXT_RC_AND_BAIL(TEXT,RC) { \
     LOG(bb,error) << TEXT.str(); \
     bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
@@ -186,29 +197,103 @@
     bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID); \
 }
 
-#define LOG_ERROR_TEXT_RC_AND_RAS_AND_BAIL(TEXT,RC,RASID) { \
+#define LOG_ERROR_TEXT_RC_RAS_AND_BAIL(TEXT,RC,RASID) { \
     LOG(bb,error) << TEXT.str(); \
     bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID) << bailout; \
 }
 
-#define LOG_RC(RC) { \
-    bberror << errloc(RC); \
+#define LOG_INFO_TEXT(TEXT) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()); \
 }
 
-#define LOG_RC_AND_BAIL(RC) { \
-    bberror << errloc(RC) << bailout; \
+#define LOG_INFO_TEXT_RC(TEXT,RC) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC); \
 }
 
-#define LOG_RC_AND_RAS(RC,RASID) { \
-    bberror << errloc(RC) << RAS(RASID); \
+#define LOG_INFO_TEXT_AND_BAIL(TEXT) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << bailout; \
 }
 
-#define LOG_RC_AND_RAS_AND_BAIL(RC,RASID) { \
-    bberror << errloc(RC) << RAS(RASID) << bailout; \
+#define LOG_INFO_TEXT_RC_AND_BAIL(TEXT,RC) { \
+    LOG(bb,info) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
+}
+
+#define LOG_RAS(RASID) { \
+    bberror << RAS(RASID); \
+}
+
+#define LOG_RAS_AND_BAIL(RASID) { \
+    bberror << RAS(RASID) << bailout; \
+}
+
+#define LOG_WARNING_TEXT(TEXT) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()); \
+}
+
+#define LOG_WARNING_TEXT_RC(TEXT,RC) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC); \
+}
+
+#define LOG_WARNING_TEXT_RC_AND_RAS(TEXT,RC,RASID) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID); \
+}
+
+#define LOG_WARNING_TEXT_RC_RAS_AND_BAIL(TEXT,RC,RASID) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << RAS(RASID) << bailout; \
+}
+
+#define LOG_WARNING_TEXT_AND_BAIL(TEXT) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << bailout; \
+}
+
+#define LOG_WARNING_TEXT_RC_AND_BAIL(TEXT,RC) { \
+    LOG(bb,warning) << TEXT.str(); \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
 }
 
 #define LOOP_COUNT(FILE,FUNC,CRUMB) { \
     bberror.addIncr(FILE, FUNC, CRUMB, 1, 1); \
+}
+
+#define SET_ERROR_TEXT(TEXT) { \
+    bberror << err("error.text", TEXT.str()); \
+}
+
+#define SET_ERROR_TEXT_AND_BAIL(TEXT) { \
+    bberror << err("error.text", TEXT.str()) << bailout; \
+}
+
+#define SET_ERROR_TEXT_RC(TEXT,RC) { \
+    bberror << err("error.text", TEXT.str()) << errloc(RC); \
+}
+
+#define SET_ERROR_TEXT_RC_AND_BAIL(TEXT,RC) { \
+    bberror << err("error.text", TEXT.str()) << errloc(RC) << bailout; \
+}
+
+#define SET_RC(RC) { \
+    bberror << errloc(RC); \
+}
+
+#define SET_RC_AND_BAIL(RC) { \
+    bberror << errloc(RC) << bailout; \
+}
+
+#define SET_RC_AND_RAS(RC,RASID) { \
+    bberror << errloc(RC) << RAS(RASID); \
+}
+
+#define SET_RC_RAS_AND_BAIL(RC,RASID) { \
+    bberror << errloc(RC) << RAS(RASID) << bailout; \
 }
 
 #define UPDATE_TS(KEY) { \
@@ -229,6 +314,9 @@ const std::vector<std::string> KEYS_TO_REMAIN = {"dft",
                                                  "in",
                                                  "out",
                                                  "rc",
+                                                 "goodcount",
+                                                 "failcount",
+                                                 "voidcount",
                                                  "syscall"};
 
 
@@ -442,7 +530,7 @@ class BBHandler : public TSHandler
         {
         	char l_Buffer[20] = {'\0'};
 
-            timeval l_CurrentTime;
+            struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
             gettimeofday(&l_CurrentTime, NULL);
             unsigned long l_Micro = l_CurrentTime.tv_usec;
 

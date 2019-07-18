@@ -363,7 +363,9 @@ struct csmi_switch_inventory_record_t {
     char* serial_number;  /**< serial_number of the module. unique identifier. */
     char* severity;  /**< severity of the module according to the highest severity of related events. values: Info, Warning, Minor, Critical */
     char* status;  /**< current module status. valid values: ok, fault */
-};
+    char* type;  /**< The category of this piece of hardware inventory. For example: "FAN", "PS", "SYSTEM", or "MGMT". */
+    char* fw_version;  /**< The firmware version on this piece of inventory. */
+} csmi_switch_inventory_record_t;
 /**
  * @brief A switch ports record in the **csm_switch_ports** table of the CSM database.
  */
@@ -551,7 +553,31 @@ struct csm_ib_cable_query_input_t {
     int32_t offset; /**< SQL 'OFFSET' numeric value. API will ignore values less than 1.*/
     uint32_t serial_numbers_count; /**< Number of serial numbers to query on, size of @ref serial_numbers. */
     char** serial_numbers; /**< Listing of serial numbers to query the database for matches of, size defined by @ref serial_numbers_count. */
-};
+    uint32_t comments_count; /**< Number of comment strings to query on, size of @ref comment. */
+    char** comments; /**< Filter results of the database query to only include cables containing comments in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t guids_count; /**< Number of guid strings to query on, size of @ref guids. */
+    char** guids; /**< Filter results of the database query to only include cables containing guids in this list. API will search both 'guid_s1' and 'guid_s2' fields in 'csm_ib_cable' table. */
+    uint32_t identifiers_count; /**< Number of identifier strings to query on, size of @ref identifier. */
+    char** identifiers; /**< Filter results of the database query to only include cables containing identifiers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t lengths_count; /**< Number of length strings to query on, size of @ref length. */
+    char** lengths; /**< Filter results of the database query to only include cables containing lengths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t names_count; /**< Number of name strings to query on, size of @ref name. */
+    char** names; /**< Filter results of the database query to only include cables containing names in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t part_numbers_count; /**< Number of part_number strings to query on, size of @ref part_number. */
+    char** part_numbers; /**< Filter results of the database query to only include cables containing part_numbers in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t ports_count; /**< Number of port strings to query on, size of @ref ports. */
+    char** ports; /**< Filter results of the database query to only include cables containing ports in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' API will search both 'port_s1' and 'port_s2' fields in 'csm_ib_cable' table. */
+    uint32_t revisions_count; /**< Number of revision strings to query on, size of @ref revision. */
+    char** revisions; /**< Filter results of the database query to only include cables containing revisions in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t severities_count; /**< Number of severity strings to query on, size of @ref severity. */
+    char** severities; /**< Filter results of the database query to only include cables containing severities in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t types_count; /**< Number of type strings to query on, size of @ref type. */
+    char** types; /**< Filter results of the database query to only include cables containing types in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    uint32_t widths_count; /**< Number of width strings to query on, size of @ref width. */
+    char** widths; /**< Filter results of the database query to only include cables containing widths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
+    char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY serial_number ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY serial_number ASC NULLS LAST', [A] =  'ORDER BY serial_number DESC NULLS LAST', [b] = 'ORDER BY guid_s1 ASC NULLS LAST', [B] = 'ORDER BY guid_s1 DESC NULLS LAST', [c] = 'ORDER BY guid_s2 ASC NULLS LAST', [C] = 'ORDER BY guid_s2 DESC NULLS LAST', [d] = 'ORDER BY identifier ASC NULLS LAST', [D] = 'ORDER BY identifier DESC NULLS LAST', [e] = 'ORDER BY length ASC NULLS LAST', [E] = 'ORDER BY length DESC NULLS LAST', [f] = 'ORDER BY name ASC NULLS LAST', [F] = 'ORDER BY name DESC NULLS LAST', [g] = 'ORDER BY part_number ASC NULLS LAST', [G] = 'ORDER BY part_number DESC NULLS LAST', [h] = 'ORDER BY port_s1 ASC NULLS LAST', [H] = 'ORDER BY port_s1 DESC NULLS LAST', [i] = 'ORDER BY port_s2 ASC NULLS LAST', [I] = 'ORDER BY port_s2 DESC NULLS LAST', [j] = 'ORDER BY revision ASC NULLS LAST', [J] = 'ORDER BY revision DESC NULLS LAST', [k] = 'ORDER BY severity ASC NULLS LAST', [K] = 'ORDER BY severity DESC NULLS LAST', [l] = 'ORDER BY type ASC NULLS LAST', [L] = 'ORDER BY type DESC NULLS LAST', [m] = 'ORDER BY width ASC NULLS LAST', [M] = 'ORDER BY width DESC NULLS LAST' */
+} csm_ib_cable_query_input_t;
+
 /**
  * @brief A wrapper for the output of @ref csm_ib_cable_query.
  */

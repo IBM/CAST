@@ -97,12 +97,15 @@ CSMI_STRUCT_MEMBER(int16_t,  smt_mode,        BASIC,  ,    0, ) /**< The SMT Mod
 
 CSMI_VERSION_END(c703c5d9e28c017d906b605a44bda1d0)
 
-CSMI_VERSION_START(CSM_DEVELOPMENT)
+CSMI_VERSION_START(CSM_VERSION_1_6_0)
+CSMI_STRUCT_MEMBER(csm_bool, core_blink,BASIC,  , CSM_FALSE,       ) /**< Flag for blinking allocation cores. */
+CSMI_VERSION_END(4f4c576859996734eafc05a6f57e348f)
 
+CSMI_VERSION_START(CSM_DEVELOPMENT)
 CSMI_STRUCT_MEMBER( uint32_t, num_allocations, BASIC, , 0, ) /**< Number of allocations found. */
 CSMI_STRUCT_MEMBER( csmi_allocation_t**, allocations, ARRAY_STRUCT, num_allocations, NULL, csmi_allocation_t) /**< Additional allocations found, used in queries. */
-
 CSMI_VERSION_END()
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

@@ -1,5 +1,5 @@
-{ 
-  "bb" : 
+{
+  "bb" :
   {
       "devpath" :
       {
@@ -48,18 +48,18 @@
 	      "message" : "The connection ended.",
 	      "description" : "The connection to the remote ended."
 	  },
-          "nonSSLconnectAttemptFailed" :
-          {
-              "severity" : "WARNING",
-              "message" : "The bbproxy connection attempt to bbserver failed.",
-              "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
-          },
-          "SSLconnectAttemptFailed" :
-          {
-              "severity" : "WARNING",
-              "message" : "The bbproxy connection attempt to bbserver failed.",
-              "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
-          },
+      "nonSSLconnectAttemptFailed" :
+      {
+          "severity" : "WARNING",
+          "message" : "The bbproxy connection attempt to bbserver failed.",
+          "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
+      },
+      "SSLconnectAttemptFailed" :
+      {
+          "severity" : "WARNING",
+          "message" : "The bbproxy connection attempt to bbserver failed.",
+          "description" : "The connection attempt to bbserver by bbproxy failed.  Check the state of the bbserver or the configuration."
+      },
 	  "revent" :
 	  {
 	      "severity" : "WARNING",
@@ -89,11 +89,11 @@
 	      "severity" : "FATAL",
 	      "message" : "The X509 certificate verification failed.",
 	      "description" : "The certificate failed verification."
-	  }	  
+	  }
       },
       "cfgerr" :
       {
-	  "noconnectscript" : 
+	  "noconnectscript" :
 	  {
 	      "severity" : "FATAL",
 	      "message" : "Access failed to NVMf connection script.",
@@ -225,7 +225,7 @@
 	  "tw_4" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "An exception bailout wasthrown in transferExtent().",
+	      "message" : "An exception bailout was thrown in transferExtent().",
 	      "description" : "The transfer extent method could not process the transfer extent."
 	  },
 	  "tw_5" :
@@ -252,6 +252,12 @@
 	      "message" : "Method get_xbbServerHandleInfo() had an exception in looking for handle.",
 	      "description" : "Method get_xbbServerHandleInfo() had caught an exception and determined that a handle could not be found."
 	  },
+	  "removeinflight" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Failed when attempting to remove an entry fron an in-flight work queue.",
+	      "description" : "Failed when attempting to remove an entry fron an in-flight work queue."
+	  },
 	  "xferkeys" :
 	  {
 	      "severity" : "WARNING",
@@ -263,7 +269,160 @@
 	      "severity" : "WARNING",
 	      "message" : "The method update_xbbServerHandleTransferKeys() had an exception updating transfer keys for jobid.",
 	      "description" : "The method update_xbbServerHandleTransferKeys() had caught an exception and determined that the exception was for updating transfer keys for jobid."
+	  },
+      "lockprotocol" :
+      {
+	  "isswincwqe" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "issueWorkItem: No CurrentWrkQE pointer",
+	      "description" : "issueWorkItem: No CurrentWrkQE pointer"
+	  },
+	  "residual1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (1)",
+	      "description" : "verifyInitLockState:  Residual lock (1)"
+	  },
+	  "residual2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (2)",
+	      "description" : "verifyInitLockState:  Residual lock (2)"
+	  },
+	  "residual3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (3)",
+	      "description" : "verifyInitLockState:  Residual lock (3)"
+	  },
+	  "residual4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (4)",
+	      "description" : "verifyInitLockState:  Residual lock (4)"
+	  },
+	  "lockhf1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock a handle file.",
+	      "description" : "Lock protocol violation when attempting to lock a handle file."
+	  },
+	  "unlockhf1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock a handle file.",
+	      "description" : "Lock protocol violation when attempting to unlock a handle file."
+	  },
+	  "lockhf2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock a handle file.",
+	      "description" : "Lock protocol violation when attempting to lock a handle file."
+	  },
+	  "unlockhf2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock a handle file.",
+	      "description" : "Lock protocol violation when attempting to unlock a handle file."
+	  },
+	  "locklm1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (1).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (1)."
+	  },
+	  "unlocklm1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the local metadata (1).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (1)."
+	  },
+	  "locklm2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (2).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (2)."
+	  },
+	  "unlocklm2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to ununlock the local metadata (2).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (2)."
+	  },
+	  "locklm3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (3).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (3)."
+	  },
+	  "unlocklm3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the local metadata (3).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (3)."
+	  },
+	  "locklm4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the local metadata (4).",
+	      "description" : "Lock protocol violation when attempting to lock the local metadata (4)."
+	  },
+	  "unlocklm4" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the local metadata (4).",
+	      "description" : "Lock protocol violation when attempting to unlock the local metadata (4)."
+	  },
+	  "lockncwqe" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "lockTransferQueue: No CurrentWrkQE pointer.",
+	      "description" : "lockTransferQueue: No CurrentWrkQE pointer."
+	  },
+	  "unlockncwqe" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "unlockTransferQueue: No CurrentWrkQE pointer.",
+	      "description" : "unlockTransferQueue: No CurrentWrkQE pointer."
+	  },
+	  "locktq1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the transfer queue (1).",
+	      "description" : "Lock protocol violation when attempting to lock the transfer queue (1)."
+	  },
+	  "unlocktq1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the transfer queue (1).",
+	      "description" : "Lock protocol violation when attempting to unlock the transfer queue (1)."
+	  },
+	  "locktq2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the transfer queue (2).",
+	      "description" : "Lock protocol violation when attempting to lock the transfer queue (2)."
+	  },
+	  "unlocktq2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to unlock the transfer queue (2).",
+	      "description" : "Lock protocol violation when attempting to unlock the transfer queue (2)."
+	  },
+	  "lockwqm1" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the work queue manager (1).",
+	      "description" : "Lock protocol violation when attempting to lock the work queue manager (1)."
+	  },
+	  "lockwqm2" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the work queue manager (2).",
+	      "description" : "Lock protocol violation when attempting to lock the work queue manager (2)."
 	  }
+      }
       },
       "sc" :
       {
@@ -334,7 +493,7 @@
 	      }
 	  }
       },
-      "usage" : 
+      "usage" :
       {
 	  "writeThreshExceeded" :
 	  {
@@ -353,6 +512,15 @@
 	      "severity" : "WARNING",
 	      "message" : "The maximum RSS threshold has been reached.",
 	      "description" : "The maximum resident set size (RSS) in memory has exceeded the threshold."
+	  }
+      },
+      "admin" :
+      {
+	  "failure" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "An admin level command or API operation failed.",
+	      "description" : "An admin level command or API operation failed."
 	  }
       }
   }

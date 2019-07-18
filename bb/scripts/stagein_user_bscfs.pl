@@ -95,7 +95,7 @@ if ("$BSCFS_STGIN_LISTFILE" ne "") {
     chomp $CONTRIBS;
 
     $result = bbcmd("$TARGET_NODE0 gethandle --tag=1 --contrib=$CONTRIBS");
-    bbcmd("$TARGET_ALL copy --handle=$result->{'0'}{'out'}{'transferHandle'}" .
+    bbcmd("$TARGET_ALL_NOBCAST copy --handle=$result->{'0'}{'out'}{'transferHandle'}" .
 	  " --filelist=$PRESTAGE_TDEF");
 
     system("rm -f $PRESTAGE_TDEF");

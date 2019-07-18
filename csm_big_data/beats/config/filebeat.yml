@@ -1,24 +1,32 @@
 filebeat.inputs:
 - type: log
   enabled: true
+  close_removed: 1h
+  close_inactive: 1h
   paths:
     - /var/log/ibm/csm/csm_transaction.log.*
   tags: ["transaction"]
 
 - type: log
   enabled: true
+  close_removed: 1h
+  close_inactive: 1h
   paths:
     - /var/log/ibm/csm/csm_allocation_metrics.log.*
   tags: ["allocation","metrics"]
 
 - type: log 
   enabled: true
+  close_removed: 1h
+  close_inactive: 1h
   paths:
     - "/var/log/ibm/csm/archive/*.json"
   tags: ["archive"]
 
 - type: log 
   enabled: true
+  close_removed: 1h
+  close_inactive: 1h
   paths:
     - /var/log/ibm/csm/csm_ras_events.log
   tags: ["csm","ras"]
@@ -27,8 +35,8 @@ filebeat.config.modules:
   path: ${path.config}/modules.d/*.yml
   reload.enabled: false
 
-name: "master"
 
+name: "master"
 setup.kibana:
   host: _KIBANA_HOST_PORT_
 

@@ -31,11 +31,13 @@ private:
     int32_t     _SystemSMT;
     bool        _IRQAffinity;
     bool        _JitterMitigationEnabled;
+    bool        _CoreBlinkEnabled;
     std::string _SocketOrder;
 
 public:
     CSM_Jitter_Info():
         _MaxCoreIsolation(0), _SystemSMT(0), _IRQAffinity(true), _JitterMitigationEnabled(true),
+        _CoreBlinkEnabled(true),
         _SocketOrder("") {}
 
     void Init(
@@ -43,13 +45,15 @@ public:
             int32_t     maxCoreIsolation,
             int32_t     systemSMT,
             bool        irqAffinity,
-            bool        jitterMitigationEnabled) 
+            bool        jitterMitigationEnabled,
+            bool        coreBlinkEnabled) 
     {
         _MaxCoreIsolation = maxCoreIsolation;
         _SystemSMT        = systemSMT;
         _IRQAffinity      = irqAffinity;
         _SocketOrder      = socketOrder;
         _JitterMitigationEnabled = jitterMitigationEnabled;
+        _CoreBlinkEnabled = coreBlinkEnabled;
     }
 
     ~CSM_Jitter_Info() {}
@@ -59,6 +63,7 @@ public:
     int32_t     GetSystemSMT()     const { return _SystemSMT;        }
     bool        GetIRQAffinity()   const { return _IRQAffinity;      }
     bool        GetJitterMitigation()   const { return _JitterMitigationEnabled; }
+    bool        GetCoreBlink()   const { return _CoreBlinkEnabled;}
 
     std::string toString()
     {

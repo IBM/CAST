@@ -43,10 +43,11 @@ Attempt opening connection as user fails
     [Timeout]  10 minutes
     
     start job
-    Run as user
     
     # Not all ranks have a backup server defined.  Remove from ranklist for this test.
+    Run as root
     Use hosts with defined server  backup
+    Run as user
     
     # Connect/Disconnect
     Open connection  backup  -1
@@ -58,10 +59,11 @@ Attempt closing connection as user fails
     [Timeout]  10 minutes
 
     start job
-    Run as user
 
     # Not all ranks have a backup server defined.  Remove from ranklist for this test.
+    Run as root
     Use hosts with defined server  backup
+    Run as user
 
     # Connect/Disconnect
     Close connection  backup  -1

@@ -2,7 +2,7 @@
    
     csmd/src/daemon/src/csmi_request_handler/csmi_base.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -305,32 +305,34 @@ protected:
   /**
     \brief Create an error reply NetworkEvent at Master
     \note aEvent must be a NetworkEvent
-    
+
     \param[in] errcode The errcode needs to be added in the Message payload
     \param[in] errmsg The errmsg needs to be added in the Message payload
     \param[in] aEvent The request NetworkEvent. Will use its header and address to construct a valid reply.
-    
+
     \return Return the Error NetworkEvent if success. Nullptr if an error occurs
   */
   csm::daemon::NetworkEvent* CreateErrorEvent(const int errcode, const std::string& errmsg,
                     csm::network::MessageAndAddress &reqContent)
   {
-    
+
     // create a NetworkEvent with error info
     char *buf=nullptr;
     uint32_t bufLen = 0;
     buf = csmi_err_pack(errcode, errmsg.c_str(), &bufLen);
+    if( buf == nullptr )
+      buf = strdup("Errormsg Creation Failed.");
     uint8_t flags = CSM_HEADER_RESP_BIT | CSM_HEADER_ERR_BIT;
 
     csm::network::Message rspMsg;
     bool ret = CreateNetworkMessage(reqContent._Msg, buf, bufLen, flags, rspMsg);
     if (buf) free(buf);
-    
+
     csm::daemon::NetworkEvent *netEvent = nullptr;
     csm::network::Address_sptr rspAddress = CreateReplyAddress(reqContent.GetAddr().get());
     if ( ret && rspAddress) {
       csm::network::MessageAndAddress errContent ( rspMsg, rspAddress );
-      
+
       netEvent = new csm::daemon::NetworkEvent(errContent,
                             csm::daemon::EVENT_TYPE_NETWORK, nullptr);
     }
@@ -371,12 +373,16 @@ protected:
   csm::daemon::NetworkEvent* CreateErrorEvent(const int errcode, const std::string& errmsg,
                     const csm::daemon::CoreEvent& aEvent)
   {
-    const csm::daemon::NetworkEvent *ev = dynamic_cast<const csm::daemon::NetworkEvent *>( &aEvent );
-    csm::network::MessageAndAddress reqContent = ev->GetContent();
-    return CreateErrorEvent(errcode, errmsg, reqContent);
-    
+    if( isNetworkEvent( aEvent ) )
+    {
+      const csm::daemon::NetworkEvent *ev = dynamic_cast<const csm::daemon::NetworkEvent *>( &aEvent );
+      csm::network::MessageAndAddress reqContent = ev->GetContent();
+      return CreateErrorEvent(errcode, errmsg, reqContent);
+    }
+    LOG( csmd, error ) << "Invalid event type while creating error event.";
+    return nullptr;
   }
-  
+
   /**
     \brief Create a NetworkEvent with the original NetworkEvent and a list of string at Master
     \note The returned NetworkEvent has a multi-cast flag set and needs to interpret the data differently.
@@ -825,14 +831,19 @@ protected:
                                                                  const int aErrorCode,
                                                                  const std::string &aErrorText )
   {
-    csm::daemon::TimerContent timerData = dynamic_cast<const csm::daemon::TimerEvent *>( &aEvent )->GetContent();
-    const csm::daemon::NetworkEvent *request = dynamic_cast<const csm::daemon::NetworkEvent *>( aEvent.GetEventContext()->GetReqEvent() );
-    if( request == nullptr )
-      return nullptr;
+    if( isTimerEvent( aEvent ) )
+    {
+      csm::daemon::TimerContent timerData = dynamic_cast<const csm::daemon::TimerEvent *>( &aEvent )->GetContent();
+      const csm::daemon::NetworkEvent *request = dynamic_cast<const csm::daemon::NetworkEvent *>( aEvent.GetEventContext()->GetReqEvent() );
+      if( request == nullptr )
+        return nullptr;
 
-    csm::network::MessageAndAddress msgAddr = request->GetContent();
+      csm::network::MessageAndAddress msgAddr = request->GetContent();
 
-    return ( CreateErrorEvent( aErrorCode, aErrorText, msgAddr ) );
+      return ( CreateErrorEvent( aErrorCode, aErrorText, msgAddr ) );
+    }
+    LOG( csmd, error ) << "Invalid type while creating Timeout response.";
+    return nullptr;
   }
 
   /***********************************************************
@@ -1073,7 +1084,7 @@ protected:
 public:
 
   template<typename T>
-  static std::string ConvertToBytes(const T i_option)
+  static std::string ConvertToBytes(const T &i_option)
   {
     std::stringstream ss;
     boost::archive::text_oarchive oa(ss);

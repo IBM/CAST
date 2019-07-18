@@ -14,11 +14,12 @@
 #================================================================================
 
 # PPC_ARCH is set by default to P9 machines.
-# if P8, use the other define
-#
-#PPC_ARCH=compute_60,code=sm_60
+# if P8, use the define below:
+# PPC_ARCH=compute_60,code=sm_60
+
 PPC_ARCH=compute_70,code=sm_70
 gpu-health : gpu-health.cu
 	 nvcc -gencode arch=$(PPC_ARCH) -O3 --compiler-options "-O3 -fopenmp" gpu-health.cu -o gpu-health -lcublas
+
 clean :
 	rm -f gpu-health

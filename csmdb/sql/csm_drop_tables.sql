@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:             ./csm_db_script.sh <----- -e (drop all the csm_db tables)
---   current_version:   17.0
+--   current_version:   18.0
 --   create:            04-25-2015
---   last modified:     01-22-2019
+--   last modified:     05-08-2019
 --   log change:
+--      18.0 -          Moving this version to sync with DB schema version
 --      17.0 -          Moving this version to sync with DB schema version
 --      16.2 -          Moving this version to sync with DB schema version
 --      16.1 -          Moving this version to sync with DB schema version

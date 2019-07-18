@@ -356,7 +356,7 @@ class BBTransferDef
     void setJob();
 #if BBSERVER
     void setStopped(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
-    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, TRANSFER_QUEUE_RELEASED& pLockWasReleased);
+    int stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
 #endif
     void unlock();
 
@@ -476,6 +476,14 @@ class BBTransferDef
         SET_FLAG_AND_RETURN(BBTD_All_CN_CP_Transfers,pValue);
     }
 
+    inline void setAllExtentsTransferred(const int pValue=1) {
+        SET_FLAG_AND_RETURN(BBTD_All_Extents_Transferred,pValue);
+    }
+
+    inline void setAllFilesClosed(const int pValue=1) {
+        SET_FLAG_AND_RETURN(BBTD_All_Files_Closed,pValue);
+    }
+
     inline void setBSCFS_InRequest(const int pValue=1) {
         SET_FLAG_AND_RETURN(BBTD_BSCFS_In_Request,pValue);
     }
@@ -487,6 +495,10 @@ class BBTransferDef
     inline void setContribId(const uint32_t pContribId) {
         contribid = pContribId;
         return;
+    }
+
+    inline void setExtentsEnqueued(const int pValue=1) {
+        SET_FLAG_AND_RETURN(BBTD_Extents_Enqueued,pValue);
     }
 
     inline void setHostName(const string& pHostName) {

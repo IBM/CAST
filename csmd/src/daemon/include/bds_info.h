@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/bds_info.h
 
-  © Copyright IBM Corporation 2018. All Rights Reserved
+  © Copyright IBM Corporation 2018,2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -44,6 +44,8 @@ public:
     {
       _Hostname = "";
       _Port = "";
+      _Reconnect_interval_max = 0;
+      _Data_cache_expiration = 0;
     }
   }
 

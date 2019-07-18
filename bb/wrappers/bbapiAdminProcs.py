@@ -102,8 +102,8 @@ def sudo_RemoveDirectory(pEnv, pPathName):
     return IssueCmd(l_Cmd)
 
 def sudo_RemoveJobInfo(pEnv):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveJobInfo", "None")
+    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid %d --jobid_bump 0 --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid"]+pEnv["jobid_bump"], "RemoveJobInfo", "None")
     return IssueCmd(l_Cmd)
 
 def sudo_RemoveLogicalVolume(pEnv, pMountpoint):

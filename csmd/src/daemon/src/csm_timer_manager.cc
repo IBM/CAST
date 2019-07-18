@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csm_timer_manager.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -44,7 +44,10 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
 
     // if nothing to do, just wait for regular wakeup
     if( idle )
-      retry->AgainOrWait( false );
+    {
+      try { retry->AgainOrWait( false ); }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); break; }
+    }
     else
     {
       /* if there's a timer-event, set up an interruptable sleep
@@ -52,9 +55,12 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
        */
       csm::daemon::TimerContent content = tev->GetContent();
 
+      int64_t remaining = content.RemainingMicros();
       // uSleep does an interruptable sleep and returns true if we got interrupted
-      LOG( csmd, trace ) << "Setting timer to trigger in " << content.RemainingMicros() << "µs.";
-      bool interrupted = retry->uSleep( content.RemainingMicros() );
+      LOG( csmd, trace ) << "Setting timer to trigger in " << remaining << "µs.";
+      bool interrupted = false;
+      try { interrupted = retry->uSleep( remaining ); }
+      catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); throw csm::daemon::Exception("Fatal problem in timer mgr"); }
       // after returning from sleep, we better check if we still need to keep running
       if( ! aMgr->GetThreadKeepRunning() )
         break;
@@ -63,7 +69,7 @@ void TimerManagerMain( csm::daemon::EventManagerTimer *aMgr )
         // we got interrupted - means, there's another timer-event potentially earlier timer
         // or the main thread closes the jitter window (need to prevent any timer from waking up while it's closed
         // so we put the current event back into the timer queue and pretent that we're just all new...
-        LOG( csmd, trace ) << "Timer interrupted with " << content.RemainingMicros() << "µs remaining.";
+        LOG( csmd, trace ) << "Timer interrupted with " << remaining << "µs remaining.";
         timers->RestoreEvent( tev );
         continue;
       }
@@ -98,9 +104,11 @@ csm::daemon::EventManagerTimer::~EventManagerTimer()
   Freeze();   // make sure, there's no timer in sleep
 
   Unfreeze();   // allow the thread to run again...
-  _IdleRetryBackOff.WakeUp();   // or/and wake it up
+  try { _IdleRetryBackOff.WakeUp(); }  // or/and wake it up
+  catch ( csm::daemon::Exception &e ) { LOG( csmd, error ) << e.what(); }
   LOG( csmd, debug ) << "Exiting TimerMgr...";
-  _Thread->join();
+  try { _Thread->join(); }
+  catch ( ... ) { LOG( csmd, error ) << "Failure while joining timer mgr thread."; }
   LOG( csmd, info ) << "Terminating TimerMgr complete";
   delete _Thread;
 }

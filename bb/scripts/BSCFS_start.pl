@@ -49,10 +49,9 @@ $PRE_INSTALL_OPTION = "--pre_install_list $PRE_INSTALL_LIST" if(-r $PRE_INSTALL_
 
 $NODE=0;
 $NODE_COUNT = $#HOSTLIST_ARRAY+1;
+bpost("Starting BSCFS on $NODE_COUNT nodes");
 foreach $HOST (@HOSTLIST_ARRAY)
 {
-    bpost("Starting BSCFS on $HOST");
-    
     $env = "LSB_JOBID=$JOBID";
     
     my @args = ();
@@ -70,6 +69,26 @@ foreach $HOST (@HOSTLIST_ARRAY)
     push(@args, "--cleanup_list $CLEANUP_LIST.$NODE");
     push(@args, $PRE_INSTALL_OPTION);
     $cmd = join(" ", @args);
-    cmd("ssh $HOST \" $env $cmd \" 2>&1");
+    my $tmpfile = "/tmp/bscfs.$$.$HOST";
+    forkcmd("ssh $HOST \" $env $cmd \" &> $tmpfile");
+    $PIDMETA{$LASTPID}{"output"} = $tmpfile;
     $NODE++;
 }
+waitcmd();
+
+my $failcnt = 0;
+foreach $pid (keys %PIDMETA)
+{
+    my $rc = $PIDMETA{$pid}{"rc"};
+    if($rc ne "0")
+    {
+        bpost("BSCFS start failed w/ rc=$rc  cmd=" . $PIDMETA{$pid}{"cmd"}, 118, `cat $PIDMETA{$LASTPID}{"output"}`);
+        $failcnt++;
+    }
+    unlink($PIDMETA{$LASTPID}{"output"});
+}
+if($failcnt > 0)
+{
+    exit(-1)
+}
+bpost("BSCFS start complete");

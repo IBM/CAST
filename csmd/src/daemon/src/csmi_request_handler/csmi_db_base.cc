@@ -2,7 +2,7 @@
    
     csmd/src/daemon/src/csmi_request_handler/csmi_db_base.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -69,6 +69,11 @@ csm::daemon::NetworkEvent *CSMI_DB_BASE::CreateNetworkEventFromDBRespEvent(
   csm::daemon::DBRespEvent *dbevent = (csm::daemon::DBRespEvent *) &dbRespEvent;
   csm::db::DBRespContent dbResp = dbevent->GetContent();
   csm::daemon::CoreEvent *reqEvent = dbevent->GetEventContext()->GetReqEvent();
+  if( reqEvent == nullptr )
+  {
+    LOG( csmapi, error ) << _cmdName << "::CreateNetworkEventFromDBRespEvent(): DBResponse::_ReqEvent is null.";
+    return nullptr;
+  }
   if ( reqEvent && !isNetworkEvent(*reqEvent) )
   {
     LOG(csmapi, error) << _cmdName << "::CreateNetworkEventFromDBRespEvent(): Expected NetworkEvent in the DBResponse::_ReqEvent";
@@ -84,13 +89,13 @@ csm::daemon::NetworkEvent *CSMI_DB_BASE::CreateNetworkEventFromDBRespEvent(
   //dbRes has to be a non-null ptr and contains valid db result here
   if ( !GetTuplesFromDBResult(dbRes, tuples) )
     LOG(csmapi, error) << "CSMI_DB_BASE::CreateNetworkEventFromDBRespEvent: GetTuplesFromDBResult returned false";
- 
+
   // will call CreateByteArray anyway even if the tuples.size == 0
   // The CreateByteArray() has to make a call whether it still needs to put data
   // in the payload when tuples.size == 0
   char *buf=nullptr;
   uint32_t bufLen=0;
-  
+
 	// size_t answer = dbRes->GetNumOfAffectedRows();
 	// LOG(csmapi, error) << "===================================================================";
 	// puts("############################################################################");
@@ -98,18 +103,18 @@ csm::daemon::NetworkEvent *CSMI_DB_BASE::CreateNetworkEventFromDBRespEvent(
 	// if(answer == 0){
 		// puts("it's zero");
 	// }
-  
+
   int errcode = CreateByteArray(tuples, &buf, bufLen, compareDataForPrivateCheckRes);
 
   for (uint32_t i=0;i<tuples.size();i++) csm::db::DB_TupleFree(tuples[i]);
-    
+
   csm::daemon::NetworkEvent *replyEvent = CreateReplyNetworkEvent(buf, bufLen, *reqEvent, nullptr, errcode != CSMI_SUCCESS);
 
   LOG(csmapi, debug) << "CSMI_DB_BASE::CreateNetworkEventFromDBRespEvent(): NumTuples = " << tuples.size() << " errcode = " << errcode;
-  
+
   // free memory
   if (buf) free(buf);
-  
+
   // to-confirm: reqEvent is a shared pointer. No need to touch it..
   //delete reqEvent;
 

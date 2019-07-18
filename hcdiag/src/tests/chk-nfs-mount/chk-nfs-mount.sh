@@ -30,26 +30,34 @@ me=$(basename $0)
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $(basename $0) on $(hostname -s), machine type $model.\n"          
 
+[ $# -lt 2 ] && echo "usage: $0 filesystem protocol [ filesystem protocol ]" && exit 1
 count=0
-
-for fs in "$@"; do
-   timeout 30 ls $fs 1> /dev/null 2>&1
-   if [ $? -eq 0 ]; then
-       o=`findmnt -n -o FSTYPE $fs` 
-       if [ -n "$o" ]; then 
-          if [ `findmnt -n -o FSTYPE $fs` == "nfs" ]; then
-             echo "$fs mount is correct"
+fs=""
+fs_type=""
+for var in "$@"; do
+   [ -z "$fs" ] && fs=$var && continue
+   if [ -z "$fs_type" ]; then
+      fs_type=$var
+      timeout 30 ls $fs 1> /dev/null 2>&1
+      if [ $? -eq 0 ]; then
+          o=`findmnt -n -o FSTYPE $fs` 
+          if [ -n "$o" ]; then 
+             if [ `findmnt -n -o FSTYPE $fs` == "$fs_type" ]; then
+                echo "$fs is $fs_type"
+             else
+                echo "ERROR: $fs is $o, not $fs_type"
+                let count+=1
+             fi
           else
-             echo "ERROR: $fs mount is incorrect"
+             echo "ERROR: perhaps automount is not running?"
              let count+=1
           fi
-       else
-          echo "ERROR: perhaps automount is not running?"
-          let count+=1
-       fi
-   else
-      echo "ERROR: $fs is not mounted or hung"
-      let count+=1
+      else
+         echo "ERROR: $fs is not mounted or hung"
+         let count+=1
+      fi
+      fs=""
+      fs_type=""
    fi
 done
 
