@@ -1413,8 +1413,8 @@ int HandleFile::update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t p
 
         if (l_Flags != l_NewFlags)
         {
-            LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ":";
-            LOG(bb,info) << "           Handle flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+            LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ":";
+            LOG(bb,debug) << "           Handle flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
         }
 
         l_HandleFile->flags = l_NewFlags;
@@ -1714,7 +1714,10 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->totalTransferSize = (uint64_t)l_Size;
 
                 uint64_t l_EndingStatus = l_HandleFile->status;
-                if ( !(pNumOfContribsBump == 0 && l_StartingTotalTransferSize == l_HandleFile->totalTransferSize && l_StartingFlags == l_HandleFile->flags && l_StartingStatus == l_EndingStatus) )
+                if ( !(pNumOfContribsBump == 0 &&
+                     l_StartingTotalTransferSize == l_HandleFile->totalTransferSize &&
+                     l_StartingFlags == l_HandleFile->flags &&
+                     l_StartingStatus == l_EndingStatus) )
                 {
                     LOG(bb,info) << "xbbServer: For jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ":";
                     if (pNumOfContribsBump)
@@ -1743,7 +1746,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
 
                     if (l_StartingFlags != l_HandleFile->flags)
                     {
-                        LOG(bb,info) << "           Handle flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_HandleFile->flags << nouppercase << dec << ".";
+                        LOG(bb,debug) << "           Handle flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_HandleFile->flags << nouppercase << dec << ".";
                     }
 
                     if (l_StartingStatus != l_EndingStatus)

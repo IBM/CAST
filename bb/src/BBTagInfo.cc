@@ -980,8 +980,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
             SET_FLAG_VAR(l_ContribIdFileToProcess->flags, l_ContribIdFileToProcess->flags, BBTD_All_Files_Closed, 1);
             if (l_OriginalFileFlags != l_ContribIdFileToProcess->flags)
             {
-                LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileFlags << " to 0x" << l_ContribIdFileToProcess->flags << nouppercase << dec << ".";
+                LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                LOG(bb,debug) << "           ContribId flags changing from 0x" << hex << uppercase << l_OriginalFileFlags << " to 0x" << l_ContribIdFileToProcess->flags << nouppercase << dec << ".";
             }
         }
 
