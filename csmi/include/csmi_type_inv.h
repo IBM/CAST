@@ -365,7 +365,7 @@ struct csmi_switch_inventory_record_t {
     char* status;  /**< current module status. valid values: ok, fault */
     char* type;  /**< The category of this piece of hardware inventory. For example: "FAN", "PS", "SYSTEM", or "MGMT". */
     char* fw_version;  /**< The firmware version on this piece of inventory. */
-} csmi_switch_inventory_record_t;
+};
 /**
  * @brief A switch ports record in the **csm_switch_ports** table of the CSM database.
  */
@@ -576,8 +576,7 @@ struct csm_ib_cable_query_input_t {
     uint32_t widths_count; /**< Number of width strings to query on, size of @ref width. */
     char** widths; /**< Filter results of the database query to only include cables containing widths in this list. This field uses psql search of 'LIKE'. So add '%' to get partial matches. '%value%' */
     char order_by; /**< Used to alter 'ORDER BY'. API will ignore NULL values. Default to 'ORDER BY serial_number ASC NULLS LAST'. VALID VALUES: [a] = 'ORDER BY serial_number ASC NULLS LAST', [A] =  'ORDER BY serial_number DESC NULLS LAST', [b] = 'ORDER BY guid_s1 ASC NULLS LAST', [B] = 'ORDER BY guid_s1 DESC NULLS LAST', [c] = 'ORDER BY guid_s2 ASC NULLS LAST', [C] = 'ORDER BY guid_s2 DESC NULLS LAST', [d] = 'ORDER BY identifier ASC NULLS LAST', [D] = 'ORDER BY identifier DESC NULLS LAST', [e] = 'ORDER BY length ASC NULLS LAST', [E] = 'ORDER BY length DESC NULLS LAST', [f] = 'ORDER BY name ASC NULLS LAST', [F] = 'ORDER BY name DESC NULLS LAST', [g] = 'ORDER BY part_number ASC NULLS LAST', [G] = 'ORDER BY part_number DESC NULLS LAST', [h] = 'ORDER BY port_s1 ASC NULLS LAST', [H] = 'ORDER BY port_s1 DESC NULLS LAST', [i] = 'ORDER BY port_s2 ASC NULLS LAST', [I] = 'ORDER BY port_s2 DESC NULLS LAST', [j] = 'ORDER BY revision ASC NULLS LAST', [J] = 'ORDER BY revision DESC NULLS LAST', [k] = 'ORDER BY severity ASC NULLS LAST', [K] = 'ORDER BY severity DESC NULLS LAST', [l] = 'ORDER BY type ASC NULLS LAST', [L] = 'ORDER BY type DESC NULLS LAST', [m] = 'ORDER BY width ASC NULLS LAST', [M] = 'ORDER BY width DESC NULLS LAST' */
-} csm_ib_cable_query_input_t;
-
+};
 /**
  * @brief A wrapper for the output of @ref csm_ib_cable_query.
  */

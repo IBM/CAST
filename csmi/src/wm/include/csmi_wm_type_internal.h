@@ -104,9 +104,8 @@ struct csmi_allocation_mcast_context_t {
     csmi_allocation_gpu_metrics_t** gpu_metrics; /**< Detailed gpu metrics for each node */
     int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
     csm_bool core_blink; /**< Flag for blinking allocation cores. */
-} csmi_allocation_mcast_context_t;
-
-/**  @brief Serializes the supplied structure into a char buffer.
+};
+ /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
 * @param[out] buf        Contains the structure as char buffer.
@@ -159,7 +158,7 @@ struct csmi_allocation_mcast_payload_request_t {
     int64_t runtime; /**< The run time of the allocation so far. */
     int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
     csm_bool core_blink; /**< Flag for blinking allocation cores. */
-} csmi_allocation_mcast_payload_request_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.

@@ -228,9 +228,8 @@ struct csmi_allocation_t {
     int16_t smt_mode; /**< The SMT Mode of the allocation. 0 - all cores, 1+ - smt_mode cores, <0 use system default. */
     csm_bool core_blink; /**< Flag for blinking allocation cores. */
     uint32_t num_allocations; /**< Number of allocations found. */
-    csmi_allocation_t** allocations; /**< Active allocations found. */
-} csmi_allocation_t;
-
+    csmi_allocation_t** allocations; /**< Additional allocations found, used in queries. */
+};
 /**
  * @brief Defines the accounting values for a compute node.
  */

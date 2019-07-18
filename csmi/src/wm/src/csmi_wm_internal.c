@@ -85,16 +85,6 @@ const csmi_struct_node_t csmi_allocation_tree[63] = {{"allocation_id",offsetof(c
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
 {NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
-{NULL,0,0,NULL,0,0},
 {"user_group_id",offsetof(csmi_allocation_t,user_group_id),0,NULL,0xb690441c,36},
 {"user_name",offsetof(csmi_allocation_t,user_name),0,NULL,0xc029f5a4,4},
 {"user_flags",offsetof(csmi_allocation_t,user_flags),0,NULL,0xc4ddbbf0,4},
@@ -754,7 +744,6 @@ const csmi_struct_mapping_t map_csmi_allocation_gpu_metrics_t= {
     csmi_allocation_gpu_metrics_tree,
     cast_csmi_allocation_gpu_metrics_t
 };
-
 
 const csmi_struct_node_t csmi_allocation_mcast_context_tree[54] = {{"allocation_id",offsetof(csmi_allocation_mcast_context_t,allocation_id),0,NULL,0x99d3da77,40},
 {"num_gpus",offsetof(csmi_allocation_mcast_context_t,num_gpus),0,NULL,0x338e5253,36},
