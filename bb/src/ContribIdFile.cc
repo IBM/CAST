@@ -537,8 +537,8 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
 
                 if (l_Flags != l_NewFlags)
                 {
-                    LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                    LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+                    LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                    LOG(bb,debug) << "           ContribId flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
                 }
 
                 l_ContribIdFile->flags = l_NewFlags;
@@ -759,8 +759,8 @@ int ContribIdFile::update_xbbServerContribIdFileResetForRestart(const LVKey* pLV
 
             if (l_Flags != l_NewFlags)
             {
-                LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+                LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                LOG(bb,debug) << "           ContribId flags changing from 0x" << hex << uppercase << l_Flags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
             }
 
             l_ContribIdFile->flags = l_NewFlags;
@@ -993,18 +993,18 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 
                     if ((l_ContribIdFlags != l_NewContribIdFlags) || (l_IncomingFlags != l_NewFlags) || (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize))
                     {
-                        LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":";
+                        LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":";
                         if (l_ContribIdFlags != l_NewContribIdFlags)
                         {
-                            LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_ContribIdFlags << " to 0x" << l_NewContribIdFlags << nouppercase << dec << ".";
+                            LOG(bb,debug) << "           ContribId flags changing from 0x" << hex << uppercase << l_ContribIdFlags << " to 0x" << l_NewContribIdFlags << nouppercase << dec << ".";
                         }
                         if (l_IncomingFlags != l_NewFlags)
                         {
-                            LOG(bb,info) << "           File flags changing from 0x" << hex << uppercase << l_IncomingFlags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+                            LOG(bb,debug) << "           File flags changing from 0x" << hex << uppercase << l_IncomingFlags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
                         }
                         if (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize)
                         {
-                            LOG(bb,info) << "           ContribId transferred size changing from " << l_IncomingTransferSize << " to " << l_ContribIdFile->totalTransferSize << ".";
+                            LOG(bb,debug) << "           ContribId transferred size changing from " << l_IncomingTransferSize << " to " << l_ContribIdFile->totalTransferSize << ".";
                         }
 
                         // Save the contribid file
@@ -1123,8 +1123,10 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
                     //        in the rebuilt transfer definition.  It is not needed
                     //        as part of any restart transfer definition processing.
                     //        It will be zero.
-                    l_Size += (int64_t)(pRebuiltTransferDef->sizeTransferred[i*2]);
-                    pRebuiltTransferDef->sizeTransferred[i*2] = 0;
+                    // NOTE:  Nor do be preserve the read/write operation stats
+                    pRebuiltTransferDef->sizeTransferred[i] = 0;
+                    pRebuiltTransferDef->readOperations[i] = make_pair(0,0);
+                    pRebuiltTransferDef->writeOperations[i] = make_pair(0,0);
                     uint16_t l_BundleId = BBFileBundleIDFromFlags(l_File->flags);
                     if (l_BundleId)
                     {
@@ -1150,8 +1152,10 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
                             //        in the rebuilt transfer definition.  It is not needed
                             //        as part of any restart transfer definition processing.
                             //        It will be zero.
-                            l_Size += (int64_t)(pRebuiltTransferDef->sizeTransferred[i*2]);
-                            pRebuiltTransferDef->sizeTransferred[i*2] = 0;
+                            // NOTE:  Nor do be preserve the read/write operation stats
+                            pRebuiltTransferDef->sizeTransferred[i] = 0;
+                            pRebuiltTransferDef->readOperations[i] = make_pair(0,0);
+                            pRebuiltTransferDef->writeOperations[i] = make_pair(0,0);
                             LOG(bb,info) << "xbbServer: Flags and size transferred reset prior to restart for " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << i*2;
                         }
                     }
@@ -1245,8 +1249,10 @@ int ContribIdFile::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
     }
 
 //    l_TransferDef->keyvalues = keyvalues;     // \todo - Not sure to include all keys or no keys...
-    l_TransferDef->iomap = map<uint16_t, BBIO*>();      // No BBIO objects
-    l_TransferDef->sizeTransferred = vector<size_t>();  // No transfer sizes
+    l_TransferDef->iomap = map<uint16_t, BBIO*>();          // No BBIO objects
+    l_TransferDef->sizeTransferred = vector<size_t>();      // No transfer sizes
+    l_TransferDef->readOperations = vector<IO_Stats>();     // No read operation stats
+    l_TransferDef->writeOperations = vector<IO_Stats>();    // No write operation stats
 
     l_TransferDef->setBuiltViaRetrieveTransferDefinition();
 

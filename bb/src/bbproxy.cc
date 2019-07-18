@@ -3649,6 +3649,10 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     char l_TransferType[64] = {'\0'};
     getStrFromTransferType(((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::flags))->getData(), l_TransferType, sizeof(l_TransferType));
     uint64_t l_SizeTransferred = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::sizetransferred))->getData();
+    uint64_t l_ReadCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::readcount))->getData();
+    uint64_t l_ReadTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::readtime))->getData();
+    uint64_t l_WriteCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writecount))->getData();
+    uint64_t l_WriteTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writetime))->getData();
     char l_SizePhrase[64] = {'\0'};
 
     // NOTE: No processing to perform for a local cp transfer...
@@ -3827,7 +3831,9 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for source file " << l_SourceFile << ", LV device " << l_DevName \
                  << ", jobid " << l_JobId << ", handle " << l_Handle << ", contribid " << l_ContribId << ", sourceindex " << l_SourceIndex \
                  << ", file status " << l_FileStatusStr << ", transfer type " << l_TransferType \
-                 << l_SizePhrase << l_SizeTransferred;
+                 << l_SizePhrase << l_SizeTransferred << " bytes, read count/cumulative time " \
+                 << l_ReadCount << "/" << (double)l_ReadTime/(double)g_TimeBaseScale << " seconds, write count/cumulative time " \
+                 << l_WriteCount << "/" << (double)l_WriteTime/(double)g_TimeBaseScale << " seconds";
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
 
