@@ -23,6 +23,7 @@ extern int   proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage);
 extern int   startMonitoringMount(const char* mountpoint, BBUsage_t limits);
 extern int   stopMonitoringMount(const char* mountpoint);
 extern void* mountMonitorThread(void* ptr);
+extern void* diskstatsMonitorThread(void* ptr);
 
 extern int   proxy_regLV4Usage(const char* mountpoint);
 extern int   proxy_deregLV4Usage(const char* mountpoint);

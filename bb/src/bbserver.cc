@@ -2951,6 +2951,7 @@ int bb_main(std::string who)
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         pthread_create(&tid, &attr, mountMonitorThread, NULL);
+        pthread_create(&tid, &attr, diskstatsMonitorThread, NULL);
 
         // Initialize SSD WriteDirect
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);

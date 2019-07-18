@@ -404,6 +404,9 @@ void* mountMonitorThread(void* ptr)
    struct rusage l_rusage[2];
    struct rusage l_rusage_base;
    struct rusage l_rusageDelta;
+#ifdef BBSERVER
+   time_t lastCheck = 0;
+#endif
 
    int getrusage_rc = getrusage(RUSAGE_SELF, &l_rusage_base  );
    if(getrusage_rc)
@@ -502,7 +505,19 @@ void* mountMonitorThread(void* ptr)
 #endif
 #if BBSERVER
         {
-           checkForStuckSyscall(); //any file system IO taking unduly long or stuck?
+            checkForStuckSyscall(); //any file system IO taking unduly long or stuck?
+
+            time_t curTime   = time(NULL);
+            int meminforate = config.get(process_whoami+".meminforate", 3600);
+
+            if(curTime - lastCheck > meminforate)
+            {
+                lastCheck = curTime;
+                for(const auto& line: runCommand(string("/proc/meminfo"), 1))
+                {
+                    LOG(bb,always) << "MEMINFO: " << line;
+                }
+            }
         }
 #endif
         sleep(l_sleepValue);
@@ -511,4 +526,53 @@ void* mountMonitorThread(void* ptr)
     return NULL;
 }
 
+void* diskstatsMonitorThread(void* ptr)
+{
+    FILE*   f = NULL;
+    ssize_t frc;
+    char*   buffer = NULL;
+    size_t  buffersize = 0;
+    int     rate = config.get(process_whoami+".diskstatrate", 60);
+    char    cmd[256];
 
+    snprintf(cmd, sizeof(cmd), "/usr/bin/iostat %d", rate);
+    f = popen(cmd, "r");
+    if (f)
+    {
+        while((frc = getline(&buffer, &buffersize, f)) >= 0)
+        {
+            if (frc)
+            {
+                char* nl = strchr(buffer+frc-1, '\n');
+                if (nl)
+                    *nl = 0;
+                if (strlen(buffer))
+                {
+                    LOG(bb,always) << "DISKSTAT:  " << string(buffer);
+                }
+            }
+
+            if (buffer)
+            {
+                free(buffer);
+                buffer = NULL;
+            }
+            buffersize = 0;
+        }
+
+        // Even if getline() 'fails', we should check to free the buffer...
+        if (buffer)
+        {
+            free(buffer);
+            buffer = NULL;
+        }
+
+        if (ferror(f))
+        {
+            LOG(bb,error) << "DISKSTAT Read failure, errno=" << errno << " (" << strerror(errno) << ")";
+        }
+
+        pclose(f);
+    }
+    return NULL;
+}
