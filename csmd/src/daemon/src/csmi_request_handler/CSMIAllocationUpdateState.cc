@@ -40,7 +40,7 @@
 #define MCAST_PROPS_PAYLOAD CSMIMcastAllocation
 #define EXTRA_STATES 7 
 
-    const int NUM_SPAWN_PAYLOAD_FIELDS=15;
+    const int NUM_SPAWN_PAYLOAD_FIELDS=16;
 
     CSMIAllocationUpdateState::CSMIAllocationUpdateState(csm::daemon::HandlerOptions& options) :
         CSMIStatefulDB(CMD_ID, options, STATEFUL_DB_DONE + EXTRA_STATES)
@@ -424,6 +424,7 @@ bool CSMIAllocationUpdateState::ParseInfoQuery(
         a->projected_memory     = strtol(fields->data[11], nullptr, 10);
         a->start_state          = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, fields->data[12]);
         a->smt_mode             = (int16_t) ( strtol(fields->data[14], nullptr, 10) );
+        a->core_blink           = csm_convert_psql_bool(fields->data[15][0]) ? CSM_TRUE : CSM_FALSE;
         
         // Transitioning from staging-in should be 0 for run time.
         a->runtime = a->start_state == CSM_STAGING_IN ? 0 : strtoll(fields->data[13], nullptr, 10);

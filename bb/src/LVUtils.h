@@ -29,6 +29,17 @@ class BBTransferDef;
 
 
 /*******************************************************************************
+ | Enumerators
+ *******************************************************************************/
+enum UMOUNT_ERROR_OPTION
+{
+    NO_ERROR_REPORTING       = 0,
+    NORMAL_ERROR_REPORTING   = 1
+};
+typedef enum UMOUNT_ERROR_OPTION UMOUNT_ERROR_OPTION;
+
+
+/*******************************************************************************
  | External functions
  *******************************************************************************/
 extern void findBB_DevNames(vector<string>& pDevNames, const FIND_BB_DEVNAMES_OPTION pOption);

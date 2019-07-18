@@ -192,7 +192,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
     ssize_t bytesWritten;
     size_t count = pExtent->len;
 
-    FL_Write(FLXfer, BBIOPerformIO, "BBIO::performIO.  Length=%ld  Start=%lx  LBAStart=%lx  Flags=0x%lx", count, pExtent->start, pExtent->lba.start, pExtent->flags);
+    FL_Write6(FLXfer, BBIOPerformIO, "BBIO::performIO.  Extent=%p  Length=%ld  Start=%lx  LBAStart=%lx  Flags=0x%lx", (uint64_t)pExtent, (uint64_t)count, pExtent->start, pExtent->lba.start, pExtent->flags, 0);
 
     // Perform the I/O
     if (pExtent->flags & BBI_TargetSSD)
@@ -209,7 +209,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                 ssd_fd = getWriteFdByExtent(pExtent);
                 if (ssd_fd < 0)
                 {
-                    FL_Write(FLXfer, SSDOpenFailed, "Opening the SSD for O_WRONLY failed.  rc=%ld, errno=%ld", ssd_fd, errno,0,0);
+                    FL_Write(FLXfer, SSDOpenFailed, "Opening the SSD for O_WRONLY failed.  Extent=%p, rc=%ld, errno=%ld", (uint64_t)pExtent, ssd_fd, errno, 0);
                     throw runtime_error(string("Unable to open the SSD for writing.  errno=") + to_string(errno));
                 }
 
@@ -228,11 +228,11 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                 {
                     setupTransferBuffer(pExtent->sourceindex);
 
-                    FL_Write(FLXfer, PREAD_PFS, "Reading from target index %ld into %p, len=%ld at offset 0x%lx", pExtent->sourceindex, (uint64_t)threadTransferBuffer, MIN(transferBufferSize, count), offset_src);
+                    FL_Write6(FLXfer, PREAD_PFS, "Extent %p, reading from target index %ld into %p, len=%ld at offset 0x%lx", (uint64_t)pExtent, pExtent->sourceindex, (uint64_t)threadTransferBuffer, MIN(transferBufferSize, count), offset_src, 0);
                     //pread is bbio::pread derived
                     bytesRead = pread(pExtent->sourceindex, threadTransferBuffer, MIN(transferBufferSize, count), offset_src);
 
-                    FL_Write(FLXfer, PREAD_PFSCMP, "Reading from target index %ld.  bytesRead=%ld errno=%ld", pExtent->sourceindex, bytesRead,errno,0);
+                    FL_Write(FLXfer, PREAD_PFSCMP, "Extent %p, reading from target index %ld.  bytesRead=%ld errno=%ld", (uint64_t)pExtent, pExtent->sourceindex, bytesRead,errno);
 
                     if ( __glibc_likely(bytesRead >= 0) )
                     {
@@ -241,14 +241,14 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                             // last ditch sanity check
                             throw runtime_error(string("Extent offset into SSD too low.  Offset=") + to_string(offset_dst));
                         }
-                        FL_Write(FLXfer, PWRITE_SSD, "Writing to SSD.  File descriptor %ld, length %ld at offset 0x%lx", ssd_fd, bytesRead,offset_dst,0);
+                        FL_Write(FLXfer, PWRITE_SSD, "Extent %p, writing to SSD.  File descriptor %ld, length %ld at offset 0x%lx", (uint64_t)pExtent, ssd_fd, bytesRead, offset_dst);
                         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpwritesyscall, ssd_fd,__LINE__, ssdWriteAdjust(bytesRead),offset_dst);
                         bytesWritten = ::pwrite(ssd_fd, threadTransferBuffer, ssdWriteAdjust(bytesRead), offset_dst);
                         threadLocalTrackSyscallPtr->clearTrack();
 
                         if ( __glibc_likely(bytesWritten >= 0) )
                         {
-                            FL_Write(FLXfer, PWRITE_SSDCMP, "Write file descriptor %ld complete.  rc=%ld offset_dst=0x%lx pExtent->sourceindex=%ld", ssd_fd, bytesWritten, offset_dst, pExtent->sourceindex);
+                            FL_Write6(FLXfer, PWRITE_SSDCMP, "Extent %p, write file descriptor %ld complete.  rc=%ld offset_dst=0x%lx sourceindex=%ld", (uint64_t)pExtent, ssd_fd, bytesWritten, offset_dst, pExtent->sourceindex, 0);
                             if (bytesWritten > bytesRead)bytesWritten = bytesRead;  //fixup for page pad
                             offset_src += bytesWritten;
                             offset_dst += bytesWritten;
@@ -257,7 +257,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                         else
                         {
                             stringstream errorText;
-                            FL_Write(FLXfer, PWRITE_SSDFAIL, "Write to remote SSD failed. fd=%ld  offset_dst=%ld  bytesWritten=%ld  errno=%ld", ssd_fd, offset_dst, bytesWritten, errno);
+                            FL_Write6(FLXfer, PWRITE_SSDFAIL, "Extent %p, write to remote SSD failed. fd=%ld  offset_dst=%ld  bytesWritten=%ld  errno=%ld", (uint64_t)pExtent, ssd_fd, offset_dst, bytesWritten, errno, 0);
                             rc = -1;
                             errorText << "Write to remote SSD failed";
                             LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.sc.pwrite.ssd);
@@ -266,7 +266,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     }
                     else
                     {
-                        FL_Write(FLXfer, PREAD_PFSFAIL, "Read from PFS file failed.  sourceindex=%ld  offset_src=%ld  bytesRead=%ld", pExtent->sourceindex, offset_src, bytesRead, 0);
+                        FL_Write(FLXfer, PREAD_PFSFAIL, "Extent %p, read from PFS file failed.  sourceindex=%ld  offset_src=%ld  bytesRead=%ld", (uint64_t)pExtent, pExtent->sourceindex, offset_src, bytesRead);
                         rc = -1;
                         // BBIO subclass generated bberror and RAS
                     }
@@ -341,21 +341,21 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                         l_Buffer = &threadTransferBuffer[offset_src&BLKSIZE];
                         l_Length = MIN((ssize_t)count, bytesRead - (offset_src&BLKSIZE));
 
-                        FL_Write(FLXfer, PWRITE_PFS, "Writing to target index %ld into %p, len=%ld at offset 0x%lx", pExtent->targetindex, (uint64_t)l_Buffer, l_Length, offset_dst);
+                        FL_Write6(FLXfer, PWRITE_PFS, "Extent %p, writing to target index %ld into %p, len=%ld at offset 0x%lx", (uint64_t)pExtent, pExtent->targetindex, (uint64_t)l_Buffer, l_Length, offset_dst, 0);
                         // bbio::pwrite derived
                         bytesWritten = pwrite(pExtent->targetindex, l_Buffer, l_Length, offset_dst);
 
 
                         if ( __glibc_likely(bytesWritten >= 0) )
                         {
-                            FL_Write(FLXfer, PWRITE_PFSCMP, "Write to PFS complete.  Target index=%ld, offset=0x%lx, length=%ld, bytes_written=%ld", pExtent->targetindex, l_Length, offset_dst, bytesWritten);
+                            FL_Write6(FLXfer, PWRITE_PFSCMP, "Extent %p, write to PFS complete.  Target index=%ld, offset=0x%lx, length=%ld, bytes_written=%ld", (uint64_t)pExtent, pExtent->targetindex, l_Length, offset_dst, bytesWritten, 0);
                             offset_src += bytesWritten;
                             offset_dst += bytesWritten;
                             count      -= bytesWritten;
                         }
                         else
                         {
-                            FL_Write(FLXfer, PWRITE_PFSFAIL, "Write to PFS file failed.  targetindex=%ld  offset_dst=%ld  bytesWritten=%ld", pExtent->targetindex, offset_dst, bytesWritten, 0);
+                            FL_Write(FLXfer, PWRITE_PFSFAIL, "Extent %p, write to PFS file failed.  targetindex=%ld  offset_dst=%ld  bytesWritten=%ld", (uint64_t)pExtent, pExtent->targetindex, offset_dst, bytesWritten);
                             rc = -1;
                             // BBIO subclass generated bberror and RAS
                         }
@@ -364,7 +364,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     else // !(bytesRead>=0)
                     {
                         stringstream errorText;
-                        FL_Write(FLXfer, PREAD_SSDFAIL, "Read from remote SSD failed.  fd=%ld  offset_src=%ld  bytesRead=%ld  errno=%ld", ssd_fd, offset_src, bytesRead, errno);
+                        FL_Write6(FLXfer, PREAD_SSDFAIL, "Extent %p, read from remote SSD failed.  fd=%ld  offset_src=%ld  bytesRead=%ld  errno=%ld", (uint64_t)pExtent, ssd_fd, offset_src, bytesRead, errno, 0);
                         rc = -1;
                         errorText << "Read from remote SSD failed";
                         LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.sc.pread.ssd);
@@ -396,12 +396,19 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     setNumWritesNoSync(l_FileIndex, 0);
                     setTotalSizeWritesNoSync(l_FileIndex, 0);
                     unlockTransferQueue(&pKey, "performIO - Before periodic fsync to PFS");
+                    try
                     {
                         LOG(bb,info) << "Periodic PFS fsync start: targetindex=" << l_FileIndex << ", # writes " << l_NumberOfWrites << ", size of writes " << l_SizeOfWrites << ", triggered by extent " << *pExtent;
-                        FL_Write(FLTInf2, PSYNC_PFS, "Performing periodic PFS fsync.  Target index=%ld", pExtent->targetindex,0,0,0);
+                        FL_Write(FLTInf2, PSYNC_PFS, "Performing periodic PFS fsync.  Extent %p, Target index=%ld", (uint64_t)pExtent, pExtent->targetindex, 0, 0);
                         fsync(l_FileIndex);
-                        FL_Write(FLTInf2, PSYNC_PFSCMP, "Performed periodic PFS fsync.  Target index=%ld", pExtent->targetindex,0,0,0);
+                        FL_Write(FLTInf2, PSYNC_PFSCMP, "Performed periodic PFS fsync.  Extent %p, Target index=%ld", (uint64_t)pExtent, pExtent->targetindex, 0, 0);
                         LOG(bb,info) << "Periodic PFS fsync end: targetindex=" << l_FileIndex;
+                    }
+                    catch (ExceptionBailout& e) { }
+                    catch (exception& e)
+                    {
+                        rc = -1;
+                        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
                     }
                     lockTransferQueue(&pKey, "performIO - After periodic fsync to PFS");
                 }

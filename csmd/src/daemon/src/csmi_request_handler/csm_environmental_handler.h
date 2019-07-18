@@ -2,7 +2,7 @@
 
     csmd/src/daemon/src/csmi_request_handler/csm_environmental_handler.h
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -28,35 +28,34 @@ private:
   csm::daemon::BucketItemType _startItem;
   csm::daemon::EventContext_sptr _context;
   csm::daemon::BitMap _pendingItems;
-  
+  CSM_Environmental_Data * Environmental_data;
+
 public:
   CSM_ENVIRONMENTAL(csm::daemon::HandlerOptions& options)
-  : CSMI_BASE(CSM_CMD_UNDEFINED, options)
+  : CSMI_BASE(CSM_CMD_UNDEFINED, options),
+    _startItem(),
+    _context( nullptr ),
+    _pendingItems(),
+    Environmental_data( nullptr )
   {
     setCmdName(std::string("CSM_ENVIRONMENTAL"));
-    //_context = RegisterSystemWindowOpenEvent(this);
-    //_startItem = csm::daemon::CPU;
-    
-    //InitUserData();
-    //Environmental_data = new CSM_Environmental_Data();
   }
-  
+  virtual ~CSM_ENVIRONMENTAL() {}
   virtual void Process( const csm::daemon::CoreEvent &aEvent,
                 std::vector<csm::daemon::CoreEvent*>& postEventList );
   
 private:
-  inline void InitUserData()
-  {
-    _context->GetUserDataRef() = std::shared_ptr<void>( new int(_startItem), std::default_delete<int>() );
-  }
-
   inline csm::daemon::BucketItemType GetUserData()
   {
+    if( _context == nullptr )
+      return csm::daemon::BucketItemType::DEFAULT;
     return ( (csm::daemon::BucketItemType) *((int *) _context->GetUserData()) );
   }
   
   inline void UpdateUserData(csm::daemon::BucketItemType aType)
   {
+    if( _context == nullptr )
+      return;
     int *userData = (int *) _context->GetUserData();
     if (userData)
     {
@@ -70,8 +69,6 @@ private:
   }
 
 private:
-
-  CSM_Environmental_Data * Environmental_data;
 
   bool BuildSsdWearUpdate(std::vector<csm::daemon::CoreEvent*>& postEventList);
 };

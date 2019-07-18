@@ -15,6 +15,7 @@
 #define BB_HANDLEFILE_H_
 
 #include <sstream>
+#include <vector>
 
 #include <stdio.h>
 #include <string.h>
@@ -28,6 +29,7 @@
 #include "bbinternal.h"
 #include "BBStatus.h"
 #include "BBTagInfo.h"
+#include "bbwrkqmgr.h"
 
 using namespace boost::archive;
 namespace bfs = boost::filesystem;
@@ -42,6 +44,7 @@ namespace bfs = boost::filesystem;
  *******************************************************************************/
 const uint32_t ARCHIVE_HANDLE_VERSION_1 = 1;
 const uint32_t ARCHIVE_HANDLE_VERSION_2 = 2;
+const uint32_t ARCHIVE_HANDLE_VERSION_3 = 3;
 
 const char LOCK_FILENAME[] = "lockfile";
 const int MAXIMUM_HANDLEFILE_LOADTIME = 30;     // In seconds
@@ -78,6 +81,12 @@ public:
                                     //       of the handle file locked or reset this value to -1
         switch (objectVersion)
         {
+            case ARCHIVE_HANDLE_VERSION_3:
+            {
+                pArchive & reportingContribs;
+            }
+            // Intentionally falling through here...
+
             case ARCHIVE_HANDLE_VERSION_2:
             {
                 pArchive & numReportingContribs;
@@ -96,7 +105,7 @@ public:
 
     HandleFile() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION_2),
+        objectVersion(ARCHIVE_HANDLE_VERSION_3),
         tag(0),
         flags(0),
         status((uint64_t)BBNOTSTARTED),
@@ -105,11 +114,13 @@ public:
         expectContrib(""),
         transferKeys(""),
         lockfd(-1),
-        numReportingContribs(0) {}
+        numReportingContribs(0) {
+        reportingContribs = std::vector<uint32_t>();
+    }
 
     HandleFile (const uint64_t pTag, BBTagInfo& pTagInfo) :
         serializeVersion(0),
-        objectVersion(ARCHIVE_HANDLE_VERSION_2) {
+        objectVersion(ARCHIVE_HANDLE_VERSION_3) {
         tag = pTag;
         flags = 0;
         status = ((uint64_t)BBNOTSTARTED);
@@ -122,6 +133,7 @@ public:
         transferKeys = "";
         lockfd = -1;
         numReportingContribs = 0;
+        reportingContribs = std::vector<uint32_t>();
     }
 
     virtual ~HandleFile()
@@ -156,8 +168,8 @@ public:
     static int saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     static int testForLock(const char* pFile);
     static void unlock(const int pFd);
-    static int update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint64_t pFlags, const int pValue=1);
-    static int update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption=NORMAL_SCAN);
+    static int update_xbbServerHandleFile(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const uint64_t pFlags, const int pValue=1);
+    static int update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int32_t pNumOfContribsBump, const int64_t pSize, const HANDLEFILE_SCAN_OPTION pScanOption);
     static int update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle);
 
     /*
@@ -171,6 +183,11 @@ public:
     inline int allExtentsTransferred()
     {
         RETURN_FLAG(BBTD_All_Extents_Transferred);
+    }
+
+    inline int contribHasReported(const uint32_t pContribId)
+    {
+        return (std::find(reportingContribs.begin(), reportingContribs.end(), pContribId) == reportingContribs.end() ? 0 : 1);
     }
 
     inline void dump(const char* pPrefix) {
@@ -246,6 +263,8 @@ public:
                             // the thread_local variable handleFileLockFd.
     uint32_t numReportingContribs;
                             // Added for ARCHIVE_HANDLE_VERSION_2
+    std::vector<uint32_t> reportingContribs;
+                            // Added for ARCHIVE_HANDLE_VERSION_3
 };
 
 #endif /* BB_HANDLEFILE_H_ */

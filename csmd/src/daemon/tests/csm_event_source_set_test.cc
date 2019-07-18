@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_event_source_set_test.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -65,7 +65,7 @@ csm::daemon::Configuration* getConfig( int argc, char **argv )
     }
     std::string filepath = std::string( basepath );
     filepath.append("/csm_utility.cfg");
-    nargv[4] = (char*)filepath.c_str();
+    nargv[4] = strdup( (char*)filepath.c_str() );
     LOG(csmd, error ) << "add config path: " << nargv[4];
   }
 //  for( auto i=0; i<nargc, )
@@ -74,7 +74,9 @@ csm::daemon::Configuration* getConfig( int argc, char **argv )
     csm::daemon::RunMode runmode;
     csm::daemon::Configuration* conf = csm::daemon::Configuration::Instance( nargc, nargv, &runmode );
 
-    if(nargv) free(nargv);
+    for( int n=0; n<nargc; ++n )
+      if( nargv[n] ) free( nargv[n] );
+    if(nargv) delete [] nargv;
 
     return conf;
   }

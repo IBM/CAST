@@ -67,6 +67,12 @@ CSMI_STRUCT_MEMBER(char*  , severity        , STRING, , NULL, )  /**< severity o
 CSMI_STRUCT_MEMBER(char*  , status          , STRING, , NULL, )  /**< current module status. valid values: ok, fault */
 
 CSMI_VERSION_END(ad9105a41478385c44c55ded3ad1fbc6)
+
+CSMI_VERSION_START(CSM_VERSION_1_6_0)
+CSMI_STRUCT_MEMBER(char*  , type            , STRING, , NULL, )  /**< The category of this piece of hardware inventory. For example: "FAN", "PS", "SYSTEM", or "MGMT". */
+CSMI_STRUCT_MEMBER(char*  , fw_version      , STRING, , NULL, )  /**< The firmware version on this piece of inventory. */
+CSMI_VERSION_END(560ee93f75350501901aaf184945a741)
+
 #undef CSMI_VERSION_START
 #undef CSMI_VERSION_END
 #undef CSMI_STRUCT_MEMBER

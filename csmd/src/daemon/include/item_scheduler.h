@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/item_scheduler.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -17,7 +17,7 @@
 #define CSMD_SRC_DAEMON_INCLUDE_ITEM_SCHEDULER_H_
 
 #include <strings.h>
-
+#include <chrono>
 #include <algorithm>
 
 #include "logging.h"
@@ -32,6 +32,7 @@ struct BucketEntry {
   uint64_t _Identifier;
   uint64_t _Interval;
   uint64_t _RemainingTicks;
+  uint64_t _Adjusted;
 };
 
 class ItemScheduler
@@ -88,16 +89,33 @@ public:
     }
   }
 
+  uint64_t CalculateAdjustedIndex( csm::daemon::BucketEntry *entry, uint64_t i_Offset = 0 )
+  {
+    if(( entry == nullptr ) || ( entry->_Interval == 0 ))
+      throw csm::daemon::Exception("Invalid Bucket Interval setup." );
+
+    // calculate initial offset and ticks based on a fixed point of time in the past (e.g. begin of epoch)
+    uint64_t SyncTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>( std::chrono::system_clock::now().time_since_epoch() ).count();
+    uint64_t SyncTimeOver = SyncTimeSeconds % entry->_Interval;
+    uint64_t SyncTimeOffset = entry->_Interval - SyncTimeOver;
+
+    entry->_RemainingTicks = ( SyncTimeOffset + i_Offset ) / _Size;
+    entry->_Adjusted = 0;
+    return (SyncTimeOffset + i_Offset ) % _Size;
+  }
+
   BucketEntry* AddItem( uint64_t i_Identifier , uint64_t i_IntervalMySec, uint64_t i_Offset = 0 )
   {
     BucketEntry *entry = new BucketEntry();
 
     entry->_Identifier = i_Identifier;
     entry->_Interval = i_IntervalMySec;
-    entry->_RemainingTicks = (entry->_Interval-1) / _Size;
+    entry->_RemainingTicks = i_IntervalMySec / _Size;
     entry->_Next = nullptr;
 
-    Queue( entry, i_Offset );
+    uint64_t InitialSlot = CalculateAdjustedIndex( entry, i_Offset );
+
+    Queue( entry, InitialSlot );
 
     LOG( csmd, debug ) << "Add Itemscheduler item:" << entry->_Identifier << " itv=" << entry->_Interval << " ticks=" << entry->_RemainingTicks;
     ++_ItemCount;
@@ -166,6 +184,7 @@ public:
       {
         --( entry->_RemainingTicks );
         prev = Remove( prev, entry, &_ActiveQueue );
+
         Queue( entry, _Index );
         LOG( csmd, trace ) << "Delaying item=" << entry->_Identifier << " to " << entry->_RemainingTicks << ":" << entry->_Interval % _Size;
       }
@@ -188,7 +207,23 @@ public:
 
     if( entry->_RemainingTicks == 0 )
     {
-      Queue( entry, _Index + entry->_Interval );
+      if( entry->_Interval > 1 )
+        LOG( csmd, debug ) << "ItemScheduler: Scheduling of bucketID: " << entry->_Identifier;
+
+      // after a certain number of iterations, attempt to re-adjust the scheduling slot to potential system clock changes
+      entry->_Adjusted += entry->_Interval;
+      uint32_t newIndex = ( _Index + entry->_Interval ) % _Size;
+      if(( entry->_Interval > 1 ) && ( entry->_Adjusted > 60 ))
+      {
+        LOG( csmd, debug ) << "ItemScheduler: Checking/Adjusting schedule of bucketID: " << entry->_Identifier;
+        newIndex = (uint32_t)CalculateAdjustedIndex( entry, _Index );
+        if( newIndex != ( _Index + entry->_Interval ) % _Size )
+          LOG( csmd, info ) << "ItemScheduler: (system clock changed) adjusting next slot for bucketID: " << entry->_Identifier
+            << " from " << ( _Index + entry->_Interval ) % _Size
+            << " to " << newIndex;
+      }
+
+      Queue( entry, newIndex );
       entry->_RemainingTicks = (entry->_Interval-1) / _Size;
     }
     else

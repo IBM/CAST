@@ -27,13 +27,18 @@ me=$(basename $0)
 model=$(grep model /proc/cpuinfo|cut -d ':' -f2)
 echo -e "Running $me on $(hostname -s), machine type $model.\n"          
 
-SMT=4
-if [ $# -gt 0 ]; then SMT=$1; fi
+SMT="4"
+if [ $# -gt 0 ]; then 
+   SMT="$1"
+   if [[ $SMT =~ [^[:digit:]] ]]; then
+      echo -e "Argument must be numeric.\n$me test FAIL, rc=1"
+      exit 1
+   fi
+fi
 
-smt=`/usr/sbin/ppc64_cpu --smt -n`;
-smt=`echo $smt | cut -d '=' -f2`
+smt=`/usr/sbin/ppc64_cpu --smt -n| cut -d '=' -f2`
 
-if [ "$smt" -eq "$SMT" ]; then
+if [ "$smt" == "$SMT" ]; then
    echo "Node SMT=$smt"
    echo "$me test PASS, rc=0"
    exit 0

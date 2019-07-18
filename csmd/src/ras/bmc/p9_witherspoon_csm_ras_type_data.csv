@@ -33,6 +33,7 @@ bmc.CommunicationFailure/Timeout.FQPSPCR0060F,WARNING,Failed to read from power 
 bmc.CommunicationFailure/Timeout.FQPSPCR0061F,WARNING,Failed to write to CPU $(cpu) over FSI,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPCR0062F,WARNING,Failed to read from CPU $(cpu) over FSI,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPCR0063F,WARNING,Failed to read from the OCC on CPU $(cpu),,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPCR0077F,WARNING,An error occurred on the GPIO interface,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPIN0000M,FATAL,Connection timed out. Ensure you have network connectivity to the BMC.,While trying to establish a connection with the specified BMC the BMC failed to respond in adequate time. Verify the BMC is functioning properly and the network connectivity to the BMC is stable.,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPIN0001M,FATAL,Connection Error. View additional details for more information,A connection error to the specified BMC occurred and additional details are provided. Review these details to resolve the issue.,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPIN0002M,FATAL,BMC address lookup failed,,NONE,1,0,true,,true
@@ -40,6 +41,8 @@ bmc.CommunicationFailure/Timeout.FQPSPIN0003M,FATAL,Unable to establish LAN sess
 bmc.CommunicationFailure/Timeout.FQPSPIN0004M,FATAL,Connection Error: Unable to establish IPMI v2 / RMCP+ session,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPU0093M,FATAL,Unable to detect master processor on FSI bus,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPU0094M,FATAL,Unable to detect slave processor on FSI bus,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPPU0097M,FATAL,Unable to detect master processor on FSI bus,,NONE,1,0,true,,true
+bmc.CommunicationFailure/Timeout.FQPSPPU0098M,FATAL,Unable to detect slave processor on FSI bus,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPW0023M,FATAL,Unable to read the output current from power supply $(powersupply).,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPW0024M,FATAL,Unable to read GPU $(gpu) power.,,NONE,1,0,true,,true
 bmc.CommunicationFailure/Timeout.FQPSPPW0025M,FATAL,Unable to read CPU $(cpu) I/O power.,,NONE,1,0,true,,true
@@ -199,15 +202,25 @@ bmc.Firmware/SoftwareFailure.FQPSPCR0038F,WARNING,Unable to write a file in BMC 
 bmc.Firmware/SoftwareFailure.FQPSPCR0039F,WARNING,An invalid host system control command was provided.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0050F,WARNING,Internal method error with LED Mapper.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPCR0051F,WARNING,Internal error. LED Mapper object not found.,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0068G,WARNING,The specified user privileges already exist,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0069G,WARNING,The specified user name already exists,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0070G,WARNING,The specified user name does not exist,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0071G,WARNING,The specified user name cannot be assigned to the specified group,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0072G,WARNING,The specified user does not have sufficient privileges,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0073G,WARNING,Insufficient resources to modify users,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0074G,WARNING,The specified operation is not allowed,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0075G,WARNING,The provided certificate is not valid,The provided certificate is not valid. The BMC will continue operating with the old certificate.,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPCR0076G,WARNING,Unable to verify a server's CA certificate,Unable to validate the Certificate Authority (CA) for an external server such as an LDAP server.,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPDM0000M,FATAL,Unable to create a BMC dump due to dumps being disabled on this system.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPDM0001M,FATAL,There is no more space available for dump files. Please delete some.,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareFailure.FQPSPEM0003G,WARNING,Failed to find an alert in the CSM RAS event types table,The CSM RAS Event Types Table is missing an entry for the alert forwarded from the BMC.,NONE,1,0,true,,true
+bmc.Firmware/SoftwareFailure.FQPSPOS0000G,WARNING,The soft power off of the host has timed out,,NONE,1,0,true,,true
 bmc.Firmware/SoftwareNotValid.FQPSPCR0028M,FATAL,Unable to verify the system firmware,,NONE,1,0,true,,true
+bmc.Firmware/SoftwareNotValid.FQPSPCR0067M,FATAL,The PNOR and BMC code levels are not compatible and the system will not boot,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPCR0001I,INFO,The Watchdog timer has expired.,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPCR0002M,FATAL,The Watchdog timer has encountered an interrupt,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPCR0020F,WARNING,An internal operation has timed out,,NONE,1,0,true,,true
 bmc.MonitoringAgent.FQPSPEM0000I,INFO,An auxiliary log has been created.,,NONE,1,0,true,,true
-bmc.MonitoringAgent.FQPSPOS0000G,WARNING,The soft power off of the host has timed out,,NONE,1,0,true,,true
 bmc.PFA.FQPSPAA0013G,WARNING,The system backplane has exceeded a correctable error threshold,,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0011I,INFO,$(dimm) has reached the correctable error logging limit.,,NONE,1,0,true,,true
 bmc.PFA.FQPSPMA0024M,FATAL,A predictive failure has occurred on $(dimm),,NONE,1,0,true,,true
@@ -285,6 +298,8 @@ bmc.Security.FQPSPNM0000F,WARNING,The system ethernet cable has been unplugged.,
 bmc.Security.FQPSPSE0000G,WARNING,The chassis top cover has been removed.,,NONE,1,0,true,,true
 bmc.Security.FQPSPSE0001F,WARNING,The chassis PCIe cover has been removed.,,NONE,1,0,true,,true
 bmc.Security.FQPSPSE0004M,FATAL,Authentication Error. Ensure your BMC supports IPMI,,NONE,1,0,true,,true
+bmc.Security.FQPSPSE0065M,FATAL,Firmware security validation failed,,NONE,1,0,true,,true
+bmc.Security.FQPSPSE0066I,INFO,Firmware security validation passed,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0006I,INFO,Fan $(fan) speed has increased.,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0007I,INFO,Fan $(fan) speed is high.,,NONE,1,0,true,,true
 bmc.Status.FQPSPCA0008I,INFO,Fan $(fan) speed is at maximum.,,NONE,1,0,true,,true
@@ -299,6 +314,7 @@ bmc.Status.FQPSPCR0018I,INFO,System boot has been started.,,NONE,1,0,true,,true
 bmc.Status.FQPSPCR0019I,INFO,system backplane initialization has been started,,NONE,1,0,true,,true
 bmc.Status.FQPSPCR0031I,INFO,Host OS install has been started,,NONE,1,0,true,,true
 bmc.Status.FQPSPCR0032I,INFO,Host OS install has completed,,NONE,1,0,true,,true
+bmc.Status.FQPSPCR0064I,INFO,OCC metric data collected,,NONE,1,0,true,,true
 bmc.Status.FQPSPEM0002I,INFO,They system has filtered the events.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0001I,INFO,$(dimm) has been disabled.,,NONE,1,0,true,,true
 bmc.Status.FQPSPMA0004I,INFO,$(dimm) had a sensor state deassert.,,NONE,1,0,true,,true
@@ -350,10 +366,13 @@ bmc.UncorrectableHardwareFailure.FQPSPCA0056M,FATAL,Fan $(fan) is not functional
 bmc.UncorrectableHardwareFailure.FQPSPCA0071M,FATAL,Fan $(fan) has not been detected.,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPMA0055M,FATAL,DIMM $(dimm) has not been detected.,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPMA0056M,FATAL,DIMM $(dimm) is not functional.,,NONE,1,0,true,,true
+bmc.UncorrectableHardwareFailure.FQPSPPU0085M,FATAL,CPU $(cpu) has not been detected.,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPPU0087M,FATAL,CPU $(cpu) core $(core) has not been detected.,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPPU0088M,FATAL,CPU $(cpu) is not functional.,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPPU0089M,FATAL,CPU $(cpu) core $(core) is not functional.,,NONE,1,0,true,,true
+bmc.UncorrectableHardwareFailure.FQPSPPW0015M,FATAL,Power supply $(powersupply) can not be detected,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPPW0022M,FATAL,Power supply $(powersupply) is not functional.,,NONE,1,0,true,,true
+bmc.UncorrectableHardwareFailure.FQPSPSB0001M,FATAL,The system backplane has encountered a critical failure.,,NONE,1,0,true,,true
 bmc.UncorrectableHardwareFailure.FQPSPSB0012M,FATAL,The system backplane could not be detected,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPAA0000M,FATAL,A vital system component has been disabled,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPAA0001M,FATAL,An unknown problem occurred,,NONE,1,0,true,,true
@@ -402,7 +421,6 @@ bmc.UnrecoverableHardwareFailure.FQPSPPU0060M,FATAL,A FSI path error has occurre
 bmc.UnrecoverableHardwareFailure.FQPSPPU0061M,FATAL,An external processor interface problem has occurred,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0062M,FATAL,An internal processor interface problem has been detected,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0063M,FATAL,One or more processor sensors detected an over temperature condition.,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPU0085M,FATAL,CPU $(cpu) has not been detected.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0090M,FATAL,CPU $(cpu) has failed.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0091M,FATAL,CPU $(cpu) core $(core) has failed.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPU0092M,FATAL,An error occurred with a GPU and automated isolation was not possible,,NONE,1,0,true,,true
@@ -413,7 +431,6 @@ bmc.UnrecoverableHardwareFailure.FQPSPPW0009M,FATAL,Power supply $(powersupply) 
 bmc.UnrecoverableHardwareFailure.FQPSPPW0010M,FATAL,Power supply $(powersupply) has encountered a configuration error,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0012M,FATAL,A system power problem has occurred,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0013M,FATAL,An unexpected problem occurred with the voltage regulator output,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPPW0015M,FATAL,Power supply $(powersupply) can not be detected,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0033M,FATAL,Power supply $(powersupply) input fault detected.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0034M,FATAL,Power supply $(powersupply) has failed to power on when it needed to.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0035M,FATAL,Power supply $(powersupply) output current is too high.,,NONE,1,0,true,,true
@@ -421,7 +438,6 @@ bmc.UnrecoverableHardwareFailure.FQPSPPW0036M,FATAL,Power supply $(powersupply) 
 bmc.UnrecoverableHardwareFailure.FQPSPPW0037M,FATAL,Power supply $(powersupply) has initiated a power off due to a failure.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0063G,WARNING,The system unexpectedly shutdown.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPPW0064M,FATAL,Power supply input fault detected but unable to isolate to a specific power supply,,NONE,1,0,true,,true
-bmc.UnrecoverableHardwareFailure.FQPSPSB0001M,FATAL,The system backplane has encountered a critical failure.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPSB0001N,WARNING,The system backplane has encountered a critical failure.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPSB0002M,FATAL,The system has encountered an unknown hardware failure.,,NONE,1,0,true,,true
 bmc.UnrecoverableHardwareFailure.FQPSPSB0005M,FATAL,A bus error has occurred,,NONE,1,0,true,,true

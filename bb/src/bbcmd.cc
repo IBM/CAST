@@ -290,7 +290,7 @@ int bbcmd_copy(po::variables_map& vm)
     }
     VMMUTEXCL("handle", "tag");
     VMMUTEXCL("handle", "contrib");
-    
+
     BBTransferHandle_t l_Handle;
     if(vm.count("handle") > 0)
     {
@@ -300,12 +300,12 @@ int bbcmd_copy(po::variables_map& vm)
     {
         uint64_t l_NumContribs = 0;
         uint32_t* l_Contrib = 0;
-        
+
         if(vm.count("contrib") > 0)
         {
             vector<uint32_t> contribvec;
             expandRangeString(vm["contrib"].as<string>(), 0, MAX_NUMBER_OF_CONTRIBS, contribvec);
-            
+
             l_NumContribs = contribvec.size();
             l_Contrib = (uint32_t*)(new char[sizeof(uint32_t)*l_NumContribs]);
             uint32_t i = 0;
@@ -314,21 +314,21 @@ int bbcmd_copy(po::variables_map& vm)
                 l_Contrib[i++] = e;
             }
         }
-        
+
         rc = BB_GetTransferHandle((BBTAG)(vm["tag"].as<int>()), l_NumContribs, l_Contrib, &l_Handle);
-        
+
         if (l_Contrib)
         {
             delete[] l_Contrib;
             l_Contrib = 0;
         }
-        
+
         if(rc)
             return rc;
-        
+
         bberror.errdirect("out.transferHandle", l_Handle);
     }
-    
+
     BBTransferDef_t* l_Transfer = NULL;
     rc = BB_CreateTransferDef(&l_Transfer);
     if (rc)
@@ -348,7 +348,7 @@ int bbcmd_copy(po::variables_map& vm)
             LOG_ERROR_TEXT_RC(errorText, rc);
             return rc;
         }
-        
+
         while(getline(filelist, line))
         {
             int rc;
@@ -381,7 +381,7 @@ int bbcmd_copy(po::variables_map& vm)
                 BB_FreeTransferDef(l_Transfer);
                 return rc;
             }
-            
+
             w = p.we_wordv;
             vector<string> strs;
             for (size_t i=0; i<p.we_wordc; i++)
@@ -389,9 +389,9 @@ int bbcmd_copy(po::variables_map& vm)
                 strs.push_back(w[i]);
             }
             wordfree( &p );
-            
+
             string src, dst, flags;
-            
+
             if (!strs.size() ) continue;
             if((strs.size() < 2) || (strs.size() > 3))
             {
@@ -399,7 +399,7 @@ int bbcmd_copy(po::variables_map& vm)
                 errorText << "Invalid number of parameters for filelist";
                 bberror << err("error.filelist", vm["filelist"].as<string>()) << err("error.badline", line);
                 LOG_ERROR_TEXT_RC(errorText, rc);
-                
+
                 BB_FreeTransferDef(l_Transfer);
                 return rc;
             }
@@ -408,12 +408,12 @@ int bbcmd_copy(po::variables_map& vm)
             if(strs.size() >= 3)
             {
                 flags = strs[2];
-            } 
-            else 
+            }
+            else
             {
                 flags= "0";
             }
-            
+
             // NOTE:  All validity checking for the files and file flags is done by bbapi...
             rc = BB_AddFiles(l_Transfer, src.c_str(), dst.c_str(), (BBFILEFLAGS)stoi(flags));
             if (rc)
@@ -422,7 +422,7 @@ int bbcmd_copy(po::variables_map& vm)
                 return rc;
             }
         }
-        
+
     }
     if(rc)
     {
@@ -430,7 +430,7 @@ int bbcmd_copy(po::variables_map& vm)
         BB_FreeTransferDef(l_Transfer);
         return rc;
     }
-    
+
     return BB_StartTransfer(l_Transfer, l_Handle);
 }
 
@@ -462,7 +462,7 @@ int bbcmd_gethandle(po::variables_map& vm)
 {
     int rc=0;
 
-    uint64_t l_TransferHandle = 0;
+    uint64_t l_TransferHandle = UNDEFINED_HANDLE;
     uint64_t l_NumContribs = 0;
     uint32_t* l_Contrib = 0;
 
@@ -917,7 +917,6 @@ int bbcmd_adminfailover(po::variables_map& vm)
 
 #define FAIL(text) { bberror << err("error.bbcmdstate", text) << err("rc", rc); delete [] l_Buffer; return rc;}
 
-
     char contribid[64];
     snprintf(contribid, sizeof(contribid), "%d", UNDEFINED_CONTRIBID);
     rc = Coral_SetVar("jobid",     "0");
@@ -938,7 +937,8 @@ int bbcmd_adminfailover(po::variables_map& vm)
     rc = BB_StopTransfers(hostname.c_str(), l_Handle, &l_NumStoppedTransferDefs, l_Buffer, l_TransferDefsSize);
     if(rc) FAIL("Unable to stop transfers");
 
-//    sleep(15);
+    rc = BB_RestartTransfers(hostname.c_str(), l_Handle, &l_NumRestartedTransferDefs, l_Buffer, l_TransferDefsSize);
+    if(rc) FAIL("Unable to restart transfers");
 
     if (vm.count("resume") > 0)
     {
@@ -947,8 +947,6 @@ int bbcmd_adminfailover(po::variables_map& vm)
         if(rc) FAIL("Unable to resume transfers");
     }
 
-    rc = BB_RestartTransfers(hostname.c_str(), l_Handle, &l_NumRestartedTransferDefs, l_Buffer, l_TransferDefsSize);
-    if(rc) FAIL("Unable to restart transfers");
     delete [] l_Buffer;
 #undef FAIL
 
@@ -970,13 +968,13 @@ int main(int orig_argc, const char** orig_argv)
     list<int> contribidlist;
     map<int, string> contribResults;
 
-    
+
     if(strstr(argv[1], "^") != NULL)
     {
         carrotTokens = buildTokens(argv[1], "^");
         command = argv[0];
         argv = (const char**)malloc(sizeof(char*) * carrotTokens.size() + 1);
-        
+
         argc = 1;
         argv[0] = executable.c_str();
         for(const auto& e : carrotTokens)
@@ -984,7 +982,7 @@ int main(int orig_argc, const char** orig_argv)
             argv[argc++] = e.c_str();
         }
     }
-    
+
     for(argc_cmd=1; argc_cmd < argc; argc_cmd++)
     {
         if(argv[argc_cmd][0] != '-')
@@ -1048,7 +1046,7 @@ int main(int orig_argc, const char** orig_argv)
         OPTEND;
     #undef OPTEND
     #undef OPTION
-            
+
         cmd.add("command", -1);
         generic.add_options()
             ("command", po::value< string >(), "Command")
@@ -1130,9 +1128,10 @@ int main(int orig_argc, const char** orig_argv)
     }
 
     try
-    {            
+    {
         // Valid command processing
         command = vm["command"].as<string>();
+//        bberror << err("in.bbcmd", command);
 
         std::string configfile = vm["config"].as<string>();
         if((vm.count("target") == 0) && (vm.count("compute_config") > 0))
@@ -1147,9 +1146,9 @@ int main(int orig_argc, const char** orig_argv)
             bberror << err("error.configfile", configfile);
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
-        
+
         config = curConfig.getTree();
-        
+
         initializeLogging("bb.cmd.log", config);
 
         // NOTE:  The final support for send_to requires a proxy running on the FEN that forwards the request to the correct
@@ -1180,12 +1179,12 @@ int main(int orig_argc, const char** orig_argv)
             memcpy(newenv, tmp.c_str(), tmp.size()+1);
             putenv(newenv); // pointer ownership is transferred to putenv
         }
-        
+
         if (vm.count("bbid") > 0)
         {
             BBJOBID = stoul(vm["bbid"].as<string>());
         }
-        
+
         if (vm.count("jobstepid") > 0)
         {
             string tmp = string("PMIX_NAMESPACE=") + vm["jobstepid"].as<string>();
@@ -1193,19 +1192,19 @@ int main(int orig_argc, const char** orig_argv)
             memcpy(newenv, tmp.c_str(), tmp.size()+1);
             putenv(newenv); // pointer ownership is transferred to putenv
         }
-        
+
         if (vm.count("contribid") > 0)
         {
             contribid = atoi(vm["contribid"].as<string>().c_str());
             contribidlist.push_back(contribid);
         }
-        
+
         if(vm.count("csmcommand") > 0)
         {
             string hostname;
             rc = activecontroller->gethostname(hostname);
             contribidlist.clear();
-            
+
             for(string host : buildTokens(vm["csmcommand"].as<string>(), ","))
             {
                 vector<string> tok = buildTokens(host, ":");
@@ -1216,7 +1215,7 @@ int main(int orig_argc, const char** orig_argv)
                 }
             }
         }
-        
+
         if (vm.count("target") > 0)
         {
             config.put("bb.api.noproxyinit", true);
@@ -1240,7 +1239,7 @@ int main(int orig_argc, const char** orig_argv)
         if (rc)
         {
             // NOTE:  bberror (error.text) was already written to...
-            LOG_RC_AND_BAIL(rc);
+            SET_RC_AND_BAIL(rc);
         }
 
         rc = setupNodeController("bb.cmd");
@@ -1281,17 +1280,17 @@ int main(int orig_argc, const char** orig_argv)
             }
             for (const auto& it : vm)
             {
-                if((it.first == "target") || (it.first == "command") || (it.first == "pretty") || 
+                if((it.first == "target") || (it.first == "command") || (it.first == "pretty") ||
                    (it.first == "jobid") || (it.first == "jobindex") || (it.first == "bbid") || (it.first == "bcast") ||
                    (it.first == "contribid") || (it.first == "separator") || (it.first == "hostlist") || (it.first == "sendto"))
                     continue;
-                
+
                 string arg = string("--") + it.first + "=";
                 auto& value = it.second.value();
 
                 if((it.first == "config") && (vm["config"].as<string>() == DEFAULT_CONFIGFILE))
                     continue;
-                
+
                 if (auto v = boost::any_cast<uint32_t>(&value))
                     arg += to_string(*v);
                 else if (auto v = boost::any_cast<int>(&value))
@@ -1328,11 +1327,11 @@ int main(int orig_argc, const char** orig_argv)
                 char* newenv = (char*)malloc(tmp.size()+1);
                 memcpy(newenv, tmp.c_str(), tmp.size()+1);
                 putenv(newenv); // pointer ownership is transferred to putenv
-                
+
                 bberror.setToNotClear(); //do not clear bberror for bbcmd calls of BB APIs
                 rc = (*bbcmd_map[command].func)(vm);
                 bberror << err("rc", rc);
-                
+
                 if(vm.count("csmcommand") > 0)
                 {
                     if (!rc)
@@ -1357,7 +1356,7 @@ int main(int orig_argc, const char** orig_argv)
     if(vm.count("csmcommand") > 0)
     {
         try
-        {            
+        {
             bool first = true;
             for(const auto& result : contribResults)
             {

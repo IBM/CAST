@@ -59,6 +59,31 @@ INV_SWITCH_CONNECTOR_ACCESS::INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_comparing_strings.push_back("\"serial_number\"");         // 22
 	vector_of_the_comparing_strings.push_back("\"os_version\"");            // 23
 	vector_of_the_comparing_strings.push_back("\"modules\"");               // 24
+
+	// setting vector of the comparing strings modules
+	vector_of_the_comparing_strings_modules.push_back("\"status\"");              
+	vector_of_the_comparing_strings_modules.push_back("\"hw_version\"");          
+	vector_of_the_comparing_strings_modules.push_back("\"name\"");                
+	//vector_of_the_comparing_strings_modules.push_back("\"hosting_system_guid\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"number_of_chips\"");     
+	vector_of_the_comparing_strings_modules.push_back("\"description\"");         
+	vector_of_the_comparing_strings_modules.push_back("\"max_ib_ports\"");        
+	
+	vector_of_the_comparing_strings_modules.push_back("\"module_index\""); 
+	//vector_of_the_comparing_strings_modules.push_back("\"temperature\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"device_type\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"serial_number\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"path\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"device_name\""); 
+	
+	vector_of_the_comparing_strings_modules.push_back("\"severity\""); 
+
+	vector_of_the_comparing_strings_modules.push_back("\"type\""); 
+	vector_of_the_comparing_strings_modules.push_back("\"fw_version\""); 
+
+	vector_of_the_num_values.push_back("\"number_of_chips\"");  
+	vector_of_the_num_values.push_back("\"max_ib_ports\""); 
+	vector_of_the_num_values.push_back("\"module_index\"");
 }
 
 INV_SWITCH_CONNECTOR_ACCESS::~INV_SWITCH_CONNECTOR_ACCESS()
@@ -90,6 +115,8 @@ INV_SWITCH_CONNECTOR_ACCESS::~INV_SWITCH_CONNECTOR_ACCESS()
 	vector_of_the_serial_numbers.clear();
 	vector_of_the_os_versions.clear();
 	vector_of_the_modules.clear();
+	vector_of_the_comparing_strings_modules.clear();
+	vector_of_the_num_values.clear();
 }
 
 int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
@@ -97,7 +124,62 @@ int INV_SWITCH_CONNECTOR_ACCESS::GetCompiledWithSupport()
 	return compiled_with_support;
 }
 
-int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors)
+int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key, bool finalLine)
+{
+	//Function Variables
+	bool num_key_found = false; // Used to store if we found a num key. 
+	int offset = 0; // Used for trimming of the key values.
+	std::size_t position_delimiter = 0; // Used to hold the position of the ":" delimiter between the key, value pair. 
+
+	//Is this a num key?
+	for(unsigned int i = 0; i < vector_of_the_num_values.size(); i++)
+	{
+		// Loop through our list of num keys.
+		// If we find a match, then we will need to adjust the offset later. 
+		int found = 0;
+		found = strcmp(key, vector_of_the_num_values[i].c_str());
+		if (found == 0)
+		{
+			num_key_found = true;
+			i = vector_of_the_num_values.size();
+		}
+		
+	}
+
+	// Is the key a num value?
+	// We need to adjust the offset based off the type of value. 
+	if(num_key_found)
+	{
+		// num based key
+		offset = 2;
+	}else{
+		//String based key.
+		offset = 3;
+	}
+
+	// extraction field
+	position_delimiter=line.find(":");
+	//Modify the prefix. Trim the opening garbage from the key_value
+	line.erase(0,position_delimiter + offset);
+	//Modify the suffix. Trim the ending garbage.
+	if(finalLine)
+	{
+		line.erase(line.length() - offset + 2, line.length());
+	}else{
+		line.erase(line.length() - offset, line.length()-1);
+	}
+
+	//allocate space for 'value'
+	*value = (char*)calloc(line.length(), sizeof(char*));
+	
+	//copy the trimmed value into 'value'
+	line.copy(*value, line.length());
+
+
+	return 0;
+}
+
+int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std::string authentication_string_for_the_http_request, std::string csm_inv_log_dir, std::string switch_errors, bool custom_input_override, std::string ufm_switch_output_file_name, std::string ufm_switch_input_file_name)
 {
 	try
 	{	
@@ -170,14 +252,10 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			//std::cout << &response;
 		}
 
-
-
-		// TEMP 
-        // ToDo: replace this buffer push to a config file update like error paths below. 
-        std::string ufm_switch_output_filename = "ufm_switch_output_file.txt";
-		
+        // set output name to the value passed in via parameter.
+		// add in the inv directory
+		std::string output_file_name = csm_inv_log_dir + "/" + ufm_switch_output_file_name;
 		// opening output file
-		std::string output_file_name = csm_inv_log_dir + "/" + ufm_switch_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 
 		// checking if output file is open
@@ -187,25 +265,20 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			std::cout << "Output file " << output_file_name << " not open, return"  << std::endl;
 			return 1;
 		} 
-		else 
+
+		boost::system::error_code error;
+		while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
 		{
-			// updating output file
-			// response_copy_1 is not nedded because response_copy_2 is equal to response_copy_2
-			output_file << response_copy_2;
-			boost::system::error_code error;
-			while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
-			{
-				output_file << &response;
-			}
+			output_file << &response;
+		}
 
-			// closing the output file
-			output_file.close();
+		// closing the output file
+		output_file.close();
 
-			// checking for errors
-			if (error != boost::asio::error::eof)
-			{
-				throw boost::system::system_error(error);
-			}
+		// checking for errors
+		if (error != boost::asio::error::eof)
+		{
+			throw boost::system::system_error(error);
 		}
 
 		// vectors with the fields
@@ -213,8 +286,20 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::string line;
 		std::string comparing_string;
 
+		//set input filename
+
 		// opening input file
-		std::string input_file_name = output_file_name;
+		std::string input_file_name = "";
+		
+
+		if(custom_input_override)
+		{
+			input_file_name = ufm_switch_input_file_name;
+		}else{
+			input_file_name = csm_inv_log_dir + "/" + ufm_switch_input_file_name;
+		}
+
+
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
 
 		// checking if input file is open
@@ -223,588 +308,401 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 			// printing error and return
 			std::cout << "Input file " << input_file_name << " not open, return" << std::endl;
 			return 1;
-		}else{
+		}
 
-			//grab time info to stick into the bad switch text file
-			time_t rawtime;
-			struct tm * timeinfo;
-			time (&rawtime);
-			timeinfo = localtime (&rawtime);
+		//grab time info to stick into the bad switch text file
+		time_t rawtime;
+		struct tm * timeinfo;
+		time (&rawtime);
+		timeinfo = localtime (&rawtime);
+	
+		//opening a error write file
+		std::ofstream bad_switch_records;
 		
-			//opening a error write file
-			std::ofstream bad_switch_records;
-			
-			bad_switch_records.open (csm_inv_log_dir + "/" + switch_errors);
-			bad_switch_records << "CSM switch inventory collection" << std::endl;
-			bad_switch_records << "File created: " << asctime(timeinfo) << std::endl;
-			bad_switch_records << "The following records are incomplete and can not be inserted into CSM database.\n" << std::endl;
-			
-			//helper variable to keep track of a bad serial number for a record. 
-			bool bad_record = false;
-			//helper variable to keep track of total records.
-			int total_switch_records = 0;
-			int NA_serials_count = 0;
+		bad_switch_records.open (csm_inv_log_dir + "/" + switch_errors);
+		bad_switch_records << "CSM switch inventory collection" << std::endl;
+		bad_switch_records << "File created: " << asctime(timeinfo) << std::endl;
+		bad_switch_records << "The following records are incomplete and can not be inserted into CSM database.\n" << std::endl;
+		
+		//helper variable to keep track of a bad serial number for a record. 
+		bool bad_record = false;
+		//helper variable to keep track of total records.
+		int total_switch_records = 0;
+		int NA_serials_count = 0;
 
-			// setting the number of lines to skip
-			int number_of_lines_to_skip = 0;
+		while (std::getline(input_file, line))
+		{
+			// reading the line
+			std::istringstream iss(line);
 
-			// reading the input file lines
-			std::string line;
-			while (std::getline(input_file, line))
+			// cycling of the cpmaring strings
+			for (unsigned int i = 0; i < vector_of_the_comparing_strings.size(); i++)
 			{
-				// reading the line
-				std::istringstream iss(line);
-		
-				number_of_lines_to_skip = number_of_lines_to_skip + 1;
-				if ( number_of_lines_to_skip < 21 )
+				// reading comarping string
+				comparing_string = vector_of_the_comparing_strings[i];
+
+				// Does this line contain a key?
+				if(line.find(comparing_string) == std::string::npos)
 				{
+					//This line does not contain a valid key. 
 					continue;
 				}
 
-				// cycling of the cpmaring strings
-				for (unsigned int i = 0; i < vector_of_the_comparing_strings.size(); i++)
-				{
-					// reading comarping string
-					comparing_string = vector_of_the_comparing_strings[i];
-		
-					// checking if comparing string is contained in the read line
-					if ( line.find(comparing_string) != std::string::npos )
-					{
-						if(i == 24){
-							// special case: "modules"
-							// modules can either be 'slim' or 'expanded'
-							//can also be blank? = "[]," this could be a broken case. but we encountered so plan for it.
-							// following code determines which is true, and then collects the data.
+				if(i == 24){
+					// special case: "modules"
+					// modules can either be 'slim' or 'expanded'
+					//can also be blank? = "[]," this could be a broken case. but we encountered so plan for it.
+					// following code determines which is true, and then collects the data.
+			
+					int number_of_modules_found = 0;
 					
-							int number_of_modules_found = 0;
+					//check for the broken "[],"
+					if(line.find("[],") != std::string::npos){
+						//push num_modules
+						//vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
+						
+						//Should prob report some error here.
+						
+						//idk, exit early, no need to further continue the main loop.
+
+
+                        //maybe increase the number of bad switches
+                        //because no serial number field from module
+                        NA_serials_count++;
+                        bad_record = true;
+					}else{
+						// read the next line
+						std::getline(input_file, line);
+						
+						// determine if 'slim' or 'expanded'
+						if(line.find("{") == std::string::npos)
+						{
+							//did not find a "{"
+							// 'slim' case
+							// only a list of module names are found
+
+							//definitly bad because this means no serial number
+							bad_record = true;
+							NA_serials_count++;
 							
-							//check for the broken "[],"
-							if(line.find("[],") != std::string::npos){
-								//push num_modules
-								//vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
+							// read list of names until end of list
+							// exit condition variable
+							char close_found = 0;
+							do{
+
+								//Modify the prefix. Trim the opening garbage from the key_value
+								line.erase(0,13);
 								
-								//Should prob report some error here.
-								
-								//idk, exit early, no need to further continue the main loop.
-
-
-                                //maybe increase the number of bad switches
-                                //because no serial number field from module
-                                NA_serials_count++;
-                                bad_record = true;
-
-
-							}else{
-								// read the next line
-								std::getline(input_file, line);
-								
-								// determine if 'slim' or 'expanded'
-								if(line.find("{") == std::string::npos)
+								//check suffix if ','
+								if( line.find(",") == std::string::npos)
 								{
-									//did not find a "{"
-									// 'slim' case
-									// only a list of module names are found
-
-
-									//definitly bad because this means no serial number
-									bad_record = true;
-									NA_serials_count++;
-									
-									//Modify the prefix. Trim the opening garbage from the key_value
-									line.erase(0,13);
-									
-									//check suffix if ','
-									if( line.find(",") == std::string::npos)
-									{
-										//can't find a ',' - so this is last value
-										line.erase(line.length()-1,line.length());
-									}else{
-										//more values
-										//remove the double
-										line.erase(line.length()-3,line.length()-1);
-									}
-
-
-									if(bad_record)
-									{
-										//copy to bad_switch_records NOT vector push
-										bad_switch_records << "New Module: ??? " << std::endl;
-										bad_switch_records << "name:            " << line << std::endl;
-										bad_switch_records << "description:     N/A "<< std::endl;
-										bad_switch_records << "device_name:     N/A "<< std::endl;
-										bad_switch_records << "device_type:     N/A "<< std::endl;
-										bad_switch_records << "max_ib_ports:    N/A "<< std::endl;
-										bad_switch_records << "module_index:    N/A "<< std::endl;
-										bad_switch_records << "number_of_chips: N/A "<< std::endl;
-										bad_switch_records << "path:            N/A "<< std::endl;
-										bad_switch_records << "serial_number:   N/A "<< std::endl;
-										bad_switch_records << "severity:        N/A "<< std::endl;
-										bad_switch_records << "status:          N/A "<< std::endl;
-										bad_switch_records << std::endl;
-									}else{
-										//SAVE NAME HERE:
-										vector_of_the_modules.push_back(line); //name
-										//SAVE OTHER FIELDS AS N/A
-										vector_of_the_modules.push_back("N/A"); // description
-										vector_of_the_modules.push_back("N/A"); // device_name
-										vector_of_the_modules.push_back("N/A"); // device_type
-										vector_of_the_modules.push_back("N/A"); // max_ib_ports
-										vector_of_the_modules.push_back("N/A"); // module_index
-										vector_of_the_modules.push_back("N/A"); // number_of_chips
-										vector_of_the_modules.push_back("N/A"); // path 
-										vector_of_the_modules.push_back("N/A"); // serial_number
-										vector_of_the_modules.push_back("N/A"); // severity
-										vector_of_the_modules.push_back("N/A"); // status
-
-									}
-							
-									
-							
-									//increase the count
-									number_of_modules_found++;
-									
-									//continue reading list of names until end of list
-									//exit condition variable
-									char close_found = 0;
-									do{
-										//grab next name
-										std::getline(input_file, line);
-										
-										if(line.find("]") == std::string::npos)
-										{
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,13);
-											
-											//check suffix if ','
-											if( line.find(",") == std::string::npos)
-											{
-												//can't find a ',' - so this is last value
-												line.erase(line.length()-1,line.length());
-											}else{
-												//more values
-												//remove the double
-												line.erase(line.length()-3,line.length()-1);
-											}
-											
-
-											if(bad_record)
-											{
-												//copy to bad_switch_records NOT vector push
-												bad_switch_records << "New Module: ??? " << std::endl;
-												bad_switch_records << "name:            " << line << std::endl;
-												bad_switch_records << "description:     N/A "<< std::endl;
-												bad_switch_records << "device_name:     N/A "<< std::endl;
-												bad_switch_records << "device_type:     N/A "<< std::endl;
-												bad_switch_records << "max_ib_ports:    N/A "<< std::endl;
-												bad_switch_records << "module_index:    N/A "<< std::endl;
-												bad_switch_records << "number_of_chips: N/A "<< std::endl;
-												bad_switch_records << "path:            N/A "<< std::endl;
-												bad_switch_records << "serial_number:   N/A "<< std::endl;
-												bad_switch_records << "severity:        N/A "<< std::endl;
-												bad_switch_records << "status:          N/A "<< std::endl;
-												bad_switch_records << std::endl;
-											}else{
-												//not in correct order - but doesn't matter because all "N/A"
-												//SAVE OTHER FIELDS AS N/A
-												vector_of_the_modules.push_back("N/A"); // description
-												vector_of_the_modules.push_back("N/A"); // device_name
-												vector_of_the_modules.push_back("N/A"); // device_type
-												vector_of_the_modules.push_back("N/A"); // max_ib_ports
-												vector_of_the_modules.push_back("N/A"); // module_index
-												vector_of_the_modules.push_back("N/A"); // number_of_chips
-												vector_of_the_modules.push_back("N/A"); // path 
-												vector_of_the_modules.push_back("N/A"); // serial_number
-												vector_of_the_modules.push_back("N/A"); // severity
-												vector_of_the_modules.push_back("N/A"); // status
-												//SAVE NAME HERE:
-												vector_of_the_modules.push_back(line); //name
-											}
-									
-											//increase the count
-											number_of_modules_found++;
-										}else{
-											std::cout << "] found " << std::endl;
-											close_found = 1;
-										}
-								
-									}while(close_found == 0);
-							
-									//push num_modules
-									vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
-									
-									//idk, exit early, no need to further contine the main loop.
-							
+									//can't find a ',' - so this is last value
+									line.erase(line.length()-1,line.length());
 								}else{
-									//expanded records are found
-									
-									//continue reading list of modules until end of list
-									//exit condition variable
-									char close_found = 0;
+									//more values
+									//remove the double
+									line.erase(line.length()-3,line.length()-1);
+								}
+								
+								//copy to bad_switch_records NOT vector push
+								bad_switch_records << "New Module: ??? " << std::endl;
+								bad_switch_records << "name:            " << line << std::endl;
+								bad_switch_records << "description:     N/A "<< std::endl;
+								bad_switch_records << "device_name:     N/A "<< std::endl;
+								bad_switch_records << "device_type:     N/A "<< std::endl;
+								bad_switch_records << "max_ib_ports:    N/A "<< std::endl;
+								bad_switch_records << "module_index:    N/A "<< std::endl;
+								bad_switch_records << "number_of_chips: N/A "<< std::endl;
+								bad_switch_records << "path:            N/A "<< std::endl;
+								bad_switch_records << "serial_number:   N/A "<< std::endl;
+								bad_switch_records << "severity:        N/A "<< std::endl;
+								bad_switch_records << "status:          N/A "<< std::endl;
+								bad_switch_records << std::endl;
+								
+								//increase the count
+								number_of_modules_found++;
 
-									//For personal notes. This should be a "GOOD" record WITH a serial number
-									
+								//grab next name
+								std::getline(input_file, line);
+
+								if(line.find("]") != std::string::npos)
+								{
+									// ']' found
+									close_found = 1;
+								}
+						
+							}while(close_found == 0);
+					
+							//push num_modules
+							vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
+							
+							//idk, exit early, no need to further contine the main loop.
+					
+						}else{
+							//expanded records are found
+							
+							//continue reading list of modules until end of list
+							//exit condition variable
+							char close_found = 0;
+
+							//For personal notes. This should be a "GOOD" record WITH a serial number
+							
+							do{
+								if(line.find("]") == std::string::npos)
+								{
+									//still searching for modules
+
+									//Create a temp value for the 'value' in our "key/value" pair.
+									char* module_value = NULL;
+									char* module_key = NULL;
+									bool module_key_found = false;
+									//for looping the module
+									bool more_fields = true;
+
 									do{
-										if(line.find("]") == std::string::npos)
+										//grab next line
+										std::getline(input_file, line);
+										// Is this the last module field?
+										bool end_of_modules = false;
+
+										if(line.find(",") == std::string::npos)
 										{
-											//still searching for modules
-											//grab next name
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // status 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // description 
-									
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											//don't push host
-											//vector_of_the_modules.push_back(line); // hosting_system_guid 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // severity 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+2);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-2,line.length());
-											vector_of_the_modules.push_back(line); // number_of_chips 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+2);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-2,line.length());
-											vector_of_the_modules.push_back(line); // max_ib_ports 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+2);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-2,line.length());
-											vector_of_the_modules.push_back(line); // module_index 
-											
-											//grab next line
-											std::getline(input_file, line);
-									
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											//don't push temp
-											//vector_of_the_modules.push_back(line); // temperature 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // device_type 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // serial_number 
-									
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // path 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-3,line.length()-1);
-											vector_of_the_modules.push_back(line); // device_name 
-											
-											//grab next line
-											std::getline(input_file, line);
-											
-											// extraction field
-											position_delimiter=line.find(":");
-											//Modify the prefix. Trim the opening garbage from the key_value
-											line.erase(0,position_delimiter+3);
-											//Modify the suffix. Trim the ending garbage.
-											line.erase(line.length()-1,line.length());
-											vector_of_the_modules.push_back(line); // name
-											
+											// at the end
+											// DETAILS: We didn't find a ',' in the line, so we assume it to be the last value. 
+											end_of_modules = true;
+										}
+
+										for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+										{
+											std::size_t found = 0;
+											found = line.find(vector_of_the_comparing_strings_modules[i]);
+											if (found!=std::string::npos)
+											{
+												module_key = (char*)calloc(vector_of_the_comparing_strings_modules[i].length(),sizeof(char));
+												vector_of_the_comparing_strings_modules[i].copy(module_key, vector_of_the_comparing_strings_modules[i].length());
+												module_key_found = true;
+											}
+
+											if( module_key_found)
+											{
+												if(end_of_modules)
+												{
+													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key, true);
+												}else{
+													INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(line, &module_value, module_key);
+												}
+												
+												vector_of_the_modules.push_back(module_value); 
+												module_key_value_vector_builder(module_key, module_value);
+												free(module_key);
+												free(module_value);
+												module_key_found = false;
+												//exit loop early
+												i = vector_of_the_comparing_strings_modules.size();
+											}
+										}
+
+										if(end_of_modules)
+										{
+											more_fields = false;
 											//grab next line
 											std::getline(input_file, line); // },
 											std::getline(input_file, line); // { or ],
-												
-											//increase the count
-											number_of_modules_found++;
-										}else{
-											//all modules completed
-											close_found = 1;
 										}
-									}while(close_found == 0);
+											
+
+									}while(more_fields);
+
+									//increase the count
+									number_of_modules_found++;
+								}else{
+									//all modules completed
+									close_found = 1;
 								}
-								//push num_modules
-								vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
-								//idk, exit early, no need to further contine the main loop.
-							}
+							}while(close_found == 0);
 						}
-				
-						// extraction field
-						position_delimiter=line.find(":");
-							
-						//Modify the prefix. Trim the opening garbage from the key_value
-						if(i == 19 || i == 4 || i == 16){
-							//delimiter, space
-							//2 char spaces
-							line.erase(0,position_delimiter+2);
-						}else{
-							//delimiter, space, double quote
-							//3 char spaces
-							line.erase(0,position_delimiter+3);
-						}
-				
-						//Modify the suffix. Trim the ending garbage.
-						if(i == 19 || i == 4 || i == 16){
-							line.erase(line.length()-2,line.length());
-						}else if( i == (vector_of_the_comparing_strings.size()-1) ){
-							//I think Fausto meant "last line of the record" which would have no comma and therefor need less trim
-							//ToDo: check later
-							line.erase(line.length()-3,line.length()-1);
-						}else{
-							line.erase(line.length()-3,line.length()-1);					
-						}
-
-						// updating vectors
-						switch (i)
-						{
-							case 0:
-								vector_of_the_switch_names.push_back(line);
-							    total_switch_records++;
-								break;
-							case 1:
-								//LOG(csmd, debug) << "updating vector of the serial numbers";
-								//std::cout << "updating vector of the serial numbers" << std::endl;
-								vector_of_the_descriptions.push_back(line);
-								break;
-							case 2:
-								//LOG(csmd, debug) << "updating vector of the os versions";
-								//std::cout << "updating vector of the os versions" << std::endl;
-								vector_of_the_firmware_versions.push_back(line);
-								break;
-							case 3:
-								//LOG(csmd, debug) << "updating vector of the firmware versions";
-								//std::cout << "updating vector of the tirmware versions" << std::endl;
-								vector_of_the_guids.push_back(line);
-								break;
-							case 4:
-								//LOG(csmd, debug) << "updating vector of the pysical frame locations";
-								//std::cout << "updating vector of the physical frame locations" << std::endl;
-								vector_of_the_has_ufm_agents.push_back(line);
-								break;
-							case 5:
-								//LOG(csmd, debug) << "updating vector of the physical u locations";
-								//std::cout << "updating vector of the physical u locations" << std::endl;
-								vector_of_the_ips.push_back(line);
-								break;
-							case 6:
-								//last record for bad record
-								// unfortunately only record
-								if(bad_record){ 
-									bad_switch_records << "model:                 " << line << std::endl; 
-									//because its last field. pad the record with a new line. 
-									bad_switch_records << std::endl;
-								} 
-							    else{ vector_of_the_model.push_back(line); }
-							    // because last field of ufm record. 
-							    //reset to a new record
-								bad_record = false;
-								break;
-							case 7:
-								//LOG(csmd, debug) << "updating vector of the types";
-								//std::cout << "updating vector of the types" << std::endl;
-								//vector_of_the_num_modules.push_back(line);
-								break;
-							case 8:
-								//LOG(csmd, debug) << "updating vector of the guids";
-								//std::cout << "updating vector of the guids" << std::endl;
-								//line = standardizeGuid( line );
-								vector_of_the_num_ports.push_back(line);
-								break;
-							case 9:
-								//LOG(csmd, debug) << "updating vector of the statuses";
-								//std::cout << "updating vector of the statuses" << std::endl;
-								vector_of_the_physical_frame_locations.push_back(line);
-								break;
-							case 10:
-								vector_of_the_physical_u_locations.push_back(line);
-								break;
-							case 11:
-								vector_of_the_ps_ids.push_back(line);
-								break;
-							case 12:
-								vector_of_the_roles.push_back(line);
-								break;
-							case 13:
-								vector_of_the_server_operation_modes.push_back(line);
-								break;
-							case 14:
-								vector_of_the_sm_modes.push_back(line);
-								break;
-							case 15:
-								vector_of_the_states.push_back(line);
-								break;
-							case 16:
-								vector_of_the_sw_versions.push_back(line);
-								break;
-							case 17:
-								vector_of_the_system_guids.push_back(line);
-								break;
-							case 18:
-								vector_of_the_system_names.push_back(line);
-								break;
-							case 19:
-								vector_of_the_total_alarms.push_back(line);
-								break;
-							case 20:
-								vector_of_the_types.push_back(line);
-								break;
-							case 21:
-								vector_of_the_vendors.push_back(line);
-								break;
-							case 22:
-								vector_of_the_serial_numbers.push_back(line);
-								break;
-							case 23:
-								vector_of_the_os_versions.push_back(line);
-								break;
-						}
-
-						//I think unfortunately for now . we have to do this here. this way
-						if(bad_record)
-						{
-							//copy the already added fields to the bad_record file
-							bad_switch_records << "Switch: " << total_switch_records << std::endl;
-							bad_switch_records << "ip:                    " << vector_of_the_ips[vector_of_the_ips.size()-1] << std::endl;
-							bad_switch_records << "fw_version:            " << vector_of_the_firmware_versions[vector_of_the_firmware_versions.size()-1] << std::endl;
-							bad_switch_records << "total_alarms:          " << vector_of_the_total_alarms[vector_of_the_total_alarms.size()-1] << std::endl;
-							bad_switch_records << "psid:                  " << vector_of_the_ps_ids[vector_of_the_ps_ids.size()-1] << std::endl;
-							bad_switch_records << "guid:                  " << vector_of_the_guids[vector_of_the_guids.size()-1] << std::endl;
-							bad_switch_records << "state:                 " << vector_of_the_states[vector_of_the_states.size()-1] << std::endl;
-							bad_switch_records << "role:                  " << vector_of_the_roles[vector_of_the_roles.size()-1] << std::endl;
-							bad_switch_records << "type:                  " << vector_of_the_types[vector_of_the_types.size()-1] << std::endl;
-							bad_switch_records << "vendor:                " << vector_of_the_vendors[vector_of_the_vendors.size()-1] << std::endl;
-							bad_switch_records << "description:           " << vector_of_the_descriptions[vector_of_the_descriptions.size()-1] << std::endl;
-							bad_switch_records << "has_ufm_agent:         " << vector_of_the_has_ufm_agents[vector_of_the_has_ufm_agents.size()-1] << std::endl;
-							bad_switch_records << "server_operation_mode: " << vector_of_the_server_operation_modes[vector_of_the_server_operation_modes.size()-1] << std::endl;
-							bad_switch_records << "sm_mode:               " << vector_of_the_sm_modes[vector_of_the_sm_modes.size()-1] << std::endl;
-							bad_switch_records << "system_name:           " << vector_of_the_system_names[vector_of_the_system_names.size()-1] << std::endl;
-							bad_switch_records << "sw_version:            " << vector_of_the_sw_versions[vector_of_the_sw_versions.size()-1] << std::endl;
-							bad_switch_records << "system_guid:           " << vector_of_the_system_guids[vector_of_the_system_guids.size()-1] << std::endl;
-							bad_switch_records << "name:                  " << vector_of_the_switch_names[vector_of_the_switch_names.size()-1] << std::endl;
-							bad_switch_records << "modules:               ???" << std::endl;
-							bad_switch_records << "serial_number:         N/A" << std::endl;
-
-							//remove already added fields to lists.
-							vector_of_the_ips.pop_back();
-							vector_of_the_firmware_versions.pop_back();
-							vector_of_the_total_alarms.pop_back();
-							vector_of_the_ps_ids.pop_back();
-							vector_of_the_guids.pop_back();
-							vector_of_the_states.pop_back();
-							vector_of_the_roles.pop_back();
-							vector_of_the_types.pop_back();
-							vector_of_the_vendors.pop_back();
-							vector_of_the_descriptions.pop_back();
-							vector_of_the_has_ufm_agents.pop_back();
-							vector_of_the_server_operation_modes.pop_back();
-							vector_of_the_sm_modes.pop_back();
-							vector_of_the_system_names.pop_back();
-							vector_of_the_sw_versions.pop_back();
-							vector_of_the_system_guids.pop_back();
-							vector_of_the_switch_names.pop_back();
-						}
+						//push num_modules
+						vector_of_the_num_modules.push_back(std::to_string(number_of_modules_found));
+						//idk, exit early, no need to further contine the main loop.
 					}
-				}				
-			}
+				}
+		
+				// extraction field
+				position_delimiter=line.find(":");
+					
+				//Modify the prefix. Trim the opening garbage from the key_value
+				if(i == 19 || i == 4 ){
+					//delimiter, space
+					//2 char spaces
+					line.erase(0,position_delimiter+2);
+				}else{
+					//delimiter, space, double quote
+					//3 char spaces
+					line.erase(0,position_delimiter+3);
+				}
+		
+				//Modify the suffix. Trim the ending garbage.
+				if(i == 19 || i == 4 ){
+					line.erase(line.length()-2,line.length());
+				}else if( i == (vector_of_the_comparing_strings.size()-1) ){
+					//I think Fausto meant "last line of the record" which would have no comma and therefor need less trim
+					//ToDo: check later
+					line.erase(line.length()-3,line.length()-1);
+				}else{
+					line.erase(line.length()-3,line.length()-1);					
+				}
 
-			std::cout << "UFM reported " << total_switch_records << " switch records." << std::endl;
-			std::cout << "This report from UFM can be found in '" << ufm_switch_output_filename << "' located at '" << csm_inv_log_dir << std::endl;
+				// updating vectors
+				switch (i)
+				{
+					case 0:
+						vector_of_the_switch_names.push_back(line);
+					    total_switch_records++;
+						break;
+					case 1:
+						vector_of_the_descriptions.push_back(line);
+						break;
+					case 2:
+						vector_of_the_firmware_versions.push_back(line);
+						break;
+					case 3:
+						vector_of_the_guids.push_back(line);
+						break;
+					case 4:
+						vector_of_the_has_ufm_agents.push_back(line);
+						break;
+					case 5:
+						vector_of_the_ips.push_back(line);
+						break;
+					case 6:
+						//last record for bad record
+						// unfortunately only record
+						if(bad_record){ 
+							bad_switch_records << "model:                 " << line << std::endl; 
+							//because its last field. pad the record with a new line. 
+							bad_switch_records << std::endl;
+						} 
+					    else{ vector_of_the_model.push_back(line); }
+					    // because last field of ufm record. 
+					    //reset to a new record
+						bad_record = false;
+						break;
+					case 7:
+						//vector_of_the_num_modules.push_back(line);
+						break;
+					case 8:
+						vector_of_the_num_ports.push_back(line);
+						break;
+					case 9:
+						vector_of_the_physical_frame_locations.push_back(line);
+						break;
+					case 10:
+						vector_of_the_physical_u_locations.push_back(line);
+						break;
+					case 11:
+						vector_of_the_ps_ids.push_back(line);
+						break;
+					case 12:
+						vector_of_the_roles.push_back(line);
+						break;
+					case 13:
+						vector_of_the_server_operation_modes.push_back(line);
+						break;
+					case 14:
+						vector_of_the_sm_modes.push_back(line);
+						break;
+					case 15:
+						vector_of_the_states.push_back(line);
+						break;
+					case 16:
+						vector_of_the_sw_versions.push_back(line);
+						break;
+					case 17:
+						vector_of_the_system_guids.push_back(line);
+						break;
+					case 18:
+						vector_of_the_system_names.push_back(line);
+						break;
+					case 19:
+						vector_of_the_total_alarms.push_back(line);
+						break;
+					case 20:
+						vector_of_the_types.push_back(line);
+						break;
+					case 21:
+						vector_of_the_vendors.push_back(line);
+						break;
+					case 22:
+						vector_of_the_serial_numbers.push_back(line);
+						break;
+					case 23:
+						vector_of_the_os_versions.push_back(line);
+						break;
+				}
 
-			if(NA_serials_count > 0){
-				std::cerr << "WARNING: " << NA_serials_count << " Switches found with 'N/A' serial numbers and have been removed from CSM inventory collection data." << std::endl;
-				std::cerr << "These records copied into '" << switch_errors <<"' located at '" << csm_inv_log_dir << std::endl;
-			}
+				//I think unfortunately for now . we have to do this here. this way
+				if(bad_record)
+				{
+					//copy the already added fields to the bad_record file
+					bad_switch_records << "Switch: " << total_switch_records << std::endl;
+					bad_switch_records << "ip:                    " << vector_of_the_ips[vector_of_the_ips.size()-1] << std::endl;
+					bad_switch_records << "fw_version:            " << vector_of_the_firmware_versions[vector_of_the_firmware_versions.size()-1] << std::endl;
+					bad_switch_records << "total_alarms:          " << vector_of_the_total_alarms[vector_of_the_total_alarms.size()-1] << std::endl;
+					bad_switch_records << "psid:                  " << vector_of_the_ps_ids[vector_of_the_ps_ids.size()-1] << std::endl;
+					bad_switch_records << "guid:                  " << vector_of_the_guids[vector_of_the_guids.size()-1] << std::endl;
+					bad_switch_records << "state:                 " << vector_of_the_states[vector_of_the_states.size()-1] << std::endl;
+					bad_switch_records << "role:                  " << vector_of_the_roles[vector_of_the_roles.size()-1] << std::endl;
+					bad_switch_records << "type:                  " << vector_of_the_types[vector_of_the_types.size()-1] << std::endl;
+					bad_switch_records << "vendor:                " << vector_of_the_vendors[vector_of_the_vendors.size()-1] << std::endl;
+					bad_switch_records << "description:           " << vector_of_the_descriptions[vector_of_the_descriptions.size()-1] << std::endl;
+					bad_switch_records << "has_ufm_agent:         " << vector_of_the_has_ufm_agents[vector_of_the_has_ufm_agents.size()-1] << std::endl;
+					bad_switch_records << "server_operation_mode: " << vector_of_the_server_operation_modes[vector_of_the_server_operation_modes.size()-1] << std::endl;
+					bad_switch_records << "sm_mode:               " << vector_of_the_sm_modes[vector_of_the_sm_modes.size()-1] << std::endl;
+					bad_switch_records << "system_name:           " << vector_of_the_system_names[vector_of_the_system_names.size()-1] << std::endl;
+					bad_switch_records << "sw_version:            " << vector_of_the_sw_versions[vector_of_the_sw_versions.size()-1] << std::endl;
+					bad_switch_records << "system_guid:           " << vector_of_the_system_guids[vector_of_the_system_guids.size()-1] << std::endl;
+					bad_switch_records << "name:                  " << vector_of_the_switch_names[vector_of_the_switch_names.size()-1] << std::endl;
+					bad_switch_records << "modules:               ???" << std::endl;
+					bad_switch_records << "serial_number:         N/A" << std::endl;
 
-			std::cout << std::endl;
-
-			bad_switch_records << "\nTotal Bad Records: " << NA_serials_count << "\n" << std::endl;
-
-			// closing the input file
-			input_file.close();
-			//close the error file
-			bad_switch_records.close();
+					//remove already added fields to lists.
+					vector_of_the_ips.pop_back();
+					vector_of_the_firmware_versions.pop_back();
+					vector_of_the_total_alarms.pop_back();
+					vector_of_the_ps_ids.pop_back();
+					vector_of_the_guids.pop_back();
+					vector_of_the_states.pop_back();
+					vector_of_the_roles.pop_back();
+					vector_of_the_types.pop_back();
+					vector_of_the_vendors.pop_back();
+					vector_of_the_descriptions.pop_back();
+					vector_of_the_has_ufm_agents.pop_back();
+					vector_of_the_server_operation_modes.pop_back();
+					vector_of_the_sm_modes.pop_back();
+					vector_of_the_system_names.pop_back();
+					vector_of_the_sw_versions.pop_back();
+					vector_of_the_system_guids.pop_back();
+					vector_of_the_switch_names.pop_back();
+				}
+			}				
 		}
+
+		std::cout << "UFM reported " << total_switch_records << " switch records." << std::endl;
+		std::cout << "This report from UFM can be found in '" << ufm_switch_output_file_name << "' located at '" << csm_inv_log_dir << "'" << std::endl;
+
+		if(NA_serials_count > 0){
+			std::cerr << "WARNING: " << NA_serials_count << " Switches found with 'N/A' serial numbers and have been removed from CSM inventory collection data." << std::endl;
+			std::cerr << "These records copied into '" << switch_errors <<"' located at '" << csm_inv_log_dir << "'" << std::endl;
+		}
+
+		std::cout << std::endl;
+
+		bad_switch_records << "\nTotal Bad Records: " << NA_serials_count << "\n" << std::endl;
+
+		// closing the input file
+		input_file.close();
+		//close the error file
+		bad_switch_records.close();
 	}
 	catch (std::exception& e)
 	{
@@ -814,6 +712,203 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 
 	return 0;
 }
+
+int INV_SWITCH_CONNECTOR_ACCESS::module_key_value_vector_builder(char* module_key, char* module_value)
+{
+
+	int check = 0; 
+
+	// take in keys and values and make fautso vectors
+	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+	{
+		
+		check = strcmp(module_key, vector_of_the_comparing_strings_modules[i].c_str());
+
+		if( check != 0)
+		{
+			continue;
+		}
+
+		switch(i)
+		{
+			case 0:
+				module_status.push_back(module_value);
+				break;
+			case 1:
+				module_hw_version.push_back(module_value);
+				break;
+			case 2:
+				module_name.push_back(module_value);
+				break;
+			case 3:
+				module_number_of_chips.push_back(module_value);
+				break;
+			case 4:
+				module_description.push_back(module_value);
+				break;
+			case 5:
+				module_max_ib_ports.push_back(module_value);
+				break;
+			case 6:
+				module_module_index.push_back(module_value);
+				break;
+			case 7:
+				module_device_type.push_back(module_value);
+				break;
+			case 8:
+				module_serial_number.push_back(module_value);
+				break;
+			case 9:
+				module_path.push_back(module_value);
+				break;
+			case 10:
+				module_device_name.push_back(module_value);
+				break;
+			case 11:
+				module_severity.push_back(module_value);
+				break;
+			case 12:
+				module_type.push_back(module_value);
+				break;
+			case 13:
+				module_fw_version.push_back(module_value);
+				break;
+			default:
+				//error?
+				break;
+		}
+
+	}
+
+	return 0;
+}
+
+std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int index)
+{
+
+	// setting field value
+	std::string field_value = "NULL";
+	std::size_t found; 
+	
+	// Notes to remember when someone fixes later.
+	// inventory can have different number of modules. 
+	// this is tracked outside this function. (via index parameter)
+	// the way fautso vectors work is one long list.
+	// gotta offset this list by the number of total modules coming before
+	// when we build a json tree from the raw json file, hopefully we can eliminate this whole list system. 
+
+	// take in keys and values and make fautso vectors
+	for(unsigned int i = 0; i < vector_of_the_comparing_strings_modules.size(); i++)
+	{
+
+		found = vector_of_the_comparing_strings_modules[i].find("\""+key+"\"");
+
+		if( found == std::string::npos )
+		{
+			continue;
+		}
+
+		// id and index in bound
+		switch (i)
+		{
+			case 0:
+				if(index < module_status.size())
+				{
+					field_value = module_status.at( index );
+				}
+				break;
+			case 1:
+				if(index < module_hw_version.size())
+				{
+					field_value = module_hw_version.at(index);
+				}
+				break;
+			case 2:
+				if(index < module_name.size())
+				{
+					field_value = module_name.at(index);
+				}
+				break;
+			case 3:
+				if(index < module_number_of_chips.size())
+				{
+					field_value = module_number_of_chips.at(index);
+				}
+				break;
+			case 4:
+				if(index < module_description.size())
+				{
+					field_value = module_description.at(index);
+				}
+				break;
+			case 5:
+				if(index < module_max_ib_ports.size())
+				{
+					field_value = module_max_ib_ports.at(index);
+				}
+				break;
+			case 6:
+				if(index < module_module_index.size())
+				{
+					field_value = module_module_index.at(index);
+				}
+				break;
+			case 7:
+				if(index < module_device_type.size())
+				{
+					field_value = module_device_type.at(index);
+				}
+				break;
+			case 8:
+				if(index < module_serial_number.size())
+				{
+					field_value = module_serial_number.at(index);
+				}
+				break;
+			case 9:
+				if(index < module_path.size())
+				{
+					field_value = module_path.at(index);
+				}
+				break;
+			case 10:
+				if(index < module_device_name.size())
+				{
+					field_value = module_device_name.at(index);
+				}
+				break;
+			case 11:
+				if(index < module_severity.size())
+				{
+					field_value = module_severity.at(index);
+				}
+				break;
+			case 12:
+				if(index < module_type.size())
+				{
+					field_value = module_type.at(index);
+				}
+				break;
+			case 13:
+				if(index < module_fw_version.size())
+				{
+					field_value = module_fw_version.at(index);
+				}
+				break;
+			default:
+				//error?
+				break;
+		}
+
+		// return real value of the field
+		return field_value;
+
+	}
+
+	// return real value of the field
+	return field_value;
+}
+
 
 std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vector_id, unsigned long int index_in_the_vector)
 {
@@ -910,7 +1005,14 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vect
 			field_value = vector_of_the_os_versions.at( index_in_the_vector );
 			break;
 		case 24:
-			field_value = vector_of_the_modules.at( index_in_the_vector );
+			if(index_in_the_vector >= vector_of_the_modules.size())
+			{
+				field_value = "N/A";
+			}else{
+				field_value = vector_of_the_modules.at( index_in_the_vector );
+				//field_value = "N/A";
+			}
+			
 			break;
 	}
 
@@ -957,9 +1059,25 @@ std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue(unsigned long int vect
 	return "NULL";
 }
 
+std::string INV_SWITCH_CONNECTOR_ACCESS::ReturnFieldValue_module(std::string key, unsigned long int index)
+{
+	return "NULL";
+}
+
 int INV_SWITCH_CONNECTOR_ACCESS::TotalNumberOfRecords()
 {
 	return vector_of_the_switch_names.size();
 }
+
+int INV_SWITCH_CONNECTOR_ACCESS::extractValueFromLine(std::string line, char** value, char* key, bool finalLine)
+{
+
+	// need to go through and look at this code and clean it up and document...it really is a mess. :( 
+
+
+	return 0;
+}
+
+
 
 #endif  // SWITCH_CONNECTOR support is disabled

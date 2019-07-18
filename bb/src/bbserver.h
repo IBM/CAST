@@ -25,7 +25,7 @@
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
-class BBTagInfoMap2;
+
 
 extern void sendMsgAndWaitForNonDataReply(txp::Connex* pConnection, txp::Msg* &pMsg);
 

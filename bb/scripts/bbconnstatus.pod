@@ -1,0 +1,30 @@
+=head1 NAME
+
+bbconnstatus - display bbProxy active connection
+
+=head1 SYNOPSIS
+
+/opt/ibm/bb/scripts/bbconnstatus
+
+
+=head1 DESCRIPTION
+
+Command that can be executed on the compute node in order to determine the current status of the bbProxy->bbServer connection.  The 
+output from the command will be either primary, backup, no_connection, bbProxy_might_be_down, or unknownServer.  Optimal burst buffer performance
+should occur when the active connection is at primary.  Backup indicates that the node is in a failover state.  No connection indicates that
+the burst buffer service is not currently functional.  Unknown could occur if the administrator fails over to a bbServer other than the designated 
+primary or backup.  This is an unusual situation.  
+
+
+
+=over 8
+
+=item B<-v>
+
+Enables verbose output
+
+=item B<-raw>
+
+Displays the server name in addition to the type
+
+=back

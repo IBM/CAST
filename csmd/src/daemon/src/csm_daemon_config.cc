@@ -1330,6 +1330,7 @@ void Configuration::CreateThreadPool()
         const std::string CORE_ISO   = SECTION + "core_isolation_max";
         const int32_t     CORE_ISO_MAX= 4;
         const std::string ENABLED    = SECTION + "enabled";  
+        const std::string BLINK_ENABLED = SECTION + "blink_enabled";
         std::string keyStr = "";
 
         // Parse core mappings.
@@ -1353,6 +1354,10 @@ void Configuration::CreateThreadPool()
         boost::algorithm::to_lower(keyStr);
         bool jitterEnabled  =  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
 
+        keyStr     = GetValueInConfig(BLINK_ENABLED);
+        boost::algorithm::to_lower(keyStr);
+        bool blinkEnabled  =  ( keyStr.empty()  || (keyStr.compare("true") == 0) );
+
         /*
         // If the Core Blink flag is unset default to true.
         keyStr     = GetValueInConfig( CORE_BLINK ) ;
@@ -1361,7 +1366,7 @@ void Configuration::CreateThreadPool()
         */
 
         // Build the object.
-        _JitterInfo.Init( socketOrder, maxCoreIso, systemSMT, irqAffinity, jitterEnabled);
+        _JitterInfo.Init( socketOrder, maxCoreIso, systemSMT, irqAffinity, jitterEnabled, blinkEnabled);
     } 
 
 }  // namespace daemon

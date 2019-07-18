@@ -2,7 +2,7 @@
 
     csmrestd/src/csmrestd.cc
 
-  © Copyright IBM Corporation 2015-2017. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -278,7 +278,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
         input->message = strdup(message.c_str());
         input->limit = limit;
         input->offset = offset;
-        input->offset = 'd';
+        input->order_by = 'd';
 
         csm_api_object *csmobj = NULL;
         LOG( csmrestd, info ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << "NEW RAS QUERY" << std::setw(0)
@@ -294,7 +294,7 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
                 << " " << jsonIn
                 << " errstr: " << errmsg;
             rc = RestApiReply::internal_server_error;
-        } 
+        }
         else {
 
             boost::property_tree::ptree ev_vect;
@@ -322,9 +322,9 @@ RestApiReply::status_type CsmRestApiServer::csmRasEventQuery(
             jsonOut = ss.str();
             LOG( csmrestd, info ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << "RAS QUERY COMPLETE" << std::setw(0)
                 << " " << jsonIn;
+            rc = RestApiReply::ok;
         }
         csm_api_object_destroy(csmobj);
-        rc = RestApiReply::ok;
     }
     catch (std::exception & e) {
       LOG( csmrestd, warning ) << std::setw( LOG_RAS_EVENT_PREFIX_WIDTH ) << std::left << "RAS QUERY ERROR" << std::setw(0)
@@ -662,7 +662,15 @@ int main(int argc, char* argv[])
 {
    CsmRestdMain csmRestMain;
 
-   int rc = csmRestMain.main(argc, argv);
+   try
+   {
+     int rc = csmRestMain.main(argc, argv);
 
-   return(rc);
+     return(rc);
+   }
+   catch (...)
+   {
+     LOG( csmrestd, error ) << "Caught Unspecified exception. Exiting...";
+   }
+   return -1;
 }

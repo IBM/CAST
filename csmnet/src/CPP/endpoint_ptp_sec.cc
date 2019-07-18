@@ -110,9 +110,9 @@ csm::network::EndpointPTP_sec_base::EndpointPTP_sec_base( const int aSocket,
 
 csm::network::EndpointPTP_sec_base::EndpointPTP_sec_base( const Endpoint *aEP )
 : csm::network::EndpointPTP_base( aEP ),
-  _SSLContext( dynamic_cast<const EndpointPTP_sec_base*>(aEP)->_SSLContext ),
-  _SSLStruct( dynamic_cast<const EndpointPTP_sec_base*>(aEP)->_SSLStruct ),
-  _BIO( dynamic_cast<const EndpointPTP_sec_base*>(aEP)->_BIO )
+  _SSLContext( (dynamic_cast<const EndpointPTP_sec_base*>(aEP) == nullptr ) ? nullptr : dynamic_cast<const EndpointPTP_sec_base*>(aEP)->_SSLContext ),
+  _SSLStruct( (dynamic_cast<const EndpointPTP_sec_base*>(aEP) == nullptr ) ? nullptr : dynamic_cast<const EndpointPTP_sec_base*>(aEP)->_SSLStruct ),
+  _BIO( (dynamic_cast<const EndpointPTP_sec_base*>(aEP) == nullptr ) ? nullptr : dynamic_cast<const EndpointPTP_sec_base*>(aEP)->_BIO )
 {
   _SendBuffer = new char[ DGRAM_PAYLOAD_MAX ];
 }
@@ -507,6 +507,9 @@ ssize_t csm::network::EndpointCompute_sec::SendTo( const csm::network::Message &
                                                    const csm::network::Address_sptr aRemoteAddr )
 {
   const csm::network::AddressPTP *addr = dynamic_cast<const csm::network::AddressPTP*>( aRemoteAddr.get() );
+  if( addr == nullptr )
+    throw csm::network::ExceptionProtocol("Remote address has wrong type", ENOTCONN );
+
   if( *addr != *(csm::network::AddressPTP*)_RemoteAddr.get() )
     LOG( csmnet, warning ) << "EndpointPTP_sec::SendTo(): Request to send to different address than connected. Given address IGNORED!";
 

@@ -25,7 +25,7 @@ if [ -n "$HCDIAG_LOGDIR" ]; then
 
 fi
 
-# NOTE: the binary for this test is distributed as samples.
+# NOTE: the binary for this test is distributed as sample by NVIDIA.
 #       Binary is expected to be in this directory. 
 #       If not, update the binary location below.
 
@@ -49,9 +49,20 @@ if [ -z $is_boston ]; then
    echo -e "Could not determine if the machine has GPUs by model. Continuing.."
    is_boston=False
 fi 
-if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PASS, rc=0"; exit 0; fi 
+[ $is_boston == True ] && echo -e "Model does not have GPUs.\n$me test PASS, rc=0" && exit 0
 
-# Example of the output for 4 gpus
+# check if machine has GPUs
+# ===========================
+has_gpus
+[ "$ret" -ne "0" ] &&  echo "$me test FAIL, rc=$ret" && exit $ret
+[ "$ngpus" -eq "0" ] && echo "$me test FAIL, rc=1" &&  exit 1
+
+# we need to determine if it is a P8 or P9 processor, to check connectivity properly
+get_processor
+[ "$ret" -ne "0" ] && echo "$me test FAIL, rc=$ret" && exit $ret 
+
+verbose=$1
+# P9 example 4 gpus
 # Checking it is all is set to 1
 # P2P Connectivity Matrix
 # D\D     0     1     2     3
@@ -73,24 +84,45 @@ if [ $is_boston == True ]; then echo -e "Model does not have GPUs.\n$me test PAS
 #     2  34.43  34.12 763.64 136.20 
 #     3  34.25  33.72 135.02 765.18 
 
+# P8 example
+#P2P Connectivity Matrix
+#     D\D     0     1     2     3
+#     0       1     1     0     0
+#     1       1     1     0     0
+#     2       0     0     1     1
+#     3       0     0     1     1
+#Unidirectional P2P=Enabled Bandwidth (P2P Writes) Matrix (GB/s)
+#   D\D     0      1      2      3                              
+#     0 507.22  35.35  20.27  20.31                             
+#     1  35.33 509.12  20.25  20.28                             
+#     2  24.52  25.09 509.29  35.35
+#     3  24.55  24.92  35.34 509.52
+#Bidirectional P2P=Enabled Bandwidth Matrix (GB/s)
+#   D\D     0      1      2      3
+#     0 519.38  70.53  30.36  30.37
+#     1  70.42 516.91  30.51  30.50
+#     2  30.48  30.56 517.98  70.42
+#     3  30.43  30.57  70.54 516.75
 
-# check if machine has GPUs
-# ===========================
-has_gpus
-rc=$ret
-if [ "$rc" -ne "0" ]; then echo "$me test FAIL, rc=$rc"; exit $rc; fi 
-if [ "$ngpus" -eq "0" ]; then echo "$me test FAIL, rc=1"; exit 1; fi 
-
-verbose=$1
 
 # we are checking only the P2P enabled results
 # default values for 4 gpus. Values should be integer
+
 UN_GPU_LOCAL=700             
 UN_GPU_GPU=48                
 UN_GPU_PPC=24                
 BI_GPU_LOCAL=700             
 BI_GPU_GPU=96              
 BI_GPU_PPC=24                
+
+if [ "${processor}" == "p8" ]; then
+  UN_GPU_LOCAL=500            
+  UN_GPU_GPU=35                
+  UN_GPU_PPC=20                
+  BI_GPU_LOCAL=500             
+  BI_GPU_GPU=70              
+  BI_GPU_PPC=20                
+fi
 
 if [ "$ngpus" -eq "6" ]; then 
    UN_GPU_LOCAL=730            
@@ -115,7 +147,80 @@ eyecatcher=( "P2P Connectivity Matrix"
 # Only if ret is set to 9 we end the test, otherwise 
 # keep counting
 #=====================================================
-function check_connectivity() 
+function check_p8_connectivity() 
+{
+   i=$1; j=$2; v=$3; matrix=$4
+   ret=0
+
+   # This is P2P Connectivity Matrix (shortcut)
+   #============================================
+   if [ $matrix -eq 0 ]; then
+     if [[ "$v" =~ ^-?[0-9]+$ ]]; then
+        # good, it is is integer
+        # calculate the diff
+        d=$((i-j))
+        d=${d#-}
+        if [ $d -le 1 ]; then
+           if [ $v -eq 1 ]; then 
+              if [ $verbose ]; then echo "Connectivity gpus $i, $j, value: $v"; fi
+           fi
+        fi
+        return
+     fi
+     echo "Error: Connectivity, gpus $i, $j, value: $v."
+     ret=9 
+     return
+   fi
+
+   # All other Matrixes
+   #====================
+   if [[ "$v" =~ ^-?[0-9]*[.,]?[0-9]*$ ]]; then
+      ## echo "$string is a float"
+      # GPU_LOCAL
+      # ========
+      if [ $i -eq $j ]; then
+         # this is local
+         if [ ${v%.*} -lt ${GPU_LOCAL[$matrix]} ]; then
+           echo "Error: gpus $i,$j, expecting min value: ${GPU_LOCAL[$matrix]}, got: $v"
+           let err+=1
+         else
+           if [ $verbose ]; then echo "gpus $i,$j, expecting min value: ${GPU_LOCAL[$matrix]}, got: $v"; fi
+         fi
+         return
+      fi
+
+      # GPU_PPC
+      # ========
+      if ( [ $i -lt $limit ] && [ $j -ge $limit ] ) || ( [ $i -ge $limit ] && [ $j -lt $limit ] )  ; then
+         # this is ppc
+         if [ ${v%.*} -lt ${GPU_PPC[$matrix]} ]; then
+           echo "Error: gpus $i,$j, expecting min value: ${GPU_PPC[$matrix]}, got: $v"
+           let err+=1
+         else
+           if [ $verbose ]; then echo "gpus $i,$j, expecting min value: ${GPU_PPC[$matrix]}, got: $v"; fi
+         fi
+         return
+      fi
+
+      # GPU_GPU
+      # ========
+      if [ ${v%.*} -lt ${GPU_GPU[$matrix]} ]; then
+         echo "Error: gpus $i,$j, expecting min value: ${GPU_GPU[$matrix]}, got: $v"
+         let err+=1
+         return
+      else
+         if [ $verbose ]; then echo "gpus $i,$j, expecting min value: ${GPU_GPU[$matrix]}, got: $v"; fi
+      fi
+
+   # not a floating point
+   else   
+      let err+=1
+      echo "Error: gpus $i,$j, invalid value, got: $v" 
+   fi
+   return
+}
+
+function check_p9_connectivity() 
 {
    i=$1; j=$2; v=$3; matrix=$4
    ret=0
@@ -247,7 +352,8 @@ for (( m=0; m<$nmatrix; m++ )); do
      for (( i=0; i<$ngpus; i++ )); do
         aa=( ${a[$i]} )
         for (( j=0; j<$ngpus; j++ )); do
-          check_connectivity $i $j ${aa[$j]} $m
+          [ "${processor}" == "p9" ] && check_p9_connectivity $i $j ${aa[$j]} $m;
+          [ "${processor}" == "p8" ] && check_p8_connectivity $i $j ${aa[$j]} $m;
           if [ $ret -eq 9 ]; then fail 9; fi
         done
      done

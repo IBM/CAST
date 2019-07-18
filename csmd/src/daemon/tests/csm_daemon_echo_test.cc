@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_daemon_echo_test.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -12,9 +12,6 @@
     restricted by GSA ADP Schedule Contract with IBM Corp.
 
 ================================================================================*/
-/* csm_network_engine_test.cc
- *
- ******************************************/
 
 // test source, sink, and processor for network handling
 
@@ -58,7 +55,6 @@ bool SendRecvSequence( csm::network::EndpointMultiUnix &ep,
   else
   {
     std::cerr << "Client: receive error. rc=" << rc << " data valid=" << valid << std::endl;
-    if( !rc ) rc = -1;
   }
 
   // compare message data if we didn't get an error response

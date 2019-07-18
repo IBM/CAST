@@ -39,7 +39,7 @@ FL_SetName(FLUtility, "Utilities");
 
 static int setgroups_thread(int numGroups, gid_t* groupList)
 {
-    // glibc wrappers setgroups for POSIX requirement that all threads have the same view.  
+    // glibc wrappers setgroups for POSIX requirement that all threads have the same view.
     // for per-thread, we'll need to call the syscall directly.
     return syscall(SYS_setgroups, numGroups, groupList);
 }
@@ -87,16 +87,16 @@ static int updateUserIdentityCache(uid_t user, UserIdentity*& ui)
     rc = getpwuid_r(user, &uidMap[user].pwd, (char*)uidMap[user].buf, buflen, &result);
     if(rc || (result == NULL))
     {
-        FL_Write(FLUtility, FL_GETPWUIDFAIL, "Failed to retrieve user %ld passwd entry.  rc=%ld, errno=%ld  result=%p",
-                 user, rc, errno, (uint64_t)result);
+        FL_Write6(FLUtility, FL_GETPWUIDFAIL, "Failed to retrieve user %ld passwd entry.  rc=%ld, buflen=%ld, errno=%ld, result=%p",
+                  user, rc, buflen, errno, (uint64_t)result, 0);
         uidMap.erase(user);
         return -1;
     }
     rc = getgrouplist(uidMap[user].pwd.pw_name, uidMap[user].pwd.pw_gid, uidMap[user].groupList, &uidMap[user].numGroups);
     if (rc == -1)
     {
-        FL_Write(FLUtility, FL_GETGRPSFAIL, "Failed to retrieve secondary groups for user %ld.  rc=%ld, errno=%ld",
-                 user, rc, errno, 0);
+        FL_Write(FLUtility, FL_GETGRPSFAIL, "Failed to retrieve secondary groups for user %ld.  rc=%ld, buflen=%ld, errno=%ld",
+                 user, rc, buflen, errno);
         uidMap.erase(user);
         return -1;
     }

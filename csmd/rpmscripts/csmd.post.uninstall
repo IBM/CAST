@@ -3,9 +3,9 @@
 # ------------------------------------------------------------
 p_wl="whitelist"
 p_al="activelist"
-
+#
 # If pam.d ssh is found remove all of the csm related things.
-if [ -f /etc/pam.d/sshd ]
+if [ -f /etc/pam.d/sshd ] && [[ ${1} == 0 ]]
 then
     restart_sshd=0
 

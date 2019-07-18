@@ -564,7 +564,7 @@ int csm_net_unix_Exit( csm_net_endpoint_t *aEP )
 
   memset( aEP, 0, sizeof( csm_net_endpoint_t ) );
   free( aEP );
-  return 0;
+  return rc;
 }
 
 int csm_net_unix_SocketConnect( csm_net_unix_t *aEP,
@@ -577,6 +577,7 @@ int csm_net_unix_SocketConnect( csm_net_unix_t *aEP,
   bzero( &SrvAddr, sizeof( struct sockaddr_un ) );
   SrvAddr.sun_family = AF_UNIX;
   strncpy( SrvAddr.sun_path, aSrvAddr, UNIX_PATH_MAX );
+  SrvAddr.sun_path[ UNIX_PATH_MAX - 1 ] = '\0';
 
   rc = 1;
   for( retries = 1; ((rc != 0) && (retries < 10)); ++retries )
@@ -594,6 +595,7 @@ int csm_net_unix_SocketConnect( csm_net_unix_t *aEP,
   {
     aEP->_OtherAddr.sun_family = AF_UNIX;
     strncpy( aEP->_OtherAddr.sun_path, aSrvAddr, UNIX_PATH_MAX );
+    aEP->_OtherAddr.sun_path[ UNIX_PATH_MAX - 1 ] = '\0';
   }
   else
     csmutil_logging( error, "csmlib: Failed to connect to CSM_SSOCKET=%s; retried %d times.",
@@ -632,6 +634,7 @@ int csm_net_unix_Connect( csm_net_endpoint_t *aEP,
       // 2) we're not sending anything back from the cb socket anyway
       aEP->_cb->_OtherAddr.sun_family = AF_UNIX;
       strncpy( aEP->_cb->_OtherAddr.sun_path, aEP->_ep->_OtherAddr.sun_path, UNIX_PATH_MAX );    }
+      aEP->_cb->_OtherAddr.sun_path[ UNIX_PATH_MAX - 1 ] = '\0';
   }
   if( rc )
     return rc;
@@ -978,7 +981,7 @@ ssize_t FillReceiveBuffer( csm_net_unix_t *aEP, csmi_cmd_t cmd, const int partia
         errno = 0;
         rlen = recvmsg( aEP->_Socket, &msg, 0 );
         stored_errno = errno;
-        
+
         switch( stored_errno )
         {
             case EINTR:
@@ -1141,6 +1144,12 @@ csm_net_msg_t * csm_net_unix_RecvMain(
         {
           ret = (csm_net_msg_t*)EPBS->_BufferedData;
           data = (char*) EPBS->_BufferedData + sizeof(csm_net_msg_t);
+        }
+        if( ret == NULL )
+        {
+          csmutil_logging( error, "Fatal protocol error. Endpoint Databuffer no longer initialized?\n");
+          errno = ENOTCONN;
+          return NULL;
         }
         ret->_Data = data;
 

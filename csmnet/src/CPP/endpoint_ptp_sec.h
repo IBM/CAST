@@ -120,7 +120,7 @@ protected:
     unsigned int addrsize = sizeof( sockaddr_in );
     bzero( &CltAddr, addrsize );
     int newsock = accept( _Socket, (sockaddr*)&CltAddr, &addrsize );
-    if( newsock <= 0 )
+    if( newsock < 0 )
     {
       if(( errno == EAGAIN ) || ( errno == EWOULDBLOCK ))
         return nullptr;
@@ -154,7 +154,7 @@ protected:
     }
 
     EndpointClass *ret = nullptr;
-    if( newsock > 0 )
+    if( newsock >= 0 )
     {
       // need to create new set of options based on listening endpoint and address class
       std::shared_ptr<AddressClass> raddr = std::make_shared<AddressClass>( htonl( CltAddr.sin_addr.s_addr ),

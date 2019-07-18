@@ -22,11 +22,12 @@ require AutoLoader;
 @EXPORT = qw(
              bbcmd
              bbgetrc
+             bbgetsuccess
              bpost
              cmd
+             forkcmd
+             waitcmd
              setupUserEnvironment
-             getBBENVDir
-             getBBENVName
              bbfail
              bbwaitTransfersComplete
 );
@@ -130,7 +131,8 @@ else
         "hosts=s" => \$hostlist,
         "jobid=i" => \$::JOBID,
         @::GETOPS
-    );
+    ) or die("Invalid command line arguments.  Bailing\n");
+    
     if($hostlist ne "")
     {
         @::HOSTLIST_ARRAY = split(/,/, $hostlist);
@@ -181,8 +183,6 @@ my %mkuniq   = map { $_, 1 } @::HOSTLIST_ARRAY;
 @::HOSTLIST_ARRAY = keys %mkuniq;
 
 $::HOSTLIST = join(",", @::HOSTLIST_ARRAY);
-if (! $QUIET) {print "HOSTLIST: $::HOSTLIST\n"};
-
 $::JOBUSER = untaint($::JOBUSER);
 $oldpath = $ENV{'PATH'};
 $ENV{'PATH'} = '/bin:/usr/bin';
@@ -194,6 +194,13 @@ $::BBPATH = $ENV{"BBPATH"} if($ENV{"BBPATH"} ne "");
 $ENV{"BBPATH"} = $::BBPATH;
 $::BBALL = join(",",0..$#::HOSTLIST_ARRAY);
 
+eval
+{
+    $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
+    $::jsoncfg = $json = decode_json($jsondata);
+    $controller = $json->{"bb"}{"cmd"}{"controller"};
+};
+
 $hl = "";
 if($controller !~ /csm/i)
 {
@@ -201,6 +208,7 @@ if($controller !~ /csm/i)
 }
 $::TARGET_NODE0 = "--jobstepid=1$hl --target=0";
 $::TARGET_ALL   = "--jobstepid=1$hl --target=0- --bcast";
+$::TARGET_ALL_NOBCAST   = "--jobstepid=1$hl --target=0-";
 $::TARGET_QUERY = "--jobstepid=0$hl --target=0";
 
 if(exists $ENV{"BSCFS_MNT_PATH"})
@@ -275,7 +283,9 @@ sub bbwaitTransfersComplete
         $numpending = $result->{"0"}{"out"}{"numavailhandles"};
         my $curtime = time();
         last if($curtime - $starttime > $timeout);
+        last if($result->{"rc"});
     }
+    return $result;
 }
 
 sub bbcmd
@@ -302,7 +312,7 @@ sub bbcmd
         if(!$QUIET) { printf("rc = %s\n", $result->{"rc"}) }
         if($result->{"rc"})
         {
-            printf("Command failure.  rc=%s\n", $result->{"rc"});
+            if(!$QUIET) { printf("Command failure.  rc=%s\n", $result->{"rc"}); }
         }
     };
     alarm(0);
@@ -320,6 +330,12 @@ sub bbgetrc
 {
     my($json) = @_;
     return $json->{"rc"};
+}
+
+sub bbgetsuccess
+{
+    my($json) = @_;
+    return $json->{"goodcount"};
 }
 
 sub killpids
@@ -382,6 +398,41 @@ sub cmd
     return $rc;
 }
 
+sub waitcmd
+{
+    foreach $pid (@PIDLIST)
+    {
+        waitpid($pid, 0);
+        my $rc = ($? >> 8);
+        $::PIDMETA{$pid}{"rc"} = $rc;
+        print "pid: $pid == $rc\n";
+    }
+    @PIDLIST = ();
+}
+
+sub forkcmd
+{
+    my($cmd, $timeout) = @_;
+    my $pid = fork();
+    if($pid)
+    {
+        push(@PIDLIST, $pid);
+        $::LASTPID = $pid;
+        $::PIDMETA{$pid}{"cmd"} = $cmd;
+        $::PIDMETA{$pid}{"rc"}  = "unk";
+    }
+    else
+    {
+        my $rc = cmd($cmd, $timeout, 0);
+        exit(-1) if($rc);
+        exit(0);
+    }
+    if($#PIDLIST+1 >= 256)
+    {
+        waitcmd();
+    }
+}
+
 
 sub defaultenv
 {
@@ -416,81 +467,61 @@ sub setupBSCFS
     defaultenv("BSCFS_MNT_PATH", "local_path", "/bscfs");
 }
 
-sub getBBENVDir
-{
-    my $bbenvdir = "/tmp";
-    eval
-    {
-        $jsondata = `/bin/cat /etc/ibm/bb.cfg`;
-	    $::jsoncfg = $json = decode_json($jsondata);
-        $bbenvdir = $json->{"bb"}{"envdir"};
-        $controller = $json->{"bb"}{"cmd"}{"controller"};
-    };
-    
-    if($bbenvdir eq "")
-    {
-        my @pwentry   = getpwuid($<);
-        @pwentry   = getpwnam($ENV{"LSF_STAGE_USER"}) if(exists $ENV{"LSF_STAGE_USER"});
-        $bbenvdir  = @pwentry[7] . "/.bbtmp";
-    }
-    return $bbenvdir;
-}
-
-sub getBBENVName
-{    
-    return &getBBENVDir() . "/env.$::JOBID";
-}
-
 sub openBBENV
 {
-    my $bbenvfile = getBBENVName();
-    open(BBENV, $bbenvfile) || bbfail "Unable to open BB_ENVFILE file($bbenvfile).  $!";
-    
-    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-        $atime,$mtime,$ctime,$blksize,$blocks)= stat(BBENV) || bbfail "Unable to stat BB_ENVFILE.  $!";
-    if($mode & 0077)
+    my $bbenvfile;
+    my $envnotready = 60;
+    ($BBENV, $bbenvfile) = tempfile(UNLINK => 1);
+    $bpostbin = $ENV{'LSF_BINDIR'};
+    do 
     {
-	    bbfail "Permissions on BB_ENVFILE are too broad, the group and world fields should be zero.";
+        system("$bpostbin/bread -a $bbenvfile -i 119 $::JOBID");
+        if(! -f $bbenvfile)
+        {
+            $envnotready--;
+            sleep(1);
+        }
+        else
+        {
+            $envnotready = -1;
+        }
     }
+    while($envnotready > 0);
+    return -1 if($envnotready == 0);
+    return 0;
 }
 
 sub setupBBPATH
 {
-    openBBENV();
-    while($line = <BBENV>)
-    {
-        if($line =~ /^BBPATH=/)
-        {
-            chomp($line);
-            ($key, $value) = $line =~ /(\S+)=(.*)/;
-            if($value !~ /^\/mnt\/bb_[a-z0-9]+/)
-            {
-                bbfail "BBPATH appears to be corrupted or tainted.";
-            }
-            $ENV{"BBPATH"} = $value;
-        }
-        if($line =~ /^LSB_SUB_ADDITIONAL=/)
-        {
-            chomp($line);
-            ($key, $value) = $line =~ /(\S+)=(.*)/;
-            $ENV{"LSB_SUB_ADDITIONAL"} = $value;
-        }
-    }
-    close(BBENV);
-    $::BBPATH = $ENV{"BBPATH"};
+    my $bpostbin = $ENV{'LSF_BINDIR'};
+    my $bbpathdata = `$bpostbin/bread -w -i 119 $::JOBID`;  # root calls this, cannot use files
+    ($ENV{"BBPATH"} = $::BBPATH) = $bbpathdata =~ /BB Path=(\S+)/;
 }
 
 sub setupUserEnvironment
 {
     $ENV{"PATH"} = $ENV{"PATH_PRESERVE"};
-    openBBENV();
-    while($line = <BBENV>)
+    my $rc = openBBENV();
+    return -1 if($rc);
+    while($line = <$BBENV>)
     {
         chomp($line);
         ($key, $value) = $line =~ /(\S+)=(.*)/;
         $ENV{$key} = $value;
     }
-    close(BBENV);
+    close($BBENV);
+
+    if(exists $ENV{"LSB_SUB3_CWD"})
+    {
+        my $dir = $ENV{"LSB_SUB3_CWD"};
+        ($dir) =~ s/^\"(.*)\"/$1/;
+        chdir($dir);
+    }
+    elsif(exists $ENV{"PWD"})
+    {
+        chdir($ENV{"PWD"});
+    }
+    return 0;
 }
 
 1;

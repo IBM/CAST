@@ -16,9 +16,9 @@
 
 #--------------------------------------------------------------------------------
 #   usage:              ./csm_db_stats.sh
-#   current_version:    01.10
+#   current_version:    01.12
 #   create:             08-02-2016
-#   last modified:      02-15-2019
+#   last modified:      04-04-2019
 #--------------------------------------------------------------------------------
 
 export PGOPTIONS='--client-min-messages=warning'
@@ -29,9 +29,12 @@ logname="csm_db_stats.log"
 cd "${BASH_SOURCE%/*}" || exit
 cur_path=`pwd`
 
-line1_out="------------------------------------------------------------------------------------------------------------------------"
-line2_log="------------------------------------------------------------------------------------"
-line3_log="---------------------------------------------------------------------------------------------------------------------------"
+#----------------------------------------------
+# Output formatter
+#----------------------------------------------
+line1_out=$(printf "%0.s-" {1..120})
+line2_log=$(printf "%0.s-" {1..84})
+line3_log=$(printf "%0.s-" {1..123})
 
 #----------------------------------------------
 # Current user connected---
@@ -80,9 +83,8 @@ echo "[Start ] Welcome to CSM datatbase automation stats script."
 #echo "${line3_log}" >> $logfile
 LogMsg "[Start ] Welcome to CSM datatbase automation stats script."
 echo "${line1_out}"
+LogMsg "${line2_log}"
 echo "[Info  ] Log Dir: $logdir/$logname"
-
-
 
 #----------------------------------------------
 # Usage Command Line Functions
@@ -282,6 +284,8 @@ while getopts "t:i:l:s:c:u:v:a:x:d:k:h:" arg; do
                 echo "[Info  ] Example: ./csm_db_stats.sh -d csmdb 1 [min(s)]"
                 LogMsg "[Error ] Please specify the time interval"
                 LogMsg "[Info  ] Example: ./csm_db_stats.sh -d csmdb 1 [min(s)]"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
                 echo "${line1_out}"
                 echo "${line3_log}" >> $logfile
                 exit 0
@@ -300,7 +304,9 @@ while getopts "t:i:l:s:c:u:v:a:x:d:k:h:" arg; do
         h)
             usage
             LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -h, --help"
-            LogMsg "[End   ] Help menu query executed"
+            LogMsg "[Info  ] Help menu query executed"
+            LogMsg "${line2_log}"
+            LogMsg "[End   ] Exiting csm_db_stats.sh script."
             echo "${line3_log}" >> $logfile
             exit 0
             ;;
@@ -308,27 +314,44 @@ while getopts "t:i:l:s:c:u:v:a:x:d:k:h:" arg; do
             usage
             LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
             LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
-            LogMsg "[End   ] Please choose another option"
+            LogMsg "[Info  ] Please choose another option"
+            LogMsg "${line2_log}"
+            LogMsg "[End   ] Exiting csm_db_stats.sh script."
             echo "${line3_log}" >> $logfile
             exit 0
             ;;
     esac
 done
 
+#----------------------------------------------------------------
+# Check the status of the PostgreSQl server
+#----------------------------------------------------------------
+
+systemctl status postgresql > /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "[Error ] The PostgreSQL server: Is currently inactive and needs to be started"
+    echo "[Info  ] If there is an issue please run: systemctl status postgresql for more info."
+    LogMsg "[Error ] The PostgreSQL server: Is currently inactive and needs to be started"
+    LogMsg "[Info  ] If there is an issue please run: systemctl status postgresql for more info."
+    LogMsg "${line2_log}"
+    LogMsg "[End   ] Exiting csm_db_stats.sh script"
+    echo "${line1_out}"
+    echo "${line3_log}" >> $logfile
+    exit 0
+fi
+
 #-------------------------------------------------
 # Check if postgresql exists already and root user
 #-------------------------------------------------
-string1="$now1 ($current_user) [Info  ] DB Users:"
-    psql -U $db_username -t -c '\du' | cut -d \| -f 1 | grep -qw root
+    root_query=`psql -qtA $db_username -c "SELECT usename FROM pg_catalog.pg_user where usename = 'root';" 2>&1`
         if [ $? -ne 0 ]; then
-            db_user_query=`psql -U $db_username -q -A -t -P format=wrapped <<EOF
-            \set ON_ERROR_STOP true
-            select string_agg(usename,' | ') from pg_user;
-EOF`
-            echo "$string1 $db_user_query" | sed "s/.\{60\}|/&\n$string1 /g" >> $logfile
-            echo "${line1_out}"
-            echo "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
-            LogMsg "[Error ] Postgresql may not be configured correctly. Please check configuration settings."
+            echo "[Error ] $root_query"    
+            echo "$root_query" |& awk '/^psql:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error ] DB Message: "'"$0}' >>"${logfile}"
+            echo "[Info  ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "[Info  ] Postgresql may not be configured correctly. Please check configuration settings."
+            LogMsg "${line2_log}"
+            LogMsg "[End   ] Exiting csm_db_stats.sh script"
             echo "${line1_out}"
             echo "${line3_log}" >> $logfile
             exit 0
@@ -346,6 +369,7 @@ string2="$now1 ($current_user) [Info  ] DB Names:"
 EOF`
             echo "$string2 $db_query" | sed "s/.\{60\}|/&\n$string2 /g" >> $logfile
             LogMsg "[Info  ] PostgreSQL is installed"
+            LogMsg "${line2_log}"
         else
             echo "${line1_out}"
             echo "[Error ] PostgreSQL may not be installed or DB: $dbname may not exist."
@@ -353,6 +377,8 @@ EOF`
             echo "${line1_out}"
             LogMsg "[Error ] PostgreSQL may not be installed or DB $dbname may not exist."
             LogMsg "[Info  ] Please check configuration settings or psql -l"
+            LogMsg "${line2_log}"
+            LogMsg "[End   ] Exiting csm_db_stats.sh script."
             echo "${line3_log}" >> $logfile
             exit 1
         fi
@@ -365,7 +391,9 @@ if [ $# -eq 0 ]; then
     usage
     LogMsg "[Info  ] Script execution: $BASENAME [NO ARGUMENT]"
     LogMsg "[Info  ] Wrong arguments were passed in (Please choose appropriate option from usage list -h, --help)"
-    LogMsg "[End   ] Please choose another option"
+    LogMsg "[Info  ] Please choose another option"
+    LogMsg "${line2_log}"
+    LogMsg "[End   ] Exiting csm_db_stats.sh script."
     echo "${line3_log}" >> $logfile
     exit 0
 fi
@@ -403,11 +431,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -t, --tableinfo (db_name): $dbname"
-        LogMsg "[End   ] Table stats query executed"
+        LogMsg "[Info  ] Table stats query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -455,11 +488,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -i, --indexinfo (db_name): $dbname"
-        LogMsg "[End   ] Table index query executed"
+        LogMsg "[Info  ] Table index query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -490,11 +528,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -x, --indexanalysis (db_name): $dbname"
-        LogMsg "[End   ] Table index analysis query executed"
+        LogMsg "[Info  ] Table index analysis query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -526,11 +569,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -l, --lockinfo (db_name): $dbname"
-        LogMsg "[End   ] Table lock monitoring query executed"
+        LogMsg "[Info  ] Table lock monitoring query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -549,11 +597,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -c, --connectionsdb (db_name): $dbname"
-        LogMsg "[End   ] DB connections with stats query executed"
+        LogMsg "[Info  ] DB connections with stats query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -571,11 +624,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -u, --username (db_name): $dbname"
-        LogMsg "[End   ] DB usernames with stats query executed"
+        LogMsg "[Info  ] DB usernames with stats query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -593,11 +651,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system"
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -s, --schemaversion (db_name): $dbname"
-        LogMsg "[End   ] DB schema version query executed"
+        LogMsg "[Info  ] DB schema version query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -631,11 +694,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -a, --archivecount (db_name): $dbname"
-        LogMsg "[End   ] History table archive count query executed"
+        LogMsg "[Info  ] History table archive count query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -653,11 +721,16 @@ return_code=0
                 echo "[Error ] A valid database name has to be specified (Please run psql -l for a list of active databases)"
                 LogMsg "[Error ] A valid database name has to be specified (Please run psql -l for a list of active databases)" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -v, --postgresqlversion (db_name): $dbname"
-        LogMsg "[End   ] PostgeSQL version and environment query executed"
+        LogMsg "[Info  ] PostgeSQL version and environment query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -721,11 +794,16 @@ return_code=0
                 echo "[Error ] Table or database does not exist in the system or time interval not specified"
                 LogMsg "[Error ] Table or database does not exist in the system or time interval not specified"
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -d, --deletecount (db_name): $dbname"
-        LogMsg "[End   ] DB schema version query executed"
+        LogMsg "[Info  ] DB schema version query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi
@@ -744,11 +822,16 @@ return_code=0
                 echo "[Error ] Table and or database does not exist in the system"
                 LogMsg "[Error ] Table and or database does not exist in the system" 
                 echo "${line1_out}"
+                LogMsg "${line2_log}"
+                LogMsg "[End   ] Exiting csm_db_stats.sh script."
+                echo "${line3_log}" >> $logfile
             else
                 echo "${line1_out}"
             fi
         LogMsg "[Info  ] Script execution: ./csm_db_stats.sh -k, --vacuumstats (db_name): $dbname"
-        LogMsg "[End   ] DB vacuum stats query executed"
+        LogMsg "[Info  ] DB vacuum stats query executed"
+        LogMsg "${line2_log}"
+        LogMsg "[End   ] Exiting csm_db_stats.sh script."
         echo "${line3_log}" >> $logfile
         exit $return_code
     fi

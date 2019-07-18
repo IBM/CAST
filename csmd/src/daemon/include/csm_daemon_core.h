@@ -2,7 +2,7 @@
 
     csmd/src/daemon/include/csm_daemon_core.h
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -82,7 +82,11 @@ protected:
   
 public:
   CoreGeneric();
-  virtual ~CoreGeneric() { DestroyInfrastructure(); };
+  virtual ~CoreGeneric() {
+    try { DestroyInfrastructure(); }
+    catch ( csm::daemon::EventSourceException &e )
+    { LOG( csmd, error ) << "Event source priority problem detected during shutdown."; }
+  };
 
 
 public:

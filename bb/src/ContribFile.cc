@@ -29,13 +29,11 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
     pContribFile = NULL;
     ContribFile* l_ContribFile = new ContribFile();
 
-    struct timeval l_StartTime, l_StopTime;
+    struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
     bool l_AllDone = false;
     int l_Attempts = 0;
     int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
-
-    l_StartTime.tv_sec = 0; // resolve gcc optimizer complaint
 
     while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_CONTRIBFILE_LOADTIME))
     {
@@ -44,6 +42,7 @@ int ContribFile::loadContribFile(ContribFile* &pContribFile, const bfs::path& pC
         ++l_Attempts;
         try
         {
+            LOG(bb,debug) << "Reading:" << pContribFileName;
             ifstream l_ArchiveFile{pContribFileName.c_str()};
             text_iarchive l_Archive{l_ArchiveFile};
             l_Archive >> *l_ContribFile;

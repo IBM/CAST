@@ -19,6 +19,7 @@
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
+class BBTagInfo;
 class BBTransferDef;
 
 /**
@@ -32,18 +33,21 @@ class ExtentInfo
         handle(0),
         contrib(0),
         extent(0),
+        taginfo(0),
         transferDef(0) {}
 
-    ExtentInfo(uint64_t pHandle, uint32_t pContrib, Extent* pExtent, BBTransferDef* pTransferDef) :
+    ExtentInfo(uint64_t pHandle, uint32_t pContrib, Extent* pExtent, BBTagInfo* pTagInfo, BBTransferDef* pTransferDef) :
         handle(pHandle),
         contrib(pContrib),
         extent(pExtent),
+        taginfo(pTagInfo),
         transferDef(pTransferDef) {}
 
     ExtentInfo(const ExtentInfo& pSrc) {
         handle = pSrc.handle;
         contrib = pSrc.contrib;
         extent = pSrc.extent;
+        taginfo = pSrc.taginfo;
         transferDef = pSrc.transferDef;
     }
 
@@ -63,6 +67,10 @@ class ExtentInfo
         return extent->getSourceIndex();
     }
 
+    inline BBTagInfo* getTagInfo() {
+        return taginfo;
+    }
+
     inline BBTransferDef* getTransferDef() {
         return transferDef;
     }
@@ -70,6 +78,7 @@ class ExtentInfo
     uint64_t        handle;
     uint32_t        contrib;
     Extent*         extent;
+    BBTagInfo*      taginfo;
     BBTransferDef*  transferDef;
 };
 

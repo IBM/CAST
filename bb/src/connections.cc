@@ -328,7 +328,7 @@ static bool myV_set = myVersionInit();
 
 int versionCheck(const std::string& pReceivedVersion){
     boost::property_tree::ptree receivedV;
-    
+
     bbVersionToTree(pReceivedVersion, receivedV);
 
     std::string myVersionString = myV.get("version.major", "NOTFOUND_"+process_whoami);
@@ -339,7 +339,7 @@ int versionCheck(const std::string& pReceivedVersion){
         bberror << err("error.receivedversion", pReceivedVersion);
         bberror << err("error.myversion",myVersionString);
         bberror << err("error.whoami", process_whoami);
-        LOG_RC_AND_RAS_AND_BAIL(-1, bb.cfgerr.versionmismatch);
+        SET_RC_RAS_AND_BAIL(-1, bb.cfgerr.versionmismatch);
     }
     if( myV.get("gitcommit", "commit_NOTFOUND_"+process_whoami) != receivedV.get("gitcommit", "xyz"))
         LOG(bb,info)<<"gitcommit levels are different,  received="<<pReceivedVersion<<" my Version="<<BBAPI_CLIENTVERSIONSTR;
@@ -393,7 +393,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 		    // NOTE: Keep name of bbapi app consistent (no sequence number).  Ensure unique name of connection
 		    //       for duration of socket connection between bbproxy and bbserver (use .sequencenumber).
 #ifdef BBSERVER
-		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance) + string(".") + to_string(++newconnection_name_sequence_number) 
+		    std::string l_newconnection_name = string(receivedFromWhoami) + string(".") + to_string(++newconnection_name_sequence_number)
             + " (" + conn->getRemoteAddrString() + ")";
 #else
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance);
@@ -459,7 +459,7 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
 {
     txp::Connex* l_connex= NULL;
     bool answer=false;
-    lockConnectionMaps("getConnex");
+    lockConnectionMaps("isLocalRemoteNotSameAddress");
     {
         auto it = name2connections.find(pConnectionName);
         if (it!= name2connections.end())
@@ -468,7 +468,25 @@ bool isLocalRemoteNotSameAddress(const std::string& pConnectionName)
             answer=l_connex->remoteAndLocalAddressNotSame();
         }
     }
-    unlockConnectionMaps("getConnex");
+    unlockConnectionMaps("isLocalRemoteNotSameAddress");
+
+    return answer;
+}
+
+string getRemoteAddrString(const std::string& pConnectionName)
+{
+    txp::Connex* l_connex= NULL;
+    string answer;
+    lockConnectionMaps("getRemoteAddrString");
+    {
+        auto it = name2connections.find(pConnectionName);
+        if (it!= name2connections.end())
+        {
+            l_connex = it->second;
+            answer=l_connex->getRemoteAddrString();
+        }
+    }
+    unlockConnectionMaps("getRemoteAddrString");
 
     return answer;
 }
@@ -670,7 +688,7 @@ int sendMessage(const string& name, txp::Msg* msg)
             char l_MsgIdStr[64] = {'\0'};
             msg->msgIdToChar(l_MsgId, l_MsgIdStr, sizeof(l_MsgIdStr));
             txp::Connex* cnx = iter->second;
-            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr 
+            l_Text << "==> Sending msg to " << name.c_str() << ": " << l_MsgIdStr
                    << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber()
                    << " "<< cnx->getInfoString();
 
@@ -684,7 +702,7 @@ int sendMessage(const string& name, txp::Msg* msg)
                 LOG(bb,debug) << l_Text.str();
             }
 
-            
+
             rc = cnx->write(msg);
             rc = rc > 0 ? 0 : rc;
             if (rc)
@@ -832,7 +850,7 @@ int sendMsgAndWaitForReturnCode(const std::string& pConnectionName, txp::Msg* &p
                 rc = (int)(*((int32_t*)(l_Attribute->getDataPtr())));
             }
             delete l_ReplyMsg;
-        } 
+        }
     }
 
     return rc;
@@ -1440,7 +1458,7 @@ int setupBBproxyListener(string whoami)
 
     string ipaddr;
     string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
-    
+
     string sslurl = config.get(whoami + ".ssladdress", NO_CONFIG_VALUE);
     if ( (url == NO_CONFIG_VALUE) && (sslurl == NO_CONFIG_VALUE) ){
         LOG(bb,always) << "whoami=" << whoami << " url=" << url << " sslurl=" << sslurl;
@@ -1590,7 +1608,7 @@ int setupConnections(string whoami, string instance)
 
     string ipaddr;
     string url = config.get(whoami + ".address", NO_CONFIG_VALUE);
-    
+
     int x;
     pthread_t tid;
     pthread_attr_t attr;

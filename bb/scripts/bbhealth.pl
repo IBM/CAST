@@ -55,8 +55,10 @@ sub setDefaults
     $pollrate           = 30;
     $maxSleep           = 3600;
     $::DEFAULT_HOSTLIST = "localhost";
-    @::GETOPS           = ("pollrate=i" => \$pollrate,
-                           "maxsleep=i" => \$maxSleep);
+    @::GETOPS           = ( "pollrate=i" => \$pollrate,
+                            "maxsleep=i" => \$maxSleep,
+                            "v!"         => \$verbose
+                            );
 }
 
 sub window_sleep
@@ -84,7 +86,7 @@ BEGIN
 
 use bbtools;
 
-$bbtools::QUIET = 1;
+$bbtools::QUIET = 1 if(!$verbose);
 
 do
 {

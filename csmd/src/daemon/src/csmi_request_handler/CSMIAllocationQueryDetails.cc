@@ -164,7 +164,7 @@ bool CSMIAllocationQueryDetails::CreatePayload(
             "a.job_name, "\
             "a.job_submit_time, a.queue, "\
             "a.requeue, a.time_limit, a.wc_key, "\
-            "a.isolated_cores, a.smt_mode " 
+            "a.isolated_cores, a.smt_mode, a.core_blink " 
 
         std::string stmt = 
             "SELECT "
@@ -240,7 +240,7 @@ bool CSMIAllocationQueryDetails::CreateResponsePayload(
     {
         csm::db::DBTuple *fields = tuples[0];
 
-        if ( !( fields->nfields == 36 ) ) 
+        if ( !( fields->nfields == 38 ) ) 
         {
             ctx->SetErrorCode( CSMERR_DB_ERROR );
             ctx->SetErrorMessage("Incorrect number of fields received by query.");
@@ -286,19 +286,20 @@ bool CSMIAllocationQueryDetails::CreateResponsePayload(
         a->wc_key               = strdup(fields->data[28]);
         a->isolated_cores       = strtol(fields->data[29], nullptr, 10);
         a->smt_mode             = (int16_t)strtol(fields->data[30], nullptr, 10);
+        a->core_blink           = csm_convert_psql_bool(fields->data[31][0]) ? CSM_TRUE : CSM_FALSE;
 
         // IFF a history time was found build the history.
-        if ( fields->data[31][0] )
+        if ( fields->data[32][0] )
         {
             a->history = (csmi_allocation_history_t *)malloc(sizeof(csmi_allocation_history_t));
 
-            a->history->end_time             = strdup(fields->data[31]);
-            a->history->exit_status          = strtol(fields->data[32], nullptr, 10);
-            a->history->archive_history_time = strdup(fields->data[33]);
+            a->history->end_time             = strdup(fields->data[32]);
+            a->history->exit_status          = strtol(fields->data[33], nullptr, 10);
+            a->history->archive_history_time = strdup(fields->data[34]);
         }
 
         // Transition table.
-        ad->num_transitions = strtoll(fields->data[34], nullptr, 10); 
+        ad->num_transitions = strtoll(fields->data[35], nullptr, 10); 
         
         if ( ad->num_transitions > 0 )
         {
@@ -314,13 +315,13 @@ bool CSMIAllocationQueryDetails::CreateResponsePayload(
 
             csm_prep_csv_to_struct();
 
-            csm_parse_psql_array_to_struct(fields->data[35], ad->state_transitions,
+            csm_parse_psql_array_to_struct(fields->data[36], ad->state_transitions,
                         ad->num_transitions, ->history_time,
                         strdup("N/A"), strdup);
 
             // No easy way to do this.
             i = 0;                                                  
-            nodeStr = strtok_r(fields->data[36], ",\"{}", &saveptr);
+            nodeStr = strtok_r(fields->data[37], ",\"{}", &saveptr);
             while ( nodeStr != NULL && i < ad->num_transitions )             
             {                                                       
                 ad->state_transitions[i++]->state = (csmi_state_t)csm_get_enum_from_string(csmi_state_t, nodeStr); 

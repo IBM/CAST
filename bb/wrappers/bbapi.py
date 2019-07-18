@@ -472,7 +472,7 @@ def BB_GetTransferList(pMatchStatus, pNumHandles):
         raise BB_GetTransferListError(rc)
 
     l_HandleCount = min(pNumHandles, l_NumAvailHandles.value)
-    l_HandleArray = (c_uint64*l_HandleCount).from_address(addressof(l_Handles))
+    l_HandleArray = (c_ulonglong*l_HandleCount).from_address(addressof(l_Handles))
     l_Output = map(int, l_HandleArray)
 #    for i in xrange(l_HandleCount):
 #        l_Output.append(l_HandleArray[i])
@@ -544,8 +544,8 @@ def BB_StartTransfer(pTransferDef, pHandle):
             if (rc in l_ToleratedErrorRCs):
                 dummy = BBError()
                 if ("Attempt to retry" in dummy.getLastErrorDetailsSummary()):
-                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in three seconds." % (`pTransferDef`, pHandle)
-                    time.sleep(3)
+                    print "Transfer %s cannot be started for handle %s because of a suspended condition.  This start transfer request will be attempted again in 15 seconds." % (`pTransferDef`, pHandle)
+                    time.sleep(15)
                 else:
                     print "Transfer %s cannot be started for handle %s because of a suspended condition.  Restart logic will resubmit this start transfer operation." % (`pTransferDef`, pHandle)
                     break

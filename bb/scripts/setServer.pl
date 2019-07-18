@@ -25,31 +25,32 @@ sub isSetuid
 sub setDefaults
 {
     $drain = 0;
+    $::DEFAULT_HOSTLIST = "localhost";
     $newserver = "primary";
     @::GETOPS=(
-	"server=s" => \$newserver,
-	"drain!" => \$drain
+        "server=s" => \$newserver,
+        "drain!" => \$drain,
+        "v!" => \$verbose
 	);
 }
-
 
 BEGIN
 {
     if(isSetuid())
     {
-	unshift(@INC, '/opt/ibm/bb/scripts/');
+        unshift(@INC, '/opt/ibm/bb/scripts/');
     }
     else
     {
-	($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
-	unshift(@INC, abs_path($dir));
+        ($dir,$fn) = $0 =~ /(\S+)\/(\S+)/;
+        unshift(@INC, abs_path($dir));
     }
-    
+
     setDefaults();
 }
 
 use bbtools;
-
+$bbtools::QUIET = 1 if(!$verbose);
 
 my @cleanup = ();
 sub failureCleanAndExit()
@@ -79,7 +80,7 @@ if($drain == 0)
 {
     $result = bbcmd("$TARGET_ALL getserver --connected=$newserver");
     failureCleanAndExit() if(bbgetrc($result) != 0);
-    
+
     for($rank=0; $rank<$#::HOSTLIST_ARRAY+1; $rank++)
     {
 	if($oldservers{$rank} ne $result->{$rank}{"out"}{"serverList"})
@@ -91,13 +92,13 @@ if($drain == 0)
 else
 {
     my $drainserver = $newserver;
-    
+
     $primary_result = bbcmd("$TARGET_ALL getserver --connected=primary");
     failureCleanAndExit() if(bbgetrc($primary_result) != 0);
 
     $backup_result = bbcmd("$TARGET_ALL getserver --connected=backup");
     failureCleanAndExit() if(bbgetrc($backup_result) != 0);
-    
+
     for($rank=0; $rank<$#::HOSTLIST_ARRAY+1; $rank++)
     {
         if($primary_result->{$rank}{"out"}{"serverList"} eq $drainserver)
@@ -127,10 +128,6 @@ if($#RANKS+1 == 0)
 $::TARGET_FAILOVER = "--jobstepid=1 --hostlist=$::HOSTLIST --target=" . join(',', @RANKS);
 
 
-$result = bbcmd("$TARGET_FAILOVER suspend");
-failureCleanAndExit() if(bbgetrc($result) != 0);
-push(@cleanup, "$TARGET_FAILOVER resume");
-
 ##############################################
 ###  Open and activate new bbServer connection
 
@@ -138,9 +135,15 @@ $result = bbcmd("$TARGET_FAILOVER setserver --open=$newserver");
 failureCleanAndExit() if(bbgetrc($result) != 0);
 push(@cleanup, "$TARGET_FAILOVER setserver --close=$newserver");
 
-
 $result = bbcmd("$TARGET_FAILOVER setserver --activate=$newserver");
 failureCleanAndExit() if(bbgetrc($result) != 0);
+
+##############################################
+###  Suspend the new active bbServer connection
+
+$result = bbcmd("$TARGET_FAILOVER suspend");
+failureCleanAndExit() if(bbgetrc($result) != 0);
+push(@cleanup, "$TARGET_FAILOVER resume");
 
 foreach $rank (@RANKS)
 {
@@ -171,10 +174,10 @@ foreach $rank (@RANKS)
 	print "Waiting for replyCount rank $rank, count=$count.  Sleeping iteration $iteration.\n";
 	sleep(10);
     }
-    
+
     # could do this more efficiently by grouping same oldservers
     bbcmd("--jobstepid=1 --hostlist=$::HOSTLIST --target=$rank setserver --close=$oldservers{$rank}");
-    
+
     # ignore failures
 }
 

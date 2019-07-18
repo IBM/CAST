@@ -84,9 +84,6 @@ extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 
 void setSsdWriteDirect(unsigned int pValue);
-
-// NOTE: This lock is not used today.  Serialization of all metadata is controlled by the transfer queue lock
-//extern pthread_mutex_t MetadataMutex;
 #endif
 
 /*******************************************************************************
@@ -109,13 +106,14 @@ const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;         // in second
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;        // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;           // in seconds
 const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 300;    // in seconds
+const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 64;
 
 const int CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD = 10;
 const int DO_NOT_DUMP_QUEUES_ON_VALUE = -1;
 const int ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED = 0;
 const int ASYNC_REQUEST_HAS_BEEN_APPENDED = 1;
-const int MORE_EXTENTS_TO_TRANSFER_FOR_FILE = 1;
-const int NO_MORE_EXTENTS_TO_TRANSFER_FOR_FILE = 0;
+const int MORE_EXTENTS_TO_TRANSFER = 1;
+const int NO_MORE_EXTENTS_TO_TRANSFER = 0;
 const int LOCK_TRANSFER_QUEUE = 1;
 const int DO_NOT_LOCK_TRANSFER_QUEUE = 0;
 const int FIRST_PASS = 1;
@@ -126,11 +124,16 @@ const int SUSPEND = 1;
 
 const bool DEFAULT_USE_DISCARD_ON_MOUNT_OPTION = false;
 const bool DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM = true;
+const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
+const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
+const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
 
+const uint64_t UNDEFINED_JOBID = 0;
+const uint64_t UNDEFINED_JOBSTEPID = 0;
 const uint64_t DEFAULT_JOBID = 1;
-const uint64_t NO_JOBID = 0;
 const uint64_t DEFAULT_JOBSTEPID = 1;
-const uint64_t NO_JOBSTEPID = 0;
+const uint64_t UNDEFINED_HANDLE = 0;
+
 
 const int32_t DEFAULT_LOGICAL_VOLUME_READAHEAD = -1;
 const int32_t DO_NOT_TRANSFER_FILE = INT32_MAX;
@@ -141,6 +144,9 @@ const uint32_t UNDEFINED_CONTRIBID = 999999999;
 const uint32_t DEFAULT_CONTRIBID = 0;
 const uint32_t MAX_NUMBER_OF_CONTRIBS = 1*64*1024;
 
+// NOTE: If the BB throttling rate is used to limit the amount of
+//       bandwidth BB consumes, the following default value should be
+//       changed to the default rate/sec value used for BB throttling.
 const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
 const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
 
@@ -162,6 +168,7 @@ const string NO_CONTRIBID_STR = to_string(NO_CONTRIBID);
 const string NO_HOSTNAME = "%%_NuLl_HoStNaMe_%%";
 const string UNDEFINED_CONNECTION_NAME = "";
 const string UNDEFINED_HOSTNAME = "";
+const string DEFAULT_LOCK_DEBUG_LEVEL = "debug";
 const char DEVICE_DIRECTORY[] = "dev";
 const char DEVICE_MAPPER_DIRECTORY[] = "dev/mapper";
 const char ERROR_PREFIX[] = "ERROR - ";
@@ -201,19 +208,19 @@ enum FIND_BB_DEVNAMES_OPTION
 };
 typedef enum FIND_BB_DEVNAMES_OPTION FIND_BB_DEVNAMES_OPTION;
 
-enum TRANSFER_QUEUE_RELEASED
+enum LOCAL_METADATA_RELEASED
 {
-    TRANSFER_QUEUE_LOCK_NOT_RELEASED    = 0,
-    TRANSFER_QUEUE_LOCK_RELEASED        = 1
+    LOCAL_METADATA_LOCK_NOT_RELEASED    = 0,
+    LOCAL_METADATA_LOCK_RELEASED        = 1
 };
-typedef enum TRANSFER_QUEUE_RELEASED TRANSFER_QUEUE_RELEASED;
+typedef enum LOCAL_METADATA_RELEASED LOCAL_METADATA_RELEASED;
 
 enum HANDLEFILE_LOCK_OPTION
 {
     TEST_FOR_HANDLEFILE_LOCK        = -1,   // Not currently used
     DO_NOT_LOCK_HANDLEFILE          = 0,
     LOCK_HANDLEFILE                 = 1,
-    LOCK_HANDLEFILE_WITH_TEST_FIRST = 2     // Not curently used
+    LOCK_HANDLEFILE_WITH_TEST_FIRST = 2     // Not currently used
 };
 typedef enum HANDLEFILE_LOCK_OPTION HANDLEFILE_LOCK_OPTION;
 
@@ -230,6 +237,20 @@ enum HANDLEFILE_SCAN_OPTION
     FULL_SCAN   = 1
 };
 typedef enum HANDLEFILE_SCAN_OPTION HANDLEFILE_SCAN_OPTION;
+
+enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION
+{
+    DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS = 0,
+    ALLOW_BUMP_FOR_REPORTING_CONTRIBS        = 1
+};
+typedef enum ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION ALLOW_BUMP_FOR_REPORTING_CONTRIBS_OPTION;
+
+enum DUMP_ALL_DATA_INDICATOR
+{
+    DO_NOT_DUMP_ALL_DATA    = 0,
+    DUMP_ALL_DATA           = 1
+};
+typedef enum DUMP_ALL_DATA_INDICATOR DUMP_ALL_DATA_INDICATOR;
 
 /*******************************************************************************
  | Macro definitions

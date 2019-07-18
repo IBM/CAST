@@ -40,11 +40,12 @@ use JSON;
 
 $::BPOSTMBOX = 122;
 
+bpost("Unmounting BSCFS at " . $ENV{BSCFS_MNT_PATH});
 foreach $HOST (@HOSTLIST_ARRAY)
 {
-    bpost("Unmounting BSCFS on host $HOST " . $ENV{BSCFS_MNT_PATH});
-    cmd("ssh $HOST \" fusermount -u $ENV{BSCFS_MNT_PATH}; killall -9 bscfsAgent \" 2>&1");
+    forkcmd("ssh $HOST \" fusermount -u $ENV{BSCFS_MNT_PATH}; killall -9 bscfsAgent \" 2>&1");
 }
+waitcmd();
 sleep(5);
 unlink($PRE_INSTALL_LIST);
 bpost("Removed $PRE_INSTALL_LIST");

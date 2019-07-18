@@ -33,22 +33,22 @@ DO $$
         BEGIN
             ALTER TABLE csm_allocation ADD COLUMN smt_mode smallint NOT NULL DEFAULT 0;
         EXCEPTION
-            WHEN duplicate_column THEN RAISE NOTICE 'column smt_mode already exists in csm_allocation.';
+            WHEN duplicate_column THEN RAISE INFO 'column smt_mode already exists in csm_allocation, skipping.';
         END;
         BEGIN
             ALTER TABLE csm_allocation_history ADD COLUMN smt_mode smallint;
         EXCEPTION
-            WHEN duplicate_column THEN RAISE NOTICE 'column smt_mode already exists in csm_allocation_history.';
+            WHEN duplicate_column THEN RAISE INFO 'column smt_mode already exists in csm_allocation_history, skipping.';
         END;
         BEGIN
             ALTER TABLE csm_lv_history ADD COLUMN num_reads bigint;
         EXCEPTION
-            WHEN duplicate_column THEN RAISE NOTICE 'column num_reads already exists in csm_lv_history.';
+            WHEN duplicate_column THEN RAISE INFO 'column num_reads already exists in csm_lv_history, skipping.';
         END;
         BEGIN
             ALTER TABLE csm_lv_history ADD COLUMN num_writes bigint;
         EXCEPTION
-            WHEN duplicate_column THEN RAISE NOTICE 'column num_writes already exists in csm_lv_history.';
+            WHEN duplicate_column THEN RAISE INFO 'column num_writes already exists in csm_lv_history, skipping.';
         END;
     END;
 $$;

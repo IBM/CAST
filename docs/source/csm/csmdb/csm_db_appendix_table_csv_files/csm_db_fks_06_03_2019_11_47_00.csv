@@ -1,0 +1,18 @@
+Index Name,From Table,From Cols,To Table,To Cols
+csm_allocation_node_allocation_id_fkey,csm_allocation_node,allocation_id,csm_allocation,allocation_id
+csm_allocation_node_node_name_fkey,csm_allocation_node,node_name,csm_node,node_name
+csm_diag_result_run_id_fkey,csm_diag_result,run_id,csm_diag_run,run_id
+csm_dimm_node_name_fkey,csm_dimm,node_name,csm_node,node_name
+csm_gpu_node_name_fkey,csm_gpu,node_name,csm_node,node_name
+csm_hca_node_name_fkey,csm_hca,node_name,csm_node,node_name
+csm_lv_allocation_id_fkey,csm_lv,"allocation_id, node_name",csm_allocation_node,"allocation_id, node_name"
+csm_lv_node_name_fkey,csm_lv,"node_name, vg_name",csm_vg,"node_name, vg_name"
+csm_processor_socket_node_name_fkey,csm_processor_socket,node_name,csm_node,node_name
+csm_ras_event_action_msg_id_seq_fkey,csm_ras_event_action,msg_id_seq,csm_ras_type_audit,msg_id_seq
+csm_ssd_node_name_fkey,csm_ssd,node_name,csm_node,node_name
+csm_step_allocation_id_fkey,csm_step,allocation_id,csm_allocation,allocation_id
+csm_step_node_allocation_id_fkey,csm_step_node,"allocation_id, node_name",csm_allocation_node,"allocation_id, node_name"
+csm_step_node_step_id_fkey,csm_step_node,"step_id, allocation_id",csm_step,"step_id, allocation_id"
+csm_switch_inventory_host_system_guid_fkey,csm_switch_inventory,host_system_guid,csm_switch,gu_id
+csm_vg_ssd_serial_number_fkey,csm_vg_ssd,"serial_number, node_name",csm_ssd,"serial_number, node_name"
+csm_vg_ssd_vg_name_fkey,csm_vg_ssd,"vg_name, node_name",csm_vg,"vg_name, node_name"

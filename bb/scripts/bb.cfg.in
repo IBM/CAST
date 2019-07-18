@@ -10,7 +10,7 @@
 		"keepaliveidle"              : 60,
 		"keepalivecount"             : 12,
 		"keepaliveinterval"          :  5,
-        
+
 		"scripts" :
 		{
 			"transfertimeout" : 3600,
@@ -20,8 +20,7 @@
 		{
 			"ssladdress"         : "0.0.0.0:@SSLPORT@",
 			"numRequestThreads"  : 16,
-			"numTransferThreads" : 16,
-			"numTransferBuffers" : 16,
+			"numTransferThreads" : 64,
 			"workerBufferSize"   : 67108864,
 			"flightlog"          : "/var/log/bbserver@USERSUFFIX@",
 			"sslcertif"          : "/etc/ibm/cert.pem",
@@ -32,7 +31,8 @@
 				"default_sev"  : "info",
 				"rotationSize" : 67108864,
 				"fileLog"      : "/var/log/bbserver@USERSUFFIX@/console_%Y%m%d.%N.log",
-				"archiveLogs"  : "/var/log/bbserver@USERSUFFIX@/oldlogs"
+				"archiveLogs"  : "/var/log/bbserver@USERSUFFIX@/oldlogs",
+				"format"       : "%TimeStamp% %ThreadID% %SubComponent%::%Severity% | %Message%"
 			}
 		},
 		"proxy" :
@@ -42,14 +42,16 @@
 			"numRequestThreads"           : 8,
 			"flightlog"                   : "/var/log/bbproxy@USERSUFFIX@",
 			"ssdusagepollrate"            : 60,
-			"use_export_layout"	      : true,
+			"use_export_layout"	          : true,
 			"lvreadahead"                 : 65536,
 			"ras_max_rss_size"            : 2097152,
+			"readport"                    : 0,
+			"writeport"                   : 2,
 			"log" :
 			{
 				"consoleLog"   : @USECONSOLE@,
 				"default_sev"  : "info",
-				"rotationSize" : 67108864,	
+				"rotationSize" : 67108864,
 				"fileLog"      : "/var/log/bbproxy@USERSUFFIX@/console_%Y%m%d.%N.log",
 				"archiveLogs"  : "/var/log/bbproxy@USERSUFFIX@/oldlogs"
 			}

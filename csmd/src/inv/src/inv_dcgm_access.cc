@@ -2,7 +2,7 @@
 
     csmd/src/inv/src/inv_dcgm_access.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -177,16 +177,30 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     dcgm_gpu_count = 0; 
 
     // load symbols into function pointers
-    libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so", RTLD_LAZY);
-    if (libdcgm_ptr == nullptr )
+    // Try to load /usr/lib64/libdcgm.so.1 first
+    libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so.1", RTLD_LAZY);
+    if ( libdcgm_ptr == nullptr )
     {
-        LOG(csmd, info) << "dlopen() returned: " << dlerror();
-        LOG(csmd, info) << "Couldn't load libdcgm.so, no GPU inventory will be returned.";
-        dlopen_flag = true;
-        dcgm_init_flag = false;
-        return;
-    } else {
-        LOG(csmd, debug) << "libdcgm_ptr was successful";
+        LOG(csmd, warning) << "dlopen() /usr/lib64/libdcgm.so.1 returned: " << dlerror();
+        
+        // Fall back to trying to load /usr/lib64/libdcgm.so
+        libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so", RTLD_LAZY);
+        if ( libdcgm_ptr == nullptr )
+        {
+            LOG(csmd, warning) << "dlopen() /usr/lib64/libdcgm.so returned: " << dlerror();
+            LOG(csmd, warning) << "Couldn't load libdcgm.so, CSM GPU functions are disabled.";
+            dlopen_flag = true;
+            dcgm_init_flag = false;
+            return;
+        }
+        else
+        {
+            LOG(csmd, info) << "dlopen() successfully loaded libdcgm.so";
+        }
+    } 
+    else 
+    {
+        LOG(csmd, info) << "dlopen() successfully loaded libdcgm.so.1";
     }
 
     // Attempt to dynamically load the symbols needed for the DCGM functions CSM uses
@@ -751,7 +765,7 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
          return false;
       }
 
-      dcgmFieldValue_t csm_allocation_field_values[CSM_ALLOCATION_FIELD_COUNT]; 
+      dcgmFieldValue_v1 csm_allocation_field_values[CSM_ALLOCATION_FIELD_COUNT]; 
 
       // scanning the gpus
       for (int i = 0; i < dcgm_gpu_count; i++)
@@ -828,7 +842,7 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
    
    dcgmReturn_t rc(DCGM_ST_OK);
    
-   dcgmFieldValue_t csm_environmental_field_values[CSM_ENVIRONMENTAL_FIELD_COUNT]; 
+   dcgmFieldValue_v1 csm_environmental_field_values[CSM_ENVIRONMENTAL_FIELD_COUNT]; 
 
    // scan the gpus
    for (int i = 0; i < dcgm_gpu_count; i++)
@@ -888,8 +902,14 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
             }
             else
             {
-               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
-                                  << " unexpected case!";
+               LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                    << " unexpected case!";
+            
+               LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                    << " version = " << csm_environmental_field_values[j].version
+                                    << " fieldId = " << csm_environmental_field_values[j].fieldId
+                                    << " fieldType = " << csm_environmental_field_values[j].fieldType
+                                    << " status = " << csm_environmental_field_values[j].status;
             }
          }
 

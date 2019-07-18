@@ -96,13 +96,11 @@ int LVUuidFile::load(const string& pLVUuidFileName)
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, LF_Load, "load LVUuid file, counter=%ld", l_FL_Counter, 0, 0, 0);
 
-    struct timeval l_StartTime, l_StopTime;
+    struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
     bool l_AllDone = false;
     int l_Attempts = 0;
     int l_ElapsedTime = 0;
     int l_LastConsoleOutput = -1;
-
-    l_StartTime.tv_sec = 0; // resolve gcc optimizer complaint
 
     while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_LVUUIDFILE_LOADTIME))
     {

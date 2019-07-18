@@ -2,7 +2,7 @@
 
     csmnet/tests/buffer_state_test.cc
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -167,7 +167,7 @@ int main( int argc, char **argv )
 
   sockaddr_un s;
   bzero(&s, sizeof(sockaddr_un));
-  memcpy( s.sun_path, CSM_NETWORK_LOCAL_SSOCKET, UNIX_PATH_MAX );
+  memcpy( s.sun_path, CSM_NETWORK_LOCAL_SSOCKET, strnlen( CSM_NETWORK_LOCAL_SSOCKET, UNIX_PATH_MAX ) );
   epbuf_unix.UpdateAddress(&s);
 
   rc += TEST( epbuf_unix.GetAddr().get()->Dump(), CSM_NETWORK_LOCAL_SSOCKET);

@@ -2,7 +2,7 @@
 
     csmd/src/daemon/tests/csm_daemon_echo_test.c
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2019. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -68,7 +68,7 @@ int client()
   else
     rc = 0;
 
-  rc = csm_net_unix_Exit( ep );
+  rc += (csm_net_unix_Exit( ep ) == 0 ? 0 : 1);
   return rc;
 }
 

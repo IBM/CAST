@@ -76,9 +76,9 @@ csm::network::EndpointPTP_base::EndpointPTP_base( const int aSocket,
 
 csm::network::EndpointPTP_base::EndpointPTP_base( const Endpoint *aEP )
 : csm::network::Endpoint( aEP ),
-  _Socket( dynamic_cast<const EndpointPTP_base*>(aEP)->_Socket ),
-  _RecvBufferState( dynamic_cast<const EndpointPTP_base*>(aEP)->_RecvBufferState ),
-  _Heartbeat( dynamic_cast<const EndpointPTP_base*>(aEP)->_Heartbeat )
+  _Socket( (dynamic_cast<const EndpointPTP_base*>(aEP) == nullptr ) ? -1 : dynamic_cast<const EndpointPTP_base*>(aEP)->_Socket ),
+  _RecvBufferState( (dynamic_cast<const EndpointPTP_base*>(aEP) == nullptr ) ? csm::network::EndpointBuffer() : dynamic_cast<const EndpointPTP_base*>(aEP)->_RecvBufferState ),
+  _Heartbeat( (dynamic_cast<const EndpointPTP_base*>(aEP) == nullptr ) ? csm::network::EndpointHeartbeat() : dynamic_cast<const EndpointPTP_base*>(aEP)->_Heartbeat )
 {
   csm::network::EndpointOptionsPTP_base_sptr ptpOptions =
       std::dynamic_pointer_cast<csm::network::EndpointOptionsPTP_base>( _Options );
